@@ -114,11 +114,9 @@ const Welcome: FunctionComponent<ComponentProps> = (
             </p>
             <div className="mt-3 flex justify-center">
               {/*
-               * NORMAL rather than OUTLINE: OUTLINE is carried by a
-               * `btn-outline-secondary` class no stylesheet in this repo
-               * defines, and renders as bare text. This has to still read as
-               * a button - it is the only way out for a user who wants
-               * neither invitation.
+               * A bordered button, centred under the sentence: it is the
+               * only way out for a user who wants neither invitation, so it
+               * has to read as a button.
                */}
               <Button
                 icon={IconProp.Add}

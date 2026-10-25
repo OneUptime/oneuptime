@@ -13,6 +13,7 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import MoreMenu from "../MoreMenu/MoreMenu";
+import { getMoreMenuBareTriggerClassName } from "../MoreMenu/MoreMenuTriggerStyle";
 import MoreMenuDivider from "../MoreMenu/Divider";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import GenericObject from "../../../Types/GenericObject";
@@ -78,10 +79,10 @@ export interface ComponentProps<T extends GenericObject> {
 }
 
 /*
- * OUTLINE and its hover variants are drawn by a `btn-outline-secondary` class
- * that no stylesheet defines, so they render as bare text. That was tolerable
- * in a strip of buttons; as the row's one button, sat beside a bare ⋯, it
- * reads as a stray label. The row's button always looks like a button.
+ * The row's one button is the plain bordered button whatever outline style
+ * its action asked for - every table's row button looks the same - and a
+ * destructive one (HOVER_DANGER_OUTLINE) is drawn red, as a destructive
+ * action is everywhere else on its own.
  */
 const getRowButtonStyle: (style: ButtonStyleType) => ButtonStyleType = (
   style: ButtonStyleType,
@@ -368,15 +369,8 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
             <button
               type="button"
               data-testid="row-actions-more-button"
-              /*
-               * A bare ⋯, like the one in a card header: no outline, fill or
-               * shadow until it is hovered. It keeps a transparent border so
-               * it stays the height of the Small row button beside it - that
-               * button's label is text-base below md and text-sm above, so the
-               * trigger's vertical padding steps down at md to keep the two
-               * level.
-               */
-              className="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-1.5 py-1.5 md:py-1 text-gray-500 transition-colors duration-150 ease-out hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              // A bare ⋯, as MoreMenu draws its own (MoreMenuTriggerStyle).
+              className={getMoreMenuBareTriggerClassName(false)}
             >
               <Icon icon={IconProp.EllipsisHorizontal} className="h-5 w-5" />
             </button>

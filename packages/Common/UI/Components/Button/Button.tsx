@@ -34,6 +34,61 @@ export enum ButtonSize {
   Large = "px-4 py-2",
   ExtraSmall = "px-0 py-0",
 }
+
+/*
+ * How a button that cannot be pressed looks - a locked action, a Next with
+ * nothing chosen yet: faded, with the not-allowed cursor, and no hover (the
+ * style leaves its hover classes off). Before, only the filled styles had a
+ * disabled look; a disabled plain or outline button looked exactly like one
+ * that works until it was hovered, so a locked action looked pressable
+ * ("Turn monitoring on", a viewer's Triage again, a Reset the reader may not
+ * make). The filled styles (PRIMARY, SECONDARY, DANGER) fade their fill
+ * instead, which reads the same and keeps their white text legible. A
+ * loading button is busy, not locked: it keeps its look and shows its
+ * spinner.
+ */
+export const BUTTON_DISABLED_CLASS_NAME: string =
+  "cursor-not-allowed opacity-50";
+
+// The cursor a filled style's faded fill comes with.
+export const BUTTON_DISABLED_CURSOR_CLASS_NAME: string = "cursor-not-allowed";
+
+/*
+ * The styles that fade their own fill when disabled; every other style
+ * fades as a whole (BUTTON_DISABLED_CLASS_NAME).
+ */
+export const BUTTON_STYLES_WITH_A_DISABLED_FILL: ReadonlyArray<ButtonStyleType> =
+  [ButtonStyleType.PRIMARY, ButtonStyleType.SECONDARY, ButtonStyleType.DANGER];
+
+/*
+ * OUTLINE: the plain bordered button. NORMAL's border, fill, text, shadow,
+ * hover and focus ring, sized to its label at every width - NORMAL is as
+ * wide as a phone's screen and keeps a dialog footer's margin (md:ml-3),
+ * which a button in a row of controls, a card or a notice does not want.
+ * It used to be two class names no stylesheet defines (a Bootstrap
+ * secondary outline button's, and a pale hover wash's) on a block-level
+ * flex box: some 200 buttons across the product - a network
+ * device's Ping and Traceroute among them - had no border, no hover and no
+ * focus ring, and read as stray words. The HOVER_* outline styles are the
+ * same button whose hover tints it with what it does.
+ */
+export const OUTLINE_BUTTON_CLASS_NAME: string =
+  "inline-flex justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:text-sm";
+
+export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
+  | ButtonStyleType.OUTLINE
+  | ButtonStyleType.HOVER_DANGER_OUTLINE
+  | ButtonStyleType.HOVER_SUCCESS_OUTLINE
+  | ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+  string
+> = {
+  [ButtonStyleType.OUTLINE]: "hover:bg-gray-50",
+  [ButtonStyleType.HOVER_DANGER_OUTLINE]: "hover:bg-red-50 hover:text-red-700",
+  [ButtonStyleType.HOVER_SUCCESS_OUTLINE]:
+    "hover:bg-green-50 hover:text-green-700",
+  [ButtonStyleType.HOVER_PRIMARY_OUTLINE]:
+    "hover:bg-indigo-50 hover:text-indigo-700",
+};
 /* Defining the props that the component will take. */
 
 export interface ComponentProps {
@@ -141,7 +196,9 @@ const Button: FunctionComponent<ComponentProps> = ({
    * action should have. The browser still draws it for anyone moving through
    * the page with the keyboard, which is who it is for.
    */
-  let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+  let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm ${
+    disabled ? "" : "hover:bg-gray-50"
+  } focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   let loadingIconClassName: string = `w-5 h-5 mr-3 -ml-1 mr-1 animate-spin`;
   let iconClassName: string = `w-5 h-5`;
 
@@ -155,7 +212,9 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.LINK) {
-    buttonStyleCssClass = `text-indigo-600 hover:text-indigo-900  space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
+    buttonStyleCssClass = `text-indigo-600 ${
+      disabled ? "" : "hover:text-indigo-900"
+    } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon) {
       buttonStyleCssClass += ` flex`;
@@ -163,7 +222,9 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.SECONDARY_LINK) {
-    buttonStyleCssClass = `text-sm text-gray-400 hover:text-gray-500 space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
+    buttonStyleCssClass = `text-sm text-gray-400 ${
+      disabled ? "" : "hover:text-gray-500"
+    } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon) {
       buttonStyleCssClass += ` flex`;
@@ -218,19 +279,9 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
     buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE
   ) {
-    buttonStyleCssClass = `flex btn-outline-secondary background-very-light-Gray500-on-hover md:text-sm ml-1`;
-
-    if (buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE) {
-      buttonStyleCssClass += ` hover:text-red-500`;
-    }
-
-    if (buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE) {
-      buttonStyleCssClass += ` hover:text-green-500`;
-    }
-
-    if (buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE) {
-      buttonStyleCssClass += ` hover:text-indigo-500`;
-    }
+    buttonStyleCssClass = disabled
+      ? OUTLINE_BUTTON_CLASS_NAME
+      : `${OUTLINE_BUTTON_CLASS_NAME} ${OUTLINE_BUTTON_HOVER_CLASS_NAMES[buttonStyle]}`;
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS) {
@@ -255,6 +306,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${
       disabled ? "" : "hover:bg-yellow-50"
     }   focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+  }
+
+  // Locked: faded as a whole, or by its own fill (see BUTTON_DISABLED_CLASS_NAME).
+  if (disabled) {
+    buttonStyleCssClass += BUTTON_STYLES_WITH_A_DISABLED_FILL.includes(
+      buttonStyle,
+    )
+      ? ` ${BUTTON_DISABLED_CURSOR_CLASS_NAME}`
+      : ` ${BUTTON_DISABLED_CLASS_NAME}`;
   }
 
   // Center the icon against both desktop and taller mobile label lines.
@@ -352,7 +412,15 @@ const Button: FunctionComponent<ComponentProps> = ({
       return (
         <Tooltip text={translatedTooltip}>
           <span
-            className="inline-flex"
+            /*
+             * The button takes no pointer here (see above), so the
+             * not-allowed cursor of a locked one is this wrapper's.
+             */
+            className={
+              disabled
+                ? `inline-flex ${BUTTON_DISABLED_CURSOR_CLASS_NAME}`
+                : "inline-flex"
+            }
             tabIndex={0}
             data-testid={
               dataTestId ? `${dataTestId}-disabled-wrapper` : undefined

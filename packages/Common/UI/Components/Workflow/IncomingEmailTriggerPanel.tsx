@@ -175,12 +175,6 @@ const IncomingEmailTriggerPanel: FunctionComponent<ComponentProps> = (
     props.onResetAddress && !props.resetDisabledReason,
   );
 
-  /*
-   * Button keeps an outline button's colours when it is disabled, so a reset
-   * this user may not make would look like one they can. The tooltip says why.
-   */
-  const disabledLook: string = canReset ? "" : "opacity-50";
-
   type SaveNewAddressFunction = () => Promise<boolean>;
 
   // Resolves whether the new key was saved; a failure is left in saveError.
@@ -318,7 +312,7 @@ const IncomingEmailTriggerPanel: FunctionComponent<ComponentProps> = (
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
-              className={`shrink-0 self-start sm:self-auto ${disabledLook}`}
+              className="shrink-0 self-start sm:self-auto"
               dataTestId="incoming-email-trigger-create-address"
               disabled={!canReset}
               tooltip={props.resetDisabledReason}
@@ -476,7 +470,7 @@ const IncomingEmailTriggerPanel: FunctionComponent<ComponentProps> = (
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
             buttonSize={ButtonSize.Small}
-            className={`shrink-0 self-start sm:self-auto ${disabledLook}`}
+            className="shrink-0 self-start sm:self-auto"
             dataTestId="incoming-email-trigger-reset-address"
             disabled={!canReset}
             tooltip={props.resetDisabledReason}

@@ -246,12 +246,13 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
                     isLink ? ButtonStyleType.LINK : ButtonStyleType.NORMAL
                   }
                   /*
-                   * A locked button is dimmed, so it does not read as the
-                   * way forward the note under it says it is not.
+                   * A locked button is dimmed (Button's disabled look), so it
+                   * does not read as the way forward the note under it says
+                   * it is not.
                    */
-                  className={`${
-                    isLink ? "text-sm font-medium" : "disabled:opacity-60"
-                  }${action.isLoading ? " cursor-wait [&_svg]:animate-spin" : ""}`}
+                  className={`${isLink ? "text-sm font-medium" : ""}${
+                    action.isLoading ? " cursor-wait [&_svg]:animate-spin" : ""
+                  }`}
                   disabled={action.disabled}
                   tooltip={action.tooltip}
                   dataTestId={action.dataTestId}

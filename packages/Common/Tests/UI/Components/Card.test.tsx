@@ -659,11 +659,14 @@ describe("Card header layout", () => {
           );
         }
 
-        // Normal buttons carry md:ml-3, outline ones ml-1: both are cleared.
+        /*
+         * Normal buttons carry a dialog footer's md:ml-3, which the box
+         * clears; an outline button carries no margin of its own.
+         */
         expect(screen.getByText("Edit").closest("button")).toHaveClass(
           "md:ml-3",
         );
-        expect(screen.getByText("Refresh").closest("button")).toHaveClass(
+        expect(screen.getByText("Refresh").closest("button")).not.toHaveClass(
           "ml-1",
         );
         expect(classOf(actions())).toContain("gap-x-3");

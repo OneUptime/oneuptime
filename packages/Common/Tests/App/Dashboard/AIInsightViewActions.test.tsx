@@ -374,8 +374,12 @@ describe("AI insight detail — human actions", () => {
     expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
     // ...and it now looks disabled, rather than swallowing the click silently.
     expect(screen.getByRole("button", { name: "Confirm" })).toHaveClass(
-      "disabled:opacity-50",
+      "opacity-50",
+      "cursor-not-allowed",
     );
+    expect(
+      screen.getByRole("button", { name: "Dismiss" }),
+    ).not.toHaveClass("opacity-50");
     // Dismiss still changes something (the verdict and the status).
     expect(screen.getByRole("button", { name: "Dismiss" })).toBeEnabled();
   });

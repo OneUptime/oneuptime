@@ -121,17 +121,6 @@ const ACTION_ROUTES: Record<InsightAction, string> = {
 };
 
 /*
- * Button paints its own disabled state as `disabled ? "hover:bg-green-50"
- * : ""` — i.e. a disabled OUTLINE/SUCCESS_OUTLINE button is pixel-identical
- * to an enabled one, and the browser silently swallows the click. That is
- * indistinguishable from a broken button, which is exactly how a disabled
- * Confirm reads. These four carry the dashboard's usual disabled styling so
- * a button that cannot act says so before it is pressed.
- */
-const DISABLED_ACTION_CLASS: string =
-  "disabled:cursor-not-allowed disabled:opacity-50";
-
-/*
  * The insight detail: the deterministic evidence (detail markdown written
  * by the detector), the live AI triage panel (same glass-box ChatActivityFeed
  * the AI investigations use), a link to the fix task when one was
@@ -911,7 +900,6 @@ const AIInsightViewPage: FunctionComponent<
                   icon={IconProp.Bell}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  className={DISABLED_ACTION_CLASS}
                   disabled={Boolean(createMonitorDisabledReason)}
                   tooltip={
                     createMonitorDisabledReason ||
@@ -934,7 +922,6 @@ const AIInsightViewPage: FunctionComponent<
                 icon={IconProp.Check}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                 buttonSize={ButtonSize.Small}
-                className={DISABLED_ACTION_CLASS}
                 disabled={isSavingAction || isConfirmNoOp}
                 tooltip={
                   isDismissed
@@ -952,7 +939,6 @@ const AIInsightViewPage: FunctionComponent<
                 icon={IconProp.Close}
                 buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
                 buttonSize={ButtonSize.Small}
-                className={DISABLED_ACTION_CLASS}
                 disabled={isSavingAction || isDismissNoOp}
                 tooltip="Records a Dismissed verdict and closes the insight as noise."
                 onClick={() => {
@@ -967,7 +953,6 @@ const AIInsightViewPage: FunctionComponent<
                   icon={IconProp.Refresh}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  className={DISABLED_ACTION_CLASS}
                   disabled={isSavingAction}
                   tooltip="Undo: puts the insight back in the queue and clears the verdict."
                   onClick={() => {
@@ -982,7 +967,6 @@ const AIInsightViewPage: FunctionComponent<
                   icon={IconProp.CheckCircle}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  className={DISABLED_ACTION_CLASS}
                   disabled={isSavingAction}
                   tooltip="Closes the insight as handled."
                   onClick={() => {

@@ -642,8 +642,8 @@ describe("editing the cases", () => {
 
     expect(addCase).toBeDisabled();
     // A plain button that does nothing reads as broken: it looks off too.
-    expect(addCase).toHaveClass("disabled:opacity-50");
-    expect(addCase).toHaveClass("disabled:cursor-not-allowed");
+    expect(addCase).toHaveClass("opacity-50");
+    expect(addCase).toHaveClass("cursor-not-allowed");
     expect(
       screen.getByText(`A step holds at most ${MAX_SWITCH_CASES} cases.`),
     ).toBeInTheDocument();

@@ -303,10 +303,8 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
           </div>
           <div className="flex flex-shrink-0 items-center gap-2 md:justify-end">
             {/*
-             * NORMAL, not OUTLINE: the OUTLINE style is carried by a
-             * `btn-outline-secondary` class no stylesheet in this repo
-             * defines, so it renders as bare text - and "Decline" reading as
-             * a caption rather than a control is how somebody presses it by
+             * A bordered button beside Accept & Join: "Decline" reading as a
+             * caption rather than a control is how somebody presses it by
              * accident.
              */}
             <Button
