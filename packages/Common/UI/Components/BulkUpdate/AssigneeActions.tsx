@@ -26,6 +26,7 @@ import ActionButtonSchema, {
   RowActionContext,
 } from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
+import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -314,6 +315,7 @@ function useAssigneeActions<T extends BaseModel>(
     title: ASSIGN_TO_ME_TITLE,
     icon: IconProp.User,
     buttonStyleType: ButtonStyleType.OUTLINE,
+    menuGroup: ActionMenuGroup.People,
     placement: ActionButtonPlacement.MoreMenu,
     // Not on a row that is the viewer's already.
     isVisible: (item: T): boolean => {
@@ -343,6 +345,7 @@ function useAssigneeActions<T extends BaseModel>(
     title: ASSIGN_TO_SOMEONE_ELSE_TITLE,
     icon: IconProp.UserPlus,
     buttonStyleType: ButtonStyleType.OUTLINE,
+    menuGroup: ActionMenuGroup.People,
     placement: ActionButtonPlacement.MoreMenu,
     ...lock,
     onClick: (
@@ -361,6 +364,7 @@ function useAssigneeActions<T extends BaseModel>(
     title: ASSIGN_TO_ME_TITLE,
     icon: IconProp.User,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.People,
     resultLabels: ASSIGN_RESULT_LABELS,
     ...lock,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
@@ -376,6 +380,7 @@ function useAssigneeActions<T extends BaseModel>(
     title: ASSIGN_TO_SOMEONE_ELSE_TITLE,
     icon: IconProp.UserPlus,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.People,
     resultLabels: ASSIGN_RESULT_LABELS,
     ...lock,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {

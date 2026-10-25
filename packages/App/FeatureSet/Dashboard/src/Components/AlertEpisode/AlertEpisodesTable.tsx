@@ -91,7 +91,8 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     valueModelType: AlertSeverity,
     title: "Change Severity",
     fieldTitle: "Severity",
-    icon: IconProp.Signal,
+    // The list's own Severity filter wears the same icon.
+    icon: IconProp.Fire,
   });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =

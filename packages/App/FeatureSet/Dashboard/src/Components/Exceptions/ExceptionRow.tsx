@@ -67,6 +67,26 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
   const isResolved: boolean = Boolean(exception.isResolved);
   const isArchived: boolean = Boolean(exception.isArchived);
 
+  /*
+   * Where the exception stands. From sm up it sits at the row's top right,
+   * beside the ⋯; on a phone it leads the service line instead, so the
+   * exception's type and message keep the row's width rather than wrapping
+   * a word to a line between the pill and the menu.
+   */
+  const statusPill: ReactElement = isResolved ? (
+    <span className="whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+      {translator.translateText("Resolved")}
+    </span>
+  ) : isArchived ? (
+    <span className="whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+      {translator.translateText("Archived")}
+    </span>
+  ) : (
+    <span className="whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
+      {translator.translateText("Unresolved")}
+    </span>
+  );
+
   return (
     <div className="group flex items-start transition-colors hover:bg-indigo-50/40 focus-within:bg-indigo-50/60">
       <button
@@ -100,10 +120,16 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               )}
             </div>
 
-            {/* Line 2: service + environment */}
-            <div className="flex items-center gap-2 text-[11px]">
+            {/* Line 2: (on a phone, the status first) service + environment */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
               <span
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-600"
+                className="flex sm:hidden"
+                data-testid="exception-row-status-inline"
+              >
+                {statusPill}
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-600"
                 style={
                   serviceColor
                     ? { borderColor: serviceColor, color: serviceColor }
@@ -117,12 +143,12 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                 {serviceName}
               </span>
               {exception.environment && (
-                <span className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
+                <span className="whitespace-nowrap rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
                   {exception.environment}
                 </span>
               )}
               {exception.fingerprint && (
-                <span className="truncate font-mono text-[10px] text-gray-400">
+                <span className="min-w-0 truncate font-mono text-[10px] text-gray-400">
                   {exception.fingerprint.toString().slice(0, 12)}…
                 </span>
               )}
@@ -181,29 +207,18 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
             </div>
           </div>
 
-          {/* Status pill */}
-          <div className="flex flex-shrink-0 items-center">
-            {isResolved && (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                {translator.translateText("Resolved")}
-              </span>
-            )}
-            {!isResolved && isArchived && (
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                {translator.translateText("Archived")}
-              </span>
-            )}
-            {!isResolved && !isArchived && (
-              <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
-                {translator.translateText("Unresolved")}
-              </span>
-            )}
+          {/* Status pill, from sm up */}
+          <div
+            className="flex flex-shrink-0 items-center max-sm:hidden"
+            data-testid="exception-row-status"
+          >
+            {statusPill}
           </div>
         </div>
       </button>
       {props.actionButtons && props.actionButtons.length > 0 ? (
         <div
-          className="shrink-0 py-2.5 pr-3"
+          className="shrink-0 py-2.5 pr-2 sm:pr-3"
           data-testid="exception-row-actions"
         >
           <RowActions<TelemetryException>

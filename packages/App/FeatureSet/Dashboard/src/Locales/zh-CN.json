@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "已解决 {{count}} 个{{itemName}}",
   "{{count}} {{itemsName}} updated": "已更新 {{count}} 个{{itemsName}}",
   "{{count}} {{itemsName}} updated_one": "已更新 {{count}} 个{{itemName}}",
-  "These people and teams are added as owners of this item.": "这些人员和团队将被添加为此项目的所有者。",
   "{{done}} of {{count}} steps done": "已完成 {{done}}/{{count}} 步",
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "可在 Rule Library 中找到",

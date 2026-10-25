@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{count}} {{itemName}} resolved",
   "{{count}} {{itemsName}} updated": "{{count}} {{itemsName}} updated",
   "{{count}} {{itemsName}} updated_one": "{{count}} {{itemName}} updated",
-  "These people and teams are added as owners of this item.": "These people and teams are added as owners of this item.",
   "{{done}} of {{count}} steps done": "{{done}} of {{count}} steps done",
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "Available in the Rule Library",

@@ -25,6 +25,7 @@ import ActionButtonSchema, {
   RowActionContext,
 } from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
+import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import Field from "../Forms/Types/Field";
@@ -111,15 +112,17 @@ interface PickedOwners {
 
 /*
  * The dialogs' one Owners field: the people picker every owners form uses,
- * people and teams in one list, at least one required.
+ * people and teams in one list, at least one required. A row's dialog
+ * gives it no line of its own: the sentence above the field says already
+ * whose owners these become, and that the row keeps its owners.
  */
-const ownersField: (description: string) => Field<JSONObject> = (
-  description: string,
+const ownersField: (description?: string | undefined) => Field<JSONObject> = (
+  description?: string | undefined,
 ): Field<JSONObject> => {
   return getOwnersFormField<JSONObject>({
     usersKey: "ownerUserIds",
     teamsKey: "ownerTeamIds",
-    description: description,
+    ...(description ? { description: description } : {}),
     required: true,
   });
 };
@@ -490,6 +493,7 @@ function useBulkOwnerActions<T extends BaseModel>(
   const assignToMeBulkAction: BulkActionButtonSchema<T> = {
     title: ASSIGN_TO_ME_TITLE,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.People,
     icon: IconProp.User,
     resultLabels: ASSIGN_TO_ME_RESULT_LABELS,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
@@ -513,6 +517,7 @@ function useBulkOwnerActions<T extends BaseModel>(
   const addOwnerAction: BulkActionButtonSchema<T> = {
     title: "Add Owner",
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.People,
     icon: IconProp.UserPlus,
     /*
      * The two modals are independent booleans rendered as sibling
@@ -533,6 +538,7 @@ function useBulkOwnerActions<T extends BaseModel>(
   const removeOwnerAction: BulkActionButtonSchema<T> = {
     title: "Remove Owner",
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.People,
     icon: IconProp.UserMinus,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
@@ -556,6 +562,7 @@ function useBulkOwnerActions<T extends BaseModel>(
     title: ASSIGN_TO_ME_TITLE,
     icon: IconProp.User,
     buttonStyleType: ButtonStyleType.OUTLINE,
+    menuGroup: ActionMenuGroup.People,
     // In the ⋯ menu: the row's one button stays View.
     placement: ActionButtonPlacement.MoreMenu,
     isVisible: (item: T): boolean => {
@@ -582,6 +589,7 @@ function useBulkOwnerActions<T extends BaseModel>(
     title: "Add Owner",
     icon: IconProp.UserPlus,
     buttonStyleType: ButtonStyleType.OUTLINE,
+    menuGroup: ActionMenuGroup.People,
     placement: ActionButtonPlacement.MoreMenu,
     ...lockFor(addGate),
     onClick: (
@@ -637,13 +645,7 @@ function useBulkOwnerActions<T extends BaseModel>(
             target.context?.refresh();
           }}
           formProps={{
-            fields: [
-              ownersField(
-                translationKey(
-                  "These people and teams are added as owners of this item.",
-                ),
-              ),
-            ],
+            fields: [ownersField()],
           }}
         />
       )}

@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{count}} {{itemName}} opgelost",
   "{{count}} {{itemsName}} updated": "{{count}} {{itemsName}} bijgewerkt",
   "{{count}} {{itemsName}} updated_one": "{{count}} {{itemName}} bijgewerkt",
-  "These people and teams are added as owners of this item.": "Deze personen en teams worden als eigenaren van dit item toegevoegd.",
   "{{done}} of {{count}} steps done": "{{done}} van {{count}} stappen klaar",
   "{{done}} of {{count}} steps done_one": "{{done}} van {{count}} stap klaar",
   "Available in the Rule Library": "Beschikbaar in de Rule Library",

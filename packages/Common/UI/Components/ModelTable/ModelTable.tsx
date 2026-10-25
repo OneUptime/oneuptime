@@ -27,6 +27,7 @@ import {
 } from "../BulkUpdate/BulkUpdateForm";
 import ImportModelsModal from "../ImportExport/ImportModelsModal";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import {
   BulkSwitchActionsConfig,
   buildSwitchActions,
@@ -124,6 +125,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
         title: "Export JSON",
         buttonStyleType: ButtonStyleType.NORMAL,
         icon: IconProp.Download,
+        // Beside Export CSV, in a run of its own (ActionMenuGroup).
+        menuGroup: ActionMenuGroup.Export,
         onClick: async ({
           items,
           onProgressInfo,

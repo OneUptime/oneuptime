@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{itemName}}: {{count}} 件解決",
   "{{count}} {{itemsName}} updated": "{{itemsName}}: {{count}} 件更新",
   "{{count}} {{itemsName}} updated_one": "{{itemName}}: {{count}} 件更新",
-  "These people and teams are added as owners of this item.": "これらのユーザーとチームがこの項目の所有者として追加されます。",
   "{{done}} of {{count}} steps done": "{{count}} ステップ中 {{done}} 完了",
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "Rule Library で利用可能",

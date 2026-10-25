@@ -9,6 +9,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
   RowActionContext,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ActionMenuGroup } from "Common/UI/Components/ActionButton/ActionMenuGroup";
 import {
   BULK_ITEM_CHANGED,
   BulkItemOutcome,
@@ -127,6 +128,9 @@ interface StateDialog<T extends BaseModel> {
   bulkActionProps?: BulkActionOnClickProps<T> | undefined;
   context?: RowActionContext | undefined;
 }
+
+// Change State's icon: the flag every event list's State filter wears.
+export const CHANGE_STATE_ICON: IconProp = IconProp.Flag;
 
 const QUICK_MOVE_ICONS: Record<EventStateQuickMove, IconProp> = {
   [EventStateQuickMove.Acknowledge]: IconProp.Check,
@@ -444,6 +448,7 @@ function useEventStateActions<T extends BaseModel>(
       title: title,
       icon: QUICK_MOVE_ICONS[move],
       buttonStyleType: ButtonStyleType.OUTLINE,
+      menuGroup: ActionMenuGroup.Change,
       // In the ⋯ menu: the row's one button stays View.
       placement: ActionButtonPlacement.MoreMenu,
       isVisible: (item: T): boolean => {
@@ -477,6 +482,7 @@ function useEventStateActions<T extends BaseModel>(
       title: title,
       icon: QUICK_MOVE_ICONS[move],
       buttonStyleType: ButtonStyleType.NORMAL,
+      menuGroup: ActionMenuGroup.Change,
       resultLabels:
         QUICK_MOVE_RESULT_LABELS[move] || VALUE_CHANGE_RESULT_LABELS,
       // Nothing to do when every selected row is there already.
@@ -513,10 +519,15 @@ function useEventStateActions<T extends BaseModel>(
     });
   }
 
+  /*
+   * A flag, as the list's own State filter wears: the same idea, drawn the
+   * same way on the page.
+   */
   rowActions.push({
     title: "Change State",
-    icon: IconProp.TransparentCube,
+    icon: CHANGE_STATE_ICON,
     buttonStyleType: ButtonStyleType.OUTLINE,
+    menuGroup: ActionMenuGroup.Change,
     placement: ActionButtonPlacement.MoreMenu,
     // Only when there is a state to move to.
     isVisible: (item: T): boolean => {
@@ -550,7 +561,8 @@ function useEventStateActions<T extends BaseModel>(
   bulkActions.push({
     title: "Change State",
     buttonStyleType: ButtonStyleType.NORMAL,
-    icon: IconProp.TransparentCube,
+    menuGroup: ActionMenuGroup.Change,
+    icon: CHANGE_STATE_ICON,
     resultLabels: VALUE_CHANGE_RESULT_LABELS,
     ...lock,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
@@ -674,9 +686,18 @@ function useEventStateActions<T extends BaseModel>(
             ? getStateId(dialog.targetState)
             : undefined
         }
-        itemNames={dialog.items.map((item: T): string => {
-          return nameOf(item);
-        })}
+        /*
+         * The records it lands on, named above the fields - but not for one
+         * row's Change State, whose sentence names the row already ("Pick
+         * the next state for Checkout API down.").
+         */
+        itemNames={
+          isRow && !dialog.move
+            ? undefined
+            : dialog.items.map((item: T): string => {
+                return nameOf(item);
+              })
+        }
         noteType={noteType}
         noteTitle={
           isRow

@@ -84,6 +84,13 @@ interface ActionButtonSchema<T extends GenericObject> {
   getDisabledReason?: ((item: T) => string | undefined) | undefined;
   placement?: ActionButtonPlacement | undefined;
   /*
+   * The kind of action this is (ActionMenuGroup, or a list's own kind): the
+   * ⋯ menu draws a gap where one kind ends and the next begins, so a long
+   * menu reads in short runs. Left out, the action sits with its unnamed
+   * neighbours, as every action always has.
+   */
+  menuGroup?: string | undefined;
+  /*
    * The question to ask before the action runs on this row, or undefined to
    * run it at once - Disable on a workflow says what a disabled workflow
    * stops doing, as the bulk Disable does; Enable needs no question. The

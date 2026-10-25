@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{count}} {{itemName}} løst",
   "{{count}} {{itemsName}} updated": "{{count}} {{itemsName}} oppdatert",
   "{{count}} {{itemsName}} updated_one": "{{count}} {{itemName}} oppdatert",
-  "These people and teams are added as owners of this item.": "Disse personene og teamene legges til som eiere av dette elementet.",
   "{{done}} of {{count}} steps done": "{{done}} av {{count}} trinn fullført",
   "{{done}} of {{count}} steps done_one": "{{done}} av {{count}} trinn fullført",
   "Available in the Rule Library": "Tilgjengelig i Rule Library",

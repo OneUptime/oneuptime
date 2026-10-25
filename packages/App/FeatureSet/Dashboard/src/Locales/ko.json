@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{itemName}} {{count}}개 해결됨",
   "{{count}} {{itemsName}} updated": "{{itemsName}} {{count}}개 업데이트됨",
   "{{count}} {{itemsName}} updated_one": "{{itemName}} {{count}}개 업데이트됨",
-  "These people and teams are added as owners of this item.": "이 사람과 팀이 이 항목의 소유자로 추가됩니다.",
   "{{done}} of {{count}} steps done": "{{count}}단계 중 {{done}}단계 완료",
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "Rule Library에 있음",

@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{count}} {{itemName}} सुलझाया गया",
   "{{count}} {{itemsName}} updated": "{{count}} {{itemsName}} अपडेट किए गए",
   "{{count}} {{itemsName}} updated_one": "{{count}} {{itemName}} अपडेट किया गया",
-  "These people and teams are added as owners of this item.": "ये लोग और टीमें इस आइटम के स्वामी के रूप में जोड़ी जाती हैं।",
   "{{done}} of {{count}} steps done": "{{count}} में से {{done}} चरण पूरे",
   "{{done}} of {{count}} steps done_one": "{{count}} में से {{done}} चरण पूरा",
   "Available in the Rule Library": "Rule Library में उपलब्ध",

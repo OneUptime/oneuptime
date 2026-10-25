@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "Устранено: {{count}} ({{itemName}})",
   "{{count}} {{itemsName}} updated": "Обновлено: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} updated_one": "Обновлено: {{count}} ({{itemName}})",
-  "These people and teams are added as owners of this item.": "Эти люди и команды добавляются владельцами этого элемента.",
   "{{done}} of {{count}} steps done": "Выполнено шагов: {{done}} из {{count}}",
   "{{done}} of {{count}} steps done_one": "Выполнено шагов: {{done}} из {{count}}",
   "Available in the Rule Library": "Есть в Rule Library",

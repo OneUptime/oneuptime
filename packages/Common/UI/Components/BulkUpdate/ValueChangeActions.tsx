@@ -30,7 +30,9 @@ import ActionButtonSchema, {
   RowActionContext,
 } from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
+import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import { DropdownOption } from "../Dropdown/Dropdown";
+import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import {
@@ -445,6 +447,7 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
     title: config.title,
     icon: config.icon,
     buttonStyleType: ButtonStyleType.OUTLINE,
+    menuGroup: ActionMenuGroup.Change,
     // In the ⋯ menu: the row's one button stays View.
     placement: ActionButtonPlacement.MoreMenu,
     ...lock,
@@ -463,6 +466,7 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
     title: config.title,
     icon: config.icon,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.Change,
     resultLabels: VALUE_CHANGE_RESULT_LABELS,
     ...lock,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
@@ -504,6 +508,24 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
       onSubmit={async (formData: JSONObject) => {
         await submit(String(formData[PICKED_VALUE_KEY] || ""));
       }}
+      /*
+       * A selection's dialog names the rows it changes, as its neighbours
+       * in Bulk Actions do (a state move's); one row's sentence names it.
+       */
+      beforeFormElement={
+        dialog.kind === "bulk" ? (
+          <DeleteItemNames
+            names={dialog.items
+              .map((item: T): string => {
+                return nameOf(item);
+              })
+              .filter((name: string): boolean => {
+                return Boolean(name);
+              })}
+            totalCount={dialog.items.length}
+          />
+        ) : undefined
+      }
       formProps={{
         name: `change-${config.idColumn}`,
         // A row's dialog opens on the value the row has now.

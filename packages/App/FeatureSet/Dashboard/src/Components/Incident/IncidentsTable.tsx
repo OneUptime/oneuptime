@@ -194,7 +194,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     valueModelType: IncidentSeverity,
     title: "Change Severity",
     fieldTitle: "Severity",
-    icon: IconProp.Signal,
+    // The list's own Severity filter wears the same icon.
+    icon: IconProp.Fire,
   });
 
   // Add to Existing Episode / Add to New Episode.

@@ -34586,7 +34586,6 @@
   "{{count}} {{itemsName}} resolved_one": "{{count}} مورد رفع شد ({{itemName}})",
   "{{count}} {{itemsName}} updated": "{{count}} مورد به‌روزرسانی شد ({{itemsName}})",
   "{{count}} {{itemsName}} updated_one": "{{count}} مورد به‌روزرسانی شد ({{itemName}})",
-  "These people and teams are added as owners of this item.": "این افراد و تیم‌ها به‌عنوان مالک این مورد افزوده می‌شوند.",
   "{{done}} of {{count}} steps done": "{{done}} از {{count}} گام انجام شد",
   "{{done}} of {{count}} steps done_one": "{{done}} از {{count}} گام انجام شد",
   "Available in the Rule Library": "در Rule Library موجود است",

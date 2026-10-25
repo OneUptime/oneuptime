@@ -729,11 +729,16 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     setBulkActionProps(null);
   };
 
+  // Add Probe and Remove Probe sit together in Bulk Actions (ActionMenuGroup).
+  const PROBE_MENU_GROUP: string = "probes";
+
   const getBulkAddProbesAction: () => BulkActionButtonSchema<Monitor> =
     (): BulkActionButtonSchema<Monitor> => {
       return {
         title: "Add Probe",
         buttonStyleType: ButtonStyleType.NORMAL,
+        // With Remove Probe, a run of its own in Bulk Actions.
+        menuGroup: PROBE_MENU_GROUP,
         icon: IconProp.Signal,
         onClick: async (
           actionProps: BulkActionOnClickProps<Monitor>,
@@ -749,6 +754,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       return {
         title: "Remove Probe",
         buttonStyleType: ButtonStyleType.NORMAL,
+        menuGroup: PROBE_MENU_GROUP,
         icon: IconProp.Close,
         onClick: async (
           actionProps: BulkActionOnClickProps<Monitor>,
