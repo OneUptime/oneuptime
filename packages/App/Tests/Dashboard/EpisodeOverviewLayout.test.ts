@@ -506,9 +506,12 @@ describe("episode overview layout", () => {
       expect(ownersFact.slice(0, 300)).toContain(
         `RouteMap[${page.ownersPage}] as Route`,
       );
-      // While it is open, to a reader who may add an owner.
-      expect(ownersFact.slice(0, 300)).toContain(
-        "canAddOwners: !timing.isResolved && owners.canAddOwners,",
+      /*
+       * While it is open, to a reader who may add an owner - right there:
+       * the owners read again, and the episode's feed when one was added.
+       */
+      expect(ownersFact.slice(0, 700)).toContain(
+        "addOwners: !timing.isResolved && owners.canAddOwners ? { target: owners.target, onOwnersChanged: async (change: OwnersChange): Promise<void> => { if (change.wasAdded) { setContentRefreshToken((token: number): number => { return token + 1; }); } await owners.refresh(); }, } : undefined,",
       );
       expect(source).toContain(
         "<ChangeEpisodeState episodeId={modelId} peopleFacts={peopleFacts}",
@@ -520,16 +523,25 @@ describe("episode overview layout", () => {
     const incident: string = readSquashed(EPISODE_PAGES[0]!.pagePath);
     const alert: string = readSquashed(EPISODE_PAGES[1]!.pagePath);
 
+    /*
+     * Assign gives the role right there, to a reader who may give one: the
+     * episode's role row, the person named at once, the roles card and the
+     * episode's feed read again.
+     */
     expect(incident).toContain(
-      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding( rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined, ); const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole ? undefined : () => { roleAssign.requestAssign(primaryRole.role.id); }, });",
+      "const mayAssignRoles: boolean = PermissionGate.check( new IncidentEpisodeRoleMember(), ModelAction.Create, ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const episodeId: string = modelIdString; await assignIncidentEpisodeRole({ incidentEpisodeId: new ObjectID(episodeId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
     );
-    // Assign opens the commander's picker in the episode's roles card.
+    expect(incident).toContain("withRoleGiven({");
     expect(incident).toContain(
-      "const roleAssign: RoleAssignRequestState = useRoleAssignRequest();",
+      "setRolesRefreshToken((token: number): number => { return token + 1; });",
     );
     expect(incident).toContain(
-      'headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded} assignRequest={roleAssign.request}',
+      'headerLayout="stacked" onRolesLoaded={onRolesLoaded} refreshToken={rolesRefreshToken}',
     );
+    // Nothing takes the reader to the roles card any more.
+    expect(incident).not.toContain("useRoleAssignRequest");
+    expect(incident).not.toContain("EVENT_ROLES_CARD_ID");
+    expect(incident).not.toContain("assignRequest");
     // The commander first, then the owners.
     expect(
       indexOfOrFail(incident, "peopleFacts.push(commanderFact);"),

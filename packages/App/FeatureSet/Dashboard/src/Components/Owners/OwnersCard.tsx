@@ -526,7 +526,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                       type="button"
                       disabled={true}
                       aria-disabled={true}
-                      className="pointer-events-none inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-indigo-300 px-3 py-1.5 text-sm font-medium text-white shadow-sm"
+                      className="pointer-events-none inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white opacity-50 shadow-sm"
                     >
                       <Icon
                         icon={IconProp.Lock}

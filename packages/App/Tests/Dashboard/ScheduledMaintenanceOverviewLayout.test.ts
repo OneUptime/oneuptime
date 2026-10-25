@@ -206,9 +206,13 @@ describe("scheduled maintenance overview: header", () => {
     expect(page).toContain(
       "RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route",
     );
-    // Until it is over, to a reader who may add an owner.
+    /*
+     * Until it is over, to a reader who may add an owner - right there, in
+     * the Add owners list (no page to go to): the owners read again, and the
+     * feed when one was added.
+     */
     expect(page).toContain(
-      "canAddOwners: !isEventOver && owners.canAddOwners,",
+      "addOwners: !isEventOver && owners.canAddOwners ? { target: owners.target, onOwnersChanged: async (change: OwnersChange): Promise<void> => { if (change.wasAdded) { setFeedRefreshToken((token: number) => { return token + 1; }); } await owners.refresh(); }, } : undefined,",
     );
     expect(page).toContain("statusPages: { _id: true, name: true, },");
     expect(page).toContain("createdByUser: { name: true, email: true, },");
@@ -363,8 +367,11 @@ describe("scheduled maintenance overview: columns", () => {
 
   test("refreshes the feed after state changes and edits", () => {
     expect(page).toContain("refreshToken={feedRefreshToken}");
-    // State changes, two edits, and people added to the event's channel.
-    expect(count(page, "setFeedRefreshToken((token: number) => {")).toBe(4);
+    /*
+     * State changes, two edits, people added to the event's channel, and
+     * owners added from the header.
+     */
+    expect(count(page, "setFeedRefreshToken((token: number) => {")).toBe(5);
     expect(feed).toContain("refreshToken?: number | undefined;");
     expect(feed).toContain("refreshToken: props.refreshToken,");
   });
