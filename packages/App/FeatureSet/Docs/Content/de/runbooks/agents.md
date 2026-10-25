@@ -61,6 +61,7 @@ Globale Runner sind die Runner, die OneUptime für jedes Projekt betreibt. Ein J
 | Was ein Schritt erreicht | Öffentliche Internetadressen | Was sein Host erreicht |
 | Längste Laufzeit eines Schritts | 5 Minuten | 1 Stunde |
 | Geheime Variablen | Die, die Sie globale Runner nutzen lassen | Die, die ihn aufführen |
+| Bash-Befehle von OneUptime AI | Nie | Für die KI-Regeln, die ihn wählen |
 
 Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Schritt von allen anderen getrennt gehalten:
 

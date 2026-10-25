@@ -9,7 +9,10 @@ import {
 import { dashboardLocale } from "./DocsDashboardLabels";
 import { AUTO_REMEDIATION_MORE_FIELDS_COPY } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
 import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
-import { REMEDIATION_NO_RUNNER_PLACEHOLDER } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import {
+  GLOBAL_RUNNER_CHOICE_LABEL,
+  REMEDIATION_NO_RUNNER_PLACEHOLDER,
+} from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   AUTOMATIC_FIX_SWITCH_COLUMNS,
@@ -159,12 +162,24 @@ describe("the upgrade note", () => {
     );
   });
 
-  it("says a rule's Runner lists Runners only, and what a rule that picked none reads", () => {
-    expect(note).toContain("A rule's **Runner** lists your own Runners only.");
+  /*
+   * "If there are no runners, it should use the global runner by default" -
+   * the maintainer. A rule that picked none reads Global Runner, as the
+   * picker draws it, and OneUptime AI runs no Bash commands there.
+   */
+  it("says a rule's Runner lists your Runners and the Global Runner, and what a rule that picked none reads", () => {
+    expect(note).toContain(
+      `A rule's **Runner** lists your own Runners and **${GLOBAL_RUNNER_CHOICE_LABEL}**.`,
+    );
     expect(note).toContain(
       "commands on the affected cluster or host always go through its AI agent, whatever the rule picks.",
     );
-    expect(note).toContain(`**${REMEDIATION_NO_RUNNER_PLACEHOLDER}**`);
+    expect(note).toContain(
+      `A rule that picked none reads **${GLOBAL_RUNNER_CHOICE_LABEL}** and fixes as before: OneUptime AI runs no Bash commands on a global Runner.`,
+    );
+    // No longer what a rule that picked none reads where there is a Global Runner.
+    expect(note).not.toContain(`reads **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**`);
+    expect(note).not.toContain("lists your own Runners only");
   });
 
   it("tells API and Terraform users which project fields are gone, and the rule fields that hold them now", () => {
@@ -272,7 +287,10 @@ describe("the AI SRE page", () => {
 
   it("lists a rule's Runner, code repositories and pull requests under More fields, as the form draws them", () => {
     expect(rules).toContain(
-      `- **Runner** — where OneUptime AI runs Bash commands for the rule, inside your network. It lists your own Runners, the project's default first, and a new rule starts on the default; with **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**, OneUptime AI runs no commands of its own for the rule.`,
+      `- **Runner** — where OneUptime AI runs Bash commands for the rule. It lists your own Runners and **${GLOBAL_RUNNER_CHOICE_LABEL}**: a new rule starts on the project's default Runner, listed first, or on **${GLOBAL_RUNNER_CHOICE_LABEL}** when the project has no default.`,
+    );
+    expect(rules).toContain(
+      `In a project that does not use global Runners, or on a server that runs none, the field reads **${REMEDIATION_NO_RUNNER_PLACEHOLDER}** instead.`,
     );
     expect(rules).toContain(
       `- **${RULE_CODE_REPOSITORIES_FIELD_COPY.title}** — the repositories OneUptime AI may read while it investigates and fixes, and open pull requests in. With none picked (**${RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}**) it may use every repository connected to the project.`,
@@ -342,6 +360,7 @@ describe("the other pages that name the pull requests", () => {
         RULE_CODE_REPOSITORIES_FIELD_COPY.title,
         RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder,
         REMEDIATION_NO_RUNNER_PLACEHOLDER,
+        GLOBAL_RUNNER_CHOICE_LABEL,
       ]) {
         expect([
           label,
