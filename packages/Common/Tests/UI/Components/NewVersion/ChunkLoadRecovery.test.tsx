@@ -852,7 +852,31 @@ describe("a part of a page whose code did not download (ContainedErrorBoundary)"
   });
 
   describe("drawn as the part draws its own states, never as a box of its own", () => {
-    const CSS_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+    // The stylesheet without its comments: read with indexOf, in one pass.
+    const withoutComments: (css: string) => string = (css: string): string => {
+      let kept: string = "";
+      let index: number = 0;
+
+      while (index < css.length) {
+        const start: number = css.indexOf("/*", index);
+
+        if (start < 0) {
+          kept += css.slice(index);
+          break;
+        }
+
+        kept += css.slice(index, start);
+        const end: number = css.indexOf("*/", start + 2);
+
+        if (end < 0) {
+          break;
+        }
+
+        index = end + 2;
+      }
+
+      return kept;
+    };
 
     const icon: () => HTMLElement | null = (): HTMLElement | null => {
       return screen.queryByTestId("chunk-load-recovery-icon");
@@ -879,17 +903,17 @@ describe("a part of a page whose code did not download (ContainedErrorBoundary)"
         "Loading the latest version...",
       );
       // On the part's own surface: no border, no background of its own.
-      const css: string = (
-        recovery().querySelector("style")!.textContent || ""
-      ).replace(CSS_COMMENT, "");
+      const css: string = withoutComments(
+        recovery().querySelector("style")!.textContent || "",
+      );
       const ruleFor: (selector: string) => string = (
         selector: string,
       ): string => {
         for (const rule of css.split("}")) {
-          const [head, body] = rule.split("{");
+          const [head, declarations] = rule.split("{");
 
           if ((head || "").trim() === selector) {
-            return body || "";
+            return declarations || "";
           }
         }
 
