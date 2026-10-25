@@ -517,7 +517,7 @@ and the explorer's reads follow:
 
 ## A host's and a cluster's Security card
 
-`ResourceSecurityCard.spec.ts` (10 tests, same fixture and command) opens the host and the
+`ResourceSecurityCard.spec.ts` (9 tests, same fixture and command) opens the host and the
 cluster Overview with `?security=`, which has `POST /security-case/resource-security` answer
 what Security Events found about them this week: `news` (the host's three open cases of four,
 128 events, 4 findings at High and a risk of 64; the cluster's one case and 37 events) or
