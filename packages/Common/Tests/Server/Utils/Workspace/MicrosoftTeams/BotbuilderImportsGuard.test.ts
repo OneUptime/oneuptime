@@ -28,6 +28,9 @@ import { REPOSITORY_DIRECTORY } from "../../../../Helpers/TagStripScan";
 const BOTBUILDER_FILE: string =
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Botbuilder.ts";
 const ZOD_NAMES_MODULE: string = "./BotbuilderOnZod4";
+// botframework-connector's serializer models, which MicrosoftTeamsAiAnswer patches.
+const CONNECTOR_MAPPERS: string =
+  "botframework-connector/lib/connectorApi/models/mappers";
 
 interface BotbuilderImport {
   // 1-based.
@@ -263,7 +266,7 @@ describe("the detector finds every way of loading botbuilder", () => {
 });
 
 describe("Botbuilder.ts adds zod's missing names before botbuilder is loaded", () => {
-  test("its first module is BotbuilderOnZod4, then botbuilder, and nothing else", () => {
+  test("its first module is BotbuilderOnZod4, then botbuilder and its serializer models, and nothing else", () => {
     const source: string = fs.readFileSync(
       path.join(REPOSITORY_DIRECTORY, BOTBUILDER_FILE),
       "utf8",
@@ -292,7 +295,11 @@ describe("Botbuilder.ts adds zod's missing names before botbuilder is loaded", (
         return specifier !== undefined;
       });
 
-    expect(modules).toEqual([ZOD_NAMES_MODULE, "botbuilder"]);
+    expect(modules).toEqual([
+      ZOD_NAMES_MODULE,
+      "botbuilder",
+      CONNECTOR_MAPPERS,
+    ]);
 
     // A side-effect import: nothing named is taken, so nothing is elided.
     const first: ts.Statement | undefined = sourceFile.statements.find(
@@ -365,7 +372,10 @@ describe("product code loads botbuilder only through Botbuilder.ts", () => {
       scanned.findings.map((finding: BotbuilderImportFinding): string => {
         return `${finding.file}: ${finding.module}`;
       }),
-    ).toEqual([`${BOTBUILDER_FILE}: botbuilder`]);
+    ).toEqual([
+      `${BOTBUILDER_FILE}: botbuilder`,
+      `${BOTBUILDER_FILE}: ${CONNECTOR_MAPPERS}`,
+    ]);
   });
 
   test("the Teams integration imports botbuilder through it", () => {

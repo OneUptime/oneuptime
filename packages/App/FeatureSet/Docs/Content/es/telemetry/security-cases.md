@@ -88,7 +88,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | Sección del menú lateral | Páginas |
 | --- | --- |
 | **Vista general** | **Vista general**, **Cronología** |
-| **Investigación** | **Detecciones**, **Entidades**, **Ejecuciones de playbooks** |
+| **Investigación** | **Detecciones**, **Entidades**, **Señales conectadas**, **Ejecuciones de playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
@@ -100,6 +100,7 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Cronología**: todo lo que le pasó al caso, con quién lo hizo.
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
+- **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).
 - **Ejecuciones de playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Ejecuciones de playbooks**.
 - **Notas privadas**: lo que el equipo escribió sobre el caso.
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notific
 
 Las opciones siguen las prioridades de caso del proyecto, con sus propios nombres: estas son las de un proyecto nuevo.
 
-No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre la app de OneUptime, y su enlace abre el caso en el navegador.
+No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre el caso en la app OneUptime On-Call (1.7.0 o posterior), donde puedes aprobar o rechazar un paso de playbook en espera, hacerte cargo del caso y cerrarlo. Su enlace abre el caso en el navegador.
 
 ### Publicar en canales de Slack y Microsoft Teams
 

@@ -822,12 +822,17 @@ describe("Settings, Delete and Documentation", () => {
 
   test("Documentation prefills the guide for this row, id included", () => {
     const code: string = readCode("Pages/Database/View/Documentation.tsx");
-    expect(code).toContain("id: modelId.toString(),");
+    // The same target the guide after Add Database is prefilled with.
+    const target: string = readCode(
+      "Pages/Database/Utils/DatabaseDocumentationTarget.ts",
+    );
+    expect(code).toContain("await fetchDatabaseDocumentationTarget(modelId);");
     expect(code).toContain("database={target}");
-    expect(code).toContain(
+    expect(target).toContain("id: id.toString(),");
+    expect(target).toContain(
       "getDatabaseRuntimePlatform(item) === DatabaseRuntimePlatform.Kubernetes",
     );
-    expect(code).toContain("modelType: DatabaseServerEndpoint");
+    expect(target).toContain("modelType: DatabaseServerEndpoint");
   });
 });
 

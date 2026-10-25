@@ -89,9 +89,9 @@ Innerhalb einer Umgebung erhält jeder laufende Task, jede Instanz oder jedes Re
 
 Die eigene Identität der Plattform steht absichtlich an erster Stelle. Ein Sidecar-Collector und das SDK der Anwendung sehen sie beide, und sie übersteht Neustarts. Ein SDK erfindet meist für jeden Prozess eine neue `service.instance.id` (das Node.js SDK tut das standardmäßig), sodass ein Schlüssel darauf einen ECS-Task in zwei Zeilen aufteilen würde. `service.instance.id` wird verwendet, wenn die Plattform keine eigene Identität setzt. Die Spalte **Instanzidentität** unter [Unterstützte Plattformen](#unterstützte-plattformen) nennt das Attribut, das eine typische Einrichtung auf jeder Plattform verwendet.
 
-### Umgebungen, die Sie von Hand anlegen
+### Eine Umgebung hinzufügen
 
-Das ist selten nötig: Die Erfassung legt Umgebungen für Sie an. Um eine vor ihrer Telemetrie anzulegen, öffnen Sie **Cloud → Alle Umgebungen** und klicken Sie auf **Cloud-Ressource erstellen**. Wählen Sie die **Cloud-Plattform** und geben Sie dann **Cloud-Konto-ID** und **Cloud-Region** genau so ein, wie Ihre Telemetrie sie meldet. OneUptime bildet aus diesen drei den Schlüssel `platform|account|region`, und die Erfassung ordnet eine Umgebung allein über ihren Schlüssel zu. Die Umgebung wird so benannt, wie die Erfassung es tun würde; für einen anderen Namen öffnen Sie **Weitere Felder** und tragen ihn unter **Anzeigename** ein.
+Die Erfassung legt Umgebungen für Sie an, Sie müssen also nichts eintippen. Öffnen Sie **Cloud → Alle Umgebungen** und klicken Sie auf **Cloud-Umgebung hinzufügen**: Wählen Sie, wo Ihre App läuft, und die Anleitung zeigt die OpenTelemetry-Einstellungen dieser Plattform, mit Ihrer OneUptime-URL und Ihrem Ingestion-Schlüssel bereits eingesetzt. Der letzte Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten der Umgebung eingetroffen sind, und verlinkt auf sie. Für einen anderen Namen wählen Sie auf der Karte **Ressourcendetails** der Seite **Einstellungen** der Umgebung **Details bearbeiten** und tragen ihn unter **Anzeigename** ein.
 
 ## Was keine Cloud-Umgebung ist
 

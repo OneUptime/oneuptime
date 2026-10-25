@@ -1,3 +1,4 @@
+import { SecurityConnectionKind } from "../../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   SECURITY_CASE_TEMPLATE_PLACEHOLDERS,
@@ -8,6 +9,7 @@ import {
   detectionAddedMarkdown,
   detectionOverflowMarkdown,
   detectionRuleMatchMarkdown,
+  incidentDeclaredFromCaseMarkdown,
   playbookFinishedMarkdown,
   playbookStartedMarkdown,
   priorityChangedMarkdown,
@@ -193,6 +195,44 @@ describe("feed sentences", () => {
         isApproved: false,
       }).toString(),
     ).toContain("ends the run");
+  });
+
+  test("an incident a case declared names the case, and what it was linked to because the case names it", () => {
+    expect(
+      incidentDeclaredFromCaseMarkdown({
+        caseNumber: "SEC-12",
+        caseUrl:
+          "https://oneuptime.example/dashboard/p/security-events/cases/c",
+        linked: [],
+      }).toString(),
+    ).toBe(
+      "🛡️ Declared from security case [SEC-12](https://oneuptime.example/dashboard/p/security-events/cases/c).",
+    );
+
+    expect(
+      incidentDeclaredFromCaseMarkdown({
+        caseNumber: "SEC-12",
+        caseUrl: "https://oneuptime.example/c",
+        linked: [
+          { kind: SecurityConnectionKind.Host, name: "web-1" },
+          { kind: SecurityConnectionKind.KubernetesCluster, name: "prod" },
+          { kind: SecurityConnectionKind.Service, name: "checkout" },
+        ],
+      }).toString(),
+    ).toBe(
+      "🛡️ Declared from security case [SEC-12](https://oneuptime.example/c). Resources affected, as the case names them: Host **web-1**, Kubernetes cluster **prod**, Service **checkout**.",
+    );
+
+    // A record's name is whatever its agent reported: text, never a link.
+    assertInert(
+      incidentDeclaredFromCaseMarkdown({
+        caseNumber: "SEC-12",
+        caseUrl: "https://oneuptime.example/c",
+        linked: [{ kind: SecurityConnectionKind.Host, name: HOSTILE }],
+      })
+        .toString()
+        .replace("[SEC-12](https://oneuptime.example/c)", "SEC-12"),
+    );
   });
 });
 

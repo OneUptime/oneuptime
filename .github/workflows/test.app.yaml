@@ -501,14 +501,19 @@ jobs:
           # the new version, a page whose code is gone updating into the same
           # address, unsaved changes, offline, a server restarting, a part gone
           # for good - at 1280 and 390 pixels, dark, German and Persian) joined
-          # them the same day, the lightest group: about 16. Shared UI (about
-          # 2 minutes locally with its bundle, Chromium only: every button
-          # style pressable, locked and busy, a menu's own ⋯, a dialog's first
-          # focus once its form draws, the Duplicate, Reset and Delete cards on
-          # a phone and beside a side menu, open sections at their full
-          # height, the pills, stat tiles and chips, and a team's avatar on a
-          # dark card - at 1280 and 390 pixels, dark, German, Persian,
-          # Japanese and Chinese) joined them later that day: about 19.
+          # them the same day, the lightest group: about 16. Resource
+          # Onboarding (about a minute locally with its bundle, Chromium only:
+          # the Add dialogs and first-run guides of the Kubernetes, IoT and
+          # Serverless lists, and the guides Create opens on the RUM,
+          # Databases and Queues lists, at 1440 and 390 pixels, dark and
+          # German) joined them on 2026-10-25: about 17. Shared UI (about 2
+          # minutes locally with its bundle, Chromium only: every button style
+          # pressable, locked and busy, a menu's own ⋯, a dialog's first focus
+          # once its form draws, the Duplicate, Reset and Delete cards on a
+          # phone and beside a side menu, open sections at their full height,
+          # the pills, stat tiles and chips, and a team's avatar on a dark
+          # card - at 1280 and 390 pixels, dark, German, Persian, Japanese and
+          # Chinese) joined them later that day: about 19.5.
           - group: 8
             browsers: chromium
             suites: >-
@@ -516,6 +521,7 @@ jobs:
               test-dashboard-widget-sort-ui
               test-cloud-connect-ui
               test-host-collectors-ui
+              test-resource-onboarding-ui
               test-vmware-host-page-ui
               test-public-addresses-ui
               test-security-events-empty-states-ui
@@ -808,6 +814,8 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
+            output/playwright/resource-onboarding-ui/*.png
+            output/playwright/resource-onboarding-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
             output/playwright/acknowledgement-timeout-ui/*.png

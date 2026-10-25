@@ -144,6 +144,11 @@ const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 const RIGHT_ARROW: string = "→";
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
+/*
+ * A version number as OneUptime writes one: 14.0.64. It starts only at a
+ * digit with no digit before it, so it is tried once per number.
+ */
+const VERSION_NUMBER: RegExp = /(?<!\d)\d+\.\d+\.\d+/g;
 // A word of four Latin letters or more: what an untranslated line is made of.
 const LATIN_WORD: RegExp = /[A-Za-z]{4,}/g;
 const FENCE_LINE: RegExp = /^\s*```/;
@@ -265,6 +270,31 @@ function numbersIn(text: string): Array<string> {
       return match[0];
     })
     .sort();
+}
+
+/*
+ * The version numbers each line of a page states, as "<line>: <versions>",
+ * in Latin digits, code and link targets left out (their own checks hold
+ * them word for word). A reader installs or compares a version as written,
+ * so a translation states the English line's versions on that line.
+ */
+function versionsByLine(markdown: string): Array<string> {
+  return markdown
+    .split("\n")
+    .map((line: string, index: number): string => {
+      const versions: Array<string> = Array.from(
+        toLatinDigits(
+          line.replace(INLINE_CODE_SPAN, " ").replace(LINK_TARGET, "]"),
+        ).matchAll(VERSION_NUMBER),
+      ).map((match: RegExpMatchArray): string => {
+        return match[0];
+      });
+
+      return versions.length > 0 ? `${index + 1}: ${versions.join(", ")}` : "";
+    })
+    .filter((line: string): boolean => {
+      return line.length > 0;
+    });
 }
 
 // The widest line of any label of the page's diagrams, in this language.
@@ -671,6 +701,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       );
     });
 
+    it("states every version number the English page states, on the English one's line", () => {
+      expect(versionsByLine(readPage(language, entry.page))).toEqual(
+        versionsByLine(english),
+      );
+    });
+
     it("keeps the tabs' labels, which name products and systems", () => {
       expect(tabLabels(readPage(language, entry.page))).toEqual(
         tabLabels(english),
@@ -906,6 +942,28 @@ describe("the helpers, on these pages' shapes", () => {
     expect(numbersIn("تا ۱۰٬۰۰۰")).toEqual(["10000"]);
     expect(numbersIn("bis zu 10.000")).toEqual(["10000"]);
     expect(numbersIn("`--limit 50` gives 2 pages")).toEqual(["2"]);
+  });
+
+  it("read the version numbers on each line, in any digits, code and link targets left out", () => {
+    expect(
+      versionsByLine(
+        [
+          "Versions before 14.0.64 stop.",
+          "",
+          "Run `npm install -g @oneuptime/cli@14.0.63`, then read [the guide](/docs/14.0.1).",
+          "From 10.0.5 to 14.0.63, and 1.0.0.",
+        ].join("\n"),
+      ),
+    ).toEqual(["1: 14.0.64", "4: 10.0.5, 14.0.63, 1.0.0"]);
+    // Persian digits are read as the Latin ones, and a number is not a version.
+    expect(versionsByLine("نسخه‌های پیش از ۱۴.۰.۶۴، در 2 دقیقه")).toEqual([
+      "1: 14.0.64",
+    ]);
+    // A long run of digits is read in time in line with its length.
+    const started: number = Date.now();
+
+    expect(versionsByLine(`${"1".repeat(400000)}.`)).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 
   it("find an untranslated line of prose, but not a line of names or code", () => {

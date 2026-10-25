@@ -925,7 +925,21 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
   ).toHaveCount(0);
   await modal.getByRole("button", { name: "Create RUM Application" }).click();
 
-  /* The modal closes only on a successful create. */
+  /*
+   * The form closes only on a successful create, and the application's
+   * setup guide opens on its own (RumApplicationAddedModal): the snippet
+   * carries its app name. Done leaves the list.
+   */
+  await page
+    .getByTestId("resource-added-modal")
+    .waitFor({ state: "visible", timeout: 60000 });
+  await expect(page.getByTestId("resource-added-note")).toContainText(
+    data.appIdentifier,
+  );
+  await page
+    .getByTestId("modal")
+    .getByRole("button", { name: "Done", exact: true })
+    .click();
   await page.getByTestId("modal").waitFor({ state: "hidden", timeout: 60000 });
 
   // Named after its app name, as a discovered application is.

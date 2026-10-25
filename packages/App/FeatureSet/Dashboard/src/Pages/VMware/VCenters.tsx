@@ -23,6 +23,8 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import Navigation from "Common/UI/Utils/Navigation";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -166,8 +168,24 @@ const VMwareVCenters: FunctionComponent<
         onFetchSuccess={(data: Array<VMwareVCenter>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: VMwareVCenter): Promise<VMwareVCenter> => {
+        onCreateSuccess={(
+          item: VMwareVCenter,
+          modalType?: ModalType,
+        ): Promise<VMwareVCenter> => {
           firstRecordWatch.onRecordCreated();
+          /*
+           * Its page is where the first collection shows: the status card
+           * there says whether the probe got in, and offers "Trust this
+           * certificate" for a certificate nobody trusted yet.
+           */
+          if (item._id && modalType !== ModalType.Edit) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW] as Route,
+                { modelId: new ObjectID(item._id.toString()) },
+              ),
+            );
+          }
           return Promise.resolve(item);
         }}
         isDeleteable={true}

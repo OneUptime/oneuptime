@@ -112,7 +112,7 @@ Abra a **Visão geral** de cada ambiente: a **Chave do ambiente** dele mostra qu
 
 ## Um ambiente criado à mão nunca é associado
 
-A ingestão associa um ambiente só pela chave dele, e a chave precisa ser exatamente `platform|account|region`, como `aws_ecs|123456789012|us-east-1`: o mesmo valor de plataforma, ID da conta e região que a telemetria traz. O formulário de criação (**Criar: Recurso de nuvem** em **Nuvem → All Environments**) monta a chave a partir dos campos **Plataforma de nuvem**, **ID da conta de nuvem** e **Região de nuvem**, então esses três precisam coincidir com a telemetria caractere por caractere. Se não coincidirem, a ingestão cria um segundo ambiente com a chave que calculou, e o seu fica vazio. Arquive o ambiente criado à mão e deixe a ingestão criar o certo, ou crie-o de novo com os valores corrigidos.
+A ingestão associa um ambiente só pela chave dele, e a chave precisa ser exatamente `platform|account|region`, como `aws_ecs|123456789012|us-east-1`: o mesmo valor de plataforma, ID da conta e região que a telemetria traz. Um ambiente criado pela API, ou à mão antes de **Adicionar ambiente de nuvem** substituir o formulário do painel, só é associado quando a **Plataforma de nuvem**, o **ID da conta de nuvem** e a **Região de nuvem** dele são iguais aos da telemetria, caractere por caractere. Se não forem, a ingestão cria um segundo ambiente com a chave que calculou, e o seu fica vazio. Arquive o ambiente criado à mão e deixe a ingestão criar o certo.
 
 ## Ainda sem solução
 

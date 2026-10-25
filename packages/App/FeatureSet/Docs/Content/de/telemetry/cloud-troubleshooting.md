@@ -112,7 +112,7 @@ Der Umgebungsschlüssel ist `cloud.platform|cloud.account.id|cloud.region`, Zeic
 
 ## Eine von Hand angelegte Umgebung wird nie zugeordnet
 
-Die Erfassung ordnet eine Umgebung allein über ihren Schlüssel zu, und der Schlüssel muss genau `platform|account|region` lauten, etwa `aws_ecs|123456789012|us-east-1`: derselbe Plattformwert, dieselbe Konto-ID und dieselbe Region, die die Telemetrie trägt. Das Erstellformular (**Cloud-Ressource erstellen** unter **Cloud → Alle Umgebungen**) bildet den Schlüssel aus seinen Feldern **Cloud-Plattform**, **Cloud-Konto-ID** und **Cloud-Region**, daher müssen diese drei Zeichen für Zeichen zur Telemetrie passen. Tun sie es nicht, legt die Erfassung eine zweite Umgebung mit dem Schlüssel an, den sie ermittelt hat, und Ihre bleibt leer. Archivieren Sie die von Hand angelegte Umgebung und lassen Sie die Erfassung die richtige anlegen, oder legen Sie sie mit den korrigierten Werten neu an.
+Die Erfassung ordnet eine Umgebung allein über ihren Schlüssel zu, und der Schlüssel muss genau `platform|account|region` lauten, etwa `aws_ecs|123456789012|us-east-1`: derselbe Plattformwert, dieselbe Konto-ID und dieselbe Region, die die Telemetrie trägt. Eine über die API angelegte Umgebung, oder eine, die von Hand angelegt wurde, bevor **Cloud-Umgebung hinzufügen** das Formular des Dashboards ersetzte, wird nur zugeordnet, wenn ihre **Cloud-Plattform**, **Cloud-Konto-ID** und **Cloud-Region** Zeichen für Zeichen denen der Telemetrie entsprechen. Tun sie es nicht, legt die Erfassung eine zweite Umgebung mit dem Schlüssel an, den sie ermittelt hat, und Ihre bleibt leer. Archivieren Sie die von Hand angelegte Umgebung und lassen Sie die Erfassung die richtige anlegen.
 
 ## Immer noch nicht gelöst
 

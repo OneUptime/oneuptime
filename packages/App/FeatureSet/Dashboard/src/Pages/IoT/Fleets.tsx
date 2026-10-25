@@ -13,14 +13,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -32,7 +35,10 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import IoTDocumentationCard from "../../Components/IoT/DocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import IOT_FLEET_ONBOARDING from "../../Components/IoT/IoTFleetOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoTMetricDescriptions";
@@ -44,6 +50,9 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<IoTFleet>({
     modelType: IoTFleet,
   });
+  const [isAddFleetOpen, setIsAddFleetOpen] = useState<boolean>(false);
+  // Fleets connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IoTFleet>({ modelType: IoTFleet });
@@ -110,13 +119,20 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   }
 
+  /*
+   * A fleet is added by sending its first reading (Add IoT Fleet): the
+   * guide asks for the fleet's name, writes it into the snippets, and the
+   * fleet registers itself under it when the reading arrives. There is no
+   * form: a fleet typed in by hand would only wait for readings that
+   * nothing sends.
+   */
   return (
     <Fragment>
       <ModelTable<IoTFleet>
         modelType={IoTFleet}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="iot-fleets-table"
         userPreferencesKey="iot-fleets-table"
         topContent={getFirstRunTopContent({
@@ -133,14 +149,10 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
         onFetchSuccess={(data: Array<IoTFleet>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: IoTFleet): Promise<IoTFleet> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -157,31 +169,19 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "IoT Fleets",
           description:
             "IoT device fleets being monitored in this project. Connect your devices to OneUptime to register a fleet.",
+          buttons: [
+            {
+              title: IOT_FLEET_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddFleetOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "field-sensors-us-east",
-            description:
-              "This should match the iot.fleet.name resource attribute reported by your IoT devices.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production IoT fleet running in US East",
-          },
-          getLabelsFormField<IoTFleet>(),
-        ]}
+        formFields={[]}
         columns={[
           {
             field: {
@@ -321,9 +321,30 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <IoTDocumentationCard
-          title="Getting Started with IoT Monitoring"
+        <AddResourceGuide
+          onboarding={IOT_FLEET_ONBOARDING}
+          title={IOT_FLEET_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new fleet.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddFleetOpen && (
+        <AddResourceModal
+          onboarding={IOT_FLEET_ONBOARDING}
+          onClose={() => {
+            setIsAddFleetOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

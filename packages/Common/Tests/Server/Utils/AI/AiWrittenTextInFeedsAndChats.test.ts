@@ -293,6 +293,8 @@ describe("OneUptime AI's answers in chat", () => {
     jest
       .spyOn(AIService, "getReachedProjectDailyLimit")
       .mockResolvedValue(null as never);
+    // No AI credits used up: with billing on, as CI runs Common, the real check reads Postgres.
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
     jest
       .spyOn(
         MicrosoftTeamsUtil as unknown as {
@@ -362,6 +364,8 @@ async function teamsReplyFor(
   jest
     .spyOn(AIService, "getReachedProjectDailyLimit")
     .mockResolvedValue(null as never);
+  // No AI credits used up: with billing on, as CI runs Common, the real check reads Postgres.
+  jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
   jest
     .spyOn(
       MicrosoftTeamsUtil as unknown as {

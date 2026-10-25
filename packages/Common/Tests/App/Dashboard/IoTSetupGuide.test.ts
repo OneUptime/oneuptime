@@ -969,6 +969,29 @@ describe("the MQTT endpoint facts match the server", () => {
       ),
     ).toContain('title: "Device Registry"');
   });
+
+  /*
+   * A device credential belongs to a fleet, and a fleet registers itself
+   * from its first reading - the fleets list has no form. So the note says
+   * to send one with the project-wide key first, which step 2 shows (the
+   * key is step 1, then the option's own steps).
+   */
+  test("says how the fleet comes to exist before a device gets its own credential", () => {
+    const note: string =
+      topicTitled(guide.advanced, "Give each device its own credential")
+        ?.markdown || "";
+
+    expect(note).toContain(
+      "The fleet appears with its first reading, so send one with the project-wide key first, as in step 2.",
+    );
+    expect(note).not.toContain("once the fleet exists");
+    expect(guide.steps[0]?.title).toBe("Publish a reading");
+    expect(
+      readRepoFile(
+        "packages/App/FeatureSet/Dashboard/src/Pages/IoT/Fleets.tsx",
+      ),
+    ).toContain("isCreateable={false}");
+  });
 });
 
 describe("the metric conventions", () => {
@@ -1119,6 +1142,121 @@ describe("before a key is picked", () => {
     );
     expect(markdown).toContain(
       `"x-oneuptime-token": "${SETUP_GUIDE_API_KEY_PLACEHOLDER}"`,
+    );
+  });
+});
+
+/*
+ * A fleet the guide knows the name of - typed in Add IoT Fleet, or the
+ * fleet's own Documentation tab - is the fleet every snippet sends to: no
+ * example name for the reader to replace, and a note to keep it as it is.
+ */
+describe("a guide for a named fleet", () => {
+  const FLEET: string = "warehouse-7";
+
+  const namedGuideFor: (
+    method: IoTIngestionMethod,
+    fleetName: string,
+  ) => string = (method: IoTIngestionMethod, fleetName: string): string => {
+    return getSetupGuideMarkdown(
+      getIoTSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        method: method,
+        fleetName: fleetName,
+      }),
+    );
+  };
+
+  // Only the steps: Advanced explains a fleet with the examples.
+  const namedStepsFor: (
+    method: IoTIngestionMethod,
+    fleetName: string,
+  ) => string = (method: IoTIngestionMethod, fleetName: string): string => {
+    return getSetupGuideMarkdown({
+      ...getIoTSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        method: method,
+        fleetName: fleetName,
+      }),
+      advanced: [],
+      troubleshooting: [],
+    });
+  };
+
+  test("the SDK's resource attributes name the fleet and its service", () => {
+    const markdown: string = namedGuideFor("opentelemetry-sdk", FLEET);
+
+    expect(markdown).toContain(
+      `export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=${FLEET},device.id=${IOT_EXAMPLE_DEVICE_ID},service.name=iot/${FLEET}`,
+    );
+    expect(markdown).toContain(
+      `This sends the readings to the fleet **\`${FLEET}\`**.`,
+    );
+    expect(namedStepsFor("opentelemetry-sdk", FLEET)).not.toContain(
+      IOT_EXAMPLE_FLEET_NAME,
+    );
+  });
+
+  test("the gateway's collector stamps the fleet on what it forwards", () => {
+    const markdown: string = namedGuideFor("opentelemetry-collector", FLEET);
+
+    expect(markdown).toContain(`value: ${FLEET}\n`);
+    expect(markdown).toContain(`value: iot/${FLEET}\n`);
+    expect(markdown).toContain(
+      `Every reading this gateway forwards goes to the fleet **\`${FLEET}\`**`,
+    );
+    expect(namedStepsFor("opentelemetry-collector", FLEET)).not.toContain(
+      IOT_EXAMPLE_GATEWAY_FLEET_NAME,
+    );
+  });
+
+  test("the MQTT topics publish under the fleet", () => {
+    const markdown: string = namedGuideFor("mqtt", FLEET);
+    const topic: string = `${IOT_MQTT_TOPIC_PREFIX}/${FLEET}/${IOT_EXAMPLE_DEVICE_ID}`;
+
+    expect(markdown).toContain(`topic: "${topic}/status"`);
+    expect(markdown).toContain(`client.publish("${topic}/status", "online");`);
+    expect(markdown).toContain(`"${topic}/telemetry",`);
+    // The raw TCP example under Advanced too.
+    expect(markdown).toContain(`-t "${topic}/telemetry"`);
+    expect(markdown).toContain(
+      `OneUptime adds the device to the fleet **\`${FLEET}\`** from the topic.`,
+    );
+    expect(markdown).not.toContain(
+      `${IOT_MQTT_TOPIC_PREFIX}/${IOT_EXAMPLE_FLEET_NAME}/`,
+    );
+  });
+
+  /*
+   * "," and "=" separate OTEL_RESOURCE_ATTRIBUTES' pairs, "/", "+" and "#"
+   * are a topic's structure, and a space ends a shell word: such a name
+   * would send the readings somewhere else, so the examples stay.
+   */
+  test.each(["a,b", "a=b", "a/b", "a+b", "a#b", "a b", "", "  "])(
+    "a fleet name the snippets cannot carry as it is (%j) keeps the examples",
+    (fleetName: string) => {
+      for (const method of [
+        "opentelemetry-sdk",
+        "mqtt",
+      ] as Array<IoTIngestionMethod>) {
+        expect(namedGuideFor(method, fleetName)).toContain(
+          `Replace \`${IOT_EXAMPLE_FLEET_NAME}\``,
+        );
+      }
+      expect(namedGuideFor("opentelemetry-collector", fleetName)).toContain(
+        `value: ${IOT_EXAMPLE_GATEWAY_FLEET_NAME}\n`,
+      );
+    },
+  );
+
+  test("the unnamed guide is unchanged: the examples, to replace", () => {
+    expect(getSetupGuideMarkdown(guideFor("opentelemetry-sdk"))).toContain(
+      `Replace \`${IOT_EXAMPLE_FLEET_NAME}\` and \`${IOT_EXAMPLE_DEVICE_ID}\` with your fleet name and device id.`,
+    );
+    expect(getSetupGuideMarkdown(guideFor("mqtt"))).toContain(
+      `topic: "${EXAMPLE_TOPIC}/status"`,
     );
   });
 });

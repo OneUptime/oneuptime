@@ -56,7 +56,7 @@ On the next step, click **Test connection**. The probe logs in, reads what the a
 vCenter uses a certificate from its own authority by default, which the probe does not trust. The test then shows the certificate: check its fingerprint against vCenter's own, then click **Trust this certificate**.
 
 ### Name it and connect
-The name defaults to vCenter's host name. Click **Connect vCenter** to save.
+The name defaults to vCenter's host name. Click **Connect vCenter** to save, and the vCenter's page opens.
 :::
 
 The vCenter's **Overview** shows a **Data Collection** card. It reads **Checking** until the first collection, which starts within a minute, then **Collecting**, and the inventory fills in.

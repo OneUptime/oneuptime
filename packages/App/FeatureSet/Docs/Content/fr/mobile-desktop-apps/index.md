@@ -16,7 +16,7 @@ OneUptime a une application pour votre téléphone et une pour votre ordinateur.
 | Ce que c'est | OneUptime On-Call, une application native pour iPhone, iPad et Android | Le tableau de bord OneUptime, installé depuis votre navigateur |
 | Où l'obtenir | L'App Store, Google Play, ou un APK sur GitHub | Votre propre OneUptime : il n'y a rien à télécharger |
 | Alertes d'astreinte | Notifications push, qui peuvent sonner malgré le mode silencieux et Ne pas déranger | Notifications du navigateur, une fois le navigateur enregistré |
-| Ce que vous pouvez faire | Incidents, alertes, moniteurs et qui est d'astreinte ; accuser réception, résoudre et ajouter des notes | Tout ce que fait le tableau de bord |
+| Ce que vous pouvez faire | Incidents, alertes, dossiers de sécurité, moniteurs et qui est d'astreinte ; accuser réception, résoudre, approuver des étapes de playbook et ajouter des notes | Tout ce que fait le tableau de bord |
 | Mises à jour | Depuis le store, ou en installant un APK plus récent | À chaque ouverture, elle charge le tableau de bord depuis votre OneUptime |
 | Fonctionne sur | iOS 16.4 ou version ultérieure, Android 7.0 ou version ultérieure | Windows, macOS et Linux, avec Edge ou Chrome, ou Safari sur macOS Sonoma 14 ou version ultérieure |
 

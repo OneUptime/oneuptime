@@ -16,7 +16,7 @@ OneUptime tiene una aplicación para su teléfono y otra para su ordenador. **On
 | Qué es | OneUptime On-Call, una aplicación nativa para iPhone, iPad y Android | El panel de OneUptime, instalado desde su navegador |
 | Dónde se obtiene | El App Store, Google Play, o un APK de GitHub | Su propio OneUptime: no hay nada que descargar |
 | Avisos de guardia | Notificaciones push, que pueden sonar pese al modo silencio y a No molestar | Notificaciones del navegador, una vez registrado el navegador |
-| Qué puede hacer | Incidentes, alertas, monitores y quién está de guardia; reconocer, resolver y añadir notas | Todo lo que hace el panel |
+| Qué puede hacer | Incidentes, alertas, casos de seguridad, monitores y quién está de guardia; reconocer, resolver, aprobar pasos de playbook y añadir notas | Todo lo que hace el panel |
 | Actualizaciones | Desde la tienda, o instalando un APK más reciente | Cada vez que se abre, carga el panel desde su OneUptime |
 | Funciona en | iOS 16.4 o posterior, Android 7.0 o posterior | Windows, macOS y Linux, con Edge o Chrome, o Safari en macOS Sonoma 14 o posterior |
 

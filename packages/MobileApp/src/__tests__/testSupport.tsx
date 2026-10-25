@@ -15,6 +15,11 @@ import type {
   NamedEntityWithColor,
   NoteItem,
   ProjectItem,
+  SecurityCaseFeedItem,
+  SecurityCaseItem,
+  SecurityCasePriorityItem,
+  SecurityCaseStatusItem,
+  SecurityPlaybookRunItem,
   StateTimelineItem,
 } from "../api/types";
 
@@ -283,4 +288,197 @@ export function makeListResponse<T>(
     limit: 20,
     ...overrides,
   };
+}
+
+/*
+ * Security cases, as the API hands them back: a project's four built-in
+ * statuses and five built-in priorities (with the ids the suites name them
+ * by), a case, a playbook run waiting for an approval and a timeline entry.
+ * Colours come the way the API serializes a Color: { _type: "Color", value }.
+ */
+export const SECURITY_STATUS_IDS: Readonly<{
+  new: string;
+  investigating: string;
+  contained: string;
+  closed: string;
+}> = {
+  new: "5717a7e5-0001-4000-8000-000000000001",
+  investigating: "5717a7e5-0002-4000-8000-000000000002",
+  contained: "5717a7e5-0003-4000-8000-000000000003",
+  closed: "5717a7e5-0004-4000-8000-000000000004",
+};
+
+export const SECURITY_PRIORITY_IDS: Readonly<{
+  critical: string;
+  high: string;
+  medium: string;
+  low: string;
+  informational: string;
+}> = {
+  critical: "9e10e117-0001-4000-8000-000000000001",
+  high: "9e10e117-0002-4000-8000-000000000002",
+  medium: "9e10e117-0003-4000-8000-000000000003",
+  low: "9e10e117-0004-4000-8000-000000000004",
+  informational: "9e10e117-0005-4000-8000-000000000005",
+};
+
+export function makeSecurityCaseStatuses(): Array<SecurityCaseStatusItem> {
+  return [
+    {
+      _id: SECURITY_STATUS_IDS.new,
+      name: "New",
+      color: { _type: "Color", value: "#E5484D" },
+      order: 1,
+      isNewStatus: true,
+    },
+    {
+      _id: SECURITY_STATUS_IDS.investigating,
+      name: "Investigating",
+      color: { _type: "Color", value: "#FFB224" },
+      order: 2,
+      isAcknowledgedStatus: true,
+    },
+    {
+      _id: SECURITY_STATUS_IDS.contained,
+      name: "Contained",
+      color: { _type: "Color", value: "#3E63DD" },
+      order: 3,
+      isContainedStatus: true,
+    },
+    {
+      _id: SECURITY_STATUS_IDS.closed,
+      name: "Closed",
+      color: { _type: "Color", value: "#30A46C" },
+      order: 4,
+      isClosedStatus: true,
+    },
+  ];
+}
+
+export function makeSecurityCasePriorities(): Array<SecurityCasePriorityItem> {
+  return [
+    {
+      _id: SECURITY_PRIORITY_IDS.critical,
+      name: "Critical",
+      color: { _type: "Color", value: "#E5484D" },
+      order: 1,
+      isCriticalPriority: true,
+    },
+    {
+      _id: SECURITY_PRIORITY_IDS.high,
+      name: "High",
+      color: { _type: "Color", value: "#F76B15" },
+      order: 2,
+      isHighPriority: true,
+    },
+    {
+      _id: SECURITY_PRIORITY_IDS.medium,
+      name: "Medium",
+      color: { _type: "Color", value: "#FFB224" },
+      order: 3,
+      isMediumPriority: true,
+    },
+    {
+      _id: SECURITY_PRIORITY_IDS.low,
+      name: "Low",
+      color: { _type: "Color", value: "#3E63DD" },
+      order: 4,
+      isLowPriority: true,
+    },
+    {
+      _id: SECURITY_PRIORITY_IDS.informational,
+      name: "Informational",
+      color: { _type: "Color", value: "#8B8D98" },
+      order: 5,
+      isInformationalPriority: true,
+    },
+  ];
+}
+
+export function makeSecurityCase(
+  overrides: Partial<SecurityCaseItem> = {},
+): SecurityCaseItem {
+  const statuses: Array<SecurityCaseStatusItem> = makeSecurityCaseStatuses();
+  const priorities: Array<SecurityCasePriorityItem> =
+    makeSecurityCasePriorities();
+
+  return {
+    _id: "5ec0ca5e-0142-4d1a-9a00-000000000142",
+    title: "Password spray against the VPN",
+    caseNumber: 142,
+    caseNumberWithPrefix: "CASE-142",
+    securityCaseStatusId: SECURITY_STATUS_IDS.new,
+    securityCaseStatus: statuses[0]!,
+    securityCasePriorityId: SECURITY_PRIORITY_IDS.critical,
+    securityCasePriority: priorities[0]!,
+    assignedToUserId: null,
+    assignedToUser: null,
+    assignedToTeamId: null,
+    assignedToTeam: null,
+    entities: [
+      { type: "User", value: "alice@acme.test" },
+      { type: "IP Address", value: "203.0.113.24" },
+    ],
+    detectionCount: 14,
+    source: "Detection Rule",
+    firstDetectedAt: "2026-08-30T09:46:00.000Z",
+    lastDetectedAt: "2026-08-30T09:52:00.000Z",
+    createdAt: "2026-08-30T09:46:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeWaitingPlaybookRun(
+  overrides: Partial<SecurityPlaybookRunItem> = {},
+): SecurityPlaybookRunItem {
+  return {
+    _id: "7a6b0000-0001-4000-8000-000000000001",
+    securityCaseId: "5ec0ca5e-0142-4d1a-9a00-000000000142",
+    playbookName: "Contain a compromised account",
+    status: "Waiting for Approval",
+    trigger: "Case Opened",
+    currentStepIndex: 0,
+    steps: [{ id: "step-1", action: "Suspend Okta User" }],
+    stepResults: [
+      {
+        stepId: "step-1",
+        action: "Suspend Okta User",
+        status: "Waiting for Approval",
+        targets: [
+          {
+            type: "User",
+            value: "alice@acme.test",
+            reason: "Grouped On",
+            state: "Proposed",
+          },
+          {
+            type: "User",
+            value: "breakglass-admin@acme.test",
+            reason: "Threat Intel",
+            state: "Protected",
+            protectedBy: "breakglass-*",
+          },
+        ],
+      },
+    ],
+    triggeredByUserId: null,
+    triggeredByUser: null,
+    startedAt: "2026-08-30T09:47:00.000Z",
+    createdAt: "2026-08-30T09:47:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeSecurityCaseFeedItem(
+  overrides: Partial<SecurityCaseFeedItem> = {},
+): SecurityCaseFeedItem {
+  return {
+    _id: "f1e00000-0001-4000-8000-000000000001",
+    feedInfoInMarkdown: "Case opened by detection rule **VPN password spray**.",
+    displayColor: makeColor(),
+    securityCaseFeedEventType: "CaseOpened",
+    postedAt: "2026-08-30T09:46:00.000Z",
+    createdAt: "2026-08-30T09:46:00.000Z",
+    ...overrides,
+  } as SecurityCaseFeedItem;
 }

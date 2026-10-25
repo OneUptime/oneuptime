@@ -89,9 +89,9 @@ Innenfor et miljø får hver kjørende oppgave, instans eller replika én rad un
 
 Plattformens egen identitet kommer først med vilje. En sidecar-collector og applikasjonens SDK ser den begge to, og den overlever omstarter. En SDK finner som regel på en ny `service.instance.id` for hver prosess (Node.js-SDK-en gjør det som standard), så hvis den var nøkkelen først, ville én ECS-oppgave bli delt i to rader. `service.instance.id` brukes når plattformen ikke setter noen egen identitet. Kolonnen **Instansidentitet** i [Støttede plattformer](#støttede-plattformer) nevner attributtet et typisk oppsett bruker på hver plattform.
 
-### Miljøer du oppretter for hånd
+### Legg til et miljø
 
-Det trengs sjelden: inntaket oppretter miljøer for deg. For å opprette et før telemetrien kommer, åpner du **Sky → All Environments** og klikker **Opprett Skyressurs**. Velg **Skyplattform**, og skriv deretter inn **Sky-konto-ID** og **Skyregion** nøyaktig slik telemetrien din rapporterer dem. OneUptime bygger nøkkelen `platform|account|region` av disse tre, og inntaket matcher et miljø bare på nøkkelen. Miljøet får navnet inntaket ville gitt det; vil du vise et annet navn, åpner du **Flere felt** og skriver et **Visningsnavn**.
+Inntaket oppretter miljøer for deg, så det er ingenting å skrive inn. Åpne **Sky → All Environments** og klikk **Legg til skymiljø**: velg hvor applikasjonen din kjører, så viser veiledningen OpenTelemetry-innstillingene for den plattformen, med OneUptime-URL-en og inntaksnøkkelen din allerede fylt ut. Det siste trinnet, **Vent på tilkobling**, sier fra når de første dataene for miljøet har kommet inn, og lenker til det. For å vise et annet navn velger du **Rediger detaljer** på kortet **Ressursdetaljer** på miljøets side **Innstillinger** og skriver et **Visningsnavn**.
 
 ## Det som ikke er et skymiljø
 

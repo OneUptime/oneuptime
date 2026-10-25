@@ -88,7 +88,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | Afsnit i sidemenuen | Sider |
 | --- | --- |
 | **Oversigt** | **Oversigt**, **Tidslinje** |
-| **Undersøgelse** | **Detections**, **Entiteter**, **Playbook-kørsler** |
+| **Undersøgelse** | **Detections**, **Entiteter**, **Forbundne signaler**, **Playbook-kørsler** |
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
@@ -100,6 +100,7 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Tidslinje**: alt, hvad der skete med sagen, med hvem der gjorde det.
 - **Detections**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
+- **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
 - **Playbook-kørsler**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbook-kørsler**.
 - **Private noter**: hvad teamet skrev om sagen.
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillin
 
 Valgene følger projektets sagsprioriteter under deres egne navne: dette er et nyt projekts valg.
 
-Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner OneUptime-appen, og dens link åbner sagen i browseren.
+Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner sagen i OneUptime On-Call-appen (1.7.0 eller nyere), hvor du kan godkende eller afvise et playbook-trin, der venter, tage sagen og lukke den. Dens link åbner sagen i browseren.
 
 ### Slå op i Slack- og Microsoft Teams-kanaler
 

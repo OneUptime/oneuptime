@@ -115,6 +115,23 @@ jest.mock("../components/ProjectSwitcher", () => {
   };
 });
 
+/*
+ * Security cases are not what this suite is about: the person holding the
+ * foldable cannot see any, so the Inbox keeps its two categories.
+ */
+jest.mock("../hooks/useSecurityCases", () => {
+  return {
+    useSecurityCasesAvailability: () => {
+      return {
+        isAvailable: false,
+        isChecking: false,
+        isDenied: false,
+        projectId: "project-1",
+      };
+    },
+  };
+});
+
 jest.mock("../hooks/useAllProjectIncidents", () => {
   return {
     useAllProjectIncidents: (): ReturnType<typeof useAllProjectIncidents> => {

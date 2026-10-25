@@ -692,8 +692,19 @@ describe("what the E2E spec reads off the page", () => {
       ),
       "utf8",
     );
+    // The empty list's card is its Add guide (Components/ResourceOnboarding).
+    const onboarding: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterOnboarding.tsx",
+      ),
+      "utf8",
+    );
     expect(clusters).toContain(
-      'title="Getting Started with Docker Swarm Monitoring"',
+      "title={DOCKER_SWARM_CLUSTER_ONBOARDING.firstRunTitle}",
+    );
+    expect(onboarding).toContain(
+      '"Getting Started with Docker Swarm Monitoring"',
     );
   });
 });

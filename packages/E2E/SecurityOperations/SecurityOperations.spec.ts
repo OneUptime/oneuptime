@@ -2167,6 +2167,13 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Investigation",
+    title: "Connected Signals",
+    segment: "/connected-signals",
+    text: "Named by k.morgan@acme-commerce.example, their email.",
+    slug: "connected-signals",
+  },
+  {
+    section: "Investigation",
     title: "Playbook Runs",
     segment: "/playbook-runs",
     text: "Started on its own: Case Opened",
@@ -7556,6 +7563,11 @@ test.describe("every page fits the screen", () => {
       "case entities",
       `${SPRAY_CASE_PATH}/entities`,
       "a.ng@acme-commerce.example",
+    ],
+    [
+      "case connected signals",
+      `${PRODUCT}/cases/20000000-0000-4000-8000-000000000141/connected-signals`,
+      "Named build-runner-07, the name it reports.",
     ],
     [
       "case playbook runs",
