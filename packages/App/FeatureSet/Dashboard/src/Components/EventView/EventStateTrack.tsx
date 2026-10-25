@@ -1,6 +1,8 @@
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface EventStateTrackState {
@@ -72,6 +74,7 @@ const EventStateTrack: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const currentIndex: number = props.states.findIndex(
     (state: EventStateTrackState): boolean => {
@@ -84,7 +87,7 @@ const EventStateTrack: FunctionComponent<ComponentProps> = (
 
   return (
     <ol
-      aria-label={translateString("State progress") || "State progress"}
+      aria-label={translator.translateText("State progress")}
       data-testid="event-state-track"
       className="grid gap-1.5"
       style={{
