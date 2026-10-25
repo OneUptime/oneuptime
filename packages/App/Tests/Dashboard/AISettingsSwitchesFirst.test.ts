@@ -590,8 +590,16 @@ describe("the pages draw switches first, and fold the limits", () => {
       const page: string = readDashboard(file);
       const advanced: string = page.slice(page.indexOf("<AdvancedPageSection"));
 
+      /*
+       * The table reports what it holds to the section, and has the fix
+       * switch read again what the rules fix (AiRulesFixNothing): a rule
+       * added, changed or turned off can make every rule say Don't fix.
+       */
+      expect(page).toContain(
+        "const onAiRulesLoaded: (count: number) => void = advanced.onRulesLoaded( AiLaneAdvancedCard.AiRules, );",
+      );
       expect(advanced).toContain(
-        `<AiRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded(AiLaneAdvancedCard.AiRules)} />`,
+        `<AiRulesTable lane={${lane}} onRulesLoaded={(count: number): void => { onAiRulesLoaded(count); fixNothing.refresh(); }} />`,
       );
       // Nothing about rules shows above the fold.
       expect(page.indexOf("<AiRulesTable")).toBeGreaterThan(

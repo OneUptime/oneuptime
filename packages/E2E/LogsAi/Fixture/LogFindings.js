@@ -295,6 +295,33 @@ export function filterInsights(rows, query) {
 }
 
 export function aiRules() {
+  /*
+   * ?aiRules=dontfix: the one enabled rule says Don't fix (and the rule
+   * that would fix is off), so the lane's switch says nothing is fixed.
+   */
+  if (rulesMode === "dontfix") {
+    return [
+      Object.assign(new AutoRemediationRule(), {
+        _id: RULE_IDS.checkout,
+        name: "Checkout services: look, don't touch",
+        triggerEntityType: AutoRemediationTriggerEntity.Log,
+        isEnabled: true,
+        investigates: true,
+        fixes: false,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+      }),
+      Object.assign(new AutoRemediationRule(), {
+        _id: RULE_IDS.everything,
+        name: "Everything else",
+        triggerEntityType: AutoRemediationTriggerEntity.Log,
+        isEnabled: false,
+        investigates: true,
+        fixes: true,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+      }),
+    ];
+  }
+
   if (rulesMode !== "two") {
     return [];
   }

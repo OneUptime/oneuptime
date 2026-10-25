@@ -254,9 +254,11 @@ ModelAPI.count = async (options) => {
     return filterInsights(aiInsights(NOW), options.query).length;
   }
 
+  // The enabled rules, and of those the ones that fix when asked.
   if (options.modelType === AutoRemediationRule) {
+    const query = serialize(options.query || {});
     return aiRules().filter((rule) => {
-      return rule.isEnabled;
+      return rule.isEnabled && (query.fixes !== true || rule.fixes === true);
     }).length;
   }
 

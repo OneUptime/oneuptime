@@ -446,6 +446,65 @@ test.describe("Logs → AI → Settings", () => {
     );
   });
 
+  /*
+   * With rules, OneUptime AI fixes only what a rule that fixes matches: once
+   * every enabled rule says Don't fix, the switch that says it fixes says
+   * that it opens no pull request on its own, with the way to the rules.
+   */
+  test("every enabled rule says Don't fix: the switch says OneUptime AI opens no pull request on its own, and leads to the rules", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/settings?aiRules=dontfix`);
+
+    const switches: Locator = page.getByTestId("telemetry-ai-switches");
+    const warning: Locator = switches.getByTestId("ai-rules-fix-nothing");
+
+    await expect(warning).toHaveText(
+      "Every AI rule says Don't fix, so OneUptime AI opens no pull request on its own. Review the AI rules",
+      { timeout: 60000 },
+    );
+    // The switch is still on: the rules decide what it fixes.
+    await expect(
+      page.getByRole("switch", {
+        name: "Find and fix error, missing and noisy logs",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "settings-dont-fix");
+
+    // The link opens More settings at the rules table.
+    await warning.getByRole("link", { name: "Review the AI rules" }).click();
+
+    await expect(page).toHaveURL(/#telemetry-ai-rules-table-Log$/);
+    await expect(
+      page.getByText("Checkout services: look, don't touch"),
+    ).toBeVisible();
+  });
+
+  test("a rule that fixes, or no rule at all, leaves the switch's own words alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const query of ["?aiRules=two", ""]) {
+      await page.goto(`${AI}/settings${query}`);
+
+      const switches: Locator = page.getByTestId("telemetry-ai-switches");
+
+      await expect(switches).toContainText(
+        "OneUptime AI fixes what it can with pull requests.",
+        { timeout: 60000 },
+      );
+      await expect(switches.getByTestId("ai-rules-fix-nothing")).toHaveCount(0);
+    }
+  });
+
   test("a new rule asks Match, Investigate and Fix in the words of log problems, and an error log's pull request waits for the code at fault", async ({
     page,
   }: {
