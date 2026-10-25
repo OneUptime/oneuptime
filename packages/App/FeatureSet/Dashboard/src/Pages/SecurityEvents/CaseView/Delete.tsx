@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getSecurityCaseRecordName } from "../../../Components/SecurityCase/SecurityCaseViewSelect";
 import SecurityCaseViewContext, {
   useSecurityCaseView,
 } from "./SecurityCaseViewContext";
@@ -37,11 +38,8 @@ const SecurityCaseDeletePage: FunctionComponent<
       title="Delete Case"
       description={translator.translateTemplate(
         "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
-        {
-          case: `${securityCase.caseNumberWithPrefix || ""} ${
-            securityCase.title || ""
-          }`.trim(),
-        },
+        // By its number, as the header right above names it.
+        { case: getSecurityCaseRecordName(securityCase) || "" },
       )}
       buttons={[
         {

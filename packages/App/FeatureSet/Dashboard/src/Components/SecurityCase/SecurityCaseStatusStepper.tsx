@@ -52,37 +52,45 @@ export function getSecurityCaseStepIndex(
 }
 
 /*
- * The grid the steps sit on: one row of up to four, then rows of three on a
- * tablet and the whole list on a wide screen, one to a row on a phone - a
- * project names its statuses as it likes, and half a phone's width cut
- * "Investigating" short. The classes are spelled out so Tailwind finds them.
+ * The grid the steps sit on, by the width the steps have rather than the
+ * window's: the case's header sits beside its side menu, so a 768px window
+ * leaves the steps 440px, and four to a row there broke "Investigating"
+ * into "Investi" and "gating". A step gets at least 9.5rem before more share a
+ * row - room for "Investigating" beside its number - so: one to a row in
+ * the narrowest place, two to a row on a phone, then the whole list in one
+ * row (three to a row first, for five or more). A project names its
+ * statuses as it likes; a long name wraps between its words.
+ * The classes are spelled out so Tailwind finds them.
  */
+export const SECURITY_CASE_STEPS_CONTAINER_CLASS_NAME: string =
+  "[container-type:inline-size]";
+
 export function getSecurityCaseStepsGridClassName(count: number): string {
   if (count <= 1) {
     return "grid-cols-1";
   }
 
   if (count === 2) {
-    return "grid-cols-1 sm:grid-cols-2";
+    return "grid-cols-1 [@container(min-width:20rem)]:grid-cols-2";
   }
 
   if (count === 3) {
-    return "grid-cols-1 sm:grid-cols-3";
+    return "grid-cols-1 [@container(min-width:30rem)]:grid-cols-3";
   }
 
   if (count === 4) {
-    return "grid-cols-1 sm:grid-cols-4";
+    return "grid-cols-1 [@container(min-width:20rem)]:grid-cols-2 [@container(min-width:40rem)]:grid-cols-4";
   }
 
   if (count === 5) {
-    return "grid-cols-1 sm:grid-cols-3 xl:grid-cols-5";
+    return "grid-cols-1 [@container(min-width:20rem)]:grid-cols-2 [@container(min-width:30rem)]:grid-cols-3 [@container(min-width:50rem)]:grid-cols-5";
   }
 
   if (count === 6) {
-    return "grid-cols-1 sm:grid-cols-3 xl:grid-cols-6";
+    return "grid-cols-1 [@container(min-width:20rem)]:grid-cols-2 [@container(min-width:30rem)]:grid-cols-3 [@container(min-width:60rem)]:grid-cols-6";
   }
 
-  return "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4";
+  return "grid-cols-1 [@container(min-width:20rem)]:grid-cols-2 [@container(min-width:30rem)]:grid-cols-3 [@container(min-width:40rem)]:grid-cols-4";
 }
 
 /*
@@ -107,79 +115,85 @@ const SecurityCaseStatusStepper: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <ol
-      className={`grid gap-2 ${getSecurityCaseStepsGridClassName(steps.length)}`}
-      aria-label={translator.translateText("Case status")}
-      data-testid="security-case-status-steps"
-    >
-      {steps.map((status: SecurityCaseStatus, index: number): ReactElement => {
-        const isCurrent: boolean = index === currentIndex;
-        const isDone: boolean = index < currentIndex || (isClosed && isCurrent);
-        const canSelect: boolean =
-          Boolean(props.onSelect) && !props.isDisabled && !isCurrent;
-        const name: string = translator.translateText(status.name) || "";
-        const description: string = status.description
-          ? translator.translateText(status.description) || ""
-          : "";
+    // Its own size container: the steps follow the width they have.
+    <div className={SECURITY_CASE_STEPS_CONTAINER_CLASS_NAME}>
+      <ol
+        className={`grid gap-2 ${getSecurityCaseStepsGridClassName(steps.length)}`}
+        aria-label={translator.translateText("Case status")}
+        data-testid="security-case-status-steps"
+      >
+        {steps.map(
+          (status: SecurityCaseStatus, index: number): ReactElement => {
+            const isCurrent: boolean = index === currentIndex;
+            const isDone: boolean =
+              index < currentIndex || (isClosed && isCurrent);
+            const canSelect: boolean =
+              Boolean(props.onSelect) && !props.isDisabled && !isCurrent;
+            const name: string = translator.translateText(status.name) || "";
+            const description: string = status.description
+              ? translator.translateText(status.description) || ""
+              : "";
 
-        const tone: string = isCurrent
-          ? isClosed
-            ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-            : "border-indigo-300 bg-indigo-50 text-indigo-800"
-          : isDone
-            ? "border-gray-200 bg-white text-gray-700"
-            : "border-dashed border-gray-200 bg-white text-gray-500";
+            const tone: string = isCurrent
+              ? isClosed
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-indigo-300 bg-indigo-50 text-indigo-800"
+              : isDone
+                ? "border-gray-200 bg-white text-gray-700"
+                : "border-dashed border-gray-200 bg-white text-gray-500";
 
-        const marker: ReactElement = isDone ? (
-          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-            <Icon icon={IconProp.Check} className="h-3 w-3" />
-          </span>
-        ) : (
-          <span
-            className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-              isCurrent
-                ? "bg-indigo-600 text-white"
-                : "border border-gray-300 text-gray-500"
-            }`}
-          >
-            {translator.formatNumber(index + 1)}
-          </span>
-        );
+            const marker: ReactElement = isDone ? (
+              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                <Icon icon={IconProp.Check} className="h-3 w-3" />
+              </span>
+            ) : (
+              <span
+                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                  isCurrent
+                    ? "bg-indigo-600 text-white"
+                    : "border border-gray-300 text-gray-500"
+                }`}
+              >
+                {translator.formatNumber(index + 1)}
+              </span>
+            );
 
-        return (
-          <li
-            key={status.id?.toString() || status.name || index}
-            className="min-w-0"
-          >
-            <button
-              type="button"
-              data-testid={`security-case-step-${index}`}
-              aria-current={isCurrent ? "step" : undefined}
-              disabled={!canSelect}
-              title={
-                props.isDisabled && props.disabledReason
-                  ? props.disabledReason
-                  : description || name
-              }
-              className={`flex h-full w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${tone} ${
-                canSelect
-                  ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/60"
-                  : "cursor-default"
-              }`}
-              onClick={() => {
-                if (canSelect && props.onSelect) {
-                  props.onSelect(status);
-                }
-              }}
-            >
-              {marker}
-              {/* A long name wraps rather than being cut short. */}
-              <span className="min-w-0 break-words">{name}</span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+            return (
+              <li
+                key={status.id?.toString() || status.name || index}
+                className="min-w-0"
+              >
+                <button
+                  type="button"
+                  data-testid={`security-case-step-${index}`}
+                  aria-current={isCurrent ? "step" : undefined}
+                  disabled={!canSelect}
+                  title={
+                    props.isDisabled && props.disabledReason
+                      ? props.disabledReason
+                      : description || name
+                  }
+                  className={`flex h-full w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${tone} ${
+                    canSelect
+                      ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/60"
+                      : "cursor-default"
+                  }`}
+                  onClick={() => {
+                    if (canSelect && props.onSelect) {
+                      props.onSelect(status);
+                    }
+                  }}
+                >
+                  {marker}
+                  {/* A long name wraps rather than being cut short. */}
+                  <span className="min-w-0 break-words">{name}</span>
+                </button>
+              </li>
+            );
+          },
+        )}
+      </ol>
+    </div>
   );
 };
 

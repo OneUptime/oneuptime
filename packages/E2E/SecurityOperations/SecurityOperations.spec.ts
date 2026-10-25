@@ -2359,7 +2359,7 @@ test.describe("a case", () => {
     await menuEntry(page, "Delete Case").click();
     const card: Locator = cardTitled(page, "Delete Case");
     await expect(card).toContainText(
-      "CASE-142 Password spray against Okta from 203.0.113.47 and its detections, notes and timeline are deleted for good.",
+      "CASE-142 and its detections, notes and timeline are deleted for good.",
     );
     await card
       .getByRole("button", { name: "Delete Case", exact: true })
@@ -2401,6 +2401,11 @@ test.describe("a case", () => {
     await expect(page.getByRole("tooltip")).toContainText(
       "You do not have permission",
     );
+    // Run Playbook too: a viewer may read the runs, not start one.
+    await expect(page.getByTestId("security-case-run-playbook")).toBeDisabled();
+    await expect(
+      page.getByTestId("security-case-run-playbook-disabled-wrapper"),
+    ).toBeVisible();
 
     // Delete Case is locked too.
     await open(page, `${SPRAY_CASE_PATH}/delete`, { role: "viewer" });
@@ -2433,27 +2438,235 @@ test.describe("a case", () => {
       .toBe(CASES_PATH);
   });
 
-  test("the header at a laptop's width: the actions on the title's line, at the right", async ({
+  test("the header at a laptop's width: the pills and the actions on the first row, the actions at the right, the title under both across the header", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${SPRAY_CASE_PATH}/detections`, { width: 1344 });
+    // CASE-141 is nobody's: the most buttons a case shows, Assign to Me among them.
+    for (const pathname of [
+      `${SPRAY_CASE_PATH}/detections`,
+      SPRAY_CASE_PATH,
+      `${DOMAIN_CASE_PATH}/entities`,
+    ]) {
+      await open(page, pathname, { width: 1344 });
+      await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
+      await pageAtRest(page);
+
+      const header: Box = await boxOf(caseHeader(page));
+      const actions: Box = await boxOf(
+        page.getByTestId("security-case-actions"),
+      );
+      const titleLocator: Locator = page.getByTestId("security-case-title");
+      const title: Box = await boxOf(titleLocator);
+      const chips: Box = await boxOf(
+        titleLocator.locator("xpath=preceding-sibling::div[1]"),
+      );
+      const buttons: Array<Box> = [];
+
+      for (const button of await page
+        .getByTestId("security-case-actions")
+        .getByRole("button")
+        .all()) {
+        buttons.push(await boxOf(button));
+      }
+
+      // The actions on the first row, beside the pills and level with them.
+      expect(actions.y + actions.height, pathname).toBeLessThanOrEqual(
+        title.y + 1,
+      );
+      expect(
+        Math.abs(chips.y + chips.height / 2 - (actions.y + actions.height / 2)),
+        pathname,
+      ).toBeLessThanOrEqual(2);
+      // Every button on that one row, the ⋯ last.
+      expect(
+        new Set(
+          buttons.map((box: Box): number => {
+            return Math.round(box.y);
+          }),
+        ).size,
+        pathname,
+      ).toBe(1);
+      // At the header's right edge, inside it.
+      expect(
+        header.x + header.width - (actions.x + actions.width),
+        pathname,
+      ).toBeLessThan(32);
+      // The title under both, from the pills' left edge to the actions' right one.
+      expect(Math.abs(title.x - chips.x), pathname).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(title.x + title.width - (actions.x + actions.width)),
+        pathname,
+      ).toBeLessThanOrEqual(1);
+      expect(await overflowOf(caseHeader(page)), pathname).toBeLessThanOrEqual(
+        1,
+      );
+    }
+  });
+
+  test("the header beside the side menu at a smaller laptop's width: the title right after the pills, the buttons under it at the right on one row, the ⋯ in the corner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // 1024 in production: the side menu leaves the header 684px.
+    await open(page, `${DOMAIN_CASE_PATH}/entities`, { width: 1088 });
     await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
     await pageAtRest(page);
 
     const header: Box = await boxOf(caseHeader(page));
     const actions: Box = await boxOf(page.getByTestId("security-case-actions"));
-    const title: Box = await boxOf(page.getByTestId("security-case-title"));
+    const titleLocator: Locator = page.getByTestId("security-case-title");
+    const title: Box = await boxOf(titleLocator);
+    const chips: Box = await boxOf(
+      titleLocator.locator("xpath=preceding-sibling::div[1]"),
+    );
+    const more: Box = await boxOf(page.getByTestId("security-case-more"));
+    const buttons: Array<Box> = [];
 
-    // Beside the title, not under it.
-    expect(actions.y).toBeLessThan(title.y + title.height);
-    expect(actions.x).toBeGreaterThan(title.x);
-    // At the header's right edge, inside it.
+    for (const action of [
+      "Assign to Me",
+      "Run Playbook",
+      "Declare Incident",
+      "Close Case",
+    ]) {
+      buttons.push(
+        await boxOf(
+          caseHeader(page).getByRole("button", { name: action, exact: true }),
+        ),
+      );
+    }
+
+    // The buttons under the title, at the right, all four on one row.
+    expect(actions.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
     expect(header.x + header.width - (actions.x + actions.width)).toBeLessThan(
       32,
     );
+    expect(
+      new Set(
+        buttons.map((box: Box): number => {
+          return Math.round(box.y);
+        }),
+      ).size,
+    ).toBe(1);
+    // The ⋯ in the header's top-right corner, level with the pills - not alone on a row.
+    expect(header.x + header.width - (more.x + more.width)).toBeLessThan(28);
+    expect(
+      Math.abs(more.y + more.height / 2 - (chips.y + chips.height / 2)),
+    ).toBeLessThanOrEqual(4);
+    expect(more.y + more.height).toBeLessThan(title.y + title.height);
     expect(await overflowOf(caseHeader(page))).toBeLessThanOrEqual(1);
+  });
+
+  test("the status steps and the figures follow the width they have beside the side menu, every word whole, at a laptop's, a small laptop's, a tablet's and a phone's width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Production's 1280, 1024 and 768 (the fixture's own frame is 64px
+     * narrower) and a phone. Four steps in one row at 768 broke
+     * "Investigating" into "Investi" and "gating", and four figures in one
+     * row at 1024 wrapped "TIME TO ACKNOWLEDGE" and pushed two of the
+     * figures a line down.
+     */
+    for (const width of [1344, 1088, 832, 390]) {
+      await open(page, SPRAY_CASE_PATH, { width });
+      const steps: Locator = page.getByTestId("security-case-status-steps");
+      await expect(steps).toBeVisible({ timeout: 30000 });
+      await pageAtRest(page);
+
+      const figures: Locator = page.getByRole("group", {
+        name: "Case figures",
+      });
+      const stepBoxes: Array<Box> = [];
+      const figureBoxes: Array<Box> = [];
+
+      for (const step of await steps.getByRole("listitem").all()) {
+        stepBoxes.push(await boxOf(step));
+      }
+      for (const figure of await figures.locator(":scope > div").all()) {
+        figureBoxes.push(await boxOf(figure));
+      }
+
+      // No word of a step's name or a figure's label split across two lines.
+      const brokenWords: Array<string> = await page.evaluate(
+        (): Array<string> => {
+          const broken: Array<string> = [];
+          const names: Array<Element> = [
+            ...Array.from(
+              document.querySelectorAll(
+                "[data-testid='security-case-status-steps'] button span:last-child",
+              ),
+            ),
+            ...Array.from(
+              document.querySelectorAll(
+                "[role='group'][aria-label='Case figures'] > div > div:first-child > span",
+              ),
+            ),
+          ];
+
+          for (const name of names) {
+            const text: Text | null = name.firstChild as Text | null;
+            const content: string = text?.textContent || "";
+            let start: number = 0;
+
+            for (const word of content.split(" ")) {
+              if (text && word.length > 0) {
+                const range: Range = document.createRange();
+                range.setStart(text, start);
+                range.setEnd(text, start + word.length);
+                const lines: Set<number> = new Set(
+                  Array.from(range.getClientRects()).map(
+                    (rect: DOMRect): number => {
+                      return Math.round(rect.top);
+                    },
+                  ),
+                );
+                if (lines.size > 1) {
+                  broken.push(word);
+                }
+              }
+              start += word.length + 1;
+            }
+          }
+
+          return broken;
+        },
+      );
+
+      expect(brokenWords, `words split across lines at ${width}`).toEqual([]);
+
+      const rowsOf: (boxes: Array<Box>) => number = (
+        boxes: Array<Box>,
+      ): number => {
+        return new Set(
+          boxes.map((box: Box): number => {
+            return Math.round(box.y);
+          }),
+        ).size;
+      };
+
+      if (width === 1344) {
+        // Room for each: the four steps in one row, and the four figures.
+        expect(rowsOf(stepBoxes)).toBe(1);
+        expect(rowsOf(figureBoxes)).toBe(1);
+      }
+
+      if (width === 1088) {
+        // Four figures in two rows of two, every label on one line.
+        expect(rowsOf(figureBoxes)).toBe(2);
+      }
+
+      if (width === 832) {
+        // A tablet's 440px of steps: two rows of two.
+        expect(rowsOf(stepBoxes)).toBe(2);
+        expect(rowsOf(figureBoxes)).toBe(2);
+      }
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    }
   });
 
   test("the header on a phone: the buttons fill their rows, the ⋯ in the top corner, nothing cut short", async ({

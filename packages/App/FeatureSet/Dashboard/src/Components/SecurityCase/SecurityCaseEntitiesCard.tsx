@@ -48,6 +48,7 @@ export const SECURITY_CASE_ENTITIES_TEST_IDS: {
   findings: string;
   severity: string;
   severityUnderCount: string;
+  typeUnderValue: string;
   lastSeen: string;
   activityError: string;
 } = {
@@ -57,6 +58,7 @@ export const SECURITY_CASE_ENTITIES_TEST_IDS: {
   findings: "security-case-entity-findings",
   severity: "security-case-entity-severity",
   severityUnderCount: "security-case-entity-severity-under-count",
+  typeUnderValue: "security-case-entity-type-under-value",
   lastSeen: "security-case-entity-last-seen",
   activityError: "security-case-entities-activity-error",
 };
@@ -265,9 +267,16 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                             entity={entity}
                             isValueWrapped={true}
                           />
-                          {/* The type and when, under the value while their columns are left out. */}
+                          {/*
+                           * The type and when, under the value while their
+                           * columns are left out - wrapping without leaving
+                           * one word alone on its last line.
+                           */}
                           <div
-                            className={`mt-0.5 pl-0.5 text-xs text-gray-500 ${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}`}
+                            className={`mt-0.5 pl-0.5 text-xs text-gray-500 text-pretty ${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}`}
+                            data-testid={
+                              SECURITY_CASE_ENTITIES_TEST_IDS.typeUnderValue
+                            }
                           >
                             {type}
                             {lastSeen ? (

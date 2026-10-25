@@ -836,9 +836,11 @@ describe("deleting a case", () => {
 
     const dialog: HTMLElement = screen.getByRole("dialog");
 
+    // By its number, as the header and the trail name it - not number and title run together.
     expect(dialog).toHaveTextContent(
-      "CASE-142 Password spray against Okta from 203.0.113.47 and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+      "CASE-142 and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
     );
+    expect(dialog).not.toHaveTextContent("CASE-142 Password spray");
     expect(deletes).toEqual([]);
 
     await act(async () => {
@@ -1181,6 +1183,8 @@ describe("a Security Viewer", () => {
 
     for (const testId of [
       "security-case-assign-to-me",
+      // Starting a run is creating one, which a viewer may not.
+      "security-case-run-playbook",
       "security-case-declare-incident",
       "security-case-close",
     ]) {
@@ -1192,7 +1196,8 @@ describe("a Security Viewer", () => {
       );
     }
 
-    // Running a playbook asks its own dialog.
-    expect(screen.getByTestId("security-case-run-playbook")).toBeEnabled();
+    // No dialog the server would refuse at the end of it.
+    fireEvent.click(screen.getByTestId("security-case-run-playbook"));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

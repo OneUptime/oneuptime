@@ -57,8 +57,14 @@ const SecurityCaseOverviewPage: FunctionComponent<
 
   return (
     <>
+      {/*
+       * By its own width: beside the case's side menu a laptop's window
+       * leaves it too little for four tiles in a row, and their labels
+       * wrapped and pushed two of the figures a line down.
+       */}
       <EventStatBar
         columns={4}
+        isLaidOutByOwnWidth={true}
         ariaLabel={translator.translateText("Case figures")}
       >
         <EventStatTile

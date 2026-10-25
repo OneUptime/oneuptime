@@ -74,7 +74,20 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import SecurityCaseHeader, {
   ComponentProps as HeaderProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseHeader";
-import { SECURITY_CASE_HEADER_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseHeaderLayout";
+import {
+  SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
+  SECURITY_CASE_HEADER_CHIPS_CLASS_NAME,
+  SECURITY_CASE_HEADER_CLASS_NAME,
+  SECURITY_CASE_HEADER_COMPACT_TITLE_CLASS_NAME,
+  SECURITY_CASE_HEADER_FACTS_CLASS_NAME,
+  SECURITY_CASE_HEADER_TITLE_CLASS_NAME,
+  SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseHeaderLayout";
+import { SECURITY_CASE_STEPS_CONTAINER_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseStatusStepper";
+import {
+  DETAIL_LABELS_TEST_ID,
+  TABLE_LABELS_TEST_ID,
+} from "../../../UI/Components/Label/Labels";
 import Label from "../../../Models/DatabaseModels/Label";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
@@ -215,6 +228,85 @@ describe("in full, on the case's Overview", () => {
     }
   });
 
+  test("the pills, the title and the actions are one row's children, in that order in the page: the title is read before the actions", () => {
+    draw({ securityCase: buildCase(), layout: "full" });
+
+    const title: HTMLElement = screen.getByTestId("security-case-title");
+    const actions: HTMLElement = screen.getByTestId("security-case-actions");
+    const row: HTMLElement = title.parentElement as HTMLElement;
+    const chips: HTMLElement = within(row)
+      .getByText("CASE-142")
+      .closest("div") as HTMLElement;
+
+    expect(row.className).toBe(SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME);
+    expect(Array.from(row.children)).toEqual([chips, title, actions]);
+    expect(chips.className).toBe(SECURITY_CASE_HEADER_CHIPS_CLASS_NAME);
+    expect(actions.className).toBe(SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME);
+  });
+
+  test("the title in full, never cut short, on a line of its own", () => {
+    const longTitle: string =
+      "Password spray against Okta from 203.0.113.47, followed by a successful sign-in as k.morgan@acme-commerce.example and a new MFA device enrolled";
+
+    draw({ securityCase: buildCase({ title: longTitle }), layout: "full" });
+
+    const title: HTMLElement = screen.getByTestId("security-case-title");
+
+    expect(title).toHaveTextContent(longTitle);
+    expect(title.className).toBe(SECURITY_CASE_HEADER_TITLE_CLASS_NAME);
+    expect(title).not.toHaveClass(
+      SECURITY_CASE_HEADER_COMPACT_TITLE_CLASS_NAME,
+    );
+    // No hover needed for what the line already says.
+    expect(title).not.toHaveAttribute("title");
+  });
+
+  test("the labels side by side, wrapping, as the page about a record draws them - not one to a line as a table's row lists them", () => {
+    const labels: Array<Label> = [
+      "okta",
+      "credential access",
+      "customer data",
+    ].map((name: string, index: number): Label => {
+      const label: Label = new Label();
+      label._id = `60000000-0000-4000-8000-00000000000${index + 1}`;
+      label.name = name;
+      label.color = new Color("#4f46e5");
+      return label;
+    });
+
+    draw({ securityCase: buildCase({ labels }), layout: "full" });
+
+    const header: HTMLElement = screen.getByTestId("security-case-header");
+    const drawn: HTMLElement = within(header).getByTestId(
+      DETAIL_LABELS_TEST_ID,
+    );
+
+    expect(within(header).queryByTestId(TABLE_LABELS_TEST_ID)).toBeNull();
+    expect(drawn).toHaveClass("flex", "flex-wrap");
+    for (const name of ["okta", "credential access", "customer data"]) {
+      expect(within(drawn).getByText(name)).toBeInTheDocument();
+    }
+    // Every one shown: no "N more labels" fold in a header.
+    expect(within(header).queryByText(/more label/)).toBeNull();
+  });
+
+  test("the facts and the status steps are laid out by the width the header has, not the window's", () => {
+    draw({ securityCase: buildCase(), layout: "full" });
+
+    const header: HTMLElement = screen.getByTestId("security-case-header");
+    const facts: HTMLElement = within(header)
+      .getByText("Assignee")
+      .closest("dl") as HTMLElement;
+
+    expect(facts.className).toBe(SECURITY_CASE_HEADER_FACTS_CLASS_NAME);
+    expect(
+      (
+        screen.getByTestId("security-case-status-steps")
+          .parentElement as HTMLElement
+      ).className,
+    ).toBe(SECURITY_CASE_STEPS_CONTAINER_CLASS_NAME);
+  });
+
   test("is the full header when no layout is asked for", () => {
     draw({ securityCase: buildCase() });
 
@@ -274,6 +366,24 @@ describe("compact, on the case's other pages", () => {
     expect(screen.queryByTestId("case-description")).toBeNull();
     expect(screen.queryByTestId("security-case-status-steps")).toBeNull();
     expect(within(header).queryByText("Assignee")).toBeNull();
+  });
+
+  test("the title is two lines at most, the whole of it on hover", () => {
+    const longTitle: string =
+      "Password spray against Okta from 203.0.113.47, followed by a successful sign-in as k.morgan@acme-commerce.example and a new MFA device enrolled";
+
+    draw({ securityCase: buildCase({ title: longTitle }), layout: "compact" });
+
+    const title: HTMLElement = screen.getByTestId("security-case-title");
+
+    expect(title.className).toBe(
+      `${SECURITY_CASE_HEADER_TITLE_CLASS_NAME} ${SECURITY_CASE_HEADER_COMPACT_TITLE_CLASS_NAME}`,
+    );
+    expect(title).toHaveAttribute("title", longTitle);
+    // Still the page's one heading, its whole text there for a screen reader.
+    expect(screen.getByRole("heading", { level: 1, name: longTitle })).toBe(
+      title,
+    );
   });
 
   test("the actions are one group a screen reader names", () => {
@@ -534,6 +644,8 @@ describe("who may do what", () => {
 
     for (const testId of [
       "security-case-assign-to-me",
+      // A viewer may read the case's runs, not start one.
+      "security-case-run-playbook",
       "security-case-declare-incident",
       "security-case-close",
     ]) {
@@ -564,6 +676,8 @@ describe("who may do what", () => {
     draw({ securityCase: buildCase(), layout: "compact" });
 
     expect(screen.getByTestId("security-case-close")).toBeEnabled();
+    // A member starts runs.
+    expect(screen.getByTestId("security-case-run-playbook")).toBeEnabled();
 
     await openMore();
 

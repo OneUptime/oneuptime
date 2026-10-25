@@ -577,9 +577,12 @@ const SecurityCaseViewLayout: FunctionComponent<
             description={translator.translateTemplate(
               "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
               {
-                case: `${securityCase.caseNumberWithPrefix || ""} ${
-                  securityCase.title || ""
-                }`.trim(),
+                /*
+                 * The case by its number, as the header above and the trail
+                 * name it: "CASE-142 and its detections ...", not its number
+                 * and title run together.
+                 */
+                case: getSecurityCaseRecordName(securityCase) || "",
               },
             )}
             submitButtonText="Delete Case"

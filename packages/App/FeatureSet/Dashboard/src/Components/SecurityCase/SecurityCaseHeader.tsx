@@ -14,14 +14,17 @@ import {
   SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
   SECURITY_CASE_HEADER_BUTTON_CLASS_NAME,
   SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME,
+  SECURITY_CASE_HEADER_BUTTONS_CLASS_NAME,
   SECURITY_CASE_HEADER_CHIPS_CLASS_NAME,
   SECURITY_CASE_HEADER_CLASS_NAME,
+  SECURITY_CASE_HEADER_COMPACT_TITLE_CLASS_NAME,
+  SECURITY_CASE_HEADER_FACTS_CLASS_NAME,
   SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME,
   SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME,
   SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
   SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME,
-  SECURITY_CASE_HEADER_TITLE_BLOCK_CLASS_NAME,
+  SECURITY_CASE_HEADER_TITLE_CLASS_NAME,
   SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME,
   SECURITY_CASE_HEADER_TEST_IDS,
   SecurityCaseHeaderLayout,
@@ -29,6 +32,7 @@ import {
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -37,6 +41,7 @@ import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import { isArchivedValue } from "Common/Utils/ArchivableValues";
 import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { DetailValueContext } from "Common/UI/Components/Detail/DetailValueContext";
 import Icon from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -175,11 +180,12 @@ const HeaderActionButton: FunctionComponent<{
  * to its acknowledged one, and the ⋯ sets any priority nobody archived.
  *
  * Every page of the case draws it: in full on the Overview, and compact
- * (number, pills, title and the actions) on the others. The actions sit
- * beside the title when both fit, and under it, at the right, when they do
- * not; on a phone they fill two rows, and the ⋯ sits in the header's
- * top-right corner, where it is on a wide header, rather than alone on a
- * row of its own (SecurityCaseHeaderLayout.ts).
+ * (number, pills, a title of two lines at most, and the actions) on the
+ * others. On a wide header the actions sit at the right of the first line,
+ * beside the pills, and the title has the whole width under them; on a
+ * narrower one the buttons go under the title, at the right, and on a phone
+ * they fill two rows. The ⋯ is in the header's top-right corner at every
+ * width, never alone on a row of its own (SecurityCaseHeaderLayout.ts).
  */
 const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -195,6 +201,15 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
   const deleteGate: PermissionGateResult = PermissionGate.check(
     new SecurityCase(),
     ModelAction.Delete,
+  );
+  /*
+   * Running a playbook is starting a run of it: a Security Viewer, who may
+   * read runs but not start one, sees Run Playbook locked and why, as the
+   * other moves are - rather than a dialog the server refuses at the end.
+   */
+  const runGate: PermissionGateResult = PermissionGate.check(
+    new SecurityPlaybookRun(),
+    ModelAction.Create,
   );
 
   const { priorities, statuses } = props.values;
@@ -253,7 +268,8 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
   actions.push({
     title: "Run Playbook",
     icon: IconProp.Play,
-    isDisabled: props.isWorking,
+    isDisabled: !runGate.isAllowed || props.isWorking,
+    tooltip: runGate.isAllowed ? undefined : runGate.disabledReason,
     dataTestId: SECURITY_CASE_HEADER_TEST_IDS.runPlaybook,
     onClick: props.onRunPlaybook,
   });
@@ -382,49 +398,57 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
     >
       <div className="px-4 py-4 sm:px-5">
         <div className={SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME}>
-          <div className={SECURITY_CASE_HEADER_TITLE_BLOCK_CLASS_NAME}>
-            <div className={SECURITY_CASE_HEADER_CHIPS_CLASS_NAME}>
-              <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs font-semibold text-gray-700">
-                {securityCase.caseNumberWithPrefix || ""}
-              </span>
-              <SecurityCasePriorityPill value={priority} />
-              <SecurityCaseStatusPill value={status} />
-              {isClosed && securityCase.verdict ? (
-                <SecurityCaseVerdictPill value={securityCase.verdict} />
-              ) : (
-                <></>
-              )}
-              {securityCase.incidentId ? (
-                <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                    {
-                      modelId: new ObjectID(securityCase.incidentId.toString()),
-                    },
-                  )}
-                  className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100"
-                >
-                  <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                  <span>
-                    {securityCase.incident?.incidentNumberWithPrefix
-                      ? translator.translateTemplate("Incident {{number}}", {
-                          number:
-                            securityCase.incident.incidentNumberWithPrefix,
-                        })
-                      : translator.translateText("View Incident")}
-                  </span>
-                </AppLink>
-              ) : (
-                <></>
-              )}
-            </div>
-            <h1
-              className="mt-2 break-words text-xl font-semibold text-gray-900"
-              data-testid={SECURITY_CASE_HEADER_TEST_IDS.title}
-            >
-              {securityCase.title || ""}
-            </h1>
+          <div className={SECURITY_CASE_HEADER_CHIPS_CLASS_NAME}>
+            <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs font-semibold text-gray-700">
+              {securityCase.caseNumberWithPrefix || ""}
+            </span>
+            <SecurityCasePriorityPill value={priority} />
+            <SecurityCaseStatusPill value={status} />
+            {isClosed && securityCase.verdict ? (
+              <SecurityCaseVerdictPill value={securityCase.verdict} />
+            ) : (
+              <></>
+            )}
+            {securityCase.incidentId ? (
+              <AppLink
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                  {
+                    modelId: new ObjectID(securityCase.incidentId.toString()),
+                  },
+                )}
+                className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100"
+              >
+                <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
+                <span>
+                  {securityCase.incident?.incidentNumberWithPrefix
+                    ? translator.translateTemplate("Incident {{number}}", {
+                        number: securityCase.incident.incidentNumberWithPrefix,
+                      })
+                    : translator.translateText("View Incident")}
+                </span>
+              </AppLink>
+            ) : (
+              <></>
+            )}
           </div>
+
+          {/*
+           * Before the actions in the page, as it is read; drawn under them
+           * on a wide header. Compact, two lines at most, the whole title on
+           * hover.
+           */}
+          <h1
+            className={
+              isCompact
+                ? `${SECURITY_CASE_HEADER_TITLE_CLASS_NAME} ${SECURITY_CASE_HEADER_COMPACT_TITLE_CLASS_NAME}`
+                : SECURITY_CASE_HEADER_TITLE_CLASS_NAME
+            }
+            title={isCompact ? securityCase.title || undefined : undefined}
+            data-testid={SECURITY_CASE_HEADER_TEST_IDS.title}
+          >
+            {securityCase.title || ""}
+          </h1>
 
           <div
             role="group"
@@ -432,11 +456,20 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
             className={SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME}
             data-testid={SECURITY_CASE_HEADER_TEST_IDS.actions}
           >
-            {actions.map((action: HeaderAction): ReactElement => {
-              return (
-                <HeaderActionButton key={action.dataTestId} action={action} />
-              );
-            })}
+            {/*
+             * The buttons wrap among themselves; the ⋯ beside them keeps
+             * the top-right corner, never left alone on a row of its own.
+             */}
+            <div
+              className={SECURITY_CASE_HEADER_BUTTONS_CLASS_NAME}
+              data-testid={SECURITY_CASE_HEADER_TEST_IDS.buttons}
+            >
+              {actions.map((action: HeaderAction): ReactElement => {
+                return (
+                  <HeaderActionButton key={action.dataTestId} action={action} />
+                );
+              })}
+            </div>
             <div
               className={SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME}
               data-testid={SECURITY_CASE_HEADER_TEST_IDS.morePlace}
@@ -455,7 +488,14 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
         )}
         {!isCompact && securityCase.labels && securityCase.labels.length > 0 ? (
           <div className="mt-3">
-            <LabelsElement labels={securityCase.labels} />
+            {/*
+             * Side by side, wrapping, as the page about a record draws its
+             * labels (a detail card's way), not one to a line as a table's
+             * row lists them.
+             */}
+            <DetailValueContext.Provider value={true}>
+              <LabelsElement labels={securityCase.labels} />
+            </DetailValueContext.Provider>
           </div>
         ) : (
           <></>
@@ -476,7 +516,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <dl className="grid grid-cols-2 gap-4 border-t border-gray-100 px-4 py-4 sm:grid-cols-3 sm:px-5 lg:grid-cols-5">
+          <dl className={SECURITY_CASE_HEADER_FACTS_CLASS_NAME}>
             <MetaItem label="Assignee">
               {securityCase.assignedToUser ? (
                 <UserElement

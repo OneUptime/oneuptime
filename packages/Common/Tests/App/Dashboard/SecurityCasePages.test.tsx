@@ -570,9 +570,10 @@ describe("Delete Case", () => {
     expect(
       screen.getByRole("heading", { name: "Delete Case" }),
     ).toBeInTheDocument();
+    // By its number, as the header right above names it.
     expect(
       screen.getByText(
-        "CASE-142 Password spray against Okta from 203.0.113.47 and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+        "CASE-142 and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
       ),
     ).toBeInTheDocument();
 

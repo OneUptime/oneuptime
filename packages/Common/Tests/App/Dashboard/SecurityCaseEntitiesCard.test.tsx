@@ -332,6 +332,13 @@ describe("on a narrow page", () => {
     expect(underTheValue?.textContent).toBe(
       `IP Address · last seen ${OneUptimeDate.fromNow(IP_LAST_SEEN)}`,
     );
+    expect(underTheValue).toBe(
+      within(rows()[0]!).getByTestId(
+        SECURITY_CASE_ENTITIES_TEST_IDS.typeUnderValue,
+      ),
+    );
+    // On a phone it wraps without leaving one word alone on its last line.
+    expect(underTheValue).toHaveClass("text-pretty");
 
     // The worst severity under the count, the column's own cell left out.
     const underTheCount: HTMLElement = within(rows()[0]!).getByTestId(
