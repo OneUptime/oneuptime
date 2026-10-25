@@ -322,6 +322,7 @@ async function runAgent(
   agent: AgentCredentials,
   fromSeconds: number,
   toSeconds: number,
+  agentVersion: string = "14.0.88",
 ): Promise<void> {
   for (
     let second: number = fromSeconds;
@@ -331,7 +332,7 @@ async function runAgent(
     story.at(second);
 
     if ((second - fromSeconds) % HEARTBEAT_EVERY_SECONDS === 0) {
-      await story.heartbeat(agent, "14.0.88");
+      await story.heartbeat(agent, agentVersion);
     } else {
       expect(await story.request(agent)).toBe(true);
     }
@@ -386,8 +387,9 @@ describe("an agent upgraded with docker rm -f and docker run (issue #5253)", () 
     expect(story.summary().isOnline).toBe(true);
     expect(story.warning()).toBeNull();
 
-    await runAgent(story, replacement, 3700, 3800);
+    await runAgent(story, replacement, 3700, 3800, "14.0.89");
 
+    expect(story.summary().agentVersion).toBe("14.0.89");
     expect(story.summary().isOnline).toBe(true);
     expect(story.warning()).toBeNull();
 
