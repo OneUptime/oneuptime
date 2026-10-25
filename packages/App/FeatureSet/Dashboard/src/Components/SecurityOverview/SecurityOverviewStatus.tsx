@@ -357,6 +357,13 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
 };
 
 /*
+ * The Overview's cards stand a card's gap apart (20px), as the cards of its
+ * rows do (CardGrid) and as Home's do - its loading shape too, so nothing
+ * moves when the figures land.
+ */
+export const SECURITY_OVERVIEW_SPACING_CLASS_NAME: string = "space-y-5";
+
+/*
  * The Overview while its first reads are in flight: the card's shape - the
  * band, the four cells - and a block for what follows, so nothing jumps
  * when the figures land.
@@ -364,7 +371,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
 export const SecurityOverviewLoading: FunctionComponent = (): ReactElement => {
   return (
     <div
-      className="space-y-6"
+      className={SECURITY_OVERVIEW_SPACING_CLASS_NAME}
       aria-busy="true"
       data-testid="security-overview-loading"
     >

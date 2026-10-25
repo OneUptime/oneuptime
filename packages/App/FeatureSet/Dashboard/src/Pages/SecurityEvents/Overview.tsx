@@ -16,6 +16,7 @@ import SecurityGettingStarted, {
   isSecurityGetStartedDismissed,
 } from "../../Components/SecurityOverview/SecurityGettingStarted";
 import SecurityOverviewStatus, {
+  SECURITY_OVERVIEW_SPACING_CLASS_NAME,
   SecurityOverviewFailed,
   SecurityOverviewLoading,
 } from "../../Components/SecurityOverview/SecurityOverviewStatus";
@@ -63,6 +64,7 @@ import {
   TacticCount,
 } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -83,6 +85,11 @@ export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
     // An entity's risk reaching the threshold (Security Events > Entity Risk).
     [SecurityDetectionSource.EntityRisk]: Orange.toString(),
   };
+
+// The rows of cards under the figures, by what each row answers.
+export const SECURITY_OVERVIEW_CHARTS_ID: string = "security-overview-charts";
+export const SECURITY_OVERVIEW_NOW_ID: string = "security-overview-now";
+export const SECURITY_OVERVIEW_LATELY_ID: string = "security-overview-lately";
 
 /*
  * Security at a glance, in the order a person reads it.
@@ -433,8 +440,12 @@ const SecurityOverviewPage: FunctionComponent<
     />
   );
 
+  /*
+   * The page's cards stand a card's gap apart (20px), as the cards of a row
+   * do and as Home's do - and as its loading shape does.
+   */
   return (
-    <div className="space-y-6">
+    <div className={SECURITY_OVERVIEW_SPACING_CLASS_NAME}>
       {showStatusCard && !showGetStarted ? statusCard : <></>}
 
       {status && showGetStarted ? (
@@ -544,14 +555,15 @@ const SecurityOverviewPage: FunctionComponent<
           </EventStatBar>
 
           {/*
-           * Every card fills its row (fillHeight), so each row of cards ends
-           * on one line, as Home's do, rather than a short card leaving the
-           * page showing under it beside a tall one.
+           * Rows of cards (CardGrid): every card fills its cell, so each row
+           * ends on one line rather than a short card leaving the page
+           * showing under it beside a tall one; and how many share a row
+           * follows the room the page has beside the side menu. The two
+           * day-by-day charts are as tall as each other.
            */}
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <CardGrid columns={2} dataTestId={SECURITY_OVERVIEW_CHARTS_ID}>
             <Card
               title="Cases Opened"
-              fillHeight={true}
               description="New cases each day over the last 30 days, by priority."
             >
               <StackedDayBars
@@ -562,7 +574,6 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Detections"
-              fillHeight={true}
               description="New detections each day over the last 14 days, by what raised them."
             >
               <StackedDayBars
@@ -571,17 +582,24 @@ const SecurityOverviewPage: FunctionComponent<
                 ariaLabel="Detections per day, by source"
               />
             </Card>
-          </div>
+          </CardGrid>
 
           {/*
-           * Three across only from xl: beside the side menu a third of the page
-           * is too narrow for a tactic's name. Below that the tactics take the
-           * second row's whole width.
+           * Then the ranked lists, the most urgent first: what is open now
+           * and who it touches this week, then what raised detections in two
+           * weeks, the attacker goals behind the month's cases, and how the
+           * month's closed cases turned out. The lists that share a row are
+           * of a size: the open cases (the project's priorities and open
+           * statuses) beside up to eight entities of two lines each; then
+           * three short lists of up to eight rows, Verdicts' four. So a row
+           * ends on one line with little room left in its shorter card, at
+           * every width - where the old order put four verdicts and two
+           * tactics beside the whole queue, and two rules beside eight
+           * entities.
            */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <CardGrid columns={2} dataTestId={SECURITY_OVERVIEW_NOW_ID}>
             <Card
               title="Open Cases"
-              fillHeight={true}
               description="The queue right now, by priority and by where each case stands."
             >
               <div className="space-y-5">
@@ -600,34 +618,29 @@ const SecurityOverviewPage: FunctionComponent<
               </div>
             </Card>
             <Card
-              title="Verdicts"
-              fillHeight={true}
-              description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
+              title="Riskiest Entities"
+              description="The users, hosts and addresses named by the most findings in the last 7 days. Open one to see everything it touched."
             >
               <RankedBars
-                items={verdicts}
-                total={Math.max(1, metrics.casesClosedInWindow)}
-                emptyText="No case was closed in the last 30 days."
+                items={topEntities}
+                emptyText="No findings named an entity in the last 7 days."
               />
             </Card>
-            <div className="md:col-span-2 xl:col-span-1">
-              <Card
-                title="MITRE ATT&CK Tactics"
-                fillHeight={true}
-                description="The attacker goals behind the cases of the last 30 days."
-              >
-                <RankedBars
-                  items={topTactics}
-                  emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
-                />
-              </Card>
-            </div>
-          </div>
+          </CardGrid>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/*
+           * Short lists of short names: three across where the page has the
+           * room for a tactic's name in each, two across beside the side menu
+           * of a smaller screen - the third then takes its row - and one
+           * above the other on a phone.
+           */}
+          <CardGrid
+            columns={3}
+            cardWidth="narrow"
+            dataTestId={SECURITY_OVERVIEW_LATELY_ID}
+          >
             <Card
               title="Top Detections"
-              fillHeight={true}
               description="The rules and sources that raised the most detections in the last 14 days."
             >
               <RankedBars
@@ -636,16 +649,25 @@ const SecurityOverviewPage: FunctionComponent<
               />
             </Card>
             <Card
-              title="Riskiest Entities"
-              fillHeight={true}
-              description="The users, hosts and addresses named by the most findings in the last 7 days. Open one to see everything it touched."
+              title="MITRE ATT&CK Tactics"
+              description="The attacker goals behind the cases of the last 30 days."
             >
               <RankedBars
-                items={topEntities}
-                emptyText="No findings named an entity in the last 7 days."
+                items={topTactics}
+                emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
               />
             </Card>
-          </div>
+            <Card
+              title="Verdicts"
+              description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
+            >
+              <RankedBars
+                items={verdicts}
+                total={Math.max(1, metrics.casesClosedInWindow)}
+                emptyText="No case was closed in the last 30 days."
+              />
+            </Card>
+          </CardGrid>
 
           {overview.isTruncated ? (
             <p className="text-xs text-gray-500">

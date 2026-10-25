@@ -36,6 +36,17 @@ const NotRecorded: FunctionComponent = (): ReactElement => {
 
 const NOT_RECORDED: ReactElement = <NotRecorded />;
 
+// While the occurrence is read: the loader in the middle of the card's room.
+export const EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME: string =
+  "flex min-h-24 flex-1 items-center justify-center";
+
+/*
+ * No occurrence stored: a dashed box that takes the card's room under its
+ * header, its clock and words in the middle of it.
+ */
+export const EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME: string =
+  "flex flex-1 items-center gap-3 rounded-lg border border-dashed border-gray-200 px-4 py-5";
+
 function toDate(value: unknown): Date | undefined {
   if (!value) {
     return undefined;
@@ -60,10 +71,18 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
   const traceId: string = props.instance?.traceId?.toString().trim() || "";
   const sessionId: string = props.instance?.sessionId?.toString().trim() || "";
 
+  /*
+   * Beside the exception's details on the Overview the card is as tall as
+   * they are (CardGrid): the loader and the empty box take the room it has
+   * under its header, so neither sits at its top over blank card.
+   */
   const renderBody: () => ReactElement = (): ReactElement => {
     if (props.isLoading && !props.instance) {
       return (
-        <div className="flex h-24 items-center justify-center">
+        <div
+          className={EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME}
+          data-testid="exception-latest-occurrence-loading"
+        >
           <ComponentLoader />
         </div>
       );
@@ -72,7 +91,7 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
     if (!props.instance) {
       return (
         <div
-          className="flex items-center gap-3 rounded-lg border border-dashed border-gray-200 px-4 py-5"
+          className={EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME}
           data-testid="exception-latest-occurrence-empty"
         >
           <Icon icon={IconProp.Clock} className="h-5 w-5 text-gray-400" />

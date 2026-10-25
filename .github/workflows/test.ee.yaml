@@ -110,14 +110,15 @@ jobs:
       # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
       # too - the foreign `.hidden` guard, the create-form defaults guard,
       # which lists the ee compliance rule form's Enabled switch, the
-      # card-in-card guard, the long-form steps guard, and the check that
+      # card-in-card guard, the card-rows guard (cards side by side are a
+      # CardGrid), the long-form steps guard, and the check that
       # every permission table asks one Scope (the custom role table is in
       # ee/Dashboard since #5216) - but the Common Test job deletes ee/
       # first, so only this run sees the Enterprise UI. They only read files
       # (and load Common's models).
       - name: Run Common's UI source guards with ee/ present
         working-directory: packages/Common
-        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts Tests/UI/Components/CardInCardGuard.test.ts Tests/UI/Components/Forms/LongFormStepsGuard.test.ts Tests/App/Dashboard/PermissionScopeChoice.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts Tests/UI/Components/CardInCardGuard.test.ts Tests/UI/Components/CardRowsGuard.test.ts Tests/UI/Components/Forms/LongFormStepsGuard.test.ts Tests/App/Dashboard/PermissionScopeChoice.test.ts --forceExit
       # Common's guard that every removal of a project membership goes through
       # TeamMemberService with its hooks, so the leaver's own notification
       # settings go with it, also walks ee/Server: SCIM deprovisioning removes
