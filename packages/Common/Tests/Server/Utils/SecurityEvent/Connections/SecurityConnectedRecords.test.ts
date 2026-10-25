@@ -14,6 +14,10 @@ import SecurityConnectedRecords, {
   getLogResourceKind,
   isRefusedRead,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnectedRecords";
+import {
+  SECURITY_CONNECTION_LOOKUP_KINDS,
+  wasLookedUpEverywhere,
+} from "../../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../../../Types/Email";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -721,6 +725,90 @@ describe("what the caller's role keeps from them, and what fails", () => {
       }),
     ).toEqual([SecurityConnectionKind.KubernetesCluster]);
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("a value that could not be looked up everywhere is never said to be not in OneUptime", async () => {
+    // The members cannot be read; the hosts and devices answer, and hold nothing.
+    spies["user"]!.mockRejectedValue(
+      new NotAuthorizedException("You do not have permission to read users."),
+    );
+
+    const refused: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.User, value: "kim@acme.example" },
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
+      { type: SecurityEntityType.Host, value: "db-9" },
+    ]);
+
+    expect(refused.unreadableKinds).toEqual([SecurityConnectionKind.User]);
+    // The email may be a member's the role cannot see: it is not listed.
+    expect(refused.unmatched).toEqual([
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
+      { type: SecurityEntityType.Host, value: "db-9" },
+    ]);
+
+    // A device read that fails leaves an address and a name unsure too.
+    spies["user"]!.mockResolvedValue([]);
+    spies["device"]!.mockRejectedValue(new Error("connection reset"));
+
+    const failed: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.User, value: "kim@acme.example" },
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
+      { type: SecurityEntityType.Host, value: "db-9" },
+    ]);
+
+    expect(failed.failedKinds).toEqual([SecurityConnectionKind.NetworkDevice]);
+    expect(failed.unmatched).toEqual([
+      { type: SecurityEntityType.User, value: "kim@acme.example" },
+    ]);
+  });
+
+  test("wasLookedUpEverywhere: a name among the machines, clusters and devices, an address among the hosts and devices, an email among the members", () => {
+    const unsure: (
+      ...kinds: Array<SecurityConnectionKind>
+    ) => ReadonlySet<SecurityConnectionKind> = (
+      ...kinds: Array<SecurityConnectionKind>
+    ): ReadonlySet<SecurityConnectionKind> => {
+      return new Set(kinds);
+    };
+    const host: SecurityEntity = {
+      type: SecurityEntityType.Host,
+      value: "web-1",
+    };
+    const address: SecurityEntity = {
+      type: SecurityEntityType.IpAddress,
+      value: "203.0.113.9",
+    };
+    const email: SecurityEntity = {
+      type: SecurityEntityType.User,
+      value: "kim@acme.example",
+    };
+
+    expect(wasLookedUpEverywhere(host, unsure())).toBe(true);
+    expect(
+      wasLookedUpEverywhere(
+        host,
+        unsure(SecurityConnectionKind.KubernetesCluster),
+      ),
+    ).toBe(false);
+    // Services are not looked up by name: an unreadable one changes nothing.
+    expect(
+      wasLookedUpEverywhere(host, unsure(SecurityConnectionKind.Service)),
+    ).toBe(true);
+    expect(
+      wasLookedUpEverywhere(address, unsure(SecurityConnectionKind.User)),
+    ).toBe(true);
+    expect(
+      wasLookedUpEverywhere(address, unsure(SecurityConnectionKind.Host)),
+    ).toBe(false);
+    expect(
+      wasLookedUpEverywhere(email, unsure(SecurityConnectionKind.Host)),
+    ).toBe(true);
+    expect(
+      wasLookedUpEverywhere(email, unsure(SecurityConnectionKind.User)),
+    ).toBe(false);
+    expect(SECURITY_CONNECTION_LOOKUP_KINDS.email).toEqual([
+      SecurityConnectionKind.User,
+    ]);
   });
 
   test("nothing to look up reads nothing", async () => {

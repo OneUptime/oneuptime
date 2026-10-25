@@ -126,13 +126,14 @@ export const SIGNAL_LINK_LABELS: Readonly<Record<string, string>> = {
   inventory: translationKey("Inventory"),
 };
 
+// Each signal's icon, as the record's own side menu draws its page.
 export const SIGNAL_LINK_ICONS: Readonly<Record<string, IconProp>> = {
   logs: IconProp.Logs,
   traces: IconProp.Workflow,
   metrics: IconProp.ChartBar,
-  exceptions: IconProp.Bug,
-  events: IconProp.List,
-  topology: IconProp.Graph,
+  exceptions: IconProp.Error,
+  events: IconProp.Bolt,
+  topology: IconProp.FlowDiagram,
   inventory: IconProp.Cube,
 };
 

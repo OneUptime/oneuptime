@@ -88,7 +88,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | Section du menu latéral | Pages |
 | --- | --- |
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
-| **Investigation** | **Détections**, **Entités**, **Exécutions de playbooks** |
+| **Investigation** | **Détections**, **Entités**, **Signaux connectés**, **Exécutions de playbooks** |
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
@@ -100,6 +100,7 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Chronologie** : tout ce qui est arrivé au dossier, avec son auteur.
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
+- **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
 - **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Exécutions de playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier.
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).

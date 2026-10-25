@@ -20,6 +20,7 @@ import {
   MAX_HOST_NAME_LENGTH,
   SecurityAddressScope,
   SecurityConnectionLookups,
+  SecurityConnectionVerdict,
   SecurityConnectionWindow,
   canonicalAddress,
   compareConnectedResources,
@@ -207,7 +208,7 @@ describe("matchHostName", () => {
   });
 
   test("a bare name and the full name starting with it: possible, either way round", () => {
-    const possible: object = {
+    const possible: SecurityConnectionVerdict = {
       certainty: SecurityConnectionCertainty.Possible,
       reason: SecurityConnectionReason.ShortHostName,
     };
@@ -686,7 +687,7 @@ describe("every rule reads outside text in linear time", () => {
   ];
 
   test.each(
-    worstCases.map((value: string, index: number) => {
+    worstCases.map((value: string, index: number): [number, string] => {
       return [index, value];
     }),
   )("worst case %i", (_index: number, value: string) => {

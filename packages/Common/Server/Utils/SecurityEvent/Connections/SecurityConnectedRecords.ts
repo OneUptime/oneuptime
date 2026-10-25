@@ -34,6 +34,7 @@ import {
   matchEmail,
   matchHostName,
   recordReportsAddress,
+  wasLookedUpEverywhere,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import DockerHostService from "../../../Services/DockerHostService";
 import HostService from "../../../Services/HostService";
@@ -278,10 +279,18 @@ export default class SecurityConnectedRecords {
       }
     }
 
+    const unsureKinds: Set<SecurityConnectionKind> = new Set([
+      ...Array.from(collector.unreadable),
+      ...Array.from(collector.failed),
+    ]);
+
     return {
       records,
       unmatched: lookups.lookedUp.filter((entity: SecurityEntity): boolean => {
-        return !matchedValues.has(foldConnectionValue(entity.value));
+        return (
+          !matchedValues.has(foldConnectionValue(entity.value)) &&
+          wasLookedUpEverywhere(entity, unsureKinds)
+        );
       }),
       unreadableKinds: Array.from(collector.unreadable),
       failedKinds: Array.from(collector.failed),

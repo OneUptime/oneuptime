@@ -912,6 +912,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/security-entity-risk",
       },
       {
+        title: "Connected Signals",
+        url: "/docs/telemetry/security-connected-signals",
+      },
+      {
         title: "Threat Intelligence (STIX/TAXII)",
         url: "/docs/telemetry/threat-intelligence",
       },

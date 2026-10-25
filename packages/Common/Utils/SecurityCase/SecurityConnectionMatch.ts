@@ -696,6 +696,49 @@ export function getSecurityConnectionLookups(
   };
 }
 
+/*
+ * The kinds of record each kind of value is looked up among: a name among
+ * the machines, clusters and devices, an address among the hosts and
+ * devices that hold it, an email among the project's members.
+ */
+export const SECURITY_CONNECTION_LOOKUP_KINDS: Readonly<{
+  name: ReadonlyArray<SecurityConnectionKind>;
+  address: ReadonlyArray<SecurityConnectionKind>;
+  email: ReadonlyArray<SecurityConnectionKind>;
+}> = {
+  name: [
+    SecurityConnectionKind.Host,
+    SecurityConnectionKind.DockerHost,
+    SecurityConnectionKind.PodmanHost,
+    SecurityConnectionKind.KubernetesCluster,
+    SecurityConnectionKind.NetworkDevice,
+  ],
+  address: [SecurityConnectionKind.Host, SecurityConnectionKind.NetworkDevice],
+  email: [SecurityConnectionKind.User],
+};
+
+/*
+ * Whether a value was looked up among every kind of record it could be. One
+ * that was not - a kind the reader's role cannot read, or one whose read
+ * failed - is never said to be "not in OneUptime": it may well be there.
+ */
+export function wasLookedUpEverywhere(
+  entity: SecurityEntity,
+  unsureKinds: ReadonlySet<SecurityConnectionKind>,
+): boolean {
+  const kinds: ReadonlyArray<SecurityConnectionKind> = canonicalAddress(
+    entity.value,
+  )
+    ? SECURITY_CONNECTION_LOOKUP_KINDS.address
+    : entity.type === SecurityEntityType.User || isEmailLike(entity.value)
+      ? SECURITY_CONNECTION_LOOKUP_KINDS.email
+      : SECURITY_CONNECTION_LOOKUP_KINDS.name;
+
+  return !kinds.some((kind: SecurityConnectionKind): boolean => {
+    return unsureKinds.has(kind);
+  });
+}
+
 // The best of a record's matches: exact when any is.
 export function getBestCertainty(
   certainties: ReadonlyArray<SecurityConnectionCertainty>,
