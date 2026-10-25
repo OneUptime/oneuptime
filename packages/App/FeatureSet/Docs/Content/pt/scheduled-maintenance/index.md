@@ -92,7 +92,7 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 
 **Visão geral**, **Equipe** e **Notas** ficam abertas; as outras seções começam recolhidas até você clicar nelas.
 
-- **Visão geral** — o cabeçalho mostra o número, o título e o estado do evento, quanto falta para começar ou há quanto tempo ele dura, e os botões que o fazem avançar. Abaixo, **Começa**, **Termina** e **Duração** mostram a janela planejada no seu fuso horário. O **Agendado Manutenção Feed** registra tudo o que aconteceu com o evento, ao lado dos cartões **Maintenance Details** e **Recursos afetados**, e dos cartões **Medições** e **Campos personalizados** quando o seu projeto tem algum.
+- **Visão geral** — o cabeçalho mostra o número, o título e o estado do evento, quanto falta para começar ou há quanto tempo ele dura, seus proprietários, as páginas de status em que aparece e quem o criou, e os botões que o fazem avançar. Abaixo, **Começa**, **Termina** e **Duração** mostram a janela planejada no seu fuso horário. O **Agendado Manutenção Feed** registra tudo o que aconteceu com o evento, ao lado dos cartões **Maintenance Details** e **Recursos afetados**, e dos cartões **Medições** e **Campos personalizados** quando o seu projeto tem algum.
 - **Linha do tempo de estado** — cada estado em que o evento esteve, quando e por quanto tempo. Veja [Estados da manutenção](/docs/scheduled-maintenance/states#a-linha-do-tempo-de-estado).
 - **Notas públicas** — atualizações para suas páginas de status e os assinantes delas. As **Notas privadas** são só para a sua equipe.
 - **Configurações** — **Visível na página de status**, que mostra ou oculta o evento nas suas páginas de status, e **Enviar lembretes**, que lembra os proprietários do evento até ele ser concluído. Cada chave salva no momento em que você a aciona.
@@ -100,7 +100,7 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 ## Solução de problemas
 
 :::details Um evento não começou no seu Começa em
-A tarefa que inicia os eventos roda a cada minuto, então espere um minuto. Se o cabeçalho disser **Start overdue**, o evento perdeu o início por mais de dois minutos: inicie-o com o botão do cabeçalho, que faz tudo o que a tarefa faz, e abra a **Linha do tempo de estado** dele para ver onde estava.
+A tarefa que inicia os eventos roda a cada minuto, então espere um minuto. Se o cabeçalho disser **Início atrasado**, o evento perdeu o início por mais de dois minutos: inicie-o com o botão do cabeçalho, que faz tudo o que a tarefa faz, e abra a **Linha do tempo de estado** dele para ver onde estava.
 :::
 
 :::details Um monitor continuou sendo verificado durante a manutenção

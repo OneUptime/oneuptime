@@ -1320,7 +1320,8 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
         {
           /*
            * Where OneUptime AI runs the rule's Bash commands: the project's
-           * default Runner for a new rule, or none.
+           * default Runner for a new rule, or none - shown as the Global
+           * Runner where there is one, on which it runs none of them.
            */
           field: { runnerId: true },
           title: AUTO_REMEDIATION_MORE_FIELDS_COPY.runnerTitle,
@@ -1369,6 +1370,16 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
               <AutoRemediationRunnerPicker
                 value={(values as { runnerId?: unknown }).runnerId}
                 ariaLabelledby={elementProps.ariaLabelledby}
+                /*
+                 * An older rule that composes commands runs them on its
+                 * Command Runners too: none here reads "No Runner".
+                 */
+                isGlobalRunnerShown={
+                  !isEditingOlderRuleOfKind(
+                    values,
+                    AutoRemediationFixKind.CommandsOnRunners,
+                  )
+                }
                 onChange={(runnerId: string | null): void => {
                   elementProps.onChange?.(runnerId);
                 }}

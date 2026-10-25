@@ -92,7 +92,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 
 **Vue d'ensemble**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
-- **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
+- **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, ses propriétaires, les pages de statut où il apparaît et qui l'a créé, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
 - **Chronologie d'état** — chaque état dans lequel l'événement a été, quand et pendant combien de temps. Voir [États de la maintenance](/docs/scheduled-maintenance/states#la-chronologie-détat).
 - **Notes publiques** — des mises à jour pour vos pages de statut et leurs abonnés. Les **Notes privées** sont réservées à votre équipe.
 - **Paramètres** — **Visible sur la page de statut**, qui affiche ou masque l'événement sur ses pages de statut, et **Envoyer des rappels**, qui rappelle l'événement à ses propriétaires jusqu'à ce qu'il soit achevé. Chaque interrupteur enregistre dès que vous le basculez.
@@ -100,7 +100,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 ## Dépannage
 
 :::details Un événement n'a pas commencé à son Commence le
-La tâche qui démarre les événements s'exécute chaque minute, laissez donc passer une minute. Si l'en-tête indique **Start overdue**, l'événement a manqué son début de plus de deux minutes : démarrez-le avec le bouton de l'en-tête, qui fait tout ce que fait la tâche, et ouvrez sa **Chronologie d'état** pour voir où il en était.
+La tâche qui démarre les événements s'exécute chaque minute, laissez donc passer une minute. Si l'en-tête indique **Début en retard**, l'événement a manqué son début de plus de deux minutes : démarrez-le avec le bouton de l'en-tête, qui fait tout ce que fait la tâche, et ouvrez sa **Chronologie d'état** pour voir où il en était.
 :::
 
 :::details Un moniteur a encore été vérifié pendant la maintenance

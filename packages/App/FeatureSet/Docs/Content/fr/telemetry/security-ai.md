@@ -45,6 +45,7 @@ Une qualification lit :
 - le dossier : son titre, sa priorité, son statut, ses entités et sa correspondance ATT&CK ;
 - ses détections, la plus récente d'abord, avec un exemple d'événement pour chacune ;
 - les événements de sécurité et le renseignement sur les menaces concernant ses utilisateurs, ses hôtes et ses adresses ;
+- le risque de ses utilisateurs, de ses hôtes et de ses adresses, et ce qui l'a augmenté cette semaine ;
 - les hôtes de OneUptime auxquels correspondent ses hôtes et ses adresses, et à qui ils appartiennent ;
 - l'incident qu'il a déclaré, ses notes, ses entités protégées et les playbooks activés.
 

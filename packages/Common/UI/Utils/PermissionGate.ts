@@ -151,6 +151,15 @@ export interface PermissionGateOptions extends HeldPermissionsOptions {
    * checked and listed are still the ones for `action`.
    */
   verb?: string | undefined;
+  /*
+   * The message's first sentence, whole - one translation key - when the
+   * reader knows the operation by what it does rather than by its model: a
+   * new row on an incident's state timeline is "change this incident's
+   * state" to someone pressing Acknowledge. It takes the place of "You do
+   * not have permission to <verb> this <item>."; the permissions that would
+   * allow it, or the team block that refuses it, follow as usual.
+   */
+  sentence?: string | undefined;
 }
 
 /*
@@ -338,6 +347,7 @@ export default class PermissionGate {
       disabledReason: this.buildMissingPermissionMessage({
         singularName: options?.singularName || model.singularName || "item",
         verb: (options?.verb?.trim() || action).toLowerCase(),
+        sentence: options?.sentence,
         permissions: modelPermissions,
         held: held,
       }),
@@ -422,6 +432,7 @@ export default class PermissionGate {
       disabledReason: this.buildMissingPermissionMessage({
         singularName: options?.singularName || model.singularName || "item",
         verb: (options?.verb?.trim() || ModelAction.Update).toLowerCase(),
+        sentence: options?.sentence,
         permissions: columnPermissions,
         held: held,
       }),
@@ -500,6 +511,7 @@ export default class PermissionGate {
       disabledReason: this.buildMissingPermissionMessage({
         singularName: options?.singularName || model.singularName || "item",
         verb: (options?.verb?.trim() || ModelAction.Update).toLowerCase(),
+        sentence: options?.sentence,
         permissions: opening,
         held: held,
       }),
@@ -604,19 +616,22 @@ export default class PermissionGate {
     return this.buildMissingPermissionMessage({
       singularName: options?.singularName || model.singularName || "item",
       verb: (options?.verb?.trim() || action).toLowerCase(),
+      sentence: options?.sentence,
       permissions: this.getModelPermissions(model, action),
       held: this.getHeldPermissions(options),
     });
   }
 
   /*
-   * "You do not have permission to <verb> this <item>." and, when a team's
-   * block is what refuses, "A team you are on blocks ..."; otherwise, when
-   * there are permissions to name, "You need one of these permissions: ...".
+   * "You do not have permission to <verb> this <item>." - or the caller's
+   * own whole sentence - and, when a team's block is what refuses, "A team
+   * you are on blocks ..."; otherwise, when there are permissions to name,
+   * "You need one of these permissions: ...".
    */
   private static buildMissingPermissionMessage(data: {
     singularName: string;
     verb: string;
+    sentence?: string | undefined;
     permissions: Array<Permission>;
     held: HeldPermissions;
   }): string {
@@ -625,18 +640,21 @@ export default class PermissionGate {
 
     const translator: Translator = getGlobalTranslator();
     const template: string | undefined = MISSING_PERMISSION_TEMPLATES[verb];
+    const ownSentence: string = data.sentence?.trim() || "";
 
-    const sentence: string = template
-      ? translator.translateTemplate(template, {
-          itemName: translatableTerm(singularName),
-        })
-      : translator.translateTemplate(
-          "You do not have permission to {{action}} this {{itemName}}.",
-          {
-            action: translatableTerm(verb),
+    const sentence: string = ownSentence
+      ? translator.translateText(ownSentence) || ownSentence
+      : template
+        ? translator.translateTemplate(template, {
             itemName: translatableTerm(singularName),
-          },
-        );
+          })
+        : translator.translateTemplate(
+            "You do not have permission to {{action}} this {{itemName}}.",
+            {
+              action: translatableTerm(verb),
+              itemName: translatableTerm(singularName),
+            },
+          );
 
     return this.appendPermissionsToSentence({
       sentence: sentence,

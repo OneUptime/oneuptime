@@ -78,7 +78,7 @@ Trascinate una riga dalla maniglia per spostarla; il nuovo ordine viene salvato 
 
 Uno stato che aggiungete non ha flag, quindi è la sua posizione a dargli significato. Mettete un passaggio di mitigazione tra **Riconosciuto** e **Risolto**, e un passaggio di triage sopra **Riconosciuto**. Uno stato posto sotto **Risolto** conta come risolto ovunque.
 
-Portate un avviso in uno stato vostro dal menu **⋯** nell'intestazione dell'avviso, sotto **Change state to**, che elenca ogni stato successivo a quello attuale. La sua conferma si intitola **Segna l'avviso come {{state}}**, con il nome dello stato al suo interno.
+Portate un avviso in uno stato vostro dal menu **⋯** nell'intestazione dell'avviso, sotto **Cambia stato in**, che elenca ogni stato successivo a quello attuale. La sua conferma si intitola **Segna l'avviso come {{state}}**, con il nome dello stato al suo interno.
 
 > [!NOTE]
 > Su OneUptime Cloud, aggiungere o modificare stati e gravità degli avvisi richiede il piano **Growth** o superiore. Ogni piano può leggerli, usarli ed eliminare uno stato che avete aggiunto.
@@ -128,13 +128,13 @@ Archivia uno stato o una gravità che il tuo team non deve più usare, invece di
 
 | Modo                             | Dove                                                                                      | Che cosa chiede                                                                                                                      |
 | -------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Pulsanti dell'intestazione**   | L'intestazione dell'avviso: **Riconosci**, **Risolvi** e **Change state to** nel suo menu **⋯** | Una breve conferma, **Riconosci avviso**, **Risolvi avviso** o **Segna l'avviso come {{state}}**, con una nota facoltativa sotto **Aggiungi una nota privata**. |
+| **Pulsanti dell'intestazione**   | L'intestazione dell'avviso: **Riconosci**, **Risolvi** e **Cambia stato in** nel suo menu **⋯** | Una breve conferma, **Riconosci avviso**, **Risolvi avviso** o **Segna l'avviso come {{state}}**, con una nota facoltativa sotto **Aggiungi una nota privata**. |
 | **State timeline**               | **Cronologia stato** nel menu laterale dell'avviso                                        | Una riga che aggiungete a mano, con **Stato dell'avviso** e **Inizia il**.                                                            |
 | **Riga dell'elenco** | Il menu **⋯** sulla riga di un avviso nell'elenco degli avvisi: **Riconosci**, **Risolvi** e **Cambia stato** | La conferma dell'intestazione, con il nome dell'avviso. Un avviso che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. |
 | **Modifica in blocco**           | **Riconosci**, **Risolvi** o **Cambia stato** su una selezione nell'elenco degli avvisi                                | Lo stato, e una nota privata aggiunta a ogni avviso. Gli avvisi già in quello stato o oltre vengono saltati.                         |
 | **Automaticamente**              | Un monitor, un episodio, un incidente collegato o il vostro codice                       | **Risoluzione automatica dell'avviso** nei criteri di un monitor, il cambio di stato di un episodio, gli interruttori degli incidenti su [Avvisi collegati](/docs/incidents/linked-alerts), o una riga creata su `/api/alert-state-timeline`. |
 
-L'intestazione offre **Riconosci** e **Risolvi** finché l'avviso non è ancora riconosciuto, e solo **Risolvi** dopo. Un avviso risolto non mostra nessuno dei due.
+L'intestazione offre **Riconosci** e **Risolvi** finché l'avviso non è ancora riconosciuto, e solo **Risolvi** dopo. Un avviso risolto non mostra nessuno dei due. Chi, con il proprio ruolo, non può cambiare lo stato dell'avviso vede i pulsanti bloccati e nessun menu degli altri stati: puntandone uno, compaiono le autorizzazioni che glielo permetterebbero.
 
 ## Che cosa fa il riconoscimento
 

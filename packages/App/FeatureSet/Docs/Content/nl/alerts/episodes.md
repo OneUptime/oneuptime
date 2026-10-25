@@ -160,7 +160,7 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 | **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
-**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Alerts in this episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
+**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Alerts in this episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.
 
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 

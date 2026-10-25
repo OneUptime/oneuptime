@@ -61,6 +61,7 @@ Global Runners are the Runners OneUptime runs for every project. A JavaScript st
 | What a step can reach | Public internet addresses | What its host can reach |
 | Longest a step runs | 5 minutes | 1 hour |
 | Secret variables | The ones you let global Runners use | The ones that list it |
+| OneUptime AI's Bash commands | Never | For the AI rules that pick it |
 
 A global Runner runs the steps of many projects, so each step is kept apart from every other:
 

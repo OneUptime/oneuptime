@@ -45,6 +45,7 @@ En vurdering leser:
 - saken: tittel, prioritet, status, entiteter og ATT&CK-tilordning;
 - deteksjonene, den nyeste først, med en eksempelhendelse for hver;
 - sikkerhetshendelsene og trusseletterretningen om sakens brukere, verter og adresser;
+- risikoen for sakens brukere, verter og adresser, og hva som bidro til den denne uken;
 - vertene i OneUptime som sakens verter og adresser samsvarer med, og hvem som eier dem;
 - hendelsen saken har erklært, notatene, de beskyttede entitetene og playbookene som er slått på.
 

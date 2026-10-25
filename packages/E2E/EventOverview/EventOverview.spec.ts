@@ -364,7 +364,12 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   ],
   state: "Scheduled",
   duration: "Starts in 2 hours",
+  /*
+   * Who owns it (teams first), where it shows - each status page a link -
+   * and who created it.
+   */
   facts: [
+    { label: "Owners", value: "Database Reliability, Jordan Patel" },
     {
       label: "Status pages",
       value: "Acme Commerce Status, Acme Internal Status",
@@ -875,10 +880,18 @@ function whatHappenedCard(page: Page): Locator {
   return card(page, "What happened");
 }
 
+/*
+ * The header: every incident, alert, episode and maintenance event draws one
+ * (EventStatusPanel). A record with nothing left to do has no actions group,
+ * so the header is found by its own name, not through its buttons.
+ */
 function hero(page: Page): Locator {
-  return page
-    .getByRole("group", { name: "Event actions" })
-    .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+  return page.getByTestId("event-header");
+}
+
+// The number and the pills: state, severity, Private.
+function heroChips(page: Page): Locator {
+  return hero(page).getByTestId("event-header-chips");
 }
 
 // The hero's action row: state buttons, other actions, then "More actions".
@@ -1062,29 +1075,84 @@ async function statCells(page: Page, name: string): Promise<Array<StatCell>> {
 }
 
 /*
- * The header's facts as they read: a fact that names people - the Incident
- * Commander, the owners - lists their names, without the avatars' initials.
+ * The header's facts as they read, after how long (heroDuration reads that
+ * one): a fact that names people - the Incident Commander, the owners -
+ * lists their names, without the avatars' initials; one that names things -
+ * monitors, an episode, status pages, one under another - lists them, then
+ * how many more.
  */
 async function heroFacts(header: Locator): Promise<Array<LabelledValue>> {
   return header
     .locator("dl > div")
     .evaluateAll((rows: Array<Element>): Array<LabelledValue> => {
-      return rows.map((row: Element): LabelledValue => {
-        const value: Element | null = row.querySelector("dd");
-        const names: Array<string> = Array.from(
-          value?.querySelectorAll("[data-testid='event-person-name']") || [],
-        ).map((name: Element): string => {
-          return (name.textContent || "").trim();
+      return rows
+        .filter((row: Element): boolean => {
+          return !row.querySelector("[data-testid='event-header-duration']");
+        })
+        .map((row: Element): LabelledValue => {
+          const value: Element | null = row.querySelector("dd");
+          const names: Array<string> = Array.from(
+            value?.querySelectorAll("[data-testid='event-person-name']") || [],
+          ).map((name: Element): string => {
+            return (name.textContent || "").trim();
+          });
+          const list: Element | null =
+            value?.querySelector("[data-testid$='-links']") || null;
+          const listed: Array<string> = list
+            ? Array.from(list.children).map((child: Element): string => {
+                return (child.textContent || "").trim();
+              })
+            : [];
+          const more: Array<string> = listed.filter((text: string): boolean => {
+            return text.startsWith("+");
+          });
+          const things: string = listed
+            .filter((text: string): boolean => {
+              return !text.startsWith("+");
+            })
+            .join(", ");
+          return {
+            label: (row.querySelector("dt")?.textContent || "").trim(),
+            value:
+              names.length > 0
+                ? names.join(", ")
+                : list && listed.length > 0
+                  ? [things, ...more].join(" ")
+                  : (value?.textContent || "").trim(),
+          };
         });
-        return {
-          label: (row.querySelector("dt")?.textContent || "").trim(),
-          value:
-            names.length > 0
-              ? names.join(", ")
-              : (value?.textContent || "").trim(),
-        };
-      });
     });
+}
+
+/*
+ * How long, as the header's first fact says it: its label over the
+ * duration, read as "Lasted 11 minutes". The label is drawn in capitals, so
+ * its words are read as written (textContent), not as drawn.
+ */
+async function heroDuration(header: Locator): Promise<string> {
+  const duration: Locator = header.getByTestId("event-header-duration");
+
+  if ((await duration.count()) === 0) {
+    return "";
+  }
+
+  return duration.evaluate((value: Element): string => {
+    const fact: Element | null = value.closest("dl > div");
+    const label: string = (fact?.querySelector("dt")?.textContent || "").trim();
+
+    return `${label} ${(value.textContent || "").trim()}`;
+  });
+}
+
+async function expectHeroDuration(
+  header: Locator,
+  text: string,
+): Promise<void> {
+  await expect
+    .poll(async (): Promise<string> => {
+      return heroDuration(header);
+    })
+    .toBe(text);
 }
 
 async function detailLabels(scope: Locator): Promise<Array<string>> {
@@ -1430,7 +1498,7 @@ test.describe("AI investigation report", () => {
       "Checkout requests timing out on orders-db",
     );
     await expect(hero(page)).toContainText("#1029");
-    await expectRenderedText(hero(page), "Lasted 51 minutes");
+    await expectHeroDuration(hero(page), "Lasted 51 minutes");
     await expect(
       page.getByText("Checkout requests timing out on orders-db").first(),
     ).toBeVisible();
@@ -2781,7 +2849,7 @@ test.describe("evidence checked", () => {
       .click();
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}$`));
     await expect(hero(page)).toContainText("#1017");
-    await expectRenderedText(hero(page), "Lasted 38 minutes");
+    await expectHeroDuration(hero(page), "Lasted 38 minutes");
   });
 
   test("?fail=evidence shows the error and Try again requests the rows again", async ({
@@ -6854,11 +6922,11 @@ async function expectHero(page: Page, eventPage: EventPage): Promise<void> {
   await expect(header.getByTitle("Number", { exact: true })).toHaveText(
     eventPage.identifier,
   );
-  await expectRenderedText(header, eventPage.state);
+  await expectRenderedText(heroChips(page), eventPage.state);
   if (eventPage.severity) {
-    await expectRenderedText(header, eventPage.severity);
+    await expectRenderedText(heroChips(page), eventPage.severity);
   }
-  await expectRenderedText(header, eventPage.duration);
+  await expectHeroDuration(header, eventPage.duration);
   expect(await heroFacts(header)).toEqual(eventPage.facts);
 }
 
@@ -7008,8 +7076,11 @@ test.describe("incident and alert overview", () => {
           page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`),
         ).toHaveCount(0);
       }
-      // The step rail under the pills.
-      await expectRenderedText(hero(page), "Created Acknowledged Resolved");
+      // The state track under the title.
+      await expectRenderedText(
+        hero(page).getByTestId("event-state-track"),
+        "Created Acknowledged Resolved",
+      );
       await expectNoErrorStates(page);
     });
 
@@ -7161,10 +7232,8 @@ test.describe("incident and alert overview", () => {
 
     const actions: Locator = page.getByRole("group", { name: "Event actions" });
     await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
-    await expectRenderedText(
-      hero(page),
-      "Acknowledged SEV-2 Ongoing for 19 minutes",
-    );
+    await expectRenderedText(heroChips(page), "Acknowledged SEV-2");
+    await expectHeroDuration(hero(page), "Ongoing for 19 minutes");
     // How long it has run is the header's, beside its state.
     expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual([
       INCIDENT_PAGE.stats[0],
@@ -7199,7 +7268,8 @@ test.describe("incident and alert overview", () => {
     await expect(dialog).toHaveCount(0);
 
     await expect(actions.getByRole("button")).toHaveCount(0);
-    await expectRenderedText(hero(page), "Resolved SEV-2 Lasted 19 minutes");
+    await expectRenderedText(heroChips(page), "Resolved SEV-2");
+    await expectHeroDuration(hero(page), "Lasted 19 minutes");
     await expect
       .poll(async (): Promise<number> => {
         return (await fixture(page)).getItemRequests.length;
@@ -7272,10 +7342,8 @@ test.describe("incident and alert overview", () => {
       "Resolve",
       DECLARE_INCIDENT,
     ]);
-    await expectRenderedText(
-      hero(page),
-      "Acknowledged High Ongoing for 14 minutes",
-    );
+    await expectRenderedText(heroChips(page), "Acknowledged High");
+    await expectHeroDuration(hero(page), "Ongoing for 14 minutes");
     const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
       (write: RecordedWrite): boolean => {
         return write.modelName === "AlertStateTimeline";
@@ -7864,7 +7932,7 @@ test.describe("declare an incident from the alert hero", () => {
     expect(state.updates).toEqual([]);
   });
 
-  test("?role=loading: Declare Incident is hidden until the permission snapshot arrives", async ({
+  test("?role=loading: the header offers no action until the permission snapshot arrives", async ({
     page,
   }: {
     page: Page;
@@ -7873,12 +7941,23 @@ test.describe("declare an incident from the alert hero", () => {
     await openReady(page, ALERT_PAGE, `${CREATED_ALERT.query}&role=loading`, [
       REPORT_CAVEAT,
     ]);
-    await expect(heroActions(page).getByRole("button")).toHaveText([
-      "Acknowledge",
-      "Resolve",
-    ]);
+    /*
+     * Who may acknowledge, resolve or declare is not known yet: the header
+     * offers none of them rather than accuse the reader of lacking a
+     * permission they may hold, and still says what the alert is.
+     */
+    await expect(heroActions(page)).toHaveCount(0);
     await expect(page.locator(`#${DECLARE_INCIDENT_BUTTON_ID}`)).toHaveCount(0);
     await expect(declareIncidentWrapper(page)).toHaveCount(0);
+    await expect(hero(page).getByTestId("event-header-more-place")).toHaveCount(
+      0,
+    );
+    await expect(heroTitle(page)).toHaveText(ALERT_PAGE.title);
+    await expectRenderedText(heroChips(page), "Created High");
+    await expect(hero(page)).toHaveAttribute(
+      "data-actions-beside-from",
+      "never",
+    );
   });
 
   // Resolved and ongoing incidents are covered in "incident and alert overview".
@@ -7898,130 +7977,485 @@ test.describe("declare an incident from the alert hero", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * The hero's title row across widths
+ * The header, by its own width
  * ---------------------------------------------------------------------------
+ * The header sits beside the record's side menu, so it lays itself out by
+ * its own width (container queries), never the window's: the number and the
+ * pills, then the title on a line of its own across the whole header - a
+ * long title takes another line, never cut short or squeezed beside the
+ * buttons - and the actions beside the pills from the width they need, or
+ * on a row of their own under the title, at the right, below it. The header
+ * works that width out from its buttons' words in the reader's language and
+ * says it (data-actions-beside-from). The ⋯ (the other states) keeps the
+ * top corner at every width.
+ *
+ * Production ships Inter (views/index.ejs), and the header's widths are
+ * worked out for it; the fixture falls back to the system font, which is
+ * wider, so these tests load Inter the way production declares it.
  */
 
-// Tailwind's xl breakpoint: from here the actions sit beside the title.
-const XL: number = 1280;
-// gap-3 between the title and the actions, stacked or side by side.
-const TITLE_ACTIONS_GAP: number = 12;
+// gap-y-2: between the pills, the title and the actions' own row.
+const TOP_ROW_GAP_Y: number = 8;
+// gap-x-4: between the pills and the actions beside them.
+const TOP_ROW_GAP_X: number = 16;
+// A button's height, and so the line of pills beside the buttons (min-h-9).
+const ACTION_HEIGHT: number = 36;
+const PX_PER_REM: number = 16;
 
-// The hero's first row: the number and title, then the action group.
-function heroTitleRow(page: Page): Locator {
-  return heroActions(page).locator("xpath=..");
+const PRODUCTION_FONT_CSS: string =
+  '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}';
+
+// Draws the page in production's Inter, as views/index.ejs declares it.
+async function loadProductionFont(page: Page): Promise<void> {
+  await page.route(
+    "**/dashboard/assets/fonts/InterVariable.woff2",
+    async (route: PlaywrightRoute) => {
+      await route.fulfill({ path: INTER_FONT_FILE });
+    },
+  );
+  await page.addStyleTag({ content: PRODUCTION_FONT_CSS });
+  expect(
+    await page.evaluate(async (): Promise<number> => {
+      return (await document.fonts.load("600 14px Inter")).length;
+    }),
+    "Inter loaded",
+  ).toBeGreaterThan(0);
 }
 
-// The number and the title, the first child of the title row.
-function heroTitleBlock(page: Page): Locator {
-  return heroActions(page).locator("xpath=preceding-sibling::div[1]");
+function heroTopRow(page: Page): Locator {
+  return hero(page).getByTestId("event-header-top");
+}
+
+// The actions' group in any language: its name is the reader's ("Ereignisaktionen").
+function heroActionsGroup(page: Page): Locator {
+  return hero(page).getByTestId("event-header-actions");
 }
 
 function heroTitle(page: Page): Locator {
   return hero(page).getByRole("heading", { level: 2 });
 }
 
-interface HeroTitleRowBoxes {
-  // The title row spans the header's content box.
+interface HeroTopRowBoxes {
+  // The number and pills, the title and the actions, inside the padding.
   row: Box;
-  titleBlock: Box;
+  chips: Box;
   title: Box;
   actions: Box;
 }
 
-async function heroTitleRowBoxes(page: Page): Promise<HeroTitleRowBoxes> {
+async function heroTopRowBoxes(page: Page): Promise<HeroTopRowBoxes> {
   return {
-    row: await documentBox(heroTitleRow(page)),
-    titleBlock: await documentBox(heroTitleBlock(page)),
+    row: await documentBox(heroTopRow(page)),
+    chips: await documentBox(heroChips(page)),
     title: await documentBox(heroTitle(page)),
-    actions: await documentBox(heroActions(page)),
+    actions: await documentBox(heroActionsGroup(page)),
   };
 }
 
+// The width the header's container queries read: the card's, inside its border.
+async function heroQueryWidth(page: Page): Promise<number> {
+  return hero(page).evaluate((element: Element): number => {
+    return (element as HTMLElement).clientWidth;
+  });
+}
+
+// From what width the header says its actions sit beside the pills, in px.
+async function heroBesideFromPx(page: Page): Promise<number | null> {
+  const value: string | null = await hero(page).getAttribute(
+    "data-actions-beside-from",
+  );
+  expect(value, "the header says where its actions go").toMatch(
+    /^(never|\d+rem)$/,
+  );
+  return value === "never"
+    ? null
+    : Number((value || "").replace("rem", "")) * PX_PER_REM;
+}
+
+async function isHeroBeside(page: Page): Promise<boolean> {
+  const from: number | null = await heroBesideFromPx(page);
+  return from !== null && (await heroQueryWidth(page)) >= from;
+}
+
 /*
- * Below xl: the title has the whole row to itself and the actions take the
- * full width of their own rows under it.
+ * Narrower than its actions need: the pills, the title one gap under them,
+ * then the actions one gap under the title, on a row as wide as the header.
  */
-function expectActionsUnderTitle(boxes: HeroTitleRowBoxes): void {
+function expectActionsUnderTitle(boxes: HeroTopRowBoxes, at: string): void {
   expect(
-    Math.abs(boxes.titleBlock.x - boxes.row.x),
-    "the title starts at the header's left edge",
-  ).toBeLessThanOrEqual(1);
-  expect(
-    Math.abs(boxes.titleBlock.width - boxes.row.width),
-    "the title block spans the header",
-  ).toBeLessThanOrEqual(1);
-  expect(
-    Math.abs(boxes.title.width - boxes.row.width),
-    "the title spans the header",
+    Math.abs(boxes.chips.y - boxes.row.y),
+    `${at}: the pills lead the header`,
   ).toBeLessThanOrEqual(1);
   expect(
     Math.abs(
-      boxes.actions.y -
-        (boxes.titleBlock.y + boxes.titleBlock.height) -
-        TITLE_ACTIONS_GAP,
+      boxes.title.y - (boxes.chips.y + boxes.chips.height) - TOP_ROW_GAP_Y,
     ),
-    "the actions start one gap under the title",
+    `${at}: the title starts one gap under the pills`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(
+      boxes.actions.y - (boxes.title.y + boxes.title.height) - TOP_ROW_GAP_Y,
+    ),
+    `${at}: the actions start one gap under the title`,
   ).toBeLessThanOrEqual(1);
   expect(
     Math.abs(boxes.actions.x - boxes.row.x),
-    "the actions start at the header's left edge",
+    `${at}: the actions' row starts where the header does`,
   ).toBeLessThanOrEqual(1);
   expect(
     Math.abs(boxes.actions.width - boxes.row.width),
-    "the actions span the header",
+    `${at}: the actions' row spans the header`,
   ).toBeLessThanOrEqual(1);
 }
 
 /*
- * From xl: the title on the left and the actions on the right of one row,
- * their tops aligned, with at least a gap between them.
+ * As wide as its actions need, or wider: the pills at the start of the
+ * first line and the actions on one row at its end, level with them, and the
+ * title one gap under both.
  */
-function expectActionsBesideTitle(boxes: HeroTitleRowBoxes): void {
+function expectActionsBesidePills(boxes: HeroTopRowBoxes, at: string): void {
   expect(
-    Math.abs(boxes.titleBlock.x - boxes.row.x),
-    "the title starts at the header's left edge",
+    Math.abs(boxes.chips.x - boxes.row.x),
+    `${at}: the pills start where the header does`,
   ).toBeLessThanOrEqual(1);
   expect(
-    Math.abs(boxes.actions.y - boxes.titleBlock.y),
-    "the actions are level with the top of the title block",
+    Math.abs(boxes.actions.y - boxes.row.y) +
+      Math.abs(boxes.chips.y - boxes.row.y),
+    `${at}: the actions are level with the pills`,
   ).toBeLessThanOrEqual(1);
-  expect(
-    boxes.actions.x - (boxes.titleBlock.x + boxes.titleBlock.width),
-    "the gap between the title and the actions",
-  ).toBeGreaterThanOrEqual(TITLE_ACTIONS_GAP - 1);
   expect(
     Math.abs(
       boxes.actions.x + boxes.actions.width - (boxes.row.x + boxes.row.width),
     ),
-    "the actions end at the header's right edge",
+    `${at}: the actions end where the header does`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    boxes.actions.x - (boxes.chips.x + boxes.chips.width),
+    `${at}: the gap between the pills and the actions`,
+  ).toBeGreaterThanOrEqual(TOP_ROW_GAP_X - 1);
+  // Neither wraps: the pills keep one line and the buttons one row.
+  expect(
+    Math.abs(boxes.chips.height - ACTION_HEIGHT),
+    `${at}: the pills keep one line, as tall as the buttons`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.actions.height - ACTION_HEIGHT),
+    `${at}: the buttons keep one row`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.title.y - (boxes.row.y + ACTION_HEIGHT) - TOP_ROW_GAP_Y),
+    `${at}: the title starts one gap under them`,
   ).toBeLessThanOrEqual(1);
 }
 
 /*
- * The actions never squeeze the title: a title that does not show whole has
- * every pixel the row leaves it - the whole row under the actions below xl,
- * everything left of the actions (less the gap) from xl. Whether a given
- * title fits depends on the machine's fonts (CI's are wider than a Mac's),
- * so this pins the room the title gets, not that it fits.
+ * The title is never cut short or squeezed beside the buttons: it has the
+ * whole width of the header and shows whole, in as many lines as it needs.
  */
-async function expectTitleNotSqueezed(
+async function expectTitleWhole(
   page: Page,
-  boxes: HeroTitleRowBoxes,
+  boxes: { row: Box; title: Box },
+  at: string,
 ): Promise<void> {
-  if (!(await isOverflowing(heroTitle(page)))) {
+  expect(
+    Math.abs(boxes.title.x - boxes.row.x),
+    `${at}: the title starts where the header does`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(boxes.title.width - boxes.row.width),
+    `${at}: the title spans the header`,
+  ).toBeLessThanOrEqual(1);
+  expect(await isOverflowing(heroTitle(page)), `${at}: the title is cut`).toBe(
+    false,
+  );
+}
+
+interface HeroButtonLook {
+  label: string;
+  box: Box;
+  isCut: boolean;
+}
+
+async function heroButtonLooks(page: Page): Promise<Array<HeroButtonLook>> {
+  return heroActionsGroup(page)
+    .getByRole("button")
+    .evaluateAll((buttons: Array<Element>): Array<HeroButtonLook> => {
+      return buttons.map((button: Element): HeroButtonLook => {
+        const rect: DOMRect = button.getBoundingClientRect();
+        const label: Element | null = button.querySelector("span.truncate");
+        return {
+          label:
+            (button.textContent || "").trim() ||
+            button.getAttribute("aria-label") ||
+            "",
+          box: {
+            x: rect.left + window.scrollX,
+            y: rect.top + window.scrollY,
+            width: rect.width,
+            height: rect.height,
+          },
+          isCut: label ? label.scrollWidth > label.clientWidth + 1 : false,
+        };
+      });
+    });
+}
+
+/*
+ * Every button the header offers - the ⋯ too - inside the card, as tall as
+ * the others, its words whole.
+ */
+async function expectHeroButtonsWhole(page: Page, at: string): Promise<void> {
+  const header: Box = await documentBox(hero(page));
+  const looks: Array<HeroButtonLook> = await heroButtonLooks(page);
+
+  expect(looks.length, `${at}: buttons`).toBeGreaterThan(0);
+  for (const look of looks) {
+    expect({ at, button: look.label, cut: look.isCut }).toEqual({
+      at,
+      button: look.label,
+      cut: false,
+    });
+    expect(
+      Math.abs(look.box.height - ACTION_HEIGHT),
+      `${at}: ${look.label} is 36px tall`,
+    ).toBeLessThanOrEqual(0.5);
+    expect(
+      look.box.x,
+      `${at}: ${look.label} starts inside the header`,
+    ).toBeGreaterThanOrEqual(header.x);
+    expect(
+      look.box.x + look.box.width,
+      `${at}: ${look.label} ends inside the header`,
+    ).toBeLessThanOrEqual(header.x + header.width);
+    expect(
+      look.box.y + look.box.height,
+      `${at}: ${look.label} ends inside the header`,
+    ).toBeLessThanOrEqual(header.y + header.height);
+  }
+}
+
+/*
+ * The ⋯ keeps the header's top corner at every width: level with the top
+ * row, at its end, never over a pill and never alone on a row after the
+ * buttons.
+ */
+async function expectMoreInTheCorner(page: Page, at: string): Promise<void> {
+  const place: Locator = hero(page).getByTestId("event-header-more-place");
+
+  if ((await place.count()) === 0) {
     return;
   }
 
-  const isBeside: boolean = Math.abs(boxes.actions.y - boxes.titleBlock.y) <= 1;
-  const room: number = isBeside
-    ? boxes.actions.x - boxes.row.x - TITLE_ACTIONS_GAP
-    : boxes.row.width;
+  const row: Box = await documentBox(heroTopRow(page));
+  const more: Box = await documentBox(place);
+  expect(
+    Math.abs(more.y - row.y),
+    `${at}: the ⋯ is level with the top row`,
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(more.x + more.width - (row.x + row.width)),
+    `${at}: the ⋯ ends the top row`,
+  ).toBeLessThanOrEqual(1);
+
+  const pillEnds: Array<number> = await heroChips(page).evaluate(
+    (chips: Element): Array<number> => {
+      return Array.from(chips.children).map((child: Element): number => {
+        return child.getBoundingClientRect().right + window.scrollX;
+      });
+    },
+  );
+  for (const end of pillEnds) {
+    expect(end, `${at}: a pill runs under the ⋯`).toBeLessThanOrEqual(
+      more.x - 4,
+    );
+  }
+}
+
+/*
+ * The track's current state - the name the reader most needs - is never
+ * cut: its share grows to hold it ("زمان‌بندی‌شده", Scheduled, is wider
+ * than a quarter of a phone's header).
+ */
+async function expectCurrentStateWhole(page: Page, at: string): Promise<void> {
+  const current: Locator = hero(page)
+    .getByTestId("event-state-track")
+    .locator("li[aria-current='step'] span[title]");
+
+  if ((await current.count()) === 0) {
+    return;
+  }
 
   expect(
-    boxes.titleBlock.width,
-    "a truncated title has all the room the actions leave it",
-  ).toBeGreaterThanOrEqual(room - 1);
+    await isOverflowing(current),
+    `${at}: the current state's name is cut`,
+  ).toBe(false);
+}
+
+interface NoticeControlLook {
+  label: string;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  isCut: boolean;
+}
+
+/*
+ * The band at the foot of the header: its buttons and links - View full
+ * report, Show more - inside the card, their words whole, and never run
+ * into each other. In German on a phone "Mehr anzeigen" and "Vollständigen
+ * Bericht anzeigen" once shared a line too narrow for both and overlapped.
+ */
+async function expectNoticeTidy(page: Page, at: string): Promise<void> {
+  const band: Locator = hero(page).getByTestId("event-header-notice");
+
+  if ((await band.count()) === 0) {
+    return;
+  }
+
+  const bandBox: Box = await documentBox(band);
+  const controls: Array<NoticeControlLook> = await band
+    .locator("button, a")
+    .evaluateAll((elements: Array<Element>): Array<NoticeControlLook> => {
+      return elements.map((element: Element): NoticeControlLook => {
+        const rect: DOMRect = element.getBoundingClientRect();
+        return {
+          label: (element.textContent || "").trim(),
+          left: rect.left + window.scrollX,
+          right: rect.right + window.scrollX,
+          top: rect.top + window.scrollY,
+          bottom: rect.bottom + window.scrollY,
+          isCut: element.scrollWidth > element.clientWidth + 1,
+        };
+      });
+    });
+
+  for (const control of controls) {
+    expect({ at, control: control.label, cut: control.isCut }).toEqual({
+      at,
+      control: control.label,
+      cut: false,
+    });
+    expect(
+      control.left,
+      `${at}: ${control.label} starts in the band`,
+    ).toBeGreaterThanOrEqual(bandBox.x - 1);
+    expect(
+      control.right,
+      `${at}: ${control.label} ends in the band`,
+    ).toBeLessThanOrEqual(bandBox.x + bandBox.width + 1);
+  }
+
+  for (let first: number = 0; first < controls.length; first++) {
+    for (let second: number = first + 1; second < controls.length; second++) {
+      const a: NoticeControlLook = controls[first]!;
+      const b: NoticeControlLook = controls[second]!;
+      const overlapX: number =
+        Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const overlapY: number =
+        Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      expect(
+        overlapX > 1 && overlapY > 1,
+        `${at}: "${a.label}" and "${b.label}" overlap`,
+      ).toBe(false);
+    }
+  }
+}
+
+// EventHeaderLayout's EVENT_HEADER_FACT_COLUMN_STEPS.
+const FACT_COLUMN_STEPS: ReadonlyArray<{ columns: number; widthRem: number }> =
+  [
+    { columns: 2, widthRem: 18 },
+    { columns: 3, widthRem: 34 },
+    { columns: 4, widthRem: 50 },
+    { columns: 5, widthRem: 64 },
+  ];
+
+interface HeroFactsLook {
+  columns: number;
+  count: number;
+  cut: Array<string>;
+}
+
+/*
+ * The facts on a grid that follows the header's width - one column in the
+ * narrowest place, up to five on a wide screen - in as few rows as that
+ * allows, shared out evenly (four facts where three fit are two rows of
+ * two, never three and one left alone), every label and value whole.
+ */
+async function expectFactsOnTheirGrid(page: Page, at: string): Promise<void> {
+  const width: number = await heroQueryWidth(page);
+  const look: HeroFactsLook = await hero(page)
+    .getByTestId("event-status-facts")
+    .evaluate((facts: Element): HeroFactsLook => {
+      return {
+        columns: window
+          .getComputedStyle(facts)
+          .gridTemplateColumns.split(" ")
+          .filter((column: string): boolean => {
+            return column.length > 0;
+          }).length,
+        count: facts.children.length,
+        cut: Array.from(facts.querySelectorAll("dt, dd"))
+          .filter((element: Element): boolean => {
+            return element.scrollWidth > element.clientWidth + 1;
+          })
+          .map((element: Element): string => {
+            return (element.textContent || "").trim();
+          }),
+      };
+    });
+  const allowed: number = FACT_COLUMN_STEPS.reduce(
+    (most: number, step: { columns: number; widthRem: number }): number => {
+      return width >= step.widthRem * PX_PER_REM ? step.columns : most;
+    },
+    1,
+  );
+  const rows: number = Math.ceil(look.count / Math.min(look.count, allowed));
+  const columns: number = Math.ceil(look.count / rows);
+
+  expect({ at, columns: look.columns }).toEqual({ at, columns });
+  // No row is left with a lone fact under a fuller one, where that can be helped.
+  if (look.count > columns) {
+    expect(
+      look.count % columns === 0 || look.count % columns >= columns - 1,
+      `${at}: ${look.count} facts in ${columns} columns`,
+    ).toBe(true);
+  }
+  expect({ at, cut: look.cut }).toEqual({ at, cut: [] });
+}
+
+/*
+ * The header at the width it has: its actions beside the pills from the
+ * width it says they need and under the title below it, the title whole,
+ * every button whole and inside the card, the ⋯ in the corner, the facts
+ * on their grid, and nothing wider than the page.
+ */
+async function expectHeaderAtItsWidth(page: Page, at: string): Promise<void> {
+  if ((await heroActionsGroup(page).count()) > 0) {
+    const boxes: HeroTopRowBoxes = await heroTopRowBoxes(page);
+    if (await isHeroBeside(page)) {
+      expectActionsBesidePills(boxes, at);
+    } else {
+      expectActionsUnderTitle(boxes, at);
+    }
+    await expectTitleWhole(page, boxes, at);
+    await expectHeroButtonsWhole(page, at);
+    await expectMoreInTheCorner(page, at);
+  } else {
+    await expectTitleWhole(
+      page,
+      {
+        row: await documentBox(heroTopRow(page)),
+        title: await documentBox(heroTitle(page)),
+      },
+      at,
+    );
+  }
+  await expectCurrentStateWhole(page, at);
+  await expectFactsOnTheirGrid(page, at);
+  await expectNoticeTidy(page, at);
+  await expectNoHorizontalOverflow(page);
 }
 
 interface HeroLayoutCase {
@@ -8031,10 +8465,14 @@ interface HeroLayoutCase {
   screenshot: string;
   eventPage: EventPage;
   query: string;
-  // The hero's buttons, in order.
+  // The header's buttons, in order.
   labels: ReadonlyArray<string>;
+  // From what width it says they sit beside the pills.
+  besideFrom: string;
   // The rows they wrap onto at each of HERO_WIDTHS, top to bottom.
   rows: Readonly<Record<number, ReadonlyArray<ReadonlyArray<string>>>>;
+  // The widths, of HERO_WIDTHS, at which they sit beside the pills.
+  besideAt: ReadonlyArray<number>;
 }
 
 const ALL_CREATED_ALERT_ACTIONS: ReadonlyArray<string> = [
@@ -8042,7 +8480,7 @@ const ALL_CREATED_ALERT_ACTIONS: ReadonlyArray<string> = [
   DECLARE_INCIDENT,
 ];
 
-// ?title=long: Alert #311 with a title wider than the room beside its actions.
+// ?title=long: Alert #311 with a title longer than a laptop's header is wide.
 const ALERT_LONG_TITLE: string =
   "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster";
 const LONG_TITLE_ALERT_PAGE: EventPage = {
@@ -8052,18 +8490,14 @@ const LONG_TITLE_ALERT_PAGE: EventPage = {
 };
 
 /*
- * Measured with the fixture's side menu (224px from 768px, 256px from
- * 1024px). The header's content is 292px wide at 390px, 374px at 768px,
- * 578px at 1024px and 834px at 1280px; the buttons need 145px
- * (Acknowledge), 112px (Resolve) and 164px (Declare Incident) at sm and up.
- *
- * - 390px (phone): the buttons grow to fill their rows. Acknowledge and
- *   Resolve share the first row and Declare Incident takes the whole second.
- * - 768px: the three need 437px with their gaps, so Declare Incident wraps
- *   onto a second row, right-aligned.
- * - 1024px: one row under the title.
- * - 1280px (xl): one row beside the title, which fits beside them (the
- *   long-title tests below cover one that does not).
+ * The header is 324px wide inside its border on a 390px phone, 414px beside
+ * the side menu at 768px, 618px at 1024px and 874px at 1280px. A created
+ * alert's three buttons need 48rem (768px) beside its pills, so they sit
+ * there only from 1280px; a resolved alert's Declare Incident needs 32rem
+ * and a created incident's two buttons 38rem, so theirs do from 1024px.
+ * Under the title, a phone's or a 768px window's buttons grow to fill their
+ * rows - Acknowledge and Resolve sharing one, Declare Incident the next -
+ * and a 1024px window's keep their own width, right-aligned on one row.
  */
 const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
   {
@@ -8072,12 +8506,14 @@ const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
     eventPage: ALERT_PAGE,
     query: CREATED_ALERT.query,
     labels: ALL_CREATED_ALERT_ACTIONS,
+    besideFrom: "48rem",
     rows: {
       390: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
       768: [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]],
       1024: [ALL_CREATED_ALERT_ACTIONS],
       1280: [ALL_CREATED_ALERT_ACTIONS],
     },
+    besideAt: [1280],
   },
   {
     title: "resolved alert",
@@ -8085,12 +8521,14 @@ const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
     eventPage: ALERT_PAGE,
     query: RESOLVED_ALERT.query,
     labels: [DECLARE_INCIDENT],
+    besideFrom: "32rem",
     rows: {
       390: [[DECLARE_INCIDENT]],
       768: [[DECLARE_INCIDENT]],
       1024: [[DECLARE_INCIDENT]],
       1280: [[DECLARE_INCIDENT]],
     },
+    besideAt: [1024, 1280],
   },
   {
     title: "created incident",
@@ -8098,61 +8536,38 @@ const HERO_LAYOUT_CASES: ReadonlyArray<HeroLayoutCase> = [
     eventPage: INCIDENT_PAGE,
     query: "state=created",
     labels: ["Acknowledge", "Resolve"],
+    besideFrom: "38rem",
     rows: {
       390: [["Acknowledge", "Resolve"]],
       768: [["Acknowledge", "Resolve"]],
       1024: [["Acknowledge", "Resolve"]],
       1280: [["Acknowledge", "Resolve"]],
     },
+    besideAt: [1024, 1280],
   },
 ];
 
-test.describe("the hero's title row across widths", () => {
-  /*
-   * At each width the actions stay whole and inside the card, keep their
-   * order when they wrap and line up on the right. Below xl the title keeps
-   * the whole row (next to a side menu, sharing it squeezed the title down to
-   * a few characters and stacked the actions one per row); from xl the
-   * actions sit beside it.
-   */
+test.describe("the header's top row, by its own width", () => {
   for (const layoutCase of HERO_LAYOUT_CASES) {
     for (const width of HERO_WIDTHS) {
-      const isBeside: boolean = width >= XL;
-      test(`${layoutCase.title} hero at ${width}px: the actions sit ${
-        isBeside ? "beside" : "under"
-      } the title, inside the header`, async ({ page }: { page: Page }) => {
+      const isBeside: boolean = layoutCase.besideAt.includes(width);
+      test(`${layoutCase.title} header at ${width}px: the actions sit ${
+        isBeside ? "beside the pills" : "under the title"
+      }, whole and inside the header`, async ({ page }: { page: Page }) => {
         await page.setViewportSize({ width, height: 900 });
         await openReady(page, layoutCase.eventPage, layoutCase.query);
+        await loadProductionFont(page);
 
-        const header: Locator = hero(page);
-        const actions: Locator = heroActions(page);
         const labels: Array<string> = [...layoutCase.labels];
-        await expect(actions.getByRole("button")).toHaveText(labels);
+        await expect(heroActions(page).getByRole("button")).toHaveText(labels);
         await expect(heroTitle(page)).toHaveText(layoutCase.eventPage.title);
+        await expect(hero(page)).toHaveAttribute(
+          "data-actions-beside-from",
+          layoutCase.besideFrom,
+        );
+        expect(await isHeroBeside(page), "beside the pills").toBe(isBeside);
 
-        const headerBox: Box = await documentBox(header);
-        for (const label of labels) {
-          const button: Locator = heroActionButton(page, label);
-          await expect(button).toBeVisible();
-          const box: Box = await documentBox(button);
-          expect(
-            box.x,
-            `${label} starts inside the header`,
-          ).toBeGreaterThanOrEqual(headerBox.x);
-          expect(
-            box.x + box.width,
-            `${label} ends inside the header`,
-          ).toBeLessThanOrEqual(headerBox.x + headerBox.width);
-          expect(
-            box.y + box.height,
-            `${label} ends inside the header`,
-          ).toBeLessThanOrEqual(headerBox.y + headerBox.height);
-          await expect(button).toHaveCSS("height", "36px");
-          expect(
-            await isOverflowing(button.locator("span.truncate")),
-            `${label} is cut off`,
-          ).toBe(false);
-        }
+        await expectHeaderAtItsWidth(page, `${width}px`);
 
         const rows: Array<Array<string>> = await heroActionRows(page);
         expect(rows, `rows at ${width}px`).toEqual(layoutCase.rows[width]);
@@ -8166,137 +8581,126 @@ test.describe("the hero's title row across widths", () => {
           ),
         ).toEqual(labels);
 
-        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
-        // Every row ends at the right edge of the action group.
+        // Every row ends at the end of the actions.
+        const actions: Box = await documentBox(heroActions(page));
         for (const row of rows) {
           const last: Box = await documentBox(
             heroActionButton(page, row[row.length - 1]!),
           );
           expect(
-            Math.abs(
-              last.x + last.width - (boxes.actions.x + boxes.actions.width),
-            ),
+            Math.abs(last.x + last.width - (actions.x + actions.width)),
             `row "${row.join(", ")}" is right-aligned`,
           ).toBeLessThanOrEqual(1);
         }
-
-        if (isBeside) {
-          expectActionsBesideTitle(boxes);
-        } else {
-          expectActionsUnderTitle(boxes);
-        }
-
-        await expectTitleNotSqueezed(page, boxes);
 
         if (width === 390 && rows[rows.length - 1]!.length === 1) {
           // On a phone a button alone on its row fills it.
           const lastBox: Box = await documentBox(
             heroActionButton(page, rows[rows.length - 1]![0]!),
           );
-          expect(Math.abs(lastBox.x - boxes.actions.x)).toBeLessThanOrEqual(1);
-          expect(
-            Math.abs(lastBox.width - boxes.actions.width),
-          ).toBeLessThanOrEqual(1);
+          expect(Math.abs(lastBox.x - actions.x)).toBeLessThanOrEqual(1);
+          expect(Math.abs(lastBox.width - actions.width)).toBeLessThanOrEqual(
+            1,
+          );
         }
 
-        await expectNoHorizontalOverflow(page);
-
         await page.mouse.move(0, 0);
-        await screenshotElement(header, `${layoutCase.screenshot}-${width}`);
+        await screenshotElement(
+          hero(page),
+          `${layoutCase.screenshot}-${width}`,
+        );
       });
     }
   }
 
-  test("the actions move beside the title at xl (1280px), not a pixel earlier", async ({
+  test("the actions move beside the pills once the header is as wide as they need, not a pixel earlier", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await page.setViewportSize({ width: XL - 1, height: 900 });
+    await page.setViewportSize({ width: 1280, height: 900 });
     await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
+    await loadProductionFont(page);
+    await expect(hero(page)).toHaveAttribute(
+      "data-actions-beside-from",
+      "48rem",
+    );
+    const switchAt: number = 48 * PX_PER_REM;
+    // How much of the window is not the header: the side menu and the margins.
+    const around: number = 1280 - (await heroQueryWidth(page));
 
-    // 1279px: the widest header that still stacks.
-    const stackedBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
-    expectActionsUnderTitle(stackedBoxes);
-    expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    await expectTitleNotSqueezed(page, stackedBoxes);
-    const stackedHeight: number = (await documentBox(hero(page))).height;
-
-    // One more pixel and the same page lays the row out side by side.
-    await page.setViewportSize({ width: XL, height: 900 });
+    // One pixel short: the widest header that keeps them under the title.
+    await page.setViewportSize({ width: around + switchAt - 1, height: 900 });
     await expect
       .poll(async (): Promise<number> => {
-        const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
-        return Math.round(boxes.actions.y - boxes.titleBlock.y);
+        return heroQueryWidth(page);
       })
-      .toBe(0);
-    const besideBoxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
-    expectActionsBesideTitle(besideBoxes);
+      .toBe(switchAt - 1);
+    const under: HeroTopRowBoxes = await heroTopRowBoxes(page);
+    expectActionsUnderTitle(under, `${switchAt - 1}px`);
     expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    await expectTitleNotSqueezed(page, besideBoxes);
-    // The actions' own row is gone: the header is 48px shorter.
-    expect(
-      stackedHeight - (await documentBox(hero(page))).height,
-      "height saved beside the title",
-    ).toBeCloseTo(36 + TITLE_ACTIONS_GAP, 0);
-  });
+    const underHeight: number = (await documentBox(hero(page))).height;
 
-  test("a long alert title below xl keeps its own row, truncated there, and the actions keep theirs", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await page.setViewportSize({ width: 1024, height: 900 });
-    await openReady(
-      page,
-      LONG_TITLE_ALERT_PAGE,
-      `${CREATED_ALERT.query}&title=long`,
-    );
-    await expect(heroTitle(page)).toHaveText(ALERT_LONG_TITLE);
-    await expect(heroActions(page).getByRole("button")).toHaveText([
-      ...ALL_CREATED_ALERT_ACTIONS,
-    ]);
-
-    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
-    expectActionsUnderTitle(boxes);
+    // At the width they need, the same page draws them beside the pills.
+    await page.setViewportSize({ width: around + switchAt, height: 900 });
+    await expect
+      .poll(async (): Promise<number> => {
+        return heroQueryWidth(page);
+      })
+      .toBe(switchAt);
+    const beside: HeroTopRowBoxes = await heroTopRowBoxes(page);
+    expectActionsBesidePills(beside, `${switchAt}px`);
     expect(await heroActionRows(page)).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    // Wider than the header: cut at its full width, whole in its tooltip.
-    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
-    await expectTitleNotSqueezed(page, boxes);
-    await heroTitle(page).hover();
-    await expect(page.getByRole("tooltip")).toHaveText(ALERT_LONG_TITLE);
-    await expectNoHorizontalOverflow(page);
+    await expectHeroButtonsWhole(page, `${switchAt}px`);
+    // Their own row is gone, so the header is shorter.
+    expect(
+      (await documentBox(hero(page))).height,
+      "the header beside the pills",
+    ).toBeLessThan(underHeight - TOP_ROW_GAP_Y);
   });
 
-  test("a long alert title at xl is truncated rather than pushing an action onto a second row", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    /*
-     * Beside the title (xl and up) the action group keeps its width
-     * (xl:shrink-0): a title wider than the room left beside the actions
-     * truncates instead of squeezing the group until an action wraps.
-     */
-    await page.setViewportSize({ width: XL, height: 900 });
-    await openReady(
+  for (const width of [390, 1024, 1280]) {
+    test(`a long alert title at ${width}px reads whole across the header, in as many lines as it needs, and the actions keep their rows`, async ({
       page,
-      LONG_TITLE_ALERT_PAGE,
-      `${CREATED_ALERT.query}&title=long`,
-    );
-    await expect(heroActions(page).getByRole("button")).toHaveText([
-      ...ALL_CREATED_ALERT_ACTIONS,
-    ]);
-    expect(
-      await heroActionRows(page),
-      "the actions' rows beside a long title",
-    ).toEqual([ALL_CREATED_ALERT_ACTIONS]);
-    const boxes: HeroTitleRowBoxes = await heroTitleRowBoxes(page);
-    expectActionsBesideTitle(boxes);
-    // Cut, but with every pixel left of the actions.
-    expect(await isOverflowing(heroTitle(page)), "title truncated").toBe(true);
-    await expectTitleNotSqueezed(page, boxes);
-  });
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(
+        page,
+        LONG_TITLE_ALERT_PAGE,
+        `${CREATED_ALERT.query}&title=long`,
+      );
+      await loadProductionFont(page);
+      await expect(heroTitle(page)).toHaveText(ALERT_LONG_TITLE);
+      await expect(heroActions(page).getByRole("button")).toHaveText([
+        ...ALL_CREATED_ALERT_ACTIONS,
+      ]);
+
+      await expectHeaderAtItsWidth(page, `${width}px`);
+      // Never truncated: no tooltip is needed to read it.
+      await expect(heroTitle(page)).not.toHaveClass(/\btruncate\b/);
+      const lineHeight: number = await heroTitle(page).evaluate(
+        (title: Element): number => {
+          return parseFloat(window.getComputedStyle(title).lineHeight);
+        },
+      );
+      const lines: number = Math.round(
+        (await documentBox(heroTitle(page))).height / lineHeight,
+      );
+      // Wider than a phone's header and a laptop's, not a desktop's.
+      expect(lines, "the title's lines").toBe(
+        width === 1280 ? 1 : width === 1024 ? 2 : 3,
+      );
+      expect(await heroActionRows(page)).toEqual(
+        width === 390
+          ? [["Acknowledge", "Resolve"], [DECLARE_INCIDENT]]
+          : [ALL_CREATED_ALERT_ACTIONS],
+      );
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), `alert-hero-long-title-${width}`);
+    });
+  }
 
   test("on a phone an acknowledged alert keeps Declare Incident's whole label", async ({
     page,
@@ -8305,11 +8709,11 @@ test.describe("the hero's title row across widths", () => {
   }) => {
     /*
      * Phone buttons grow from their own width (flex-auto) rather than
-     * splitting the 292px row evenly, which cut "Declare Incident" to 142px
-     * of the 164px it needs.
+     * splitting the row evenly, which would cut "Declare Incident" short.
      */
     await page.setViewportSize({ width: 390, height: 900 });
     await openReady(page, ALERT_PAGE, ACKNOWLEDGED_ALERT.query);
+    await loadProductionFont(page);
     await expect(heroActions(page).getByRole("button")).toHaveText([
       ...ACKNOWLEDGED_ALERT.stateActions,
       DECLARE_INCIDENT,
@@ -8318,6 +8722,665 @@ test.describe("the hero's title row across widths", () => {
       await isOverflowing(declareIncidentButton(page).locator("span.truncate")),
       "Declare Incident is cut off",
     ).toBe(false);
+  });
+});
+
+interface HeaderKind {
+  // Test title: "a new incident's".
+  name: string;
+  // Screenshot name.
+  screenshot: string;
+  eventPage: EventPage;
+  query: string;
+  // The buttons the header offers, the ⋯ among them.
+  buttonCount: number;
+}
+
+// The four headers, each with something to do: an episode of each kind.
+const HEADER_KINDS: ReadonlyArray<HeaderKind> = [
+  {
+    name: "a new incident's",
+    screenshot: "incident",
+    eventPage: INCIDENT_PAGE,
+    query: "state=created",
+    buttonCount: 2,
+  },
+  {
+    name: "a new alert's",
+    screenshot: "alert",
+    eventPage: ALERT_PAGE,
+    query: "state=created",
+    buttonCount: 3,
+  },
+  {
+    name: "a new incident episode's",
+    screenshot: "incident-episode",
+    eventPage: INCIDENT_EPISODE_PAGE,
+    query: "state=created",
+    buttonCount: 2,
+  },
+  {
+    name: "a new alert episode's",
+    screenshot: "alert-episode",
+    eventPage: ALERT_EPISODE_PAGE,
+    query: "state=created",
+    buttonCount: 2,
+  },
+  {
+    name: "a scheduled maintenance event's",
+    screenshot: "scheduled-maintenance",
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    query: "",
+    // Mark as Ongoing, Mark as Ended and the ⋯.
+    buttonCount: 3,
+  },
+];
+
+// Phone, tablet and laptops beside the side menu, and a wide screen.
+const HEADER_WIDTHS: ReadonlyArray<number> = [390, 768, 1024, 1280, 1440];
+
+const HEADER_LANGUAGES: ReadonlyArray<{ code: string; name: string }> = [
+  { code: "en", name: "English" },
+  { code: "de", name: "German" },
+  { code: "fa", name: "Persian" },
+  { code: "ja", name: "Japanese" },
+];
+
+// Opens a header in a language and a theme, settled: nothing moves after.
+async function openHeader(
+  page: Page,
+  kind: HeaderKind,
+  language: string,
+  theme: string,
+): Promise<void> {
+  const query: string = [
+    kind.query,
+    language === "en" ? "" : `lang=${language}`,
+    theme === "dark" ? "theme=dark" : "",
+  ]
+    .filter((part: string): boolean => {
+      return part.length > 0;
+    })
+    .join("&");
+
+  if (language === "en") {
+    await openReady(page, kind.eventPage, query);
+  } else {
+    // The page's own words are another language's: wait for its records.
+    await open(page, kind.eventPage.path, query);
+    await expect(heroTitle(page)).toHaveText(kind.eventPage.title, {
+      timeout: 30000,
+    });
+    if (kind.eventPage.whatHappened) {
+      await expect(hero(page).getByTestId("event-owners")).toBeVisible({
+        timeout: 30000,
+      });
+      await expectWhatHappenedSettled(page);
+    }
+  }
+
+  await expect(heroActionsGroup(page).getByRole("button")).toHaveCount(
+    kind.buttonCount,
+    { timeout: 30000 },
+  );
+  // The group is named in the reader's language.
+  if (language !== "en") {
+    await expect(heroActionsGroup(page)).not.toHaveAttribute(
+      "aria-label",
+      "Event actions",
+    );
+  }
+  // How long, then every fact the page names.
+  await expect(
+    hero(page).getByTestId("event-status-facts").locator(":scope > div"),
+  ).toHaveCount(kind.eventPage.facts.length + 1, { timeout: 30000 });
+  await loadProductionFont(page);
+}
+
+interface HeaderColours {
+  // The card's own surface.
+  surface: string;
+  // Panels inside the card as light as a light theme's (dark theme only).
+  lightPanels: Array<string>;
+  // Words that read at less than 4.5:1 on what they are drawn on.
+  unreadable: Array<string>;
+}
+
+/*
+ * What the header's words are drawn on, every layer of it, from the card
+ * up: its own surface, a band's wash, a button's fill. The pills take their
+ * colours from the record's own state and severity, so they are left out.
+ */
+async function headerColours(page: Page): Promise<HeaderColours> {
+  return hero(page).evaluate((header: Element): HeaderColours => {
+    type Rgba = [number, number, number, number];
+
+    const parse: (color: string) => Rgba = (color: string): Rgba => {
+      // A colour mixed in CSS: color(srgb 0.1 0.2 0.3 / 0.5).
+      const srgb: RegExpMatchArray | null = color.match(
+        /^color\(srgb ([\d.e-]+) ([\d.e-]+) ([\d.e-]+)(?: \/ ([\d.e-]+))?\)$/,
+      );
+      if (srgb) {
+        return [
+          Number(srgb[1]) * 255,
+          Number(srgb[2]) * 255,
+          Number(srgb[3]) * 255,
+          srgb[4] === undefined ? 1 : Number(srgb[4]),
+        ];
+      }
+      const parts: Array<number> = (color.match(/[\d.]+/g) || []).map(Number);
+      return [
+        parts[0] || 0,
+        parts[1] || 0,
+        parts[2] || 0,
+        parts.length > 3 ? parts[3]! : 1,
+      ];
+    };
+    const over: (top: Rgba, bottom: Rgba) => Rgba = (
+      top: Rgba,
+      bottom: Rgba,
+    ): Rgba => {
+      const alpha: number = top[3];
+      return [
+        top[0] * alpha + bottom[0] * (1 - alpha),
+        top[1] * alpha + bottom[1] * (1 - alpha),
+        top[2] * alpha + bottom[2] * (1 - alpha),
+        1,
+      ];
+    };
+    const luminance: (color: Rgba) => number = (color: Rgba): number => {
+      const channel: (value: number) => number = (value: number): number => {
+        const c: number = value / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      };
+      return (
+        0.2126 * channel(color[0]) +
+        0.7152 * channel(color[1]) +
+        0.0722 * channel(color[2])
+      );
+    };
+    const contrast: (a: Rgba, b: Rgba) => number = (
+      a: Rgba,
+      b: Rgba,
+    ): number => {
+      const first: number = luminance(a);
+      const second: number = luminance(b);
+      return (
+        (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+      );
+    };
+    // What an element is drawn on: every background from the card up to it.
+    const backdrop: (element: Element) => Rgba = (element: Element): Rgba => {
+      const layers: Array<Rgba> = [];
+      let current: Element | null = element;
+      while (current) {
+        layers.unshift(parse(window.getComputedStyle(current).backgroundColor));
+        if (current === header) {
+          break;
+        }
+        current = current.parentElement;
+      }
+      let color: Rgba = [255, 255, 255, 1];
+      for (const layer of layers) {
+        color = over(layer, color);
+      }
+      return color;
+    };
+    const isShown: (element: Element) => boolean = (
+      element: Element,
+    ): boolean => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      return (
+        rect.width > 1 &&
+        rect.height > 1 &&
+        style.visibility !== "hidden" &&
+        style.opacity !== "0"
+      );
+    };
+
+    const surface: Rgba = parse(
+      window.getComputedStyle(header).backgroundColor,
+    );
+    const isDark: boolean = document.documentElement.classList.contains("dark");
+    const lightPanels: Array<string> = [];
+    const unreadable: Array<string> = [];
+
+    // Drawn over a picture or a gradient: what is behind it cannot be read here.
+    const isOverImage: (element: Element) => boolean = (
+      element: Element,
+    ): boolean => {
+      let current: Element | null = element;
+      while (current && current !== header) {
+        if (window.getComputedStyle(current).backgroundImage !== "none") {
+          return true;
+        }
+        current = current.parentElement;
+      }
+      return false;
+    };
+
+    for (const element of Array.from(header.querySelectorAll("*"))) {
+      /*
+       * The pills take the record's own colours, and an avatar's initials
+       * are decoration (aria-hidden) on the person's own picture or tile.
+       */
+      if (
+        element.closest("[data-testid='pill']") ||
+        element.closest("[aria-hidden='true']") ||
+        isOverImage(element) ||
+        !isShown(element)
+      ) {
+        continue;
+      }
+      const background: Rgba = parse(
+        window.getComputedStyle(element).backgroundColor,
+      );
+      if (
+        isDark &&
+        background[3] > 0 &&
+        luminance(backdrop(element)) > 0.4 &&
+        !element.closest("img")
+      ) {
+        lightPanels.push(
+          `${element.tagName.toLowerCase()} "${(element.textContent || "")
+            .trim()
+            .slice(0, 40)}"`,
+        );
+      }
+      const ownText: string = Array.from(element.childNodes)
+        .filter((node: ChildNode): boolean => {
+          return node.nodeType === Node.TEXT_NODE;
+        })
+        .map((node: ChildNode): string => {
+          return node.textContent || "";
+        })
+        .join("")
+        .trim();
+      if (!ownText) {
+        continue;
+      }
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const behind: Rgba = backdrop(element);
+      const ratio: number = contrast(over(parse(style.color), behind), behind);
+      if (ratio < 4.5) {
+        unreadable.push(`"${ownText.slice(0, 40)}" at ${ratio.toFixed(2)}:1`);
+      }
+    }
+
+    return {
+      surface: `rgb(${surface[0]}, ${surface[1]}, ${surface[2]})`,
+      lightPanels,
+      unreadable,
+    };
+  });
+}
+
+test.describe("the header, by its own width", () => {
+  /*
+   * Each kind of header, in each language, at five widths: whatever the
+   * words, the actions are beside the pills exactly from the width the
+   * header says they need and under the title below it, never wrapped
+   * beside the pills, never cut, never over the ⋯ - and every word reads.
+   */
+  for (const kind of HEADER_KINDS) {
+    for (const language of HEADER_LANGUAGES) {
+      test(`${kind.name} header in ${language.name} at ${HEADER_WIDTHS.join(
+        ", ",
+      )}px`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await openHeader(page, kind, language.code, "light");
+
+        for (const width of HEADER_WIDTHS) {
+          await page.setViewportSize({ width, height: 900 });
+          const at: string = `${language.code} ${width}px`;
+          await expectHeaderAtItsWidth(page, at);
+          expect((await headerColours(page)).unreadable, at).toEqual([]);
+          await page.mouse.move(0, 0);
+          await screenshotElement(
+            hero(page),
+            `event-header-${kind.screenshot}-${language.code}-${width}`,
+          );
+        }
+      });
+    }
+
+    test(`${kind.name} header in the dark theme: the dark card, no light panel on it, every word readable`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openHeader(page, kind, "en", "dark");
+
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        const at: string = `dark ${width}px`;
+        const colours: HeaderColours = await headerColours(page);
+        expect(
+          relativeLuminance(colours.surface),
+          `${at}: the card`,
+        ).toBeLessThan(0.05);
+        expect(colours.lightPanels, `${at}: light panels`).toEqual([]);
+        expect(colours.unreadable, `${at}: unreadable words`).toEqual([]);
+        await expectHeaderAtItsWidth(page, at);
+        await page.mouse.move(0, 0);
+        await screenshotElement(
+          hero(page),
+          `event-header-${kind.screenshot}-dark-${width}`,
+        );
+      }
+    });
+  }
+
+  for (const theme of ["light", "dark"]) {
+    test(`the AI root cause analysis closes the incident's header in a band of its own, edge to edge (${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        theme === "dark" ? "theme=dark" : "",
+      );
+      await loadProductionFont(page);
+
+      const band: Locator = hero(page).getByTestId("event-header-notice");
+      await expect(band).toHaveAttribute("data-tone", "ai");
+      await expect(band).toContainText("AI root cause analysis");
+      await expect(
+        band.getByRole("button", { name: "View full report" }),
+      ).toBeVisible();
+
+      // The card's last piece, inside its 1px border, from edge to edge.
+      const header: Box = await documentBox(hero(page));
+      const box: Box = await documentBox(band);
+      expect(
+        Math.abs(box.x - (header.x + 1)),
+        "band start",
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(box.width - (header.width - 2)),
+        "band width",
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(box.y + box.height - (header.y + header.height - 1)),
+        "band end",
+      ).toBeLessThanOrEqual(1);
+      // A hairline over it, and no box around it.
+      expect(
+        await band.evaluate((element: Element): Array<string> => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return [
+            style.borderTopWidth,
+            style.borderRightWidth,
+            style.borderBottomWidth,
+            style.borderLeftWidth,
+          ];
+        }),
+      ).toEqual(["1px", "0px", "0px", "0px"]);
+      expect((await headerColours(page)).unreadable).toEqual([]);
+
+      // View full report reads on the label's line, its words level with the label's.
+      const middles: Array<number> = await band.evaluate(
+        (element: Element): Array<number> => {
+          const textMiddle: (root: Element) => number = (
+            root: Element,
+          ): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(root);
+            const box: DOMRect = range.getBoundingClientRect();
+            return box.top + box.height / 2;
+          };
+          const label: Element = element.querySelector("h3")!;
+          const report: Element = Array.from(
+            element.querySelectorAll("button"),
+          ).find((button: Element): boolean => {
+            return (button.textContent || "").includes("View full report");
+          })!;
+          return [textMiddle(label), textMiddle(report)];
+        },
+      );
+      expect(
+        Math.abs(middles[0]! - middles[1]!),
+        "View full report is level with the label",
+      ).toBeLessThanOrEqual(0.5);
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), `event-header-ai-band-${theme}`);
+    });
+  }
+
+  test("a maintenance event that missed its start says so in an amber band at the foot of its header", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "sm=overdue");
+    await loadProductionFont(page);
+
+    const band: Locator = hero(page).getByTestId("event-header-notice");
+    await expect(band).toHaveAttribute("data-tone", "warning");
+    await expect(band).toContainText("Start overdue");
+    await expect(band).toContainText(
+      "Planned to start at Sep 14 2026, 06:00 PM GMT, but it has not been marked as Ongoing yet.",
+    );
+    await expectHeroDuration(hero(page), "Start overdue by 20 minutes");
+    expect((await headerColours(page)).unreadable).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "event-header-maintenance-overdue");
+  });
+
+  test("someone who may not change an incident's state sees its state actions locked, each saying which permission (?role=alert-member)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_PAGE, "state=created&role=alert-member", [
+      "Rolling checkout-api back to 2026.09.14-1",
+    ]);
+    await loadProductionFont(page);
+
+    // What they pressed, in their words - not "create this Incident State Timeline".
+    const reason: string =
+      "You do not have permission to change this incident's state. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident State Timeline.";
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+    ]);
+    // No ⋯ of other states to move it to either.
+    await expect(hero(page).getByTestId("event-header-more-place")).toHaveCount(
+      0,
+    );
+
+    for (const action of ["incident-acknowledge-btn", "incident-resolve-btn"]) {
+      const button: Locator = hero(page).locator(`#${action}`);
+      const wrapper: Locator = hero(page).getByTestId(
+        `${action}-disabled-wrapper`,
+      );
+      await expect(button).toBeDisabled();
+      await expect(button).toHaveCSS("opacity", "0.5");
+      await expect(wrapper).toHaveAttribute("tabindex", "0");
+      await wrapper.hover();
+      await expect(page.getByRole("tooltip")).toHaveText(reason);
+      await wrapper.click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.evaluate((): void => {
+        (document.activeElement as HTMLElement | null)?.blur();
+      });
+      await page.mouse.move(0, 0);
+      await expect(page.getByRole("tooltip")).toHaveCount(0);
+    }
+
+    // Locked, they still lay out as the buttons they would be.
+    await expectHeaderAtItsWidth(page, "locked 1280px");
+    expect((await fixture(page)).creates).toEqual([]);
+    // Nor is Add owners offered: an Alert Member may not add an incident's owners.
+    await expect(ownersFact(page).getByTestId("event-person-name")).toHaveText([
+      "Checkout SRE",
+      "Sam Rivera",
+    ]);
+    await expect(ownersFact(page).getByRole("link")).toHaveCount(0);
+  });
+
+  /*
+   * The facts side by side share their rows: a label that wraps makes the
+   * row's label line taller for all of them, every value of the row starts
+   * on one line and each label sits right above its value. On a phone
+   * "INCIDENT COMMANDER" wraps, and the commander's name sat a line lower
+   * than "19 minutes" beside it.
+   */
+  for (const language of ["en", "de"]) {
+    test(`the facts of a row start on one line even where a label wraps (${language}, 390px)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await open(
+        page,
+        INCIDENT_PATH,
+        language === "de" ? "state=ongoing&lang=de" : "state=ongoing",
+      );
+      await expect(
+        commanderFact(page).getByTestId("event-person-name"),
+      ).toHaveText(["Maya Chen"], { timeout: 30000 });
+      await expect(
+        hero(page).getByTestId("event-header-duration"),
+      ).toBeVisible();
+      await loadProductionFont(page);
+
+      const duration: { label: number; value: number; height: number } =
+        await factTextTops(hero(page).getByTestId("event-header-duration"));
+      const commander: Locator = commanderFact(page);
+      const tops: { label: number; value: number; height: number } =
+        await factTextTops(commander);
+      const labels: Array<{ height: number; bottom: number }> = await hero(page)
+        .getByTestId("event-status-facts")
+        .locator("dt")
+        .evaluateAll(
+          (
+            elements: Array<Element>,
+          ): Array<{ height: number; bottom: number }> => {
+            return elements.slice(0, 2).map((element: Element) => {
+              const box: DOMRect = element.getBoundingClientRect();
+              return { height: box.height, bottom: box.bottom };
+            });
+          },
+        );
+
+      // The commander's label takes two lines; how long's, one.
+      expect(labels[1]!.height).toBeGreaterThan(labels[0]!.height + 8);
+      // Each label right above its value, at the foot of the shared row.
+      expect(
+        Math.abs(labels[0]!.bottom - labels[1]!.bottom),
+      ).toBeLessThanOrEqual(0.5);
+      // And the values on one line.
+      expect(
+        Math.abs(tops.value - duration.value),
+        "the name is level with how long",
+      ).toBeLessThanOrEqual(0.5);
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        hero(page),
+        `event-header-facts-row-${language}-390`,
+      );
+    });
+  }
+
+  /*
+   * People are listed one a line, as monitors are, at every width - never
+   * two names side by side and a third under them - and on an open record
+   * the list ends with Add, the same control as on a record nobody owns.
+   */
+  for (const width of [1280, 1024, 390]) {
+    test(`an open incident's owners, one a line, end with Add (${width}px)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(page, INCIDENT_PAGE, "state=ongoing&owners=many");
+      await loadProductionFont(page);
+
+      const owners: Locator = ownersFact(page);
+      const lines: Array<{ left: number; top: number }> = await owners
+        .locator(":scope > *")
+        .evaluateAll(
+          (elements: Array<Element>): Array<{ left: number; top: number }> => {
+            return elements.map((element: Element) => {
+              const box: DOMRect = element.getBoundingClientRect();
+              return { left: box.left, top: box.top };
+            });
+          },
+        );
+
+      // Three people, +3 more, then Add: five lines, one under another.
+      expect(lines).toHaveLength(5);
+      for (let index: number = 1; index < lines.length; index++) {
+        expect(lines[index]!.top, `line ${index + 1}`).toBeGreaterThan(
+          lines[index - 1]!.top + 16,
+        );
+      }
+
+      const add: Locator = owners.getByRole("link", { name: "Add owners" });
+      await expect(add).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
+      await expect(add).toHaveAttribute("title", "Add owners");
+      // Visibly "Add", as on a record nobody owns; heard as "Add owners".
+      await expect(
+        add.locator(":scope > [aria-hidden='true']").last(),
+      ).toHaveText("Add");
+      await expectEmptyPlace(add);
+      // The list's last line, its circle under the avatars.
+      expect(
+        await owners.evaluate((element: Element): string | null => {
+          return element.lastElementChild?.getAttribute("data-testid") || null;
+        }),
+      ).toBe("event-owners-add-more");
+      const avatar: Box = await documentBox(
+        owners
+          .getByTestId("event-owner")
+          .first()
+          .locator(":scope > span")
+          .first(),
+      );
+      const place: Box = await documentBox(
+        add.getByTestId("event-empty-place"),
+      );
+      expect(Math.abs(place.x - avatar.x)).toBeLessThanOrEqual(1);
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), `event-header-owners-add-${width}`);
+
+      await add.click();
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        "INCIDENT_VIEW_OWNERS",
+      );
+    });
+  }
+
+  test("the state track is a 4px line under the states' names", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    const heights: Array<number> = await hero(page)
+      .getByTestId("event-state-track-segment")
+      .evaluateAll((segments: Array<Element>): Array<number> => {
+        return segments.map((segment: Element): number => {
+          return segment.getBoundingClientRect().height;
+        });
+      });
+
+    expect(heights).toEqual([4, 4, 4]);
   });
 });
 
@@ -9217,10 +10280,9 @@ test.describe("scheduled maintenance overview", () => {
       await expect(header.getByTitle("Number", { exact: true })).toHaveText(
         "#58",
       );
-      await expectRenderedText(header, `${phase.state} ${phase.duration}`);
-      expect(await definitionPairs(header)).toEqual(
-        SCHEDULED_MAINTENANCE_PAGE.facts,
-      );
+      await expectRenderedText(heroChips(page), phase.state);
+      await expectHeroDuration(header, phase.duration);
+      expect(await heroFacts(header)).toEqual(SCHEDULED_MAINTENANCE_PAGE.facts);
 
       const actions: Locator = page.getByRole("group", {
         name: "Event actions",
@@ -9319,7 +10381,12 @@ test.describe("scheduled maintenance overview", () => {
       .click();
     await expect(dialog).toHaveCount(0);
 
-    await expectRenderedText(hero(page), "Ongoing In progress for");
+    await expectRenderedText(heroChips(page), "Ongoing");
+    await expect
+      .poll(async (): Promise<string> => {
+        return heroDuration(hero(page));
+      })
+      .toMatch(/^In progress for /);
     await expect(
       actions.getByRole("button", { name: "Mark as Ongoing" }),
     ).toHaveCount(0);
@@ -9666,7 +10733,7 @@ test.describe("episode overviews", () => {
       await expect(actions.getByRole("button")).toHaveText(["Resolve"]);
       await expect(page.locator("#episode-resolve-btn")).toBeVisible();
       await expectRenderedText(
-        hero(page),
+        heroChips(page),
         `Acknowledged ${eventPage.severity || ""}`,
       );
 
@@ -9684,7 +10751,7 @@ test.describe("episode overviews", () => {
 
       await expect(actions.getByRole("button")).toHaveCount(0);
       await expectRenderedText(
-        hero(page),
+        heroChips(page),
         `Resolved ${eventPage.severity || ""}`,
       );
       expect(await skeletonWasSeen(page)).toBe(false);
@@ -15047,33 +16114,51 @@ test.describe("at a glance: who is on it", () => {
     await expect(picker).toBeFocused();
   });
 
-  test("names sit level with their labels, and a fact with people is as tall as one with words", async ({
+  test("a name sits where any fact's words do - under its label, level with the words beside it - and an avatar makes no fact taller", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await openReady(page, INCIDENT_PAGE, "state=ongoing");
-
-    for (const fact of [commanderFact(page), ownersFact(page)]) {
-      const tops: { label: number; value: number; height: number } =
-        await factTextTops(fact);
-      expect(Math.abs(tops.label - tops.value)).toBeLessThanOrEqual(0.5);
-      // One 20px line: the 24px avatar does not grow the row.
-      expect(tops.height).toBeLessThanOrEqual(20.5);
-    }
-
-    await openReady(
-      page,
-      INCIDENT_PAGE,
+    for (const query of [
+      "state=ongoing",
+      // Assign and Add, in the empty places.
       "state=ongoing&commander=none&owners=none",
-    );
+    ]) {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openReady(page, INCIDENT_PAGE, query);
+      await loadProductionFont(page);
 
-    for (const fact of [commanderFact(page), ownersFact(page)]) {
-      const tops: { label: number; value: number; height: number } =
-        await factTextTops(fact);
-      expect(Math.abs(tops.label - tops.value)).toBeLessThanOrEqual(0.5);
-      expect(tops.height).toBeLessThanOrEqual(20.5);
+      // How long: a fact of words, first in the same row.
+      const words: { label: number; value: number; height: number } =
+        await factTextTops(hero(page).getByTestId("event-header-duration"));
+
+      for (const fact of [commanderFact(page), ownersFact(page)]) {
+        const tops: { label: number; value: number; height: number } =
+          await factTextTops(fact);
+        expect(
+          Math.abs(tops.label - words.label),
+          `${query}: the labels share a line`,
+        ).toBeLessThanOrEqual(0.5);
+        expect(
+          Math.abs(tops.value - words.value),
+          `${query}: the name is level with the words beside it`,
+        ).toBeLessThanOrEqual(0.5);
+      }
+
+      /*
+       * One person, or an empty place, is one 20px line: the 24px avatar
+       * does not grow it. (The value's own box: the fact's dd also holds
+       * the space under it, before the next row of facts.)
+       */
+      const commanderHeight: number = await commanderFact(page).evaluate(
+        (value: Element): number => {
+          return value.getBoundingClientRect().height;
+        },
+      );
+      expect(
+        commanderHeight,
+        `${query}: the commander's line`,
+      ).toBeLessThanOrEqual(20.5);
     }
   });
 
@@ -15530,7 +16615,7 @@ test.describe("at a glance: when, and what it touched", () => {
     expect(zoneSize).toBeLessThan(valueSize);
     // How long it lasted is the header's alone.
     await expect(statBar.getByText("Duration", { exact: true })).toHaveCount(0);
-    await expectRenderedText(hero(page), "Lasted 11 minutes");
+    await expectHeroDuration(hero(page), "Lasted 11 minutes");
     // And when and by whom it was declared is the tile's alone.
     const detailsLabels: Array<string> = await detailLabels(
       card(page, INCIDENT_PAGE.detailsCard),
@@ -15700,9 +16785,7 @@ test.describe("at a glance: layout", () => {
       await page.setViewportSize({ width, height: 900 });
       await open(page, INCIDENT_PATH, "lang=de");
 
-      const germanHero: Locator = page
-        .getByRole("group", { name: "Ereignisaktionen" })
-        .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+      const germanHero: Locator = hero(page);
       await expect(
         germanHero
           .getByTestId("event-commander")

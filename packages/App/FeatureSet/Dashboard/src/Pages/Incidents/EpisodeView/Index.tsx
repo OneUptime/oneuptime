@@ -457,7 +457,7 @@ const IncidentEpisodeView: FunctionComponent<
       RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !timing.isResolved,
+    canAddOwners: !timing.isResolved && owners.canAddOwners,
   });
 
   if (ownersFact) {

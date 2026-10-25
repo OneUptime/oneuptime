@@ -78,7 +78,7 @@ Arraste uma linha pela alça para movê-la; a nova ordem é salva quando você a
 
 Um estado que você adiciona não tem sinalizador, então sua posição é o seu significado. Coloque uma etapa de mitigação entre **Confirmado** e **Resolvido**, e uma etapa de triagem acima de **Confirmado**. Um estado colocado abaixo de **Resolvido** conta como resolvido em todo lugar.
 
-Você leva um alerta para um estado seu pelo menu **⋯** no cabeçalho do alerta, em **Change state to**, que lista cada estado posterior ao atual. A confirmação se chama **Marcar alerta como {{state}}**, com o nome do estado.
+Você leva um alerta para um estado seu pelo menu **⋯** no cabeçalho do alerta, em **Alterar estado para**, que lista cada estado posterior ao atual. A confirmação se chama **Marcar alerta como {{state}}**, com o nome do estado.
 
 > [!NOTE]
 > No OneUptime Cloud, adicionar ou alterar estados e gravidades de alertas requer o plano **Growth** ou superior. Qualquer plano pode lê-los, usá-los e excluir um estado que você adicionou.
@@ -128,13 +128,13 @@ Arquive um estado ou uma severidade que sua equipe não deve mais usar, em vez d
 
 | Forma                     | Onde                                                                                      | O que é pedido                                                                                                                       |
 | ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Botões do cabeçalho**   | O cabeçalho do alerta: **Confirmar**, **Resolver** e **Change state to** no menu **⋯**    | Uma confirmação breve, **Confirmar alerta**, **Resolver alerta** ou **Marcar alerta como {{state}}**, com uma nota opcional em **Adicionar uma nota privada**. |
+| **Botões do cabeçalho**   | O cabeçalho do alerta: **Confirmar**, **Resolver** e **Alterar estado para** no menu **⋯**    | Uma confirmação breve, **Confirmar alerta**, **Resolver alerta** ou **Marcar alerta como {{state}}**, com uma nota opcional em **Adicionar uma nota privada**. |
 | **State timeline**        | **Linha do tempo de estado** no menu lateral do alerta                                    | Uma linha que você adiciona manualmente, com **Status do alerta** e **Começa em**.                                                    |
 | **Linha da lista** | O menu **⋯** na linha de um alerta na lista de alertas: **Confirmar**, **Resolver** e **Alterar estado** | A confirmação do cabeçalho, com o nome do alerta. Um alerta que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. |
 | **Mudança em massa**      | **Confirmar**, **Resolver** ou **Alterar estado** em uma seleção na lista de alertas                                     | O estado e uma nota privada adicionada a cada alerta. Os alertas que já estão nesse estado ou depois dele são ignorados.              |
 | **Automaticamente**       | Um monitor, um episódio, um incidente vinculado ou seu próprio código                     | **Resolver alerta automaticamente** nos critérios de um monitor, a mudança de estado de um episódio, os interruptores de incidente em [Alertas vinculados](/docs/incidents/linked-alerts) ou uma linha criada em `/api/alert-state-timeline`. |
 
-O cabeçalho oferece **Confirmar** e **Resolver** enquanto o alerta ainda não foi confirmado, e só **Resolver** depois disso. Um alerta resolvido não mostra nenhum dos dois.
+O cabeçalho oferece **Confirmar** e **Resolver** enquanto o alerta ainda não foi confirmado, e só **Resolver** depois disso. Um alerta resolvido não mostra nenhum dos dois. Quem, pelo seu papel, não pode mudar o estado do alerta vê os botões bloqueados e nenhum menu de outros estados: ao apontar para um, aparecem as permissões que permitiriam isso.
 
 ## O que confirmar faz
 

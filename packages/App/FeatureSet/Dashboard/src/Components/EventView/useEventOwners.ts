@@ -6,6 +6,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useState } from "react";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
@@ -40,6 +41,13 @@ export interface EventOwnersState {
    */
   owners: Array<ResourceOwnerEntry> | undefined;
   error: string;
+  /*
+   * Whether the reader may add an owner - a person or a team - to the
+   * record (PermissionGate on the two owner tables), so the header offers
+   * its Add only to someone the Owners page would let add one. False until
+   * the permissions are known.
+   */
+  canAddOwners: boolean;
 }
 
 interface LoadedOwners {
@@ -161,11 +169,21 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
    * the reader follows a link to another record, and the previous record's
    * owners must never stand in the next one's header.
    */
+  const canAddOwners: boolean =
+    PermissionGate.check(new options.ownerUserModelType(), ModelAction.Create)
+      .isAllowed ||
+    PermissionGate.check(new options.ownerTeamModelType(), ModelAction.Create)
+      .isAllowed;
+
   if (!loaded || loaded.resourceId !== resourceIdString) {
-    return { owners: undefined, error: "" };
+    return { owners: undefined, error: "", canAddOwners: canAddOwners };
   }
 
-  return { owners: loaded.owners, error: loaded.error };
+  return {
+    owners: loaded.owners,
+    error: loaded.error,
+    canAddOwners: canAddOwners,
+  };
 };
 
 export default useEventOwners;

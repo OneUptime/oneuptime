@@ -300,6 +300,74 @@ describe("PermissionGate", () => {
     });
 
     /*
+     * A new row on an incident's state timeline is, to someone pressing
+     * Acknowledge, "changing the incident's state": the caller's whole
+     * sentence takes the place of "You do not have permission to create this
+     * Incident State Timeline.", and the permissions that would allow it
+     * still follow - still the model's own, still checked by the operation.
+     */
+    test("uses the caller's whole first sentence, and still names and checks the operation's permissions", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      const denied: PermissionGateResult = PermissionGate.check(
+        new Monitor(),
+        ModelAction.Create,
+        { sentence: "You do not have permission to change this monitor." },
+      );
+
+      expect(denied.isAllowed).toBe(false);
+      expect(
+        denied.disabledReason?.startsWith(
+          "You do not have permission to change this monitor. You need one of these permissions: ",
+        ),
+      ).toBe(true);
+      expect(denied.disabledReason).not.toContain("create this");
+      // The same permissions the generic sentence names.
+      expect(
+        denied.disabledReason?.slice(
+          "You do not have permission to change this monitor.".length,
+        ),
+      ).toBe(
+        PermissionGate.check(
+          new Monitor(),
+          ModelAction.Create,
+        ).disabledReason?.slice(
+          "You do not have permission to create this Monitor.".length,
+        ),
+      );
+
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      expect(
+        PermissionGate.check(new Monitor(), ModelAction.Create, {
+          sentence: "You do not have permission to change this monitor.",
+        }),
+      ).toEqual({ isAllowed: true });
+    });
+
+    test("falls back to its own sentence when the caller's is blank", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      expect(
+        PermissionGate.check(new Monitor(), ModelAction.Create, {
+          sentence: "  ",
+        }).disabledReason,
+      ).toBe(
+        PermissionGate.check(new Monitor(), ModelAction.Create).disabledReason,
+      );
+    });
+
+    test("never accuses anyone of lacking a permission before the snapshot lands, whatever the sentence", () => {
+      permissionsForTest = [];
+
+      expect(
+        PermissionGate.check(new Monitor(), ModelAction.Create, {
+          sentence: "You do not have permission to change this monitor.",
+        }),
+      ).toEqual({ isAllowed: false });
+    });
+
+    /*
      * Both model hierarchies are unrelated classes that happen to expose the
      * same permission API, and the gate is structurally typed so one
      * implementation covers both. If AnalyticsBaseModel ever drifts, this is
