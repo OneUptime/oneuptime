@@ -1,7 +1,8 @@
 import React, { useContext } from "react";
 import { NavigationRouteContext } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createAdaptiveStackNavigator } from "./createAdaptiveStackNavigator";
 import InboxScreen from "../screens/InboxScreen";
+import { InboxEmptyDetail } from "../screens/EmptyDetailScreens";
 import IncidentDetailScreen from "../screens/IncidentDetailScreen";
 import IncidentEpisodeDetailScreen from "../screens/IncidentEpisodeDetailScreen";
 import AlertDetailScreen from "../screens/AlertDetailScreen";
@@ -9,9 +10,14 @@ import AlertEpisodeDetailScreen from "../screens/AlertEpisodeDetailScreen";
 import { useStackScreenOptions } from "./useStackScreenOptions";
 import type { InboxStackParamList } from "./types";
 
+/*
+ * Adaptive: on a window wide enough for two panes (an unfolded foldable, a
+ * tablet or phone on its side) the inbox list sits on the left and the
+ * incident or alert opened from it on the right.
+ */
 const Stack: ReturnType<
-  typeof createNativeStackNavigator<InboxStackParamList>
-> = createNativeStackNavigator<InboxStackParamList>();
+  typeof createAdaptiveStackNavigator<InboxStackParamList>
+> = createAdaptiveStackNavigator<InboxStackParamList>();
 
 export default function InboxStackNavigator(): React.JSX.Element {
   const screenOptions: ReturnType<typeof useStackScreenOptions> =
@@ -38,7 +44,11 @@ export default function InboxStackNavigator(): React.JSX.Element {
     : undefined;
 
   return (
-    <Stack.Navigator initialRouteName="InboxList" screenOptions={screenOptions}>
+    <Stack.Navigator
+      initialRouteName="InboxList"
+      screenOptions={screenOptions}
+      emptyDetail={InboxEmptyDetail}
+    >
       <Stack.Screen
         name="InboxList"
         component={InboxScreen}

@@ -13,6 +13,10 @@ interface QuickActionTileProps {
   iconName: keyof typeof Ionicons.glyphMap;
   accentColor?: string;
   onPress: () => void;
+  /** What it opens is showing in the detail pane beside the overview. */
+  selected?: boolean;
+  /** Beside a detail pane the tile opens on the right, not on a new screen. */
+  showChevron?: boolean;
   testID?: string;
 }
 
@@ -30,6 +34,8 @@ export default function QuickActionTile({
   iconName,
   accentColor,
   onPress,
+  selected = false,
+  showChevron = true,
   testID,
 }: QuickActionTileProps): React.JSX.Element {
   const { theme } = useTheme();
@@ -42,6 +48,8 @@ export default function QuickActionTile({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={sublabel ? `${label}. ${sublabel}` : label}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={() => {
         lightImpact();
         onPress();
@@ -50,15 +58,20 @@ export default function QuickActionTile({
         return {
           flex: 1,
           minHeight: 116,
-          padding: spacing.lg,
+          // The thicker selected border must not shift the tile's content.
+          padding: spacing.lg - (selected ? 1 : 0),
           gap: spacing.md,
           justifyContent: "space-between",
           borderRadius: radius.lg,
-          borderWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-          backgroundColor: pressed
-            ? theme.colors.backgroundTertiary
-            : theme.colors.backgroundElevated,
+          borderWidth: selected ? 2 : 1,
+          borderColor: selected
+            ? theme.colors.actionPrimary
+            : theme.colors.borderSubtle,
+          backgroundColor: selected
+            ? theme.colors.cardAccent
+            : pressed
+              ? theme.colors.backgroundTertiary
+              : theme.colors.backgroundElevated,
           transform: pressed ? [{ scale: 0.98 }] : undefined,
           ...elevation("card", theme.dark),
         };
@@ -72,11 +85,13 @@ export default function QuickActionTile({
         }}
       >
         <IconBadge name={iconName} color={accent} size="md" />
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={theme.colors.textTertiary}
-        />
+        {showChevron ? (
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={theme.colors.textTertiary}
+          />
+        ) : null}
       </View>
 
       <View style={{ gap: spacing.xxs }}>

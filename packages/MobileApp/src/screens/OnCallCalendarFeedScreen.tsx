@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { radius, spacing, touchTarget } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
@@ -69,6 +71,7 @@ type FeedNotice = { kind: "success" | "error"; text: string } | null;
 export default function OnCallCalendarFeedScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { lightImpact, successFeedback, errorFeedback, selectionFeedback } =
     useHaptics();
   const now: number = useNow();
@@ -768,6 +771,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       refreshControl={

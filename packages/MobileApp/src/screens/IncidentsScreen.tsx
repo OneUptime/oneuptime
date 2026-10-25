@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   SectionList,
@@ -22,6 +28,15 @@ import { spacing, typography } from "../theme/tokens";
 import ListFilters from "../components/ListFilters";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
+import {
+  useListPane,
+  usePaneScrollRestoration,
+  usePaneState,
+  type ListPaneState,
+  type PaneScrollRestoration,
+} from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import { matchesSearch } from "../utils/search";
@@ -105,18 +120,74 @@ export default function IncidentsScreen({
 }: IncidentsScreenProps = {}): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
-  const [search, setSearch] = useState("");
-  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
+  const gutters: ContentGutters = useContentGutters();
+  const listPane: ListPaneState = useListPane();
+  /*
+   * The list's view state lives in the navigator (paneState.tsx), so a fold
+   * or an unfold - which draws this list afresh in another pane - brings back
+   * the same search, filter, segment and scroll position.
+   */
+  const [search, setSearch] = usePaneState<string>("incidents.search", "");
+  const [stateFilter, setStateFilter] = usePaneState<StateFilter>(
+    "incidents.filter",
+    "all",
+  );
   const [refreshing, setRefreshing] = useState(false);
   const navigation: NavProp = useNavigation<NavProp>();
   const route: RouteProp<IncidentsStackParamList, "IncidentsList"> =
     useRoute<RouteProp<IncidentsStackParamList, "IncidentsList">>();
 
-  const [segment, setSegment] = useState<Segment>("incidents");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
+  const [segment, setSegment] = usePaneState<Segment>(
+    "incidents.segment",
+    "incidents",
+  );
+  const [visibleCount, setVisibleCount] = usePaneState<number>(
+    "incidents.visible",
+    PAGE_SIZE,
+  );
+  const [visibleEpisodeCount, setVisibleEpisodeCount] = usePaneState<number>(
+    "incidents.visibleEpisodes",
+    PAGE_SIZE,
+  );
+  /*
+   * The params this list last applied. Drawn afresh after a fold, the list
+   * sees the same params again; they were applied already, and applying them
+   * twice would wipe the search typed since.
+   */
+  const [appliedParams, setAppliedParams] = usePaneState<
+    IncidentsStackParamList["IncidentsList"] | null
+  >("incidents.appliedParams", null);
+  const incidentListRef: React.RefObject<SectionList<
+    ProjectIncidentItem,
+    IncidentSection
+  > | null> = useRef<SectionList<ProjectIncidentItem, IncidentSection>>(null);
+  const episodeListRef: React.RefObject<SectionList<
+    ProjectIncidentEpisodeItem,
+    EpisodeSection
+  > | null> =
+    useRef<SectionList<ProjectIncidentEpisodeItem, EpisodeSection>>(null);
+  const incidentScroll: PaneScrollRestoration = usePaneScrollRestoration(
+    "incidents.scroll.incidents",
+    (offsetY: number): void => {
+      incidentListRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ x: 0, y: offsetY, animated: false });
+    },
+  );
+  const episodeScroll: PaneScrollRestoration = usePaneScrollRestoration(
+    "incidents.scroll.episodes",
+    (offsetY: number): void => {
+      episodeListRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ x: 0, y: offsetY, animated: false });
+    },
+  );
 
   useEffect(() => {
+    if (route.params === appliedParams || route.params === undefined) {
+      return;
+    }
+    setAppliedParams(route.params);
     if (route.params?.initialSegment || route.params?.initialFilter) {
       setSearch("");
     }
@@ -518,6 +589,7 @@ export default function IncidentsScreen({
   const contentContainerStyle: ViewStyle = {
     padding: spacing.xl,
     paddingBottom: bottomPadding,
+    ...gutters,
     flexGrow: 1,
   };
 
@@ -585,8 +657,12 @@ export default function IncidentsScreen({
     >
       {segment === "incidents" ? (
         <SectionList
+          ref={incidentListRef}
           sections={incidentSections}
           style={{ flex: 1 }}
+          onScroll={incidentScroll.onScroll}
+          onContentSizeChange={incidentScroll.onContentSizeChange}
+          scrollEventThrottle={incidentScroll.scrollEventThrottle}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -650,6 +726,11 @@ export default function IncidentsScreen({
                 <IncidentCard
                   incident={wrapped.item}
                   muted={isResolved}
+                  selected={listPane.isOpen("IncidentDetail", {
+                    incidentId: wrapped.item._id,
+                    projectId: wrapped.projectId,
+                  })}
+                  showChevron={!listPane.besideDetail}
                   onPress={() => {
                     return handlePress(wrapped);
                   }}
@@ -677,8 +758,12 @@ export default function IncidentsScreen({
         />
       ) : (
         <SectionList
+          ref={episodeListRef}
           sections={episodeSections}
           style={{ flex: 1 }}
+          onScroll={episodeScroll.onScroll}
+          onContentSizeChange={episodeScroll.onContentSizeChange}
+          scrollEventThrottle={episodeScroll.scrollEventThrottle}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -712,6 +797,11 @@ export default function IncidentsScreen({
                 episode={wrapped.item}
                 type="incident"
                 muted={isResolved}
+                selected={listPane.isOpen("IncidentEpisodeDetail", {
+                  episodeId: wrapped.item._id,
+                  projectId: wrapped.projectId,
+                })}
+                showChevron={!listPane.besideDetail}
                 onPress={() => {
                   return handleEpisodePress(wrapped);
                 }}

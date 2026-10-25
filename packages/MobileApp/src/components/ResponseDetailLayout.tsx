@@ -96,6 +96,22 @@ export function getResponseStageAppearance(stage: ResponseStage): {
   return stageAppearance[stage];
 }
 
+/*
+ * The narrowest a response action may be before the actions wrap onto rows
+ * of their own. Its icon and "Acknowledge" in bold take about 130 points, so
+ * at 128 points the two actions shared a row down to a 342-point window: on
+ * a 344-point foldable cover screen the label reached the button's border,
+ * and on a 360-point phone it came within 4 points of it. From 148 they
+ * stack, each the card's width, on windows narrower than about 382 points.
+ *
+ * The label keeps its natural width and never shrinks: "Acknowledge" is one
+ * word, and a label shrunk to fit on iOS or Android breaks it across two
+ * lines, "Acknowledg" above "e", on 390-point iPhones where it otherwise
+ * only uses some of the padding. (Browsers never shrink a word below its
+ * own width, so the web suite cannot see this.)
+ */
+export const RESPONSE_ACTION_MIN_WIDTH: number = 148;
+
 /** Icons for the two response actions, shared by every detail screen. */
 export const responseActionIcons: Readonly<{
   acknowledge: IconName;
@@ -433,7 +449,7 @@ export function ResponseActions({
                 flex: 1,
                 flexDirection: "row",
                 gap: spacing.sm,
-                minWidth: 128,
+                minWidth: RESPONSE_ACTION_MIN_WIDTH,
                 minHeight: 54,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,

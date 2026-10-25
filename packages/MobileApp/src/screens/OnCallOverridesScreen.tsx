@@ -6,6 +6,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
@@ -39,6 +41,7 @@ type OverridesNavProp = NativeStackNavigationProp<
 export default function OnCallOverridesScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { lightImpact, successFeedback, errorFeedback } = useHaptics();
   const navigation: OverridesNavProp = useNavigation<OverridesNavProp>();
   const now: number = useNow();
@@ -105,6 +108,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: spacing.xl,
+            ...gutters,
             paddingBottom: bottomPadding,
           }}
         >
@@ -124,6 +128,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: spacing.xl,
+          ...gutters,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -199,6 +204,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       refreshControl={

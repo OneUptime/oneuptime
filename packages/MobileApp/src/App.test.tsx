@@ -97,6 +97,25 @@ jest.mock("./navigation/RootNavigator", () => {
   };
 });
 
+/*
+ * The project sheet host needs the real project context, which this suite
+ * replaces; ProjectSwitcher.test.tsx covers it. Here it only has to be the
+ * thing the navigator is drawn inside.
+ */
+const mockHostChildren: { current: React.ReactNode } = { current: null };
+jest.mock("./components/ProjectSwitcher", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return null;
+    },
+    ProjectSwitcherHost: ({ children }: { children: React.ReactNode }) => {
+      mockHostChildren.current = children;
+      return children;
+    },
+  };
+});
+
 jest.mock("./components/OfflineBanner", () => {
   const ReactModule: typeof React = jest.requireActual("react");
   const { Text } = jest.requireActual(
@@ -121,6 +140,10 @@ afterEach(() => {
 
 type RenderedElement = ReturnType<typeof screen.getByTestId>;
 
+function hostedChildren(): React.ReactNode {
+  return mockHostChildren.current;
+}
+
 function frame(): RenderedElement {
   return screen.getByTestId("status-bar").parent as RenderedElement;
 }
@@ -140,6 +163,21 @@ describe("The app frame", () => {
     await render(<App />);
 
     expect(frame()).toHaveStyle({ flex: 1, overflow: "hidden" });
+  });
+
+  test("draws the navigator inside the one project sheet host, so the sheet outlives a fold", async () => {
+    /*
+     * The sheet belongs above the navigation: a fold moves the header that
+     * opened it, and a sheet owned by that header would close mid-choice.
+     */
+    mockHostChildren.current = null;
+    await render(<App />);
+
+    const hosted: React.ReactNode = hostedChildren();
+    expect(React.isValidElement(hosted)).toBe(true);
+    const hostedType: unknown = (hosted as React.ReactElement).type;
+    expect(hostedType).toBeInstanceOf(Function);
+    expect((hostedType as { name?: string }).name).toBe("RootNavigatorStub");
   });
 });
 

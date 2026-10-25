@@ -11,6 +11,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../theme";
 import { radius, spacing, touchTarget } from "../../theme/tokens";
 import { useScreenPadding } from "../../hooks/useScreenPadding";
+import { useContentGutters } from "../../layout/WindowLayout";
+import type { ContentGutters } from "../../layout/windowLayout";
 import { useHaptics } from "../../hooks/useHaptics";
 import {
   useCriticalAlertSound,
@@ -287,6 +289,7 @@ function VolumePicker({
 export default function CriticalAlertSoundScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const paddingBottom: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { selectionFeedback } = useHaptics();
   const alarm: CriticalAlertSoundState = useCriticalAlertSound();
 
@@ -297,6 +300,7 @@ export default function CriticalAlertSoundScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom,
         gap: spacing.xxl,
       }}

@@ -3,6 +3,8 @@ import { View, ScrollView, RefreshControl, Share, Alert } from "react-native";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -124,6 +126,7 @@ export function matchesRosterSearch(
 export default function WhoIsOnCallScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { lightImpact } = useHaptics();
   const now: number = useNow();
   const currentUserId: string | null = useCurrentUserId();
@@ -274,6 +277,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: spacing.xl,
+            ...gutters,
             paddingBottom: bottomPadding,
           }}
         >
@@ -294,6 +298,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: spacing.xl,
+          ...gutters,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -371,6 +376,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       keyboardShouldPersistTaps="handled"

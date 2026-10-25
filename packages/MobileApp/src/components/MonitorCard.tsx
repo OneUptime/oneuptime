@@ -10,6 +10,9 @@ interface MonitorCardProps {
   onPress: () => void;
   projectName?: string;
   muted?: boolean;
+  /** Open in the detail pane beside the list. */
+  selected?: boolean;
+  showChevron?: boolean;
 }
 
 function getMonitorTypeLabel(monitorType?: string): string {
@@ -27,6 +30,8 @@ export default function MonitorCard({
   onPress,
   projectName,
   muted,
+  selected,
+  showChevron,
 }: MonitorCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const isDisabled: boolean = monitor.disableActiveMonitoring === true;
@@ -47,6 +52,8 @@ export default function MonitorCard({
       }
       projectName={projectName}
       muted={muted}
+      selected={selected}
+      showChevron={showChevron}
       accessibilityLabel={`Monitor ${monitor.name}. Status: ${statusLabel}.`}
       accessibilityHint="Open details and status history"
       onPress={onPress}
