@@ -16,14 +16,27 @@ import TabMemory from "../../../../UI/Utils/NewVersion/TabMemory";
  * at the cost of a window name some other script gave the window.
  */
 
+/*
+ * Storage's string index signature makes @jest/globals type a spy on
+ * Storage.prototype as never; spy through its three methods instead.
+ */
+interface StorageMethods {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+}
+
+const STORAGE_METHODS: StorageMethods =
+  Storage.prototype as unknown as StorageMethods;
+
 const blockStorage: () => void = (): void => {
-  jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+  jest.spyOn(STORAGE_METHODS, "getItem").mockImplementation(() => {
     throw new Error("SecurityError: storage is blocked");
   });
-  jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+  jest.spyOn(STORAGE_METHODS, "setItem").mockImplementation(() => {
     throw new Error("SecurityError: storage is blocked");
   });
-  jest.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+  jest.spyOn(STORAGE_METHODS, "removeItem").mockImplementation(() => {
     throw new Error("SecurityError: storage is blocked");
   });
 };

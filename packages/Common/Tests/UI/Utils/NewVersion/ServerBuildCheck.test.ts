@@ -134,7 +134,7 @@ describe("checkServerBuild", () => {
     },
   );
 
-  test.each<number>([400, 401, 403, 404, 410])(
+  test.each([400, 401, 403, 404, 410])(
     "a %i answer is NoManifest: the server is there, the manifest is not",
     async (status: number) => {
       await expect(
@@ -146,7 +146,7 @@ describe("checkServerBuild", () => {
     },
   );
 
-  test.each<number>([408, 429, 500, 502, 503, 504])(
+  test.each([408, 429, 500, 502, 503, 504])(
     "a %i answer is Unavailable: the server cannot serve right now",
     async (status: number) => {
       await expect(
@@ -247,15 +247,17 @@ describe("checkServerBuild", () => {
   });
 
   test("uses the browser's fetch when none is handed in", async () => {
-    const browserFetch: Mock<() => Promise<unknown>> = jest.fn(() => {
-      return Promise.resolve({
-        status: 200,
-        ok: true,
-        text: () => {
-          return Promise.resolve(manifest(NEWER));
-        },
-      });
-    });
+    const browserFetch: Mock<(url: string) => Promise<unknown>> = jest.fn(
+      (_url: string) => {
+        return Promise.resolve({
+          status: 200,
+          ok: true,
+          text: () => {
+            return Promise.resolve(manifest(NEWER));
+          },
+        });
+      },
+    );
 
     const original: typeof window.fetch = window.fetch;
     window.fetch = browserFetch as unknown as typeof window.fetch;
