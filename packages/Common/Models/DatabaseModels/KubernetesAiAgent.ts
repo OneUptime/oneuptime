@@ -334,7 +334,7 @@ export default class KubernetesAiAgent extends BaseModel {
     required: false,
     title: "Last Refused Registration At",
     description:
-      "When another agent pod last tried to register for this cluster and was refused.",
+      "When another agent pod was refused this cluster's place: the first refusal this agent has not answered yet, else the latest.",
   })
   @Column({
     type: ColumnType.Date,

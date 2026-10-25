@@ -785,7 +785,10 @@ describe("the AI agent page in the reader's language", () => {
         makeStatus(
           {},
           makeAgent({
-            lastRefusedRegistrationAt: new Date().toISOString(),
+            // Refused a minute ago; this agent was heard from since.
+            lastRefusedRegistrationAt: new Date(
+              Date.now() - 60 * 1000,
+            ).toISOString(),
             lastRefusedRegistrationReason: "previous_instance_online",
           }),
         ),

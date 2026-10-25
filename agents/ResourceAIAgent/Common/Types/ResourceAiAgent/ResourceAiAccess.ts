@@ -120,6 +120,17 @@ export type ResourceAiAgentConnectionStatus = "connected" | "disconnected";
 // The agent heartbeats every 30 seconds; it counts as online this long after.
 export const RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES: number = 5;
 
+/*
+ * How long an agent that still counts as online has to show it is running
+ * once another agent was refused its place (previous_instance_online). Any
+ * request it makes after the refusal answers it: a live agent asks for work
+ * every 3 seconds, renews a running command's lease every 10 and heartbeats
+ * every 30. One that sends nothing for this long stopped without signing
+ * off (a container removed with rm -f, killed or crashed), so the next
+ * registration takes its place instead of waiting out the alive window.
+ */
+export const RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS: number = 40;
+
 // Every agent route (register, heartbeat, claim-next-job, ...) lives under it.
 export const RESOURCE_AI_AGENT_INGEST_PATH: string =
   "/resource-ai-agent-ingest";
@@ -560,7 +571,9 @@ export interface ResourceAiAgentRegisterResponse {
  *                              second install with the same identity, or a
  *                              container replaced without a clean
  *                              shutdown). Clears on its own once the old
- *                              instance goes quiet.
+ *                              instance signs off, or sends nothing for
+ *                              RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS
+ *                              after the first refusal.
  * agent_cap_reached:           the project hit the agent row cap or the
  *                              hourly new-agent brake. Needs an operator (or
  *                              time).

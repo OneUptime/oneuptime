@@ -201,7 +201,8 @@ Quando o agente é mais antigo que o seu OneUptime, um sinal de aviso aparece ao
 ```bash
 podman pull oneuptime/podman-agent:release
 podman pull oneuptime/resource-ai-agent:release
-podman rm -f oneuptime-podman-agent oneuptime-podman-ai-agent
+podman stop oneuptime-podman-agent oneuptime-podman-ai-agent
+podman rm oneuptime-podman-agent oneuptime-podman-ai-agent
 ```
 
 Depois execute de novo os dois comandos `podman run` de [Inicie o agente](#inicie-o-agente).
