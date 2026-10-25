@@ -1170,6 +1170,27 @@ describe("what a Runner field shows, and its line", () => {
     expect(valueLabel()).toHaveAttribute("dir", "auto");
   });
 
+  for (const [label, work] of [
+    ["a code repository", RunnerPickerWork.CodeRepository],
+    ["an AI rule", RunnerPickerWork.AutoRemediation],
+  ] as Array<[string, RunnerPickerWork]>) {
+    test(`${label}'s pick the reader is not shown is said in the product's words, the page's way`, () => {
+      renderField({ work, stepType: "", value: GONE_ID });
+
+      expect(valueLabel()).toHaveTextContent(
+        "A Runner you do not have access to",
+      );
+      expect(valueLabel()).not.toHaveAttribute("dir");
+    });
+  }
+
+  test("a step's pick that is gone is said in the product's words too, the page's way", () => {
+    renderField({ stepType: RunbookStepType.JavaScript, value: GONE_ID });
+
+    expect(valueLabel()).toHaveTextContent(`Unknown Runner (${GONE_ID})`);
+    expect(valueLabel()).not.toHaveAttribute("dir");
+  });
+
   test("a Bash step that picked the Global Runner, not open to it, shows its name the page's way too", () => {
     renderField({
       stepType: RunbookStepType.Bash,

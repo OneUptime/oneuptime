@@ -225,7 +225,10 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     /*
      * A repository or a rule can only pick one of its project's Runners, and
      * a Runner that is deleted leaves it with none, so a pick the picker
-     * cannot name is one the reader may not see: said so, not as an id.
+     * cannot name is one the reader may not see: said so, not as an id - in
+     * the product's own words, laid out the page's way, as the Global
+     * Runner's are ("Runnerی که به آن دسترسی ندارید" starts with a Latin
+     * word too).
      */
     if (option.kind === RunnerPickerOptionKind.Unknown) {
       return {
@@ -236,6 +239,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           : translator.translateTemplate("Unknown Runner ({{id}})", {
               id: option.value,
             }),
+        isInPageDirection: true,
       };
     }
 
