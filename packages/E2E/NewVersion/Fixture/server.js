@@ -28,7 +28,10 @@ process.env.NODE_ENV = "production";
 const { createConfig, build } = require("../../../Common/UI/esbuild-config.js");
 
 const repository = path.resolve(__dirname, "../../../..");
-const output = path.join(repository, "output/playwright/new-version-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/new-version-ui/fixture",
+);
 const port = Number(process.env.NEW_VERSION_FIXTURE_PORT || 4618);
 
 const BUILD_IDS = { a: "fixture-build-a", b: "fixture-build-b" };

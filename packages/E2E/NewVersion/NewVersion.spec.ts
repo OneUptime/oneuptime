@@ -159,13 +159,20 @@ const atRest: (page: Page) => Promise<void> = async (
   });
 };
 
-const shoot: (page: Page, testInfo: TestInfo, name: string) => Promise<void> =
-  async (page: Page, testInfo: TestInfo, name: string): Promise<void> => {
-    await atRest(page);
-    await page.screenshot({
-      path: path.join(SCREENSHOTS, `${name}-${testInfo.project.name}.png`),
-    });
-  };
+const shoot: (
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+) => Promise<void> = async (
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+): Promise<void> => {
+  await atRest(page);
+  await page.screenshot({
+    path: path.join(SCREENSHOTS, `${name}-${testInfo.project.name}.png`),
+  });
+};
 
 // Nothing runs past the screen's right edge: no sideways scroll.
 const fitsTheScreen: (page: Page) => Promise<void> = async (
@@ -267,10 +274,9 @@ test.describe("a deploy under the open tab", () => {
     await expect(page.getByTestId("new-version-notice-reload")).toHaveText(
       "Reload",
     );
-    await expect(page.getByTestId("new-version-notice-dismiss")).toHaveAttribute(
-      "aria-label",
-      "Dismiss",
-    );
+    await expect(
+      page.getByTestId("new-version-notice-dismiss"),
+    ).toHaveAttribute("aria-label", "Dismiss");
 
     await page.waitForTimeout(1500);
 
@@ -906,7 +912,10 @@ test.describe("as it looks", () => {
       await expect(notice(page)).toBeVisible();
       await atRest(page);
 
-      if (variant.name.startsWith("fa") && testInfo.project.name === "desktop") {
+      if (
+        variant.name.startsWith("fa") &&
+        testInfo.project.name === "desktop"
+      ) {
         // The start side of a right-to-left page is the right.
         const box: { x: number; width: number } | null =
           await notice(page).boundingBox();

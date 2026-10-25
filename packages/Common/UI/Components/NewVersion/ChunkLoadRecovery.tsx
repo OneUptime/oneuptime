@@ -330,8 +330,7 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
     step === ChunkLoadRecoveryStep.NeedsReload ||
     step === ChunkLoadRecoveryStep.Failed;
 
-  const reloadButtonText: string =
-    translate("Reload page");
+  const reloadButtonText: string = translate("Reload page");
 
   if (props.variant === ChunkLoadRecoveryVariant.Part) {
     const isLoading: boolean =
@@ -347,22 +346,17 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
     } else if (isLoading) {
       text = translate("Loading...");
     } else if (step === ChunkLoadRecoveryStep.Offline) {
-      text =
-        translate(
-          "You're offline. This will load when you're back online.",
-        );
+      text = translate(
+        "You're offline. This will load when you're back online.",
+      );
       iconPath = OFFLINE_ICON_PATH;
     } else if (step === ChunkLoadRecoveryStep.Unreachable) {
-      text =
-        translate(
-          "Can't reach the server. Trying again automatically.",
-        );
+      text = translate("Can't reach the server. Trying again automatically.");
       iconPath = CLOUD_ICON_PATH;
     } else if (step === ChunkLoadRecoveryStep.NeedsReload) {
-      text =
-        translate(
-          "This needs the latest version of the page. Save your changes, then reload the page.",
-        );
+      text = translate(
+        "This needs the latest version of the page. Save your changes, then reload the page.",
+      );
       iconPath = RELOAD_ICON_PATH;
     } else {
       text = translate("This couldn't be loaded.");

@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { Mock } from "jest-mock";
 import React, {
   FunctionComponent,
@@ -377,9 +383,8 @@ describe("NewVersionNavigation", () => {
  * otherwise first wait for code the server no longer has.
  */
 describe("Navigation.navigate once a new version is out", () => {
-  const navigateHook: Mock<(to: string, options?: unknown) => void> = jest.fn<
-    (to: string, options?: unknown) => void
-  >();
+  const navigateHook: Mock<(to: string, options?: unknown) => void> =
+    jest.fn<(to: string, options?: unknown) => void>();
 
   beforeEach(() => {
     navigateHook.mockClear();

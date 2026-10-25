@@ -1,5 +1,8 @@
 import { downloadErrorSupportBundle } from "../Utils/ErrorSupportBundle";
-import { isChunkLoadError, reloadPage } from "../Utils/NewVersion/ChunkLoadError";
+import {
+  isChunkLoadError,
+  reloadPage,
+} from "../Utils/NewVersion/ChunkLoadError";
 import NewVersion, { NewVersionAudience } from "../Utils/NewVersion/NewVersion";
 import { Translator } from "../Utils/TranslateTemplate";
 import useTranslator from "../Utils/UseTranslator";

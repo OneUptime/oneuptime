@@ -67,8 +67,15 @@ describe("decideChunkLoadRecovery", () => {
     hasUnsavedChanges: false,
   };
 
-  test.each<[string, Partial<ChunkLoadRecoveryInput>, ChunkLoadRecoveryStep, boolean]>([
-    ["a new version: updating, and reload", {}, ChunkLoadRecoveryStep.Updating, true],
+  test.each<
+    [string, Partial<ChunkLoadRecoveryInput>, ChunkLoadRecoveryStep, boolean]
+  >([
+    [
+      "a new version: updating, and reload",
+      {},
+      ChunkLoadRecoveryStep.Updating,
+      true,
+    ],
     [
       "the server answers with no manifest: it serves another build, updating",
       { check: { status: ServerBuildStatus.NoManifest, serverBuildId: null } },
@@ -264,7 +271,10 @@ const recovery: () => HTMLElement = (): HTMLElement => {
 };
 
 const stepOf: () => string | null = (): string | null => {
-  return screen.queryByTestId("chunk-load-recovery")?.getAttribute("data-step") || null;
+  return (
+    screen.queryByTestId("chunk-load-recovery")?.getAttribute("data-step") ||
+    null
+  );
 };
 
 beforeEach(() => {
@@ -416,9 +426,9 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
     expect(
       screen.getByTestId("error-boundary-download-support-bundle"),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("error-boundary-error-message")).toHaveTextContent(
-      "Failed to fetch dynamically imported module",
-    );
+    expect(
+      screen.getByTestId("error-boundary-error-message"),
+    ).toHaveTextContent("Failed to fetch dynamically imported module");
     // A real failure still reaches the console (and RUM).
     expect(
       consoleErrorSpy.mock.calls.some((call: Array<unknown>) => {
@@ -829,9 +839,11 @@ describe("a part of a page whose code did not download (ContainedErrorBoundary)"
     expect(reloadMock).toHaveBeenCalledTimes(1);
     expect(server.requests()).toBe(1);
     expect(
-      screen.getAllByTestId("chunk-load-recovery").map((element: HTMLElement) => {
-        return element.getAttribute("data-step");
-      }),
+      screen
+        .getAllByTestId("chunk-load-recovery")
+        .map((element: HTMLElement) => {
+          return element.getAttribute("data-step");
+        }),
     ).toEqual([
       ChunkLoadRecoveryStep.Updating,
       ChunkLoadRecoveryStep.Updating,

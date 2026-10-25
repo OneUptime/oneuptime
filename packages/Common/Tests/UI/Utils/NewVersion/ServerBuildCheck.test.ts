@@ -34,10 +34,7 @@ interface Call {
   init: RequestInit | undefined;
 }
 
-const answering: (
-  answer: FakeAnswer,
-  calls?: Array<Call>,
-) => FetchFunction = (
+const answering: (answer: FakeAnswer, calls?: Array<Call>) => FetchFunction = (
   answer: FakeAnswer,
   calls?: Array<Call>,
 ): FetchFunction => {
@@ -127,12 +124,15 @@ describe("checkServerBuild", () => {
     ["a JSON array", JSON.stringify([NEWER])],
     ["JSON null", "null"],
     ["a manifest cut short", '{"buildId":"14.0.90-def'],
-  ])("%s is NoManifest, never a new build", async (_label: string, body) => {
-    await expect(check(answering({ status: 200, body }))).resolves.toEqual({
-      status: ServerBuildStatus.NoManifest,
-      serverBuildId: null,
-    });
-  });
+  ])(
+    "%s is NoManifest, never a new build",
+    async (_label: string, body: string) => {
+      await expect(check(answering({ status: 200, body }))).resolves.toEqual({
+        status: ServerBuildStatus.NoManifest,
+        serverBuildId: null,
+      });
+    },
+  );
 
   test.each<number>([400, 401, 403, 404, 410])(
     "a %i answer is NoManifest: the server is there, the manifest is not",
@@ -262,7 +262,10 @@ describe("checkServerBuild", () => {
 
     try {
       await expect(
-        checkServerBuild({ runningBuildId: RUNNING, manifestUrl: MANIFEST_URL }),
+        checkServerBuild({
+          runningBuildId: RUNNING,
+          manifestUrl: MANIFEST_URL,
+        }),
       ).resolves.toEqual({
         status: ServerBuildStatus.New,
         serverBuildId: NEWER,

@@ -148,8 +148,7 @@ export default class NewVersion {
   private static checkInFlight: Promise<ServerBuildCheckResult | null> | null =
     null;
   private static isReloading: boolean = false;
-  private static reloadGiveUpTimer: ReturnType<typeof setTimeout> | null =
-    null;
+  private static reloadGiveUpTimer: ReturnType<typeof setTimeout> | null = null;
   private static listeners: Set<NewVersionListener> =
     new Set<NewVersionListener>();
   private static noticeHolds: number = 0;
@@ -191,21 +190,15 @@ export default class NewVersion {
       return;
     }
 
-    const firstCheck: ReturnType<typeof setTimeout> = setTimeout(
-      () => {
-        void NewVersion.checkNow();
-      },
-      options.firstCheckDelayInMs ?? NEW_VERSION_FIRST_CHECK_DELAY_IN_MS,
-    );
+    const firstCheck: ReturnType<typeof setTimeout> = setTimeout(() => {
+      void NewVersion.checkNow();
+    }, options.firstCheckDelayInMs ?? NEW_VERSION_FIRST_CHECK_DELAY_IN_MS);
 
-    const interval: ReturnType<typeof setInterval> = setInterval(
-      () => {
-        if (isPageVisible()) {
-          void NewVersion.checkNow();
-        }
-      },
-      options.checkIntervalInMs ?? NEW_VERSION_CHECK_INTERVAL_IN_MS,
-    );
+    const interval: ReturnType<typeof setInterval> = setInterval(() => {
+      if (isPageVisible()) {
+        void NewVersion.checkNow();
+      }
+    }, options.checkIntervalInMs ?? NEW_VERSION_CHECK_INTERVAL_IN_MS);
 
     const onVisibilityChange: () => void = (): void => {
       if (isPageVisible()) {
@@ -247,7 +240,10 @@ export default class NewVersion {
     NewVersion.runningBuild = null;
     NewVersion.fetchFunction = undefined;
     NewVersion.minimumCheckGapInMs = NEW_VERSION_MINIMUM_CHECK_GAP_IN_MS;
-    NewVersion.state = { status: NewVersionStatus.Unknown, serverBuildId: null };
+    NewVersion.state = {
+      status: NewVersionStatus.Unknown,
+      serverBuildId: null,
+    };
     NewVersion.sameAnswersInARow = 0;
     NewVersion.lastCheckStartedAt = 0;
     NewVersion.checkInFlight = null;
@@ -610,7 +606,8 @@ export default class NewVersion {
     }
 
     const target: SavedPlace = place;
-    const deadline: number = Date.now() + NEW_VERSION_PLACE_RESTORE_TIMEOUT_IN_MS;
+    const deadline: number =
+      Date.now() + NEW_VERSION_PLACE_RESTORE_TIMEOUT_IN_MS;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let isStopped: boolean = false;
 

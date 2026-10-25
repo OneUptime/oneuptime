@@ -134,52 +134,48 @@ export const checkServerBuild: (
    */
   const timeout: Promise<null> = new Promise<null>(
     (resolve: (value: null) => void) => {
-      timer = setTimeout(
-        () => {
-          controller?.abort();
-          resolve(null);
-        },
-        options.timeoutInMs ?? SERVER_BUILD_CHECK_TIMEOUT_IN_MS,
-      );
+      timer = setTimeout(() => {
+        controller?.abort();
+        resolve(null);
+      }, options.timeoutInMs ?? SERVER_BUILD_CHECK_TIMEOUT_IN_MS);
     },
   );
 
-  const answer: Promise<ServerBuildCheckResult> = (async (): Promise<
-    ServerBuildCheckResult
-  > => {
-    const response: Response = await fetchFunction(options.manifestUrl, {
-      method: "GET",
-      // Past every cache on the way: the answer is only worth it fresh.
-      cache: "no-store",
-      credentials: "same-origin",
-      headers: { Accept: "application/json" },
-      ...(controller ? { signal: controller.signal } : {}),
-    });
+  const answer: Promise<ServerBuildCheckResult> =
+    (async (): Promise<ServerBuildCheckResult> => {
+      const response: Response = await fetchFunction(options.manifestUrl, {
+        method: "GET",
+        // Past every cache on the way: the answer is only worth it fresh.
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+        ...(controller ? { signal: controller.signal } : {}),
+      });
 
-    if (isUnavailableStatusCode(response.status)) {
-      return { status: ServerBuildStatus.Unavailable, serverBuildId: null };
-    }
+      if (isUnavailableStatusCode(response.status)) {
+        return { status: ServerBuildStatus.Unavailable, serverBuildId: null };
+      }
 
-    if (!response.ok) {
-      return { status: ServerBuildStatus.NoManifest, serverBuildId: null };
-    }
+      if (!response.ok) {
+        return { status: ServerBuildStatus.NoManifest, serverBuildId: null };
+      }
 
-    const serverBuildId: string | null = readBuildIdFromManifest(
-      await response.text(),
-    );
+      const serverBuildId: string | null = readBuildIdFromManifest(
+        await response.text(),
+      );
 
-    if (!serverBuildId) {
-      return { status: ServerBuildStatus.NoManifest, serverBuildId: null };
-    }
+      if (!serverBuildId) {
+        return { status: ServerBuildStatus.NoManifest, serverBuildId: null };
+      }
 
-    return {
-      status:
-        serverBuildId === options.runningBuildId
-          ? ServerBuildStatus.Same
-          : ServerBuildStatus.New,
-      serverBuildId: serverBuildId,
-    };
-  })();
+      return {
+        status:
+          serverBuildId === options.runningBuildId
+            ? ServerBuildStatus.Same
+            : ServerBuildStatus.New,
+        serverBuildId: serverBuildId,
+      };
+    })();
 
   try {
     const result: ServerBuildCheckResult | null = await Promise.race([

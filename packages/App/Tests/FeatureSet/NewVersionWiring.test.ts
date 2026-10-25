@@ -140,7 +140,9 @@ function analyzeEntry(source: string): EntryWiring {
             (
               child: ts.JsxChild,
             ): child is ts.JsxElement | ts.JsxSelfClosingElement => {
-              return ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child);
+              return (
+                ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child)
+              );
             },
           )
           .map((child: ts.JsxElement | ts.JsxSelfClosingElement): string => {

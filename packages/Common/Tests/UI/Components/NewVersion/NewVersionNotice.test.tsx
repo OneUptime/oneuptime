@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { Mock } from "jest-mock";
 import React from "react";
 import NewVersionNotice from "../../../../UI/Components/NewVersion/NewVersionNotice";

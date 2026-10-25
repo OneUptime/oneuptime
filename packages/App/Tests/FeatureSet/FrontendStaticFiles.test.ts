@@ -148,9 +148,14 @@ describe("the route helpers", () => {
     ["/dashboard/distribution-lists", false],
     ["/dashboard/dist", false],
     ["/admin/dist/Index.js", false],
-  ])("%s is a /dashboard built file: %p", (requestPath: string, expected) => {
-    expect(isFrontendStaticFilePath("/dashboard", requestPath)).toBe(expected);
-  });
+  ])(
+    "%s is a /dashboard built file: %p",
+    (requestPath: string, expected: boolean) => {
+      expect(isFrontendStaticFilePath("/dashboard", requestPath)).toBe(
+        expected,
+      );
+    },
+  );
 });
 
 describe("a frontend's built files, served", () => {

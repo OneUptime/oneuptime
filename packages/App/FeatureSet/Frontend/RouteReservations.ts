@@ -201,7 +201,10 @@ export const shouldSkipStatusPageDomainFallbackRoute: (
  * standalone frontend servers (Common/Server/Utils/StartServer.ts) answer
  * the same way.
  */
-export const FRONTEND_STATIC_FOLDERS: ReadonlyArray<string> = ["dist", "assets"];
+export const FRONTEND_STATIC_FOLDERS: ReadonlyArray<string> = [
+  "dist",
+  "assets",
+];
 
 export const getFrontendStaticFileRoutes: (
   routePrefix: string,

@@ -866,20 +866,23 @@ describe("a reload into the new version comes back to the same place", () => {
       },
     ],
     ["the top of the page", { href: HREF, scrollY: 0 }],
-  ])("does nothing for %s", (_label: string, place: Record<string, unknown>) => {
-    TabMemory.set(
-      NEW_VERSION_PLACE_KEY,
-      JSON.stringify({ scrollX: 0, savedAt: Date.now(), ...place }),
-    );
-    setLocation(HREF);
-    documentHeight = 5000;
+  ])(
+    "does nothing for %s",
+    (_label: string, place: Record<string, unknown>) => {
+      TabMemory.set(
+        NEW_VERSION_PLACE_KEY,
+        JSON.stringify({ scrollX: 0, savedAt: Date.now(), ...place }),
+      );
+      setLocation(HREF);
+      documentHeight = 5000;
 
-    start();
-    jest.advanceTimersByTime(1000);
+      start();
+      jest.advanceTimersByTime(1000);
 
-    expect(scrollToMock).not.toHaveBeenCalled();
-    expect(TabMemory.get(NEW_VERSION_PLACE_KEY)).toBeNull();
-  });
+      expect(scrollToMock).not.toHaveBeenCalled();
+      expect(TabMemory.get(NEW_VERSION_PLACE_KEY)).toBeNull();
+    },
+  );
 
   test("a broken saved place is dropped, not thrown", () => {
     TabMemory.set(NEW_VERSION_PLACE_KEY, "{not json");

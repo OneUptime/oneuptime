@@ -160,22 +160,25 @@ describe.each(Object.keys(WHAT_EACH_FRONTEND_SHOWS))(
       }
     });
 
-    test.each(LANGUAGES)("translate every one of them in %s", (language) => {
-      const locale: Locale = readLocale(frontend, language);
+    test.each(LANGUAGES)(
+      "translate every one of them in %s",
+      (language: string) => {
+        const locale: Locale = readLocale(frontend, language);
 
-      for (const key of keys) {
-        const value: unknown = locale[key];
+        for (const key of keys) {
+          const value: unknown = locale[key];
 
-        expect({ key, isString: typeof value === "string" }).toEqual({
-          key,
-          isString: true,
-        });
-        expect({ key, translated: value !== key }).toEqual({
-          key,
-          translated: true,
-        });
-      }
-    });
+          expect({ key, isString: typeof value === "string" }).toEqual({
+            key,
+            isString: true,
+          });
+          expect({ key, translated: value !== key }).toEqual({
+            key,
+            translated: true,
+          });
+        }
+      },
+    );
   },
 );
 
@@ -342,35 +345,32 @@ describe("drawn in each language", () => {
     });
   });
 
-  test.each(LANGUAGES)(
-    "the notice, in %s",
-    async (language: string) => {
-      start(NewVersionAudience.Members);
-      await act(async () => {
-        await NewVersion.checkNow({ force: true });
-      });
+  test.each(LANGUAGES)("the notice, in %s", async (language: string) => {
+    start(NewVersionAudience.Members);
+    await act(async () => {
+      await NewVersion.checkNow({ force: true });
+    });
 
-      render(
-        <I18nextProvider i18n={instances[language]!}>
-          <NewVersionNotice />
-        </I18nextProvider>,
-      );
+    render(
+      <I18nextProvider i18n={instances[language]!}>
+        <NewVersionNotice />
+      </I18nextProvider>,
+    );
 
-      expect(screen.getByTestId("new-version-notice-title")).toHaveTextContent(
-        word(language, "A new version of OneUptime is available"),
-      );
-      expect(
-        screen.getByTestId("new-version-notice-message"),
-      ).toHaveTextContent(word(language, "The next page you open will use it."));
-      expect(screen.getByTestId("new-version-notice-reload")).toHaveTextContent(
-        word(language, "Reload"),
-      );
-      expect(screen.getByTestId("new-version-notice-dismiss")).toHaveAttribute(
-        "aria-label",
-        word(language, "Dismiss"),
-      );
-    },
-  );
+    expect(screen.getByTestId("new-version-notice-title")).toHaveTextContent(
+      word(language, "A new version of OneUptime is available"),
+    );
+    expect(screen.getByTestId("new-version-notice-message")).toHaveTextContent(
+      word(language, "The next page you open will use it."),
+    );
+    expect(screen.getByTestId("new-version-notice-reload")).toHaveTextContent(
+      word(language, "Reload"),
+    );
+    expect(screen.getByTestId("new-version-notice-dismiss")).toHaveAttribute(
+      "aria-label",
+      word(language, "Dismiss"),
+    );
+  });
 
   test.each(LANGUAGES)(
     "a page updating to the new version, in %s",
@@ -402,9 +402,9 @@ describe("drawn in each language", () => {
       drawPage(language);
 
       await waitFor(() => {
-        expect(screen.getByTestId("chunk-load-recovery-title")).toHaveTextContent(
-          word(language, "Can't reach the server"),
-        );
+        expect(
+          screen.getByTestId("chunk-load-recovery-title"),
+        ).toHaveTextContent(word(language, "Can't reach the server"));
       });
 
       expect(screen.getByTestId("chunk-load-recovery-retry")).toHaveTextContent(

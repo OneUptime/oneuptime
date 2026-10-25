@@ -49,7 +49,10 @@ describe("UnsavedChanges", () => {
     ["a text field", <input key="i" data-testid="field" />],
     ["an email field", <input key="e" type="email" data-testid="field" />],
     ["a password field", <input key="p" type="password" data-testid="field" />],
-    ["a textarea (the AI chat, a note)", <textarea key="t" data-testid="field" />],
+    [
+      "a textarea (the AI chat, a note)",
+      <textarea key="t" data-testid="field" />,
+    ],
   ])("text typed into %s counts", (_label: string, element: ReactElement) => {
     const { getByTestId } = render(element);
 
@@ -116,7 +119,11 @@ describe("UnsavedChanges", () => {
 
   test("typing into a contenteditable editor counts", () => {
     const { getByTestId } = render(
-      <div contentEditable={true} data-testid="editor" suppressContentEditableWarning>
+      <div
+        contentEditable={true}
+        data-testid="editor"
+        suppressContentEditableWarning
+      >
         Draft
       </div>,
     );
@@ -192,7 +199,11 @@ describe("UnsavedChanges", () => {
     test("markSaved also clears loose fields inside the saved form", () => {
       const { getByTestId } = render(
         <div data-testid="outer">
-          <div contentEditable={true} data-testid="editor" suppressContentEditableWarning>
+          <div
+            contentEditable={true}
+            data-testid="editor"
+            suppressContentEditableWarning
+          >
             Body
           </div>
         </div>,
