@@ -1,6 +1,9 @@
 import { TechniqueCoverage } from "./AttackCoverage";
 import Dictionary from "Common/Types/Dictionary";
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words of Security Events > ATT&CK Coverage, as locale keys.
@@ -59,11 +62,10 @@ export const ATTACK_COVERAGE_QUERY_KEYS: { view: string; tactic: string } = {
   tactic: "tactic",
 };
 
-export const ATTACK_COVERAGE_VIEW_LABELS: Record<AttackCoverageView, string> =
-  {
-    [AttackCoverageView.Tactics]: translationKey("By tactic"),
-    [AttackCoverageView.Matrix]: translationKey("Matrix"),
-  };
+export const ATTACK_COVERAGE_VIEW_LABELS: Record<AttackCoverageView, string> = {
+  [AttackCoverageView.Tactics]: translationKey("By tactic"),
+  [AttackCoverageView.Matrix]: translationKey("Matrix"),
+};
 
 // The card's words, by view: a row of tactics opens; the matrix lights cells.
 export const ATTACK_COVERAGE_DESCRIPTIONS: Record<AttackCoverageView, string> =

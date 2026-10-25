@@ -312,9 +312,11 @@ export function getTacticCoverageViews(
 
     const ordered: Array<TechniqueCoverageView> = TECHNIQUE_COVERAGE_ORDER.map(
       (state: TechniqueCoverage): Array<TechniqueCoverageView> => {
-        return techniques.filter((technique: TechniqueCoverageView): boolean => {
-          return technique.coverage === state;
-        });
+        return techniques.filter(
+          (technique: TechniqueCoverageView): boolean => {
+            return technique.coverage === state;
+          },
+        );
       },
     ).flat();
 

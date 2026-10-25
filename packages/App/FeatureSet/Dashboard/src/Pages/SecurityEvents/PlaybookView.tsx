@@ -53,6 +53,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
+import { nameRecordInTrail } from "Common/UI/Components/Page/RecordNameInTrail";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -64,6 +65,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Link from "Common/Types/Link";
+import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { readFormIdList } from "../../Components/SecurityPlaybook/SecurityPlaybookStepForm";
 import React, {
@@ -122,6 +125,8 @@ const SecurityPlaybookViewPage: FunctionComponent<
   >([]);
   const [rules, setRules] = useState<Map<string, string>>(new Map());
   const [showRules, setShowRules] = useState<boolean>(false);
+  // Why the rules the playbook is held to could not be saved, in their card.
+  const [rulesError, setRulesError] = useState<string>("");
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new SecurityPlaybook(),
@@ -262,8 +267,16 @@ const SecurityPlaybookViewPage: FunctionComponent<
     limit: 10,
   });
 
-  const breadcrumbs: ReturnType<typeof getSecurityEventsBreadcrumbs> =
-    getSecurityEventsBreadcrumbs(path);
+  /*
+   * "Security Events > Playbooks > Contain Compromised Okta Users", not
+   * "View Playbook": the trail and the browser tab name the playbook once
+   * it is read, as a monitor's or an incident's page names its record.
+   */
+  const breadcrumbs: Array<Link> | undefined = nameRecordInTrail({
+    links: getSecurityEventsBreadcrumbs(path),
+    recordId: playbookId.toString(),
+    recordName: playbook?.name,
+  });
 
   if (error) {
     return (
@@ -383,11 +396,6 @@ const SecurityPlaybookViewPage: FunctionComponent<
             style: DetailStyle.Compact,
             fields: [
               {
-                field: { name: true },
-                title: "Name",
-                fieldType: FieldType.Text,
-              },
-              {
                 field: { isEnabled: true },
                 title: "Status",
                 fieldType: FieldType.Element,
@@ -402,7 +410,14 @@ const SecurityPlaybookViewPage: FunctionComponent<
               {
                 field: { trigger: true },
                 title: "Trigger",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.Element,
+                getElement: (item: SecurityPlaybook): ReactElement => {
+                  const trigger: string = item.trigger || "";
+
+                  return (
+                    <span>{translator.translateText(trigger) || trigger}</span>
+                  );
+                },
               },
               {
                 field: { minimumSecurityCasePriority: { name: true } },
@@ -424,13 +439,43 @@ const SecurityPlaybookViewPage: FunctionComponent<
               {
                 field: { detectionSource: true },
                 title: "Only For Detections From",
-                fieldType: FieldType.Text,
-                placeholder: "Any source",
+                fieldType: FieldType.Element,
+                getElement: (item: SecurityPlaybook): ReactElement => {
+                  const source: string = item.detectionSource || "";
+
+                  return source ? (
+                    <span>{translator.translateText(source) || source}</span>
+                  ) : (
+                    <span className="text-gray-400">
+                      {translator.translateText("Any source")}
+                    </span>
+                  );
+                },
               },
               {
                 field: { runCount: true },
                 title: "Runs So Far",
                 fieldType: FieldType.Number,
+              },
+              {
+                field: { lastRunAt: true },
+                title: "Last Run",
+                fieldType: FieldType.Element,
+                getElement: (item: SecurityPlaybook): ReactElement => {
+                  return item.lastRunAt ? (
+                    <span
+                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        item.lastRunAt,
+                      )}
+                    >
+                      {OneUptimeDate.fromNow(item.lastRunAt)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">
+                      {translator.translateText("Never")}
+                    </span>
+                  );
+                },
               },
               {
                 field: { description: true },
@@ -461,6 +506,13 @@ const SecurityPlaybookViewPage: FunctionComponent<
             },
           ]}
         >
+          {rulesError ? (
+            <div className="mb-3">
+              <ErrorMessage message={rulesError} />
+            </div>
+          ) : (
+            <></>
+          )}
           {ruleIds.length === 0 ? (
             <p className="text-sm text-gray-500">
               {translator.translateText("Any detection rule.")}
@@ -534,9 +586,12 @@ const SecurityPlaybookViewPage: FunctionComponent<
                               ),
                             },
                           )}
-                          className="text-xs font-medium text-indigo-600 hover:underline"
+                          className="truncate text-xs font-medium text-indigo-600 hover:underline"
                         >
-                          {run.securityCase?.caseNumberWithPrefix ||
+                          {/* The case by its number and title, as Playbook Runs names it. */}
+                          {`${run.securityCase?.caseNumberWithPrefix || ""} ${
+                            run.securityCase?.title || ""
+                          }`.trim() ||
                             translator.translateText("Open case") ||
                             ""}
                         </AppLink>
@@ -577,6 +632,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
           }}
           onSubmit={async (values: FormValues<JSONObject>) => {
             setShowRules(false);
+            setRulesError("");
 
             try {
               await ModelAPI.updateById<SecurityPlaybook>({
@@ -588,7 +644,11 @@ const SecurityPlaybookViewPage: FunctionComponent<
               });
               await load();
             } catch (err) {
-              setError(API.getFriendlyMessage(err));
+              /*
+               * Said in the card, as a step that cannot be saved says it in
+               * the steps: the page and its runs stay where they are.
+               */
+              setRulesError(API.getFriendlyMessage(err));
             }
           }}
         />

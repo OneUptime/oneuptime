@@ -1,4 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
+import ExceptionSegmentedControl, {
+  SegmentedControlOption,
+} from "../../Components/Exceptions/ExceptionSegmentedControl";
 import SecurityEventSeverityPill from "../../Components/SecurityEvents/SecurityEventSeverityPill";
 import SecurityCaseApi, {
   EntityActivity,
@@ -8,17 +11,36 @@ import {
   SecurityEntityChip,
   getCorrelateRouteForEntity,
 } from "../../Components/SecurityCase/SecurityEntityChips";
+import { describeSetupCallFailure } from "../../Components/SecurityOverview/SecuritySetupModel";
+import {
+  DEFAULT_ENTITY_WINDOW_IN_DAYS,
+  ENTITIES_EMPTY_DESCRIPTION,
+  ENTITIES_EMPTY_TITLE,
+  ENTITY_WINDOW_LABEL,
+  OPEN_IN_CORRELATE,
+  RISKIEST_ENTITIES_DESCRIPTION,
+  getEntityWindowOptionValue,
+  readEntityWindowOption,
+} from "../../Components/SecurityEvents/SecurityEntitiesCopy";
 import OneUptimeDate from "Common/Types/Date";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ocsfSeverityFromId } from "Common/Types/SecurityEvent/OcsfSeverity";
 import {
   SecurityEntity,
   inferSecurityEntityType,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Input from "Common/UI/Components/Input/Input";
+import { isRowOpeningClick } from "Common/UI/Components/Table/RowClick";
+import Table from "Common/UI/Components/Table/Table";
+import { useIsTableCard } from "Common/UI/Components/Table/TableCellContext";
+import { TableEmptyStateKind } from "Common/UI/Components/Table/TableEmptyState";
+import Columns from "Common/UI/Components/Table/Types/Columns";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -29,25 +51,92 @@ import React, {
   useState,
 } from "react";
 
+// The windows Riskiest Entities ranks over, in days.
 export const ENTITY_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30];
+
+export const RISKIEST_ENTITIES_TABLE_ID: string = "security-riskiest-entities";
 
 function toEntity(value: string): SecurityEntity {
   return { type: inferSecurityEntityType(value), value };
 }
 
+function openInCorrelate(value: string): void {
+  Navigation.navigate(getCorrelateRouteForEntity(value));
+}
+
 /*
- * The users, hosts, addresses and files the project's findings name most:
- * where to look first, before any case is opened. And a lookup for any
- * value, to see how busy it has been across every security event.
+ * The entity of a row, and on a phone's card what the table's other
+ * columns hold, in a line under it: its worst severity, its findings and
+ * rules, and when it was last seen. A card of four labelled fields per
+ * entity made ten entities five screens long.
+ */
+const EntityCell: FunctionComponent<{
+  entity: EntityFindingSummary;
+}> = (props: { entity: EntityFindingSummary }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const isCard: boolean = useIsTableCard();
+
+  return (
+    <div className="min-w-0 space-y-1">
+      <SecurityEntityChip entity={toEntity(props.entity.value)} />
+      {isCard ? (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500"
+          data-testid="security-entity-card-facts"
+        >
+          <SecurityEventSeverityPill
+            severityName={ocsfSeverityFromId(props.entity.maxSeverityId)}
+          />
+          <span className="font-semibold text-gray-900">
+            {translator.translatePlural(
+              { one: "{{count}} finding", other: "{{count}} findings" },
+              props.entity.findingCount,
+            )}
+          </span>
+          <span>
+            {translator.translatePlural(
+              { one: "{{count}} rule", other: "{{count}} rules" },
+              props.entity.ruleCount,
+            )}
+          </span>
+          {props.entity.lastSeen ? (
+            <span>
+              {translator.translateTemplate("Last seen {{when}}", {
+                when: OneUptimeDate.fromNow(props.entity.lastSeen),
+              })}
+            </span>
+          ) : (
+            <></>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
+/*
+ * Security Events > Entities: the users, hosts, addresses and files the
+ * project's findings name most - where to look first, before any case is
+ * opened - over the last day, week or month; each opens in Correlate. And
+ * a lookup for any value, to see how busy it has been across every
+ * security event.
+ *
+ * The ranking is the shared table (a phone's card per entity, its counts
+ * under the value), each row one click from Correlate, as the Overview's
+ * Riskiest Entities are. It used to be a table of its own that scrolled
+ * sideways on a phone, its rows leading nowhere, under the lookup.
  */
 const SecurityEntitiesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [days, setDays] = useState<number>(7);
+  const [days, setDays] = useState<number>(DEFAULT_ENTITY_WINDOW_IN_DAYS);
   const [entities, setEntities] = useState<Array<EntityFindingSummary>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [readCount, setReadCount] = useState<number>(0);
   const [lookupValue, setLookupValue] = useState<string>("");
   const [lookup, setLookup] = useState<EntityActivity | null>(null);
   const [lookupError, setLookupError] = useState<string>("");
@@ -68,8 +157,9 @@ const SecurityEntitiesPage: FunctionComponent<
           setError("");
         }
       } catch (err) {
+        // In the product's words: a role's or a plan's sentence, never a gateway's.
         if (isCurrent) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(describeSetupCallFailure(err));
         }
       }
 
@@ -83,7 +173,7 @@ const SecurityEntitiesPage: FunctionComponent<
     return () => {
       isCurrent = false;
     };
-  }, [days]);
+  }, [days, readCount]);
 
   const runLookup: () => Promise<void> = async (): Promise<void> => {
     const value: string = lookupValue.trim();
@@ -113,14 +203,196 @@ const SecurityEntitiesPage: FunctionComponent<
         },
       );
     } catch (err) {
-      setLookupError(err instanceof Error ? err.message : String(err));
+      setLookupError(describeSetupCallFailure(err));
     }
 
     setIsLookingUp(false);
   };
 
+  const windowOptions: Array<SegmentedControlOption<string>> =
+    ENTITY_WINDOWS_IN_DAYS.map(
+      (windowInDays: number): SegmentedControlOption<string> => {
+        return {
+          value: getEntityWindowOptionValue(windowInDays),
+          label: translator.translatePlural(
+            { one: "{{count}} day", other: "{{count}} days" },
+            windowInDays,
+          ),
+        };
+      },
+    );
+
+  const columns: Columns<EntityFindingSummary> = [
+    {
+      title: "Entity",
+      type: FieldType.Element,
+      key: "value",
+      disableSort: true,
+      hideTitleOnMobile: true,
+      getElement: (entity: EntityFindingSummary): ReactElement => {
+        return <EntityCell entity={entity} />;
+      },
+    },
+    {
+      title: "Findings",
+      type: FieldType.Element,
+      key: "findingCount",
+      disableSort: true,
+      hideOnMobile: true,
+      getElement: (entity: EntityFindingSummary): ReactElement => {
+        return (
+          <span className="font-semibold tabular-nums text-gray-900">
+            {translator.formatNumber(entity.findingCount)}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Rules",
+      type: FieldType.Element,
+      key: "ruleCount",
+      disableSort: true,
+      hideOnMobile: true,
+      getElement: (entity: EntityFindingSummary): ReactElement => {
+        return (
+          <span className="tabular-nums text-gray-700">
+            {translator.formatNumber(entity.ruleCount)}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Worst Severity",
+      type: FieldType.Element,
+      key: "maxSeverityId",
+      disableSort: true,
+      hideOnMobile: true,
+      getElement: (entity: EntityFindingSummary): ReactElement => {
+        return (
+          <SecurityEventSeverityPill
+            severityName={ocsfSeverityFromId(entity.maxSeverityId)}
+          />
+        );
+      },
+    },
+    {
+      title: "Last Seen",
+      type: FieldType.Element,
+      key: "lastSeen",
+      disableSort: true,
+      hideOnMobile: true,
+      getElement: (entity: EntityFindingSummary): ReactElement => {
+        return entity.lastSeen ? (
+          <span
+            className="text-gray-600"
+            title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              entity.lastSeen,
+            )}
+          >
+            {OneUptimeDate.fromNow(entity.lastSeen)}
+          </span>
+        ) : (
+          <span className="text-gray-400">-</span>
+        );
+      },
+    },
+    // Where a row's Open in Correlate is drawn.
+    {
+      title: "Actions",
+      type: FieldType.Actions,
+      key: null,
+    },
+  ];
+
   return (
     <div className="space-y-6">
+      <Card
+        title="Riskiest Entities"
+        description={RISKIEST_ENTITIES_DESCRIPTION}
+        headerLayout="stacked"
+        rightElement={
+          <ExceptionSegmentedControl<string>
+            label={ENTITY_WINDOW_LABEL}
+            options={windowOptions}
+            value={getEntityWindowOptionValue(days)}
+            testId="security-entities-window"
+            onChange={(value: string) => {
+              setDays(readEntityWindowOption(value, ENTITY_WINDOWS_IN_DAYS));
+            }}
+          />
+        }
+      >
+        <Table<EntityFindingSummary>
+          id={RISKIEST_ENTITIES_TABLE_ID}
+          data={isLoading ? [] : entities}
+          columns={columns}
+          singularLabel="Entity"
+          pluralLabel="Entities"
+          isLoading={isLoading}
+          error={error}
+          onRefreshClick={() => {
+            setReadCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+          emptyStateProps={{
+            kind: TableEmptyStateKind.Empty,
+            icon: IconProp.Fingerprint,
+            title: ENTITIES_EMPTY_TITLE,
+            description: ENTITIES_EMPTY_DESCRIPTION,
+            isCompact: true,
+            dataTestId: "security-entities-empty",
+          }}
+          disablePagination={true}
+          currentPageNumber={1}
+          totalItemsCount={entities.length}
+          itemsOnPage={Math.max(entities.length, 10)}
+          onNavigateToPage={() => {
+            // The ranking is one page: the most named first.
+          }}
+          // Ranked by the findings that name each, as the server sends them.
+          sortBy={null}
+          sortOrder={SortOrder.Descending}
+          onSortChanged={() => {
+            // No column sorts: the order is the ranking.
+          }}
+          actionButtons={[
+            {
+              title: OPEN_IN_CORRELATE,
+              icon: IconProp.Share,
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: (
+                entity: EntityFindingSummary,
+                onCompleteAction: () => void,
+              ) => {
+                openInCorrelate(entity.value);
+                onCompleteAction();
+              },
+            },
+          ]}
+          getRowProps={(
+            entity: EntityFindingSummary,
+          ): React.HTMLAttributes<HTMLElement> => {
+            const rowProps: React.HTMLAttributes<HTMLElement> & {
+              "data-testid": string;
+              "data-row-opens-record": string;
+            } = {
+              "data-testid": `security-entity-row-${entity.value}`,
+              "data-row-opens-record": "true",
+              onClick: (event: React.MouseEvent<HTMLElement>): void => {
+                if (!isRowOpeningClick(event)) {
+                  return;
+                }
+
+                openInCorrelate(entity.value);
+              },
+            };
+
+            return rowProps;
+          }}
+        />
+      </Card>
+
       <Card
         title="Look Up an Entity"
         description="Any user, host, IP address, domain or file hash: how often it appears in your security events over the last 30 days, and in how many findings."
@@ -153,7 +425,10 @@ const SecurityEntitiesPage: FunctionComponent<
           </div>
           {lookupError ? <ErrorMessage message={lookupError} /> : <></>}
           {lookup ? (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+            <div
+              className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+              data-testid="security-entity-lookup-result"
+            >
               <SecurityEntityChip entity={toEntity(lookup.value)} />
               <span className="text-sm text-gray-700">
                 {translator.translatePlural(
@@ -183,7 +458,7 @@ const SecurityEntitiesPage: FunctionComponent<
                 icon={IconProp.Share}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
-                  Navigation.navigate(getCorrelateRouteForEntity(lookup.value));
+                  openInCorrelate(lookup.value);
                 }}
               />
             </div>
@@ -191,114 +466,6 @@ const SecurityEntitiesPage: FunctionComponent<
             <></>
           )}
         </div>
-      </Card>
-
-      <Card
-        title="Riskiest Entities"
-        description="The entities named by the most findings: detection rule matches, threat intelligence matches and alerts from connected products. Open one in Correlate to see everything it touched."
-        headerLayout="stacked"
-        rightElement={
-          <div className="flex items-center gap-1">
-            {ENTITY_WINDOWS_IN_DAYS.map((window: number): ReactElement => {
-              const isActive: boolean = window === days;
-
-              return (
-                <button
-                  key={window}
-                  type="button"
-                  aria-pressed={isActive}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
-                  onClick={() => {
-                    setDays(window);
-                  }}
-                >
-                  {translator.translatePlural(
-                    { one: "{{count}} day", other: "{{count}} days" },
-                    window,
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        }
-      >
-        {error ? (
-          <ErrorMessage message={error} />
-        ) : isLoading ? (
-          <div className="space-y-2">
-            {[0, 1, 2, 3, 4].map((index: number): ReactElement => {
-              return (
-                <div
-                  key={index}
-                  className="h-10 animate-pulse rounded-md bg-gray-100"
-                />
-              );
-            })}
-          </div>
-        ) : entities.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-500">
-            {translator.translateText(
-              "No finding named an entity in this window.",
-            )}
-          </p>
-        ) : (
-          <div className="-mx-4 overflow-x-auto sm:mx-0">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-4 py-2">
-                    {translator.translateText("Entity")}
-                  </th>
-                  <th className="px-4 py-2 text-right">
-                    {translator.translateText("Findings")}
-                  </th>
-                  <th className="px-4 py-2 text-right">
-                    {translator.translateText("Rules")}
-                  </th>
-                  <th className="px-4 py-2">
-                    {translator.translateText("Worst Severity")}
-                  </th>
-                  <th className="px-4 py-2">
-                    {translator.translateText("Last Seen")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {entities.map((entity: EntityFindingSummary): ReactElement => {
-                  return (
-                    <tr key={entity.value} className="hover:bg-gray-50">
-                      <td className="max-w-xs px-4 py-2">
-                        <SecurityEntityChip entity={toEntity(entity.value)} />
-                      </td>
-                      <td className="px-4 py-2 text-right font-semibold tabular-nums text-gray-900">
-                        {translator.formatNumber(entity.findingCount)}
-                      </td>
-                      <td className="px-4 py-2 text-right tabular-nums text-gray-700">
-                        {translator.formatNumber(entity.ruleCount)}
-                      </td>
-                      <td className="px-4 py-2">
-                        <SecurityEventSeverityPill
-                          severityName={ocsfSeverityFromId(
-                            entity.maxSeverityId,
-                          )}
-                        />
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2 text-gray-500">
-                        {entity.lastSeen
-                          ? OneUptimeDate.fromNow(entity.lastSeen)
-                          : "-"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </Card>
     </div>
   );

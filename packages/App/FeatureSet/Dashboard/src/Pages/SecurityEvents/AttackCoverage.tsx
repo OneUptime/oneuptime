@@ -99,19 +99,23 @@ const AttackCoveragePage: FunctionComponent<
   const [rules, setRules] = useState<Array<DetectionRule>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [view, setView] = useState<AttackCoverageView>((): AttackCoverageView => {
-    return readAttackCoverageView(
-      Navigation.getQueryStringByName(ATTACK_COVERAGE_QUERY_KEYS.view),
-    );
-  });
+  const [view, setView] = useState<AttackCoverageView>(
+    (): AttackCoverageView => {
+      return readAttackCoverageView(
+        Navigation.getQueryStringByName(ATTACK_COVERAGE_QUERY_KEYS.view),
+      );
+    },
+  );
   // The tactic the page was opened on (the Overview links each of its tactics here).
-  const [focusTacticId] = useState<string | undefined>((): string | undefined => {
-    const id: string | null = Navigation.getQueryStringByName(
-      ATTACK_COVERAGE_QUERY_KEYS.tactic,
-    );
+  const [focusTacticId] = useState<string | undefined>(
+    (): string | undefined => {
+      const id: string | null = Navigation.getQueryStringByName(
+        ATTACK_COVERAGE_QUERY_KEYS.tactic,
+      );
 
-    return id && getMitreTactic(id) ? getMitreTactic(id)!.id : undefined;
-  });
+      return id && getMitreTactic(id) ? getMitreTactic(id)!.id : undefined;
+    },
+  );
   const [openTacticIds, setOpenTacticIds] = useState<Array<string>>(
     focusTacticId ? [focusTacticId] : [],
   );

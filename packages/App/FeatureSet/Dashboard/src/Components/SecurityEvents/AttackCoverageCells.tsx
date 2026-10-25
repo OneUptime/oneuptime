@@ -16,8 +16,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * a plain white cell with a grey edge, not a near-invisible grey on grey.
  */
 export const TECHNIQUE_CELL_CLASS_NAMES: Record<TechniqueCoverage, string> = {
-  [TechniqueCoverage.Covered]:
-    "border-indigo-300 bg-indigo-50 text-indigo-900",
+  [TechniqueCoverage.Covered]: "border-indigo-300 bg-indigo-50 text-indigo-900",
   [TechniqueCoverage.DisabledOnly]: "border-gray-300 bg-gray-100 text-gray-700",
   [TechniqueCoverage.InLibrary]:
     "border-dashed border-indigo-400 bg-white text-gray-700",
