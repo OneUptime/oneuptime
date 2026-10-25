@@ -98,6 +98,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?fail=`    | `status` or `overview`: the Overview's set-up figures, or its overview, cannot be read the first time (a 500); Try again reads them again and they answer                                                                                                                                                                                                                                                                          |
 | `?values=`  | `custom`: the project made its case statuses and priorities its own - Triage after New, a retired (archived) Escalated after Investigating, Eradicating after Contained, Closed - Duplicate after Closed, and Emergency above Critical; CASE-142 sits in Eradicating, CASE-138 in Triage and CASE-139 in Escalated                                                                                                                 |
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
+| `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
 ## What the fixture records
@@ -138,6 +139,22 @@ that list is not empty.
   1280 each list's title, search and buttons share one line with the description under them; at
   1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
   and the header's search stays inside the card.
+- **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
+  Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
+  of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
+  Else", longer than the 14rem menu, wraps balanced ("Assign to" over "Someone Else"), and in a
+  right-to-left page each item's icon keeps its gap to the label. Assign to Me takes a
+  case off Unassigned and the menu counts it at once; Assign to Someone Else picks one person
+  or one team in one picker (a team takes the case into its queue and the person comes off it);
+  Change Status into a closing status asks what Close Case asks (OneUptime AI's read over the
+  verdict, the closing note) and the case leaves the open list - the case's own status, first
+  in the list and marked Current, takes the menu's first focus as a quiet grey row, not the
+  indigo of a pick; Change Priority shows the case's own as Current; Bulk Actions' Assign to
+  Someone Else names the case the server refused (`?refuse=138`) with why; a row's Assign to Me
+  the server refuses says "Could not assign CASE-138" in a dialog whose backdrop covers every
+  row's action cells; a Security Viewer sees every move locked with what it takes; the
+  case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
+  assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
 - **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
   Entities, Playbook Runs; Notes: Private Notes; Advanced, folded: Audit Logs, Delete Case), each
   part of the case a page of its own at an address under the case's, its entry lit and its trail
@@ -260,6 +277,9 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 of a case at 1280 in both themes and at 390 (`case-overview-1280-light`,
 `case-playbook-runs-1280-dark`, `case-entities-390-light`, `case-entities-390-dark` and the rest),
 `case-header-390-light`, `case-header-390-dark`, `case-side-menu-mobile`, `case-not-found`,
+the queue's moves at 1280 and 390 in both themes (`cases-row-menu-1280-light`,
+`cases-assign-dialog-390-dark`, `cases-assign-picker-1280-dark`, `cases-bulk-actions-390-light`
+and the rest) and `cases-bulk-assign-result`,
 `playbooks-desktop`, `playbooks-empty`, `playbooks-templates-dialog`, `playbook-desktop`,
 `playbook-runs-waiting-desktop`, `playbook-runs-desktop`, `playbook-runs-empty`,
 `attack-coverage-desktop`, `attack-coverage-tactic-open`, `attack-coverage-matrix`,

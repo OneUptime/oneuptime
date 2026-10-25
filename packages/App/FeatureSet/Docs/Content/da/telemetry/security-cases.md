@@ -91,7 +91,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
-Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel, **Assign to Me**, **Run Playbook**, **Erklær hændelse** og **Close Case**, og i menuen ⋯ ved siden af **Angiv prioritet**, **Rediger sag** og **Slet sag**. Så kan sagen behandles fra enhver af dens sider, og et link til sagen åbner stadig dens **Oversigt**.
+Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel, **Tildel til mig**, **Run Playbook**, **Erklær hændelse** og **Close Case**, og i menuen ⋯ ved siden af **Angiv prioritet**, **Tildel til en anden**, **Skift status**, **Rediger sag** og **Slet sag**. Så kan sagen behandles fra enhver af dens sider, og et link til sagen åbner stadig dens **Oversigt**.
 
 - **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den.
 - **OneUptime AI**, på **Oversigt**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
 - **Slet sag**: sletter sagen for altid, med dens detektioner, noter, tidslinje og playbook-kørsler. Vil du beholde den som dokumentation, så luk den i stedet med en konklusion.
 
-For at behandle flere sager på én gang vælger du dem i køen og bruger **Assign to Me**, **Change Status** eller **Change Priority**.
+### Behandl sager fra køen
+
+Du behøver ikke åbne en sag for at behandle den. I køens lister har menuen ⋯ på en sags række **Tildel til mig**, **Tildel til en anden**, **Skift status** og **Skift prioritet**. For at behandle flere sager på én gang vælger du dem og bruger de samme handlinger under **Massehandlinger**: De viser, hvilke sager der blev ændret, hvilke der blev ladt være, og hvorfor.
+
+- For at give en sag til en anden bruger du **Tildel til en anden** og vælger én person eller et team. Et teams sag venter under **Ikke tildelt**, indtil nogen fra teamet tager den.
+- En status, der lukker en sag, beder om en konklusion og en afsluttende note, ligesom **Close Case** gør.
+- En lukket sag tildeles ikke nogen. For at arbejde med den igen genåbner du den med **Skift status**.
 
 ### Luk en sag
 

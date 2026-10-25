@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import useSubscriberBulkActions, {
+  useSubscriberRowActions,
   getSubscriberName,
 } from "../../../Components/StatusPage/useSubscriberBulkActions";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -67,6 +68,9 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
   // Unsubscribe in Bulk Actions (Components/StatusPage/useSubscriberBulkActions).
   const subscriberBulkActions: ReturnType<typeof useSubscriberBulkActions> =
     useSubscriberBulkActions();
+  // Unsubscribe in each row's ⋯ menu too.
+  const subscriberRowActions: ReturnType<typeof useSubscriberRowActions> =
+    useSubscriberRowActions();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -390,6 +394,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             bulkActions={{
               buttons: [...subscriberBulkActions],
             }}
+            actionButtons={[...subscriberRowActions]}
             showViewIdButton={true}
             isCreateable={true}
             isEditable={true}

@@ -1,14 +1,30 @@
+import React from "react";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+  RowActionConfirmation,
+  RowActionContext,
+} from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
+import NamedSentence from "../DeleteConfirmation/NamedSentence";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -32,12 +48,44 @@ export interface BulkArchiveActionsConfig<T extends BaseModel> {
    */
   archiveConfirmMessage?: string | undefined;
   unarchiveConfirmMessage?: string | undefined;
+  // How a row's question names the row; its name column otherwise.
+  getItemName?: ((item: T) => string) | undefined;
 }
 
 export interface BulkArchiveActionsResult<T extends BaseModel> {
   archiveBulkActions: Array<BulkActionButtonSchema<T>>;
   unarchiveBulkActions: Array<BulkActionButtonSchema<T>>;
+  /*
+   * The same two in a row's ⋯ menu: Archive on a live list, Unarchive on
+   * its Archived page. Each asks first, naming the row and saying what
+   * archiving does (the list's sentence, or the telemetry one), and the
+   * list is read again once it is saved - the row leaves it.
+   */
+  archiveRowActions: Array<ActionButtonSchema<T>>;
+  unarchiveRowActions: Array<ActionButtonSchema<T>>;
 }
+
+export const ROW_ARCHIVE_TITLE: string = translationKey("Archive {{itemName}}");
+export const ROW_UNARCHIVE_TITLE: string = translationKey(
+  "Unarchive {{itemName}}",
+);
+export const ROW_ARCHIVE_QUESTION: string = translationKey(
+  "Are you sure you want to archive {{name}}?",
+);
+export const ROW_UNARCHIVE_QUESTION: string = translationKey(
+  "Are you sure you want to unarchive {{name}}?",
+);
+
+/*
+ * What archiving one telemetry resource does, said under a row's question
+ * on a list that gives no sentence of its own - the same as the bulk one.
+ */
+export const ROW_ARCHIVE_TELEMETRY_SENTENCE: string = translationKey(
+  "It will be hidden from this list but will keep collecting telemetry. You can unarchive it at any time.",
+);
+export const ROW_UNARCHIVE_SENTENCE: string = translationKey(
+  "It will reappear in the main list.",
+);
 
 type ArchiveMode = "archive" | "unarchive";
 
@@ -61,6 +109,7 @@ type ArchiveMode = "archive" | "unarchive";
 function useBulkArchiveActions<T extends BaseModel>(
   config: BulkArchiveActionsConfig<T>,
 ): BulkArchiveActionsResult<T> {
+  const translator: Translator = useTranslator();
   const model: T = new config.modelType();
   const singularName: string =
     config.singularName || model.singularName || "resource";
@@ -193,9 +242,108 @@ function useBulkArchiveActions<T extends BaseModel>(
     },
   };
 
+  type BuildRowActionFunction = (mode: ArchiveMode) => ActionButtonSchema<T>;
+
+  const buildRowAction: BuildRowActionFunction = (
+    mode: ArchiveMode,
+  ): ActionButtonSchema<T> => {
+    const isArchiving: boolean = mode === "archive";
+
+    const getConfirmation: (item: T) => RowActionConfirmation = (
+      item: T,
+    ): RowActionConfirmation => {
+      const name: string =
+        (config.getItemName ? config.getItemName(item).trim() : "") ||
+        getRecordDisplayName(item, { model: model }) ||
+        translator.translateTerm(singularName);
+
+      const sentence: string = isArchiving
+        ? config.archiveConfirmMessage || ROW_ARCHIVE_TELEMETRY_SENTENCE
+        : config.unarchiveConfirmMessage || ROW_UNARCHIVE_SENTENCE;
+
+      return {
+        title: translator.translateTemplate(
+          isArchiving ? ROW_ARCHIVE_TITLE : ROW_UNARCHIVE_TITLE,
+          { itemName: translatableTerm(singularName) },
+        ),
+        description: (
+          <NamedSentence
+            template={
+              isArchiving ? ROW_ARCHIVE_QUESTION : ROW_UNARCHIVE_QUESTION
+            }
+            name={name}
+            dataTestId="row-archive-name"
+          />
+        ),
+        details: (
+          <p
+            data-testid="row-archive-consequence"
+            className="text-sm leading-6 text-gray-600"
+          >
+            {translator.translateText(sentence) || sentence}
+          </p>
+        ),
+        submitButtonText: isArchiving ? "Archive" : "Unarchive",
+        submitButtonType: ButtonStyleType.PRIMARY,
+      };
+    };
+
+    const rowAction: ActionButtonSchema<T> = {
+      title: isArchiving ? "Archive" : "Unarchive",
+      icon: isArchiving ? IconProp.Archive : IconProp.Unarchive,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      // In the ⋯ menu, above Delete: the row's one button stays View.
+      placement: ActionButtonPlacement.MoreMenu,
+      // Not offered on a row already where it would put it.
+      isVisible: (item: T): boolean => {
+        const archived: unknown = (item as unknown as JSONObject)["isArchived"];
+
+        return isArchiving ? archived !== true : archived !== false;
+      },
+      getConfirmation: getConfirmation,
+      onClick: async (
+        item: T,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+        context?: RowActionContext | undefined,
+      ): Promise<void> => {
+        try {
+          if (!item.id) {
+            throw new BadDataException("Item ID not found");
+          }
+
+          await ModelAPI.updateById<T>({
+            id: item.id as ObjectID,
+            modelType: config.modelType,
+            data: {
+              isArchived: isArchiving,
+            } as any,
+          });
+
+          context?.refresh();
+          onCompleteAction();
+        } catch (err) {
+          onError(new Error(API.getFriendlyMessage(err)));
+        }
+      },
+    };
+
+    if (updateGate.isAllowed || !updateGate.disabledReason) {
+      return rowAction;
+    }
+
+    return {
+      ...rowAction,
+      disabled: true,
+      tooltip: updateGate.disabledReason,
+    };
+  };
+
   return {
     archiveBulkActions: [gateAction(archiveAction)],
     unarchiveBulkActions: [gateAction(unarchiveAction)],
+    archiveRowActions: [buildRowAction("archive")],
+    unarchiveRowActions: [buildRowAction("unarchive")],
   };
 }
 

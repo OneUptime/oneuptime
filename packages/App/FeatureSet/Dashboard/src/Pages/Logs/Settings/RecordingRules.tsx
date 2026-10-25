@@ -76,6 +76,8 @@ const LogRecordingRules: FunctionComponent<
   return (
     <ModelTable<LogRecordingRule>
       modelType={LogRecordingRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

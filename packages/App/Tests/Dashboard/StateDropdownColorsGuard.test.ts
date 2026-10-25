@@ -344,25 +344,44 @@ describe("state, severity and status options keep their colours", () => {
   });
 });
 
-const BULK_TABLES: Array<{ file: string; model: string }> = [
-  { file: "Components/Incident/IncidentsTable.tsx", model: "IncidentState" },
-  { file: "Components/Alert/AlertsTable.tsx", model: "AlertState" },
+const BULK_TABLES: Array<{ file: string; model: string; states: string }> = [
+  {
+    file: "Components/Incident/IncidentsTable.tsx",
+    model: "IncidentState",
+    states: "incidentStates",
+  },
+  {
+    file: "Components/Alert/AlertsTable.tsx",
+    model: "AlertState",
+    states: "alertStates",
+  },
   {
     file: "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
     model: "IncidentState",
+    states: "incidentStates",
   },
   {
     file: "Components/AlertEpisode/AlertEpisodesTable.tsx",
     model: "AlertState",
+    states: "alertStates",
   },
   {
     file: "Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx",
     model: "ScheduledMaintenanceState",
+    states: "scheduledMaintenanceStates",
   },
 ];
 
+/*
+ * The tables' state changes - a row's Acknowledge, Resolve or Change State,
+ * and the bulk ones - are drawn by one engine, which opens the shared bulk
+ * dialog with the state rows each table hands it.
+ */
+const STATE_ACTIONS_ENGINE: string =
+  "Components/EventView/useEventStateActions.tsx";
+
 describe("3. the bulk Change State dialogs show each state's colour", () => {
-  test("every table that opens one is listed here", () => {
+  test("the one engine opens the dialog, for every table", () => {
     const opening: Array<string> = SOURCES.filter(
       (file: SourceFile): boolean => {
         return (
@@ -381,27 +400,33 @@ describe("3. the bulk Change State dialogs show each state's colour", () => {
       })
       .sort();
 
-    expect(opening).toEqual(
-      BULK_TABLES.map((table: { file: string }): string => {
-        return table.file;
-      }).sort(),
+    expect(opening).toEqual([STATE_ACTIONS_ENGINE]);
+  });
+
+  test("the engine builds its state options from the state rows it is handed", () => {
+    const source: string = readDashboardSource(STATE_ACTIONS_ENGINE);
+    const modalIndex: number = source.indexOf("<BulkChangeStateModal");
+    const stateOptionsIndex: number = source.indexOf(
+      "stateOptions={",
+      modalIndex,
+    );
+
+    expect(stateOptionsIndex).toBeGreaterThan(modalIndex);
+    expect(source.slice(stateOptionsIndex, stateOptionsIndex + 80)).toContain(
+      "DropdownUtil.getDropdownOptionsFromEntityArray(",
     );
   });
 
   test.each(BULK_TABLES)(
-    "$file builds its state options from the state rows",
-    (table: { file: string; model: string }) => {
-      const source: string = readDashboardSource(table.file);
-      const modalIndex: number = source.indexOf("<BulkChangeStateModal");
-      const stateOptionsIndex: number = source.indexOf(
-        "stateOptions={",
-        modalIndex,
+    "$file hands the engine its $model rows",
+    (table: { file: string; model: string; states: string }) => {
+      const source: string = readDashboardSource(table.file).replace(
+        /\s+/g,
+        " ",
       );
 
-      expect(stateOptionsIndex).toBeGreaterThan(modalIndex);
-      expect(source.slice(stateOptionsIndex, stateOptionsIndex + 80)).toContain(
-        "DropdownUtil.getDropdownOptionsFromEntityArray(",
-      );
+      expect(source).toContain(`states: ${table.states}, }`);
+      expect(source).toContain("= useEventStateActions<");
     },
   );
 

@@ -36,15 +36,16 @@ export const ON_CALL_POLICIES_ARCHIVED_TABLE_ID: string =
 const OnCallDutyPoliciesArchived: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<OnCallDutyPolicy>({
-    modelType: OnCallDutyPolicy,
-    singularName: ON_CALL_POLICY_ARCHIVE_COPY.singularName,
-    pluralName: ON_CALL_POLICY_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage:
-      ON_CALL_POLICY_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage:
-      ON_CALL_POLICY_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<OnCallDutyPolicy>({
+      modelType: OnCallDutyPolicy,
+      singularName: ON_CALL_POLICY_ARCHIVE_COPY.singularName,
+      pluralName: ON_CALL_POLICY_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage:
+        ON_CALL_POLICY_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        ON_CALL_POLICY_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -73,6 +74,8 @@ const OnCallDutyPoliciesArchived: FunctionComponent<
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id={ON_CALL_POLICIES_ARCHIVED_TABLE_ID}
         userPreferencesKey={ON_CALL_POLICIES_ARCHIVED_TABLE_ID}
         topContent={filterBar}

@@ -135,34 +135,11 @@ export function buildIncidentBulkStateChange(data: {
   };
 }
 
-export interface BulkStateChangeSkipDecision {
-  shouldSkip: boolean;
-  skippedMessage?: string | undefined;
-}
-
-/**
- * Bulk state changes only move events forward. An event already at (or past)
- * the target state is reported as skipped rather than failed, because nothing
- * went wrong — there was simply nothing to do.
+/*
+ * Which records a move leaves alone - one there already, or past it, never
+ * moved back up its list - and why, in the reader's language, is decided by
+ * the state timeline's own rule (Common/Utils/StateMove), through
+ * EventStateMoves (Components/EventView), which every list's moves read
+ * (useEventStateActions). A record left alone is listed as not changed, not
+ * as failed: nothing went wrong.
  */
-export function getBulkStateChangeSkipDecision(data: {
-  currentOrder: number;
-  targetOrder: number;
-  currentStateName?: string | undefined;
-  targetStateName?: string | undefined;
-}): BulkStateChangeSkipDecision {
-  if (data.currentOrder < data.targetOrder) {
-    return {
-      shouldSkip: false,
-    };
-  }
-
-  const currentStateName: string = data.currentStateName || "Unknown";
-
-  return {
-    shouldSkip: true,
-    skippedMessage: `Skipped: Already at "${currentStateName}" (at or past "${
-      data.targetStateName || "Unknown"
-    }")`,
-  };
-}

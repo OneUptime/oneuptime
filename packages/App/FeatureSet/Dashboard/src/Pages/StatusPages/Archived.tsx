@@ -37,14 +37,15 @@ export const STATUS_PAGES_ARCHIVED_TABLE_ID: string =
 const StatusPagesArchived: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<StatusPage>({
-    modelType: StatusPage,
-    singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
-    pluralName: STATUS_PAGE_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage: STATUS_PAGE_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage:
-      STATUS_PAGE_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<StatusPage>({
+      modelType: StatusPage,
+      singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
+      pluralName: STATUS_PAGE_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: STATUS_PAGE_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        STATUS_PAGE_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -73,6 +74,8 @@ const StatusPagesArchived: FunctionComponent<
     <Fragment>
       <ModelTable<StatusPage>
         modelType={StatusPage}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id={STATUS_PAGES_ARCHIVED_TABLE_ID}
         userPreferencesKey={STATUS_PAGES_ARCHIVED_TABLE_ID}
         topContent={filterBar}

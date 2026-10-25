@@ -42,13 +42,15 @@ export const WORKFLOWS_ARCHIVED_TABLE_ID: string = "workflows-archived-table";
 const WorkflowsArchived: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<Workflow>({
-    modelType: Workflow,
-    singularName: WORKFLOW_ARCHIVE_COPY.singularName,
-    pluralName: WORKFLOW_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<Workflow>({
+      modelType: Workflow,
+      singularName: WORKFLOW_ARCHIVE_COPY.singularName,
+      pluralName: WORKFLOW_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -77,6 +79,8 @@ const WorkflowsArchived: FunctionComponent<
     <Fragment>
       <ModelTable<Workflow>
         modelType={Workflow}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id={WORKFLOWS_ARCHIVED_TABLE_ID}
         userPreferencesKey={WORKFLOWS_ARCHIVED_TABLE_ID}
         topContent={filterBar}

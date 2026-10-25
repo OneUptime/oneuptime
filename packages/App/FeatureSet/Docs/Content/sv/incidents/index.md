@@ -165,7 +165,7 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 
 **Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
 
-Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**, med en massåtgärd **Ändra tillstånd** för att stänga flera på en gång.
+Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**. Menyn **⋯** i slutet av varje incidents rad erbjuder **Bekräfta** och **Lös** så länge incidenten kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger den, och **Add Owner** för att lämna över den till någon annan. Markera flera incidenter för att göra samma sak med alla på en gång.
 
 ## Vad varje sida på en incident visar
 

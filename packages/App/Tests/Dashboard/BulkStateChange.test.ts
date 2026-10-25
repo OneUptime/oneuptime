@@ -3,13 +3,11 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   BulkStateChangeNoteTemplate,
   BulkStateChangeNoteType,
-  BulkStateChangeSkipDecision,
   IncidentBulkStateChange,
   buildBulkStateChangeMiscDataProps,
   buildIncidentBulkStateChange,
   getBulkStateChangeNoteFieldKey,
   getBulkStateChangeNoteTemplateFieldKey,
-  getBulkStateChangeSkipDecision,
   getNoteFromTemplate,
   toBulkStateChangeNoteTemplate,
 } from "../../FeatureSet/Dashboard/src/Utils/BulkStateChange";
@@ -140,63 +138,11 @@ describe("buildBulkStateChangeMiscDataProps", () => {
   });
 });
 
-describe("getBulkStateChangeSkipDecision", () => {
-  test("moves an event forward when it is behind the target state", () => {
-    const decision: BulkStateChangeSkipDecision =
-      getBulkStateChangeSkipDecision({
-        currentOrder: 1,
-        targetOrder: 3,
-        currentStateName: "Created",
-        targetStateName: "Resolved",
-      });
-
-    expect(decision.shouldSkip).toBe(false);
-    expect(decision.skippedMessage).toBeUndefined();
-  });
-
-  test("skips an event that is already at the target state", () => {
-    const decision: BulkStateChangeSkipDecision =
-      getBulkStateChangeSkipDecision({
-        currentOrder: 3,
-        targetOrder: 3,
-        currentStateName: "Resolved",
-        targetStateName: "Resolved",
-      });
-
-    expect(decision.shouldSkip).toBe(true);
-    expect(decision.skippedMessage).toBe(
-      'Skipped: Already at "Resolved" (at or past "Resolved")',
-    );
-  });
-
-  test("skips an event that is past the target state", () => {
-    const decision: BulkStateChangeSkipDecision =
-      getBulkStateChangeSkipDecision({
-        currentOrder: 5,
-        targetOrder: 2,
-        currentStateName: "Resolved",
-        targetStateName: "Acknowledged",
-      });
-
-    expect(decision.shouldSkip).toBe(true);
-    expect(decision.skippedMessage).toBe(
-      'Skipped: Already at "Resolved" (at or past "Acknowledged")',
-    );
-  });
-
-  test("falls back to Unknown when a state name could not be loaded", () => {
-    const decision: BulkStateChangeSkipDecision =
-      getBulkStateChangeSkipDecision({
-        currentOrder: 2,
-        targetOrder: 2,
-      });
-
-    expect(decision.shouldSkip).toBe(true);
-    expect(decision.skippedMessage).toBe(
-      'Skipped: Already at "Unknown" (at or past "Unknown")',
-    );
-  });
-});
+/*
+ * Which records a move leaves alone, and why, is EventStateMoves' now - the
+ * state timeline's own rule (Common/Utils/StateMove), in the reader's
+ * language: EventStateMoves.test.ts.
+ */
 
 /*
  * Every state change dialog - the single-event ones in the event headers

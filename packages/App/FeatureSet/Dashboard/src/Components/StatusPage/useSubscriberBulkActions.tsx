@@ -1,8 +1,11 @@
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import useBulkSwitchActions, {
+  BulkSwitchActionsConfig,
   UNSUBSCRIBE_SWITCH_ACTION,
+  useSwitchActions,
 } from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 
 /*
  * What a subscriber is called wherever a list names one - the Unsubscribe
@@ -53,17 +56,30 @@ export const getSubscriberName: (subscriber: StatusPageSubscriber) => string = (
  * The lists name their rows Subscriber(s), as their buttons and dialogs do,
  * and each row by getSubscriberName.
  */
+const SUBSCRIBER_SWITCH: BulkSwitchActionsConfig<StatusPageSubscriber> = {
+  modelType: StatusPageSubscriber,
+  column: "isUnsubscribed",
+  actions: [UNSUBSCRIBE_SWITCH_ACTION],
+  singularName: "Subscriber",
+  pluralName: "Subscribers",
+  getItemName: getSubscriberName,
+};
+
 const useSubscriberBulkActions: () => Array<
   BulkActionButtonSchema<StatusPageSubscriber>
 > = (): Array<BulkActionButtonSchema<StatusPageSubscriber>> => {
-  return useBulkSwitchActions<StatusPageSubscriber>({
-    modelType: StatusPageSubscriber,
-    column: "isUnsubscribed",
-    actions: [UNSUBSCRIBE_SWITCH_ACTION],
-    singularName: "Subscriber",
-    pluralName: "Subscribers",
-    getItemName: getSubscriberName,
-  });
+  return useBulkSwitchActions<StatusPageSubscriber>(SUBSCRIBER_SWITCH);
+};
+
+/*
+ * Unsubscribe in each row's ⋯ menu as well, on a subscriber still
+ * subscribed: the same switch, asking first with the same sentence, the
+ * row named as the list names it.
+ */
+export const useSubscriberRowActions: () => Array<
+  ActionButtonSchema<StatusPageSubscriber>
+> = (): Array<ActionButtonSchema<StatusPageSubscriber>> => {
+  return useSwitchActions<StatusPageSubscriber>(SUBSCRIBER_SWITCH).rowActions;
 };
 
 export default useSubscriberBulkActions;

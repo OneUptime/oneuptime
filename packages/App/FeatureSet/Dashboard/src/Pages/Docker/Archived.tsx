@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const DockerArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<DockerHost>({
-    modelType: DockerHost,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<DockerHost>({
+      modelType: DockerHost,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const DockerArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<DockerHost>
         modelType={DockerHost}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="docker-archived-table"
         userPreferencesKey="docker-archived-table"
         topContent={filterBar}

@@ -36,9 +36,10 @@ const MessageQueueArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const { unarchiveBulkActions } = useBulkArchiveActions<MessageQueue>({
-    modelType: MessageQueue,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<MessageQueue>({
+      modelType: MessageQueue,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -67,6 +68,8 @@ const MessageQueueArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<MessageQueue>
         modelType={MessageQueue}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="message-queues-archived-table"
         userPreferencesKey="message-queues-archived-table"
         topContent={filterBar}

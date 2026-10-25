@@ -798,17 +798,49 @@ describe("each case page draws the list its question needs", () => {
     });
   });
 
-  test("bulk actions: Assign to Me only where cases are taken on, not where every case is yours or closed", async () => {
-    for (const key of ["mine", "closed"]) {
-      expect(
-        bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
-      ).toEqual(["Change Status", "Change Priority"]);
-    }
+  test("bulk actions: Assign to Me where cases are taken on, Assign to Someone Else wherever they are worked, never on Closed Cases", async () => {
+    // Every case here is yours: hand them on, move them along.
+    expect(bulkTitles(await capture("mine"))).toEqual([
+      "Assign to Someone Else",
+      "Change Status",
+      "Change Priority",
+    ]);
+    // Nobody works a closed case: reopen it, or set its priority.
+    expect(bulkTitles(await capture("closed"))).toEqual([
+      "Change Status",
+      "Change Priority",
+    ]);
 
     for (const key of ["open", "unassigned", "all"]) {
       expect(
         bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
-      ).toEqual(["Assign to Me", "Change Status", "Change Priority"]);
+      ).toEqual([
+        "Assign to Me",
+        "Assign to Someone Else",
+        "Change Status",
+        "Change Priority",
+      ]);
+    }
+  });
+
+  test("every case page puts each case's moves in its row's ⋯, before the table's own Delete", async () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      const actions: Array<{ title: string; placement?: string }> = (table[
+        "actionButtons"
+      ] || []) as Array<{ title: string; placement?: string }>;
+
+      expect(titlesOf(actions)).toEqual([
+        "Assign to Me",
+        "Assign to Someone Else",
+        "Change Status",
+        "Change Priority",
+      ]);
+      // In the ⋯ menu: the row's one button stays View.
+      for (const action of actions) {
+        expect(action.placement).toBe("MoreMenu");
+      }
+      expect(table["isDeleteable"]).toBe(true);
     }
   });
 

@@ -128,7 +128,9 @@ function buildCase(fields: Partial<SecurityCase> = {}): SecurityCase {
 
 interface Handlers {
   onAssignToMe: MockFunction;
+  onAssignToSomeoneElse: MockFunction;
   onChangeStatus: MockFunction;
+  onPickStatus: MockFunction;
   onChangePriority: MockFunction;
   onRunPlaybook: MockFunction;
   onDeclareIncident: MockFunction;
@@ -172,7 +174,9 @@ beforeEach(() => {
   permissionsForTest = ["ProjectOwner"];
   handlers = {
     onAssignToMe: getJestMockFunction(),
+    onAssignToSomeoneElse: getJestMockFunction(),
     onChangeStatus: getJestMockFunction(),
+    onPickStatus: getJestMockFunction(),
     onChangePriority: getJestMockFunction(),
     onRunPlaybook: getJestMockFunction(),
     onDeclareIncident: getJestMockFunction(),
@@ -508,7 +512,7 @@ describe("what each case offers", () => {
 });
 
 describe("the ⋯", () => {
-  test("sets the priority from a section of its own - every one nobody archived, the case's ticked - then Edit Case and Delete Case", async () => {
+  test("sets the priority from a section of its own - every one nobody archived, the case's ticked - then Assign to Someone Else, Change Status, Edit Case and Delete Case", async () => {
     const priorities: Array<SecurityCasePriority> = [
       buildTestPriority({
         id: "c1000000-0000-4000-8000-000000000009",
@@ -553,7 +557,12 @@ describe("the ⋯", () => {
         .map((item: HTMLElement): string => {
           return (item.textContent || "").trim();
         }),
-    ).toEqual(["Edit Case", "Delete Case"]);
+    ).toEqual([
+      "Assign to Someone Else",
+      "Change Status",
+      "Edit Case",
+      "Delete Case",
+    ]);
 
     await act(async () => {
       fireEvent.click(
@@ -618,6 +627,83 @@ describe("the ⋯", () => {
     ).toHaveLength(0);
   });
 
+  test("Assign to Someone Else and Change Status open their dialogs, on the Overview and every other page of the case", async () => {
+    for (const layout of ["full", "compact"] as const) {
+      draw({ securityCase: buildCase(), layout: layout });
+
+      await openMore();
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId("security-case-assign-to-someone-else"),
+        );
+      });
+
+      await openMore();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("security-case-change-status"));
+      });
+
+      cleanup();
+    }
+
+    expect(handlers.onAssignToSomeoneElse).toHaveBeenCalledTimes(2);
+    expect(handlers.onPickStatus).toHaveBeenCalledTimes(2);
+    // Opening the dialog changes nothing yet.
+    expect(handlers.onChangeStatus).not.toHaveBeenCalled();
+  });
+
+  test("the case's own moves are the reader's too: Assign to Someone Else on a case that is theirs", async () => {
+    draw({
+      securityCase: buildCase({ assignedToUserId: new ObjectID(ME) }),
+      layout: "compact",
+    });
+
+    // Theirs already: no Assign to Me button, but they can hand it on.
+    expect(screen.queryByTestId("security-case-assign-to-me")).toBeNull();
+
+    await openMore();
+
+    expect(
+      screen.getByTestId("security-case-assign-to-someone-else"),
+    ).toHaveAttribute("aria-disabled", "false");
+  });
+
+  test("nobody takes a closed case: its ⋯ has no Assign to Someone Else, and Change Status is how it is reopened", async () => {
+    draw({
+      securityCase: buildCase({
+        securityCaseStatusId: testStatusId(SecurityCaseStage.Closed),
+        verdict: SecurityCaseVerdict.TruePositive,
+      }),
+      layout: "compact",
+    });
+
+    const menu: HTMLElement = await openMore();
+
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Change Status", "Edit Case", "Delete Case"]);
+    expect(
+      screen.queryByTestId("security-case-assign-to-someone-else"),
+    ).toBeNull();
+  });
+
+  test("while a change is being saved, the ⋯'s moves wait for it", async () => {
+    draw({ securityCase: buildCase(), layout: "compact", isWorking: true });
+
+    await openMore();
+
+    for (const testId of [
+      "security-case-assign-to-someone-else",
+      "security-case-change-status",
+    ]) {
+      expect(screen.getByTestId(testId)).toBeDisabled();
+    }
+  });
+
   test("Edit Case and Delete Case call what they say", async () => {
     draw({ securityCase: buildCase(), layout: "compact" });
 
@@ -661,14 +747,26 @@ describe("who may do what", () => {
       expect(item).toHaveAttribute("aria-disabled", "true");
     }
 
-    expect(screen.getByTestId("security-case-edit")).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    expect(screen.getByTestId("security-case-delete")).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    for (const testId of [
+      "security-case-assign-to-someone-else",
+      "security-case-change-status",
+      "security-case-edit",
+      "security-case-delete",
+    ]) {
+      const item: HTMLElement = screen.getByTestId(testId);
+
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      // Locked with the reason read with it, not skipped as if absent.
+      expect(item.getAttribute("aria-describedby")).toBeTruthy();
+    }
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("security-case-assign-to-someone-else"),
+      );
+    });
+
+    expect(handlers.onAssignToSomeoneElse).not.toHaveBeenCalled();
   });
 
   test("a Security Member works the case but may not delete it", async () => {
@@ -685,6 +783,15 @@ describe("who may do what", () => {
       "aria-disabled",
       "false",
     );
+    for (const testId of [
+      "security-case-assign-to-someone-else",
+      "security-case-change-status",
+    ]) {
+      expect(screen.getByTestId(testId)).toHaveAttribute(
+        "aria-disabled",
+        "false",
+      );
+    }
     expect(screen.getByTestId("security-case-delete")).toHaveAttribute(
       "aria-disabled",
       "true",

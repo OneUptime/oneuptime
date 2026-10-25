@@ -2,6 +2,7 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import useTranslateValue from "../../Utils/Translation";
 import TableColumnsToCsv from "../../Utils/TableColumnsToCsv";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import { ButtonStyleType } from "../Button/Button";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
@@ -219,6 +220,8 @@ const Table: TableFunction = <T extends GenericObject>(
     title: "Export CSV",
     icon: IconProp.Download,
     buttonStyleType: ButtonStyleType.NORMAL,
+    // Apart from the actions that change the rows (ActionMenuGroup).
+    menuGroup: ActionMenuGroup.Export,
     onClick: (onClickProps: BulkActionOnClickProps<T>): Promise<void> => {
       TableColumnsToCsv.exportItemsToCsv({
         items: onClickProps.items,
