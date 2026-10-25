@@ -198,7 +198,13 @@ const SecurityCasesList: FunctionComponent<{
   // Where a case opened here starts.
   const defaultPriority: SecurityCasePriority | null =
     SecurityCasePriorities.getDefaultPriority(priorities);
-  const [refreshToggle, setRefreshToggle] = useState<string>("");
+  /*
+   * Read the list again: a count, never the time. Two changes in one
+   * millisecond - a bulk run ending as a row's change saves - or a page whose
+   * clock stands still would otherwise set the same value twice, and the
+   * second change would not be read back.
+   */
+  const [refreshCount, setRefreshCount] = useState<number>(0);
 
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
@@ -216,7 +222,9 @@ const SecurityCasesList: FunctionComponent<{
     canAssignToMeInBulk: view.canAssignToMe,
     canAssignToSomeoneElseInBulk: view.canAssignToSomeoneElse,
     onChanged: (): void => {
-      setRefreshToggle(Date.now().toString());
+      setRefreshCount((count: number): number => {
+        return count + 1;
+      });
       GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
     },
   });
@@ -559,7 +567,7 @@ const SecurityCasesList: FunctionComponent<{
           projectId: projectId,
           ...getSecurityCaseQueueQuery(view.key, User.getUserId(), statuses),
         }}
-        refreshToggle={refreshToggle}
+        refreshToggle={refreshCount > 0 ? String(refreshCount) : ""}
         /*
          * Delete in each case's ⋯ menu and in Bulk Actions - one switch for
          * both. Its dialogs name the case as its page does, say what goes

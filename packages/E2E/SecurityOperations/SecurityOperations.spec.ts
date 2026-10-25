@@ -190,6 +190,8 @@ interface OpenOptions {
   lang?: "de" | "ja";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
+  // Case numbers, comma separated, whose every change the server refuses.
+  refuse?: string;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -299,6 +301,9 @@ async function open(
   }
   if (options.values) {
     params.set("values", options.values);
+  }
+  if (options.refuse) {
+    params.set("refuse", options.refuse);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -1933,6 +1938,567 @@ async function waitForCasePage(page: Page, casePage: CasePage): Promise<void> {
 
   await expect(ready).toBeVisible({ timeout: 30000 });
 }
+
+/*
+ * Working cases from the queue: each row's ⋯ and Bulk Actions offer Assign
+ * to Me, Assign to Someone Else, Change Status and Change Priority, by the
+ * rules the case's own page follows, and the list shows a change at once.
+ */
+async function openRowMenu(page: Page, caseNumber: string): Promise<Locator> {
+  // The nearest box around the case's number holding a ⋯: a row, or a phone's card.
+  const row: Locator = page
+    .getByText(caseNumber, { exact: true })
+    .first()
+    .locator(
+      "xpath=ancestor::*[.//*[@data-testid='row-actions-more-button']][1]",
+    );
+
+  await row.getByTestId("row-actions-more-button").first().click();
+  const menu: Locator = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+async function menuItemTitles(menu: Locator): Promise<Array<string>> {
+  return (await menu.getByRole("menuitem").allInnerTexts()).map(
+    (title: string): string => {
+      return title.replace(/\s+/g, " ").trim();
+    },
+  );
+}
+
+async function selectCase(page: Page, caseNumber: string): Promise<void> {
+  await page
+    .getByText(caseNumber, { exact: true })
+    .first()
+    .locator("xpath=ancestor::*[.//input[@type='checkbox']][1]")
+    .locator("input[type=checkbox]")
+    .first()
+    .check();
+}
+
+// The one person or team the assign dialog's picker takes.
+async function pickAssignee(page: Page, name: string): Promise<void> {
+  await page
+    .getByRole("dialog")
+    .first()
+    .getByRole("button", { name: "Choose someone or a team" })
+    .click();
+  const search: Locator = page.getByRole("dialog", {
+    name: "Choose someone or a team",
+  });
+  await search
+    .getByRole("option", { name: new RegExp(escapeRegExp(name)) })
+    .first()
+    .click();
+}
+
+// A dialog's dropdown, opened and an option picked by its name.
+async function chooseOption(page: Page, name: string): Promise<void> {
+  const dialog: Locator = page.getByRole("dialog").first();
+  await dialog.locator(".ou-select__control").first().click();
+  await page.locator(".ou-select__option", { hasText: name }).first().click();
+}
+
+async function updatesOf(
+  page: Page,
+): Promise<
+  Array<{ id: string; data: Record<string, unknown>; refused?: boolean }>
+> {
+  return page.evaluate(
+    (): Array<{
+      id: string;
+      data: Record<string, unknown>;
+      refused?: boolean;
+    }> => {
+      return JSON.parse(
+        JSON.stringify(
+          (
+            window as unknown as {
+              __securityOperationsFixture: {
+                updates: Array<{
+                  modelName: string;
+                  id: string;
+                  data: Record<string, unknown>;
+                  refused?: boolean;
+                }>;
+              };
+            }
+          ).__securityOperationsFixture.updates.filter(
+            (update: { modelName: string }): boolean => {
+              return update.modelName === "SecurityCase";
+            },
+          ),
+        ),
+      );
+    },
+  );
+}
+
+const CASE_ID: (number: number) => string = (number: number): string => {
+  return `20000000-0000-4000-8000-000000000${number}`;
+};
+const MAYA_ID: string = "80000000-0000-4000-8000-000000000001";
+const DIEGO_ID: string = "80000000-0000-4000-8000-000000000002";
+const PRIYA_ID: string = "80000000-0000-4000-8000-000000000003";
+const SOC_TEAM_ID: string = "81000000-0000-4000-8000-000000000001";
+const REFUSAL: string =
+  "You do not have permission to update this Security Case. Your role reaches only cases labelled for your team.";
+
+test.describe("working cases from the queue", () => {
+  test("each row's ⋯ offers the moves its case takes - View its one button, Delete last", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344 });
+    await expect(page.getByText("CASE-141").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    // Nobody's case: every move.
+    expect(await menuItemTitles(await openRowMenu(page, "CASE-141"))).toEqual([
+      "Assign to Me",
+      "Assign to Someone Else",
+      "Change Status",
+      "Change Priority",
+      "Delete",
+    ]);
+    await page.keyboard.press("Escape");
+
+    // Maya's own: she hands it on, but never takes it again.
+    expect(await menuItemTitles(await openRowMenu(page, "CASE-142"))).toEqual([
+      "Assign to Someone Else",
+      "Change Status",
+      "Change Priority",
+      "Delete",
+    ]);
+    await page.keyboard.press("Escape");
+
+    // A closed case: nobody takes it; Change Status reopens it.
+    await open(page, CLOSED_CASES_PATH, { width: 1344 });
+    await expect(page.getByText("CASE-136").first()).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await menuItemTitles(await openRowMenu(page, "CASE-136"))).toEqual([
+      "Change Status",
+      "Change Priority",
+      "Delete",
+    ]);
+  });
+
+  test("Assign to Me takes a case off Unassigned and onto Assigned to Me, and the menu counts it at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, UNASSIGNED_CASES_PATH, { width: 1344 });
+    await expect(page.getByText("CASE-141").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect.poll(() => menuCount(page, "Assigned to Me")).toBe("2");
+
+    await (await openRowMenu(page, "CASE-141"))
+      .getByRole("menuitem", { name: "Assign to Me" })
+      .click();
+
+    // Off the list of cases nobody has, and counted as Maya's.
+    await expect(page.getByText("CASE-141", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("CASE-138").first()).toBeVisible();
+    await expect.poll(() => menuCount(page, "Assigned to Me")).toBe("3");
+    expect(await updatesOf(page)).toEqual([
+      {
+        modelName: "SecurityCase",
+        id: CASE_ID(141),
+        data: { assignedToUserId: MAYA_ID },
+      },
+    ]);
+  });
+
+  test("Assign to Someone Else: one person or one team in one picker - a team takes the case into its queue", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344 });
+    await expect(page.getByText("CASE-142").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    await (await openRowMenu(page, "CASE-142"))
+      .getByRole("menuitem", { name: "Assign to Someone Else" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog).toContainText(
+      "Pick a person to work CASE-142, or a team to pick it up.",
+    );
+    await expect(dialog).toContainText(
+      "A team's case waits in its queue until someone on the team takes it.",
+    );
+
+    // People first, then teams, in one list.
+    await dialog
+      .getByRole("button", { name: "Choose someone or a team" })
+      .click();
+    const search: Locator = page.getByRole("dialog", {
+      name: "Choose someone or a team",
+    });
+    await expect(search.getByText("People", { exact: true })).toBeVisible();
+    await expect(search.getByText("Teams", { exact: true })).toBeVisible();
+    await search.getByRole("option", { name: /SOC Tier 2/ }).click();
+    await dialog.getByRole("button", { name: "Assign", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // The row says whose queue it is in now, and it is no longer Maya's.
+    const row: Locator = page.locator("tbody tr", { hasText: "CASE-142" });
+    await expect(row).toContainText("SOC Tier 2");
+    await expect(row).not.toContainText("Maya");
+    await expect.poll(() => menuCount(page, "Assigned to Me")).toBe("1");
+    expect(await updatesOf(page)).toEqual([
+      {
+        modelName: "SecurityCase",
+        id: CASE_ID(142),
+        data: { assignedToTeamId: SOC_TEAM_ID, assignedToUserId: null },
+      },
+    ]);
+
+    // A person picked works the case.
+    await (await openRowMenu(page, "CASE-141"))
+      .getByRole("menuitem", { name: "Assign to Someone Else" })
+      .click();
+    await pickAssignee(page, "Diego Alvarez");
+    await page
+      .getByRole("dialog")
+      .first()
+      .getByRole("button", { name: "Assign", exact: true })
+      .click();
+    // A second change in the same moment is read back too.
+    await expect(
+      page.locator("tbody tr", { hasText: "CASE-141" }),
+    ).toContainText("Diego");
+  });
+
+  test("Change Status to a closing status asks what Close Case asks, and the case leaves the open list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344 });
+    await expect(page.getByText("CASE-137").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    await (await openRowMenu(page, "CASE-137"))
+      .getByRole("menuitem", { name: "Change Status" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog).toContainText("Pick the new status for CASE-137.");
+
+    // Its own status is listed, Current, and not picked again.
+    await dialog.locator(".ou-select__control").first().click();
+    const current: Locator = page.getByRole("option", { name: /Current/ });
+    await expect(current).toHaveCount(1);
+    await expect(current).toContainText("New");
+    await expect(current).toHaveAttribute("aria-disabled", "true");
+    await page.getByRole("option", { name: "Closed", exact: true }).click();
+
+    // OneUptime AI read it as Likely Benign: the verdict starts there.
+    await expect(dialog).toContainText(
+      "OneUptime AI read this case as Likely Benign. Pick what you found.",
+    );
+    await expect(
+      dialog.getByRole("radio", { name: /Benign Positive/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(dialog).toContainText("Closing Note");
+    await dialog.getByRole("radio", { name: /False Positive/ }).click();
+    await dialog
+      .getByRole("button", { name: "Close Case", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await expect(page.getByText("CASE-137", { exact: true })).toHaveCount(0);
+    await expect.poll(() => menuCount(page, "Open Cases")).toBe("5");
+    const updates: Array<{ id: string; data: Record<string, unknown> }> =
+      await updatesOf(page);
+    expect(updates).toHaveLength(1);
+    expect(updates[0]!.id).toBe(CASE_ID(137));
+    expect(updates[0]!.data).toMatchObject({ verdict: "False Positive" });
+
+    // Closed Cases lists it, by the verdict it closed with.
+    await menuEntry(page, "Closed Cases").click();
+    await expect(
+      page.locator("tbody tr", { hasText: "CASE-137" }),
+    ).toContainText("False Positive", { timeout: 30000 });
+  });
+
+  test("Change Priority from a row: the project's priorities, the case's own Current, and the row shows the new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344 });
+    await expect(page.getByText("CASE-141").first()).toBeVisible({
+      timeout: 30000,
+    });
+    const row: Locator = page.locator("tbody tr", { hasText: "CASE-141" });
+    await expect(row).toContainText("High");
+
+    await (await openRowMenu(page, "CASE-141"))
+      .getByRole("menuitem", { name: "Change Priority" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog).toContainText("Pick the new priority for CASE-141.");
+    await chooseOption(page, "Critical");
+    await dialog
+      .getByRole("button", { name: "Change Priority", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await expect(row).toContainText("Critical");
+    await expect(row).not.toContainText("High");
+  });
+
+  test("Bulk Actions: Assign to Someone Else for the cases selected, naming the one the server refused, and why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344, refuse: "138" });
+    await expect(page.getByText("CASE-138").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    for (const caseNumber of ["CASE-142", "CASE-141", "CASE-138"]) {
+      await selectCase(page, caseNumber);
+    }
+    await page.getByText("Bulk Actions", { exact: true }).click();
+    const bulk: Locator = page.getByRole("menu");
+    expect((await menuItemTitles(bulk)).slice(0, 4)).toEqual([
+      "Assign to Me",
+      "Assign to Someone Else",
+      "Change Status",
+      "Change Priority",
+    ]);
+    await bulk
+      .getByRole("menuitem", { name: "Assign to Someone Else" })
+      .click();
+    await expect(page.getByRole("dialog").first()).toContainText(
+      "Pick a person to work the 3 selected cases, or a team to pick them up.",
+    );
+    await pickAssignee(page, "Priya Nair");
+    await page
+      .getByRole("dialog")
+      .first()
+      .getByRole("button", { name: "Assign", exact: true })
+      .click();
+
+    await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+      "2 Security Cases assigned",
+      { timeout: 30000 },
+    );
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
+      "1 Security Case not assigned",
+    );
+    const refused: Locator = page.getByTestId("bulk-action-failed-items");
+    await expect(refused).toContainText("CASE-138");
+    await expect(refused).toContainText(REFUSAL);
+    expect(
+      (await updatesOf(page)).map(
+        (update: { id: string; refused?: boolean }): [string, boolean] => {
+          return [update.id, Boolean(update.refused)];
+        },
+      ),
+    ).toEqual([
+      [CASE_ID(142), false],
+      [CASE_ID(141), false],
+      [CASE_ID(138), true],
+    ]);
+    await screenshot(page, "cases-bulk-assign-result");
+
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(
+      page.locator("tbody tr", { hasText: "CASE-141" }),
+    ).toContainText("Priya");
+  });
+
+  test("a Security Viewer sees every move locked, in a row's ⋯ and in Bulk Actions, each saying what it takes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344, role: "viewer" });
+    await expect(page.getByText("CASE-141").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    const menu: Locator = await openRowMenu(page, "CASE-141");
+    for (const title of [
+      "Assign to Me",
+      "Assign to Someone Else",
+      "Change Status",
+      "Change Priority",
+    ]) {
+      await expect(menu.getByRole("menuitem", { name: title })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+    await menu.getByRole("menuitem", { name: "Change Status" }).hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "You do not have permission",
+    );
+    // Pressed anyway, it opens nothing: a locked item does nothing.
+    await menu
+      .getByRole("menuitem", { name: "Change Status" })
+      .click({ force: true });
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await selectCase(page, "CASE-141");
+    await page.getByText("Bulk Actions", { exact: true }).click();
+    const bulk: Locator = page.getByRole("menu");
+    await expect(
+      bulk.getByRole("menuitem", { name: "Assign to Someone Else" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(await updatesOf(page)).toEqual([]);
+  });
+
+  test("a case's own header hands it on and moves its status from any of its pages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${DOMAIN_CASE_PATH}/timeline`, { width: 1344 });
+    await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
+
+    await caseHeader(page).getByTestId("security-case-more").click();
+    await page.getByTestId("security-case-assign-to-someone-else").click();
+    await expect(page.getByRole("dialog").first()).toContainText(
+      "Pick a person to work CASE-141, or a team to pick it up.",
+    );
+    await pickAssignee(page, "Priya Nair");
+    await page
+      .getByRole("dialog")
+      .first()
+      .getByRole("button", { name: "Assign", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await caseHeader(page).getByTestId("security-case-more").click();
+    await page.getByTestId("security-case-change-status").click();
+    await chooseOption(page, "Contained");
+    await page
+      .getByRole("dialog")
+      .first()
+      .getByRole("button", { name: "Change Status", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(caseHeader(page)).toContainText("Contained");
+
+    expect(await updatesOf(page)).toEqual([
+      {
+        modelName: "SecurityCase",
+        id: CASE_ID(141),
+        data: { assignedToUserId: PRIYA_ID },
+      },
+      {
+        modelName: "SecurityCase",
+        id: CASE_ID(141),
+        data: {
+          securityCaseStatusId: (await fixture(page)).ids.statuses["Contained"],
+        },
+      },
+    ]);
+
+    // The Overview says who has it now.
+    await menuEntry(page, "Overview").click();
+    await expect(caseHeader(page)).toContainText("Priya Nair", {
+      timeout: 30000,
+    });
+  });
+
+  test("the row's ⋯, the assign dialog and the bulk bar, at 1280 and on a phone, in both themes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, height, size] of [
+      [1344, 1000, "1280"],
+      [390, 844, "390"],
+    ] as Array<[number, number, string]>) {
+      for (const theme of [undefined, "dark"] as Array<"dark" | undefined>) {
+        const name: string = `${size}-${theme || "light"}`;
+
+        await open(page, CASES_PATH, { width, height, theme });
+        await expect(page.getByText("CASE-141").first()).toBeVisible({
+          timeout: 30000,
+        });
+
+        // The row's ⋯: whole, on the screen, its items each on a line.
+        const menu: Locator = await openRowMenu(page, "CASE-141");
+        const menuBox: Box = await boxOf(menu);
+        expect(menuBox.x, `row menu at ${name}`).toBeGreaterThanOrEqual(0);
+        expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(width);
+        expect(
+          await pageOverflow(page),
+          `row menu at ${name}`,
+        ).toBeLessThanOrEqual(1);
+        await screenshot(page, `cases-row-menu-${name}`, { fullPage: false });
+
+        // Assign to Someone Else: the dialog inside the screen.
+        await menu
+          .getByRole("menuitem", { name: "Assign to Someone Else" })
+          .click();
+        const dialog: Locator = page.getByRole("dialog").first();
+        const dialogBox: Box = await boxOf(dialog);
+        expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+        expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(width);
+        await screenshot(page, `cases-assign-dialog-${name}`, {
+          fullPage: false,
+        });
+        await dialog
+          .getByRole("button", { name: "Choose someone or a team" })
+          .click();
+        await expect(
+          page.getByRole("dialog", { name: "Choose someone or a team" }),
+        ).toBeVisible();
+        await pageAtRest(page);
+        await screenshot(page, `cases-assign-picker-${name}`, {
+          fullPage: false,
+        });
+        // Put the search away, then the dialog.
+        await page.keyboard.press("Escape");
+        await expect(
+          page.getByRole("dialog", { name: "Choose someone or a team" }),
+        ).toHaveCount(0);
+        if ((await page.getByRole("dialog").count()) > 0) {
+          await page
+            .getByRole("dialog")
+            .first()
+            .getByRole("button", { name: "Cancel" })
+            .click();
+        }
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+
+        // The bulk bar, its menu open.
+        await selectCase(page, "CASE-141");
+        await selectCase(page, "CASE-138");
+        await page.getByText("Bulk Actions", { exact: true }).click();
+        const bulk: Locator = page.getByRole("menu");
+        const bulkBox: Box = await boxOf(bulk);
+        expect(bulkBox.x).toBeGreaterThanOrEqual(0);
+        expect(bulkBox.x + bulkBox.width).toBeLessThanOrEqual(width);
+        expect(
+          await pageOverflow(page),
+          `bulk bar at ${name}`,
+        ).toBeLessThanOrEqual(1);
+        await screenshot(page, `cases-bulk-actions-${name}`, {
+          fullPage: false,
+        });
+      }
+    }
+  });
+});
 
 test.describe("a case", () => {
   test("opens on its Overview, under a side menu of its own, its header in full", async ({

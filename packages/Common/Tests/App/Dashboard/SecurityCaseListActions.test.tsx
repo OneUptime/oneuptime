@@ -533,6 +533,26 @@ describe("a case's row ⋯", () => {
     expect(dispatched).toContain(REFRESH_SIDEBAR_COUNT_EVENT);
   });
 
+  test("two changes in the same moment are both read back: the list counts its reads, it never stamps them with the time", async () => {
+    listedRows = [buildCase(141), buildCase(138)];
+    // The clock stands still, as two saves in one millisecond see it.
+    jest.spyOn(Date, "now").mockReturnValue(1791979200000);
+    await openList("open");
+
+    const readsBefore: number = caseListReads;
+
+    await clickMenuItem(await openRowMenu("CASE-141"), "Assign to Me");
+    await waitFor(() => {
+      expect(caseListReads).toBe(readsBefore + 1);
+    });
+
+    await clickMenuItem(await openRowMenu("CASE-138"), "Assign to Me");
+    await waitFor(() => {
+      expect(caseListReads).toBe(readsBefore + 2);
+    });
+    expect(updates).toHaveLength(2);
+  });
+
   test("Assign to Me that the server refuses says why", async () => {
     listedRows = [buildCase(141)];
     refusedIds = [caseId(141)];
