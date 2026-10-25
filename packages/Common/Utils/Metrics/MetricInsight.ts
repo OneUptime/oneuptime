@@ -144,7 +144,11 @@ export const OTEL_SECONDS_HISTOGRAM_BOUNDS: ReadonlyArray<number> = [
  * pattern, read the same way by JavaScript and by ClickHouse's
  * replaceRegexpAll (RE2, leftmost-first): classes and counts only, so it
  * takes time in line with the name whatever it holds. Names are stored in
- * lower case.
+ * lower case. A regex checker's fuzzer (recheck) reports a second-degree
+ * polynomial on "aaaa0aa0-0aaa0aa0-0a0a" repeated; it is not one: from any
+ * start, a try ends within a UUID's 36 characters or a run of hex shorter
+ * than 16 (a longer one matches), so the work is at most that many steps a
+ * character - the suite times that text too.
  */
 export const METRIC_NAME_ID_PATTERN: string =
   "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,}|[0-9]{2,}";

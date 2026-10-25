@@ -1722,6 +1722,11 @@ describe("text a service sent is read quickly, whatever it holds", () => {
     ["at signs", repeat("@")],
     ["a path of single digits", "/" + repeat("1/")],
     ["dots after an at sign", "a@" + repeat(".")],
+    // What a regex checker's fuzzer offered as its worst case for the ids.
+    [
+      "almost UUIDs that run into each other",
+      repeat("aaaa0aa0-0aaa0aa0-0a0a") + "-aa-",
+    ],
   ];
 
   test.each(WORST_TEXTS)(
