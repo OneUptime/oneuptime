@@ -13,14 +13,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -32,7 +35,10 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import CephDocumentationCard from "../../Components/Ceph/DocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import CEPH_CLUSTER_ONBOARDING from "../../Components/Ceph/CephClusterOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/CephMetricDescriptions";
@@ -126,6 +132,9 @@ const CephClusters: FunctionComponent<
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CephCluster>({
     modelType: CephCluster,
   });
+  const [isAddClusterOpen, setIsAddClusterOpen] = useState<boolean>(false);
+  // Clusters connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<CephCluster>({ modelType: CephCluster });
@@ -192,13 +201,20 @@ const CephClusters: FunctionComponent<
     );
   }
 
+  /*
+   * A Ceph cluster is added by running the agent beside it (Add Ceph
+   * Cluster): the guide asks for the cluster's name, writes it into the
+   * commands, and the cluster registers itself under it when the agent
+   * connects. There is no form: a cluster typed in by hand would only wait
+   * for telemetry that nothing sends.
+   */
   return (
     <Fragment>
       <ModelTable<CephCluster>
         modelType={CephCluster}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="ceph-clusters-table"
         userPreferencesKey="ceph-clusters-table"
         topContent={getFirstRunTopContent({
@@ -215,14 +231,10 @@ const CephClusters: FunctionComponent<
         onFetchSuccess={(data: Array<CephCluster>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: CephCluster): Promise<CephCluster> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -239,31 +251,19 @@ const CephClusters: FunctionComponent<
           title: "Ceph Clusters",
           description:
             "Clusters being monitored in this project. Install the OneUptime Ceph Agent to connect a cluster.",
+          buttons: [
+            {
+              title: CEPH_CLUSTER_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddClusterOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-ceph-cluster",
-            description:
-              "Must match the ceph.cluster.name the Ceph Agent reports (its CEPH_CLUSTER_NAME).",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production Ceph cluster running in US East",
-          },
-          getLabelsFormField<CephCluster>(),
-        ]}
+        formFields={[]}
         columns={[
           {
             field: {
@@ -462,9 +462,30 @@ const CephClusters: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <CephDocumentationCard
-          title="Getting Started with Ceph Monitoring"
+        <AddResourceGuide
+          onboarding={CEPH_CLUSTER_ONBOARDING}
+          title={CEPH_CLUSTER_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new cluster.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddClusterOpen && (
+        <AddResourceModal
+          onboarding={CEPH_CLUSTER_ONBOARDING}
+          onClose={() => {
+            setIsAddClusterOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

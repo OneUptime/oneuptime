@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -11,7 +12,7 @@ import {
   resolveDockerInstallMethod,
 } from "../../Pages/Docker/Utils/DocumentationMarkdown";
 
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   /*
@@ -42,6 +43,9 @@ const DockerDocumentationCard: FunctionComponent<ComponentProps> = (
           hostName: props.hostName,
         });
       }}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

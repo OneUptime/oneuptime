@@ -351,6 +351,27 @@ export function getDatabaseDocumentationHeading(
   };
 }
 
+/**
+ * The column that says a database's data has arrived, for the guide that
+ * opens once Add Database has saved one: the engine metrics its guide sets
+ * up (collectorLastSeenAt, which its applications' traces never move) - or,
+ * for an in-process engine with no server to run an agent beside, the
+ * traces of the applications that use it (lastSeenAt).
+ */
+export function getDatabaseDataArrivedField(
+  database: DatabaseDocumentationTarget,
+): "collectorLastSeenAt" | "lastSeenAt" {
+  if (
+    !getDatabaseAgentEngine(database.dbSystem) &&
+    getDatabaseSystemDescriptor(database.dbSystem)?.engineMetrics.kind ===
+      "embedded"
+  ) {
+    return "lastSeenAt";
+  }
+
+  return "collectorLastSeenAt";
+}
+
 export interface DatabaseAgentIdentity {
   // DATABASE_SERVER_ADDRESS — the name applications use (never host\instance).
   serverAddress: string;

@@ -128,6 +128,45 @@ export interface IoTSetupGuideOptions {
   oneuptimeUrl: string;
   apiKey: string;
   method: IoTIngestionMethod;
+  /*
+   * The fleet the readings go to: the name typed in Add IoT Fleet, or a
+   * fleet's own Documentation tab. Omitted on the Documentation page, where
+   * the snippets name an example fleet for the reader to replace.
+   */
+  fleetName?: string | undefined;
+}
+
+// A fleet name the snippets can carry as it is.
+const PLAIN_FLEET_NAME: RegExp = /^[A-Za-z0-9._-]+$/;
+
+interface FleetName {
+  name: string;
+  isKnown: boolean;
+}
+
+/*
+ * The fleet name goes into OTEL_RESOURCE_ATTRIBUTES (where "," and "="
+ * separate the pairs), an MQTT topic (where "/", "+" and "#" are
+ * structure) and a YAML value as it is, which is only safe for a plain
+ * name. Fleet names are in practice; anything else gets the example name
+ * rather than a snippet that sends readings somewhere else.
+ */
+function resolveFleetName(data: {
+  fleetName: string | undefined;
+  example: string;
+}): FleetName {
+  const known: string = (data.fleetName || "").trim();
+  if (known && PLAIN_FLEET_NAME.test(known)) {
+    return { name: known, isKnown: true };
+  }
+  return { name: data.example, isKnown: false };
+}
+
+function getDeviceFleet(data: IoTSetupGuideOptions): FleetName {
+  return resolveFleetName({
+    fleetName: data.fleetName,
+    example: IOT_EXAMPLE_FLEET_NAME,
+  });
 }
 
 function isMqtt(method: IoTIngestionMethod): boolean {
@@ -141,7 +180,10 @@ function getPlaceholderNote(apiKey: string): string {
   return `\n\nPick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`;
 }
 
-const TOPIC_PREFIX: string = `${IOT_MQTT_TOPIC_PREFIX}/${IOT_EXAMPLE_FLEET_NAME}/${IOT_EXAMPLE_DEVICE_ID}`;
+// The topic the MQTT examples publish under: the fleet's, for the example device.
+function getTopicPrefix(fleet: FleetName): string {
+  return `${IOT_MQTT_TOPIC_PREFIX}/${fleet.name}/${IOT_EXAMPLE_DEVICE_ID}`;
+}
 
 // The example reading, as the MQTT step publishes it.
 const EXAMPLE_TELEMETRY_PAYLOAD: string =
@@ -190,6 +232,11 @@ function getPrerequisites(method: IoTIngestionMethod): Array<string> {
 }
 
 function getSdkConfigureStep(data: IoTSetupGuideOptions): SetupGuideStep {
+  const fleet: FleetName = getDeviceFleet(data);
+  const replaceNote: string = fleet.isKnown
+    ? `This sends the readings to the fleet **\`${fleet.name}\`**. Replace \`${IOT_EXAMPLE_DEVICE_ID}\` with the device's id, and keep \`iot.fleet.name\` exactly as it is: another name registers a new fleet.`
+    : `Replace \`${fleet.name}\` and \`${IOT_EXAMPLE_DEVICE_ID}\` with your fleet name and device id. Keep \`iot.fleet.name\` stable: changing it registers a brand-new fleet.`;
+
   return {
     title: "Point the SDK at OneUptime",
     description:
@@ -199,10 +246,10 @@ function getSdkConfigureStep(data: IoTSetupGuideOptions): SetupGuideStep {
       `export OTEL_EXPORTER_OTLP_ENDPOINT=${shellQuote(`${data.oneuptimeUrl}/otlp`)}
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 export OTEL_EXPORTER_OTLP_HEADERS=${shellQuote(`x-oneuptime-token=${data.apiKey}`)}
-export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=${IOT_EXAMPLE_FLEET_NAME},device.id=${IOT_EXAMPLE_DEVICE_ID},service.name=iot/${IOT_EXAMPLE_FLEET_NAME}`,
+export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=${fleet.name},device.id=${IOT_EXAMPLE_DEVICE_ID},service.name=iot/${fleet.name}`,
     )}
 
-Replace \`${IOT_EXAMPLE_FLEET_NAME}\` and \`${IOT_EXAMPLE_DEVICE_ID}\` with your fleet name and device id. Keep \`iot.fleet.name\` stable: changing it registers a brand-new fleet.${getPlaceholderNote(data.apiKey)}`,
+${replaceNote}${getPlaceholderNote(data.apiKey)}`,
   };
 }
 
@@ -226,6 +273,7 @@ The device inventory is keyed on the datapoint's \`device.id\`, not the resource
 function getGatewayConfig(data: {
   oneuptimeUrl: string;
   apiKey: string;
+  fleetName: string;
 }): string {
   return `receivers:
   otlp:
@@ -242,10 +290,10 @@ processors:
   resource:
     attributes:
       - key: iot.fleet.name
-        value: ${IOT_EXAMPLE_GATEWAY_FLEET_NAME}
+        value: ${data.fleetName}
         action: upsert
       - key: service.name
-        value: iot/${IOT_EXAMPLE_GATEWAY_FLEET_NAME}
+        value: iot/${data.fleetName}
         action: upsert
 
 exporters:
@@ -263,15 +311,30 @@ service:
 }
 
 function getGatewayConfigStep(data: IoTSetupGuideOptions): SetupGuideStep {
+  const fleet: FleetName = resolveFleetName({
+    fleetName: data.fleetName,
+    example: IOT_EXAMPLE_GATEWAY_FLEET_NAME,
+  });
+  const fleetNote: string = fleet.isKnown
+    ? `- Every reading this gateway forwards goes to the fleet **\`${fleet.name}\`**: keep \`iot.fleet.name\` and \`service.name\` exactly as they are, or the readings register a new fleet. A gateway for another fleet sets its own.`
+    : "- Set `iot.fleet.name` (and the matching `service.name=iot/<fleet>`) per gateway so each gateway's devices land in the right fleet.";
+
   return {
     title: "Save the gateway's collector config",
     description:
       "The collector receives OTLP from your devices, stamps the fleet on it and forwards it to OneUptime.",
     markdown: `Save this as \`config.yaml\` on the gateway:
 
-${codeBlock("yaml", getGatewayConfig(data))}
+${codeBlock(
+  "yaml",
+  getGatewayConfig({
+    oneuptimeUrl: data.oneuptimeUrl,
+    apiKey: data.apiKey,
+    fleetName: fleet.name,
+  }),
+)}
 
-- Set \`iot.fleet.name\` (and the matching \`service.name=iot/<fleet>\`) per gateway so each gateway's devices land in the right fleet.
+${fleetNote}
 - Keep \`device.id\` (and optionally \`iot.device.kind\` / \`iot.device.type\` / \`iot.device.firmware\`) on each datapoint so OneUptime can resolve the individual device inside the fleet.${getPlaceholderNote(data.apiKey)}`,
   };
 }
@@ -318,6 +381,11 @@ ${GATEWAY_DEVICES_NOTE}`,
 
 function getMqttPublishStep(data: IoTSetupGuideOptions): SetupGuideStep {
   const url: string = getIoTMqttWebSocketUrl(data.oneuptimeUrl);
+  const fleet: FleetName = getDeviceFleet(data);
+  const topicPrefix: string = getTopicPrefix(fleet);
+  const replaceNote: string = fleet.isKnown
+    ? `Replace \`${IOT_EXAMPLE_DEVICE_ID}\` with the device's id — OneUptime adds the device to the fleet **\`${fleet.name}\`** from the topic.`
+    : `Replace \`${fleet.name}\` and \`${IOT_EXAMPLE_DEVICE_ID}\` with your fleet name and device id — OneUptime creates the fleet and the device from the topic.`;
 
   return {
     title: "Publish a reading",
@@ -339,21 +407,21 @@ const client = mqtt.connect("${url}", {
   username: "oneuptime", // ignored — the key below is what authenticates
   password: "${data.apiKey}",
   will: {
-    topic: "${TOPIC_PREFIX}/status",
+    topic: "${topicPrefix}/status",
     payload: "offline",
   },
 });
 
 client.on("connect", () => {
-  client.publish("${TOPIC_PREFIX}/status", "online");
+  client.publish("${topicPrefix}/status", "online");
   client.publish(
-    "${TOPIC_PREFIX}/telemetry",
+    "${topicPrefix}/telemetry",
     JSON.stringify({ metrics: { iot_device_up: 1, iot_temperature_celsius: 21.5 } }),
   );
 });`,
 )}
 
-Replace \`${IOT_EXAMPLE_FLEET_NAME}\` and \`${IOT_EXAMPLE_DEVICE_ID}\` with your fleet name and device id — OneUptime creates the fleet and the device from the topic. The Last Will reports the device offline the moment its connection drops; devices that connect directly are better off with their own credential (both under Advanced).${getPlaceholderNote(data.apiKey)}`,
+${replaceNote} The Last Will reports the device offline the moment its connection drops; devices that connect directly are better off with their own credential (both under Advanced).${getPlaceholderNote(data.apiKey)}`,
   };
 }
 
@@ -546,7 +614,10 @@ The endpoint is ingestion-only: subscriptions are refused. A publish is capped a
   };
 }
 
-function getRawTcpTopic(apiKey: string): SetupGuideTopic {
+function getRawTcpTopic(data: {
+  apiKey: string;
+  topicPrefix: string;
+}): SetupGuideTopic {
   return {
     title: "Raw MQTT over TCP (self-hosted)",
     summary:
@@ -556,8 +627,8 @@ function getRawTcpTopic(apiKey: string): SetupGuideTopic {
 ${codeBlock(
   "bash",
   `mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \\
-  -u oneuptime -P ${shellQuote(apiKey)} \\
-  -t "${TOPIC_PREFIX}/telemetry" \\
+  -u oneuptime -P ${shellQuote(data.apiKey)} \\
+  -t "${data.topicPrefix}/telemetry" \\
   -m '${EXAMPLE_TELEMETRY_PAYLOAD}'`,
 )}
 
@@ -580,7 +651,10 @@ function getAdvancedTopics(data: IoTSetupGuideOptions): Array<SetupGuideTopic> {
       getDeviceCredentialTopic(),
       getLastWillTopic(),
       getMqttTopicsTopic(),
-      getRawTcpTopic(data.apiKey),
+      getRawTcpTopic({
+        apiKey: data.apiKey,
+        topicPrefix: getTopicPrefix(getDeviceFleet(data)),
+      }),
     );
   }
 

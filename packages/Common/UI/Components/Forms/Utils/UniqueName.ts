@@ -40,6 +40,12 @@ export type GetUniqueNameFunction = (data: {
    * is not text, or is blank, is passed over.
    */
   existingNames: Iterable<string | null | undefined>;
+  /*
+   * What goes between the name and its number: a space ("API Monitor 2")
+   * unless the name is one a command carries, which takes no spaces
+   * ("my-cluster-2", Components/ResourceOnboarding).
+   */
+  separator?: string | undefined;
 }) => string;
 
 /**
@@ -50,7 +56,9 @@ export type GetUniqueNameFunction = (data: {
 export const getUniqueName: GetUniqueNameFunction = (data: {
   name: string;
   existingNames: Iterable<string | null | undefined>;
+  separator?: string | undefined;
 }): string => {
+  const separator: string = data.separator ?? " ";
   const name: string = data.name.trim();
 
   if (name.length === 0) {
@@ -71,7 +79,7 @@ export const getUniqueName: GetUniqueNameFunction = (data: {
 
   // One more than there are names is always enough.
   for (let number: number = 2; number <= taken.size + 2; number++) {
-    const candidate: string = `${name} ${number}`;
+    const candidate: string = `${name}${separator}${number}`;
 
     if (!taken.has(normalizeNameForComparison(candidate))) {
       return candidate;
@@ -79,7 +87,7 @@ export const getUniqueName: GetUniqueNameFunction = (data: {
   }
 
   // Unreachable (see the loop bound); kept so the function always returns.
-  return `${name} ${taken.size + 2}`;
+  return `${name}${separator}${taken.size + 2}`;
 };
 
 /*

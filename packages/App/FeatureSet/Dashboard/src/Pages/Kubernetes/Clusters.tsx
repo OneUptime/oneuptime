@@ -1,7 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -15,19 +13,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
-import {
-  getDisplayNameFormField,
-  getIdentityFormField,
-  getNameFromIdentityField,
-} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -39,7 +35,10 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import KUBERNETES_CLUSTER_ONBOARDING from "../../Components/Kubernetes/KubernetesClusterOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -53,6 +52,9 @@ const KubernetesClusters: FunctionComponent<
     useFirstRecordWatch<KubernetesCluster>({
       modelType: KubernetesCluster,
     });
+  const [isAddClusterOpen, setIsAddClusterOpen] = useState<boolean>(false);
+  // Clusters connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<KubernetesCluster>({ modelType: KubernetesCluster });
@@ -120,22 +122,19 @@ const KubernetesClusters: FunctionComponent<
   }
 
   /*
-   * The create form asks for the one thing a cluster cannot be created
-   * without: the clusterName its kubernetes-agent reports. The display name
-   * follows it - a cluster added here is named like a discovered one - and
-   * folds under Advanced with the description and the labels, so the form
-   * is two rows (DiscoveredResourceFormFields).
+   * A cluster is added by installing the agent (Add Kubernetes Cluster):
+   * the guide asks for the cluster's name, writes it into the helm
+   * command, and the cluster registers itself under it when the agent
+   * connects. There is no form: a cluster typed in by hand would only wait
+   * for telemetry that nothing sends.
    */
-  const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
-    getAdvancedFormSection<KubernetesCluster>();
-
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
         topContent={getFirstRunTopContent({
@@ -152,16 +151,10 @@ const KubernetesClusters: FunctionComponent<
         onFetchSuccess={(data: Array<KubernetesCluster>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(
-          item: KubernetesCluster,
-        ): Promise<KubernetesCluster> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -178,40 +171,19 @@ const KubernetesClusters: FunctionComponent<
           title: "Kubernetes Clusters",
           description:
             "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
+          buttons: [
+            {
+              title: KUBERNETES_CLUSTER_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddClusterOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          getIdentityFormField<KubernetesCluster>({
-            field: {
-              clusterIdentifier: true,
-            },
-            title: "Cluster Name (clusterName)",
-            placeholder: "production-us-east-1",
-            description:
-              "The clusterName you installed the kubernetes-agent Helm chart with, exactly. Telemetry is matched to this cluster by it.",
-          }),
-          getDisplayNameFormField<KubernetesCluster>({
-            getDefaultName:
-              getNameFromIdentityField<KubernetesCluster>("clusterIdentifier"),
-            placeholder: "Production US East",
-            description:
-              "Starts as the cluster name. Type your own name to show instead; telemetry is still matched by the cluster name.",
-            collapsibleSection: advancedSection,
-          }),
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production cluster running in US East",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<KubernetesCluster>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
+        formFields={[]}
         columns={[
           {
             field: {
@@ -324,9 +296,30 @@ const KubernetesClusters: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <KubernetesDocumentationCard
-          title="Getting Started with Kubernetes Monitoring"
+        <AddResourceGuide
+          onboarding={KUBERNETES_CLUSTER_ONBOARDING}
+          title={KUBERNETES_CLUSTER_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new cluster.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddClusterOpen && (
+        <AddResourceModal
+          onboarding={KUBERNETES_CLUSTER_ONBOARDING}
+          onClose={() => {
+            setIsAddClusterOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

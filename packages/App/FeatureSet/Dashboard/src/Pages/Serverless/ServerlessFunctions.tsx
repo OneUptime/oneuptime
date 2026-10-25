@@ -1,7 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -10,19 +8,17 @@ import ServerlessFunctionOwnerTeam from "Common/Models/DatabaseModels/Serverless
 import ServerlessFunctionOwnerUser from "Common/Models/DatabaseModels/ServerlessFunctionOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
-import {
-  getDisplayNameFormField,
-  getIdentityFormField,
-  getNameFromIdentityField,
-} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -38,7 +34,11 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ServerlessDocumentationCard from "../../Components/Serverless/ServerlessDocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import SERVERLESS_FUNCTION_ONBOARDING from "../../Components/Serverless/ServerlessFunctionOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -50,6 +50,9 @@ const ServerlessFunctions: FunctionComponent<
     useFirstRecordWatch<ServerlessFunction>({
       modelType: ServerlessFunction,
     });
+  const [isAddFunctionOpen, setIsAddFunctionOpen] = useState<boolean>(false);
+  // Functions connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<ServerlessFunction>({
@@ -107,23 +110,18 @@ const ServerlessFunctions: FunctionComponent<
   }
 
   /*
-   * The create form asks for the one thing a function cannot be created
-   * without: the faas.name its telemetry carries (on Azure Functions,
-   * ingest fills it in from service.name). The display name follows it - a
-   * function added here is named like a discovered one - and folds under
-   * Advanced with the description and the labels, so the form is two rows
-   * (DiscoveredResourceFormFields).
+   * A function is added by instrumenting it (Add Serverless Function): it
+   * registers itself under its faas.name when its first data arrives, and
+   * the guide's last step says so. There is no form: a function typed in
+   * by hand would only wait for telemetry that nothing sends.
    */
-  const advancedSection: FormFieldCollapsibleSection<ServerlessFunction> =
-    getAdvancedFormSection<ServerlessFunction>();
-
   return (
     <Fragment>
       <ModelTable<ServerlessFunction>
         modelType={ServerlessFunction}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         topContent={getFirstRunTopContent({
           topContent: filterBar,
           count: firstRecordWatch.count,
@@ -142,16 +140,10 @@ const ServerlessFunctions: FunctionComponent<
         onFetchSuccess={(data: Array<ServerlessFunction>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(
-          item: ServerlessFunction,
-        ): Promise<ServerlessFunction> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         isViewable={true}
         bulkActions={{
           buttons: [
@@ -175,41 +167,18 @@ const ServerlessFunctions: FunctionComponent<
           title: "Serverless Functions",
           description:
             "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.",
+          buttons: [
+            {
+              title: SERVERLESS_FUNCTION_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddFunctionOpen(true);
+              },
+            },
+          ],
         }}
-        formFields={[
-          getIdentityFormField<ServerlessFunction>({
-            field: {
-              functionIdentifier: true,
-            },
-            title: "Function Name (faas.name)",
-            placeholder: "checkout-handler",
-            description:
-              "The faas.name your function's telemetry carries, exactly (on Azure Functions, the app's OTEL_SERVICE_NAME).",
-          }),
-          getDisplayNameFormField<ServerlessFunction>({
-            getDefaultName:
-              getNameFromIdentityField<ServerlessFunction>(
-                "functionIdentifier",
-              ),
-            placeholder: "Checkout handler",
-            description:
-              "Starts as the function name. Type your own name to show instead; telemetry is still matched by the function name.",
-            collapsibleSection: advancedSection,
-          }),
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Handles checkout events",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<ServerlessFunction>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
+        formFields={[]}
         filters={[
           {
             field: {
@@ -370,9 +339,30 @@ const ServerlessFunctions: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <ServerlessDocumentationCard
-          title="Getting Started with Serverless Functions"
+        <AddResourceGuide
+          onboarding={SERVERLESS_FUNCTION_ONBOARDING}
+          title={SERVERLESS_FUNCTION_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new function.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddFunctionOpen && (
+        <AddResourceModal
+          onboarding={SERVERLESS_FUNCTION_ONBOARDING}
+          onClose={() => {
+            setIsAddFunctionOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}
