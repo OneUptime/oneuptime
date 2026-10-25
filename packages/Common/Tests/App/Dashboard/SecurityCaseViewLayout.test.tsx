@@ -205,7 +205,10 @@ import SecurityCaseViewContext, {
   useSecurityCaseView,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/SecurityCaseViewContext";
 import { SECURITY_CASE_VIEW_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseViewSelect";
-import { SECURITY_CASE_NOT_FOUND_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseNotFound";
+import {
+  SECURITY_CASE_NOT_FOUND_COPY,
+  SecurityCaseNotFoundReason,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseNotFound";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -604,9 +607,12 @@ describe("every page of a case", () => {
   test("going from page to page keeps the case it read: no read per page", async () => {
     await openCase();
 
+    // Taken once the router has drawn, for the loop below to call.
+    const goTo: (path: string) => void = navigateTo!;
+
     for (const [, segment, title] of SUB_PAGES) {
       await act(async () => {
-        navigateTo!(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
+        goTo(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
       });
 
       expect(screen.getByTestId("case-page")).toHaveAttribute(
@@ -948,7 +954,8 @@ describe("a case there is nothing to show of", () => {
     expect(state).toHaveAttribute("data-reason", "not-found");
     expect(state).toHaveTextContent("This case could not be found");
     expect(state).toHaveTextContent(
-      SECURITY_CASE_NOT_FOUND_COPY["not-found" as never]!.description,
+      SECURITY_CASE_NOT_FOUND_COPY[SecurityCaseNotFoundReason.NotFound]
+        .description,
     );
     // No side menu and no header: there is no case to work.
     expect(screen.queryByTestId("security-case-header")).toBeNull();

@@ -498,9 +498,14 @@ describe("each other page of a case", () => {
   });
 
   test("the Entities page of a case that names nobody hands the card none", () => {
+    const namesNobody: SecurityCase = buildCase();
+
+    // A case read without entities: the column left empty.
+    Object.assign(namesNobody, { entities: undefined });
+
     drawPage(
       <SecurityCaseEntitiesPage {...PAGE_PROPS} />,
-      contextFor(buildCase({ entities: undefined })),
+      contextFor(namesNobody),
     );
 
     expect(lastProps("SecurityCaseEntitiesCard")["entities"]).toEqual([]);

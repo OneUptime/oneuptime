@@ -1018,6 +1018,8 @@ describe("every Security Events address", () => {
     await open(`${PRODUCT}/cases/${CASE_ID}`);
 
     const layoutsBefore: number = mountsOf("CaseLayout");
+    // Taken once the router has drawn, for the loop below to call.
+    const goTo: (path: string) => void = navigateTo!;
 
     for (const [segment, page] of [
       ["detections", "CaseDetections"],
@@ -1029,7 +1031,7 @@ describe("every Security Events address", () => {
       ["delete", "CaseDelete"],
     ] as Array<[string, string]>) {
       await act(async () => {
-        navigateTo!(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
+        goTo(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
       });
 
       expect(drawn().page).toBe(page);
