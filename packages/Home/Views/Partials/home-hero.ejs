@@ -1,39 +1,64 @@
-<section class="relative isolate overflow-hidden bg-white" id="hero-section" aria-labelledby="hero-title">
-  <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
+<%#
+  What OneUptime is, set on the same left edge as every section below it,
+  and the product: the Dashboard's Home page during incident #1042, with
+  OneUptime AI's root cause and the fix it opened beside it.
+-%>
+<section class="relative isolate overflow-hidden border-b border-gray-200/70 bg-white" id="hero-section" aria-labelledby="hero-title">
+  <%#
+    The stage the product stands on. Its edge is level with the Home page's
+    incident banner, 11rem into the product box below (each height here is
+    that box's less 11rem), and from a laptop up with the top of the AI's
+    report.
+  -%>
+  <div class="absolute inset-x-0 bottom-0 -z-10 h-[21rem] border-t border-gray-200/60 bg-gray-50 sm:h-[35rem] lg:h-[30rem]" aria-hidden="true"></div>
 
-  <div class="mx-auto max-w-6xl px-6 pt-14 sm:pt-20 lg:px-8">
-    <div class="mx-auto max-w-5xl text-center">
-      <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-3.5 py-1.5 text-sm text-gray-600 shadow-sm backdrop-blur hover:border-gray-300 hover:text-gray-900">
-        <svg class="h-4 w-4 text-gray-900" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
-        <span>Open source on GitHub<% if (githubStars) { %> <span class="text-gray-400">&middot;</span> <%= githubStars %> stars<% } %></span>
-        <span class="text-gray-400" aria-hidden="true">&rarr;</span>
-      </a>
-
-      <h1 id="hero-title" class="mt-8 text-balance text-[2.5rem] font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-6xl sm:leading-[1.05] lg:text-[3.75rem]">AI-native observability. <span class="text-gray-500 lg:block">From the first alert to the fix.</span></h1>
-
-      <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
-        OneUptime is one open-source platform for uptime monitoring, status pages, on-call, incidents, logs, metrics and traces. Its AI agent finds the root cause and opens the fix for your team to review.
-      </p>
-
-      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href="/accounts/register" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-950 sm:w-auto">
-          Get started free
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+  <div class="mx-auto max-w-6xl px-6 pt-14 sm:pt-20 lg:px-8 lg:pt-24">
+    <div class="grid grid-cols-1 gap-y-10 lg:grid-cols-12 lg:items-end lg:gap-x-10">
+      <div class="lg:col-span-7">
+        <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-950">
+          <svg class="h-4 w-4 text-gray-950" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
+          <span>Open source<% if (githubStars) { %><span class="mx-1.5 text-gray-300" aria-hidden="true">/</span><%= githubStars %> stars on GitHub<% } else { %> on GitHub<% } %></span>
+          <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
         </a>
-        <a href="/enterprise/demo" class="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-6 text-[15px] font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 sm:w-auto">Book a demo</a>
+
+        <%# The full stop is the logo's green square, as it is after "OneUptime"; screen readers still hear a full stop. -%>
+        <h1 id="hero-title" class="mt-8 text-balance text-[3.25rem] font-semibold leading-[0.95] tracking-[-0.05em] text-gray-950 sm:text-[5rem] lg:text-[5.5rem] xl:text-[6.25rem]">AI-native observability<span class="sr-only">.</span><span class="ml-[0.05em] inline-block h-[0.15em] w-[0.15em] rounded-[0.02em] bg-[#7ed957]" aria-hidden="true"></span></h1>
       </div>
-      <p class="mt-5 text-sm text-gray-500">Free plan &middot; No credit card required &middot; Self-host anytime</p>
+
+      <div class="lg:col-span-5 lg:pb-1">
+        <p class="max-w-md text-[17px] leading-7 text-gray-600">OneUptime is one open-source platform for uptime monitoring, status pages, on-call, incidents, logs, metrics and traces. Its AI agent finds the root cause and opens the fix for your team to review.</p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+          <a href="/accounts/register" class="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(16,24,40,0.24)] hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-950">
+            Get started free
+            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+          </a>
+          <a href="/enterprise/demo" class="inline-flex h-12 items-center justify-center rounded-lg bg-white px-6 text-[15px] font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-900/15 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">Book a demo</a>
+        </div>
+        <p class="mt-5 text-[13px] text-gray-500">Free plan &middot; No credit card required &middot; Self-host anytime</p>
+      </div>
     </div>
   </div>
 
-  <!-- The product, on a stage -->
-  <div class="mx-auto mt-16 max-w-6xl px-4 pb-8 sm:mt-20 sm:px-6 sm:pb-12 lg:px-8">
-    <div class="rounded-[1.75rem] bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/70 p-2 ring-1 ring-inset ring-gray-200/70 sm:p-6 lg:p-10">
-      <div class="relative mx-auto max-w-5xl">
+  <%#
+    The product, read left to right: the Home page mid-incident, running on
+    past the bottom of the hero, then OneUptime AI's report and the pull
+    request it opened. Below a laptop the report stands on the hero's bottom
+    edge, over the page, clear of its stats.
+  -%>
+  <div class="mx-auto mt-14 max-w-6xl px-4 sm:mt-20 sm:px-6 lg:px-8">
+    <div class="relative h-[32rem] sm:h-[46rem] lg:h-[41rem]">
+      <div class="absolute inset-x-0 top-0 overflow-hidden rounded-t-xl shadow-[0_0_0_1px_rgba(16,24,40,0.07),0_2px_4px_rgba(16,24,40,0.04),0_24px_48px_-16px_rgba(16,24,40,0.22)] lg:right-[36%]">
         <%- include('./home-mocks/mock-hero') -%>
-        <%# OneUptime AI's report on the same incident, laid over the Home page from a laptop up. -%>
-        <div class="absolute -bottom-8 -right-6 w-[21rem] max-lg:hidden lg:block xl:-right-8">
-          <%- include('./home-mocks/mock-ai-summary') -%>
+      </div>
+
+      <%#
+        From a laptop up the column starts level with the incident banner it
+        explains, and tucks over the page's right margin, no further.
+      -%>
+      <div class="absolute inset-x-3 bottom-0 space-y-4 sm:left-auto sm:right-6 sm:w-[22rem] lg:bottom-auto lg:right-0 lg:top-44 lg:w-[38%]">
+        <%- include('./home-mocks/mock-ai-summary') -%>
+        <div class="max-lg:hidden lg:block">
+          <%- include('./home-mocks/mock-fix-pr') -%>
         </div>
       </div>
     </div>

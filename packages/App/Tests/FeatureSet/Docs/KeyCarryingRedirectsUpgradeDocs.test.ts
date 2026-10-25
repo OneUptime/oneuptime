@@ -187,13 +187,14 @@ describe("the English upgrade note on the redirects of requests that carry a key
       { file: "client.go", checksRedirects: true },
     ]);
 
+    // Go's default client and the helpers that send through it.
+    const defaultClientUse: RegExp =
+      /http\.(DefaultClient|Get\(|Post\(|PostForm\(|Head\()/;
+
     for (const source of sources) {
       expect({
         file: source.file,
-        defaultClient:
-          /http\.(DefaultClient|Get\(|Post\(|PostForm\(|Head\()/.test(
-            source.text,
-          ),
+        defaultClient: defaultClientUse.test(source.text),
       }).toEqual({ file: source.file, defaultClient: false });
     }
 
