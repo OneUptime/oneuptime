@@ -94,11 +94,13 @@ Android desktop windows make any size possible anywhere. The rules live in
 `src/layout/WindowLayout.tsx`. Never branch on `Platform.isPad`, a device
 model, a list of known screen sizes or the orientation.
 
-| Window                                                        | Navigation           | Panes                        |
-| ------------------------------------------------------------- | -------------------- | ---------------------------- |
-| Under 600 points wide (phones, cover screens, splits)         | Bar along the bottom | One                          |
-| 600 points or wider and wider than tall (phone on its side)   | Rail down the left   | One                          |
-| 840 points or wider, with two 360-point panes beside the rail | Rail down the left   | List and detail side by side |
+The rows are checked in order; the first that fits the window wins.
+
+| Window                                                                                                                                                  | Navigation           | Panes                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ---------------------------- |
+| 840 points or wider, with room for two 360-point panes beside the rail (an unfolded Fold either way up, the iPhone Duo held open, a tablet on its side) | Rail down the left   | List and detail side by side |
+| 600 points or wider and wider than tall (a phone on its side)                                                                                           | Rail down the left   | One                          |
+| Anything else (phones and smaller tablets held upright, cover screens, narrow splits)                                                                   | Bar along the bottom | One                          |
 
 - **Two panes.** The Inbox, Monitors and On-Call stacks use
   `createAdaptiveStackNavigator` (`src/navigation`): one navigation state,
