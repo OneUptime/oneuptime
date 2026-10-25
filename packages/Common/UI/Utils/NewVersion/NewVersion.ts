@@ -152,6 +152,7 @@ export default class NewVersion {
     null;
   private static listeners: Set<NewVersionListener> =
     new Set<NewVersionListener>();
+  private static noticeHolds: number = 0;
   private static stopFunctions: Array<() => void> = [];
 
   /*
@@ -251,6 +252,7 @@ export default class NewVersion {
     NewVersion.lastCheckStartedAt = 0;
     NewVersion.checkInFlight = null;
     NewVersion.isReloading = false;
+    NewVersion.noticeHolds = 0;
 
     if (NewVersion.reloadGiveUpTimer) {
       clearTimeout(NewVersion.reloadGiveUpTimer);
@@ -291,6 +293,16 @@ export default class NewVersion {
     return Boolean(runningBuild.buildId && runningBuild.manifestUrl);
   }
 
+  private static notifyListeners(): void {
+    for (const listener of Array.from(NewVersion.listeners)) {
+      try {
+        listener(NewVersion.state);
+      } catch {
+        // One listener failing must not keep the others from hearing it.
+      }
+    }
+  }
+
   private static setState(state: NewVersionState): void {
     if (
       state.status === NewVersion.state.status &&
@@ -300,14 +312,32 @@ export default class NewVersion {
     }
 
     NewVersion.state = state;
+    NewVersion.notifyListeners();
+  }
 
-    for (const listener of Array.from(NewVersion.listeners)) {
-      try {
-        listener(state);
-      } catch {
-        // One listener failing must not keep the others from hearing it.
+  /*
+   * Keeps the notice away while the page itself speaks of the new version
+   * (ChunkLoadRecovery's page screens): one message at a time.
+   */
+  public static holdNotice(): () => void {
+    NewVersion.noticeHolds++;
+    NewVersion.notifyListeners();
+
+    let isReleased: boolean = false;
+
+    return (): void => {
+      if (isReleased) {
+        return;
       }
-    }
+
+      isReleased = true;
+      NewVersion.noticeHolds = Math.max(0, NewVersion.noticeHolds - 1);
+      NewVersion.notifyListeners();
+    };
+  }
+
+  public static isNoticeHeld(): boolean {
+    return NewVersion.noticeHolds > 0;
   }
 
   private static applyResult(result: ServerBuildCheckResult): void {
@@ -452,6 +482,8 @@ export default class NewVersion {
   // A load into the new version has begun: remember the build it was for.
   private static markReloading(): void {
     NewVersion.isReloading = true;
+    // The notice has nothing left to offer.
+    NewVersion.notifyListeners();
 
     if (NewVersion.state.serverBuildId) {
       TabMemory.set(NEW_VERSION_LOADED_FOR_KEY, NewVersion.state.serverBuildId);
@@ -537,14 +569,7 @@ export default class NewVersion {
     }
 
     TabMemory.set(NEW_VERSION_DISMISSED_KEY, serverBuildId);
-
-    for (const listener of Array.from(NewVersion.listeners)) {
-      try {
-        listener(NewVersion.state);
-      } catch {
-        // As in setState.
-      }
-    }
+    NewVersion.notifyListeners();
   }
 
   /*

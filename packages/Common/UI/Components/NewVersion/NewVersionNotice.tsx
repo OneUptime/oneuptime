@@ -25,6 +25,8 @@ import React, {
  * brings it to this page now, back to the same place; when something typed
  * on the page is not saved yet, Reload asks first instead of losing it.
  * Dismissed, it stays away for this build and comes back for the next one.
+ * It steps aside while the page itself says a new version is loading or
+ * needed (ChunkLoadRecovery), and once a reload into it has begun.
  *
  * Status pages and public dashboards never show it: their visitors did not
  * choose OneUptime and get the new version on their next page all the same.
@@ -49,6 +51,11 @@ const NewVersionNotice: FunctionComponent = (): ReactElement | null => {
     NewVersion.isNoticeDismissed(),
   );
   const [isConfirmingReload, setIsConfirmingReload] = useState<boolean>(false);
+  /*
+   * Bumped on every notification: a reload starting or the page taking the
+   * word changes what the notice shows without changing the state.
+   */
+  const [, setRevision] = useState<number>(0);
 
   useEffect(() => {
     // Whatever changed before this subscribed.
@@ -58,6 +65,9 @@ const NewVersionNotice: FunctionComponent = (): ReactElement | null => {
     return NewVersion.subscribe((next: NewVersionState): void => {
       setState(next);
       setIsDismissed(NewVersion.isNoticeDismissed());
+      setRevision((revision: number): number => {
+        return revision + 1;
+      });
     });
   }, []);
 
@@ -69,7 +79,10 @@ const NewVersionNotice: FunctionComponent = (): ReactElement | null => {
   if (
     NewVersion.getAudience() !== NewVersionAudience.Members ||
     state.status !== NewVersionStatus.Available ||
-    isDismissed
+    isDismissed ||
+    // Already on its way to the new version, or the page says so itself.
+    NewVersion.isReloadInProgress() ||
+    NewVersion.isNoticeHeld()
   ) {
     return null;
   }

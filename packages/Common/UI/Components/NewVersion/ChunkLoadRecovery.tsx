@@ -272,6 +272,18 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
     };
   }, [run]);
 
+  /*
+   * A page that says it itself does not need the notice saying it too. One
+   * part of a page leaves it: the notice speaks for the whole app.
+   */
+  useEffect(() => {
+    if (props.variant !== ChunkLoadRecoveryVariant.Page) {
+      return undefined;
+    }
+
+    return NewVersion.holdNotice();
+  }, [props.variant]);
+
   // Offline, or no answer: load by itself as soon as it can.
   useEffect(() => {
     if (

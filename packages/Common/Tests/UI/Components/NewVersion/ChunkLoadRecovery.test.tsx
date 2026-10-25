@@ -655,6 +655,25 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
     ).toBe(false);
   });
 
+  test("a page saying it itself keeps the notice away while it shows, and lets go after", async () => {
+    const release: () => void = UnsavedChanges.hold();
+    start();
+    const { unmount } = render(
+      <ErrorBoundary>
+        <ChunkFailure />
+      </ErrorBoundary>,
+    );
+
+    await waitFor(() => {
+      expect(stepOf()).toBe(ChunkLoadRecoveryStep.NeedsReload);
+    });
+    expect(NewVersion.isNoticeHeld()).toBe(true);
+
+    unmount();
+    expect(NewVersion.isNoticeHeld()).toBe(false);
+    release();
+  });
+
   test("an ordinary render error still shows Something went wrong, with Try again", () => {
     const Broken: FunctionComponent = (): ReactElement => {
       throw new Error("Cannot read properties of undefined (reading 'x')");
@@ -770,6 +789,19 @@ describe("a part of a page whose code did not download (ContainedErrorBoundary)"
     expect(recovery()).toHaveTextContent(
       "Can't reach the server. Trying again automatically.",
     );
+  });
+
+  test("leaves the notice to speak for the whole app", async () => {
+    const release: () => void = UnsavedChanges.hold();
+    start();
+    renderPart();
+
+    await waitFor(() => {
+      expect(stepOf()).toBe(ChunkLoadRecoveryStep.NeedsReload);
+    });
+
+    expect(NewVersion.isNoticeHeld()).toBe(false);
+    release();
   });
 
   test("several parts failing at once ask the server once and reload the page once", async () => {

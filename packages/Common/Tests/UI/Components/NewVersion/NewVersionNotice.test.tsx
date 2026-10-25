@@ -286,6 +286,49 @@ describe("NewVersionNotice", () => {
     expect(notice()).toBeNull();
   });
 
+  test("steps aside while the page itself speaks of the new version, and comes back after", async () => {
+    start();
+    render(<NewVersionNotice />);
+    await serve(NEWER);
+    expect(notice()).toBeInTheDocument();
+
+    let release: () => void = (): void => {};
+
+    act(() => {
+      release = NewVersion.holdNotice();
+    });
+    expect(notice()).toBeNull();
+
+    // A second hold, let go twice, still counts once.
+    let second: () => void = (): void => {};
+    act(() => {
+      second = NewVersion.holdNotice();
+    });
+    act(() => {
+      second();
+      second();
+    });
+    expect(notice()).toBeNull();
+
+    act(() => {
+      release();
+    });
+    expect(notice()).toBeInTheDocument();
+  });
+
+  test("goes away once a reload into the new version has begun", async () => {
+    start();
+    render(<NewVersionNotice />);
+    await serve(NEWER);
+
+    act(() => {
+      NewVersion.reloadKeepingPlace();
+    });
+
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+    expect(notice()).toBeNull();
+  });
+
   test("sits in a corner and never in print", async () => {
     start();
     render(<NewVersionNotice />);

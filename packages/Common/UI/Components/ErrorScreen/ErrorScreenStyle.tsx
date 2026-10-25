@@ -14,7 +14,6 @@ import React, { ReactElement } from "react";
 export const ERROR_SCREEN_CSS: string = `
 .oneuptime-error-boundary,
 .oueb-part {
-  --oueb-canvas: var(--ou-background-primary, #f9fafb);
   --oueb-surface: var(--ou-surface-primary, #ffffff);
   --oueb-surface-muted: var(--ou-surface-secondary, #f9fafb);
   --oueb-border: var(--ou-border-default, #e5e7eb);
@@ -38,6 +37,10 @@ export const ERROR_SCREEN_CSS: string = `
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * On the page's own background (the body paints it in every frontend), so
+ * the screen is not a slightly different box inside the page.
+ */
 .oneuptime-error-boundary {
   display: flex;
   align-items: center;
@@ -45,7 +48,7 @@ export const ERROR_SCREEN_CSS: string = `
   width: 100%;
   min-height: 60vh;
   padding: 3rem 1.5rem;
-  background-color: var(--oueb-canvas);
+  background-color: transparent;
 }
 
 html.dark .oneuptime-error-boundary,

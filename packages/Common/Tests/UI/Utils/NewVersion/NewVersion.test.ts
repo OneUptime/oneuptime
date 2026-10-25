@@ -648,6 +648,49 @@ describe("the next page opened loads the new version", () => {
   });
 });
 
+describe("the notice can be held back", () => {
+  test("while a page says it itself, counting each hold once", async () => {
+    start();
+    const heard: Array<NewVersionState> = [];
+    NewVersion.subscribe((state: NewVersionState) => {
+      heard.push(state);
+    });
+
+    expect(NewVersion.isNoticeHeld()).toBe(false);
+
+    const first: () => void = NewVersion.holdNotice();
+    const second: () => void = NewVersion.holdNotice();
+
+    expect(NewVersion.isNoticeHeld()).toBe(true);
+
+    first();
+    first();
+    expect(NewVersion.isNoticeHeld()).toBe(true);
+
+    second();
+    expect(NewVersion.isNoticeHeld()).toBe(false);
+    // Every change is heard, so a drawn notice follows it.
+    expect(heard).toHaveLength(4);
+  });
+
+  test("a reload starting is heard too, with the state unchanged", async () => {
+    start();
+    server.serve(NEWER);
+    await NewVersion.checkNow({ force: true });
+    const heard: Array<NewVersionState> = [];
+    NewVersion.subscribe((state: NewVersionState) => {
+      heard.push(state);
+    });
+
+    NewVersion.reloadKeepingPlace();
+
+    expect(heard).toEqual([
+      { status: NewVersionStatus.Available, serverBuildId: NEWER },
+    ]);
+    expect(NewVersion.isReloadInProgress()).toBe(true);
+  });
+});
+
 describe("the notice can be dismissed", () => {
   test("for the build it announced, and comes back for the next one", async () => {
     start();
