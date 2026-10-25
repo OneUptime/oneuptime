@@ -12,6 +12,9 @@ synthetic. Captured at 2x.
   fix in the window, and the one domain not in OneUptime.
 - `case-1024.png` / `case-768.png`: the same beside the case's side menu.
 - `case-390-dark.png`: the same on a phone, dark.
+- `case-busy-1280.png` / `case-busy-390-dark.png`: a busy case (`?connections=busy`): one
+  record of every kind, every fact a record can have - each fact a row of its label and its
+  items, one a line - and four possible matches under their own heading.
 - `case-de.png`, `case-fa-1280.png`, `case-fa-390.png`: in German, and in Persian (right to
   left) on a laptop and a phone.
 - `entity-1280.png`: an entity's page (Entity Risk) for k.morgan@acme-commerce.example, where
@@ -36,3 +39,9 @@ Made by:
   `EventOverview/IncidentSecurityCard.spec.ts`).
 
 The images land in `output/playwright/<suite>-ui/`, named `*-synthetic.png`.
+
+`ui-review/` holds the UI review's before and after pairs: `before-*.png` is the builder's
+version, `after-*.png` the reviewed one, each drawn by the same fixture scenario at the same
+width with production's font (Inter) and widths - a busy case beside the case's menu at 768,
+the same in Persian at 1280, a host's Security card at 1280, and a role that can see none of
+the kinds of record.
