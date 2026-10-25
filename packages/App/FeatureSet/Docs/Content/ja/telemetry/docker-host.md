@@ -202,7 +202,8 @@ services:
 ```bash
 docker pull oneuptime/docker-agent:release
 docker pull oneuptime/resource-ai-agent:release
-docker rm -f oneuptime-docker-agent oneuptime-docker-ai-agent
+docker stop oneuptime-docker-agent oneuptime-docker-ai-agent
+docker rm oneuptime-docker-agent oneuptime-docker-ai-agent
 ```
 
 その後、[エージェントを起動する](#エージェントを起動する) の 2 つの `docker run` コマンドを再度実行します。
