@@ -3,10 +3,10 @@
 依排程將自行託管的 OneUptime 備份到你自己的儲存空間，並從 Admin Dashboard 還原。備份包含 PostgreSQL（你的專案、監控器、事件、狀態頁和使用者）和 ClickHouse（你的日誌、追蹤和指標）。備份會依你選擇的天數保留，較舊的備份會自動刪除，任何備份都可以就地還原。備份是企業版的功能。
 
 :::cards
-- [設定備份](#設定備份)：選擇目標、測試它，並設定排程。
-- [目標](#目標)：每個建議目標需要提供什麼。
-- [還原備份](#還原備份)：哪些內容會被取代，以及如何保護目前的資料。
-- [移轉到新伺服器](#移轉到新伺服器)：在另一個安裝中還原某個安裝的備份。
+- [設定備份](#設定備份): 選擇目標、測試它，並設定排程。
+- [目標](#目標): 每個建議目標需要提供什麼。
+- [還原備份](#還原備份): 哪些內容會被取代，以及如何保護目前的資料。
+- [移轉到新伺服器](#移轉到新伺服器): 在另一個安裝中還原某個安裝的備份。
 :::
 
 ## 備份的運作方式
@@ -253,7 +253,7 @@ ALTER USER oneuptime CREATEDB;
 ## 後續步驟
 
 :::cards
-- [企業版](/docs/self-hosted/enterprise)：授權，以及企業版新增的功能。
-- [升級](/docs/installation/upgrading)：每次升級前都先備份。
-- [Docker Compose](/docs/installation/docker-compose)：在一台伺服器上執行 OneUptime。
+- [企業版](/docs/self-hosted/enterprise): 授權，以及企業版新增的功能。
+- [升級](/docs/installation/upgrading): 每次升級前都先備份。
+- [Docker Compose](/docs/installation/docker-compose): 在一台伺服器上執行 OneUptime。
 :::

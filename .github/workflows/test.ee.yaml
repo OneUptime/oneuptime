@@ -91,13 +91,14 @@ jobs:
       # Retention page to the retention-by-type form, the Audit Logs page to
       # the audit log settings form, list, recorder and licence notice, and
       # the Audit Log Export page to the export screens, the exporter and its
-      # webhook, syslog and file destinations.
+      # webhook, syslog and file destinations, and the Backups page to the
+      # Backups screens, the runner's API, its notifications and its tools.
       # Each checks its ee/ half only where ee/ is checked out, and the App
       # Test job deletes ee/ first, so this is where that half runs. They only
       # read files.
       - name: Run App's docs facts that read ee/ with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryExplorersDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryAdminDocsFacts.test.ts Tests/FeatureSet/Docs/AdministrationDocsFacts.test.ts Tests/FeatureSet/Docs/AuditLogExportDocsFacts.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryExplorersDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryAdminDocsFacts.test.ts Tests/FeatureSet/Docs/AdministrationDocsFacts.test.ts Tests/FeatureSet/Docs/AuditLogExportDocsFacts.test.ts Tests/FeatureSet/Docs/BackupsDocsFacts.test.ts --forceExit
       # App's guard that only the Builder's Run Workflow and Run just this step
       # hand the workflow queue a person - which is what lets a run start while
       # the workflow is off, as a test run - walks ee/ too, for any other code

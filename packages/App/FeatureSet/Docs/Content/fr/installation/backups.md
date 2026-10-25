@@ -3,10 +3,10 @@
 Sauvegardez un OneUptime auto-hébergé dans un stockage qui vous appartient, selon un planning, et restaurez-le depuis l'Admin Dashboard. Une sauvegarde contient PostgreSQL, avec vos projets, moniteurs, incidents, pages de statut et utilisateurs, et ClickHouse, avec vos logs, traces et métriques. Les sauvegardes sont conservées autant de jours que vous le choisissez, les plus anciennes sont supprimées pour vous, et toute sauvegarde peut être restaurée sur place. Les sauvegardes font partie de l'Édition Enterprise.
 
 :::cards
-- [Configurer les sauvegardes](#configurer-les-sauvegardes) : Choisir une destination, la tester, définir un planning.
-- [Destinations](#destinations) : Ce que demande chaque destination recommandée.
-- [Restaurer une sauvegarde](#restaurer-une-sauvegarde) : Ce qui est remplacé, et comment les données actuelles restent protégées.
-- [Passer sur un nouveau serveur](#passer-sur-un-nouveau-serveur) : Restaurer les sauvegardes d'une installation sur une autre.
+- [Configurer les sauvegardes](#configurer-les-sauvegardes): Choisir une destination, la tester, définir un planning.
+- [Destinations](#destinations): Ce que demande chaque destination recommandée.
+- [Restaurer une sauvegarde](#restaurer-une-sauvegarde): Ce qui est remplacé, et comment les données actuelles restent protégées.
+- [Passer sur un nouveau serveur](#passer-sur-un-nouveau-serveur): Restaurer les sauvegardes d'une installation sur une autre.
 :::
 
 ## Comment fonctionne une sauvegarde
@@ -253,7 +253,7 @@ Après un changement de destination, les sauvegardes créées à l'ancienne rest
 ## Étapes suivantes
 
 :::cards
-- [Édition Enterprise](/docs/self-hosted/enterprise) : Les licences, et ce qu'ajoute l'Édition Enterprise.
-- [Mise à niveau](/docs/installation/upgrading) : Sauvegarder avant chaque mise à niveau.
-- [Docker Compose](/docs/installation/docker-compose) : Faire tourner OneUptime sur un seul serveur.
+- [Édition Enterprise](/docs/self-hosted/enterprise): Les licences, et ce qu'ajoute l'Édition Enterprise.
+- [Mise à niveau](/docs/installation/upgrading): Sauvegarder avant chaque mise à niveau.
+- [Docker Compose](/docs/installation/docker-compose): Faire tourner OneUptime sur un seul serveur.
 :::

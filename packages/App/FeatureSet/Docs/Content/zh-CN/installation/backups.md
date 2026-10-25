@@ -3,10 +3,10 @@
 按计划将自托管的 OneUptime 备份到你自己的存储中，并从 Admin Dashboard 恢复。备份包含 PostgreSQL（你的项目、监控器、事件、状态页和用户）和 ClickHouse（你的日志、追踪和指标）。备份按你选择的天数保留，较旧的备份会自动删除，任何备份都可以原地恢复。备份是企业版的功能。
 
 :::cards
-- [设置备份](#设置备份)：选择目标，测试它，并设定计划。
-- [目标](#目标)：每个推荐目标需要提供什么。
-- [恢复备份](#恢复备份)：哪些内容会被替换，以及如何保护当前数据。
-- [迁移到新服务器](#迁移到新服务器)：在另一个安装中恢复一个安装的备份。
+- [设置备份](#设置备份): 选择目标，测试它，并设定计划。
+- [目标](#目标): 每个推荐目标需要提供什么。
+- [恢复备份](#恢复备份): 哪些内容会被替换，以及如何保护当前数据。
+- [迁移到新服务器](#迁移到新服务器): 在另一个安装中恢复一个安装的备份。
 :::
 
 ## 备份的工作原理
@@ -253,7 +253,7 @@ ALTER USER oneuptime CREATEDB;
 ## 后续步骤
 
 :::cards
-- [企业版](/docs/self-hosted/enterprise)：许可证，以及企业版增加的功能。
-- [升级](/docs/installation/upgrading)：每次升级前都先备份。
-- [Docker Compose](/docs/installation/docker-compose)：在一台服务器上运行 OneUptime。
+- [企业版](/docs/self-hosted/enterprise): 许可证，以及企业版增加的功能。
+- [升级](/docs/installation/upgrading): 每次升级前都先备份。
+- [Docker Compose](/docs/installation/docker-compose): 在一台服务器上运行 OneUptime。
 :::
