@@ -182,7 +182,10 @@ jest.mock(
       list: "statuses" | "priorities",
     ) => {
       return (
-        props["values"] as Record<string, Array<{ _id?: string; name?: string }>>
+        props["values"] as Record<
+          string,
+          Array<{ _id?: string; name?: string }>
+        >
       )[list]!;
     };
 
@@ -226,7 +229,10 @@ jest.mock(
         (props: Record<string, unknown>) => {
           return valuesOf(props, "priorities").map(
             (priority: { _id?: string; name?: string }): Pick => {
-              return { label: `priority-${priority.name}`, value: priority._id };
+              return {
+                label: `priority-${priority.name}`,
+                value: priority._id,
+              };
             },
           );
         },
@@ -288,7 +294,9 @@ function buildCase(
   row._id = caseId(number);
   row.caseNumberWithPrefix = `CASE-${number}`;
   row.title = `Case ${number} to work`;
-  row.securityCaseStatusId = testStatusId(fields.stage || SecurityCaseStage.New);
+  row.securityCaseStatusId = testStatusId(
+    fields.stage || SecurityCaseStage.New,
+  );
   row.securityCasePriorityId = testPriorityId(
     fields.priority || SecurityCasePriorityLevel.High,
   );
@@ -833,12 +841,12 @@ describe("Bulk Actions", () => {
     expect(
       await screen.findByTestId("bulk-action-succeeded-count"),
     ).toHaveTextContent("2 Security Cases updated");
-    expect(
-      screen.getByTestId("bulk-action-unchanged-items"),
-    ).toHaveTextContent("CASE-136");
-    expect(
-      screen.getByTestId("bulk-action-unchanged-items"),
-    ).toHaveTextContent("Already Closed.");
+    expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
+      "CASE-136",
+    );
+    expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
+      "Already Closed.",
+    );
     expect(updates).toEqual(
       [141, 137].map((number: number) => {
         return {
@@ -900,9 +908,9 @@ describe("Bulk Actions", () => {
     expect(
       await screen.findByTestId("bulk-action-succeeded-count"),
     ).toHaveTextContent("1 Security Case updated");
-    expect(
-      screen.getByTestId("bulk-action-unchanged-items"),
-    ).toHaveTextContent("Already Critical.");
+    expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
+      "Already Critical.",
+    );
     expect(updates).toEqual([
       {
         id: caseId(141),
@@ -976,10 +984,9 @@ describe("who may work cases", () => {
       "Change Status",
       "Change Priority",
     ]) {
-      expect(within(menu).getByRole("menuitem", { name: title })).toHaveAttribute(
-        "aria-disabled",
-        "true",
-      );
+      expect(
+        within(menu).getByRole("menuitem", { name: title }),
+      ).toHaveAttribute("aria-disabled", "true");
     }
 
     await clickMenuItem(menu, "Assign to Me");

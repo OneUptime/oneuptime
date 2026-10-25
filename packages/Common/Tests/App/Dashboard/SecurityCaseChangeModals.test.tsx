@@ -689,9 +689,9 @@ describe("Change Status", () => {
     await waitFor(() => {
       expect(dialog()).toHaveTextContent("The case was deleted.");
     });
-    expect(within(dialog()).getByTestId("dropdown-value-label")).toHaveTextContent(
-      "Contained",
-    );
+    expect(
+      within(dialog()).getByTestId("dropdown-value-label"),
+    ).toHaveTextContent("Contained");
   });
 });
 

@@ -55,7 +55,10 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Translator, translatableTerm } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
@@ -496,59 +499,58 @@ export default function useSecurityCaseListActions(
     };
   };
 
-  const bulkActions: Array<BulkActionButtonSchema<SecurityCase>> =
-    !gate.isShown
-      ? []
-      : [
-          ...(config.canAssignToMeInBulk
-            ? [
-                bulkAction(
-                  ASSIGN_TO_ME,
-                  SECURITY_CASE_CHANGE_ICONS.assignToMe,
-                  ASSIGNED_TO_YOU_RESULT_LABELS,
-                  async (
-                    actionProps: BulkActionOnClickProps<SecurityCase>,
-                  ): Promise<void> => {
-                    await runBulk(actionProps, assignStep({ userId: getMyId() }));
-                  },
-                ),
-              ]
-            : []),
-          ...(config.canAssignToSomeoneElseInBulk
-            ? [
-                bulkAction(
-                  ASSIGN_TO_SOMEONE_ELSE,
-                  SECURITY_CASE_CHANGE_ICONS.assignToSomeoneElse,
-                  ASSIGNED_RESULT_LABELS,
-                  async (
-                    actionProps: BulkActionOnClickProps<SecurityCase>,
-                  ): Promise<void> => {
-                    open("assign", actionProps.items, actionProps);
-                  },
-                ),
-              ]
-            : []),
-          bulkAction(
-            CHANGE_STATUS,
-            SECURITY_CASE_CHANGE_ICONS.changeStatus,
-            UPDATED_RESULT_LABELS,
-            async (
-              actionProps: BulkActionOnClickProps<SecurityCase>,
-            ): Promise<void> => {
-              open("status", actionProps.items, actionProps);
-            },
-          ),
-          bulkAction(
-            CHANGE_PRIORITY,
-            SECURITY_CASE_CHANGE_ICONS.changePriority,
-            UPDATED_RESULT_LABELS,
-            async (
-              actionProps: BulkActionOnClickProps<SecurityCase>,
-            ): Promise<void> => {
-              open("priority", actionProps.items, actionProps);
-            },
-          ),
-        ];
+  const bulkActions: Array<BulkActionButtonSchema<SecurityCase>> = !gate.isShown
+    ? []
+    : [
+        ...(config.canAssignToMeInBulk
+          ? [
+              bulkAction(
+                ASSIGN_TO_ME,
+                SECURITY_CASE_CHANGE_ICONS.assignToMe,
+                ASSIGNED_TO_YOU_RESULT_LABELS,
+                async (
+                  actionProps: BulkActionOnClickProps<SecurityCase>,
+                ): Promise<void> => {
+                  await runBulk(actionProps, assignStep({ userId: getMyId() }));
+                },
+              ),
+            ]
+          : []),
+        ...(config.canAssignToSomeoneElseInBulk
+          ? [
+              bulkAction(
+                ASSIGN_TO_SOMEONE_ELSE,
+                SECURITY_CASE_CHANGE_ICONS.assignToSomeoneElse,
+                ASSIGNED_RESULT_LABELS,
+                async (
+                  actionProps: BulkActionOnClickProps<SecurityCase>,
+                ): Promise<void> => {
+                  open("assign", actionProps.items, actionProps);
+                },
+              ),
+            ]
+          : []),
+        bulkAction(
+          CHANGE_STATUS,
+          SECURITY_CASE_CHANGE_ICONS.changeStatus,
+          UPDATED_RESULT_LABELS,
+          async (
+            actionProps: BulkActionOnClickProps<SecurityCase>,
+          ): Promise<void> => {
+            open("status", actionProps.items, actionProps);
+          },
+        ),
+        bulkAction(
+          CHANGE_PRIORITY,
+          SECURITY_CASE_CHANGE_ICONS.changePriority,
+          UPDATED_RESULT_LABELS,
+          async (
+            actionProps: BulkActionOnClickProps<SecurityCase>,
+          ): Promise<void> => {
+            open("priority", actionProps.items, actionProps);
+          },
+        ),
+      ];
 
   let modals: ReactElement = <></>;
 

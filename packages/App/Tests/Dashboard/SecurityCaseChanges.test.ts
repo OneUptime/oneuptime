@@ -217,9 +217,9 @@ describe("reading a row", () => {
 
   test("a case is the reader's when its person is them; nobody signed in has none", () => {
     expect(isSecurityCaseMine(buildCase({ userId: ME }), ME)).toBe(true);
-    expect(isSecurityCaseMine(buildCase({ userId: ME }), new ObjectID(ME))).toBe(
-      true,
-    );
+    expect(
+      isSecurityCaseMine(buildCase({ userId: ME }), new ObjectID(ME)),
+    ).toBe(true);
     expect(isSecurityCaseMine(buildCase({ userId: DIEGO }), ME)).toBe(false);
     expect(isSecurityCaseMine(buildCase(), ME)).toBe(false);
     expect(isSecurityCaseMine(buildCase(), undefined)).toBe(false);
@@ -564,7 +564,8 @@ describe("moving a case to a status", () => {
 
 describe("setting a case's priority", () => {
   test("writes the priority; a case at it already is left as it is", () => {
-    const critical: string = TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical];
+    const critical: string =
+      TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical];
 
     expect(getSecurityCasePriorityWrite(critical)).toEqual({
       securityCasePriorityId: critical,

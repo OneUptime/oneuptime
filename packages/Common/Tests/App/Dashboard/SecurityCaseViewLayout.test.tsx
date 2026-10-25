@@ -1089,7 +1089,9 @@ describe("assigning a case and moving its status from the ⋯", () => {
     expect(
       screen.queryByTestId("security-case-assign-to-someone-else"),
     ).toBeNull();
-    expect(screen.getByTestId("security-case-change-status")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("security-case-change-status"),
+    ).toBeInTheDocument();
   });
 });
 

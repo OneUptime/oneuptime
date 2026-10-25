@@ -378,7 +378,8 @@ export const ChangeSecurityCaseStatusModal: FunctionComponent<
           description: isOne
             ? "What was found and what was done, for whoever reads this case next."
             : BULK_CLOSING_NOTE_DESCRIPTION,
-          placeholder: "e.g. Confirmed with the user; the sign-ins were theirs.",
+          placeholder:
+            "e.g. Confirmed with the user; the sign-ins were theirs.",
           showIf: isClosing,
         },
       ]}

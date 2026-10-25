@@ -62,7 +62,7 @@ export function statusChangedMarkdown(data: {
     return mdText`✅ Closed as **${data.verdict}**${byPlaybook(data.playbookName)}.`;
   }
 
-  if (data.reopens ?? (data.from === "Closed")) {
+  if (data.reopens ?? data.from === "Closed") {
     return mdText`↩️ Reopened as **${data.to}**${byPlaybook(data.playbookName)}.`;
   }
 

@@ -55,7 +55,9 @@ import SecurityCasePriorityLevel, {
   SECURITY_CASE_PRIORITY_LEVEL_FLAGS,
   securityCasePriorityLevelFromSeverity,
 } from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
-import { SECURITY_CASE_STAGE_FLAGS } from "Common/Types/SecurityCase/SecurityCaseStage";
+import SecurityCaseStage, {
+  SECURITY_CASE_STAGE_FLAGS,
+} from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
   ARCHIVABLE_VALUES,
   ArchivableValueProtection,
@@ -77,7 +79,6 @@ import {
 } from "Common/Tests/Helpers/SecurityCaseValues";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
   SECURITY_CASE_VERDICTS,
   SecurityCaseVerdictDescription,

@@ -19,7 +19,12 @@ import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import SecurityCaseNotifications from "../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import SecurityCaseSourceAlerts from "../../../Server/Utils/SecurityCase/SecurityCaseSourceAlerts";
-import { Gray500, Green500, Orange500, Purple500 } from "../../../Types/BrandColors";
+import {
+  Gray500,
+  Green500,
+  Orange500,
+  Purple500,
+} from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -59,12 +64,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const CASE_ID: ObjectID = new ObjectID("34343434-3434-4434-8434-343434343434");
 // The person working the case from the list.
-const ACTOR_ID: ObjectID = new ObjectID(
-  "56565656-5656-4656-8656-565656565656",
-);
-const DIEGO_ID: ObjectID = new ObjectID(
-  "78787878-7878-4878-8878-787878787878",
-);
+const ACTOR_ID: ObjectID = new ObjectID("56565656-5656-4656-8656-565656565656");
+const DIEGO_ID: ObjectID = new ObjectID("78787878-7878-4878-8878-787878787878");
 const SOC_TEAM_ID: ObjectID = new ObjectID(
   "9a9a9a9a-9a9a-4a9a-8a9a-9a9a9a9a9a9a",
 );
@@ -154,9 +155,10 @@ function caseBefore(
  * the case, through both of the case's update hooks.
  */
 async function move(before: SecurityCase, data: JSONObject): Promise<void> {
-  getJestSpyOn(SecurityCaseService, "findRowsAndHoldUpdateToThem").mockResolvedValue(
-    [before] as never,
-  );
+  getJestSpyOn(
+    SecurityCaseService,
+    "findRowsAndHoldUpdateToThem",
+  ).mockResolvedValue([before] as never);
 
   const updateBy: UpdateBy<SecurityCase> = {
     query: { _id: CASE_ID },
@@ -212,9 +214,9 @@ beforeEach(() => {
     async (data: unknown) => {
       const id: string = String((data as { id: ObjectID }).id);
       const user: User = new User();
-      user.name = (id === DIEGO_ID.toString()
-        ? "Diego Alvarez"
-        : "Maya Chen") as never;
+      user.name = (
+        id === DIEGO_ID.toString() ? "Diego Alvarez" : "Maya Chen"
+      ) as never;
       return user;
     },
   );
@@ -324,9 +326,7 @@ describe("Change Status", () => {
       userId: ACTOR_ID,
       displayColor: Purple500,
     });
-    expect(feed[0]!.feedInfoInMarkdown).toContain(
-      "**New** to **Contained**",
-    );
+    expect(feed[0]!.feedInfoInMarkdown).toContain("**New** to **Contained**");
   });
 
   test("closing with a verdict and a note: the timeline says the verdict, keeps the note, and names who closed it", async () => {

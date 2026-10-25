@@ -2096,7 +2096,11 @@ test.describe("working cases from the queue", () => {
     await expect(page.getByText("CASE-141").first()).toBeVisible({
       timeout: 30000,
     });
-    await expect.poll(() => menuCount(page, "Assigned to Me")).toBe("2");
+    await expect
+      .poll(() => {
+        return menuCount(page, "Assigned to Me");
+      })
+      .toBe("2");
 
     await (await openRowMenu(page, "CASE-141"))
       .getByRole("menuitem", { name: "Assign to Me" })
@@ -2105,7 +2109,11 @@ test.describe("working cases from the queue", () => {
     // Off the list of cases nobody has, and counted as Maya's.
     await expect(page.getByText("CASE-141", { exact: true })).toHaveCount(0);
     await expect(page.getByText("CASE-138").first()).toBeVisible();
-    await expect.poll(() => menuCount(page, "Assigned to Me")).toBe("3");
+    await expect
+      .poll(() => {
+        return menuCount(page, "Assigned to Me");
+      })
+      .toBe("3");
     expect(await updatesOf(page)).toEqual([
       {
         modelName: "SecurityCase",
@@ -2153,7 +2161,11 @@ test.describe("working cases from the queue", () => {
     const row: Locator = page.locator("tbody tr", { hasText: "CASE-142" });
     await expect(row).toContainText("SOC Tier 2");
     await expect(row).not.toContainText("Maya");
-    await expect.poll(() => menuCount(page, "Assigned to Me")).toBe("1");
+    await expect
+      .poll(() => {
+        return menuCount(page, "Assigned to Me");
+      })
+      .toBe("1");
     expect(await updatesOf(page)).toEqual([
       {
         modelName: "SecurityCase",
@@ -2176,6 +2188,11 @@ test.describe("working cases from the queue", () => {
     await expect(
       page.locator("tbody tr", { hasText: "CASE-141" }),
     ).toContainText("Diego");
+    expect((await updatesOf(page))[1]).toEqual({
+      modelName: "SecurityCase",
+      id: CASE_ID(141),
+      data: { assignedToUserId: DIEGO_ID },
+    });
   });
 
   test("Change Status to a closing status asks what Close Case asks, and the case leaves the open list", async ({
@@ -2217,7 +2234,11 @@ test.describe("working cases from the queue", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
     await expect(page.getByText("CASE-137", { exact: true })).toHaveCount(0);
-    await expect.poll(() => menuCount(page, "Open Cases")).toBe("5");
+    await expect
+      .poll(() => {
+        return menuCount(page, "Open Cases");
+      })
+      .toBe("5");
     const updates: Array<{ id: string; data: Record<string, unknown> }> =
       await updatesOf(page);
     expect(updates).toHaveLength(1);

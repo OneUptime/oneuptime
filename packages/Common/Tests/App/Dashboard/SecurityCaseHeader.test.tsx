@@ -761,7 +761,9 @@ describe("who may do what", () => {
     }
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId("security-case-assign-to-someone-else"));
+      fireEvent.click(
+        screen.getByTestId("security-case-assign-to-someone-else"),
+      );
     });
 
     expect(handlers.onAssignToSomeoneElse).not.toHaveBeenCalled();

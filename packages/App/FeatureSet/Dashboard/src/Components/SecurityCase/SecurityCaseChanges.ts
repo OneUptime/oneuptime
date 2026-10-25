@@ -312,7 +312,9 @@ export interface SecurityCaseAssigneePick {
 }
 
 // Whether a pick names anybody at all.
-export function hasSecurityCaseAssignee(pick: SecurityCaseAssigneePick): boolean {
+export function hasSecurityCaseAssignee(
+  pick: SecurityCaseAssigneePick,
+): boolean {
   return Boolean(
     readSecurityCaseId(pick.userId) || readSecurityCaseId(pick.teamId),
   );
