@@ -133,7 +133,7 @@ Archive a state or severity that your team should stop using, instead of deletin
 | **Bulk change**      | **Change State** on a selection in the alerts list                                        | The state, and one private note added to every alert. Alerts already at or past the state are skipped.                               |
 | **Automatically**    | A monitor, an episode, a linked incident or your own code                                 | **Auto Resolve Alert** on a monitor's criteria, an episode's state change, the incident switches on [Linked Alerts](/docs/incidents/linked-alerts), or a row created at `/api/alert-state-timeline`. |
 
-The header offers **Acknowledge** and **Resolve** while the alert is not acknowledged yet, and only **Resolve** once it is. A resolved alert shows neither.
+The header offers **Acknowledge** and **Resolve** while the alert is not acknowledged yet, and only **Resolve** once it is. A resolved alert shows neither. Someone whose role may not change the alert's state sees them locked, with no menu of other states: pointing at one names the permissions that would let them.
 
 ## What acknowledging does
 

@@ -59,13 +59,13 @@ De fire markerede tilstande bærer mærket **Indbygget** på indstillingssiden. 
 | Måde             | Hvor                                                                                        | Hvad den spørger om                                                                                             |
 | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Uret**         | Et job, der kører hvert minut                                                               | Intet: ved **Begynder den** flytter det en ventende begivenhed til **Igangværende**, og ved **Slutter den** en igangværende til **Afsluttet**. |
-| **Headeren**     | Begivenhedens **Oversigt**: knapperne **Markér som {{state}}** og **Change state to** i dens menu **⋯** | En kort dialog, **Markér planlagt vedligeholdelse som {{state}}**, med **Underret statussideabonnenter** og en valgfri note under **Tilføj en offentlig note**. |
+| **Headeren**     | Begivenhedens **Oversigt**: knapperne **Markér som {{state}}** og **Skift tilstand til** i dens menu **⋯** | En kort dialog, **Markér planlagt vedligeholdelse som {{state}}**, med **Underret statussideabonnenter** og en valgfri note under **Tilføj en offentlig note**. |
 | **Tidslinjen**   | **Tilstandstidslinje** i begivenhedens sidemenu                                             | En række, du tilføjer manuelt, med **Status for planlagt vedligeholdelse** og **Begynder den**.                 |
 | **Masseændring** | **Skift tilstand** på et udvalg i listen over begivenheder                                  | Tilstanden og én offentlig note, der tilføjes til hver begivenhed. Begivenheder, der allerede er i tilstanden eller længere, springes over. |
 | **Chat**         | Knapperne på begivenhedens beskeder i Slack og Microsoft Teams                              | Den samme ændring, udført som dig. Se [Slack](/docs/workspace-connections/slack#handl-på-hændelser-advarsler-og-begivenheder-fra-slack). |
 | **API'et**       | En række oprettet på `/api/scheduled-maintenance-state-timeline`                            | Tilstanden, og om abonnenterne får besked.                                                                      |
 
-Headerens knapper er opkaldt efter dine tilstande. Mens begivenheden venter, tilbyder den to: én, der starter den, opkaldt efter din igangværende tilstand, og én, der afslutter den, opkaldt efter din afsluttede tilstand. Mens begivenheden står på, kun den anden. Menuen **⋯** viser hver anden tilstand efter den nuværende.
+Headerens knapper er opkaldt efter dine tilstande. Mens begivenheden venter, tilbyder den to: én, der starter den, opkaldt efter din igangværende tilstand, og én, der afslutter den, opkaldt efter din afsluttede tilstand. Mens begivenheden står på, kun den anden. Menuen **⋯** viser hver anden tilstand efter den nuværende. Den, hvis rolle ikke må ændre begivenhedens tilstand, ser knapperne låst og ingen menu med andre tilstande: peger man på en, nævner den de tilladelser, der ville give lov.
 
 ## Hvad start og afslutning gør
 
@@ -83,8 +83,8 @@ At gå videre fra **Igangværende** til "Kontrolleres" eller fra **Afsluttet** t
 
 Før starten tæller headeren ned til den; mens begivenheden står på, tæller den, hvor længe den har varet; når den er overstået, siger den, hvor lang tid den tog. Når begivenheden overskrider en grænse med mere end to minutter, siger en ravgul besked det:
 
-- **Start overdue**: begivenheden venter stadig efter sit **Begynder den**.
-- **Overrunning**: begivenheden står stadig på efter sit **Slutter den**.
+- **Start forsinket**: begivenheden venter stadig efter sit **Begynder den**.
+- **Overskrider tiden**: begivenheden står stadig på efter sit **Slutter den**.
 
 Beskeden nævner det planlagte tidspunkt og den tilstand, begivenheden endnu ikke har nået. Lige efter en grænse har jobbet, der flytter begivenheder, måske endnu ikke kørt, så de næste par minutter tjekker headeren selv igen og viser den nye tilstand uden genindlæsning.
 
@@ -125,7 +125,7 @@ En tilstand, du tilføjer, har intet flag, så dens plads er det, den betyder:
 | Mellem **Afsluttet** og **Fuldført**    | Er overstået, men endnu ikke fuldført: påmindelser, der løber indtil fuldførelse, fortsætter.                   |
 | Under **Fuldført**                      | Er fuldført, som i **Fuldført**.                                                                                 |
 
-Hold dine tilstande under **Planlagt**: hver ny begivenhed starter der, og en begivenhed bevæger sig aldrig op ad listen igen, så en tilstand over den nås aldrig. Du flytter en begivenhed til en af dine egne tilstande fra menuen **⋯** i dens header, under **Change state to**.
+Hold dine tilstande under **Planlagt**: hver ny begivenhed starter der, og en begivenhed bevæger sig aldrig op ad listen igen, så en tilstand over den nås aldrig. Du flytter en begivenhed til en af dine egne tilstande fra menuen **⋯** i dens header, under **Skift tilstand til**.
 
 > [!NOTE]
 > På OneUptime Cloud kræver det abonnementet **Growth** eller højere at tilføje eller ændre vedligeholdelsestilstande. Alle abonnementer kan læse dem, bruge dem og slette en tilstand, du har tilføjet.
@@ -159,7 +159,7 @@ Tilstande bevæger sig kun ned ad listen. Slet rækkerne efter den ønskede tils
 :::
 
 :::details Den fuldførte tilstand mangler blandt headerens knapper
-Headerens knapper starter og afslutter begivenheden. At fuldføre den findes i menuen **⋯**, under **Change state to**.
+Headerens knapper starter og afslutter begivenheden. At fuldføre den findes i menuen **⋯**, under **Skift tilstand til**.
 :::
 
 ## Næste skridt

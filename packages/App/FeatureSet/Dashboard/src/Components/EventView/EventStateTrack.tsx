@@ -30,10 +30,31 @@ export function getEventStateTrackStep(
 }
 
 const LABEL_CLASS_NAMES: Record<EventStateTrackStep, string> = {
-  current: "font-semibold text-gray-900",
+  // At most half the header (a size container), so its share never crowds the others out.
+  current: "max-w-[50cqw] font-semibold text-gray-900",
   reached: "font-medium text-gray-600",
   upcoming: "font-medium text-gray-500",
 };
+
+/*
+ * The track's columns: an equal share each, and the current state's at
+ * least as wide as its name - so the name the reader most needs is never
+ * cut ("زمان‌بندی‌شده", Scheduled, is wider than a quarter of a phone's
+ * header) - while the others share what is left, each cut if it must be.
+ */
+export function getEventStateTrackColumns(
+  count: number,
+  currentIndex: number,
+): string {
+  return Array.from(
+    { length: Math.max(1, count) },
+    (_value: unknown, index: number): string => {
+      return index === currentIndex
+        ? "minmax(min-content, 1fr)"
+        : "minmax(0, 1fr)";
+    },
+  ).join(" ");
+}
 
 /*
  * Where the record stands on its way through its states, as one track under
@@ -43,8 +64,9 @@ const LABEL_CLASS_NAMES: Record<EventStateTrackStep, string> = {
  * reader as a list whose current step says so.
  *
  * Every state shares the width equally, so the track reads as progress
- * however long the names are; a name longer than its share (a project's own
- * long state on a phone) is cut, whole under the pointer.
+ * however long the names are - but the current state's share grows to hold
+ * its name, up to half the header. Another name longer than its share (a
+ * project's own long state on a phone) is cut, whole under the pointer.
  */
 const EventStateTrack: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,7 +88,10 @@ const EventStateTrack: FunctionComponent<ComponentProps> = (
       data-testid="event-state-track"
       className="grid gap-1.5"
       style={{
-        gridTemplateColumns: `repeat(${Math.max(1, props.states.length)}, minmax(0, 1fr))`,
+        gridTemplateColumns: getEventStateTrackColumns(
+          props.states.length,
+          currentIndex,
+        ),
       }}
     >
       {props.states.map(

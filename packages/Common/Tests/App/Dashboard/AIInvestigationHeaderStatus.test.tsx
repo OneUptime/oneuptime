@@ -283,9 +283,18 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
 
     expect(notice).toHaveAttribute("data-testid", "ai-header-summary");
     // The header paints the band (EventStatusPanel's "ai" notice).
-    for (const element of [notice, ...Array.from(notice.querySelectorAll("*"))]) {
+    const boxedClass: RegExp =
+      /(^|\s)(border|shadow-sm|shadow|bg-gradient-to-r)(\s|$)/;
+
+    for (const element of [
+      notice,
+      ...Array.from(notice.querySelectorAll("*")),
+    ]) {
       const className: string = element.getAttribute("class") || "";
-      expect({ className, boxed: /(^|\s)(border|shadow-sm|shadow|bg-gradient-to-r)(\s|$)/.test(className) }).toEqual({ className, boxed: false });
+      expect({ className, boxed: boxedClass.test(className) }).toEqual({
+        className,
+        boxed: false,
+      });
     }
     expect(notice.className).not.toMatch(/(^|\s)bg-(indigo|white)/);
     expect(screen.getByTestId("ai-header-mark")).toHaveAttribute(
@@ -444,7 +453,8 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     );
 
     const summary: HTMLElement = screen.getByText(SUMMARY);
-    const grid: HTMLElement = summary.parentElement as HTMLElement;
+    const summaryLine: HTMLElement = summary.parentElement as HTMLElement;
+    const rows: HTMLElement = screen.getByTestId("ai-header-summary");
     const heading: HTMLElement = screen.getByRole("heading", {
       name: "AI root cause analysis",
     });
@@ -454,35 +464,48 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
       name: "View full report",
     });
 
-    // The text column may shrink below its content; long tokens wrap.
-    expect(grid).toHaveClass("grid", "grid-cols-[minmax(0,1fr)_auto]");
-    expect(header.parentElement).toBe(grid);
-    expect(summary).toHaveClass("col-span-2", "break-words");
+    /*
+     * Lines that wrap, never columns: in German "Mehr anzeigen" and
+     * "Vollständigen Bericht anzeigen" do not fit a phone's line together,
+     * and in a grid's two columns they ran into each other.
+     */
+    expect(rows).toHaveClass("flex", "flex-wrap");
+    expect(rows.className).not.toMatch(/(^|\s)grid(\s|$)/);
+    expect(header.parentElement).toBe(rows);
+    // The summary has a line of its own, and long tokens wrap in it.
+    expect(summaryLine.parentElement).toBe(rows);
+    expect(summaryLine).toHaveClass("basis-full", "min-w-0");
+    expect(summary).toHaveClass("break-words", "max-w-4xl");
     /*
      * On a narrow header (a phone, or a tablet's column beside the side
-     * menu) the label has the row to itself; from 36rem of header it shares
+     * menu) the label has the line to itself; from 36rem of header it shares
      * it with the button - by the header's own width, never the window's.
      */
     expect(header).toHaveClass(
       "min-w-0",
-      "col-span-2",
-      "[@container(min-width:36rem)]:col-span-1",
+      "w-full",
+      "[@container(min-width:36rem)]:w-auto",
+      "[@container(min-width:36rem)]:flex-1",
       "flex-wrap",
     );
-    expect(header.className).not.toMatch(/(^|\s)(sm|md|lg|xl):col-span-1/);
+    expect(header.className).not.toMatch(/(^|\s)(sm|md|lg|xl):/);
     // The icon and the label never wrap apart, whatever wraps beside them.
     expect(headingGroup).toHaveClass("flex", "min-w-0");
     expect(headingGroup).not.toHaveClass("flex-wrap");
     expect(heading).toHaveClass("truncate");
-    // On a narrow header the button drops to the bottom row, beside Show more.
+    /*
+     * On a narrow header the button goes last, at the end of the bottom
+     * line - after Show more, or on a line of its own under it - and on a
+     * wide one back beside the label; whole at every width.
+     */
     expect(viewReport).toHaveClass(
-      "row-start-3",
-      "[@container(min-width:36rem)]:row-start-1",
+      "order-last",
+      "ms-auto",
+      "[@container(min-width:36rem)]:order-none",
       "whitespace-nowrap",
+      "shrink-0",
     );
-    expect(viewReport.className).not.toMatch(
-      /(^|\s)(sm|md|lg|xl):row-start-1/,
-    );
+    expect(viewReport.className).not.toMatch(/(^|\s)(sm|md|lg|xl):/);
     /*
      * Aligned to the top of its row, so it stays level with the label's
      * line when a verdict badge wraps below it.
@@ -691,8 +714,9 @@ describe("AIInvestigationHeaderStatus Show more", () => {
     expect(toggle).toHaveAttribute("aria-controls", summary.id);
     expect(summary.id).not.toBe("");
     expect(summary).toHaveClass("line-clamp-3");
-    // Placed beside View full report on a phone, under the summary above.
-    expect(toggle).toHaveClass("col-start-1", "row-start-3");
+    // First on the line under the summary, its words never broken apart.
+    expect(toggle).toHaveClass("whitespace-nowrap");
+    expect(toggle.parentElement).toBe(screen.getByTestId("ai-header-summary"));
     expect(
       summary.compareDocumentPosition(toggle) &
         Node.DOCUMENT_POSITION_FOLLOWING,

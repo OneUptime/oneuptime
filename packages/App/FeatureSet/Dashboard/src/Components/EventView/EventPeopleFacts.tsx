@@ -34,7 +34,10 @@ import { VisibleItems, splitVisibleItems } from "../../Utils/EventOverview";
  *
  * Both are drawn as an avatar and a name, the way the Owners page and the
  * owners column draw people and teams (PeopleAvatar), under their label in
- * the header's facts.
+ * the header's facts. The avatar and the empty place are 24px but take a
+ * text line's 20px in the row (-my-0.5), so a name sits where the words of
+ * the facts beside it do, level with them, and a fact with people is no
+ * taller than one with words.
  *
  * While the record is open, a role nobody holds and a record nobody owns
  * show the empty place itself - a dashed circle with a plus where the avatar
@@ -129,9 +132,12 @@ export const EVENT_ADD_MORE_ACTION_CLASS_NAME: string =
 // A quiet "Not assigned" / "None": a fact with nothing to name.
 const EMPTY_VALUE_CLASS_NAME: string = "font-normal text-gray-500";
 
-// The value's box: people side by side, wrapping onto more lines in a narrow column.
+/*
+ * The value's box: people side by side, wrapping onto more lines in a
+ * narrow column, their avatars 4px apart from line to line.
+ */
 const VALUE_CLASS_NAME: string =
-  "flex max-w-full flex-wrap items-center gap-x-3 gap-y-1.5";
+  "flex max-w-full flex-wrap items-center gap-x-3 gap-y-2";
 
 /*
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
@@ -142,7 +148,7 @@ const EmptyPlace: FunctionComponent = (): ReactElement => {
     <span
       aria-hidden="true"
       data-testid="event-empty-place"
-      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-400 group-hover:text-indigo-500"
+      className="-my-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-500 group-hover:text-indigo-500"
     >
       <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
     </span>
@@ -164,7 +170,7 @@ const Person: FunctionComponent<PersonProps> = (
       data-kind={props.item.kind}
       className="inline-flex min-w-0 max-w-full items-center gap-1.5"
     >
-      <span aria-hidden="true" className="inline-flex flex-shrink-0">
+      <span aria-hidden="true" className="-my-0.5 inline-flex flex-shrink-0">
         <PeopleAvatar item={props.item} size="chip" />
       </span>
       {/*

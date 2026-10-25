@@ -65,7 +65,7 @@ The four flagged states carry a **Built-in** tag on the settings page. You can r
 | **Chat**         | The buttons on the event's Slack and Microsoft Teams messages                               | The same change, made as you. See [Slack](/docs/workspace-connections/slack#acting-on-incidents-alerts-and-events-from-slack). |
 | **The API**      | A row created at `/api/scheduled-maintenance-state-timeline`                                | The state, and whether subscribers are told.                                                                    |
 
-The header's buttons are named after your states. While the event waits, it offers two: one that starts it, named after your ongoing state, and one that ends it, named after your ended state. While the event is in progress, only the second. The **⋯** menu lists every other state after the current one.
+The header's buttons are named after your states. While the event waits, it offers two: one that starts it, named after your ongoing state, and one that ends it, named after your ended state. While the event is in progress, only the second. The **⋯** menu lists every other state after the current one. Someone whose role may not change the event's state sees the buttons locked, with no menu of other states: pointing at one names the permissions that would let them.
 
 ## What starting and ending do
 

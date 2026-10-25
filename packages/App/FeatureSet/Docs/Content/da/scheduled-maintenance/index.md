@@ -92,7 +92,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 
 **Oversigt**, **Team** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Planlagt Vedligeholdelse Feed** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Maintenance Details** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
+- **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, hvem der ejer den, hvilke statussider den vises på, og hvem der oprettede den, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Planlagt Vedligeholdelse Feed** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Maintenance Details** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
 - **Tilstandstidslinje** — hver tilstand, begivenheden har været i, hvornår og hvor længe. Se [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states#tilstandstidslinjen).
 - **Offentlige noter** — opdateringer til dine statussider og deres abonnenter. **Private noter** er kun for dit team.
 - **Indstillinger** — **Synlig på statussiden**, som viser eller skjuler begivenheden på dens statussider, og **Send påmindelser**, som minder dens ejere om den, indtil den er fuldført. Hver kontakt gemmer, så snart du slår den om.
@@ -100,7 +100,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 ## Fejlfinding
 
 :::details En begivenhed startede ikke ved sit Begynder den
-Jobbet, der starter begivenheder, kører hvert minut, så giv det et minut. Hvis headeren viser **Start overdue**, har begivenheden overskredet sin start med mere end to minutter: start den med knappen i headeren, som gør alt, hvad jobbet gør, og åbn dens **Tilstandstidslinje** for at se, hvor den stod.
+Jobbet, der starter begivenheder, kører hvert minut, så giv det et minut. Hvis headeren viser **Start forsinket**, har begivenheden overskredet sin start med mere end to minutter: start den med knappen i headeren, som gør alt, hvad jobbet gør, og åbn dens **Tilstandstidslinje** for at se, hvor den stod.
 :::
 
 :::details En monitor blev stadig kontrolleret under vedligeholdelsen

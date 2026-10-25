@@ -114,7 +114,7 @@ Sus reglas, sus propietarios, su feed y su primer estado siguen ocurriendo en am
 
 ## Responder a una alerta
 
-Abre la alerta. Su cabecera muestra su estado, su gravedad, cuándo se creó y el monitor y el episodio a los que pertenece, con los botones que necesita tu siguiente paso:
+Abre la alerta. Su cabecera muestra su estado, su gravedad, cuánto ha durado, sus propietarios y el monitor y el episodio a los que pertenece, con los botones que necesita tu siguiente paso:
 
 - **Reconocer** indica que alguien se está ocupando. Impide que las políticas de guardia de la alerta avisen al siguiente nivel.
 - **Resolver** la cierra. La alerta sale de **Alertas activas** y sus recordatorios se detienen.
@@ -139,7 +139,7 @@ Mientras trabajas en ella, anota lo que vayas aprendiendo como **Notas privadas*
 
 **Vista general**, **Investigación**, **Equipo** y **Notas** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.
 
-- **Vista general** — la cabecera nombra a los **Propietarios** de la alerta, primero los equipos, junto a su monitor y su episodio. El recuadro **Creado** muestra cuándo y por qué se creó, y otros dos cuánto tardó en ser reconocida y resuelta; cuánto ha durado está junto a su estado. La tarjeta **Qué pasó** encabeza la página —la descripción de la alerta y su **Causa raíz**—, después la tarjeta **Investigación de IA**, con **Ask OneUptime AI** al pie, y el **Feed de la alerta** registra todo lo que le ha pasado a la alerta. A su lado están la tarjeta **Recursos afectados**, la tarjeta **Detalles de la alerta** y las mediciones de la alerta.
+- **Vista general** — la cabecera nombra a los **Propietarios** de la alerta, primero los equipos, junto a su monitor y su episodio. El recuadro **Creado** muestra cuándo y por qué se creó, y otros dos cuánto tardó en ser reconocida y resuelta; cuánto ha durado es el primer dato de la cabecera. La tarjeta **Qué pasó** encabeza la página —la descripción de la alerta y su **Causa raíz**—, después la tarjeta **Investigación de IA**, con **Ask OneUptime AI** al pie, y el **Feed de la alerta** registra todo lo que le ha pasado a la alerta. A su lado están la tarjeta **Recursos afectados**, la tarjeta **Detalles de la alerta** y las mediciones de la alerta.
 - **Cronología de estados** — cada estado en el que ha estado la alerta, cuándo y durante cuánto tiempo. Consulta [La cronología de estados](/docs/alerts/states-and-severities#la-cronología-de-estados).
 - **Incidentes vinculados** — los incidentes de los que forma parte esta alerta, con **Vincular incidente** y **Declarar incidente**.
 - **Ajustes** — **Quién puede ver esta alerta**, con el interruptor **Alerta privada**, y **Recordatorios**, con **Enviar recordatorios**. Cada interruptor guarda en el momento en que lo cambias.

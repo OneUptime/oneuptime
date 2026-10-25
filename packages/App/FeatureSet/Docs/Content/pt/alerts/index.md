@@ -114,11 +114,11 @@ Suas regras, seus proprietários, seu feed e seu primeiro estado acontecem mesmo
 
 ## Responder a um alerta
 
-Abra o alerta. O cabeçalho mostra seu estado, sua gravidade, quando foi criado e o monitor e o episódio a que pertence, com os botões de que seu próximo passo precisa:
+Abra o alerta. O cabeçalho mostra seu estado, sua gravidade, quanto tempo já dura, seus proprietários e o monitor e o episódio a que pertence, com os botões de que seu próximo passo precisa:
 
 - **Confirmar** indica que alguém está cuidando dele. Impede que as políticas de plantão do alerta acionem o próximo nível.
 - **Resolver** o encerra. O alerta sai de **Alertas ativos** e seus lembretes param.
-- **Change state to**, no menu **⋯** ao lado, leva-o a um estado seu, como "Investigando".
+- **Alterar estado para**, no menu **⋯** ao lado, leva-o a um estado seu, como "Investigando".
 - **Declarar incidente** abre um novo incidente pré-preenchido a partir do alerta, quando o problema se revela algo que afeta os usuários. Veja [Alertas vinculados](/docs/incidents/linked-alerts).
 
 Mudar para outro estado pede uma confirmação, com uma nota privada opcional recolhida em **Adicionar uma nota privada**. O que cada estado faz está em [Estados e severidades de alertas](/docs/alerts/states-and-severities).
@@ -139,7 +139,7 @@ Enquanto trabalha nele, registre o que descobrir como **Notas privadas**, preenc
 
 **Visão geral**, **Investigação**, **Equipe** e **Notas** ficam abertas; as outras seções ficam recolhidas até você clicar nelas.
 
-- **Visão geral** — o cabeçalho mostra os **Proprietários** do alerta, equipes primeiro, ao lado do seu monitor e do seu episódio. O bloco **Criado** mostra quando e pelo que foi criado, e outros dois quanto tempo o alerta levou para ser confirmado e resolvido; a duração fica ao lado do seu estado. O cartão **O que aconteceu** abre a página — a descrição do alerta e a sua **Causa raiz** — depois o cartão **AI Investigation**, com **Ask OneUptime AI** no rodapé, e o **Alerta Feed** registra tudo o que aconteceu com o alerta. Ao lado ficam o cartão **Recursos afetados**, o cartão **Detalhes do alerta** e as medições do alerta.
+- **Visão geral** — o cabeçalho mostra os **Proprietários** do alerta, equipes primeiro, ao lado do seu monitor e do seu episódio. O bloco **Criado** mostra quando e pelo que foi criado, e outros dois quanto tempo o alerta levou para ser confirmado e resolvido; a duração é o primeiro dado do cabeçalho. O cartão **O que aconteceu** abre a página — a descrição do alerta e a sua **Causa raiz** — depois o cartão **AI Investigation**, com **Ask OneUptime AI** no rodapé, e o **Alerta Feed** registra tudo o que aconteceu com o alerta. Ao lado ficam o cartão **Recursos afetados**, o cartão **Detalhes do alerta** e as medições do alerta.
 - **Linha do tempo de estado** — cada estado em que o alerta esteve, quando e por quanto tempo. Veja [A linha do tempo de estados](/docs/alerts/states-and-severities#a-linha-do-tempo-de-estados).
 - **Incidentes vinculados** — os incidentes de que este alerta faz parte, com **Vincular incidente** e **Declarar incidente**.
 - **Configurações** — **Quem pode ver este alerta**, com o interruptor **Alerta privado**, e **Lembretes**, com **Enviar lembretes**. Cada interruptor salva no momento em que você o alterna.

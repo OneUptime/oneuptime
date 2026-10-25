@@ -78,7 +78,7 @@ Sleep een rij aan haar handgreep om haar te verplaatsen; de nieuwe volgorde word
 
 Een status die je toevoegt, heeft geen vlag, dus zijn plek is zijn betekenis. Zet een stap voor beperking tussen **Bevestigd** en **Opgelost**, en een stap voor triage boven **Bevestigd**. Een status onder **Opgelost** telt overal als opgelost.
 
-Je zet een waarschuwing in een eigen status via het menu **⋯** in de kop van de waarschuwing, onder **Change state to**, dat elke status na de huidige toont. De bevestiging heet **Waarschuwing markeren als {{state}}**, met de naam van de status erin.
+Je zet een waarschuwing in een eigen status via het menu **⋯** in de kop van de waarschuwing, onder **Status wijzigen naar**, dat elke status na de huidige toont. De bevestiging heet **Waarschuwing markeren als {{state}}**, met de naam van de status erin.
 
 > [!NOTE]
 > In OneUptime Cloud vraagt het toevoegen of wijzigen van waarschuwingsstatussen en ernstniveaus het abonnement **Growth** of hoger. Elk abonnement kan ze lezen, gebruiken en een toegevoegde status verwijderen.
@@ -128,12 +128,12 @@ Archiveer een status of ernst die uw team niet meer moet gebruiken, in plaats va
 
 | Manier               | Waar                                                                                      | Wat er wordt gevraagd                                                                                                                |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knoppen in de kop** | De kop van de waarschuwing: **Bevestigen**, **Oplossen** en **Change state to** in het menu **⋯** | Een korte bevestiging, **Waarschuwing bevestigen**, **Waarschuwing oplossen** of **Waarschuwing markeren als {{state}}**, met een optionele notitie onder **Privénotitie toevoegen**. |
+| **Knoppen in de kop** | De kop van de waarschuwing: **Bevestigen**, **Oplossen** en **Status wijzigen naar** in het menu **⋯** | Een korte bevestiging, **Waarschuwing bevestigen**, **Waarschuwing oplossen** of **Waarschuwing markeren als {{state}}**, met een optionele notitie onder **Privénotitie toevoegen**. |
 | **State timeline**   | **Statustijdlijn** in het zijmenu van de waarschuwing                                     | Een rij die je met de hand toevoegt, met **Waarschuwingsstatus** en **Begint op**.                                                    |
 | **Bulkwijziging**    | **Status wijzigen** op een selectie in de lijst met waarschuwingen                        | De status, en één privénotitie die aan elke waarschuwing wordt toegevoegd. Waarschuwingen die al in of na die status staan, worden overgeslagen. |
 | **Automatisch**      | Een monitor, een episode, een gekoppeld incident of je eigen code                         | **Waarschuwing automatisch oplossen** in de criteria van een monitor, een statuswijziging van een episode, de incidentschakelaars op [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts) of een rij die wordt aangemaakt via `/api/alert-state-timeline`. |
 
-De kop biedt **Bevestigen** en **Oplossen** zolang de waarschuwing nog niet is bevestigd, en daarna alleen **Oplossen**. Een opgeloste waarschuwing toont geen van beide.
+De kop biedt **Bevestigen** en **Oplossen** zolang de waarschuwing nog niet is bevestigd, en daarna alleen **Oplossen**. Een opgeloste waarschuwing toont geen van beide. Wie met zijn rol de status van de waarschuwing niet mag wijzigen, ziet de knoppen vergrendeld en geen menu met andere statussen: wijs er een aan en je ziet welke rechten dat zouden toestaan.
 
 ## Wat bevestigen doet
 

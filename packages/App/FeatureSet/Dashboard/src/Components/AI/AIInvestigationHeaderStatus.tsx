@@ -23,25 +23,50 @@ import { atContainerWidth } from "../EventView/EventHeaderLayout";
  * The band is drawn inside the event header, which is a size container: its
  * rows follow the header's own width. From this width the label and the
  * report button share the top row; below it the button moves to the bottom
- * row, beside Show more.
+ * row, after Show more.
  */
 export const AI_HEADER_WIDE_WIDTH_REM: number = 36;
 
-// The summary's grid: label and button, summary, then Show more (and the button on a narrow header).
-export const AI_HEADER_SUMMARY_GRID_CLASS_NAME: string =
-  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5";
+/*
+ * The summary's lines, which wrap: the label (and, on a wide header, the
+ * report button), the summary, then Show more and - on a narrow header -
+ * the button, which takes a line of its own when the two do not fit one: in
+ * German, "Mehr anzeigen" and "Vollständigen Bericht anzeigen" do not on a
+ * phone, and in a grid's two columns they ran into each other. The lines
+ * are 8px apart: the two reach 4px past their line each way (-my-1), so
+ * on lines of their own they meet without overlapping.
+ */
+export const AI_HEADER_SUMMARY_ROWS_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-3 gap-y-2";
 
-// The label and the verdict: the whole top row on a narrow header, the first column on a wide one.
-export const AI_HEADER_SUMMARY_HEADING_ROW_CLASS_NAME: string = `col-span-2 row-start-1 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 ${atContainerWidth(
+// The label and the verdict: a line of their own on a narrow header, all the button leaves of the top row on a wide one.
+export const AI_HEADER_SUMMARY_HEADING_ROW_CLASS_NAME: string = `flex w-full min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 ${atContainerWidth(
   AI_HEADER_WIDE_WIDTH_REM,
-  "col-span-1",
+  "w-auto flex-1",
 )}`;
 
-// View full report: the bottom row's end on a narrow header, the top row's on a wide one.
-export const AI_HEADER_VIEW_REPORT_CLASS_NAME: string = `group col-start-2 row-start-3 -my-1 inline-flex items-center justify-center gap-1.5 self-start justify-self-end whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
+/*
+ * View full report: last, at the end of the bottom line, on a narrow header
+ * - beside Show more, or on a line of its own under it - and at the end of
+ * the top row on a wide one. Whole at every width.
+ */
+export const AI_HEADER_VIEW_REPORT_CLASS_NAME: string = `group order-last -my-1 ms-auto inline-flex shrink-0 items-center justify-center gap-1.5 self-start whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
   AI_HEADER_WIDE_WIDTH_REM,
-  "row-start-1",
+  "order-none",
 )}`;
+
+/*
+ * The summary's line: all of it, so Show more always starts the next one,
+ * however wide the header; the summary in it keeps a readable measure.
+ */
+export const AI_HEADER_SUMMARY_LINE_CLASS_NAME: string = "min-w-0 basis-full";
+
+export const AI_HEADER_SUMMARY_TEXT_CLASS_NAME: string =
+  "max-w-4xl break-words text-sm leading-6";
+
+// Show more / Show less: first on the bottom line, its words whole.
+export const AI_HEADER_SHOW_MORE_CLASS_NAME: string =
+  "-my-1 -ms-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 // While it works: what it is doing, then View live progress - beside it on a wide header.
 export const AI_HEADER_PROGRESS_ROW_CLASS_NAME: string = `flex flex-col gap-2 ${atContainerWidth(
@@ -203,8 +228,8 @@ const AiMark: FunctionComponent<{ isLive?: boolean | undefined }> = (props: {
       <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
       {props.isLive ? (
         <span className="absolute -end-1 -top-1 flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75 motion-safe:animate-ping" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-white bg-indigo-500" />
+          <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75 motion-safe:animate-ping" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-white" />
         </span>
       ) : (
         <></>
@@ -225,12 +250,12 @@ const AiMark: FunctionComponent<{ isLive?: boolean | undefined }> = (props: {
  * paints its tint and its hairline (EventStatusPanel's "ai" notice), so
  * nothing here draws a border, a frame or a shadow. The label and the report
  * button share the top row, so the summary gets the band's whole width under
- * them, capped at a readable measure on a wide header. On a narrow header -
- * a phone's, or beside a tablet's side menu - that row has no room for the
- * button, which would cut the label short: there it drops to the bottom row
- * beside Show more. The DOM order stays label, button, summary, the same as
- * a Card's header actions. Both are read off the header's own width (it is a
- * size container), never the window's.
+ * them. On a narrow header - a phone's, or beside a tablet's side menu - that
+ * row has no room for the button, which would cut the label short: there it
+ * goes last, after Show more, and to a line of its own when the two do not
+ * fit one. The DOM order stays label, button, summary, the same as a Card's
+ * header actions. Both are read off the header's own width (it is a size
+ * container), never the window's.
  */
 const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   props: CompletedSummaryNoticeProps,
@@ -299,13 +324,11 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   return (
     <div
       data-testid="ai-header-summary"
-      className={AI_HEADER_SUMMARY_GRID_CLASS_NAME}
+      className={AI_HEADER_SUMMARY_ROWS_CLASS_NAME}
     >
       {/*
-        The button's column is as wide as the button even where the
-        button sits in the bottom row, so the label spans both columns
-        there instead of truncating beside an empty cell. A verdict badge
-        wraps under the label when the row is too narrow for both.
+        A verdict badge wraps under the label when the line is too narrow
+        for both; on a wide header the button keeps its width beside them.
       */}
       <div className={AI_HEADER_SUMMARY_HEADING_ROW_CLASS_NAME}>
         <div className="flex min-w-0 items-center gap-2">
@@ -338,15 +361,17 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
           className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
         />
       </button>
-      <p
-        ref={summaryRef}
-        id={summaryId}
-        className={`col-span-2 row-start-2 max-w-4xl break-words text-sm leading-6 ${
-          isRejected ? "text-gray-600" : "text-gray-900"
-        } ${isExpanded ? "" : "line-clamp-3"}`}
-      >
-        {props.summary}
-      </p>
+      <div className={AI_HEADER_SUMMARY_LINE_CLASS_NAME}>
+        <p
+          ref={summaryRef}
+          id={summaryId}
+          className={`${AI_HEADER_SUMMARY_TEXT_CLASS_NAME} ${
+            isRejected ? "text-gray-600" : "text-gray-900"
+          } ${isExpanded ? "" : "line-clamp-3"}`}
+        >
+          {props.summary}
+        </p>
+      </div>
       {isClamped ? (
         <button
           type="button"
@@ -355,7 +380,7 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
           }}
           aria-expanded={isExpanded}
           aria-controls={summaryId}
-          className="col-start-1 row-start-3 -my-1 -ms-1.5 inline-flex items-center gap-1 justify-self-start rounded-md px-1.5 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className={AI_HEADER_SHOW_MORE_CLASS_NAME}
         >
           {isExpanded
             ? translator.translateText("Show less")

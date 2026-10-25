@@ -31,7 +31,7 @@ Open een meldingsregel van Slack of Microsoft Teams voor incidenten of waarschuw
 
 ### Met één klik meedoen
 
-Als de regel afgaat, start OneUptime één gesprek voor het incident en plaatst het met een knop **Join call** in de kanalen waar de updates van het incident naartoe gaan en in de feed van het incident. De pagina van het incident toont het gesprek in zijn kaart **Video Call** en een knop **Join call** in zijn kop.
+Als de regel afgaat, start OneUptime één gesprek voor het incident en plaatst het met een knop **Join call** in de kanalen waar de updates van het incident naartoe gaan en in de feed van het incident. De pagina van het incident toont het gesprek in zijn kaart **Video Call** en een knop **Deelnemen aan gesprek** in zijn kop.
 :::
 
 De voorwaarden van de regel bepalen welke incidenten een gesprek krijgen. Geef de regel voor een bridge bij alleen Sev1-incidenten een voorwaarde op **Ernst**. Gesprekken starten voor incidenten en waarschuwingen die als lopend worden gemeld. Een incident dat al opgelost werd aangemaakt, krijgt geen gesprek.
@@ -234,7 +234,7 @@ Elk incident en elke waarschuwing die met deze koppeling wordt gestart, deelt de
 
 Een Slack-regel kan in plaats daarvan de huddle van het Slack-kanaal van het incident starten. Er valt niets te koppelen: kies **Slack huddle** in de stap **Video Call** van de regel.
 
-De huddle vindt plaats in het kanaal dat de regel voor het incident aanmaakt of, als de regel in bestaande kanalen plaatst, in het eerste daarvan. De regel moet dus een kanaal aanmaken of in een bestaand kanaal plaatsen. De knop **Join huddle** opent de huddle van het kanaal in Slack. De eerste responder die hem opent, start de huddle, en iedereen daarna doet mee. Slack biedt een app geen manier om een huddle te starten, dus er zit niemand in de huddle tot iemand hem opent.
+De huddle vindt plaats in het kanaal dat de regel voor het incident aanmaakt of, als de regel in bestaande kanalen plaatst, in het eerste daarvan. De regel moet dus een kanaal aanmaken of in een bestaand kanaal plaatsen. De knop **Deelnemen aan huddle** opent de huddle van het kanaal in Slack. De eerste responder die hem opent, start de huddle, en iedereen daarna doet mee. Slack biedt een app geen manier om een huddle te starten, dus er zit niemand in de huddle tot iemand hem opent.
 
 Een Slack-huddle is alleen voor Slack-regels. Een Microsoft Teams-regel start zijn gesprekken met een van de koppelingen voor videogesprekken van het project.
 

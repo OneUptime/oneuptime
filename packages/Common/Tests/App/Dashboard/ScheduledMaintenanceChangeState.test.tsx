@@ -370,9 +370,7 @@ function readDuration(): DurationPill | null {
 
   expect(prefix).toMatch(DURATION_PREFIX_PATTERN);
   // The first fact, never among the pills.
-  expect(screen.getByTestId("event-status-facts").firstElementChild).toBe(
-    fact,
-  );
+  expect(screen.getByTestId("event-status-facts").firstElementChild).toBe(fact);
 
   return {
     prefix: prefix,
@@ -922,8 +920,10 @@ describe("ChangeScheduledMaintenanceState", () => {
           OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(STARTS_AT) +
           ", but it has not been marked as Ongoing yet.",
       );
-      // The label's own span sits inside the amber pill.
-      // Its words in amber, the time in bold, beside an amber mark.
+      /*
+       * The band's label: its words in amber and bold, the time in bold,
+       * beside an amber mark.
+       */
       expect(within(notice).getByText("Start overdue")).toHaveClass(
         "font-semibold",
         "text-amber-800",

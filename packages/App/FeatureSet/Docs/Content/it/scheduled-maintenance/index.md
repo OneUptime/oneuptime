@@ -92,7 +92,7 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 
 **Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
 
-- **Panoramica** — l'intestazione mostra il numero, il titolo e lo stato dell'evento, quanto manca all'inizio o da quanto è in corso, e i pulsanti che lo fanno avanzare. Sotto, **Inizia**, **Termina** e **Durata** mostrano la finestra pianificata nel vostro fuso orario. Il **Pianificato Manutenzione Feed** registra tutto ciò che è successo all'evento, accanto alle schede **Maintenance Details** e **Risorse interessate**, e alle schede **Misurazioni** e **Campi personalizzati** quando il vostro progetto ne ha.
+- **Panoramica** — l'intestazione mostra il numero, il titolo e lo stato dell'evento, quanto manca all'inizio o da quanto è in corso, i suoi proprietari, le pagine di stato in cui compare e chi lo ha creato, e i pulsanti che lo fanno avanzare. Sotto, **Inizia**, **Termina** e **Durata** mostrano la finestra pianificata nel vostro fuso orario. Il **Pianificato Manutenzione Feed** registra tutto ciò che è successo all'evento, accanto alle schede **Maintenance Details** e **Risorse interessate**, e alle schede **Misurazioni** e **Campi personalizzati** quando il vostro progetto ne ha.
 - **Cronologia stato** — ogni stato in cui l'evento è stato, quando e per quanto tempo. Vedere [Stati della manutenzione](/docs/scheduled-maintenance/states#la-cronologia-di-stato).
 - **Note pubbliche** — aggiornamenti per le vostre pagine di stato e i loro iscritti. Le **Note private** sono solo per il vostro team.
 - **Impostazioni** — **Visibile sulla pagina di stato**, che mostra o nasconde l'evento sulle sue pagine di stato, e **Invia promemoria**, che ricorda l'evento ai suoi proprietari finché non è completato. Ogni interruttore salva nel momento in cui lo spostate.
@@ -100,7 +100,7 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 ## Risoluzione dei problemi
 
 :::details Un evento non è iniziato al suo Inizia il
-Il processo che avvia gli eventi gira ogni minuto, quindi lasciate passare un minuto. Se l'intestazione indica **Start overdue**, l'evento ha mancato il suo inizio di oltre due minuti: avviatelo con il pulsante dell'intestazione, che fa tutto ciò che fa il processo, e aprite la sua **Cronologia stato** per vedere dov'era.
+Il processo che avvia gli eventi gira ogni minuto, quindi lasciate passare un minuto. Se l'intestazione indica **Inizio in ritardo**, l'evento ha mancato il suo inizio di oltre due minuti: avviatelo con il pulsante dell'intestazione, che fa tutto ciò che fa il processo, e aprite la sua **Cronologia stato** per vedere dov'era.
 :::
 
 :::details Un monitor è stato ancora controllato durante la manutenzione

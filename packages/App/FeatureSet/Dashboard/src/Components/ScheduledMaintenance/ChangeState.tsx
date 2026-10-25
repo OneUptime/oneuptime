@@ -100,8 +100,9 @@ export interface ComponentProps {
   facts?: Array<EventStatusFact> | undefined;
 }
 
-export const SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT: string =
-  translationKey("Loading scheduled maintenance status");
+export const SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT: string = translationKey(
+  "Loading scheduled maintenance status",
+);
 
 // What the header's amber band calls an event that missed a boundary.
 export const START_OVERDUE_TEXT: string = translationKey("Start overdue");

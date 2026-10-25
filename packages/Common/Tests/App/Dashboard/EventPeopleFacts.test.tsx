@@ -241,7 +241,14 @@ describe("the commander", () => {
   test("lays people side by side under the label, wrapping in a narrow column", () => {
     const people: RenderResult = render(
       <CommanderFactValue
-        members={[MAYA, { ...MAYA, userId: "80000000-0000-4000-8000-000000000002", name: "Sam Rivera" }]}
+        members={[
+          MAYA,
+          {
+            ...MAYA,
+            userId: "80000000-0000-4000-8000-000000000002",
+            name: "Sam Rivera",
+          },
+        ]}
         roleName="Incident Commander"
       />,
     );
@@ -252,7 +259,7 @@ describe("the commander", () => {
       "flex-wrap",
       "items-center",
       "gap-x-3",
-      "gap-y-1.5",
+      "gap-y-2",
     );
     expect(shownNames(people.container)).toEqual(["Maya Chen", "Sam Rivera"]);
     people.unmount();
@@ -271,10 +278,38 @@ describe("the commander", () => {
     );
   });
 
+  test("an avatar and the empty place take a text line's 20px in the row, so a name sits level with the words beside it", () => {
+    const people: RenderResult = render(
+      <CommanderFactValue members={[MAYA]} roleName="Incident Commander" />,
+    );
+    const avatar: HTMLElement = people.getByTestId("event-person-name")
+      .previousElementSibling as HTMLElement;
+
+    expect(avatar).toHaveAttribute("aria-hidden", "true");
+    expect(avatar).toHaveClass("-my-0.5");
+    people.unmount();
+
+    render(
+      <CommanderFactValue
+        members={[]}
+        roleName="Incident Commander"
+        onAssign={(): void => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("event-empty-place")).toHaveClass(
+      "-my-0.5",
+      "h-6",
+      "w-6",
+    );
+  });
+
   test("wraps a long name beside its avatar instead of cutting it short", () => {
     render(
       <CommanderFactValue
-        members={[{ ...MAYA, name: "Maximiliane Alexandra Rosenthal-Vandenberg" }]}
+        members={[
+          { ...MAYA, name: "Maximiliane Alexandra Rosenthal-Vandenberg" },
+        ]}
         roleName="Incident Commander"
       />,
     );
@@ -459,7 +494,7 @@ describe("the owners", () => {
       "flex-wrap",
       "items-center",
       "gap-x-3",
-      "gap-y-1.5",
+      "gap-y-2",
     );
   });
 

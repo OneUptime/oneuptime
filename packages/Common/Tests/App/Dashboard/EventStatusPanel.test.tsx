@@ -688,10 +688,10 @@ describe("EventStatusPanel action-group layout", () => {
       "min-w-[7rem]",
       "max-w-full",
       "flex-auto",
-      "[@container(min-width:36rem)]:max-w-64",
+      "[@container(min-width:36rem)]:max-w-80",
       "[@container(min-width:36rem)]:flex-none",
     );
-    expect(button).not.toHaveClass("sm:max-w-64");
+    expect(button).not.toHaveClass("sm:max-w-80");
     expect(button.querySelector("span")).toHaveClass("truncate");
   });
 
@@ -920,14 +920,17 @@ describe("EventStatusPanel header layout, by its own width", () => {
   test("keeps the buttons under the title at every width when even the widest header cannot hold them", () => {
     renderPanel({
       title: "Database connection failures",
-      secondaryActions: Array.from({ length: 9 }, (_value: unknown, index) => {
-        return {
-          id: `secondary-${index}`,
-          label: `A long secondary action number ${index}`,
-          icon: IconProp.Alert,
-          onClick: (): void => {},
-        };
-      }),
+      secondaryActions: Array.from(
+        { length: 9 },
+        (_value: unknown, index: number) => {
+          return {
+            id: `secondary-${index}`,
+            label: `A long secondary action number ${index}`,
+            icon: IconProp.Alert,
+            onClick: (): void => {},
+          };
+        },
+      ),
     });
 
     const { header, top, actions } = headerParts();
@@ -1068,7 +1071,7 @@ describe("EventStatusPanel state track", () => {
     }
   });
 
-  test("gives every state an equal share of the width, cutting a long name whole under the pointer", () => {
+  test("gives every state an equal share of the width - the current one at least its name's - cutting another long name whole under the pointer", () => {
     renderPanel({
       states: [
         makeState("created", "Created"),
@@ -1085,10 +1088,12 @@ describe("EventStatusPanel state track", () => {
       "Waiting for the customer to verify the fix in production",
     );
 
-    expect(track).toHaveStyle({
-      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    });
+    // jsdom does not read min-content, so the style is read as written.
+    expect(track.getAttribute("style")).toContain(
+      "grid-template-columns: minmax(min-content, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
+    );
     expect(longName).toHaveClass("truncate");
+    expect(longName).not.toHaveClass("max-w-[50cqw]");
   });
 
   test("marks nothing reached when the current state is not in the list", () => {
@@ -1146,9 +1151,7 @@ describe("EventStatusPanel how long", () => {
       screen.getByTestId("event-header-duration"),
     );
     expect(first.querySelector("dt svg")).not.toBeNull();
-    expect(facts.children[1]!.querySelector("dt")).toHaveTextContent(
-      "Monitor",
-    );
+    expect(facts.children[1]!.querySelector("dt")).toHaveTextContent("Monitor");
   });
 
   test("says Ongoing for when no prefix is given, and the caller's word when it is", () => {
@@ -1253,9 +1256,7 @@ describe("EventStatusPanel header notice", () => {
           actions={[]}
           onActionClick={() => {}}
           headerNotice={<div>Notice</div>}
-          headerNoticeTone={
-            tone as "ai" | "warning" | "danger" | "neutral"
-          }
+          headerNoticeTone={tone as "ai" | "warning" | "danger" | "neutral"}
         />,
       );
 
@@ -1499,9 +1500,7 @@ describe("EventStatusPanel state change permissions", () => {
     const join: HTMLElement = screen.getByRole("button", { name: "Join call" });
 
     expect(join).toBeEnabled();
-    expect(
-      screen.queryByTestId("join-video-call-disabled-wrapper"),
-    ).toBeNull();
+    expect(screen.queryByTestId("join-video-call-disabled-wrapper")).toBeNull();
 
     fireEvent.click(join);
 
@@ -1587,7 +1586,7 @@ describe("EventStatusPanel header facts", () => {
     expect(facts.children[0]).toHaveClass("min-w-0");
   });
 
-  test("lays the facts on a grid that follows the header's width, never with more columns than facts", () => {
+  test("lays the facts on a grid that follows the header's width, in even rows, never with more columns than facts", () => {
     renderPanel({
       title: "Checkout latency",
       facts: [
@@ -1606,10 +1605,11 @@ describe("EventStatusPanel header facts", () => {
       "border-t",
       "border-gray-100",
       "[@container(min-width:18rem)]:grid-cols-2",
-      "[@container(min-width:34rem)]:grid-cols-3",
       "[@container(min-width:50rem)]:grid-cols-4",
     );
-    // Four facts never spread over five columns.
+    // Four facts are two rows of two where three would fit, never three and one.
+    expect(facts.className).not.toContain("grid-cols-3");
+    // ... and never spread over five columns.
     expect(facts.className).not.toContain("grid-cols-5");
     cleanup();
 
@@ -2359,7 +2359,7 @@ describe("EventStatusPanel secondary actions", () => {
       "max-w-full",
       "flex-auto",
       "rounded-md",
-      "[@container(min-width:36rem)]:max-w-64",
+      "[@container(min-width:36rem)]:max-w-80",
       "[@container(min-width:36rem)]:flex-none",
     );
     expect(declare.parentElement).toBe(wrapper);

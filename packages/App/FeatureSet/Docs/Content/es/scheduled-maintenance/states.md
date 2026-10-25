@@ -65,7 +65,7 @@ Los cuatro estados marcados llevan la etiqueta **Predefinido** en la página de 
 | **El chat**      | Los botones de los mensajes de Slack y Microsoft Teams del evento                           | El mismo cambio, hecho en tu nombre. Consulta [Slack](/docs/workspace-connections/slack#actuar-sobre-incidentes-alertas-y-eventos-desde-slack). |
 | **La API**       | Una fila creada en `/api/scheduled-maintenance-state-timeline`                              | El estado, y si se avisa a los suscriptores.                                                                    |
 
-Los botones de la cabecera llevan el nombre de tus estados. Mientras el evento espera, ofrece dos: uno que lo inicia, con el nombre de tu estado en curso, y otro que lo termina, con el nombre de tu estado finalizado. Mientras el evento está en curso, solo el segundo. El menú **⋯** lista todos los demás estados posteriores al actual.
+Los botones de la cabecera llevan el nombre de tus estados. Mientras el evento espera, ofrece dos: uno que lo inicia, con el nombre de tu estado en curso, y otro que lo termina, con el nombre de tu estado finalizado. Mientras el evento está en curso, solo el segundo. El menú **⋯** lista todos los demás estados posteriores al actual. Quien, por su rol, no puede cambiar el estado del evento ve los botones bloqueados y ningún menú de otros estados: al señalar uno, se nombran los permisos que se lo permitirían.
 
 ## Qué hacen el inicio y el final
 

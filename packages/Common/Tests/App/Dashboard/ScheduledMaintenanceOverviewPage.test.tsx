@@ -1145,7 +1145,11 @@ describe("Scheduled maintenance overview page", () => {
         } else {
           expect(list.textContent).not.toContain("+");
         }
-        if (names.filter((name: string) => name.trim()).length === 0) {
+        if (
+          names.filter((name: string) => {
+            return name.trim();
+          }).length === 0
+        ) {
           expect(list).toHaveTextContent(/^None$/);
           expect(list).toHaveClass("text-gray-500");
         }

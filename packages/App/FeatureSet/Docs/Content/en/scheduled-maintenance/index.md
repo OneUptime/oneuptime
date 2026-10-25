@@ -92,7 +92,7 @@ Open an event from the list to see its pages. Its side menu holds:
 
 **Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.
 
-- **Overview** — the header shows the event's number, title and state, how long until it starts or how long it has run, and the buttons that move it on. Under it, **Starts**, **Ends** and **Duration** show the planned window in your time zone. The **Scheduled Maintenance Feed** records everything that happened to the event, beside the **Maintenance Details** and **Affected Resources** cards, and the **Measurements** and **Custom Fields** cards when your project has any.
+- **Overview** — the header shows the event's number, title and state, how long until it starts or how long it has run, who owns it, the status pages it shows on and who created it, and the buttons that move it on. Under it, **Starts**, **Ends** and **Duration** show the planned window in your time zone. The **Scheduled Maintenance Feed** records everything that happened to the event, beside the **Maintenance Details** and **Affected Resources** cards, and the **Measurements** and **Custom Fields** cards when your project has any.
 - **State Timeline** — every state the event has been in, when, and for how long. See [Maintenance States](/docs/scheduled-maintenance/states#the-state-timeline).
 - **Public Notes** — updates for your status pages and their subscribers. **Private Notes** are for your team only.
 - **Settings** — **Visible on Status Page**, which shows or hides the event on its status pages, and **Send reminders**, which reminds its owners until it is completed. Each switch saves the moment you flip it.

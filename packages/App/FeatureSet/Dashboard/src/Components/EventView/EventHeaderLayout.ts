@@ -98,12 +98,14 @@ export const EVENT_HEADER_PHONE_WIDTH_REM: number = 36;
 
 /*
  * The widths the header can switch the actions beside the pills at, in rem,
- * smallest first. A header needs at least the first - a single button beside
+ * smallest first, every 2rem: a header switches at most 32px later than its
+ * buttons need. A header needs at least the first - a single button beside
  * a number and a state - and one that needs more than the last keeps its
  * buttons under the title at every width.
  */
 export const EVENT_HEADER_BESIDE_WIDTHS_REM: ReadonlyArray<number> = [
-  20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 72, 80,
+  20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56,
+  58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80,
 ];
 
 /*
@@ -163,19 +165,23 @@ export function getEventHeaderTopRowClassNames(data: {
       beside("grid grid-cols-[minmax(0,1fr)_auto]"),
     ),
     chips: join(
-      "flex min-h-9 w-full min-w-0 flex-wrap items-center gap-2",
-      data.hasMore ? "pe-11" : "",
-      beside("col-start-1 row-start-1 pe-0"),
+      "flex w-full min-w-0 flex-wrap items-center gap-2",
+      /*
+       * As tall as the ⋯ in the corner, or the buttons beside the pills,
+       * so they sit level with it; with neither, as tall as the pills.
+       */
+      data.hasMore ? "min-h-9 pe-11" : "",
+      beside("col-start-1 row-start-1 min-h-9 pe-0"),
     ),
-    title: join(EVENT_HEADER_TITLE_CLASS_NAME, beside("col-span-2 row-start-2")),
+    title: join(
+      EVENT_HEADER_TITLE_CLASS_NAME,
+      beside("col-span-2 row-start-2"),
+    ),
     actions: join(
       "ms-auto flex w-full max-w-full items-start justify-end gap-2",
       beside("col-start-2 row-start-1 w-auto"),
     ),
-    morePlace: join(
-      "absolute end-4 top-4 sm:end-5",
-      beside("static shrink-0"),
-    ),
+    morePlace: join("absolute end-4 top-4 sm:end-5", beside("static shrink-0")),
   };
 }
 
@@ -190,23 +196,26 @@ export const EVENT_HEADER_BUTTONS_CLASS_NAME: string =
  * A button: as tall as a security case's, its main move in indigo. On a
  * phone's width it grows from its own width (flex-auto), so two that do not
  * both fit wrap onto rows of their own instead of each being cut to half a
- * row; wider, it keeps its own width, at most 16rem.
+ * row; wider, it keeps its own width, at most 20rem - room for the longest
+ * of the header's own words in every language ("Отметить как
+ * «Запланировано»", "علامت‌گذاری به‌عنوان زمان‌بندی‌شده"), so only a
+ * project's own, longer state name is ever cut.
  */
 export const EVENT_HEADER_BUTTON_CLASS_NAME: string = `inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
-  "max-w-64 flex-none",
+  "max-w-80 flex-none",
 )}`;
 
 // The wrapper a locked button's reason is reached through: laid out as the button is.
 export const EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME: string = `inline-flex min-w-[7rem] max-w-full flex-auto rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
-  "max-w-64 flex-none",
+  "max-w-80 flex-none",
 )}`;
 
 // A menu button's own wrapper (Open channel): laid out as a button is.
 export const EVENT_HEADER_MENU_WRAPPER_CLASS_NAME: string = `flex min-w-[7rem] max-w-full flex-auto [&>div]:w-full ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
-  "max-w-64 flex-none",
+  "max-w-80 flex-none",
 )}`;
 
 export const EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME: string =
@@ -220,10 +229,12 @@ export const EVENT_HEADER_MORE_TRIGGER_CLASS_NAME: string =
 
 /*
  * What the reader needs at a glance, as labelled facts on a grid that
- * follows the header's width: one column in the narrowest place, two on a
- * phone, three beside a tablet's side menu, four on a laptop and five on a
- * wide screen - but never more columns than there are facts, so four facts
- * on a wide screen share its width rather than leave a column empty.
+ * follows the header's width: up to two columns on a phone, three beside
+ * the side menu at 1024px, four from 50rem and five on a wide screen - in
+ * as few rows as that allows, shared out evenly (getEventHeaderFactColumns):
+ * four facts where three would fit are two rows of two, never three and one
+ * left alone, and four on a wide screen share its width rather than leave a
+ * column empty.
  */
 export const EVENT_HEADER_FACT_COLUMN_STEPS: ReadonlyArray<{
   columns: number;
@@ -238,17 +249,35 @@ export const EVENT_HEADER_FACT_COLUMN_STEPS: ReadonlyArray<{
 const EVENT_HEADER_FACTS_BASE_CLASS_NAME: string =
   "grid grid-cols-1 gap-x-6 gap-y-4 border-t border-gray-100 px-4 py-4 sm:px-5";
 
+/*
+ * The columns `count` facts take where at most `allowed` fit: the fewest
+ * rows that width allows, the facts shared out evenly between them.
+ */
+export function getEventHeaderFactColumns(
+  count: number,
+  allowed: number,
+): number {
+  const most: number = Math.max(1, Math.min(count, allowed));
+  const rows: number = Math.ceil(Math.max(1, count) / most);
+
+  return Math.max(1, Math.ceil(count / rows));
+}
+
 export function getEventHeaderFactsClassName(factCount: number): string {
-  return [
-    EVENT_HEADER_FACTS_BASE_CLASS_NAME,
-    ...EVENT_HEADER_FACT_COLUMN_STEPS.filter(
-      (step: { columns: number; widthRem: number }): boolean => {
-        return step.columns <= factCount;
-      },
-    ).map((step: { columns: number; widthRem: number }): string => {
-      return atContainerWidth(step.widthRem, `grid-cols-${step.columns}`);
-    }),
-  ].join(" ");
+  const classNames: Array<string> = [EVENT_HEADER_FACTS_BASE_CLASS_NAME];
+  let columnsBefore: number = 1;
+
+  for (const step of EVENT_HEADER_FACT_COLUMN_STEPS) {
+    const columns: number = getEventHeaderFactColumns(factCount, step.columns);
+
+    // A width that changes nothing adds no rule.
+    if (columns !== columnsBefore) {
+      classNames.push(atContainerWidth(step.widthRem, `grid-cols-${columns}`));
+      columnsBefore = columns;
+    }
+  }
+
+  return classNames.join(" ");
 }
 
 // A fact: its label over its value, as a security case's facts and the stat tiles say theirs.
@@ -311,29 +340,48 @@ export interface EventHeaderWidthInput {
   hasMore: boolean;
 }
 
+/*
+ * A mark drawn over or under the letter before it (a Devanagari virama, an
+ * Arabic vowel sign) and an invisible joiner (Persian's zero-width
+ * non-joiner) take no width of their own.
+ */
+const ZERO_WIDTH_CHARACTER: RegExp = /[\p{Mn}\p{Me}\p{Cf}]/u;
 const WIDE_CHARACTER: RegExp =
-  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}　-〿＀-￯]/u;
-const NARROW_SCRIPT_CHARACTER: RegExp =
-  /[\p{Script=Arabic}\p{Script=Hebrew}]/u;
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\u3000-\u303f\uff00-\uffef]/u;
+const ARABIC_SCRIPT_CHARACTER: RegExp = /[\p{Script=Arabic}\p{Script=Hebrew}]/u;
+const CYRILLIC_SCRIPT_CHARACTER: RegExp =
+  /[\p{Script=Cyrillic}\p{Script=Greek}]/u;
+const DEVANAGARI_CHARACTER: RegExp = /\p{Script=Devanagari}/u;
 const SPACE_CHARACTER: RegExp = /\s/u;
 
 /*
- * A text's width in ems: a CJK character is a whole em, Arabic script about
- * half of one, a space about a third, and anything else about 0.62 - wider
- * than most Latin letters, so long words never come out short.
+ * A text's width in ems, by script, each a little wider than the script's
+ * letters are drawn on average, so a long label never comes out short: a
+ * CJK character is a whole em; an Arabic or Persian letter 0.75 (its shapes
+ * vary more than Latin's); a Cyrillic one 0.68; a Devanagari letter 0.6; a
+ * space about a third; a mark or a joiner nothing; and anything else - a
+ * Latin letter, a digit - 0.65.
  */
 export function estimateTextWidthEm(text: string): number {
   let width: number = 0;
 
   for (const character of Array.from(text)) {
+    if (ZERO_WIDTH_CHARACTER.test(character)) {
+      continue;
+    }
+
     if (WIDE_CHARACTER.test(character)) {
       width += 1.05;
-    } else if (NARROW_SCRIPT_CHARACTER.test(character)) {
-      width += 0.5;
+    } else if (ARABIC_SCRIPT_CHARACTER.test(character)) {
+      width += 0.75;
+    } else if (CYRILLIC_SCRIPT_CHARACTER.test(character)) {
+      width += 0.68;
+    } else if (DEVANAGARI_CHARACTER.test(character)) {
+      width += 0.6;
     } else if (SPACE_CHARACTER.test(character)) {
       width += 0.32;
     } else {
-      width += 0.62;
+      width += 0.65;
     }
   }
 
@@ -348,7 +396,7 @@ const BUTTON_ICON_PX: number = 24;
 // A menu's chevron and the gap before it.
 const BUTTON_MENU_CHEVRON_PX: number = 22;
 const BUTTON_MIN_WIDTH_PX: number = 112;
-const BUTTON_MAX_WIDTH_PX: number = 256;
+const BUTTON_MAX_WIDTH_PX: number = 320;
 const MORE_BUTTON_WIDTH_PX: number = 36;
 const GAP_PX: number = 8;
 const ROW_GAP_PX: number = 16;

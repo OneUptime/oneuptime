@@ -176,7 +176,7 @@ Es gibt vier Wege, auf denen ein Vorfall seinen Status ändert:
 | **Massenänderung**  | **Status ändern** für eine Auswahl in der Vorfallliste | Eine Seite mit dem Status, **Statusseiten-Abonnenten benachrichtigen** und demselben eingeklappten **Öffentliche Notiz hinzufügen**. |
 | **Automatisch**     | Ein Monitorkriterium oder Ihr eigener Code | Ein Kriterium mit eingeschaltetem **Vorfall automatisch beheben** behebt seinen Vorfall, wenn das Kriterium nicht mehr erfüllt ist. Die API ändert den Status, indem sie eine Zeile unter `/api/incident-state-timeline` anlegt. |
 
-Liegt der aktuelle Status vor dem bestätigten Status, bietet die Kopfzeile **Bestätigen** und **Beheben** an; liegt er zwischen beiden, nur **Beheben**. Das Bestätigen stoppt außerdem jede Bereitschaftseskalation des Vorfalls.
+Liegt der aktuelle Status vor dem bestätigten Status, bietet die Kopfzeile **Bestätigen** und **Beheben** an; liegt er zwischen beiden, nur **Beheben**. Das Bestätigen stoppt außerdem jede Bereitschaftseskalation des Vorfalls. Wer den Status des Vorfalls mit seiner Rolle nicht ändern darf, sieht die Schaltflächen gesperrt und kein Menü weiterer Status; zeigt man auf eine, nennt sie die Berechtigungen, die das erlauben würden.
 
 Jeder dieser Wege schreibt eine Zeitachsenzeile. Ein Statuswechsel tut außerdem einiges, worum Sie nicht bitten müssen: Er postet einen Eintrag in den Vorfall-Feed, ernennt einen Vorfall-Kommandanten, falls der Vorfall noch keinen hat, und aktualisiert die SLA-Uhr. Das Wiedereröffnen eines behobenen Vorfalls startet ab dem Zeitpunkt der Wiedereröffnung einen neuen SLA-Datensatz.
 

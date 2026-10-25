@@ -133,7 +133,7 @@ Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden
 | **Massenänderung**   | **Status ändern** für eine Auswahl in der Warnungsliste                                   | Der Status und eine private Notiz, die jeder Warnung hinzugefügt wird. Warnungen, die schon in diesem Status oder danach sind, werden übersprungen. |
 | **Automatisch**      | Ein Monitor, eine Episode, ein verknüpfter Vorfall oder Ihr eigener Code                  | **Warnung automatisch beheben** in den Kriterien eines Monitors, ein Statuswechsel der Episode, die Vorfallschalter auf [Verknüpfte Warnungen](/docs/incidents/linked-alerts) oder eine Zeile, die unter `/api/alert-state-timeline` angelegt wird. |
 
-Der Kopfbereich bietet **Bestätigen** und **Beheben** an, solange die Warnung noch nicht bestätigt ist, danach nur noch **Beheben**. Eine behobene Warnung zeigt keine von beiden.
+Der Kopfbereich bietet **Bestätigen** und **Beheben** an, solange die Warnung noch nicht bestätigt ist, danach nur noch **Beheben**. Eine behobene Warnung zeigt keine von beiden. Wer den Status der Warnung mit seiner Rolle nicht ändern darf, sieht die Schaltflächen gesperrt und kein Menü weiterer Status; zeigt man auf eine, nennt sie die Berechtigungen, die das erlauben würden.
 
 ## Was Bestätigen bewirkt
 

@@ -114,11 +114,11 @@ Haar regels, haar eigenaren, haar feed en haar eerste status gebeuren in beide g
 
 ## Op een waarschuwing reageren
 
-Open de waarschuwing. De kop toont haar status, haar ernst, wanneer ze is aangemaakt en de monitor en episode waartoe ze behoort, met de knoppen die je volgende stap nodig heeft:
+Open de waarschuwing. De kop toont haar status, haar ernst, hoe lang ze al duurt, haar eigenaren en de monitor en episode waartoe ze behoort, met de knoppen die je volgende stap nodig heeft:
 
 - **Bevestigen** zegt dat iemand ermee bezig is. Het voorkomt dat het bereikbaarheidsbeleid van de waarschuwing het volgende niveau oproept.
 - **Oplossen** sluit haar. De waarschuwing verlaat **Actieve waarschuwingen**, en haar herinneringen stoppen.
-- **Change state to**, in het menu **⋯** ernaast, zet haar in een eigen status, zoals "In onderzoek".
+- **Status wijzigen naar**, in het menu **⋯** ernaast, zet haar in een eigen status, zoals "In onderzoek".
 - **Incident melden** opent een nieuw incident, vooraf ingevuld vanuit de waarschuwing, wanneer blijkt dat het probleem gebruikers treft. Zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).
 
 Een overgang naar een andere status vraagt om bevestiging, met een optionele privénotitie ingeklapt onder **Privénotitie toevoegen**. Wat elke status doet, staat op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities).
@@ -139,7 +139,7 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 
 **Overzicht**, **Onderzoek**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
-- **Overzicht** — de kop noemt de **Eigenaren** van de waarschuwing, teams eerst, naast haar monitor en episode. De tegel **Aangemaakt** toont wanneer en waardoor ze werd aangemaakt, twee andere hoe lang het duurde voordat ze werd bevestigd en opgelost; hoe lang ze duurt staat naast haar status. De kaart **Wat er gebeurde** staat bovenaan de pagina — de beschrijving van de waarschuwing en haar **Hoofdoorzaak** — dan de kaart **AI Investigation**, met **Ask OneUptime AI** onderaan, en **Waarschuwing Feed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Getroffen resources**, de kaart **Waarschuwingsdetails** en de metingen van de waarschuwing.
+- **Overzicht** — de kop noemt de **Eigenaren** van de waarschuwing, teams eerst, naast haar monitor en episode. De tegel **Aangemaakt** toont wanneer en waardoor ze werd aangemaakt, twee andere hoe lang het duurde voordat ze werd bevestigd en opgelost; hoe lang ze duurt staat als eerste in de kop. De kaart **Wat er gebeurde** staat bovenaan de pagina — de beschrijving van de waarschuwing en haar **Hoofdoorzaak** — dan de kaart **AI Investigation**, met **Ask OneUptime AI** onderaan, en **Waarschuwing Feed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Getroffen resources**, de kaart **Waarschuwingsdetails** en de metingen van de waarschuwing.
 - **Statustijdlijn** — elke status waarin de waarschuwing heeft gestaan, wanneer en hoe lang. Zie [De statustijdlijn](/docs/alerts/states-and-severities#de-statustijdlijn).
 - **Gekoppelde incidenten** — de incidenten waar deze waarschuwing deel van uitmaakt, met **Incident koppelen** en **Incident melden**.
 - **Instellingen** — **Wie deze waarschuwing kan zien**, met de schakelaar **Privéwaarschuwing**, en **Herinneringen**, met **Herinneringen sturen**. Elke schakelaar slaat op zodra je hem omzet.

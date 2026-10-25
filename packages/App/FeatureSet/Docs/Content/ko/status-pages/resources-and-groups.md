@@ -43,7 +43,7 @@ flowchart TB
 | ---- | ------------- |
 | **그룹 탐색기**(왼쪽) | 페이지의 모든 그룹을 트리로 보여 주며, 위에는 **Search groups...** 상자, 아래에는 `3 groups · 12 resources` 같은 개수가 있습니다. 긴 목록의 끝에는 **Show N more of M** 버튼이 있습니다. |
 | **Top of page** | 탐색기의 첫 행입니다. 그룹에 속하지 않은 리소스로, 방문자가 모든 그룹보다 위에서 가장 먼저 봅니다. 그룹이 없는 페이지에서는 오른쪽 창의 제목이 대신 **All resources**가 됩니다. |
-| **리소스 창**(오른쪽) | 선택한 그룹의 리소스입니다. 머리글에 **Edit Group**, 기본 **모니터 추가** 버튼, **More actions** 메뉴가 있습니다. |
+| **리소스 창**(오른쪽) | 선택한 그룹의 리소스입니다. 머리글에 **Edit Group**, 기본 **모니터 추가** 버튼, **추가 작업** 메뉴가 있습니다. |
 | 카드 머리글 | **New Group**과, **Import groups from CSV** 및 **새로고침**이 있는 점 세 개 메뉴. |
 
 **빈 상태가 할 일을 알려 줍니다.** 빈 그룹에는 **No monitors here yet**과 함께 **모니터 추가**, **Add Multiple**, 그리고 페이지에 그룹이 하나도 없을 때만 **Create a Group**이 표시됩니다. 아무것도 일치하지 않는 검색에는 **No resources match your search**가 표시됩니다.
@@ -79,7 +79,7 @@ flowchart TB
 
 ### 여러 개 한 번에 추가
 
-**Add Multiple**(**More actions** 메뉴의 **Add multiple monitors**도 같음)은 **Add Multiple Monitors**를 엽니다. 이것도 한 페이지입니다. **모니터** 다중 선택과, 같은 접힌 **추가 필드**가 있으며, 그 표시 옵션은 선택한 모든 모니터에 적용됩니다. 각 리소스는 표시 이름과 설명을 모니터에서 가져오고, **모니터 추가**가 모두 추가합니다. 새 페이지를 채우는 가장 빠른 방법입니다.
+**Add Multiple**(**추가 작업** 메뉴의 **Add multiple monitors**도 같음)은 **Add Multiple Monitors**를 엽니다. 이것도 한 페이지입니다. **모니터** 다중 선택과, 같은 접힌 **추가 필드**가 있으며, 그 표시 옵션은 선택한 모든 모니터에 적용됩니다. 각 리소스는 표시 이름과 설명을 모니터에서 가져오고, **모니터 추가**가 모두 추가합니다. 새 페이지를 채우는 가장 빠른 방법입니다.
 
 다중 선택에는 **레이블** 탭이 있습니다. 레이블을 클릭하면 그 레이블이 붙은 모든 모니터가 한 번에 선택됩니다.
 
@@ -153,7 +153,7 @@ flowchart TB
 | 위치 | 동작 |
 | ----- | ------- |
 | 탐색기의 행 메뉴 | **Edit group**, **위로 이동**, **아래로 이동**, **ID 표시**, **Delete group** |
-| 창의 **More actions** 메뉴 | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **새로고침**, **Delete this group** |
+| 창의 **추가 작업** 메뉴 | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **새로고침**, **Delete this group** |
 
 이름 없이 저장한 그룹은 **Untitled group**으로 표시됩니다. 무언가 입력하려 했다는 좋은 신호입니다.
 
@@ -195,7 +195,7 @@ flowchart TB
 | 대상 | 순서를 바꾸는 방법 |
 | ---- | ----------------- |
 | 그룹 안의 리소스 | 행을 끕니다. 창에도 **Drag a row to change the order visitors see**라고 표시됩니다. |
-| 그룹끼리의 순서 | 탐색기 행 메뉴의 **위로 이동** / **아래로 이동**, 또는 **More actions**의 **Move group up** / **Move group down**. |
+| 그룹끼리의 순서 | 탐색기 행 메뉴의 **위로 이동** / **아래로 이동**, 또는 **추가 작업**의 **Move group up** / **Move group down**. |
 | 그룹에 속하지 않은 리소스 | **Top of page**에 있으며 항상 모든 그룹 위에 표시되므로, 모두가 가장 먼저 확인하는 것을 여기에 두세요. |
 
 **끌기가 꺼지는 두 가지 경우.** **Search in {group}...** 상자로 검색하면 순서 변경이 꺼집니다(창에 `N of M shown · drag to reorder is off while filtering`이 표시됨). 먼저 검색을 지우세요. 또한 그리드 그룹은 끌어서 순서를 바꿀 수 없습니다. 모니터의 위치는 행과 열로 정해지기 때문입니다.

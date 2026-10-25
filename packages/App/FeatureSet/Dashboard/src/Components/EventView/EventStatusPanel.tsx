@@ -248,9 +248,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   const secondaryActions: Array<EventPanelAction> =
     props.secondaryActions || [];
 
-  const translateLabel: (label: string) => string = (
-    label: string,
-  ): string => {
+  const translateLabel: (label: string) => string = (label: string): string => {
     return translateString(label) || label;
   };
 

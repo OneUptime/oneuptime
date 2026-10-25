@@ -56,7 +56,7 @@ Indtast et **Navn** — og en **Beskrivelse** under **Flere felter**, hvis du vi
 ### I dashboardet
 
 :::steps
-1. Åbn monitoren. Klik øverst til højre i dens oversigt, ved siden af **Opdater**, på **More actions** (⋯).
+1. Åbn monitoren. Klik øverst til højre i dens oversigt, ved siden af **Opdater**, på **Flere handlinger** (⋯).
 2. Vælg den nye status under **Skift status til**.
 3. Klik på **Skift status**. Den nye status begynder nu og vises med det samme på monitoren og på hver statusside, der viser den.
 :::
