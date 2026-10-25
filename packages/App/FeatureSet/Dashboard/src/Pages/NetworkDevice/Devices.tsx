@@ -681,9 +681,10 @@ const NetworkDevices: FunctionComponent<
       resourceIdField: "networkDeviceId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<NetworkDevice>({
-    modelType: NetworkDevice,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<NetworkDevice>({
+      modelType: NetworkDevice,
+    });
 
   /*
    * Linking an EXISTING fleet to an OID Collection Template. Without a bulk
@@ -1006,6 +1007,8 @@ const NetworkDevices: FunctionComponent<
       />
       <ModelTable<NetworkDevice>
         modelType={NetworkDevice}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         id={NETWORK_DEVICES_TABLE_ID}
         userPreferencesKey={NETWORK_DEVICES_TABLE_ID}
         refreshToggle={refreshToggle}

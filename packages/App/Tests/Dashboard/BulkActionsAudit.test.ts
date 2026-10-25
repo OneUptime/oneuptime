@@ -270,10 +270,15 @@ const hasOwners: (modelType: ModelClass) => boolean = (
   );
 };
 
-// What a list's file offers in Bulk Actions, through the shared actions.
+/*
+ * What a list's file offers in Bulk Actions, through the shared actions: the
+ * bulk switch alone (useBulkSwitchActions), or with its row counterparts
+ * (useSwitchActions - RowActionsAudit holds the rows).
+ */
 const offersSwitch: (use: ListUse) => boolean = (use: ListUse): boolean => {
   return (
-    (use.source.includes("useBulkSwitchActions<") &&
+    ((use.source.includes("useBulkSwitchActions<") ||
+      use.source.includes("useSwitchActions<")) &&
       use.source.includes('column: "isEnabled"')) ||
     use.source.includes("useSloBulkActions()")
   );
@@ -397,7 +402,7 @@ describe("1. a list of records switched on and off offers Enable and Disable", (
       "utf8",
     );
 
-    expect(monitorTable).toContain("useBulkSwitchActions<Monitor>({");
+    expect(monitorTable).toContain("useSwitchActions<Monitor>({");
     expect(monitorTable).toContain('column: "disableActiveMonitoring",');
     expect(monitorTable).toContain(
       "{ ...ENABLE_SWITCH_ACTION, value: false },",

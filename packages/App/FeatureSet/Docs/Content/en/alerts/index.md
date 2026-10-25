@@ -64,7 +64,9 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 
 **Alerts** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. Alert configuration lives here, not in **Project Settings**.
 
-The list shows **Alert Number**, **Title**, **State**, **Severity**, **Affected Resources** (the alert's monitor first), **Created**, **Duration**, **Labels** and **Owners**. Select alerts to act on several at once: **Change State**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Link to Incident**, **Declare Incident** or delete them.
+The list shows **Alert Number**, **Title**, **State**, **Severity**, **Affected Resources** (the alert's monitor first), **Created**, **Duration**, **Labels** and **Owners**. Select alerts to act on several at once: **Acknowledge**, **Resolve**, **Change State**, **Change Severity**, **Assign to Me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Link to Incident**, **Declare Incident** or delete them.
+
+Each alert's **⋯** menu, at the end of its row, does the same for that alert alone: **Acknowledge** and **Resolve** while the alert can make that move, **Change State**, **Change Severity**, **Assign to Me** until you own it, and **Add Owner** to hand it to someone else.
 
 ## Create an alert by hand
 

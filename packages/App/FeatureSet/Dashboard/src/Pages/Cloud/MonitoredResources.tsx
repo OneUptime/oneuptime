@@ -93,9 +93,10 @@ const CloudMonitoredResources: FunctionComponent<
     },
   );
 
-  const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
-    modelType: CloudResource,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<CloudResource>({
+      modelType: CloudResource,
+    });
 
   /*
    * Labels and owners in Bulk Actions, as on every other resource list:
@@ -151,6 +152,8 @@ const CloudMonitoredResources: FunctionComponent<
     <Fragment>
       <ModelTable<CloudResource>
         modelType={CloudResource}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="cloud-monitored-resources-table"
         userPreferencesKey="cloud-monitored-resources-table"

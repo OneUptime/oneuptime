@@ -137,9 +137,10 @@ const CephClusters: FunctionComponent<
       resourceIdField: "cephClusterId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<CephCluster>({
-    modelType: CephCluster,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<CephCluster>({
+      modelType: CephCluster,
+    });
 
   const cephExtraFacets: Array<ResourceFacet> = [
     {
@@ -195,6 +196,8 @@ const CephClusters: FunctionComponent<
     <Fragment>
       <ModelTable<CephCluster>
         modelType={CephCluster}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="ceph-clusters-table"
         userPreferencesKey="ceph-clusters-table"

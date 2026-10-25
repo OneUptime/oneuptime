@@ -58,15 +58,16 @@ const OnCallDutyPage: FunctionComponent<
     });
 
   // Archived policies leave this list; they are on the Archived page.
-  const { archiveBulkActions } = useBulkArchiveActions<OnCallDutyPolicy>({
-    modelType: OnCallDutyPolicy,
-    singularName: ON_CALL_POLICY_ARCHIVE_COPY.singularName,
-    pluralName: ON_CALL_POLICY_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage:
-      ON_CALL_POLICY_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage:
-      ON_CALL_POLICY_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<OnCallDutyPolicy>({
+      modelType: OnCallDutyPolicy,
+      singularName: ON_CALL_POLICY_ARCHIVE_COPY.singularName,
+      pluralName: ON_CALL_POLICY_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage:
+        ON_CALL_POLICY_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        ON_CALL_POLICY_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   /*
    * One chip per custom field this project has defined. They arrive a render
@@ -113,6 +114,8 @@ const OnCallDutyPage: FunctionComponent<
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         enableJsonImportExport={true}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"

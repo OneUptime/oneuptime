@@ -167,13 +167,14 @@ Archive un estado o una gravedad que su equipo ya no deba usar, en lugar de elim
 
 ## Mover un incidente por sus estados
 
-Un incidente cambia de estado de cuatro formas:
+Un incidente cambia de estado de cinco formas:
 
 | Forma                       | Dónde                                                                                       | Qué pide                                                                                                                                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Botones de la cabecera**  | La cabecera del incidente: **Reconocer** y **Resolver**, y **Cambiar el estado a** en su menú **⋯** | Una breve confirmación —**Reconocer incidente** o **Resolver incidente**— con **Notificar a suscriptores de la página de estado** y, plegada en **Añadir una nota pública**, la **Nota pública** opcional y su selector **Seleccionar plantilla de nota** (cuando el proyecto tiene plantillas de notas). |
 | **Cronología de estados**   | **Cronología de estados** en el menú lateral del incidente                                  | Una fila añadida a mano, con **Estado del incidente**, **Comienza en** y **Notificar a suscriptores de la página de estado**.                                                                                |
-| **Cambio masivo**           | **Cambiar estado** sobre una selección en la lista de incidentes                            | Una página con el estado, **Notificar a suscriptores de la página de estado** y el mismo **Añadir una nota pública** plegado.                                                                               |
+| **Fila de la lista** | El menú **⋯** de la fila de un incidente en la lista de incidentes: **Reconocer**, **Resolver** y **Cambiar estado** | La confirmación de la cabecera, con el nombre del incidente. Un incidente que otro cambio ya movió se deja como está, y el diálogo dice por qué. |
+| **Cambio masivo**           | **Reconocer**, **Resolver** o **Cambiar estado** sobre una selección en la lista de incidentes                            | Una página con el estado, **Notificar a suscriptores de la página de estado** y el mismo **Añadir una nota pública** plegado.                                                                               |
 | **Automáticamente**         | Un criterio de monitor, o tu propio código                                                  | Un criterio con **Resolver incidente automáticamente** activado resuelve su incidente cuando el criterio deja de cumplirse. La API cambia el estado creando una fila en `/api/incident-state-timeline`.      |
 
 Si el estado actual está antes del estado reconocido, la cabecera ofrece **Reconocer** y **Resolver**; si está entre los dos, solo **Resolver**. Reconocer también detiene cualquier escalado de guardia del incidente. Quien, por su rol, no puede cambiar el estado del incidente ve los botones bloqueados y ningún menú de otros estados: al señalar uno, se nombran los permisos que se lo permitirían.
@@ -182,7 +183,7 @@ Cada una de estas formas escribe una fila de cronología. Un cambio de estado ta
 
 ## Qué hace reconocer
 
-Un incidente queda reconocido desde el momento en que pasa a tu estado reconocido, a cualquier estado posterior —un estado **Mitigated** o **Investigating** que colocaste por debajo de **Reconocido**— o a un estado resuelto, sea cual sea de las cuatro formas anteriores la que lo mueve. La columna **Cuenta como** de la página de ajustes de estados muestra cuáles son esos estados. Una vez reconocido:
+Un incidente queda reconocido desde el momento en que pasa a tu estado reconocido, a cualquier estado posterior —un estado **Mitigated** o **Investigating** que colocaste por debajo de **Reconocido**— o a un estado resuelto, sea cual sea de las cinco formas anteriores la que lo mueve. La columna **Cuenta como** de la página de ajustes de estados muestra cuáles son esos estados. Una vez reconocido:
 
 - **Ya no se ofrece Reconocer.** Ni en la cabecera del incidente, ni en la aplicación móvil (su botón y su deslizamiento), ni en Slack o Microsoft Teams, ni mediante `acknowledge_incident` del servidor MCP de OneUptime. Reconocerlo de todos modos —desde un aviso de guardia, Slack o Teams— se rechaza con «Incident is already acknowledged.» (o «Incident is already resolved.»), en lugar de devolverlo hacia arriba en su lista.
 - **La guardia deja de avisar por él.** Un respondedor que reconoce su aviso después de que un compañero reconociera el incidente, o lo hiciera avanzar, ve su aviso reconocido y el incidente se queda donde está.
@@ -194,7 +195,7 @@ Las alertas y los episodios siguen la misma regla, con tus estados de alerta.
 
 ## Qué hace resolver
 
-Un incidente se resuelve cuando pasa de un estado por encima de tu estado resuelto al estado resuelto, o a cualquier estado posterior, sea cual sea de las cuatro formas anteriores la que lo mueve. Cada resolución:
+Un incidente se resuelve cuando pasa de un estado por encima de tu estado resuelto al estado resuelto, o a cualquier estado posterior, sea cual sea de las cinco formas anteriores la que lo mueve. Cada resolución:
 
 - **Devuelve los monitores que retiene el incidente.** Un incidente declarado abierto retiene sus monitores: los puso en su estado de **Cambiar el estado del monitor a**, cuando nombra uno, y, declarado a mano, pausó su monitoreo. Una edición mientras está abierto —añadir monitores, o cambiar ese estado— también hace que los retenga. Resolver reanuda su monitoreo y los devuelve a operativos, salvo que otro incidente abierto siga sobre ellos, y desde entonces el incidente no retiene nada. Así que un incidente declarado ya resuelto no devuelve nada, y tampoco una segunda resolución tras una reapertura: un estado que sus monitores recibieran entretanto —de sus sondas, de un mantenimiento o puesto a mano— se mantiene.
 - **Marca el SLA como resuelto** y, cuando los borradores de post mortem de OneUptime AI están activados, redacta un post mortem.

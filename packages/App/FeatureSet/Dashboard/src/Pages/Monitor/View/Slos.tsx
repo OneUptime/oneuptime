@@ -47,7 +47,8 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * monitor measures" is exactly the set an SRE wants to re-label or hand to
    * an owner, and it is already the set this table has selected.
    */
-  const { bulkActions, modals }: SloBulkActionsResult = useSloBulkActions();
+  const { bulkActions, rowActions, modals }: SloBulkActionsResult =
+    useSloBulkActions();
 
   const { getOwnersForResource, isLoadingOwners, onResourcesFetched } =
     useResourceOwners<ServiceLevelObjective>({
@@ -61,6 +62,8 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <DisabledWarning monitorId={modelId} />
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        actionButtons={[...rowActions]}
         id="monitor-slos-table"
         userPreferencesKey="monitor-slos-table"
         name="Monitor > SLOs"

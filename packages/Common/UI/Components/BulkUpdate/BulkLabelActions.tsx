@@ -24,6 +24,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
+import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import Modal from "../Modal/Modal";
 import { DropdownOption } from "../Dropdown/Dropdown";
@@ -422,6 +423,7 @@ function useBulkLabelActions<T extends BaseModel>(
   const addLabelsAction: BulkActionButtonSchema<T> = {
     title: "Add Labels",
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.Labels,
     icon: IconProp.Label,
     /*
      * The two modals are independent booleans rendered as sibling
@@ -442,6 +444,7 @@ function useBulkLabelActions<T extends BaseModel>(
   const removeLabelsAction: BulkActionButtonSchema<T> = {
     title: "Remove Labels",
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: ActionMenuGroup.Labels,
     icon: IconProp.Close,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);

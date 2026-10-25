@@ -541,6 +541,8 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
   return (
     <ModelTable<AutoRemediationRule>
       modelType={AutoRemediationRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       id={AI_LANE_AI_RULES_TABLE_ID[props.lane]}
       name="Settings > AI > AI Rules"
       userPreferencesKey={AI_LANE_AI_RULES_TABLE_ID[props.lane]}

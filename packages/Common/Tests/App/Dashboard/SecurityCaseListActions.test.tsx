@@ -372,6 +372,20 @@ function itemTitles(menu: HTMLElement): Array<string> {
     });
 }
 
+// A gap between two kinds of action in a menu (ActionMenuGroup).
+const MENU_GAP: string = "—";
+
+// What a menu holds, top to bottom: its items, and a MENU_GAP for each gap.
+function menuSequence(menu: HTMLElement): Array<string> {
+  return Array.from(
+    menu.querySelectorAll<HTMLElement>('[role="menuitem"], [role="none"]'),
+  ).map((element: HTMLElement): string => {
+    return element.getAttribute("role") === "none"
+      ? MENU_GAP
+      : (element.textContent || "").trim();
+  });
+}
+
 async function clickMenuItem(menu: HTMLElement, title: string): Promise<void> {
   await act(async () => {
     fireEvent.click(within(menu).getByRole("menuitem", { name: title }));
@@ -498,6 +512,21 @@ describe("a case's row ⋯", () => {
     expect(
       within(rowOf("CASE-141")).getByRole("button", { name: "View" }),
     ).toBeInTheDocument();
+  });
+
+  test("reads in runs, as an incident's ⋯ does: the case's people, then its status and priority, then Delete", async () => {
+    listedRows = [buildCase(141)];
+    await openList("open");
+
+    expect(menuSequence(await openRowMenu("CASE-141"))).toEqual([
+      "Assign to Me",
+      "Assign to Someone Else",
+      MENU_GAP,
+      "Change Status",
+      "Change Priority",
+      MENU_GAP,
+      "Delete",
+    ]);
   });
 
   test("a closed case is not assigned: its ⋯ moves its status (to reopen it), its priority, or deletes it", async () => {
@@ -768,6 +797,16 @@ describe("Bulk Actions", () => {
       "Change Priority",
     ]);
     expect(titles[titles.length - 1]).toBe("Delete");
+
+    // In runs: the cases' people, then their status and priority.
+    expect(menuSequence(menu).slice(0, 6)).toEqual([
+      "Assign to Me",
+      "Assign to Someone Else",
+      MENU_GAP,
+      "Change Status",
+      "Change Priority",
+      MENU_GAP,
+    ]);
   });
 
   test("Assign to Someone Else: one dialog for the cases selected, each saved in turn; the result counts the cases assigned and names each refused or left alone, with why", async () => {

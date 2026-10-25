@@ -167,13 +167,14 @@ Archivia uno stato o una gravità che il tuo team non deve più usare, invece di
 
 ## Far passare un incidente da uno stato all'altro
 
-Un incidente cambia stato in quattro modi:
+Un incidente cambia stato in cinque modi:
 
 | Modo                           | Dove                                                                                        | Che cosa chiede                                                                                                                                                                                              |
 | ------------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Pulsanti dell'intestazione** | L'intestazione dell'incidente: **Riconosci** e **Risolvi**, e **Cambia stato in** nel suo menu **⋯** | Una breve conferma — **Riconosci incidente** o **Risolvi incidente** — con **Notifica gli iscritti alla pagina di stato** e, ripiegata sotto **Aggiungi una nota pubblica**, la **Nota pubblica** facoltativa e il suo selettore **Seleziona modello di nota** (quando il progetto ha modelli di note). |
 | **Cronologia stato**           | **Cronologia stato** nel menu laterale dell'incidente                                       | Una riga aggiunta a mano, con **Stato dell'incidente**, **Inizia il** e **Notifica gli iscritti alla pagina di stato**.                                                                                     |
-| **Modifica di massa**          | **Cambia stato** su una selezione nell'elenco degli incidenti                               | Una pagina con lo stato, **Notifica gli iscritti alla pagina di stato** e lo stesso **Aggiungi una nota pubblica** ripiegato.                                                                               |
+| **Riga dell'elenco** | Il menu **⋯** sulla riga di un incidente nell'elenco degli incidenti: **Riconosci**, **Risolvi** e **Cambia stato** | La conferma dell'intestazione, con il nome dell'incidente. Un incidente che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. |
+| **Modifica di massa**          | **Riconosci**, **Risolvi** o **Cambia stato** su una selezione nell'elenco degli incidenti                               | Una pagina con lo stato, **Notifica gli iscritti alla pagina di stato** e lo stesso **Aggiungi una nota pubblica** ripiegato.                                                                               |
 | **Automaticamente**            | Un criterio di monitor, o il vostro codice                                                  | Un criterio con **Risoluzione automatica dell'incidente** attiva risolve il suo incidente quando il criterio non è più soddisfatto. L'API cambia lo stato creando una riga in `/api/incident-state-timeline`. |
 
 Se lo stato attuale viene prima dello stato riconosciuto, l'intestazione offre **Riconosci** e **Risolvi**; se si trova tra i due, solo **Risolvi**. Il riconoscimento ferma anche qualsiasi inoltro di reperibilità dell'incidente. Chi, con il proprio ruolo, non può cambiare lo stato dell'incidente vede i pulsanti bloccati e nessun menu degli altri stati: puntandone uno, compaiono le autorizzazioni che glielo permetterebbero.
@@ -182,7 +183,7 @@ Ognuno di questi modi scrive una riga della cronologia. Un cambio di stato fa an
 
 ## Che cosa fa il riconoscimento
 
-Un incidente è riconosciuto dal momento in cui passa nel vostro stato riconosciuto, in qualsiasi stato successivo — uno stato **Mitigated** o **Investigating** che avete messo sotto **Riconosciuto** — o in uno stato risolto, in qualunque dei quattro modi sopra venga spostato. La colonna **Conta come** della pagina delle impostazioni degli stati mostra quali sono questi stati. Una volta riconosciuto:
+Un incidente è riconosciuto dal momento in cui passa nel vostro stato riconosciuto, in qualsiasi stato successivo — uno stato **Mitigated** o **Investigating** che avete messo sotto **Riconosciuto** — o in uno stato risolto, in qualunque dei cinque modi sopra venga spostato. La colonna **Conta come** della pagina delle impostazioni degli stati mostra quali sono questi stati. Una volta riconosciuto:
 
 - **Riconosci non viene più offerto.** Né nell'intestazione dell'incidente, né nell'app mobile (il suo pulsante e il suo scorrimento), né in Slack o Microsoft Teams, né tramite `acknowledge_incident` del server MCP di OneUptime. Riconoscerlo comunque — da un avviso di reperibilità, da Slack o da Teams — viene rifiutato con «Incident is already acknowledged.» (o «Incident is already resolved.»), invece di riportarlo indietro nel suo elenco.
 - **La reperibilità smette di avvisare per lui.** Un responder che riconosce il proprio avviso dopo che un collega ha riconosciuto l'incidente, o l'ha fatto avanzare, vede il proprio avviso riconosciuto e l'incidente resta dov'è.
@@ -194,7 +195,7 @@ Avvisi ed episodi seguono la stessa regola, con i vostri stati degli avvisi.
 
 ## Che cosa fa la risoluzione
 
-Un incidente viene risolto quando passa da uno stato sopra il vostro stato risolto allo stato risolto, o a qualsiasi stato successivo — in qualunque dei quattro modi sopra venga spostato. Ogni risoluzione:
+Un incidente viene risolto quando passa da uno stato sopra il vostro stato risolto allo stato risolto, o a qualsiasi stato successivo — in qualunque dei cinque modi sopra venga spostato. Ogni risoluzione:
 
 - **Restituisce i monitor che l'incidente trattiene.** Un incidente dichiarato aperto trattiene i suoi monitor: li ha messi nel suo stato **Cambia lo stato del monitor in**, quando ne nomina uno, e, se dichiarato a mano, ne ha sospeso il monitoraggio. Una modifica mentre è aperto — aggiungere monitor, o cambiare quello stato — gli fa trattenere anche quelli. La risoluzione riprende il loro monitoraggio e li riporta a operativi, a meno che un altro incidente aperto li riguardi ancora, e da quel momento l'incidente non trattiene più nulla. Quindi un incidente dichiarato già risolto non restituisce nulla, e nemmeno una seconda risoluzione dopo una riapertura: uno stato che i suoi monitor hanno ricevuto nel frattempo — dalle loro sonde, da una manutenzione o impostato a mano — resta.
 - **Segna lo SLA come risolto** e, quando le bozze di post-mortem di OneUptime AI sono attive, stende un post-mortem.

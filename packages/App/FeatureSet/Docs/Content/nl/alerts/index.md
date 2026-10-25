@@ -64,7 +64,9 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 
 **Waarschuwingen** en **Episoden** zijn open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. De configuratie van waarschuwingen staat hier, niet in **Projectinstellingen**.
 
-De lijst toont **Waarschuwingsnummer**, **Titel**, **Status**, **Ernst**, **Getroffen resources** (eerst de monitor van de waarschuwing), **Aangemaakt**, **Duur**, **Labels** en **Eigenaren**. Selecteer waarschuwingen om er meerdere tegelijk te bewerken: **Status wijzigen**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Koppelen aan incident**, **Incident melden** of verwijderen.
+De lijst toont **Waarschuwingsnummer**, **Titel**, **Status**, **Ernst**, **Getroffen resources** (eerst de monitor van de waarschuwing), **Aangemaakt**, **Duur**, **Labels** en **Eigenaren**. Selecteer waarschuwingen om er meerdere tegelijk te bewerken: **Bevestigen**, **Oplossen**, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Koppelen aan incident**, **Incident melden** of verwijderen.
+
+Het menu **⋯** aan het eind van de rij van elke waarschuwing doet hetzelfde voor alleen die waarschuwing: **Bevestigen** en **Oplossen** zolang de waarschuwing die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Add Owner** om haar aan iemand anders over te dragen.
 
 ## Een waarschuwing met de hand aanmaken
 

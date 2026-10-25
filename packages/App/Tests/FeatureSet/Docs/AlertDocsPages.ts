@@ -110,6 +110,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Moving to the state it is already in is refused",
     "Pickers offer only the states after the current one",
     "Header buttons",
+    "List row",
     "Bulk change",
     "On-call stops paging for it.",
     "Acknowledge is no longer offered",

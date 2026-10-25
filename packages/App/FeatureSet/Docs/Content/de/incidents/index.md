@@ -165,7 +165,7 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 
 **Übersicht** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind standardmäßig eingeklappt, damit das Menü mit den Listen beginnt, die Sie täglich nutzen. Klicken Sie auf den Titel eines Abschnitts, um ihn aufzuklappen und die Seiten zu finden, auf die sich der Rest dieser Doku bezieht; ein Abschnitt öffnet sich auch von selbst, wenn Sie auf einer seiner Seiten sind. Die Vorfallskonfiguration liegt nicht in den Projekteinstellungen, sondern vollständig hier.
 
-Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen**, **Erklärt**, **Dauer**, **Beschriftungen** und **Eigentümer**, mit der Massenaktion **Status ändern**, um mehrere auf einmal zu schließen.
+Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen**, **Erklärt**, **Dauer**, **Beschriftungen** und **Eigentümer**. Das Menü **⋯** am Ende der Zeile jedes Vorfalls bietet **Bestätigen** und **Beheben**, solange der Vorfall diesen Schritt machen kann, **Status ändern**, **Schweregrad ändern**, **Mir zuweisen**, bis Sie sein Eigentümer sind, und **Eigentümer hinzufügen**, um ihn an jemand anderen zu übergeben. Wählen Sie mehrere Vorfälle aus, um dasselbe mit allen auf einmal zu tun.
 
 ## Was jede Seite eines Vorfalls zeigt
 

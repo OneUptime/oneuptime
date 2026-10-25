@@ -167,13 +167,14 @@ Arkivér en status eller alvorsgrad, som dit team ikke længere skal bruge, i st
 
 ## Flyt en hændelse gennem dens tilstande
 
-Der er fire måder, en hændelse skifter tilstand på:
+Der er fem måder, en hændelse skifter tilstand på:
 
 | Måde                | Hvor                                                                                        | Hvad den spørger om                                                                                                                                                                                          |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Knapper i hovedet** | Hændelsens hoved: **Bekræft** og **Løs**, og **Skift tilstand til** i dens menu **⋯**         | En kort bekræftelse — **Bekræft hændelse** eller **Løs hændelse** — med **Underret statussideabonnenter** og, foldet sammen under **Tilføj en offentlig note**, den valgfri **Offentlig note** med vælgeren **Vælg noteskabelon** (når projektet har noteskabeloner). |
 | **Tilstandstidslinje** | **Tilstandstidslinje** i hændelsens sidemenu                                             | En række, der tilføjes i hånden, med **Hændelsesstatus**, **Begynder den** og **Underret statussideabonnenter**.                                                                                            |
-| **Masseændring**    | **Skift tilstand** på et udvalg i listen over hændelser                                     | Én side med tilstanden, **Underret statussideabonnenter** og den samme sammenfoldede **Tilføj en offentlig note**.                                                                                           |
+| **Listens række** | Menuen **⋯** på en hændelses række i listen over hændelser: **Bekræft**, **Løs** og **Skift tilstand** | Hovedets bekræftelse, der nævner hændelsen. En hændelse, som en anden ændring har flyttet imens, lades urørt, og dialogen siger hvorfor. |
+| **Masseændring**    | **Bekræft**, **Løs** eller **Skift tilstand** på et udvalg i listen over hændelser                                     | Én side med tilstanden, **Underret statussideabonnenter** og den samme sammenfoldede **Tilføj en offentlig note**.                                                                                           |
 | **Automatisk**      | Et monitorkriterium eller din egen kode                                                     | Et kriterium med **Løs hændelse automatisk** slået til løser sin hændelse, når kriteriet ikke længere er opfyldt. API'et ændrer tilstanden ved at oprette en række på `/api/incident-state-timeline`.         |
 
 Står den aktuelle tilstand før den bekræftede tilstand, tilbyder hovedet **Bekræft** og **Løs**; står den mellem de to, kun **Løs**. Bekræftelse stopper også enhver eskalering fra vagten for hændelsen. Den, hvis rolle ikke må ændre hændelsens tilstand, ser knapperne låst og ingen menu med andre tilstande: peger man på en, nævner den de tilladelser, der ville give lov.
@@ -182,7 +183,7 @@ Hver af dem skriver en tidslinjerække. En tilstandsændring gør også nogle ti
 
 ## Hvad bekræftelse gør
 
-En hændelse er bekræftet fra det øjeblik, den går ind i din bekræftede tilstand, i en senere tilstand — en tilstand **Mitigated** eller **Investigating**, du har placeret under **Bekræftet** — eller i en løst tilstand, uanset hvilken af de fire måder ovenfor der flytter den. Kolonnen **Tæller som** på indstillingssiden for tilstande viser, hvilke tilstande det er. Når den er bekræftet:
+En hændelse er bekræftet fra det øjeblik, den går ind i din bekræftede tilstand, i en senere tilstand — en tilstand **Mitigated** eller **Investigating**, du har placeret under **Bekræftet** — eller i en løst tilstand, uanset hvilken af de fem måder ovenfor der flytter den. Kolonnen **Tæller som** på indstillingssiden for tilstande viser, hvilke tilstande det er. Når den er bekræftet:
 
 - **Bekræft tilbydes ikke længere.** Ikke i hændelsens hoved, ikke i mobilappen (dens knap og dens swipe), ikke i Slack eller Microsoft Teams og ikke via OneUptime MCP-serverens `acknowledge_incident`. At bekræfte den alligevel — fra en tilkaldelsesside, Slack eller Teams — afvises med "Incident is already acknowledged." (eller "Incident is already resolved."), i stedet for at flytte den op i listen igen.
 - **Vagten holder op med at tilkalde for den.** En vagthavende, der bekræfter sin tilkaldelse, efter at en kollega har bekræftet hændelsen eller flyttet den videre, får sin tilkaldelse bekræftet, og hændelsen bliver, hvor den er.
@@ -194,7 +195,7 @@ Advarsler og episoder følger samme regel med dine advarselstilstande.
 
 ## Hvad løsning gør
 
-En hændelse er løst, når den går fra en tilstand over din løste tilstand ind i den løste tilstand, eller ind i en senere tilstand — uanset hvilken af de fire måder ovenfor der flytter den. Hver løsning:
+En hændelse er løst, når den går fra en tilstand over din løste tilstand ind i den løste tilstand, eller ind i en senere tilstand — uanset hvilken af de fem måder ovenfor der flytter den. Hver løsning:
 
 - **Giver de monitorer fri, hændelsen holder.** En hændelse, der erklæres åben, holder sine monitorer: den satte dem i sin status fra **Skift overvågningsstatus til**, når den nævner en, og satte, når den blev erklæret i hånden, deres overvågning på pause. En redigering, mens den er åben — at tilføje monitorer eller ændre den status — får den også til at holde dem. Løsningen genoptager deres overvågning og sætter dem tilbage til driftsklar, medmindre en anden åben hændelse stadig ligger på dem, og fra da af holder hændelsen intet. Så en hændelse, der erklæres allerede løst, giver intet fri, og det gør en anden løsning efter en genåbning heller ikke: en status, dens monitorer fik i mellemtiden — fra deres prober, fra vedligeholdelse eller sat i hånden — bliver stående.
 - **Markerer SLA'en som løst** og skriver, når OneUptime AI's postmortem-udkast er slået til, et udkast til en postmortem.

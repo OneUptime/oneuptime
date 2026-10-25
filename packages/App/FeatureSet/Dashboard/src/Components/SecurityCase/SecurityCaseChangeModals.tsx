@@ -52,7 +52,12 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * The dialogs of Assign to Someone Else, Change Status and Change Priority,
@@ -144,7 +149,14 @@ const SecurityCaseChangeModal: FunctionComponent<ChangeModalProps> = (
   props: ChangeModalProps,
 ): ReactElement => {
   const [error, setError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  /*
+   * The change being saved: the form stays as it was filled in and the
+   * button turns busy (BasicFormModal.isSubmitting), as every row's dialog
+   * does while it writes.
+   */
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  // The same, for a second press before the busy button is drawn.
+  const isSavingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   /*
    * The form is redrawn after a save that failed: it starts again on what
    * was submitted, not on the dialog's first values.
@@ -160,7 +172,7 @@ const SecurityCaseChangeModal: FunctionComponent<ChangeModalProps> = (
       description={props.description}
       submitButtonText={submitButtonText}
       modalWidth={props.modalWidth}
-      isLoading={isLoading}
+      isSubmitting={isSaving}
       error={error || undefined}
       onClose={props.onClose}
       formProps={{
@@ -174,15 +186,22 @@ const SecurityCaseChangeModal: FunctionComponent<ChangeModalProps> = (
         },
       }}
       onSubmit={async (formValues: FormValues<JSONObject>) => {
+        // A second press while it saves waits for the first.
+        if (isSavingRef.current) {
+          return;
+        }
+
+        isSavingRef.current = true;
         setValues(formValues as JSONObject);
         setError("");
-        setIsLoading(true);
+        setIsSaving(true);
 
         try {
           await props.onSubmit(formValues);
         } catch (err) {
           setError(API.getFriendlyMessage(err));
-          setIsLoading(false);
+          isSavingRef.current = false;
+          setIsSaving(false);
         }
       }}
     />

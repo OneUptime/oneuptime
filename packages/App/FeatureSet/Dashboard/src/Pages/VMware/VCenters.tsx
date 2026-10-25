@@ -77,9 +77,10 @@ const VMwareVCenters: FunctionComponent<
       resourceIdField: "vmwareVCenterId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<VMwareVCenter>({
-    modelType: VMwareVCenter,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<VMwareVCenter>({
+      modelType: VMwareVCenter,
+    });
 
   const vmwareExtraFacets: Array<ResourceFacet> = [
     {
@@ -145,6 +146,8 @@ const VMwareVCenters: FunctionComponent<
     <Fragment>
       <ModelTable<VMwareVCenter>
         modelType={VMwareVCenter}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="vmware-vcenters-table"
         userPreferencesKey="vmware-vcenters-table"

@@ -42,14 +42,15 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
 
   // Archived status pages leave this list; they are on the Archived page.
-  const { archiveBulkActions } = useBulkArchiveActions<StatusPage>({
-    modelType: StatusPage,
-    singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
-    pluralName: STATUS_PAGE_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage: STATUS_PAGE_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage:
-      STATUS_PAGE_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<StatusPage>({
+      modelType: StatusPage,
+      singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
+      pluralName: STATUS_PAGE_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: STATUS_PAGE_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        STATUS_PAGE_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   /*
    * One chip per custom field this project has defined. They arrive a render
@@ -100,6 +101,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         modelType={StatusPage}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         /*
          * A new page starts with the recommended bar color rules: its uptime
          * history grades a day by how long it was down, in colors people

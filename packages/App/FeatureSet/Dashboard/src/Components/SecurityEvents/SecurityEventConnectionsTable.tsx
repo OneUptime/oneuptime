@@ -144,6 +144,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
     <Fragment>
       <ModelTable<SecurityEventConnection>
         modelType={SecurityEventConnection}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         refreshToggle={String(refreshCounter)}
         selectMoreFields={{
           projectId: true,

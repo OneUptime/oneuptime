@@ -165,7 +165,7 @@ stateDiagram-v2
 
 **Overview** و **Episodes** باز هستند؛ **AI**، **Workspace**، **Rules**، **Settings** و **Developer** به‌طور پیش‌فرض جمع‌اند، تا منو روی فهرست‌هایی باز شود که هر روز به کار می‌برید. روی عنوان یک بخش کلیک کنید تا باز شود و صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید؛ هر بخش وقتی روی یکی از صفحه‌هایش باشید خودبه‌خود هم باز می‌شود. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجاست.
 
-خود فهرست حادثه‌ها **Incident Number**، **Title**، **State**، **Severity**، **Resources Affected**، **Declared**، **Duration**، **Labels** و **Owners** را نشان می‌دهد، با کنش انبوه **Change State** برای بستن چند حادثه با هم.
+خود فهرست حادثه‌ها **Incident Number**، **Title**، **State**، **Severity**، **Resources Affected**، **Declared**، **Duration**، **Labels** و **Owners** را نشان می‌دهد. منوی **⋯** در انتهای ردیف هر حادثه **Acknowledge** و **Resolve** را تا وقتی حادثه می‌تواند آن گام را بردارد، **Change State**، **Change Severity**، **Assign to Me** را تا وقتی مالک آن نیستید، و **Add Owner** را برای سپردن آن به کس دیگر پیش می‌گذارد. چند حادثه را برگزینید تا همین کار را با همه با هم انجام دهید.
 
 ## هر صفحه یک حادثه چه نشان می‌دهد
 
