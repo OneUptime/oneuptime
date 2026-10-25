@@ -915,7 +915,10 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       "whose AI agent is connected and may investigate",
     );
     expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
-      "Ask AI opened on that resource's own page in OneUptime can",
+      "with the reason, when this conversation gives one",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "Ask AI opened on the resource's own page in OneUptime can, once its AI agent is connected and AI investigation is on for it",
     );
     expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
       "never pretend a command ran",
