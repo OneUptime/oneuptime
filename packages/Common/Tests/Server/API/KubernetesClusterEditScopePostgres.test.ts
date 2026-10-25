@@ -14,6 +14,9 @@ import RunnerJobService from "../../../Server/Services/RunnerJobService";
 import UserService from "../../../Server/Services/UserService";
 import KubectlJobRunner from "../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
 import { ChatExtraTool } from "../../../Server/Utils/AI/Chat/ChatAgentRunner";
+import ChatInfrastructureAccess, {
+  ChatPageInfrastructure,
+} from "../../../Server/Utils/AI/Chat/ChatInfrastructureAccess";
 import {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
@@ -35,6 +38,10 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AIChatPageContextType, {
+  AIChatPageContext,
+} from "../../../Types/AI/AIChatPageContext";
+import { AIResourceType } from "../../../Types/AI/AIResourceContext";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -1947,6 +1954,241 @@ describePostgres(
         expect(context.additionalSystemInstructions).not.toContain(
           "prod-docker",
         );
+      });
+    });
+
+    /*
+     * Issue #5259: Ask AI opened on a cluster's or a Docker host's page runs
+     * read-only commands there through its AI agent
+     * (ChatInfrastructureAccess.buildForPage) - for the person asking, so
+     * only on a cluster or host that person may view, decided by the same
+     * real permission pipeline as above. The page is whatever the client
+     * sent, so a page of a cluster the member may not view (a persisted
+     * subject, or a forged one) must offer nothing and name nothing.
+     */
+    describe("Ask AI on a cluster's or a Docker host's page", () => {
+      const resourceAgentId: string = ObjectID.generate().toString();
+
+      const pageHost: (
+        hostId: ObjectID,
+        name: string,
+      ) => ResourceAiAccessStatus = (
+        hostId: ObjectID,
+        name: string,
+      ): ResourceAiAccessStatus => {
+        return {
+          resourceType: AiResourceType.DockerHost,
+          resourceId: hostId.toString(),
+          resourceName: name,
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: "Disabled",
+          aiCommandAllowlist: [],
+          agent: {
+            agentId: resourceAgentId,
+            connectionStatus: "Connected",
+            isOnline: true,
+          },
+          gaps: [],
+          isInvestigationReady: true,
+          isRemediationReady: false,
+        } as unknown as ResourceAiAccessStatus;
+      };
+
+      beforeEach(() => {
+        getJestSpyOn(
+          ResourceAiAccessService,
+          "getStatusForResource",
+        ).mockImplementation((async (data: {
+          resourceId: ObjectID;
+        }): Promise<ResourceAiAccessStatus | null> => {
+          if (data.resourceId.toString() === productionHostId.toString()) {
+            return pageHost(productionHostId, "prod-docker");
+          }
+
+          if (data.resourceId.toString() === stagingHostId.toString()) {
+            return pageHost(stagingHostId, "staging-docker");
+          }
+
+          return null;
+        }) as never);
+      });
+
+      afterAll(() => {
+        getJestSpyOn(
+          ResourceAiAccessService,
+          "getStatusForResource",
+        ).mockResolvedValue(null as never);
+      });
+
+      // What the member's turn reaches, asked from this page.
+      const askOnPage: (
+        pageContext: AIChatPageContext,
+      ) => Promise<ChatPageInfrastructure | null> = async (
+        pageContext: AIChatPageContext,
+      ): Promise<ChatPageInfrastructure | null> => {
+        return await ChatInfrastructureAccess.buildForPage({
+          projectId: projectId,
+          aiRunId: ObjectID.generate(),
+          props: await propsOf(member),
+          pageContext,
+        });
+      };
+
+      const clusterPage: (clusterId: ObjectID) => AIChatPageContext = (
+        clusterId: ObjectID,
+      ): AIChatPageContext => {
+        return {
+          type: AIChatPageContextType.Resource,
+          resourceType: AIResourceType.KubernetesCluster,
+          entityId: clusterId.toString(),
+        };
+      };
+
+      const dockerHostPage: (hostId: ObjectID) => AIChatPageContext = (
+        hostId: ObjectID,
+      ): AIChatPageContext => {
+        return {
+          type: AIChatPageContextType.Resource,
+          resourceType: AIResourceType.DockerHost,
+          entityId: hostId.toString(),
+        };
+      };
+
+      const toolNamed: (
+        infrastructure: ChatPageInfrastructure | null,
+        name: string,
+      ) => ChatExtraTool | undefined = (
+        infrastructure: ChatPageInfrastructure | null,
+        name: string,
+      ): ChatExtraTool | undefined => {
+        return (infrastructure?.extraTools || []).find(
+          (tool: ChatExtraTool): boolean => {
+            return tool.definition.name === name;
+          },
+        );
+      };
+
+      test("a member who may view only Staging clusters runs kubectl on the Staging cluster's page", async () => {
+        await setTeamPermissions(memberTeamId, [
+          {
+            permission: Permission.ReadKubernetesCluster,
+            labelIds: [stagingLabelId],
+          },
+        ]);
+
+        const infrastructure: ChatPageInfrastructure | null = await askOnPage(
+          clusterPage(stagingClusterId),
+        );
+
+        const runKubectl: ChatExtraTool | undefined = toolNamed(
+          infrastructure,
+          RUN_KUBECTL_TOOL_NAME,
+        );
+        expect(runKubectl).toBeDefined();
+        expect(infrastructure!.instructions).toContain(
+          `(clusterId: ${stagingClusterId.toString()}): kubectl READ access`,
+        );
+
+        expect(
+          (
+            await runKubectl!.execute({
+              clusterId: stagingClusterId.toString(),
+              command: "kubectl get pods -A",
+              rationale: "Which pods are running?",
+            })
+          ).success,
+        ).toBe(true);
+        expect(kubectlRuns).toEqual([
+          `${stagingClusterId.toString()} kubectl get pods -A`,
+        ]);
+      });
+
+      test("the same member on the Production cluster's page gets no kubectl, and nothing about it but that it is out of view", async () => {
+        await setTeamPermissions(memberTeamId, [
+          {
+            permission: Permission.ReadKubernetesCluster,
+            labelIds: [stagingLabelId],
+          },
+        ]);
+
+        const infrastructure: ChatPageInfrastructure | null = await askOnPage(
+          clusterPage(productionClusterId),
+        );
+
+        expect(infrastructure?.extraTools).toEqual([]);
+        expect(infrastructure?.instructions).toBe(
+          INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+        );
+        expect(infrastructure?.instructions).not.toContain(
+          productionClusterId.toString(),
+        );
+        expect(kubectlRuns).toEqual([]);
+      });
+
+      test("a cluster of another project, on the page, is reached by nobody here", async () => {
+        await setTeamPermissions(memberTeamId, [
+          { permission: Permission.ProjectOwner },
+        ]);
+
+        const infrastructure: ChatPageInfrastructure | null = await askOnPage(
+          clusterPage(otherProjectClusterId),
+        );
+
+        expect(toolNamed(infrastructure, RUN_KUBECTL_TOOL_NAME)).toBeUndefined();
+        expect(infrastructure?.instructions || "").not.toContain(
+          otherProjectClusterId.toString(),
+        );
+      });
+
+      test("Docker hosts follow the same rule: commands on the Staging host's page, none on the Production one's", async () => {
+        await setTeamPermissions(memberTeamId, [
+          {
+            permission: Permission.ReadDockerHost,
+            labelIds: [stagingLabelId],
+          },
+        ]);
+
+        const staging: ChatPageInfrastructure | null = await askOnPage(
+          dockerHostPage(stagingHostId),
+        );
+
+        expect(
+          toolNamed(staging, RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME),
+        ).toBeDefined();
+        expect(staging!.instructions).toContain(
+          `Docker host "staging-docker" (resourceId: ${stagingHostId.toString()}): READ access`,
+        );
+
+        const production: ChatPageInfrastructure | null = await askOnPage(
+          dockerHostPage(productionHostId),
+        );
+
+        expect(production?.extraTools).toEqual([]);
+        expect(production?.instructions).toBe(
+          INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+        );
+        expect(production?.instructions).not.toContain("prod-docker");
+      });
+
+      test("negative control: a member who may view every cluster and host reaches each one's page", async () => {
+        await setTeamPermissions(memberTeamId, [
+          { permission: Permission.ProjectMember },
+        ]);
+
+        for (const clusterId of [productionClusterId, stagingClusterId]) {
+          expect(
+            toolNamed(await askOnPage(clusterPage(clusterId)), RUN_KUBECTL_TOOL_NAME),
+          ).toBeDefined();
+        }
+
+        for (const hostId of [productionHostId, stagingHostId]) {
+          expect(
+            toolNamed(
+              await askOnPage(dockerHostPage(hostId)),
+              RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+            ),
+          ).toBeDefined();
+        }
       });
     });
   },
