@@ -5,7 +5,6 @@ import {
 } from "./SecurityCaseActionModals";
 import { SecurityCaseAiCopy } from "./SecurityCaseAiTriage";
 import {
-  ASSIGN_FIELD_DESCRIPTION,
   ASSIGN_FIELD_TITLE,
   ASSIGN_ONE_DESCRIPTION,
   ASSIGN_PICKER_ADD_TEXT,
@@ -20,6 +19,8 @@ import {
   CHANGE_STATUS,
   CHANGE_STATUS_ONE_DESCRIPTION,
   CHANGE_STATUS_SELECTED_DESCRIPTION,
+  CLOSING_SELECTED_NOTE_DESCRIPTION,
+  CLOSING_SELECTED_VERDICT_DESCRIPTION,
   CURRENT_VALUE,
   SecurityCaseAssigneePick,
   SecurityCaseStatusPick,
@@ -85,11 +86,6 @@ const STATUS_PLACEHOLDER: string = translationKey("Choose a status");
 // What Change Status's button says when it closes the case.
 const CLOSE_CASE: string = translationKey("Close Case");
 const PRIORITY_PLACEHOLDER: string = translationKey("Choose a priority");
-
-// Under Closing Note, for several cases: the one note goes on every case it closes.
-const BULK_CLOSING_NOTE_DESCRIPTION: string = translationKey(
-  "What was found and what was done, kept on each case this closes.",
-);
 
 /*
  * A status or a priority as the dialog's dropdown lists it: its colour,
@@ -232,7 +228,6 @@ export const AssignSecurityCaseModal: FunctionComponent<
         {
           field: { assignTo: true },
           title: ASSIGN_FIELD_TITLE,
-          description: ASSIGN_FIELD_DESCRIPTION,
           fieldType: FormFieldSchemaType.PeoplePicker,
           required: true,
           peoplePicker: {
@@ -356,6 +351,11 @@ export const ChangeSecurityCaseStatusModal: FunctionComponent<
         {
           field: { verdict: true },
           title: "Verdict",
+          /*
+           * One case: OneUptime AI's read of it, where there is one, as
+           * Close Case says it. Several: that the one pick goes on every
+           * case the status closes.
+           */
           ...(aiRead
             ? {
                 description: translator.translateTemplate(
@@ -363,7 +363,9 @@ export const ChangeSecurityCaseStatusModal: FunctionComponent<
                   { read: translatableTerm(aiRead) },
                 ),
               }
-            : {}),
+            : !isOne
+              ? { description: CLOSING_SELECTED_VERDICT_DESCRIPTION }
+              : {}),
           fieldType: FormFieldSchemaType.CardSelect,
           required: true,
           cardSelectOptions: VERDICT_CARD_OPTIONS,
@@ -377,7 +379,7 @@ export const ChangeSecurityCaseStatusModal: FunctionComponent<
           required: false,
           description: isOne
             ? "What was found and what was done, for whoever reads this case next."
-            : BULK_CLOSING_NOTE_DESCRIPTION,
+            : CLOSING_SELECTED_NOTE_DESCRIPTION,
           placeholder:
             "e.g. Confirmed with the user; the sign-ins were theirs.",
           showIf: isClosing,

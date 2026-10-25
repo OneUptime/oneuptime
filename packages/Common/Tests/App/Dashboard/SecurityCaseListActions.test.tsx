@@ -561,15 +561,51 @@ describe("a case's row ⋯", () => {
     expect(updates).toHaveLength(2);
   });
 
-  test("Assign to Me that the server refuses says why", async () => {
-    listedRows = [buildCase(141)];
+  test("Assign to Me that the server refuses says why, naming the case, in a dialog of the list's own - not one inside the row", async () => {
+    listedRows = [buildCase(141), buildCase(138)];
     refusedIds = [caseId(141)];
     await openList("open");
+    const readsBefore: number = caseListReads;
 
     await clickMenuItem(await openRowMenu("CASE-141"), "Assign to Me");
 
-    expect(await screen.findByText(REFUSAL)).toBeInTheDocument();
+    const notice: HTMLElement = await screen.findByRole("dialog");
+
+    expect(
+      within(notice).getByRole("heading", {
+        name: "Could not assign CASE-141",
+      }),
+    ).toBeInTheDocument();
+    expect(notice).toHaveTextContent(REFUSAL);
+
+    /*
+     * Drawn beside the table, not in the row's action cell: a dialog inside
+     * a sticky cell is painted under the next rows' action cells.
+     */
+    expect(document.querySelector("table")!.contains(notice)).toBe(false);
+    expect(within(rowOf("CASE-141")).queryByText(REFUSAL)).toBeNull();
+
+    // Nothing changed: nothing saved, the list not read again.
     expect(updates).toEqual([]);
+    expect(caseListReads).toBe(readsBefore);
+
+    // Its one button puts it away, and the row's moves work again.
+    await act(async () => {
+      fireEvent.click(within(notice).getByRole("button", { name: "Close" }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    await clickMenuItem(await openRowMenu("CASE-138"), "Assign to Me");
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        { id: caseId(138), data: { assignedToUserId: ME } },
+      ]);
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   test("Assign to Someone Else opens its dialog on that case: a person picked works it, a team picked takes it into its queue", async () => {

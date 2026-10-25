@@ -174,7 +174,12 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
         )}
       <div className="flex w-full justify-between items-center">
-        <div className="font-medium">
+        {/*
+          A label longer than the menu is wide takes two even lines - "Assign
+          to / Someone Else" - rather than leaving its last word alone on the
+          second: the menu's width is fixed (MoreMenu's PORTALED_MENU_WIDTH).
+        */}
+        <div className="font-medium text-balance">
           {translateString(props.text) ?? props.text}
         </div>
         <div>{props.rightElement}</div>

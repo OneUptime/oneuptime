@@ -102,6 +102,7 @@ import {
 } from "../../Helpers/SecurityCaseValues";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+const WHITESPACE: RegExp = /\s+/g;
 const DIEGO: string = "80000000-0000-4000-8000-000000000002";
 const PRIYA: string = "80000000-0000-4000-8000-000000000003";
 const SOC_TEAM: string = "81000000-0000-4000-8000-000000000001";
@@ -313,10 +314,15 @@ describe("Assign to Someone Else", () => {
     expect(dialog()).toHaveTextContent(
       "Pick a person to work CASE-141, or a team to pick it up.",
     );
-    expect(dialog()).toHaveTextContent("Person or Team");
-    expect(dialog()).toHaveTextContent(
-      "A team's case waits in its queue until someone on the team takes it.",
-    );
+    /*
+     * The field is its name and the picker, nothing more: the sentence over
+     * it already says what a team pick does.
+     */
+    expect(
+      (within(dialog()).getByTestId("modal-content").textContent || "")
+        .replace(WHITESPACE, " ")
+        .trim(),
+    ).toBe("Person or Team Choose someone or a team");
 
     await act(async () => {
       fireEvent.click(
@@ -525,6 +531,11 @@ describe("Change Status", () => {
     expect(dialog()).toHaveTextContent(
       "OneUptime AI read this case as Likely Benign. Pick what you found.",
     );
+    // One case: nothing of the several-cases sentences.
+    expect(dialog()).not.toHaveTextContent("Each case this closes");
+    expect(dialog()).toHaveTextContent(
+      "What was found and what was done, for whoever reads this case next.",
+    );
     expect(within(dialog()).getAllByRole("radio")).toHaveLength(4);
     // OneUptime AI's read suggests Benign Positive; a person still picks.
     expect(
@@ -629,9 +640,11 @@ describe("Change Status", () => {
       onSubmit as never,
     );
 
-    expect(dialog()).toHaveTextContent(
-      "Pick the new status for the 2 selected cases. Closing them asks for a verdict, kept on each case.",
-    );
+    // What to pick, as Change Priority says it; the verdict says what closing does.
+    expect(
+      within(dialog()).getByTestId("modal-description"),
+    ).toHaveTextContent(/^Pick the new status for the 2 selected cases\.$/);
+    expect(dialog()).not.toHaveTextContent("Each case this closes");
     expect(
       openDropdown().map((option: { text: string; isDisabled: boolean }) => {
         return option;
@@ -654,9 +667,12 @@ describe("Change Status", () => {
           return radio.getAttribute("aria-checked") === "true";
         }),
     ).toHaveLength(0);
+    // Over the verdict: the one pick, and the one note, go on every case it closes.
     expect(dialog()).toHaveTextContent(
-      "What was found and what was done, kept on each case this closes.",
+      "Each case this closes gets this verdict and closing note.",
     );
+    expect(dialog()).toHaveTextContent("What was found and what was done.");
+    expect(dialog()).not.toHaveTextContent("for whoever reads this case next");
 
     await submit();
 

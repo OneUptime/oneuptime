@@ -2,6 +2,7 @@ import {
   ASSIGNED_RESULT_LABELS,
   ASSIGNED_TO_YOU_RESULT_LABELS,
   ASSIGN_TO_ME,
+  ASSIGN_TO_ME_FAILED,
   ASSIGN_TO_SOMEONE_ELSE,
   CHANGE_PRIORITY,
   CHANGE_STATUS,
@@ -28,11 +29,12 @@ import {
   ChangeSecurityCaseStatusModal,
 } from "./SecurityCaseChangeModals";
 import { SecurityCaseValueLists } from "./SecurityCaseValues";
+import { getSecurityCaseRecordName } from "./SecurityCaseViewSelect";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ActionButtonSchema, {
@@ -49,6 +51,7 @@ import {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -166,6 +169,15 @@ export default function useSecurityCaseListActions(
 ): SecurityCaseListActions {
   const translator: Translator = useTranslator();
   const [dialog, setDialog] = useState<OpenDialog | null>(null);
+  /*
+   * A row's Assign to Me the server refused: which case, and its reason.
+   * Said in a dialog of the list's own, beside the others - not the one the
+   * row would draw inside its cell, under the next rows' action cells.
+   */
+  const [assignToMeFailure, setAssignToMeFailure] = useState<{
+    caseName: string;
+    reason: string;
+  } | null>(null);
 
   const statuses: Array<SecurityCaseStatus> = config.values.statuses;
   const priorities: Array<SecurityCasePriority> = config.values.priorities;
@@ -413,7 +425,6 @@ export default function useSecurityCaseListActions(
           onClick: async (
             securityCase: SecurityCase,
             onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
           ): Promise<void> => {
             try {
               await write(
@@ -423,7 +434,11 @@ export default function useSecurityCaseListActions(
               onCompleteAction();
               config.onChanged();
             } catch (err) {
-              onError(new Error(API.getFriendlyMessage(err)));
+              onCompleteAction();
+              setAssignToMeFailure({
+                caseName: getSecurityCaseRecordName(securityCase) || "",
+                reason: API.getFriendlyMessage(err),
+              });
             }
           },
         },
@@ -591,6 +606,24 @@ export default function useSecurityCaseListActions(
   return {
     rowActions: rowActions,
     bulkActions: bulkActions,
-    modals: modals,
+    modals: (
+      <>
+        {modals}
+        {assignToMeFailure ? (
+          <ConfirmModal
+            title={translator.translateTemplate(ASSIGN_TO_ME_FAILED, {
+              case: assignToMeFailure.caseName,
+            })}
+            description={assignToMeFailure.reason}
+            submitButtonText="Close"
+            onSubmit={() => {
+              setAssignToMeFailure(null);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+      </>
+    ),
   };
 }

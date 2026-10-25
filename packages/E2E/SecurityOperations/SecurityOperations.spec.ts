@@ -1959,6 +1959,46 @@ async function openRowMenu(page: Page, caseNumber: string): Promise<Locator> {
   return menu;
 }
 
+/*
+ * A menu item's label as the browser laid it out: its words, line by line.
+ * The menu is a fixed 14rem, so "Assign to Someone Else" takes two lines,
+ * and they are balanced - "Assign to" over "Someone Else".
+ */
+async function labelLines(item: Locator): Promise<Array<string>> {
+  return item
+    .locator(".font-medium")
+    .first()
+    .evaluate((label: Element): Array<string> => {
+      const lines: Array<{ top: number; words: Array<string> }> = [];
+      const text: Node | null = label.firstChild;
+      const content: string = text?.textContent || "";
+      let start: number = 0;
+
+      for (const word of content.split(" ")) {
+        const range: Range = document.createRange();
+        range.setStart(text!, start);
+        range.setEnd(text!, start + word.length);
+        const top: number = Math.round(range.getBoundingClientRect().top);
+        const line: { top: number; words: Array<string> } | undefined =
+          lines.find((candidate: { top: number }): boolean => {
+            return Math.abs(candidate.top - top) < 4;
+          });
+
+        if (line) {
+          line.words.push(word);
+        } else {
+          lines.push({ top: top, words: [word] });
+        }
+
+        start += word.length + 1;
+      }
+
+      return lines.map((line: { words: Array<string> }): string => {
+        return line.words.join(" ");
+      });
+    });
+}
+
 async function menuItemTitles(menu: Locator): Promise<Array<string>> {
   return (await menu.getByRole("menuitem").allInnerTexts()).map(
     (title: string): string => {
@@ -2057,13 +2097,23 @@ test.describe("working cases from the queue", () => {
     });
 
     // Nobody's case: every move.
-    expect(await menuItemTitles(await openRowMenu(page, "CASE-141"))).toEqual([
+    const menu: Locator = await openRowMenu(page, "CASE-141");
+    expect(await menuItemTitles(menu)).toEqual([
       "Assign to Me",
       "Assign to Someone Else",
       "Change Status",
       "Change Priority",
       "Delete",
     ]);
+    // The one label longer than the menu is wide wraps evenly, no word left alone.
+    expect(
+      await labelLines(
+        menu.getByRole("menuitem", { name: "Assign to Someone Else" }),
+      ),
+    ).toEqual(["Assign to", "Someone Else"]);
+    expect(
+      await labelLines(menu.getByRole("menuitem", { name: "Change Priority" })),
+    ).toEqual(["Change Priority"]);
     await page.keyboard.press("Escape");
 
     // Maya's own: she hands it on, but never takes it again.
@@ -2140,8 +2190,10 @@ test.describe("working cases from the queue", () => {
     await expect(dialog).toContainText(
       "Pick a person to work CASE-142, or a team to pick it up.",
     );
-    await expect(dialog).toContainText(
-      "A team's case waits in its queue until someone on the team takes it.",
+    // The field is named, nothing more: the sentence over it says what a team pick does.
+    await expect(dialog.getByTestId("modal-content")).toHaveText(
+      "Person or Team Choose someone or a team",
+      { useInnerText: true, timeout: 5000 },
     );
 
     // People first, then teams, in one list.
@@ -2217,6 +2269,15 @@ test.describe("working cases from the queue", () => {
     await expect(current).toHaveCount(1);
     await expect(current).toContainText("New");
     await expect(current).toHaveAttribute("aria-disabled", "true");
+    /*
+     * First in the list, it takes the focus the menu gives its first option -
+     * drawn as a quiet grey row, not the indigo of the next pick.
+     */
+    await expect(current).toHaveClass(/ou-select__option--is-focused/);
+    await expect(current).toHaveCSS("background-color", "rgb(243, 244, 246)");
+    await expect(
+      page.getByRole("option", { name: "Investigating", exact: true }),
+    ).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await page.getByRole("option", { name: "Closed", exact: true }).click();
 
     // OneUptime AI read it as Likely Benign: the verdict starts there.
@@ -2340,6 +2401,69 @@ test.describe("working cases from the queue", () => {
     await expect(
       page.locator("tbody tr", { hasText: "CASE-141" }),
     ).toContainText("Priya");
+  });
+
+  test("a row's Assign to Me the server refuses says why, naming the case, in a dialog over the whole list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344, refuse: "138" });
+    await expect(page.getByText("CASE-138").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    await (await openRowMenu(page, "CASE-138"))
+      .getByRole("menuitem", { name: "Assign to Me" })
+      .click();
+
+    const notice: Locator = page.getByRole("dialog");
+    await expect(notice).toHaveCount(1);
+    await expect(
+      notice.getByRole("heading", { name: "Could not assign CASE-138" }),
+    ).toBeVisible();
+    await expect(notice).toContainText(REFUSAL);
+    await pageAtRest(page);
+
+    /*
+     * Over every row: the action cells stuck to the table's right edge -
+     * the next rows' View and ⋯ - lie under the dialog's backdrop, which a
+     * dialog drawn inside the row's own cell did not cover.
+     */
+    const laterRow: Locator = page.locator("tbody tr", { hasText: "CASE-137" });
+    const viewBox: Box = await boxOf(
+      laterRow.getByRole("button", { name: "View" }),
+    );
+    // On the screen, where a person would see it through the backdrop.
+    expect(viewBox.y + viewBox.height).toBeLessThan(1000);
+    const isViewOnTop: boolean = await page.evaluate(
+      (point: { x: number; y: number }): boolean => {
+        const element: Element | null = document.elementFromPoint(
+          point.x,
+          point.y,
+        );
+
+        return Boolean(element?.closest("tbody"));
+      },
+      { x: viewBox.x + viewBox.width / 2, y: viewBox.y + viewBox.height / 2 },
+    );
+    expect(isViewOnTop, "a later row's View drawn over the dialog").toBe(false);
+
+    await notice.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // Tried once, refused, and the row still says whose queue it is in.
+    expect(await updatesOf(page)).toEqual([
+      {
+        modelName: "SecurityCase",
+        id: CASE_ID(138),
+        data: { assignedToUserId: MAYA_ID },
+        refused: true,
+      },
+    ]);
+    await expect(
+      page.locator("tbody tr", { hasText: "CASE-138" }),
+    ).toContainText("SOC Tier 2");
   });
 
   test("a Security Viewer sees every move locked, in a row's ⋯ and in Bulk Actions, each saying what it takes", async ({

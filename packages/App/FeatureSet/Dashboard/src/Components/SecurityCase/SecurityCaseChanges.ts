@@ -80,10 +80,11 @@ export const ASSIGN_SELECTED_DESCRIPTION: PluralTemplate = {
   other:
     "Pick a person to work the {{count}} selected cases, or a team to pick them up.",
 };
+/*
+ * The field is named and nothing more: the dialog's own sentence says what
+ * a team pick means ("or a team to pick it up").
+ */
 export const ASSIGN_FIELD_TITLE: string = translationKey("Person or Team");
-export const ASSIGN_FIELD_DESCRIPTION: string = translationKey(
-  "A team's case waits in its queue until someone on the team takes it.",
-);
 export const ASSIGN_PICKER_ADD_TEXT: string = translationKey(
   "Choose someone or a team",
 );
@@ -99,11 +100,22 @@ export const ASSIGN_SUBMIT: string = translationKey("Assign");
 export const CHANGE_STATUS_ONE_DESCRIPTION: string = translationKey(
   "Pick the new status for {{case}}.",
 );
+/*
+ * As Change Priority's: what to pick, nothing more. A status that closes
+ * cases asks its verdict where it is picked, saying there what it does.
+ */
 export const CHANGE_STATUS_SELECTED_DESCRIPTION: PluralTemplate = {
-  one: "Pick the new status for the selected case. Closing it asks for a verdict.",
-  other:
-    "Pick the new status for the {{count}} selected cases. Closing them asks for a verdict, kept on each case.",
+  one: "Pick the new status for the selected case.",
+  other: "Pick the new status for the {{count}} selected cases.",
 };
+// Over the verdict, for several cases: one pick goes on every case it closes.
+export const CLOSING_SELECTED_VERDICT_DESCRIPTION: string = translationKey(
+  "Each case this closes gets this verdict and closing note.",
+);
+// Under Closing Note, for several cases: the verdict's sentence says where it goes.
+export const CLOSING_SELECTED_NOTE_DESCRIPTION: string = translationKey(
+  "What was found and what was done.",
+);
 export const CHANGE_PRIORITY_ONE_DESCRIPTION: string = translationKey(
   "Pick the new priority for {{case}}.",
 );
@@ -114,6 +126,14 @@ export const CHANGE_PRIORITY_SELECTED_DESCRIPTION: PluralTemplate = {
 
 // Beside the value a case has now, in a row's dialog.
 export const CURRENT_VALUE: string = translationKey("Current");
+
+/*
+ * Over the server's reason, when a row's Assign to Me - the one move that
+ * saves without a dialog - is refused: "Could not assign CASE-138".
+ */
+export const ASSIGN_TO_ME_FAILED: string = translationKey(
+  "Could not assign {{case}}",
+);
 
 // What Bulk Actions' result says happened to the cases.
 export const ASSIGNED_RESULT_LABELS: {
