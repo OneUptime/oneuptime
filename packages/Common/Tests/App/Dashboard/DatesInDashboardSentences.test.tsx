@@ -254,7 +254,9 @@ describe("LoadedAtTime", () => {
   test("in the failed-refresh sentence, worded in German, in German", () => {
     const sentence: string =
       "Couldn't refresh. Showing what loaded at {{time}}. {{error}}";
-    const german: string = (germanLocale as Record<string, string>)[sentence]!;
+    const german: string = (germanLocale as Record<string, unknown>)[
+      sentence
+    ] as string;
 
     expect(german).not.toBe(sentence);
 
