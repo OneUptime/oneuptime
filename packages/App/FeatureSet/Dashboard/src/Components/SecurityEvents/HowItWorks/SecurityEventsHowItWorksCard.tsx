@@ -35,6 +35,11 @@ import {
  * in this browser; hidden, the card shrinks to its title row, so the
  * guide stays one click away.
  *
+ * Until the reader chooses, a page whose list has rows opens on the list:
+ * the card starts as its title row (listItemCount). The explanation is for
+ * whoever looks at an empty list; an analyst tuning forty rules met the
+ * same 650 pixels of steps above them on every visit.
+ *
  * Everything the card draws is looked up in the reader's language: the
  * guide's words are en.json keys, and a sentence with numbers in it is a
  * template the numbers are written into the reader's way. The full guide's
@@ -44,6 +49,13 @@ import {
 
 export interface ComponentProps {
   guide: SecurityEventsGuide;
+  /*
+   * How many rows the list under the card has: null while it is read. The
+   * card then opens by itself only on an empty list, and stays folded while
+   * the list is read. Left out, the card opens. Either way the reader's own
+   * Show or Hide wins, remembered in this browser.
+   */
+  listItemCount?: number | null | undefined;
 }
 
 export function getHowItWorksCollapsedStorageKey(guideId: string): string {
@@ -51,28 +63,55 @@ export function getHowItWorksCollapsedStorageKey(guideId: string): string {
 }
 
 /*
- * Storage can be unavailable (private windows, blocked site data) or hold
- * anything; either way the card falls back to expanded, never to broken.
+ * The reader's own choice: true hidden, false shown, null when they have
+ * not chosen. Storage can be unavailable (private windows, blocked site
+ * data) or hold anything; either way it reads as no choice, never as
+ * broken.
  */
-function readIsCollapsed(storageKey: string): boolean {
+export function readHowItWorksChoice(storageKey: string): boolean | null {
   try {
     const value: unknown = LocalStorage.getItem(storageKey);
-    return value === true || value === "true";
+
+    if (value === true || value === "true") {
+      return true;
+    }
+
+    if (value === false || value === "false") {
+      return false;
+    }
+
+    return null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function writeIsCollapsed(storageKey: string, isCollapsed: boolean): void {
+function writeHowItWorksChoice(storageKey: string, isCollapsed: boolean): void {
   try {
-    if (isCollapsed) {
-      LocalStorage.setItem(storageKey, true);
-    } else {
-      LocalStorage.removeItem(storageKey);
-    }
+    LocalStorage.setItem(storageKey, isCollapsed);
   } catch {
     // Not remembering the choice is fine; the toggle still works.
   }
+}
+
+/*
+ * Whether the card is folded: as the reader chose, else folded over a list
+ * with rows or one still being read, and open over an empty list - or
+ * open, when the page does not say what its list holds.
+ */
+export function isHowItWorksCollapsed(data: {
+  choice: boolean | null;
+  listItemCount: number | null | undefined;
+}): boolean {
+  if (data.choice !== null) {
+    return data.choice;
+  }
+
+  if (data.listItemCount === undefined) {
+    return false;
+  }
+
+  return data.listItemCount === null || data.listItemCount > 0;
 }
 
 const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
@@ -117,8 +156,13 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
     return level.isLabelAValue ? level.label : say(level.label);
   };
 
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    return readIsCollapsed(storageKey);
+  const [choice, setChoice] = useState<boolean | null>(() => {
+    return readHowItWorksChoice(storageKey);
+  });
+
+  const isCollapsed: boolean = isHowItWorksCollapsed({
+    choice,
+    listItemCount: props.listItemCount,
   });
 
   // The section the guide modal opened on; null while it is closed.
@@ -130,8 +174,8 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
 
   const toggleCollapsed: () => void = (): void => {
     const next: boolean = !isCollapsed;
-    setIsCollapsed(next);
-    writeIsCollapsed(storageKey, next);
+    setChoice(next);
+    writeHowItWorksChoice(storageKey, next);
   };
 
   const openGuide: (sectionId?: string) => void = (

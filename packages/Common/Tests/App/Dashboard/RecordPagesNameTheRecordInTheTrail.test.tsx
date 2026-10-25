@@ -121,6 +121,12 @@ const RECORD_KINDS: Array<RecordKind> = [
     viewTitle: "View Case",
     builder: getSecurityEventsBreadcrumbs,
   },
+  // A security playbook's page: named by the playbook.
+  {
+    viewKey: "SECURITY_PLAYBOOK_VIEW",
+    viewTitle: "View Playbook",
+    builder: getSecurityEventsBreadcrumbs,
+  },
 ];
 
 /*

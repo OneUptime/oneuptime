@@ -118,6 +118,7 @@ const SecurityPlaybookRunsPage: FunctionComponent<ComponentProps> = (
                 key={run._id!.toString()}
                 run={run}
                 onChanged={runs.refresh}
+                isCollapsible={true}
                 caseLink={
                   run.securityCaseId ? (
                     <AppLink

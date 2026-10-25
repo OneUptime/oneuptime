@@ -3,6 +3,14 @@ import { tables } from "./DocsPageShape";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import { CREATE_FROM_TEMPLATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplateModel";
+import {
+  ATTACK_COVERAGE_VIEW_LABELS,
+  AttackCoverageView,
+  TACTIC_LIBRARY_COUNT,
+  readAttackCoverageView,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/AttackCoverageCopy";
+import { OPEN_IN_CORRELATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEntitiesCopy";
 import { ARCHIVABLE_VALUE_COPY } from "../../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
 import {
   STATE_SETTINGS_COPY,
@@ -1015,5 +1023,87 @@ describe("Security Cases and Playbooks docs", () => {
         "oneuptime_security_case_status",
       ]),
     );
+  });
+
+  it("says the templates are a new project's empty list, and Create from Template's once it has playbooks", () => {
+    expect(CREATE_FROM_TEMPLATE).toBe("Create from Template");
+    expect(page).toContain(
+      "A project with no playbooks sees the templates in place of an empty list; once there are playbooks, **Create from Template** on the list opens them, with **Added** on the ones the project already has.",
+    );
+
+    const playbooks: string = flat(
+      source(`${DASHBOARD}/Pages/SecurityEvents/Playbooks.tsx`),
+    );
+
+    // The empty list is the picker; the card's button opens it in a dialog.
+    expect(playbooks).toContain(
+      "noItemsMessage={ <SecurityPlaybookTemplatePicker showIntro={true}",
+    );
+    expect(playbooks).toContain("title: CREATE_FROM_TEMPLATE,");
+    expect(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookTemplatePicker.tsx`,
+      ),
+    ).toContain('translator.translateText("Added")');
+  });
+
+  it("says a list of runs draws each run as a line, Show steps opening it, and a run waiting for approval open", () => {
+    expect(page).toContain(
+      "On **Playbook Runs** and on a playbook's page, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself.",
+    );
+
+    for (const file of ["PlaybookRuns.tsx", "PlaybookView.tsx"]) {
+      expect({
+        file,
+        folds: source(`${DASHBOARD}/Pages/SecurityEvents/${file}`).includes(
+          "isCollapsible={true}",
+        ),
+      }).toEqual({ file, folds: true });
+    }
+
+    // A case's own runs are drawn whole, step by step, as the page says.
+    expect(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityCasePlaybookRuns.tsx`,
+      ),
+    ).not.toContain("isCollapsible");
+
+    const card: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookRunCard.tsx`,
+      ),
+    );
+    expect(card).toContain('isExpanded ? "Hide steps" : "Show steps"');
+    expect(card).toContain("!props.isCollapsible || isWaiting");
+  });
+
+  it("says an entity opens in Correlate, where the menu has it", () => {
+    expect(section(page, "Find threats")).toContain(
+      "Select an entity to open it in **Correlate**.",
+    );
+    expect(OPEN_IN_CORRELATE).toBe("Open in Correlate");
+    expect(
+      SECURITY_EVENTS_MENU.flatMap(
+        (menu: SecurityEventsMenuSection): Array<string> => {
+          return menu.items.map((item: SecurityEventsMenuItem): string => {
+            return item.title;
+          });
+        },
+      ),
+    ).toContain("Correlate");
+    expect(
+      flat(source(`${DASHBOARD}/Pages/SecurityEvents/Entities.tsx`)),
+    ).toContain("Navigation.navigate(getCorrelateRouteForEntity(value));");
+  });
+
+  it("says ATT&CK Coverage opens on the tactics, the Rule Library's count beside each, and the matrix a switch away", () => {
+    expect(section(page, "Find threats")).toContain(
+      "- **ATT&CK Coverage** lists the MITRE ATT&CK tactics, each with how many of its techniques your enabled rules cover, and how many more the **Rule Library** has rules for. Open a tactic for its techniques, or switch to **Matrix** for the whole matrix.",
+    );
+    expect(readAttackCoverageView(null)).toBe(AttackCoverageView.Tactics);
+    expect(ATTACK_COVERAGE_VIEW_LABELS[AttackCoverageView.Matrix]).toBe(
+      "Matrix",
+    );
+    expect(TACTIC_LIBRARY_COUNT).toBe("+{{count}} in the Rule Library");
   });
 });

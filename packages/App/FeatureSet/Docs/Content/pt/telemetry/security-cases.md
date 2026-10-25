@@ -193,7 +193,7 @@ Cada uma das três notificações é publicada nos canais de todas as regras a q
 
 ## Playbooks
 
-Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Security Events → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele.
+Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Security Events → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele. Um projeto sem playbooks vê os modelos no lugar de uma lista vazia; assim que há playbooks, **Criar a partir de modelo** na lista os abre, com **Adicionado** nos que o projeto já tem.
 
 ### Quando um playbook roda
 
@@ -303,7 +303,7 @@ Cada execução aparece no caso dela e em **Produtos → Security Events → Pla
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
 
-Uma etapa aguardando aprovação mostra **Approve** e **Reject** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. **Aguardando aprovação**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções de playbooks** lista todas as execuções.
+Uma etapa aguardando aprovação mostra **Approve** e **Reject** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. **Aguardando aprovação**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções de playbooks** lista todas as execuções. Em **Execuções de playbooks** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
 
 Uma execução que deixa de receber sinais do worker dela, depois de uma reinicialização, por exemplo, é retomada: uma execução na fila volta para a fila depois de 2 minutos, e uma execução que não dá sinal por 30 minutos é marcada como falha.
 
@@ -320,9 +320,9 @@ Acima, uma faixa mostra como a segurança está configurada: suas origens, detec
 
 ## Encontrar ameaças
 
-- **Entidades** classifica os usuários, hosts, endereços e hashes que os seus achados mais citam, no último dia, semana ou mês, e procura qualquer valor em 30 dias de eventos.
+- **Entidades** classifica os usuários, hosts, endereços e hashes que os seus achados mais citam, no último dia, semana ou mês, e procura qualquer valor em 30 dias de eventos. Selecione uma entidade para abri-la em **Correlacionar**.
 - **Rule Library** tem regras de detecção prontas, para ameaças de identidade, endpoint, nuvem, rede, web e Kubernetes. Cada uma é uma regra Sigma escrita para os campos para os quais toda origem conectada é normalizada. A linha de cada uma diz o que ela encontra, as táticas e técnicas do MITRE ATT&CK a que está associada, os eventos que ela lê e se algum chegou nos últimos 7 dias (**Recebidos** ou **Não recebidos**), e a sua gravidade. Filtre a lista por categoria, pelos dados que as regras leem e por já tê-las adicionado ou não, ou pesquise nela por nome, técnica do ATT&CK ou gravidade; o endereço da página guarda os filtros. Selecione uma regra para ver os detalhes: como começar a enviar os eventos que ela lê, como ela é executada e a sua regra Sigma. **Adicionar** a cria como uma regra de detecção sua, ativada e abrindo casos em vez de alertas; altere-a em **Detection Rules** como qualquer outra. As regras marcadas como **Recomendados** encontram ameaças em dados que o OneUptime já tem, e um botão adiciona as que você ainda não tem.
-- **ATT&CK Coverage** desenha a matriz MITRE ATT&CK com as técnicas cobertas pelas suas regras habilitadas em destaque, e contorna as que uma regra da biblioteca cobriria. Selecione uma técnica para ver as regras da biblioteca que a cobrem e abrir a **Rule Library** nelas.
+- **ATT&CK Coverage** lista as táticas do MITRE ATT&CK, cada uma com quantas das suas técnicas as suas regras habilitadas cobrem e para quantas mais a **Rule Library** tem regras. Abra uma tática para ver as técnicas dela, ou mude para **Matriz** para ver a matriz inteira. Selecione uma técnica para ver as regras da biblioteca que a cobrem e abrir a **Rule Library** nelas.
 
 ## Automatizar
 
