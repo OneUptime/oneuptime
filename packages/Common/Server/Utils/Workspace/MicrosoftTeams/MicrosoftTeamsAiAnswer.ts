@@ -1,5 +1,4 @@
-import { Activity } from "botbuilder";
-import * as BotConnectorMappers from "botframework-connector/lib/connectorApi/models/mappers";
+import { Activity, BotConnectorMappers } from "./Botbuilder";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
