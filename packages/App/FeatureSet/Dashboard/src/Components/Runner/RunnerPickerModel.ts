@@ -536,10 +536,10 @@ function toProjectOption(runner: RunnerPickerRunner): RunnerPickerOption {
  *
  * A rule that picked none runs no commands of its own (NoRunner), and that
  * is a rule that works: OneUptime AI fixes through the AI agents, runbooks,
- * MCP servers and pull requests. It shows the Global Runner - the project's
- * default where it has no Runner of its own to start a new rule on - when
- * the project uses global Runners and the server has one, stored as none:
- * a rule never names a global Runner (the server holds a rule to its own
+ * MCP servers and pull requests. It shows the Global Runner when the
+ * project uses global Runners and the server has one - so does a new rule
+ * in a project with no default Runner to start it on - stored as none: a
+ * rule never names a global Runner (the server holds a rule to its own
  * project's Runners), and none of its commands runs on one. Without a
  * Global Runner to show, it reads "No Runner".
  *

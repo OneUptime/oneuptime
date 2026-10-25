@@ -2961,6 +2961,50 @@ test.describe("a repository's Runner", () => {
   });
 
   /*
+   * "If there are no runners, it should use the global runner by default" -
+   * the maintainer. A repository already opens on the Global Runner; here
+   * in dark mode - at a laptop's width and a phone's, as every test of this
+   * suite runs - the field says so, says what that leaves out, and fits
+   * the screen with its menu open.
+   */
+  test("in dark mode, the Runner field opens on the Global Runner, saying it does not build or test the change, and fits the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("theme=dark"));
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    const modal: Locator = await openRunnerStep(page);
+
+    await expect(runnerPicker(page)).toContainText("Global Runner · Connected");
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
+    );
+    // A dark dialog, not a white box on a dark page.
+    expect(
+      await modal.evaluate((element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      }),
+    ).not.toBe("rgb(255, 255, 255)");
+    await expectNoSidewaysScroll(page);
+
+    await runnerPicker(page).getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options.first()).toContainText("Global Runner · Connected");
+    const option: { x: number; width: number } | null = await options
+      .first()
+      .boundingBox();
+    expect(option).not.toBeNull();
+    expect(option!.x).toBeGreaterThanOrEqual(0);
+    expect(option!.x + option!.width).toBeLessThanOrEqual(
+      page.viewportSize()!.width,
+    );
+    await screenshot(page, testInfo, "code-repository-runner-global-dark");
+  });
+
+  /*
    * Every case is held in jsdom (CodeRepositorySettingsPage.test.tsx); here,
    * one of the project's own Runners and none at all, as the page reads
    * them. A global Runner - the default, its name alone - is the folded
