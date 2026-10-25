@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Pressable,
   Text,
@@ -20,6 +20,8 @@ import { useTheme } from "../theme";
 import { radius, spacing, typography } from "../theme/tokens";
 import { withAlpha } from "../utils/color";
 import ScreenIntro from "../components/ScreenIntro";
+import { useContentGutters, useWindowLayout } from "../layout/WindowLayout";
+import type { ContentGutters, WindowLayout } from "../layout/windowLayout";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";
 
@@ -54,6 +56,13 @@ const categories: Array<InboxCategory> = [
 /** Incidents and alerts are adjacent views, not competing top-level destinations. */
 export default function InboxScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const gutters: ContentGutters = useContentGutters();
+  const windowLayout: WindowLayout = useWindowLayout();
+  /*
+   * On a short window - a phone on its side - the page title gives its
+   * height to the list: the tab or rail beside it already says Inbox.
+   */
+  const showTitle: boolean = windowLayout.heightClass !== "compact";
   const navigation: InboxNavigation = useNavigation<InboxNavigation>();
   const route: RouteProp<InboxStackParamList, "InboxList"> =
     useRoute<RouteProp<InboxStackParamList, "InboxList">>();
@@ -64,7 +73,23 @@ export default function InboxScreen(): React.JSX.Element {
     },
   );
 
+  /*
+   * The category follows a record when one is OPENED, not afterwards. On a
+   * phone the list is hidden behind an open record, so nothing can change
+   * the category meanwhile; beside a detail pane it is on screen, and the
+   * reader must be able to look at Alerts while an incident stays open on
+   * the right. Following the open record on every render undid that tap.
+   */
+  const lastFollowedRoute: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
   useEffect((): void => {
+    if (lastFollowedRoute.current === focusedRoute) {
+      return;
+    }
+    lastFollowedRoute.current = focusedRoute;
+
     const detailView: InboxView | null = focusedRoute.startsWith("Incident")
       ? "incidents"
       : focusedRoute.startsWith("Alert")
@@ -85,8 +110,13 @@ export default function InboxScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
-      <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.xl }}>
-        <ScreenIntro title="Inbox" compact />
+      <View
+        style={{
+          paddingTop: showTitle ? spacing.xl : spacing.sm,
+          ...gutters,
+        }}
+      >
+        {showTitle ? <ScreenIntro title="Inbox" compact /> : null}
         {/*
          * The category switch is the page's own navigation, so it reads as
          * tabs: a hairline the width of the page with a rounded indicator

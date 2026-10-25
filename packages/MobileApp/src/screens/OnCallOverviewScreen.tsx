@@ -1,12 +1,20 @@
-import React from "react";
+import React, { useRef } from "react";
 import { View, ScrollView, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
+import {
+  useListPane,
+  usePaneScrollRestoration,
+  type ListPaneState,
+  type PaneScrollRestoration,
+} from "../navigation/paneState";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
@@ -53,9 +61,27 @@ const SCREEN_DESCRIPTION: string = "Your duty, coverage and upcoming shifts.";
 export default function OnCallOverviewScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { lightImpact } = useHaptics();
   const navigation: OnCallNavProp = useNavigation<OnCallNavProp>();
   const now: number = useNow();
+  /*
+   * On a wide window the overview is the left pane: whatever it opened is on
+   * the right, so its row is marked, and rows lose their forward chevron.
+   */
+  const listPane: ListPaneState = useListPane();
+  const chevron: boolean | undefined = listPane.besideDetail
+    ? false
+    : undefined;
+  const scrollRef: React.RefObject<ScrollView | null> =
+    useRef<ScrollView>(null);
+  // Where the overview was scrolled, kept through a fold or an unfold.
+  const scroll: PaneScrollRestoration = usePaneScrollRestoration(
+    "oncall.scroll",
+    (offsetY: number): void => {
+      scrollRef.current?.scrollTo({ x: 0, y: offsetY, animated: false });
+    },
+  );
 
   const duty: ReturnType<typeof useOnCallDuty> = useOnCallDuty();
   const overrides: ReturnType<typeof useOnCallOverrides> =
@@ -98,9 +124,12 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
   const contentContainerStyle: {
     padding: number;
     paddingBottom: number;
+    paddingLeft: number;
+    paddingRight: number;
     gap: number;
   } = {
     padding: spacing.xl,
+    ...gutters,
     paddingBottom: bottomPadding,
     gap: spacing.lg,
   };
@@ -175,10 +204,14 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
 
   return (
     <ScrollView
+      ref={scrollRef}
       testID="oncall-overview-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={contentContainerStyle}
+      onScroll={scroll.onScroll}
+      onContentSizeChange={scroll.onContentSizeChange}
+      scrollEventThrottle={scroll.scrollEventThrottle}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -221,6 +254,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
           sublabel="Arrange a handoff"
           iconName="swap-horizontal-outline"
           accentColor={theme.colors.actionPrimary}
+          showChevron={!listPane.besideDetail}
           onPress={() => {
             navigation.navigate("CreateOnCallOverride");
           }}
@@ -231,6 +265,8 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
           sublabel="See the team roster"
           iconName="people-outline"
           accentColor={theme.colors.oncallActive}
+          selected={listPane.isOpen("WhoIsOnCall")}
+          showChevron={!listPane.besideDetail}
           onPress={() => {
             navigation.navigate("WhoIsOnCall");
           }}
@@ -243,6 +279,8 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
           icon="notifications-outline"
           title="Pages sent to me"
           subtitle="Your recent response requests"
+          selected={listPane.isOpen("MyOnCallPages")}
+          showChevron={chevron}
           onPress={() => {
             lightImpact();
             navigation.navigate("MyOnCallPages");
@@ -374,6 +412,8 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
             subtitle={`${policyAssignmentCount} active ${
               policyAssignmentCount === 1 ? "assignment" : "assignments"
             }`}
+            selected={listPane.isOpen("OnCallList")}
+            showChevron={chevron}
             onPress={() => {
               lightImpact();
               navigation.navigate("OnCallList");
@@ -384,6 +424,8 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
             icon="swap-horizontal-outline"
             title="Coverage & overrides"
             subtitle="Review active, scheduled and past cover"
+            selected={listPane.isOpen("OnCallOverrides")}
+            showChevron={chevron}
             onPress={() => {
               lightImpact();
               navigation.navigate("OnCallOverrides");
@@ -395,6 +437,8 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
               icon="calendar-outline"
               title="Add shifts to my calendar"
               subtitle="Subscribe from Google, Outlook or Apple Calendar"
+              selected={listPane.isOpen("OnCallCalendarFeed")}
+              showChevron={chevron}
               onPress={() => {
                 lightImpact();
                 navigation.navigate("OnCallCalendarFeed");

@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme, type ColorTokens } from "../theme";
 import { radius, spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
@@ -65,6 +67,7 @@ export function getAssignmentBadge(
 export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { lightImpact } = useHaptics();
   const {
     projects,
@@ -120,6 +123,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: spacing.xl,
+            ...gutters,
             paddingBottom: bottomPadding,
           }}
         >
@@ -160,6 +164,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: spacing.xl,
+          ...gutters,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -190,6 +195,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       refreshControl={

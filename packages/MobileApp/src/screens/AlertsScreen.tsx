@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   SectionList,
@@ -22,6 +28,15 @@ import { spacing, typography } from "../theme/tokens";
 import ListFilters from "../components/ListFilters";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
+import {
+  useListPane,
+  usePaneScrollRestoration,
+  usePaneState,
+  type ListPaneState,
+  type PaneScrollRestoration,
+} from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import { matchesSearch } from "../utils/search";
@@ -101,18 +116,66 @@ export default function AlertsScreen({
 }: AlertsScreenProps = {}): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
-  const [search, setSearch] = useState("");
-  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
+  const gutters: ContentGutters = useContentGutters();
+  const listPane: ListPaneState = useListPane();
+  // Kept in the navigator so a fold or an unfold brings the list back as it was.
+  const [search, setSearch] = usePaneState<string>("alerts.search", "");
+  const [stateFilter, setStateFilter] = usePaneState<StateFilter>(
+    "alerts.filter",
+    "all",
+  );
   const [refreshing, setRefreshing] = useState(false);
   const navigation: NavProp = useNavigation<NavProp>();
   const route: RouteProp<AlertsStackParamList, "AlertsList"> =
     useRoute<RouteProp<AlertsStackParamList, "AlertsList">>();
 
-  const [segment, setSegment] = useState<Segment>("alerts");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
+  const [segment, setSegment] = usePaneState<Segment>(
+    "alerts.segment",
+    "alerts",
+  );
+  const [visibleCount, setVisibleCount] = usePaneState<number>(
+    "alerts.visible",
+    PAGE_SIZE,
+  );
+  const [visibleEpisodeCount, setVisibleEpisodeCount] = usePaneState<number>(
+    "alerts.visibleEpisodes",
+    PAGE_SIZE,
+  );
+  // The params already applied: seen again after a fold, they must not wipe the search.
+  const [appliedParams, setAppliedParams] = usePaneState<
+    AlertsStackParamList["AlertsList"] | null
+  >("alerts.appliedParams", null);
+  const alertListRef: React.RefObject<SectionList<
+    ProjectAlertItem,
+    AlertSection
+  > | null> = useRef<SectionList<ProjectAlertItem, AlertSection>>(null);
+  const episodeListRef: React.RefObject<SectionList<
+    ProjectAlertEpisodeItem,
+    EpisodeSection
+  > | null> =
+    useRef<SectionList<ProjectAlertEpisodeItem, EpisodeSection>>(null);
+  const alertScroll: PaneScrollRestoration = usePaneScrollRestoration(
+    "alerts.scroll.alerts",
+    (offsetY: number): void => {
+      alertListRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ x: 0, y: offsetY, animated: false });
+    },
+  );
+  const episodeScroll: PaneScrollRestoration = usePaneScrollRestoration(
+    "alerts.scroll.episodes",
+    (offsetY: number): void => {
+      episodeListRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ x: 0, y: offsetY, animated: false });
+    },
+  );
 
   useEffect(() => {
+    if (route.params === appliedParams || route.params === undefined) {
+      return;
+    }
+    setAppliedParams(route.params);
     if (route.params?.initialSegment || route.params?.initialFilter) {
       setSearch("");
     }
@@ -512,6 +575,7 @@ export default function AlertsScreen({
   const contentContainerStyle: ViewStyle = {
     padding: spacing.xl,
     paddingBottom: bottomPadding,
+    ...gutters,
     flexGrow: 1,
   };
 
@@ -579,8 +643,12 @@ export default function AlertsScreen({
     >
       {segment === "alerts" ? (
         <SectionList
+          ref={alertListRef}
           sections={alertSections}
           style={{ flex: 1 }}
+          onScroll={alertScroll.onScroll}
+          onContentSizeChange={alertScroll.onContentSizeChange}
+          scrollEventThrottle={alertScroll.scrollEventThrottle}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -644,6 +712,11 @@ export default function AlertsScreen({
                 <AlertCard
                   alert={wrapped.item}
                   muted={isResolved}
+                  selected={listPane.isOpen("AlertDetail", {
+                    alertId: wrapped.item._id,
+                    projectId: wrapped.projectId,
+                  })}
+                  showChevron={!listPane.besideDetail}
                   onPress={() => {
                     return handlePress(wrapped);
                   }}
@@ -671,8 +744,12 @@ export default function AlertsScreen({
         />
       ) : (
         <SectionList
+          ref={episodeListRef}
           sections={episodeSections}
           style={{ flex: 1 }}
+          onScroll={episodeScroll.onScroll}
+          onContentSizeChange={episodeScroll.onContentSizeChange}
+          scrollEventThrottle={episodeScroll.scrollEventThrottle}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -706,6 +783,11 @@ export default function AlertsScreen({
                 episode={wrapped.item}
                 type="alert"
                 muted={isResolved}
+                selected={listPane.isOpen("AlertEpisodeDetail", {
+                  episodeId: wrapped.item._id,
+                  projectId: wrapped.projectId,
+                })}
+                showChevron={!listPane.besideDetail}
                 onPress={() => {
                   return handleEpisodePress(wrapped);
                 }}

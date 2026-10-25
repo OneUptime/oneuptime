@@ -9,26 +9,30 @@ import type {
   NamedEntityWithColor,
 } from "../api/types";
 
+interface EpisodeRowOptions {
+  onPress: () => void;
+  projectName?: string;
+  muted?: boolean;
+  /** Open in the detail pane beside the list. */
+  selected?: boolean;
+  showChevron?: boolean;
+}
+
 type EpisodeCardProps =
-  | {
+  | (EpisodeRowOptions & {
       episode: IncidentEpisodeItem;
       type: "incident";
-      onPress: () => void;
-      projectName?: string;
-      muted?: boolean;
-    }
-  | {
+    })
+  | (EpisodeRowOptions & {
       episode: AlertEpisodeItem;
       type: "alert";
-      onPress: () => void;
-      projectName?: string;
-      muted?: boolean;
-    };
+    });
 
 export default function EpisodeCard(
   props: EpisodeCardProps,
 ): React.JSX.Element {
-  const { episode, type, onPress, projectName, muted } = props;
+  const { episode, type, onPress, projectName, muted, selected, showChevron } =
+    props;
   const { theme } = useTheme();
   const state: NamedEntityWithColor =
     type === "incident"
@@ -62,6 +66,8 @@ export default function EpisodeCard(
       }
       projectName={projectName}
       muted={muted}
+      selected={selected}
+      showChevron={showChevron}
       accessibilityLabel={`${type === "incident" ? "Incident" : "Alert"} episode ${episode.episodeNumberWithPrefix || episode.episodeNumber}, ${episode.title}. State: ${state?.name ?? "unknown"}. Severity: ${severity?.name ?? "unknown"}.`}
       accessibilityHint="Open details and response actions"
       onPress={onPress}
