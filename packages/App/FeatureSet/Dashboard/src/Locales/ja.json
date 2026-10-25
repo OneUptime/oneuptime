@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI がどのサービスのログに、いつ対応し、自動でプルリクエストを開くかどうか。",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "ルールがない場合、OneUptime AI はログの問題をすべてすぐに調査し、修正できるものにはプルリクエストを開きます。ルールを追加すると、対象のサービス、タイミング、修正方法を選べます。",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "1 時間に {{threshold}} 行が、エラーログに対する AI 検出器のしきい値です。",
-  "{{threshold}} or more of these error logs in an hour": "1 時間に {{threshold}} 件以上のこのエラーログ"
+  "{{threshold}} or more of these error logs in an hour": "1 時間に {{threshold}} 件以上のこのエラーログ",
+  "Could not load the AI activity: {{error}}": "AI アクティビティを読み込めませんでした: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI は根拠から原因を特定できませんでした。",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI は、拒否されたサインインのように、チェックが役目を果たしていることを確認しました。",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI は、コードを変更すれば直ることを突き止めました。",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI は、原因がコードの外（依存関係、環境、その構成など）にあることを突き止めました。",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI は、コードが不正な入力を正しく拒否していることを確認しました。"
 }

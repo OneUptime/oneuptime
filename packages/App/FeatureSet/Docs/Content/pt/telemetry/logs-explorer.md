@@ -169,7 +169,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Registros → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências e **Abrir em Registros**, que abre as linhas de que ela trata, da hora em que foi encontrada, no **Visualizador**. Uma falha que não escreve nenhuma linha de log não tem linhas a abrir: **Abrir em Traços** abre os seus spans com falha em vez disso. Em um log de erro, **Criar monitor** configura um monitor de logs que conta as linhas da mensagem.
-- **Registros → IA → Atividade** lista cada investigação e cada pull request, do mais recente, com a situação de cada um.
+- **Registros → IA → Atividade** lista cada investigação e cada pull request, do mais recente, com a situação de cada um. Uma investigação concluída também diz o que o OneUptime AI encontrou, como a causa de um erro fora do código, e é por isso que aquele log de erro não recebeu pull request por conta própria.
 - Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ## O que acontece com os registros quando chegam

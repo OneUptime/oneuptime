@@ -169,7 +169,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Logger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Logger**, som åpner linjene det gjelder, fra timen det ble funnet i, i **Viser**. En feil som ikke skriver noen logglinje, har ingen linjer å åpne: **Åpne i Spor** åpner i stedet de feilede spansene. For en feillogg setter **Opprett monitor** opp en loggmonitor som teller meldingens linjer.
-- **Logger → KI → Aktivitet** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- **Logger → KI → Aktivitet** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver. En fullført undersøkelse sier også hva OneUptime AI fant, for eksempel årsaken til en feil utenfor koden, og derfor fikk den feilloggen ingen pull-forespørsel av seg selv.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med logger når de kommer inn

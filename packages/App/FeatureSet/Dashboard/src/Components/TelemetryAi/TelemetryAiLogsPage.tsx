@@ -55,6 +55,7 @@ import {
   TELEMETRY_AI_PAGES,
   TELEMETRY_AI_TEST_IDS,
   TelemetryAiLaneCopy,
+  getTelemetryAiLogFinding,
 } from "./TelemetryAiCopy";
 
 /*
@@ -63,7 +64,9 @@ import {
  * data, newest first (Common/Server/API/TelemetryAiAPI): each investigation
  * - an insight's triage - and each pull request it opened on its own or was
  * asked to open from a finding, with how it stands, the finding it was
- * for, who started it, and the Code task and pull request it led to.
+ * for, who started it, and the Code task and pull request it led to. A done
+ * investigation says what it found (its verdict): why the finding got a
+ * pull request, or did not.
  *
  * A page at a time, with Load more. Only about findings the reader may
  * read; a repository they may not read in Code is not named.
@@ -118,6 +121,7 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   const at: Date = new Date(entry.at);
   const hasDate: boolean = !Number.isNaN(at.getTime());
   const pullRequestUrl: URL | null = getPullRequestUrl(entry.pullRequest?.url);
+  const finding: string | null = getTelemetryAiLogFinding(entry);
 
   const meta: Array<ReactElement> = [];
 
@@ -215,6 +219,18 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
           })}
         </div>
 
+        {finding ? (
+          <p
+            className="mt-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
+            data-testid={TELEMETRY_AI_TEST_IDS.logFinding}
+            data-classification={entry.classification}
+          >
+            {translator.translateText(finding)}
+          </p>
+        ) : (
+          <></>
+        )}
+
         {entry.kind === TelemetryAiLogKind.PullRequest &&
         (entry.taskId || pullRequestUrl) ? (
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -281,6 +297,9 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[props.lane];
+  // The lane's own words when it names the page otherwise (Logs: Activity).
+  const couldNotLoad: string =
+    copy.logsCouldNotLoad || TELEMETRY_AI_LOGS_COULD_NOT_LOAD;
 
   const [entries, setEntries] = useState<Array<TelemetryAiLogEntryJSON>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -366,10 +385,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
     if (error && entries.length === 0) {
       return (
         <ErrorMessage
-          message={translator.translateTemplate(
-            TELEMETRY_AI_LOGS_COULD_NOT_LOAD,
-            { error },
-          )}
+          message={translator.translateTemplate(couldNotLoad, { error })}
           onRefreshClick={() => {
             void read({ skip: 0, append: false });
           }}
@@ -472,7 +488,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
 
         {loadMoreError ? (
           <p className="text-center text-sm text-red-500" role="alert">
-            {translator.translateTemplate(TELEMETRY_AI_LOGS_COULD_NOT_LOAD, {
+            {translator.translateTemplate(couldNotLoad, {
               error: loadMoreError,
             })}
           </p>

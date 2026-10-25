@@ -40,7 +40,9 @@ The suite covers, on a laptop and on a phone, light and dark:
   reason it is not offered; Create Monitor opening Monitor Create on an
   error log, and not drawn on missing logging or a noisy log;
 - Activity: every investigation and pull request, newest first, a page at a
-  time, nothing yet and a read that failed.
+  time - each done investigation saying what OneUptime AI found (the error
+  log's found its cause outside the code, so no pull request opened on its
+  own) - nothing yet and a read that failed.
 
 ## Run it
 

@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "Sur les journaux de quels services OneUptime AI travaille, quand, et s'il ouvre lui-même des pull requests.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "Sans règle, OneUptime AI examine immédiatement chaque problème de vos journaux et ouvre une pull request pour chacun de ceux qu'il peut corriger. Ajoutez des règles pour choisir sur quels services il travaille, quand, et comment chacun est corrigé.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} lignes en une heure, c'est le seuil du détecteur IA pour un journal d'erreur.",
-  "{{threshold}} or more of these error logs in an hour": "{{threshold}} de ces journaux d'erreur ou plus en une heure"
+  "{{threshold}} or more of these error logs in an hour": "{{threshold}} de ces journaux d'erreur ou plus en une heure",
+  "Could not load the AI activity: {{error}}": "Impossible de charger l'activité IA : {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI n'a pas pu déterminer la cause à partir des preuves.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI a trouvé un contrôle qui fait son travail, comme une connexion refusée.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI a trouvé qu'une modification du code corrige le problème.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI a trouvé la cause en dehors du code, comme une dépendance, l'environnement ou sa configuration.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI a trouvé un code qui refuse une saisie invalide, comme il se doit."
 }

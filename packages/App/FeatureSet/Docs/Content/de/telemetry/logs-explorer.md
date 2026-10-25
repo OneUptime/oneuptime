@@ -169,7 +169,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ### Sehen, was es getan hat
 
 - **Protokolle → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Protokollen öffnen**, das die betroffenen Zeilen aus der Stunde, in der er gefunden wurde, im **Betrachter** öffnet. Ein Fehlschlag, der keine Protokollzeile schreibt, hat keine Zeilen zum Öffnen: **In Traces öffnen** öffnet stattdessen seine fehlgeschlagenen Spans. Bei einem Fehlerprotokoll richtet **Monitor erstellen** einen Protokoll-Monitor ein, der die Zeilen der Meldung zählt.
-- **Protokolle → KI → Aktivität** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- **Protokolle → KI → Aktivität** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand. Eine abgeschlossene Untersuchung sagt auch, was OneUptime AI gefunden hat, etwa eine Fehlerursache außerhalb des Codes, weshalb dieses Fehlerprotokoll von selbst keinen Pull Request bekam.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Was mit Protokollen beim Eintreffen geschieht

@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI 處理哪些服務的日誌、何時處理，以及是否自行開啟 Pull Request。",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "沒有規則時，OneUptime AI 會立即調查您日誌中的每個問題，並為每個它能修正的問題開啟 Pull Request。新增規則可選擇它處理哪些服務、何時處理，以及每一個如何修正。",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "一小時內 {{threshold}} 行是 AI 偵測器判定錯誤日誌的門檻。",
-  "{{threshold}} or more of these error logs in an hour": "一小時內 {{threshold}} 筆或更多此類錯誤日誌"
+  "{{threshold}} or more of these error logs in an hour": "一小時內 {{threshold}} 筆或更多此類錯誤日誌",
+  "Could not load the AI activity: {{error}}": "無法載入 AI 活動：{{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI 無法根據證據判斷原因。",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI 發現是某項檢查在正常發揮作用，例如拒絕登入。",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI 發現修改程式碼即可修正。",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI 發現原因在程式碼之外，例如相依項目、環境或其設定。",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI 發現程式碼按預期拒絕了錯誤的輸入。"
 }

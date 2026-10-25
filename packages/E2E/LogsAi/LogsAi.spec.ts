@@ -1034,6 +1034,14 @@ test.describe("Logs → AI → Activity", () => {
           automatic.getByRole("link", { name: "Pull request #1307" }),
         ).toHaveAttribute("href", "https://github.com/acme/payments/pull/1307");
 
+        // A done investigation says what OneUptime AI found.
+        await expect(
+          entries.nth(1).getByTestId("telemetry-ai-log-finding"),
+        ).toHaveText("OneUptime AI found that a change to the code fixes it.");
+        await expect(
+          automatic.getByTestId("telemetry-ai-log-finding"),
+        ).toHaveCount(0);
+
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
         await expect(entries.nth(2)).toContainText("Nothing to change");
 
@@ -1047,12 +1055,31 @@ test.describe("Logs → AI → Activity", () => {
       },
     );
 
-    // The fourth entry is a page away.
+    /*
+     * The older entries are a page away: the error log's investigation,
+     * which found its cause outside the code - why OneUptime AI opened no
+     * pull request on its own - and one that failed, which found nothing.
+     */
     await page.getByTestId("telemetry-ai-logs-load-more").click();
-    await expect(page.getByTestId("telemetry-ai-log-entry")).toHaveCount(4);
-    await expect(
-      page.getByTestId("telemetry-ai-log-entry").nth(3),
-    ).toContainText("Failed");
+    await expect(page.getByTestId("telemetry-ai-log-entry")).toHaveCount(5);
+
+    const outside: Locator = page.getByTestId("telemetry-ai-log-entry").nth(3);
+
+    await expect(outside).toContainText("Investigation");
+    await expect(outside.getByTestId("telemetry-ai-log-finding")).toHaveText(
+      "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.",
+    );
+
+    const failed: Locator = page.getByTestId("telemetry-ai-log-entry").nth(4);
+
+    await expect(failed).toContainText("Failed");
+    await expect(failed.getByTestId("telemetry-ai-log-finding")).toHaveCount(0);
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "activity-all");
 
     // A finding opens under Logs' AI tab.
     await page
@@ -1085,9 +1112,13 @@ test.describe("Logs → AI → Activity", () => {
     await expect(page.getByTestId("telemetry-ai-switches")).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/logs/ai/settings`));
 
+    // In the page's own name: Activity, not the AI logs.
     await page.goto(`${AI}/activity?aiLogs=fail`);
     await expect(
-      page.getByText("The AI activity could not be read.", { exact: false }),
+      page.getByText(
+        "Could not load the AI activity: The AI activity could not be read.",
+        { exact: false },
+      ),
     ).toBeVisible({ timeout: 60000 });
   });
 });

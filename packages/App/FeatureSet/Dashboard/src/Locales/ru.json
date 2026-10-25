@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "С журналами каких сервисов работает OneUptime AI, когда и открывает ли он пул-реквесты сам.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "Без правил OneUptime AI сразу изучает каждую проблему в ваших журналах и открывает пул-реквест для каждой, которую может исправить. Добавьте правила, чтобы выбрать, с какими сервисами он работает, когда и как исправляется каждая проблема.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "Порог AI-детектора для ошибки в журналах — {{threshold}} строк за час.",
-  "{{threshold}} or more of these error logs in an hour": "{{threshold}} и более таких записей об ошибке за час"
+  "{{threshold}} or more of these error logs in an hour": "{{threshold}} и более таких записей об ошибке за час",
+  "Could not load the AI activity: {{error}}": "Не удалось загрузить активность ИИ: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI не смог установить причину по имеющимся данным.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI обнаружил проверку, которая делает своё дело, например отклонённый вход.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI выяснил, что это исправит изменение в коде.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI нашёл причину вне кода: например, в зависимости, окружении или его конфигурации.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI обнаружил, что код отклоняет неверный ввод, как и должен."
 }

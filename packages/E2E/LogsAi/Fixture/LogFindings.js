@@ -401,6 +401,7 @@ export function aiLogs(now, skip) {
   };
   const silent = insight(AI_INSIGHT_IDS.silent);
   const error = insight(AI_INSIGHT_IDS.error);
+  const noisy = insight(AI_INSIGHT_IDS.noisy);
 
   const entries = [
     {
@@ -436,12 +437,25 @@ export function aiLogs(now, skip) {
       taskId: AI_TASK_IDS.asked,
       repositoryName: "acme/checkout",
     },
+    /*
+     * The error log's investigation found its cause outside the code, so
+     * OneUptime AI opened no pull request on its own - its row says why -
+     * and Ada asked for one from the finding anyway.
+     */
     {
       runId: "50940000-0000-4000-8000-0000000000d2",
       kind: "Investigation",
       at: new Date(now - 27 * HOUR).toISOString(),
-      state: "Failed",
+      state: "Done",
       insight: error,
+      classification: "infrastructure",
+    },
+    {
+      runId: "50940000-0000-4000-8000-0000000000d3",
+      kind: "Investigation",
+      at: new Date(now - 30 * HOUR).toISOString(),
+      state: "Failed",
+      insight: noisy,
     },
   ];
 

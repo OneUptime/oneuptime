@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI가 어떤 서비스의 로그를 언제 다루고, 스스로 풀 리퀘스트를 여는지 여부.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "규칙이 없으면 OneUptime AI는 로그의 모든 문제를 즉시 살펴보고 수정할 수 있는 문제마다 풀 리퀘스트를 엽니다. 규칙을 추가해 어떤 서비스를, 언제, 어떻게 수정할지 선택하세요.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "1시간에 {{threshold}}줄이 오류 로그에 대한 AI 감지기의 기준입니다.",
-  "{{threshold}} or more of these error logs in an hour": "1시간에 이 오류 로그 {{threshold}}개 이상"
+  "{{threshold}} or more of these error logs in an hour": "1시간에 이 오류 로그 {{threshold}}개 이상",
+  "Could not load the AI activity: {{error}}": "AI 활동을 불러오지 못했습니다: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI가 증거만으로는 원인을 알아내지 못했습니다.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI가 거부된 로그인처럼 제 역할을 하는 검사를 찾았습니다.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI가 코드를 변경하면 해결된다는 것을 알아냈습니다.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI가 의존성, 환경 또는 그 구성처럼 코드 밖에서 원인을 찾았습니다.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI가 코드가 잘못된 입력을 제대로 거부하고 있음을 확인했습니다."
 }

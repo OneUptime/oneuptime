@@ -12,6 +12,7 @@ import {
 } from "Common/Types/AI/TelemetryAiActivity";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
+import ErrorClass, { toErrorClass } from "Common/Types/Telemetry/ErrorClass";
 import type { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import {
   PluralTemplate,
@@ -102,6 +103,12 @@ export interface TelemetryAiLaneCopy {
   logsIntro: string;
   logsEmptyTitle: string;
   logsEmptyDescription: string;
+  /*
+   * What the page says when it cannot be read, with {{error}}; absent, the
+   * section's "Could not load the AI logs". Logs names the page Activity,
+   * so its words do too.
+   */
+  logsCouldNotLoad?: string | undefined;
 
   // Settings: the switches card and More settings.
   switchesCardDescription: string;
@@ -318,6 +325,9 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     logsEmptyTitle: translationKey("Nothing yet"),
     logsEmptyDescription: translationKey(
       "When OneUptime AI looks into a problem in your logs or opens a pull request for it, it shows up here.",
+    ),
+    logsCouldNotLoad: translationKey(
+      "Could not load the AI activity: {{error}}",
     ),
 
     switchesCardDescription: translationKey(
@@ -640,6 +650,59 @@ export const TELEMETRY_AI_LOG_ASKED_BY: string =
 
 export const TELEMETRY_AI_LOG_OPEN_TASK: string = translationKey("Open task");
 
+/*
+ * What an investigation found, as its row says once it is done: the verdict
+ * its triage ended with (TelemetryAiLogEntryJSON.classification, in
+ * ErrorClass - the platform's one vocabulary of whose problem a failure
+ * is). It tells the reader why a finding got a pull request or did not:
+ * a kind whose pull request waits for the verdict (an error log, a failing
+ * operation) opens one on its own only on a fault of the code
+ * (Common/Types/AI/TelemetryAi). Worded to read true of every lane's
+ * findings - slow code, a failing operation, missing logging or a noisy
+ * line alike - so it says what was found, never whether a pull request
+ * follows: the rules say that.
+ */
+export const TELEMETRY_AI_LOG_FINDINGS: Readonly<Record<ErrorClass, string>> = {
+  [ErrorClass.CodeFault]: translationKey(
+    "OneUptime AI found that a change to the code fixes it.",
+  ),
+  [ErrorClass.UserError]: translationKey(
+    "OneUptime AI found the code refusing bad input, as it should.",
+  ),
+  [ErrorClass.ExpectedDenial]: translationKey(
+    "OneUptime AI found a check doing its job, such as a refused sign-in.",
+  ),
+  [ErrorClass.Infrastructure]: translationKey(
+    "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.",
+  ),
+  [ErrorClass.Unknown]: translationKey(
+    "OneUptime AI could not tell the cause from the evidence.",
+  ),
+};
+
+/*
+ * What an entry's row says was found: a done investigation's verdict, in
+ * TELEMETRY_AI_LOG_FINDINGS' words. Null for a pull request, an
+ * investigation still on its way, and a verdict outside the vocabulary
+ * (an older row may hold one): a row says nothing it cannot say right.
+ */
+export function getTelemetryAiLogFinding(entry: {
+  kind: TelemetryAiLogKind;
+  state: TelemetryAiLogState;
+  classification?: string | undefined;
+}): string | null {
+  if (
+    entry.kind !== TelemetryAiLogKind.Investigation ||
+    entry.state !== TelemetryAiLogState.Done
+  ) {
+    return null;
+  }
+
+  const errorClass: ErrorClass | null = toErrorClass(entry.classification);
+
+  return errorClass ? TELEMETRY_AI_LOG_FINDINGS[errorClass] : null;
+}
+
 export const TELEMETRY_AI_LOGS_SHOWING: PluralTemplate = {
   one: "Showing {{shown}} of {{total}} entry",
   other: "Showing {{shown}} of {{total}} entries",
@@ -659,6 +722,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   rulesTable: string;
   logs: string;
   logEntry: string;
+  logFinding: string;
   logsEmpty: string;
   logsSettings: string;
   logsLoadMore: string;
@@ -672,6 +736,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   rulesTable: "telemetry-ai-rules-table",
   logs: "telemetry-ai-logs",
   logEntry: "telemetry-ai-log-entry",
+  logFinding: "telemetry-ai-log-finding",
   logsEmpty: "telemetry-ai-logs-empty",
   logsSettings: "telemetry-ai-logs-settings",
   logsLoadMore: "telemetry-ai-logs-load-more",

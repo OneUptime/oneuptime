@@ -169,7 +169,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Log → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Registri**, che apre le righe di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Un fallimento che non scrive alcuna riga di log non ha righe da aprire: **Apri in Tracce** apre invece i suoi span falliti. Su un log di errore, **Crea monitor** imposta un monitor dei log che conta le righe del messaggio.
-- **Log → IA → Attività** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- **Log → IA → Attività** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna. Un'indagine conclusa dice anche cosa ha trovato OneUptime AI, come la causa di un errore fuori dal codice, ed è per questo che quel log di errore non ha ricevuto da solo alcuna pull request.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Che cosa succede ai log quando arrivano

@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} lines in an hour is the AI detector's bar for an error log.",
-  "{{threshold}} or more of these error logs in an hour": "{{threshold}} or more of these error logs in an hour"
+  "{{threshold}} or more of these error logs in an hour": "{{threshold}} or more of these error logs in an hour",
+  "Could not load the AI activity: {{error}}": "Could not load the AI activity: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI could not tell the cause from the evidence.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI found a check doing its job, such as a refused sign-in.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI found that a change to the code fixes it.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI found the code refusing bad input, as it should."
 }

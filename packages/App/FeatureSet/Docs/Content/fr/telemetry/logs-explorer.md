@@ -169,7 +169,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 ### Voir ce qu'il a fait
 
 - **Journaux → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Journaux**, qui ouvre les lignes concernées, de l'heure où il a été trouvé, dans le **Lecteur**. Un échec qui n'écrit aucune ligne de journal n'a pas de lignes à ouvrir : **Ouvrir dans Traces** ouvre plutôt ses spans en échec. Sur un journal d'erreur, **Créer un moniteur** configure un moniteur de journaux qui compte les lignes du message.
-- **Journaux → IA → Activité** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune.
+- **Journaux → IA → Activité** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune. Une investigation terminée dit aussi ce qu'OneUptime AI a trouvé, par exemple la cause d'une erreur en dehors du code, ce qui explique que ce journal d'erreur n'ait reçu aucune pull request de lui-même.
 - Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Ce qui arrive aux journaux à leur arrivée

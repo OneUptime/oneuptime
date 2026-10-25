@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI روی لاگ‌های کدام سرویس‌ها، چه زمانی کار می‌کند و آیا خودش Pull Request باز می‌کند.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "بدون قاعده، OneUptime AI هر مشکلِ لاگ‌های شما را بی‌درنگ بررسی می‌کند و برای هر کدام که بتواند اصلاح کند یک Pull Request باز می‌کند. با افزودن قاعده انتخاب کنید روی کدام سرویس‌ها، چه زمانی و چگونه هر مورد اصلاح شود.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} خط در یک ساعت، آستانه آشکارساز هوش مصنوعی برای یک لاگ خطا است.",
-  "{{threshold}} or more of these error logs in an hour": "{{threshold}} مورد یا بیشتر از این لاگ‌های خطا در یک ساعت"
+  "{{threshold}} or more of these error logs in an hour": "{{threshold}} مورد یا بیشتر از این لاگ‌های خطا در یک ساعت",
+  "Could not load the AI activity: {{error}}": "بارگذاری فعالیت هوش مصنوعی ممکن نشد: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI نتوانست از روی شواهد علت را تشخیص دهد.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI دریافت که یک بررسی کار خودش را انجام می‌دهد، مانند ورودی ردشده به حساب کاربری.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI دریافت که تغییری در کد آن را برطرف می‌کند.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI علت را بیرون از کد یافت، مانند یک وابستگی، محیط یا پیکربندی آن.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI دریافت که کد ورودی نادرست را همان‌طور که باید رد می‌کند."
 }

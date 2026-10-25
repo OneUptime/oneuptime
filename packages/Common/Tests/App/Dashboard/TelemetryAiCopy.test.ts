@@ -3,6 +3,8 @@ import {
   TELEMETRY_AI_INSIGHTS_SCOPES,
   TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF,
   TELEMETRY_AI_LANE_COPY,
+  TELEMETRY_AI_LOGS_COULD_NOT_LOAD,
+  TELEMETRY_AI_LOG_FINDINGS,
   TELEMETRY_AI_LOG_KIND_LABELS,
   TELEMETRY_AI_LOG_STATE_CLASS_NAMES,
   TELEMETRY_AI_LOG_STATE_LABELS,
@@ -14,6 +16,7 @@ import {
   describeTelemetryAiRuleTiming,
   getTelemetryAiFixOptions,
   getTelemetryAiInsightsScope,
+  getTelemetryAiLogFinding,
   getTelemetryAiRulesTableId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
@@ -35,6 +38,7 @@ import {
   TelemetryAiLogState,
 } from "../../../Types/AI/TelemetryAiActivity";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
+import ErrorClass from "../../../Types/Telemetry/ErrorClass";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 
 /*
@@ -223,6 +227,107 @@ describe("the logs' words", () => {
     expect(TELEMETRY_AI_LOG_STATE_LABELS[TelemetryAiLogState.Working]).toBe(
       "In progress",
     );
+  });
+
+  /*
+   * A done investigation says what OneUptime AI found: the verdict its
+   * triage ended with, in ErrorClass - why a finding whose pull request
+   * waits for a fault of the code got one, or did not. One sentence each,
+   * true of every lane's findings, and never a promise of a pull request:
+   * the rules decide that.
+   */
+  test("every verdict has a sentence of its own, short, about what was found", () => {
+    expect(Object.keys(TELEMETRY_AI_LOG_FINDINGS).sort()).toEqual(
+      Object.values(ErrorClass).sort(),
+    );
+
+    const sentences: Array<string> = Object.values(TELEMETRY_AI_LOG_FINDINGS);
+
+    expect(new Set(sentences).size).toBe(sentences.length);
+
+    for (const sentence of sentences) {
+      expect(sentence.startsWith("OneUptime AI ")).toBe(true);
+      expect(sentence.endsWith(".")).toBe(true);
+      expect(sentence.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(sentence).not.toContain("pull request");
+    }
+
+    expect(TELEMETRY_AI_LOG_FINDINGS[ErrorClass.CodeFault]).toBe(
+      "OneUptime AI found that a change to the code fixes it.",
+    );
+    expect(TELEMETRY_AI_LOG_FINDINGS[ErrorClass.Infrastructure]).toContain(
+      "outside the code",
+    );
+    expect(TELEMETRY_AI_LOG_FINDINGS[ErrorClass.Unknown]).toBe(
+      "OneUptime AI could not tell the cause from the evidence.",
+    );
+  });
+
+  test("only a done investigation says what was found, and only a verdict it can say right", () => {
+    const done: {
+      kind: TelemetryAiLogKind;
+      state: TelemetryAiLogState;
+    } = {
+      kind: TelemetryAiLogKind.Investigation,
+      state: TelemetryAiLogState.Done,
+    };
+
+    for (const errorClass of Object.values(ErrorClass)) {
+      expect(
+        getTelemetryAiLogFinding({ ...done, classification: errorClass }),
+      ).toBe(TELEMETRY_AI_LOG_FINDINGS[errorClass]);
+    }
+
+    // No verdict yet, or none the platform's vocabulary holds.
+    expect(getTelemetryAiLogFinding(done)).toBeNull();
+    expect(
+      getTelemetryAiLogFinding({ ...done, classification: "" }),
+    ).toBeNull();
+    expect(
+      getTelemetryAiLogFinding({ ...done, classification: "Actionable" }),
+    ).toBeNull();
+    expect(
+      getTelemetryAiLogFinding({ ...done, classification: "CODE-FAULT" }),
+    ).toBeNull();
+
+    // An investigation on its way, stopped or failed has found nothing.
+    for (const state of Object.values(TelemetryAiLogState)) {
+      if (state === TelemetryAiLogState.Done) {
+        continue;
+      }
+
+      expect(
+        getTelemetryAiLogFinding({
+          kind: TelemetryAiLogKind.Investigation,
+          state,
+          classification: ErrorClass.CodeFault,
+        }),
+      ).toBeNull();
+    }
+
+    // A pull request's row says how it stands, never a verdict.
+    expect(
+      getTelemetryAiLogFinding({
+        kind: TelemetryAiLogKind.PullRequest,
+        state: TelemetryAiLogState.Done,
+        classification: ErrorClass.CodeFault,
+      }),
+    ).toBeNull();
+  });
+
+  test("a failed read names the page as its lane does: Activity in Logs, the AI logs elsewhere", () => {
+    expect(TELEMETRY_AI_LOGS_COULD_NOT_LOAD).toBe(
+      "Could not load the AI logs: {{error}}",
+    );
+    expect(TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].logsCouldNotLoad).toBe(
+      "Could not load the AI activity: {{error}}",
+    );
+    expect(
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].logsCouldNotLoad,
+    ).toBeUndefined();
+    expect(
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].logsCouldNotLoad,
+    ).toBeUndefined();
   });
 });
 

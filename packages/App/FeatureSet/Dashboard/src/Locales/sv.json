@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "Vilka tjänsters loggar OneUptime AI arbetar med, när, och om den öppnar pull requests själv.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "Utan regler undersöker OneUptime AI direkt varje problem i dina loggar och öppnar en pull request för vart och ett den kan åtgärda. Lägg till regler för att välja vilka tjänster den arbetar med, när, och hur vart och ett åtgärdas.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} rader på en timme är AI-detektorns gräns för en fellogg.",
-  "{{threshold}} or more of these error logs in an hour": "{{threshold}} eller fler av dessa felloggar på en timme"
+  "{{threshold}} or more of these error logs in an hour": "{{threshold}} eller fler av dessa felloggar på en timme",
+  "Could not load the AI activity: {{error}}": "Det gick inte att läsa in AI-aktiviteten: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI kunde inte avgöra orsaken utifrån bevisen.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI hittade en kontroll som gör sitt jobb, som en nekad inloggning.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI fann att en ändring i koden löser det.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI hittade orsaken utanför koden, som ett beroende, miljön eller dess konfiguration.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI hittade kod som avvisar ogiltig inmatning, som den ska."
 }

@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "Hvilke tjenesters logs OneUptime AI arbejder med, hvornår, og om den selv åbner pull requests.",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "Uden regler undersøger OneUptime AI straks hvert problem i dine logs og åbner en pull request for hvert, den kan rette. Tilføj regler for at vælge, hvilke tjenester den arbejder med, hvornår, og hvordan hvert rettes.",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} linjer på en time er AI-detektorens grænse for en fejllog.",
-  "{{threshold}} or more of these error logs in an hour": "{{threshold}} eller flere af disse fejllogs på en time"
+  "{{threshold}} or more of these error logs in an hour": "{{threshold}} eller flere af disse fejllogs på en time",
+  "Could not load the AI activity: {{error}}": "Kunne ikke indlæse AI-aktiviteten: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI kunne ikke afgøre årsagen ud fra beviserne.",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI fandt en kontrol, der gør sit arbejde, som et afvist login.",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI fandt, at en ændring i koden løser det.",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI fandt årsagen uden for koden, som en afhængighed, miljøet eller dets konfiguration.",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI fandt kode, der afviser ugyldigt input, som den skal."
 }

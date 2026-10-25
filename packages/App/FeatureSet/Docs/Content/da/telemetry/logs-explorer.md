@@ -169,7 +169,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Protokoller → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Protokoller**, som åbner de linjer, det handler om, fra den time, det blev fundet i, i **Seer**. En fejl, der ikke skriver nogen loglinje, har ingen linjer at åbne: **Åbn i Spor** åbner i stedet dens fejlede spans. For en fejllog opretter **Opret monitor** en logmonitor, der tæller meddelelsens linjer.
-- **Protokoller → AI → Aktivitet** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- **Protokoller → AI → Aktivitet** viser hver undersøgelse og hver pull request, nyeste først, med status for hver. En afsluttet undersøgelse siger også, hvad OneUptime AI fandt, såsom årsagen til en fejl uden for koden, og derfor fik den fejllog ingen pull request af sig selv.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med protokoller, når de ankommer

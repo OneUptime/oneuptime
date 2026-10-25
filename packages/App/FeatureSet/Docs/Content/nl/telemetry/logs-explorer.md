@@ -169,7 +169,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Logboeken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Logboeken**, dat de regels waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Een storing die geen logregel schrijft, heeft geen regels om te openen: **Openen in Traces** opent in plaats daarvan haar mislukte spans. Bij een foutlog stelt **Monitor maken** een logmonitor in die de regels van het bericht telt.
-- **Logboeken → AI → Activiteit** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- **Logboeken → AI → Activiteit** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat. Een afgerond onderzoek zegt ook wat OneUptime AI vond, zoals de oorzaak van een fout buiten de code, en daarom kreeg die foutlog niet vanzelf een pull request.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met logboeken gebeurt als ze binnenkomen

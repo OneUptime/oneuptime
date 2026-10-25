@@ -34414,5 +34414,11 @@
   "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI किन सेवाओं के लॉग पर, कब काम करता है, और क्या वह खुद पुल रिक्वेस्ट खोलता है।",
   "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "कोई नियम न होने पर OneUptime AI आपके लॉग की हर समस्या की तुरंत जाँच करता है और जिसे वह ठीक कर सकता है उसके लिए पुल रिक्वेस्ट खोलता है। यह चुनने के लिए नियम जोड़ें कि वह किन सेवाओं पर, कब, और हर एक को कैसे ठीक करे।",
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "एक घंटे में {{threshold}} पंक्तियाँ, त्रुटि लॉग के लिए AI डिटेक्टर की सीमा है।",
-  "{{threshold}} or more of these error logs in an hour": "एक घंटे में ऐसे {{threshold}} या अधिक त्रुटि लॉग"
+  "{{threshold}} or more of these error logs in an hour": "एक घंटे में ऐसे {{threshold}} या अधिक त्रुटि लॉग",
+  "Could not load the AI activity: {{error}}": "AI गतिविधि लोड नहीं हो सकी: {{error}}",
+  "OneUptime AI could not tell the cause from the evidence.": "OneUptime AI सबूतों से कारण नहीं बता सका।",
+  "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI ने पाया कि कोई जाँच अपना काम कर रही है, जैसे अस्वीकार किया गया साइन-इन।",
+  "OneUptime AI found that a change to the code fixes it.": "OneUptime AI ने पाया कि कोड में बदलाव से यह ठीक हो जाता है।",
+  "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI ने कारण कोड के बाहर पाया, जैसे कोई निर्भरता, एनवायरनमेंट या उसका कॉन्फ़िगरेशन।",
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI ने पाया कि कोड गलत इनपुट को वैसे ही अस्वीकार कर रहा है जैसे उसे करना चाहिए।"
 }
