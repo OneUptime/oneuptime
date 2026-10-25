@@ -680,7 +680,9 @@ describe("ExceptionInsightFix.start - OneUptime on its own, for a service's miss
 
     const message: Array<string> = (call["message"] as string).split("\n");
 
-    expect(message[0]).toBe("Record a stack trace with checkout's exceptions");
+    expect(message[0]).toBe(
+      "Record a stack trace with each exception in checkout",
+    );
     expect(call["message"]).toContain(
       "OneUptime found this in the service's exceptions on its own.",
     );

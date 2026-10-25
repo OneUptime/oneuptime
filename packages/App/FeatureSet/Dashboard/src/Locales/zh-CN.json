@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "发现代码之外的原因",
   "Found a fault in the code": "发现代码缺陷",
   "Found an expected error: a check doing its job": "发现预期错误：检查在正常工作",
-  "Found an expected error: invalid input": "发现预期错误：无效输入"
+  "Found an expected error: invalid input": "发现预期错误：无效输入",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "“查找并修复新出现和激增的异常”已关闭：新出现和激增的异常交由 AI Insights 及其设置处理，OneUptime 不会查找缺少堆栈跟踪的异常。请在 AI 设置中开启。"
 }

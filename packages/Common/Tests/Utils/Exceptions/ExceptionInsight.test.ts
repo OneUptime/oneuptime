@@ -412,9 +412,13 @@ describe("a new or rising exception's evidence", () => {
     expect(lines[1]).toBe("");
     expect(lines[2]).toContain("- Exception: `TypeError");
     expect(lines.join("\n")).toContain("- Service: checkout");
+    // A date a person reads, in UTC and said so - not an ISO timestamp.
     expect(lines.join("\n")).toContain(
-      "- First seen: 2026-10-24T02:00:00.000Z (within the last 24h)",
+      "- First seen: Oct 24, 2026, 02:00 UTC (within the last 24h)",
     );
+    expect(lines.join("\n")).not.toContain("2026-10-24T02:00:00.000Z");
+    // The label already says the whole message: it is not said twice.
+    expect(lines.join("\n")).not.toContain("- Message:");
     expect(lines.join("\n")).toContain("- Occurrences so far: 1,057");
     expect(lines.join("\n")).not.toContain("distinct stack traces");
     // Not read: nothing said about the code.
@@ -446,7 +450,7 @@ describe("a new or rising exception's evidence", () => {
         ownCodeFrames: [],
       }),
     ).toContain(
-      "- Its stack trace shows only library and runtime code, so no frame says which of your code raised it",
+      "- Its stack trace shows only library and runtime code, so nothing shows where in your code it was raised",
     );
     expect(
       buildNewExceptionDetail({
@@ -455,8 +459,39 @@ describe("a new or rising exception's evidence", () => {
         ownCodeFrames: [],
       }),
     ).toContain(
-      "- It was recorded without a stack trace, so no frame says which of your code raised it",
+      "- It was recorded without a stack trace, so nothing shows where in your code it was raised",
     );
+  });
+
+  /*
+   * The label cuts a long message short (ExceptionIdentity): then the
+   * message is said whole, on its own line - and a label that does not
+   * carry it at all leaves it there too.
+   */
+  test("a message the label cut short, or does not carry, is said on its own line", () => {
+    const message: string =
+      "Cannot read properties of undefined (reading 'id') while applying the coupon to the order total";
+
+    expect(
+      buildNewExceptionDetail({
+        ...newBase,
+        label: `TypeError: ${message.slice(0, 40)}…`,
+        message,
+      }),
+    ).toContain(`- Message: ${message}`);
+    expect(
+      buildNewExceptionDetail({
+        ...newBase,
+        label: "TypeError",
+        message: "boom",
+      }),
+    ).toContain("- Message: boom");
+  });
+
+  test("a first-seen time that cannot be read is unknown", () => {
+    expect(
+      buildNewExceptionDetail({ ...newBase, firstSeenAt: "not a date" }),
+    ).toContain("- First seen: unknown (within the last 24h)");
   });
 
   test("no message and no service: their lines are left out", () => {
@@ -518,9 +553,11 @@ describe("a new or rising exception's evidence", () => {
     );
     expect(text).toContain("- Spike multiplier: 50.0x");
     expect(text).toContain(
-      "- Exception first seen: 2026-09-01T00:00:00.000Z (lifetime occurrences: 12,000)",
+      "- Exception first seen: Sep 1, 2026, 00:00 UTC (lifetime occurrences: 12,000)",
     );
     expect(text).toContain("- `charge` at `src/pay.ts:9`");
+    // The label says the whole message: no second line for it.
+    expect(text).not.toContain("- Message:");
   });
 
   test("a dormant exception waking up says so", () => {
@@ -758,7 +795,7 @@ describe("missing stack traces: what the finding says", () => {
         evidence: stackTraceEvidence(),
         serviceName: "payments",
       }),
-    ).toBe("payments's exceptions have no stack trace");
+    ).toBe("Exceptions in payments have no stack trace");
     expect(
       getExceptionStackTraceTitle({
         evidence: stackTraceEvidence({ withStackTraceCount: 12 }),
@@ -779,7 +816,14 @@ describe("missing stack traces: what the finding says", () => {
         evidence: stackTraceEvidence(),
         serviceName: "",
       }),
-    ).toBe("A service's exceptions have no stack trace");
+    ).toBe("Exceptions in a service have no stack trace");
+    // An unnamed service mid-sentence is "a service", never "A service".
+    expect(
+      getExceptionStackTraceTitle({
+        evidence: stackTraceEvidence({ withStackTraceCount: 12 }),
+        serviceName: "",
+      }),
+    ).toBe("2 exceptions in a service have no stack trace");
   });
 
   test("an exception as the finding names it", () => {
@@ -819,7 +863,7 @@ describe("missing stack traces: what the finding says", () => {
         serviceName: "payments",
       }),
     ).toBe(
-      "In the last day payments recorded 2 exceptions, and none of them carried a stack trace. Together they have happened 1,240 times since they were first seen. Without one, nobody can tell which of its code raised them. The loudest: TimeoutError: context deadline exceeded (900 times), *errors.errorString (340 times).",
+      "In the last day payments recorded 2 exceptions, and none of them carried a stack trace. Together they have happened 1,240 times since they were first seen. Without one, nobody can tell where in its code they were raised. The loudest: TimeoutError: context deadline exceeded (900 times), *errors.errorString (340 times).",
     );
     expect(
       describeExceptionStackTraceProblem({
@@ -832,7 +876,7 @@ describe("missing stack traces: what the finding says", () => {
         serviceName: "payments",
       }),
     ).toBe(
-      "In the last day payments recorded 1 exception without a stack trace, while 30 others carried one. It has happened 25 times since it was first seen. Without one, nobody can tell which of its code raised it.",
+      "In the last day payments recorded 1 exception without a stack trace, while 30 others carried one. It has happened 25 times since it was first seen. Without one, nobody can tell where in its code it was raised.",
     );
   });
 
@@ -863,7 +907,7 @@ describe("missing stack traces: what the finding says", () => {
         serviceName: "payments",
       }),
     ).toBe(
-      "In the last day payments recorded 3 exceptions without a stack trace, while 1 other carried one. Together those 3 have happened 60 times since they were first seen. Without one, nobody can tell which of its code raised them.",
+      "In the last day payments recorded 3 exceptions without a stack trace, while 1 other carried one. Together those 3 have happened 60 times since they were first seen. Without one, nobody can tell where in its code they were raised.",
     );
 
     // One exception, the only one of the day: it, not they.
@@ -877,7 +921,7 @@ describe("missing stack traces: what the finding says", () => {
         serviceName: "payments",
       }),
     ).toBe(
-      "In the last day payments recorded 1 exception, and it carried no stack trace. It has happened 42 times since it was first seen. Without one, nobody can tell which of its code raised it.",
+      "In the last day payments recorded 1 exception, and it carried no stack trace. It has happened 42 times since it was first seen. Without one, nobody can tell where in its code it was raised.",
     );
   });
 
@@ -901,9 +945,10 @@ describe("missing stack traces: what the finding says", () => {
     expect(lines).toEqual([
       "**Missing stack traces in payments**",
       "",
-      "- Seen in the last day: 2 exceptions without a stack trace, 1,240 times since they were first seen",
+      "- Seen in the last day: 2 exceptions with no stack trace",
+      "- Together they have happened 1,240 times since they were first seen",
       "- None of its exceptions seen that day carried a stack trace",
-      "- Without a stack trace, no frame says which of its code raised them",
+      "- Without a stack trace, nothing shows where in its code they were raised",
       "",
       "**The exceptions**",
       "",
@@ -923,10 +968,13 @@ describe("missing stack traces: what the finding says", () => {
 
     expect(text).toContain("**The loudest of them**");
     expect(text).toContain(
-      "- 3 of its other exceptions seen that day carried one",
+      "- 3 of its other exceptions seen that day carried a stack trace",
     );
     expect(text).toContain(
-      "- Seen in the last day: 9 exceptions without a stack trace, 1,240 times since they were first seen",
+      "- Seen in the last day: 9 exceptions with no stack trace",
+    );
+    expect(text).toContain(
+      "- Together they have happened 1,240 times since they were first seen",
     );
   });
 
@@ -942,10 +990,11 @@ describe("missing stack traces: what the finding says", () => {
       .toString()
       .split("\n");
 
-    expect(lines.slice(2, 5)).toEqual([
-      "- Seen in the last day: 1 exception without a stack trace, 900 times since it was first seen",
+    expect(lines.slice(2, 6)).toEqual([
+      "- Seen in the last day: 1 exception with no stack trace",
+      "- It has happened 900 times since it was first seen",
       "- None of its exceptions seen that day carried a stack trace",
-      "- Without a stack trace, no frame says which of its code raised it",
+      "- Without a stack trace, nothing shows where in its code it was raised",
     ]);
     expect(lines).toContain("**The exceptions**");
   });
@@ -978,9 +1027,9 @@ describe("missing stack traces: what OneUptime asks the AI", () => {
   test("the title is what to do, and where", () => {
     expect(
       getExceptionStackTraceRequestTitle({ serviceName: "payments" }),
-    ).toBe("Record a stack trace with payments's exceptions");
+    ).toBe("Record a stack trace with each exception in payments");
     expect(getExceptionStackTraceRequestTitle({ serviceName: "" })).toBe(
-      "Record a stack trace with this service's exceptions",
+      "Record a stack trace with each exception in this service",
     );
   });
 
@@ -991,7 +1040,9 @@ describe("missing stack traces: what OneUptime asks the AI", () => {
       isStartedByOneUptime: true,
     }).split("\n");
 
-    expect(lines[0]).toBe("Record a stack trace with payments's exceptions");
+    expect(lines[0]).toBe(
+      "Record a stack trace with each exception in payments",
+    );
     expect(lines[1]).toBe("");
     expect(lines[2]).toMatch(
       /^OneUptime found this in the service's exceptions on its own\. In the last day payments recorded 2 exceptions/,

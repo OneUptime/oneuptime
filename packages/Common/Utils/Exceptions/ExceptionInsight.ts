@@ -7,7 +7,9 @@ import {
   ExceptionStackTraceInsightEvidence,
 } from "../../Types/AI/AIInsightEvidence";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
+import OneUptimeDate from "../../Types/Date";
 import ErrorClass from "../../Types/Telemetry/ErrorClass";
+import Timezone from "../../Types/Timezone";
 import FeedMarkdown, { mdText, MarkdownText } from "../Markdown/FeedMarkdown";
 
 /*
@@ -233,8 +235,8 @@ function describeOwnCode(data: {
 
   return [
     data.stackFrameCount === 0
-      ? mdText`- It was recorded without a stack trace, so no frame says which of your code raised it`
-      : mdText`- Its stack trace shows only library and runtime code, so no frame says which of your code raised it`,
+      ? mdText`- It was recorded without a stack trace, so nothing shows where in your code it was raised`
+      : mdText`- Its stack trace shows only library and runtime code, so nothing shows where in your code it was raised`,
   ];
 }
 
@@ -246,6 +248,39 @@ function describeOwnCode(data: {
 
 function formatCount(count: number): string {
   return Math.round(Number.isFinite(count) ? count : 0).toLocaleString("en-US");
+}
+
+/*
+ * When an exception was first seen, as a person reads it: "Oct 24, 2026,
+ * 02:00 UTC" - the evidence is written once, at detect time, for every
+ * reader, so in UTC and said so; "unknown" when it was not recorded.
+ */
+function formatFirstSeen(firstSeenAt: string | undefined): string {
+  const date: Date | null = firstSeenAt ? new Date(firstSeenAt) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return "unknown";
+  }
+
+  return OneUptimeDate.getDateAsFormattedStringInTimezone({
+    date,
+    timezone: Timezone.UTC,
+    use12HourFormat: false,
+  });
+}
+
+/*
+ * Whether the evidence says the message on a line of its own: not when
+ * the label already says all of it ("TypeError: Cannot read ..."), only
+ * when the label cut it short or does not carry it.
+ */
+function isMessageLineNeeded(data: {
+  label: string;
+  message: string;
+}): boolean {
+  const message: string = (data.message || "").trim();
+
+  return message.length > 0 && !(data.label || "").includes(message);
 }
 
 /*
@@ -275,7 +310,7 @@ export function buildNewExceptionDetail(data: {
     mdText`- Exception: \`${data.label}\``,
   ];
 
-  if (data.message) {
+  if (isMessageLineNeeded(data)) {
     lines.push(mdText`- Message: ${data.message}`);
   }
 
@@ -284,7 +319,7 @@ export function buildNewExceptionDetail(data: {
   }
 
   lines.push(
-    mdText`- First seen: ${data.firstSeenAt || "unknown"} (within the last ${data.lookbackHours}h)`,
+    mdText`- First seen: ${formatFirstSeen(data.firstSeenAt)} (within the last ${data.lookbackHours}h)`,
     mdText`- Occurrences so far: ${formatCount(data.totalOccurrenceCount)}`,
   );
 
@@ -328,7 +363,7 @@ export function buildExceptionSpikeDetail(data: {
     mdText`- Exception: \`${data.label}\``,
   ];
 
-  if (data.message) {
+  if (isMessageLineNeeded(data)) {
     lines.push(mdText`- Message: ${data.message}`);
   }
 
@@ -340,7 +375,7 @@ export function buildExceptionSpikeDetail(data: {
     mdText`- Occurrences in the last ${data.recentWindowHours}h: ${formatCount(data.recentOccurrenceCount)}`,
     mdText`- Baseline: ${data.baselineHourlyAverage.toFixed(2)}/hour over the prior ${data.baselineWindowHours}h (${formatCount(data.priorWindowCount)} total)`,
     mdText`- Spike multiplier: ${data.multiplier.toFixed(1)}x`,
-    mdText`- Exception first seen: ${data.firstSeenAt || "unknown"} (lifetime occurrences: ${formatCount(data.totalOccurrenceCount)})`,
+    mdText`- Exception first seen: ${formatFirstSeen(data.firstSeenAt)} (lifetime occurrences: ${formatCount(data.totalOccurrenceCount)})`,
   );
 
   lines.push(...describeOwnCode(data));
@@ -705,15 +740,19 @@ function exceptionsNoun(count: number): string {
   return count === 1 ? "exception" : "exceptions";
 }
 
-// The insight's title: what was found, in a sentence.
+/*
+ * The insight's title: what was found, in a sentence - the service named
+ * "in" it, as every exception finding names it ("... in checkout"), which
+ * also keeps a lower-case service name off the title's first letter.
+ */
 export function getExceptionStackTraceTitle(data: {
   evidence: ExceptionStackTraceInsightEvidence;
   serviceName: string;
 }): string {
-  const service: string = data.serviceName || "A service";
+  const service: string = data.serviceName || "a service";
 
   if (isEveryException(data.evidence)) {
-    return `${service}'s exceptions have no stack trace`;
+    return `Exceptions in ${service} have no stack trace`;
   }
 
   return data.evidence.exceptionCount === 1
@@ -758,7 +797,7 @@ export function describeExceptionStackTraceProblem(data: {
   return [
     opening,
     `${together} happened ${timesSinceFirstSeen(evidence)}.`,
-    `Without one, nobody can tell which of its code raised ${isOne ? "it" : "them"}.`,
+    `Without one, nobody can tell where in its code ${isOne ? "it was" : "they were"} raised.`,
     loudest ? `The loudest: ${loudest}.` : "",
   ]
     .filter((sentence: string): boolean => {
@@ -778,16 +817,20 @@ export function buildExceptionStackTraceDetail(data: {
   evidence: ExceptionStackTraceInsightEvidence;
 }): MarkdownText {
   const evidence: ExceptionStackTraceInsightEvidence = data.evidence;
+  const isOne: boolean = evidence.exceptionCount === 1;
   const lines: Array<MarkdownText> = [
     mdText`**Missing stack traces in ${data.serviceName}**`,
     FeedMarkdown.empty(),
-    mdText`- Seen in the last day: ${formatCount(evidence.exceptionCount)} ${exceptionsNoun(evidence.exceptionCount)} without a stack trace, ${timesSinceFirstSeen(evidence)}`,
+    mdText`- Seen in the last day: ${formatCount(evidence.exceptionCount)} ${exceptionsNoun(evidence.exceptionCount)} with no stack trace`,
+    isOne
+      ? mdText`- It has happened ${timesSinceFirstSeen(evidence)}`
+      : mdText`- Together they have happened ${timesSinceFirstSeen(evidence)}`,
     isEveryException(evidence)
       ? mdText`- None of its exceptions seen that day carried a stack trace`
-      : mdText`- ${formatCount(evidence.withStackTraceCount)} of its other exceptions seen that day carried one`,
-    evidence.exceptionCount === 1
-      ? mdText`- Without a stack trace, no frame says which of its code raised it`
-      : mdText`- Without a stack trace, no frame says which of its code raised them`,
+      : mdText`- ${formatCount(evidence.withStackTraceCount)} of its other exceptions seen that day carried a stack trace`,
+    isOne
+      ? mdText`- Without a stack trace, nothing shows where in its code it was raised`
+      : mdText`- Without a stack trace, nothing shows where in its code they were raised`,
   ];
 
   if (evidence.exceptions.length > 0) {
@@ -811,12 +854,12 @@ export function buildExceptionStackTraceDetail(data: {
 
 /*
  * The request's first line: what to do, and where - the task's title in
- * Code.
+ * Code, the service named "in" it as the finding names it.
  */
 export function getExceptionStackTraceRequestTitle(data: {
   serviceName: string;
 }): string {
-  return `Record a stack trace with ${data.serviceName || "this service"}'s exceptions`;
+  return `Record a stack trace with each exception in ${data.serviceName || "this service"}`;
 }
 
 // What the AI is asked to do - and what it must not.

@@ -148,7 +148,7 @@ describe("ExceptionMissingStackTraceDetector", () => {
     expect(candidate.fingerprint).toBe(
       getExceptionStackTraceFingerprint(checkout.toString()),
     );
-    expect(candidate.title).toBe("checkout's exceptions have no stack trace");
+    expect(candidate.title).toBe("Exceptions in checkout have no stack trace");
     expect(candidate.severity).toBe(AIInsightSeverity.Medium);
     expect(candidate.serviceName).toBe("checkout");
     expect(candidate.telemetryServiceId?.toString()).toBe(checkout.toString());
@@ -214,7 +214,7 @@ describe("ExceptionMissingStackTraceDetector", () => {
       14,
     );
     expect(candidate.detailMarkdown).toContain(
-      "- 14 of its other exceptions seen that day carried one",
+      "- 14 of its other exceptions seen that day carried a stack trace",
     );
   });
 

@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "कोड के बाहर का कारण मिला",
   "Found a fault in the code": "कोड में खामी मिली",
   "Found an expected error: a check doing its job": "अपेक्षित त्रुटि मिली: अपना काम कर रही जाँच",
-  "Found an expected error: invalid input": "अपेक्षित त्रुटि मिली: अमान्य इनपुट"
+  "Found an expected error: invalid input": "अपेक्षित त्रुटि मिली: अमान्य इनपुट",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "'नए और बढ़ते अपवाद खोजें और ठीक करें' बंद है: नए और बढ़ते अपवाद AI Insights और उसकी सेटिंग्स पर छोड़े जाते हैं, और OneUptime गायब स्टैक ट्रेस नहीं खोजता। इसे AI सेटिंग्स में चालू करें।"
 }

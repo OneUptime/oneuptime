@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "Found a cause outside the code",
   "Found a fault in the code": "Found a fault in the code",
   "Found an expected error: a check doing its job": "Found an expected error: a check doing its job",
-  "Found an expected error: invalid input": "Found an expected error: invalid input"
+  "Found an expected error: invalid input": "Found an expected error: invalid input",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings."
 }

@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "Encontrou uma causa fora do código",
   "Found a fault in the code": "Encontrou uma falha no código",
   "Found an expected error: a check doing its job": "Encontrou um erro esperado: uma verificação fazendo seu trabalho",
-  "Found an expected error: invalid input": "Encontrou um erro esperado: entrada inválida"
+  "Found an expected error: invalid input": "Encontrou um erro esperado: entrada inválida",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "\"Encontrar e corrigir exceções novas ou em alta\" está desativado: as exceções novas ou em alta ficam a cargo do AI Insights e das configurações dele, e o OneUptime não procura stack traces ausentes. Ative-o nas configurações de IA."
 }

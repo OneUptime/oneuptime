@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "Найдена причина вне кода",
   "Found a fault in the code": "Найдена ошибка в коде",
   "Found an expected error: a check doing its job": "Найдена ожидаемая ошибка: проверка, которая делает свою работу",
-  "Found an expected error: invalid input": "Найдена ожидаемая ошибка: неверный ввод"
+  "Found an expected error: invalid input": "Найдена ожидаемая ошибка: неверный ввод",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "«Находить и исправлять новые и растущие исключения» выключено: новые и растущие исключения остаются за AI Insights и его настройками, а отсутствующие трассировки стека OneUptime не ищет. Включите это в настройках ИИ."
 }

@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "發現程式碼之外的原因",
   "Found a fault in the code": "發現程式碼缺陷",
   "Found an expected error: a check doing its job": "發現預期錯誤：檢查正在正常運作",
-  "Found an expected error: invalid input": "發現預期錯誤：無效的輸入"
+  "Found an expected error: invalid input": "發現預期錯誤：無效的輸入",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "「尋找並修正新出現和激增的例外」已關閉：新出現和激增的例外交由 AI Insights 及其設定處理，OneUptime 不會尋找缺少堆疊追蹤的例外。請在 AI 設定中開啟。"
 }

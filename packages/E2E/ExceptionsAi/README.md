@@ -11,7 +11,7 @@ production components with esbuild, replaces only the `API` / `ModelAPI` /
 Behind the data boundary, `Fixture/ExceptionFindings.js` answers the pages'
 reads the way the server does: OneUptime has found three problems in the
 project's exceptions - a new TypeError in checkout raised in its own code
-(no fix yet), a spike of PaymentDeclinedError in payments (a pull request
+(no fix yet), a spike of ValidationError in payments (a pull request
 OneUptime opened on its own, to handle that expected error better) and
 edge's exceptions, which carry no stack trace. Fix with AI is offered by
 Common's `getTelemetryAiFixOffer`, with the pull request it would be, as

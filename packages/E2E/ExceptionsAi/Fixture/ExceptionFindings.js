@@ -26,7 +26,10 @@
  *                running: a fix is already on its way
  *   ?verdict=    fault (default) | expected - the new exception's verdict:
  *                a fix, or better handling of an expected error
- *   ?lane=       on (default) | off - "Find and fix new and rising exceptions"
+ *   ?lane=       on (default) | off - "Find and fix new and rising exceptions";
+ *                off, the project's findings are AI Insights' new and rising
+ *                exceptions only, as in a project made before the switch:
+ *                nothing looks for missing stack traces then
  *   ?ai=         on (default) | off - Enable AI
  *   ?fail=       fix - the fix route refuses
  */
@@ -73,7 +76,7 @@ export const SERVICE_IDS = {
 
 export const EXCEPTION_IDS = {
   coupon: "52400000-0000-4000-8000-0000000000d1",
-  declined: "52400000-0000-4000-8000-0000000000d2",
+  invalidCard: "52400000-0000-4000-8000-0000000000d2",
   timeout: "52400000-0000-4000-8000-0000000000d3",
   upstream: "52400000-0000-4000-8000-0000000000d4",
 };
@@ -128,7 +131,7 @@ export function saveProjectSwitches(data) {
 
 const COUPON_LABEL =
   "TypeError: Cannot read properties of undefined (reading 'id')";
-const DECLINED_LABEL = "PaymentDeclinedError: card was declined";
+const INVALID_CARD_LABEL = "ValidationError: card number is not valid";
 
 // Where the new exception was raised: two frames of the application's own code.
 const COUPON_FRAMES = [
@@ -161,8 +164,8 @@ function newExceptionEvidence(now) {
 function spikeEvidence(now) {
   return {
     exception: {
-      exceptionType: "PaymentDeclinedError",
-      exceptionMessage: "card was declined",
+      exceptionType: "ValidationError",
+      exceptionMessage: "card number is not valid",
       recentOccurrenceCount: 240,
       baselineHourlyAverage: 20,
       spikeMultiplier: 12,
@@ -226,8 +229,8 @@ function newExceptionDetail(now) {
 
 function spikeDetail(now) {
   return buildExceptionSpikeDetail({
-    label: DECLINED_LABEL,
-    message: "card was declined",
+    label: INVALID_CARD_LABEL,
+    message: "card number is not valid",
     serviceName: "payments",
     isDormantAwakening: false,
     recentWindowHours: 1,
@@ -244,7 +247,7 @@ function spikeDetail(now) {
 }
 
 export const NEW_EXCEPTION_TITLE = `New exception: ${COUPON_LABEL} in checkout`;
-export const SPIKE_TITLE = `Exception spike: ${DECLINED_LABEL} at 12.0x normal rate in payments`;
+export const SPIKE_TITLE = `Exception spike: ${INVALID_CARD_LABEL} at 12.0x normal rate in payments`;
 
 export function stackTraceTitle(now) {
   return getExceptionStackTraceTitle({
@@ -258,7 +261,7 @@ export function aiInsights(now) {
     return [];
   }
 
-  return [
+  const rows = [
     Object.assign(new AIInsight(), {
       _id: AI_INSIGHT_IDS.newException,
       title: NEW_EXCEPTION_TITLE,
@@ -283,7 +286,7 @@ export function aiInsights(now) {
       status: AIInsightStatus.FixOpened,
       serviceName: "payments",
       telemetryServiceId: new ObjectID(SERVICE_IDS.payments),
-      telemetryExceptionId: new ObjectID(EXCEPTION_IDS.declined),
+      telemetryExceptionId: new ObjectID(EXCEPTION_IDS.invalidCard),
       classification: "user-error",
       occurrenceCount: 3,
       firstSeenAt: new Date(now - 2 * HOUR),
@@ -310,6 +313,13 @@ export function aiInsights(now) {
       }).toString(),
     }),
   ];
+
+  // Off: AI Insights still files new and rising exceptions, nothing else.
+  return isLaneOn
+    ? rows
+    : rows.filter((row) => {
+        return row.insightType !== AIInsightType.ExceptionMissingStackTrace;
+      });
 }
 
 // The rows a list or a count asks for: its status and kind, when it names them.

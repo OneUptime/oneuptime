@@ -98,6 +98,14 @@ export interface TelemetryAiLaneCopy {
    */
   insightsOffEmptyTitle: string;
   insightsOffEmptyDescription: string;
+  /*
+   * The inbox's opening words while the switch is off, for a lane whose
+   * kinds are still found then (Exceptions: new and rising exceptions are
+   * AI Insights' while it is off), so its findings show under words that
+   * say the section is off. Optional: a lane without them keeps its
+   * opening words.
+   */
+  insightsOffIntro?: string | undefined;
 
   // Logs.
   logsIntro: string;
@@ -320,6 +328,14 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     insightsOffEmptyDescription: translationKey(
       "Turn on 'Find and fix new and rising exceptions' in AI Settings, and OneUptime looks through your exceptions every 15 minutes.",
     ),
+    /*
+     * Every project made before the switch has it off, and AI Insights
+     * still files its new and rising exceptions here: the inbox says why
+     * they are there, and that nothing looks for missing stack traces.
+     */
+    insightsOffIntro: translationKey(
+      "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.",
+    ),
 
     logsIntro: translationKey(
       "Everything OneUptime AI did with the exceptions it found, newest first: each investigation, and each pull request it opened or was asked to open.",
@@ -454,7 +470,9 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
 
 /*
  * The same, while the lane's switch is off: its empty state says that
- * nothing is looked for, and the way to turn it on (its AI Settings).
+ * nothing is looked for, and the way to turn it on (its AI Settings) - and
+ * a lane whose kinds are still found while it is off says so above them
+ * (insightsOffIntro).
  */
 export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
   Record<TelemetryAiLane, TelemetryAiInsightsScope>
@@ -476,6 +494,9 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
   },
   [TelemetryAiLane.Exception]: {
     ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Exception],
+    intro:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception].insightsOffIntro ||
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception].insightsIntro,
     emptyTitle:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception].insightsOffEmptyTitle,
     emptyDescription:

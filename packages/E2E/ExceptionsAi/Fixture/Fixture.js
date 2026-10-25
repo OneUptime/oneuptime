@@ -9,7 +9,7 @@
  * ExceptionFindings.js, which answers the pages' reads the way the server
  * does: OneUptime has found three problems in the project's exceptions - a
  * new TypeError in checkout raised in its own code (no fix yet), a spike of
- * PaymentDeclinedError in payments (a pull request OneUptime opened on its
+ * ValidationError in payments (a pull request OneUptime opened on its
  * own, to handle that expected error better) and edge's exceptions, which
  * carry no stack trace.
  *

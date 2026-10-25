@@ -479,6 +479,44 @@ describe("Exceptions' AI section", () => {
     );
   });
 
+  /*
+   * Every project made before the switch has it off, and AI Insights still
+   * files its new and rising exceptions in this inbox: above them, the
+   * words say the section is off, whose they are, that nothing looks for
+   * missing stack traces, and where to turn it on - not that OneUptime
+   * looks for missing stack traces every 15 minutes.
+   */
+  test("while its switch is off, the findings still listed are said to be AI Insights', under the switch's name", () => {
+    const off: ReturnType<typeof getTelemetryAiInsightsScope> =
+      getTelemetryAiInsightsScope(TelemetryAiLane.Exception, true);
+
+    expect(copy.insightsOffIntro).toBeDefined();
+    expect(off.intro).toBe(copy.insightsOffIntro);
+    expect(off.intro).toContain(
+      `'${TELEMETRY_AI_SWITCHES[TelemetryAiLane.Exception][0]!.title}' is off`,
+    );
+    expect(off.intro).toContain("AI Insights");
+    expect(off.intro).toContain("does not look for missing stack traces");
+    expect(off.intro).toContain("AI Settings");
+    expect(off.intro).not.toContain("Every 15 minutes");
+
+    // On, the lane's own opening words.
+    expect(TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Exception].intro).toBe(
+      copy.insightsIntro,
+    );
+  });
+
+  // The lanes whose kinds nobody finds while they are off keep their words.
+  test.each([TelemetryAiLane.Profile, TelemetryAiLane.Trace])(
+    "%s keeps its opening words while its switch is off",
+    (lane: TelemetryAiLane) => {
+      expect(TELEMETRY_AI_LANE_COPY[lane].insightsOffIntro).toBeUndefined();
+      expect(TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[lane].intro).toBe(
+        TELEMETRY_AI_INSIGHTS_SCOPES[lane].intro,
+      );
+    },
+  );
+
   test("its summaries promise a pull request for each exception it can fix, not for each exception", () => {
     for (const line of [
       copy.advancedDefaultsSummary,

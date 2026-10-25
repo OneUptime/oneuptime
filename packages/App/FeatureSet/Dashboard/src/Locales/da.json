@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "Fandt en årsag uden for koden",
   "Found a fault in the code": "Fandt en fejl i koden",
   "Found an expected error: a check doing its job": "Fandt en forventet fejl: en kontrol, der gør sit arbejde",
-  "Found an expected error: invalid input": "Fandt en forventet fejl: ugyldigt input"
+  "Found an expected error: invalid input": "Fandt en forventet fejl: ugyldigt input",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "\"Find og ret nye og stigende undtagelser\" er slået fra: nye og stigende undtagelser overlades til AI Insights og dens indstillinger, og OneUptime leder ikke efter manglende stack traces. Slå den til i AI-indstillingerne."
 }

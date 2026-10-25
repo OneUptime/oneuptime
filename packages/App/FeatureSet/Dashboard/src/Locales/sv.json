@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "Hittade en orsak utanför koden",
   "Found a fault in the code": "Hittade ett fel i koden",
   "Found an expected error: a check doing its job": "Hittade ett förväntat fel: en kontroll som gör sitt jobb",
-  "Found an expected error: invalid input": "Hittade ett förväntat fel: ogiltig indata"
+  "Found an expected error: invalid input": "Hittade ett förväntat fel: ogiltig indata",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "”Hitta och åtgärda nya och ökande undantag” är avstängd: nya och ökande undantag lämnas till AI Insights och dess inställningar, och OneUptime letar inte efter saknade stack traces. Slå på den i AI-inställningarna."
 }

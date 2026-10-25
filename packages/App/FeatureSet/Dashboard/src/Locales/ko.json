@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "코드 밖의 원인을 찾았습니다",
   "Found a fault in the code": "코드의 결함을 찾았습니다",
   "Found an expected error: a check doing its job": "예상된 오류를 찾았습니다: 제 역할을 하는 검사",
-  "Found an expected error: invalid input": "예상된 오류를 찾았습니다: 잘못된 입력"
+  "Found an expected error: invalid input": "예상된 오류를 찾았습니다: 잘못된 입력",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "'새로 생기거나 늘어나는 예외 찾아 수정'이 꺼져 있습니다. 새로 생기거나 늘어나는 예외는 AI Insights와 그 설정에 맡겨지고, OneUptime은 스택 추적이 없는 예외를 찾지 않습니다. AI 설정에서 켜세요."
 }

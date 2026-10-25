@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "علتی بیرون از کد پیدا شد",
   "Found a fault in the code": "ایرادی در کد پیدا شد",
   "Found an expected error: a check doing its job": "یک خطای مورد انتظار پیدا شد: بررسی‌ای که کارش را درست انجام می‌دهد",
-  "Found an expected error: invalid input": "یک خطای مورد انتظار پیدا شد: ورودی نامعتبر"
+  "Found an expected error: invalid input": "یک خطای مورد انتظار پیدا شد: ورودی نامعتبر",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "«یافتن و اصلاح استثناهای تازه و رو به افزایش» خاموش است: استثناهای تازه و رو به افزایش به AI Insights و تنظیمات آن سپرده می‌شوند و OneUptime به دنبال ردیابی‌های پشتهٔ گم‌شده نمی‌گردد. آن را در تنظیمات هوش مصنوعی روشن کنید."
 }

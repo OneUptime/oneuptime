@@ -1127,7 +1127,7 @@ describe("InsightTriageRunner.executeTriage - Exceptions' AI section", () => {
     const { request } = await requestFor({
       insight: makeInsight({
         insightType: AIInsightType.ExceptionMissingStackTrace,
-        title: "checkout's exceptions have no stack trace",
+        title: "Exceptions in checkout have no stack trace",
         evidence: {
           exceptionStackTrace: {
             serviceId: "5240ffff-0000-4000-8000-000000000002",

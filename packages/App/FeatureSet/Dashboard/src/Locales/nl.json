@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "Oorzaak buiten de code gevonden",
   "Found a fault in the code": "Fout in de code gevonden",
   "Found an expected error: a check doing its job": "Verwachte fout gevonden: een controle die zijn werk doet",
-  "Found an expected error: invalid input": "Verwachte fout gevonden: ongeldige invoer"
+  "Found an expected error: invalid input": "Verwachte fout gevonden: ongeldige invoer",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "'Nieuwe en stijgende uitzonderingen vinden en oplossen' staat uit: nieuwe en stijgende uitzonderingen worden overgelaten aan AI Insights en de instellingen daarvan, en OneUptime zoekt niet naar ontbrekende stack traces. Zet het aan in de AI-instellingen."
 }

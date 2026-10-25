@@ -642,7 +642,7 @@ describe("AI insight detail — Create Monitor on Traces' findings", () => {
 describe("AI insight detail — Create Monitor on Exceptions' findings", () => {
   const MISSING_STACK_TRACES: AIInsight = buildInsight({
     insightType: AIInsightType.ExceptionMissingStackTrace,
-    title: "checkout's exceptions have no stack trace",
+    title: "Exceptions in checkout have no stack trace",
     serviceName: "checkout",
     telemetryServiceId: SERVICE_ID,
     evidence: {

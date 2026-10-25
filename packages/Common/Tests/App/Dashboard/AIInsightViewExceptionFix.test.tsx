@@ -145,7 +145,7 @@ function buildInsight(): AIInsight {
   insight.lastSeenAt = new Date("2026-10-24T09:00:00.000Z");
 
   if (finding.insightType === AIInsightType.ExceptionMissingStackTrace) {
-    insight.title = "checkout's exceptions have no stack trace";
+    insight.title = "Exceptions in checkout have no stack trace";
     insight.detailMarkdown = "**Missing stack traces in checkout**";
     insight.evidence = {
       exceptionStackTrace: {

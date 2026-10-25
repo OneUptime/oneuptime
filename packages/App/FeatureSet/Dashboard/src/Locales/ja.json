@@ -34412,5 +34412,6 @@
   "Found a cause outside the code": "コード以外の原因が見つかりました",
   "Found a fault in the code": "コードの不具合が見つかりました",
   "Found an expected error: a check doing its job": "想定内のエラーが見つかりました: 正しく機能しているチェック",
-  "Found an expected error: invalid input": "想定内のエラーが見つかりました: 無効な入力"
+  "Found an expected error: invalid input": "想定内のエラーが見つかりました: 無効な入力",
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.": "「新しい例外や急増する例外を見つけて修正する」はオフです。新しい例外や急増する例外は AI インサイトとその設定に任され、OneUptime はスタックトレースのない例外を探しません。AI 設定でオンにしてください。"
 }

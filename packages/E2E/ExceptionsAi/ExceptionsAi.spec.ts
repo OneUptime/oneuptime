@@ -9,7 +9,7 @@ import path from "path";
  * production components; only the data boundary is synthetic. OneUptime has
  * found three problems in the project's exceptions: a new TypeError in
  * checkout raised in its own code (no fix yet), a spike of
- * PaymentDeclinedError in payments (a pull request OneUptime opened on its
+ * ValidationError in payments (a pull request OneUptime opened on its
  * own, to handle that expected error better) and edge's exceptions, which
  * carry no stack trace.
  *
@@ -39,8 +39,8 @@ const ONE_LINE_BUTTON_HEIGHT: number = 40;
 const NEW_TITLE: string =
   "New exception: TypeError: Cannot read properties of undefined (reading 'id') in checkout";
 const SPIKE_TITLE: string =
-  "Exception spike: PaymentDeclinedError: card was declined at 12.0x normal rate in payments";
-const STACK_TRACE_TITLE: string = "edge's exceptions have no stack trace";
+  "Exception spike: ValidationError: card number is not valid at 12.0x normal rate in payments";
+const STACK_TRACE_TITLE: string = "Exceptions in edge have no stack trace";
 
 const FIX_LEAD: string =
   "OneUptime AI opens a pull request that fixes this exception, for you to review.";
@@ -48,6 +48,12 @@ const HANDLING_LEAD: string =
   "OneUptime AI opens a pull request that improves how your code handles this expected error, for you to review.";
 const STACK_TRACE_LEAD: string =
   "OneUptime AI opens a pull request that makes this service record stack traces, for you to review.";
+
+// The inbox's opening words, with the switch on and off.
+const INSIGHTS_INTRO: string =
+  "Every 15 minutes OneUptime looks for new exceptions, exceptions that suddenly happen far more often, and exceptions with no stack trace, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.";
+const INSIGHTS_OFF_INTRO: string =
+  "'Find and fix new and rising exceptions' is off: new and rising exceptions are left to AI Insights and its settings, and OneUptime does not look for missing stack traces. Turn it on in AI Settings.";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -558,6 +564,45 @@ test.describe("Exceptions → AI → Insights", () => {
     await expect(page).toHaveURL(new RegExp(`/exceptions/ai/settings`));
   });
 
+  /*
+   * Every project made before the switch has it off, and AI Insights still
+   * files its new and rising exceptions there: they are listed, under words
+   * that say the section is off and why they are there.
+   */
+  test("while the switch is off, AI Insights' new and rising exceptions are listed under words that say it is off", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(
+      page,
+      `${AI}/insights?lane=off`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        await expect(page.getByText(INSIGHTS_OFF_INTRO)).toBeVisible({
+          timeout: 60000,
+        });
+        await expect(page.getByText(INSIGHTS_INTRO)).toHaveCount(0);
+        await expect(page.getByText(NEW_TITLE)).toBeVisible();
+        await expect(page.getByText(SPIKE_TITLE)).toBeVisible();
+        // Nothing looks for missing stack traces while it is off.
+        await expect(page.getByText(STACK_TRACE_TITLE)).toHaveCount(0);
+
+        if (isPhone(testInfo)) {
+          await expectNoSidewaysScroll(page);
+        }
+
+        await screenshot(page, testInfo, `insights-lane-off-${theme}`);
+      },
+    );
+
+    // On, the section's own opening words.
+    await page.goto(`${AI}/insights`);
+    await expect(page.getByText(INSIGHTS_INTRO)).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByText(INSIGHTS_OFF_INTRO)).toHaveCount(0);
+  });
+
   test("none found while the switch is off: it says finding and fixing is off, and the way to turn it on", async ({
     page,
   }: {
@@ -623,6 +668,16 @@ test.describe("Exceptions → AI → a finding", () => {
         await expect(
           page.getByText("src/checkout/coupon.ts:42").first(),
         ).toBeVisible();
+        // When it was first seen, as a person reads a date (in UTC, said so).
+        await expect(
+          page.getByText(
+            "First seen: Oct 24, 2026, 09:00 UTC (within the last 24h)",
+          ),
+        ).toBeVisible();
+        // The label says the whole message: it is not said a second time.
+        await expect(
+          page.locator("li").filter({ hasText: "Message:" }),
+        ).toHaveCount(0);
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);
@@ -716,6 +771,15 @@ test.describe("Exceptions → AI → a finding", () => {
         await expect(
           page.getByText("Missing stack traces in edge", { exact: true }),
         ).toBeVisible();
+        // Each fact on a line of its own, in plain words.
+        for (const line of [
+          "Seen in the last day: 2 exceptions with no stack trace",
+          "Together they have happened 2,052 times since they were first seen",
+          "None of its exceptions seen that day carried a stack trace",
+          "Without a stack trace, nothing shows where in its code they were raised",
+        ]) {
+          await expect(page.getByText(line, { exact: true })).toBeVisible();
+        }
         // Nothing a monitor could count: no button at all.
         await expect(
           page.getByRole("button", { name: "Create Monitor" }),
