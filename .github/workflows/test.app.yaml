@@ -170,7 +170,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in ten groups
+  # own fixture server on its own port - so they run here in eleven groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite fill a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
@@ -493,7 +493,9 @@ jobs:
           # offer at a flows page's foot the same day (2.2 minutes for its 40
           # tests locally, from 1.3): about 19.5 for the nine. It took 22.4
           # minutes on master's run of 2026-10-24 10:57, so Traces AI went to
-          # group 1 instead.
+          # group 1 instead. Security Operations moved on to a group of its
+          # own (11) on 2026-10-25, when this group took 26.1 and 26.7 minutes
+          # on master's runs of the day before: about 14 for the eight.
           - group: 8
             browsers: chromium
             suites: >-
@@ -502,7 +504,6 @@ jobs:
               test-cloud-connect-ui
               test-host-collectors-ui
               test-vmware-host-page-ui
-              test-security-operations-ui
               test-public-addresses-ui
               test-security-events-empty-states-ui
               test-meraki-traffic-ui
@@ -567,6 +568,19 @@ jobs:
               test-navigation-search-ui
               test-owner-filters-ui
               test-bulk-actions-ui
+          # Security Operations on its own, Chromium only, from 2026-10-25. In
+          # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
+          # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
+          # runs of the day before, against the 28 minutes the run step has.
+          # The same day #5243 gave a security case its own pages and grew the
+          # suite to 115 tests (about 13 minutes locally), with the case
+          # actions, the Security Events pass and the SIEM and SOAR work still
+          # to add theirs: alone, about 15 minutes with the setup, it has room
+          # for them.
+          - group: 11
+            browsers: chromium
+            suites: >-
+              test-security-operations-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
