@@ -324,7 +324,11 @@ function uptimeOutcome(): ResourceCommandJobOutcome {
 }
 
 describe("ChatInfrastructureAccess.getAiResourceType", () => {
-  test.each(ALL_AI_RESOURCE_TYPES.map((type: AiResourceType) => [type]))(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.map((type: AiResourceType) => {
+      return [type];
+    }),
+  )(
     "a %s page is reached through that resource's own AI agent",
     (type: AiResourceType) => {
       expect(
@@ -398,14 +402,21 @@ describe("ChatInfrastructureAccess.getStatusesForPage", () => {
     expect(args.projectId).toBe(PROJECT_ID);
     expect(args.resourceType).toBe(AiResourceType.Host);
     expect(args.resourceId.toString()).toBe(HOST_ID);
-    expect(statuses.resources.map((s: ResourceAiAccessStatus) => s.resourceId))
-      .toEqual([HOST_ID]);
+    expect(
+      statuses.resources.map((s: ResourceAiAccessStatus) => {
+        return s.resourceId;
+      }),
+    ).toEqual([HOST_ID]);
     expect(statuses.clusters).toEqual([]);
     expect(lookups.clusterStatus).not.toHaveBeenCalled();
     expect(lookups.resourceSubject).not.toHaveBeenCalled();
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES.map((type: AiResourceType) => [type]))(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.map((type: AiResourceType) => {
+      return [type];
+    }),
+  )(
     "a %s page asks for that resource's status by its own type",
     async (type: AiResourceType) => {
       const lookups: StatusLookups = installStatusLookups({
@@ -1138,7 +1149,8 @@ describe("ChatInfrastructureAccess.buildForPage", () => {
         jobId: ObjectID.generate().toString(),
         succeeded: true,
         exitCode: 0,
-        output: "NAME        READY   STATUS    RESTARTS   AGE\napi-7d9c   1/1     Running   0          3d",
+        output:
+          "NAME        READY   STATUS    RESTARTS   AGE\napi-7d9c   1/1     Running   0          3d",
         displayCommand: "kubectl get pods -A",
         executed: true,
         runState: KubectlRunState.Ran,

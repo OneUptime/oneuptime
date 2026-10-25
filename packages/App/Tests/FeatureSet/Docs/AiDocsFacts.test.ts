@@ -431,15 +431,11 @@ describe("Ask AI", () => {
     );
 
     // The resource or cluster on the page, or what an incident or alert links.
-    expect(access).toContain(
-      "ResourceAiAccessService.getStatusForResource({",
-    );
+    expect(access).toContain("ResourceAiAccessService.getStatusForResource({");
     expect(access).toContain(
       "KubernetesClusterAiAccessService.getStatusForCluster({",
     );
-    expect(access).toContain(
-      "ResourceAiAccessService.getStatusesForSubject({",
-    );
+    expect(access).toContain("ResourceAiAccessService.getStatusesForSubject({");
     expect(section).toContain("or a Kubernetes cluster)");
     expect(section).toContain(
       "Opened on an incident or an alert, it reaches the resources linked to it.",

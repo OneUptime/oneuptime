@@ -928,11 +928,9 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       permissionMode: AIChatPermissionMode.ReadOnly,
     });
     const lines: Array<string> = prompt.split("\n");
-    const hostMetricsLine: number = lines.findIndex(
-      (line: string): boolean => {
-        return line.startsWith("- Host metrics such as system.cpu.utilization");
-      },
-    );
+    const hostMetricsLine: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("- Host metrics such as system.cpu.utilization");
+    });
 
     expect(lines[hostMetricsLine + 1]).toBe(INFRASTRUCTURE_COMMANDS_GUIDANCE);
     expect(prompt.indexOf(INFRASTRUCTURE_COMMANDS_GUIDANCE)).toBeGreaterThan(

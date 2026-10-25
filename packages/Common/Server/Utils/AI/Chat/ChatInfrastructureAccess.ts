@@ -304,14 +304,12 @@ export default class ChatInfrastructureAccess {
     const outputPager: ToolOutputPager = new ToolOutputPager();
     const extraTools: Array<ChatExtraTool> = [];
 
-    const kubectlTools: Array<ChatExtraTool> = new KubectlInvestigationToolkit(
-      {
-        projectId: data.projectId,
-        aiRunId: data.aiRunId,
-        clusters,
-        outputPager,
-      },
-    ).buildTools();
+    const kubectlTools: Array<ChatExtraTool> = new KubectlInvestigationToolkit({
+      projectId: data.projectId,
+      aiRunId: data.aiRunId,
+      clusters,
+      outputPager,
+    }).buildTools();
     extraTools.push(...kubectlTools);
 
     let infrastructureTools: Array<ChatExtraTool> = [];

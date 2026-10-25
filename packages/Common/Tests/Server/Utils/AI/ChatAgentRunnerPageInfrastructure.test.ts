@@ -471,7 +471,9 @@ describe("Ask AI on a host's page runs commands through the Host AI agent (issue
     const spies: Spies = installSpies();
 
     await ChatAgentRunner.runTurn(
-      buildRequest({ pageContext: { type: AIChatPageContextType.LogsExplorer } }),
+      buildRequest({
+        pageContext: { type: AIChatPageContextType.LogsExplorer },
+      }),
     );
 
     expect(spies.resourceStatus).not.toHaveBeenCalled();
@@ -590,7 +592,9 @@ describe("a turn's command tools stay in that turn", () => {
     );
 
     await ChatAgentRunner.runTurn(
-      buildRequest({ pageContext: { type: AIChatPageContextType.LogsExplorer } }),
+      buildRequest({
+        pageContext: { type: AIChatPageContextType.LogsExplorer },
+      }),
     );
 
     expect(toolsOffered(llmRequest(spies, 1))).not.toContain(
@@ -657,7 +661,10 @@ describe("a paused Ask AI turn gets its command tools back when it resumes", () 
 
     const pausedState: AIRunPausedState = {
       messages: [
-        { role: "system", content: "You are OneUptime's observability copilot." },
+        {
+          role: "system",
+          content: "You are OneUptime's observability copilot.",
+        },
         { role: "user", content: QUESTION },
         { role: "assistant", content: "", toolCalls: [pendingCall] },
       ],

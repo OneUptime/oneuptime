@@ -2134,7 +2134,9 @@ describePostgres(
           clusterPage(otherProjectClusterId),
         );
 
-        expect(toolNamed(infrastructure, RUN_KUBECTL_TOOL_NAME)).toBeUndefined();
+        expect(
+          toolNamed(infrastructure, RUN_KUBECTL_TOOL_NAME),
+        ).toBeUndefined();
         expect(infrastructure?.instructions || "").not.toContain(
           otherProjectClusterId.toString(),
         );
@@ -2177,7 +2179,10 @@ describePostgres(
 
         for (const clusterId of [productionClusterId, stagingClusterId]) {
           expect(
-            toolNamed(await askOnPage(clusterPage(clusterId)), RUN_KUBECTL_TOOL_NAME),
+            toolNamed(
+              await askOnPage(clusterPage(clusterId)),
+              RUN_KUBECTL_TOOL_NAME,
+            ),
           ).toBeDefined();
         }
 
