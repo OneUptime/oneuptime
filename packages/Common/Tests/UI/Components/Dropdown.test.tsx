@@ -337,6 +337,47 @@ describe("Dropdown picked value", () => {
     expect(label).toHaveAttribute("dir", "auto");
   });
 
+  test("a label of the product's own words is laid out the page's way, a name its own way", () => {
+    /*
+     * "Runner سراسری · متصل" (Persian for "Global Runner · Connected") starts
+     * with a Latin word: read by its own direction it is laid out left to
+     * right on a right-to-left page, its words out of order.
+     */
+    const words: string =
+      "Runner \u{633}\u{631}\u{627}\u{633}\u{631}\u{6CC} · \u{645}\u{62A}\u{635}\u{644}";
+
+    const { unmount } = render(
+      <Dropdown
+        onChange={() => {}}
+        options={[{ value: "", label: words, isInPageDirection: true }]}
+        value={{ value: "", label: words, isInPageDirection: true }}
+      />,
+    );
+
+    const label: HTMLElement = screen.getByTestId("dropdown-value-label");
+
+    expect(label).toHaveTextContent(words);
+    expect(label).not.toHaveAttribute("dir");
+    // Still cut with an ellipsis when it does not fit.
+    expect(label).toHaveClass("truncate");
+
+    unmount();
+
+    // Left out, a picked label keeps reading its own direction.
+    render(
+      <Dropdown
+        onChange={() => {}}
+        options={[{ value: "kds", label: LONG_NAME, isInPageDirection: false }]}
+        value={{ value: "kds", label: LONG_NAME, isInPageDirection: false }}
+      />,
+    );
+
+    expect(screen.getByTestId("dropdown-value-label")).toHaveAttribute(
+      "dir",
+      "auto",
+    );
+  });
+
   test("each picked chip of a multi select truncates its name the same way", () => {
     render(
       <Dropdown

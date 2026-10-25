@@ -47,6 +47,14 @@
  *   - defaultRunner=prod
  *                     prod-eu-runner is the project's default Runner (none
  *                     by default): a new rule starts on it
+ *   - globalRunners=0 the server runs no global Runner (one by default,
+ *                     global-eu, connected, read from the global Runners'
+ *                     own route as the Dashboard reads it); a rule that
+ *                     picks none then reads No Runner;
+ *                     globalRunners=disconnected, one not heard from lately
+ *   - useGlobalRunners=0
+ *                     the project turned global Runners off (on by
+ *                     default): a rule that picks none reads No Runner
  *   - repositories=0  the project has no code repository (two by default,
  *                     checkout and billing, connected through the GitHub
  *                     App)
@@ -75,7 +83,8 @@
  *                     no longer use; none by default
  *   - ruleContext=1   the saved rule "Fix database incidents" carries notes
  *                     for OneUptime AI, its AI context; none by default
- *   - lang=de         the Dashboard's German words
+ *   - lang=de         the Dashboard's German words (fa: Persian, right to
+ *                     left)
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
  * What the page sends is recorded on window.__fixture: `creates` (each
@@ -127,6 +136,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000a1";
 const USER_ID = "30000000-0000-4000-8000-0000000000c1";
@@ -142,6 +152,12 @@ const investigationRuleSet = ["saved", "many"].includes(
 const layout = params.get("layout") === "page" ? "page" : "alone";
 const runnerCount = params.get("runners") === "0" ? 0 : 2;
 const hasDefaultRunner = params.get("defaultRunner") === "prod";
+const globalRunnerSet = ["0", "disconnected"].includes(
+  params.get("globalRunners"),
+)
+  ? params.get("globalRunners")
+  : "connected";
+const usesGlobalRunners = params.get("useGlobalRunners") !== "0";
 const repositorySet = ["0", "denied", "many"].includes(
   params.get("repositories"),
 )
@@ -150,7 +166,9 @@ const repositorySet = ["0", "denied", "many"].includes(
 const hasHiddenRepository = params.get("hiddenRepository") === "1";
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 const providerSet = ["project", "none", "denied"].includes(
   params.get("providers"),
 )
@@ -170,6 +188,8 @@ window.__fixture = {
   creates: [],
   updates: [],
   deletes: [],
+  // How often the page read the global Runners (a rule's Runner picker).
+  globalRunnerReads: 0,
 };
 
 /*
@@ -303,7 +323,7 @@ const project = record(Project, {
   enableAutomaticAlertInvestigation: true,
   enableAutomaticAlertRemediation: true,
   enableAutomaticPostmortemDraft: true,
-  useGlobalRunners: true,
+  useGlobalRunners: usesGlobalRunners,
 });
 
 const INCIDENT_SEVERITIES = [
@@ -415,6 +435,28 @@ const AGENT_RUNNER = record(Runner, {
 
 const RUNNERS =
   runnerCount > 0 ? [...ALL_RUNNERS.slice(0, runnerCount), AGENT_RUNNER] : [];
+
+/*
+ * The global Runners OneUptime runs for every project, as their own route
+ * (/runner/global-runners) lists them: no project owns them. A rule that
+ * picks no Runner shows the Global Runner while there is one.
+ */
+const GLOBAL_RUNNERS =
+  globalRunnerSet === "0"
+    ? []
+    : [
+        record(Runner, {
+          _id: "b0000000-0000-4000-8000-000000000c10",
+          name: "global-eu",
+          isGlobalRunner: true,
+          canRunRunbooks: true,
+          // Heard from a moment ago - or an hour ago, not lately.
+          lastAlive:
+            globalRunnerSet === "disconnected"
+              ? new Date(Date.now() - 60 * 60 * 1000)
+              : new Date(),
+        }),
+      ];
 
 // The project's external MCP servers, which both kinds of rule may name.
 const MCP_SERVER_IDS = {
@@ -797,6 +839,24 @@ function matchesQuery(item, query) {
 
 ModelAPI.getList = async (options) => {
   const name = tableName(options.modelType);
+  const overrideUrl = String(
+    (options.requestOptions &&
+      options.requestOptions.overrideRequestUrl &&
+      options.requestOptions.overrideRequestUrl.toString()) ||
+      "",
+  );
+
+  // The global Runners, from their own route: no project owns them.
+  if (name === "Runner" && overrideUrl.includes("/runner/global-runners")) {
+    window.__fixture.globalRunnerReads++;
+
+    return {
+      data: GLOBAL_RUNNERS,
+      count: GLOBAL_RUNNERS.length,
+      skip: 0,
+      limit: Number(options.limit || 10),
+    };
+  }
 
   // A plan without Code: the repositories are refused (402).
   if (name === "CodeRepository" && repositorySet === "denied") {
@@ -987,12 +1047,14 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: {} },
     de: { translation: DE },
+    fa: { translation: FA },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,
 });
 document.documentElement.lang = language;
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 function Shell() {
   Navigation.setNavigateHook(useNavigate());

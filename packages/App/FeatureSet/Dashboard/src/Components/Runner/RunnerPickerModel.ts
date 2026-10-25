@@ -34,13 +34,22 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * a Bash, SSH or kubectl step, which global Runners never run, or a project
  * that turned them off - with why, so nobody wonders where it went.
  *
- * An auto remediation rule's picker lists the project's own Runners and
- * nothing else: no global Runner (it never runs OneUptime AI's commands),
- * and no "AI agent on the cluster or host" - that agent is not a Runner, and
- * commands on the affected cluster or host go through it whatever the rule
- * picks. A rule that picks none is drawn empty, as "No Runner", and can be
- * cleared back to it. The project's default Runner is listed first, tagged
- * as the default; a new rule's form starts on it.
+ * An AI rule's picker lists the project's own Runners - its default Runner
+ * first, tagged as the default; a new rule's form starts on it - and the
+ * Global Runner, which is what a rule that picks none shows wherever the
+ * project uses global Runners and the server has one: "If there are no
+ * runners, it should use the global runner by default" - the maintainer.
+ * It is the rule's choice of no Runner of its own, stored as none: a global
+ * Runner never runs a shell - one cannot be kept apart from the other
+ * projects on a host every project shares (Common/Types/Runner/
+ * GlobalRunnerWork) - so on it OneUptime AI runs no Bash commands for the
+ * rule, and the line under the picker says so, with where a Runner of the
+ * project's own is picked or added to run them. Commands on the affected
+ * cluster or host go through its AI agent whatever the rule picks: that
+ * agent is not a Runner, and no choice. Where there is no Global Runner to
+ * show - a project that turned them off, or a server with none - a rule
+ * that picks none reads "No Runner", as it always did, and can be cleared
+ * back to it.
  */
 
 /*
@@ -72,11 +81,12 @@ export enum RunnerPickerWork {
   RunbookStep = "runbook-step",
   CodeRepository = "code-repository",
   /*
-   * An auto remediation rule's Runner (AutoRemediationRule.runnerId): the
-   * Runner OneUptime AI runs the rule's Bash commands on. The global Runners
-   * never run them (they run JavaScript steps in a sandbox every project
-   * shares), so the choices are the project's own Runners only, and a rule
-   * may pick none (Common/Types/AutoRemediation/AutoRemediationFix).
+   * An AI rule's Runner (AutoRemediationRule.runnerId): the Runner OneUptime
+   * AI runs the rule's Bash commands on. The global Runners never run them
+   * (they run JavaScript steps in a sandbox every project shares), so a
+   * rule's commands run on one of the project's own Runners only, and a rule
+   * may pick none (Common/Types/AutoRemediation/AutoRemediationFix) - shown
+   * as the Global Runner where there is one, on which it runs no commands.
    */
   AutoRemediation = "auto-remediation",
 }
@@ -232,23 +242,57 @@ export const CODE_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
 );
 
 /*
- * What a rule that picked no Runner shows in its picker: nothing picked,
- * said in two words. Not "Global Runner": a global Runner never runs
- * OneUptime AI's commands. Nor "AI agent on the cluster or host": that agent
- * is not a Runner, and the field's own line says it is used whatever the
- * rule picks.
+ * What a rule that picked no Runner shows in its picker where there is no
+ * Global Runner to show - a project that turned global Runners off, or a
+ * server that runs none: nothing picked, said in two words. Never "AI agent
+ * on the cluster or host": that agent is not a Runner, and the field's own
+ * line says it is used whatever the rule picks.
  */
 export const REMEDIATION_NO_RUNNER_PLACEHOLDER: string =
   translationKey("No Runner");
 
 /*
- * Under a rule's picker that picked none, in a project with no Runner of its
- * own to pick ({{location}}: a link to Runbooks › Runners). With Runners to
- * pick from, nothing is said under it: the placeholder and the field's own
- * line say it.
+ * Under a rule's picker that picked none and reads "No Runner", in a project
+ * with no Runner of its own to pick ({{location}}: a link to Runbooks ›
+ * Runners). With Runners to pick from, nothing is said under it: the
+ * placeholder and the field's own line say it.
  */
 export const REMEDIATION_ADD_RUNNER_TEMPLATE: string = translationKey(
   "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
+);
+
+/*
+ * The Global Runner under its name in a rule's menu: what it is, and what
+ * OneUptime AI does not do on it.
+ */
+export const REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION: string =
+  translationKey(
+    "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.",
+  );
+
+/*
+ * Under a rule's picker on the Global Runner - a rule that picked none - in
+ * a project with Runners of its own: that OneUptime AI's Bash commands do
+ * not run there, why in a few words, and the way to have them run.
+ */
+export const REMEDIATION_GLOBAL_RUNNER_PICK_TEXT: string = translationKey(
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.",
+);
+
+/*
+ * The same, in a project with no Runner of its own ({{location}}: a link to
+ * Runbooks › Runners, where one is added).
+ */
+export const REMEDIATION_GLOBAL_RUNNER_ADD_TEMPLATE: string = translationKey(
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.",
+);
+
+/*
+ * The same, for a reader who may not read the project's Runners: nothing is
+ * said of picking or adding one the project may already have.
+ */
+export const REMEDIATION_GLOBAL_RUNNER_TEXT: string = translationKey(
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.",
 );
 
 /*
@@ -348,8 +392,10 @@ export enum RunnerPickerOutcome {
   ProjectDefaultRunner = "project-default",
   UnknownRunner = "unknown",
   /*
-   * An auto remediation rule that picked no Runner: OneUptime AI runs no
-   * commands of its own for it, and fixes the rest of the way it does.
+   * An AI rule that picked no Runner: OneUptime AI runs no commands of its
+   * own for it, and fixes the rest of the way it does. Its picker shows the
+   * Global Runner where there is one (`selected`), and "No Runner"
+   * otherwise: either way, no Bash command runs anywhere for it.
    */
   NoRunner = "no-runner",
   /*
@@ -413,7 +459,8 @@ export function getGlobalRunnersLiveStatus(
 
 /*
  * Whether global Runners run this work at all: every repository, a step by
- * its type, and never an auto remediation rule's commands.
+ * its type, and never an AI rule's commands - a shell never runs on a host
+ * every project shares.
  */
 export function canGlobalRunnersRunWork(
   facts: Pick<RunnerPickerFacts, "work" | "stepType">,
@@ -428,17 +475,25 @@ export function canGlobalRunnersRunWork(
   );
 }
 
-// Whether the picker offers the global choice for this step or repository.
+/*
+ * Whether the picker offers the global choice: for a step or a repository,
+ * where global Runners run the work; for an AI rule, as its choice of no
+ * Runner of its own - on which none of its commands run - wherever the
+ * project uses global Runners and the server has one.
+ */
 export function offersGlobalRunner(
   facts: Pick<
     RunnerPickerFacts,
     "work" | "stepType" | "globalRunners" | "projectUsesGlobalRunners"
   >,
 ): boolean {
+  if (!facts.projectUsesGlobalRunners || facts.globalRunners.length === 0) {
+    return false;
+  }
+
   return (
-    canGlobalRunnersRunWork(facts) &&
-    facts.projectUsesGlobalRunners &&
-    facts.globalRunners.length > 0
+    facts.work === RunnerPickerWork.AutoRemediation ||
+    canGlobalRunnersRunWork(facts)
   );
 }
 
@@ -475,12 +530,23 @@ function toProjectOption(runner: RunnerPickerRunner): RunnerPickerOption {
 }
 
 /*
- * An auto remediation rule's picker: the project's own Runners - its
- * default Runner first, tagged, by its own id - and a pick the reader was
- * not shown. Nothing else: a rule that picked none shows nothing picked
- * ("No Runner"), and that is a rule that works - OneUptime AI fixes through
- * the AI agents, runbooks, MCP servers and pull requests, and runs no
- * commands of its own.
+ * An AI rule's picker: the project's own Runners - its default Runner
+ * first, tagged, by its own id - the Global Runner, and a pick the reader
+ * was not shown, in the order a step's picker lists them.
+ *
+ * A rule that picked none runs no commands of its own (NoRunner), and that
+ * is a rule that works: OneUptime AI fixes through the AI agents, runbooks,
+ * MCP servers and pull requests. It shows the Global Runner when the
+ * project uses global Runners and the server has one - so does a new rule
+ * in a project with no default Runner to start it on - stored as none: a
+ * rule never names a global Runner (the server holds a rule to its own
+ * project's Runners), and none of its commands runs on one. Without a
+ * Global Runner to show, it reads "No Runner".
+ *
+ * Unlike a step, a rule never follows the project's default Runner: a new
+ * rule starts on it, as its own pick (getNewRuleRunnerId), and picking a
+ * Runner is what lets OneUptime AI's commands run there - making a Runner
+ * the default for runbook steps is not that consent.
  */
 function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
   const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
@@ -494,6 +560,19 @@ function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
         name: defaultRunner.name,
         liveStatus: defaultRunner.liveStatus,
         runnerId: defaultRunner.id,
+      }
+    : undefined;
+
+  /*
+   * The Global Runner: picking it picks no Runner of the project's own
+   * (GLOBAL_RUNNER_CHOICE_VALUE, which the rule's form saves as none).
+   */
+  const globalOption: RunnerPickerOption | undefined = offersGlobalRunner(facts)
+    ? {
+        value: GLOBAL_RUNNER_CHOICE_VALUE,
+        kind: RunnerPickerOptionKind.Global,
+        name: GLOBAL_RUNNER_CHOICE_LABEL,
+        liveStatus: getGlobalRunnersLiveStatus(facts.globalRunners),
       }
     : undefined;
 
@@ -523,9 +602,15 @@ function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
         }
       : undefined;
 
+  /*
+   * The default first, then the Global Runner, then a pick that is not
+   * shown, then the rest: a step's picker's order, so the two read alike.
+   */
   const options: Array<RunnerPickerOption> = [
+    ...(defaultOption ? [defaultOption] : []),
+    ...(globalOption ? [globalOption] : []),
     ...(unknownOption ? [unknownOption] : []),
-    ...ownOptions,
+    ...projectOptions,
   ];
 
   if (currentOption) {
@@ -552,7 +637,7 @@ function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
 
   return {
     options,
-    selected: undefined,
+    selected: globalOption,
     outcome: RunnerPickerOutcome.NoRunner,
     willRun: true,
     pickedGlobalRunner: false,
@@ -898,10 +983,11 @@ export function buildRunnerPickerModel(
 }
 
 /*
- * The Runner a new auto remediation rule starts on: the project's default
- * Runner, when it has one the rule may pick. Its form picks it, so the rule
- * saves it as its own pick (AutoRemediationRule.runnerId) - changing the
- * project's default later does not move the rule.
+ * The Runner a new AI rule starts on: the project's default Runner, when it
+ * has one the rule may pick. Its form picks it, so the rule saves it as its
+ * own pick (AutoRemediationRule.runnerId) - changing the project's default
+ * later does not move the rule. Without one, a new rule starts on none: the
+ * Global Runner, where there is one.
  */
 export function getNewRuleRunnerId(
   projectRunners: Array<RunnerPickerRunner>,
@@ -918,9 +1004,10 @@ export function getNewRuleRunnerId(
  * name, with how it is doing when it is not connected, so where its Bash
  * commands run is read without opening the fold, as a runbook step's is
  * ("More fields · Runbooks, Runner: prod-eu-runner, ..."). Undefined while
- * it picks none - "No Runner", the field's empty answer - or while the
- * Runners are not read yet. A pick the reader was not shown is hidden: the
- * line names it as one they do not have access to.
+ * it picks none - the Global Runner, or "No Runner": the field's default,
+ * on which no command runs - or while the Runners are not read yet. A pick
+ * the reader was not shown is hidden: the line names it as one they do not
+ * have access to.
  */
 export interface RuleRunnerFoldedValue {
   isHidden: boolean;
@@ -967,6 +1054,60 @@ export function getRuleRunnerFoldedValue(data: {
       ? { notConnectedStatus: liveStatus }
       : {}),
   };
+}
+
+/*
+ * The line under an AI rule's picker, as the picker words it - or None,
+ * where the box and the field's own line say it all:
+ *
+ *   - on the Global Runner (a rule that picked none, where there is one):
+ *     that OneUptime AI runs no Bash commands there, and the way to have
+ *     them run - pick one of the project's Runners, or add one where the
+ *     project has none; a reader who may not read the Runners is told the
+ *     first half only;
+ *   - "No Runner" with no Runner of the project's own to pick: where one is
+ *     added - never to a reader who may not read the Runners, for a project
+ *     that may have some;
+ *   - a pick the reader was not shown: that they may not see it.
+ */
+export enum RuleRunnerLine {
+  None = "none",
+  GlobalRunnerPickOwn = "global-runner-pick-own",
+  GlobalRunnerAddOwn = "global-runner-add-own",
+  GlobalRunner = "global-runner",
+  AddRunner = "add-runner",
+  HiddenRunner = "hidden-runner",
+}
+
+export function getRuleRunnerLine(data: {
+  model: RunnerPickerModel;
+  projectRunnerCount: number;
+  // The project's Runners could not be read: the count says nothing.
+  areProjectRunnersUnread?: boolean | undefined;
+}): RuleRunnerLine {
+  if (data.model.outcome === RunnerPickerOutcome.UnknownRunner) {
+    return RuleRunnerLine.HiddenRunner;
+  }
+
+  if (data.model.outcome !== RunnerPickerOutcome.NoRunner) {
+    return RuleRunnerLine.None;
+  }
+
+  const hasOwnRunners: boolean = data.projectRunnerCount > 0;
+
+  if (data.model.selected?.kind === RunnerPickerOptionKind.Global) {
+    if (data.areProjectRunnersUnread) {
+      return RuleRunnerLine.GlobalRunner;
+    }
+
+    return hasOwnRunners
+      ? RuleRunnerLine.GlobalRunnerPickOwn
+      : RuleRunnerLine.GlobalRunnerAddOwn;
+  }
+
+  return hasOwnRunners || data.areProjectRunnersUnread
+    ? RuleRunnerLine.None
+    : RuleRunnerLine.AddRunner;
 }
 
 // Whether the picker has a choice that can be picked: else it says what to do.

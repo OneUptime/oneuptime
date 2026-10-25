@@ -467,7 +467,7 @@ API 클라이언트와 Terraform 구성은 프로젝트의 `enableAutomaticIncid
 - 수정이 켜져 있고 스위치가 꺼져 있던 프로젝트는 그 종류의 각 규칙에서 그 스위치가 꺼집니다. 그 종류의 활성화된 규칙이 없으면 규칙 **All incidents** (또는 **All alerts**) 하나가 추가됩니다. 이 규칙은 모든 대상과 일치하고, 규칙이 없을 때의 OneUptime AI처럼 묻지 않고 수정하며, 두 스위치를 프로젝트의 설정대로 유지합니다. 그 풀 리퀘스트를 열려면 이 규칙에서 스위치를 켜거나 규칙을 삭제하십시오.
 - 조사의 **Open Fix PR from this analysis** 는 바뀌지 않습니다.
 
-규칙의 **Runner** 에는 내 Runner만 표시됩니다. **AI agent on the cluster or host** 는 없어졌습니다. 영향을 받은 클러스터나 호스트의 명령은 규칙이 무엇을 고르든 항상 그 AI 에이전트를 거칩니다. 아무것도 고르지 않았던 규칙은 **Runner 없음** 으로 표시되며 이전처럼 수정합니다.
+규칙의 **Runner** 에는 내 Runner와 **글로벌 Runner** 가 표시됩니다. **AI agent on the cluster or host** 는 없어졌습니다. 영향을 받은 클러스터나 호스트의 명령은 규칙이 무엇을 고르든 항상 그 AI 에이전트를 거칩니다. 아무것도 고르지 않았던 규칙은 **글로벌 Runner** 로 표시되며 이전처럼 수정합니다. OneUptime AI는 글로벌 Runner에서 Bash 명령을 실행하지 않습니다.
 
 API 클라이언트와 Terraform 구성에서는 프로젝트 필드 `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`(Terraform의 `enable_automatic_incident_code_fixes` 등)가 없어집니다. 구성에서 제거하십시오. 자동 해결 규칙의 `openCodeFixPullRequests` 와 `openTelemetryPullRequests`(`open_code_fix_pull_requests` 와 `open_telemetry_pull_requests`)는 설정하지 않으면 `true` 이며, 두 종류의 규칙 모두 `codeRepositories`(`code_repositories`)에 저장소를 지정합니다. 비어 있으면 연결된 모든 저장소입니다.
 

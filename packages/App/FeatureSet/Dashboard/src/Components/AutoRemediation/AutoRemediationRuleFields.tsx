@@ -32,11 +32,15 @@ import { focusWhenDrawn } from "../AISettings/FocusWhenDrawn";
  *   - AutoRemediationRunnerPicker: the Runner OneUptime AI runs the rule's
  *     Bash commands on (AutoRemediationRule.runnerId) - the one Runner
  *     picker (RunnerPicker) for a rule, drawn as a field of the form. It
- *     lists the project's own Runners, the default first; a rule that picks
- *     none reads "No Runner". The AI agent on the affected cluster or host is
- *     not one of its choices - commands there go through it whatever the
- *     rule picks, which the field's line says. Picking a Runner is what lets
- *     OneUptime AI's commands run on it - a Runner has no switch for that.
+ *     lists the project's own Runners, the default first, and the Global
+ *     Runner, which a rule that picks none shows where the project uses
+ *     one: OneUptime AI runs no Bash commands on it (a shell never runs on a
+ *     host every project shares), and the line under it says so. Without a
+ *     Global Runner, a rule that picks none reads "No Runner". The AI agent
+ *     on the affected cluster or host is not one of its choices - commands
+ *     there go through it whatever the rule picks, which the field's line
+ *     says. Picking a Runner is what lets OneUptime AI's commands run on it
+ *     - a Runner has no switch for that.
  *   - RunbooksEveryTimeSwitch: "Run them every time", the one older choice
  *     kept, folded away: the rule starts every runbook it names for every
  *     match, without OneUptime AI deciding (remediationAction Runbooks).
@@ -110,12 +114,25 @@ export interface AutoRemediationRunnerPickerProps {
   onChange: (runnerId: string | null) => void;
   // The label the form drew for the field, read out with the menu.
   ariaLabelledby?: string | undefined;
+  /*
+   * Whether a rule that picks none may show the Global Runner, on which
+   * OneUptime AI runs no Bash commands. Not for a rule saved before rules
+   * were simplified that composes commands: it runs them on the Command
+   * Runners it names as well, so "none here" is said as "No Runner", as it
+   * always was. Left out, it may.
+   */
+  isGlobalRunnerShown?: boolean | undefined;
 }
 
 export const AutoRemediationRunnerPicker: FunctionComponent<
   AutoRemediationRunnerPickerProps
 > = (props: AutoRemediationRunnerPickerProps): ReactElement => {
-  const choices: RunnerChoices | null = useAutoRemediationRunnerChoices();
+  const loaded: RunnerChoices | null = useAutoRemediationRunnerChoices();
+
+  const choices: RunnerChoices | null =
+    loaded && props.isGlobalRunnerShown === false
+      ? { ...loaded, globalRunners: [] }
+      : loaded;
 
   if (!choices) {
     /*

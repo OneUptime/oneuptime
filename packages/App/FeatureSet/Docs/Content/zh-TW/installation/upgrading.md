@@ -467,7 +467,7 @@ API 用戶端和 Terraform 設定可以用專案的 `enableAutomaticIncidentReme
 - 修正開啟且某個開關關閉的專案，該類型的每條規則中的這個開關都會關閉。如果沒有該類型的已啟用規則，專案會得到一條規則 **All incidents** （或 **All alerts**）：它符合所有對象，像沒有規則時的 OneUptime AI 一樣無需詢問直接修正，並依專案原來的設定保持兩個開關。若要開啟這些拉取請求，請在其中開啟開關，或刪除這條規則。
 - 調查上的 **Open Fix PR from this analysis** 維持不變。
 
-規則的 **Runner** 只列出您自己的 Runner。**AI agent on the cluster or host** 已被移除：受影響的叢集或主機上的指令無論規則選擇什麼，一律透過其 AI 代理程式執行。之前沒有選擇任何 Runner 的規則顯示為 **無 Runner**，並像以前一樣修正。
+規則的 **Runner** 列出您自己的 Runner 和 **全域 Runner**。**AI agent on the cluster or host** 已被移除：受影響的叢集或主機上的指令無論規則選擇什麼，一律透過其 AI 代理程式執行。之前沒有選擇任何 Runner 的規則顯示為 **全域 Runner**，並像以前一樣修正：OneUptime AI 不會在全域 Runner 上執行 Bash 指令。
 
 API 用戶端和 Terraform 設定不再有專案欄位 `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes` 和 `enableAlertInstrumentationFixTasks`（Terraform 中的 `enable_automatic_incident_code_fixes` 等）：請從設定中刪除它們。自動補救規則的 `openCodeFixPullRequests` 和 `openTelemetryPullRequests`（`open_code_fix_pull_requests` 和 `open_telemetry_pull_requests`）除非您設定，否則都為 `true`，兩種規則都在 `codeRepositories`（`code_repositories`）中指定儲存庫，為空表示所有已連線的儲存庫。
 
