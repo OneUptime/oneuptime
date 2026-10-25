@@ -14,7 +14,7 @@ import React from "react";
  *     Export its page, lazily;
  *   - the Admin Dashboard plugin adds Settings > Audit Log Export - a page
  *     at /admin/settings/audit-log-export, lazy, and its side menu entry -
- *     merged with White Label's, so neither hides the other;
+ *     merged with Backups' and White Label's, so none hides another;
  *   - the table, form and test both frontends render import Common/... only:
  *     each frontend's build resolves "@oneuptime/dashboard" or
  *     "@oneuptime/admin-dashboard", never both.
@@ -38,6 +38,7 @@ import DashboardAuditLogExportPlugins from "../../../Dashboard/AuditLogExport/Pl
 import AdminEnterprisePlugins from "../../../AdminDashboard/Index";
 import AdminAuditLogExportPlugins from "../../../AdminDashboard/AuditLogExport/Plugins";
 import { AUDIT_LOG_EXPORT_SETTINGS_PAGE_PATH } from "../../../AdminDashboard/AuditLogExport/AuditLogExportPaths";
+import { BACKUPS_SETTINGS_PAGE_PATH } from "../../../AdminDashboard/Backups/BackupsPaths";
 import {
   ENTERPRISE_SETTINGS_PAGES,
   EnterpriseSettingsSideMenuItems,
@@ -108,13 +109,14 @@ describe("the Admin Dashboard plugin", () => {
     expect(typeof pages[0]!.component).toBe("object");
   });
 
-  test("merges its page with White Label's: the plugin keeps both", () => {
+  test("merges its page with Backups' and White Label's: the plugin keeps them all", () => {
     expect(
       ENTERPRISE_SETTINGS_PAGES.map((page: EnterpriseSettingsPage) => {
         return page.path;
       }),
     ).toEqual([
       AUDIT_LOG_EXPORT_SETTINGS_PAGE_PATH,
+      BACKUPS_SETTINGS_PAGE_PATH,
       WHITE_LABEL_SETTINGS_PAGE_PATH,
     ]);
     expect(AdminEnterprisePlugins.SettingsPages).toBe(

@@ -19,6 +19,7 @@ import {
 import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
 import Page from "../../../UI/Components/Page/Page";
+import { nameRecordInTrail } from "../../../UI/Components/Page/RecordNameInTrail";
 import Navigation from "../../../UI/Utils/Navigation";
 import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
 
@@ -165,6 +166,35 @@ describe("each trail names the page as the menu does", () => {
     [
       PageMap.SECURITY_CASE_VIEW,
       ["Security Events", "Security Cases", "View Case"],
+    ],
+    // A case's pages: the case, then the page as its side menu names it.
+    [
+      PageMap.SECURITY_CASE_VIEW_TIMELINE,
+      ["Security Events", "Security Cases", "View Case", "Timeline"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_DETECTIONS,
+      ["Security Events", "Security Cases", "View Case", "Detections"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_ENTITIES,
+      ["Security Events", "Security Cases", "View Case", "Entities"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
+      ["Security Events", "Security Cases", "View Case", "Playbook Runs"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_NOTES,
+      ["Security Events", "Security Cases", "View Case", "Private Notes"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS,
+      ["Security Events", "Security Cases", "View Case", "Audit Logs"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_DELETE,
+      ["Security Events", "Security Cases", "View Case", "Delete Case"],
     ],
     [PageMap.SECURITY_EVENTS, ["Security Events", "Events"]],
     [
@@ -338,5 +368,66 @@ describe("each crumb opens what its name says", () => {
       "View Case",
       `${PRODUCT}/cases/${CASE_ID}`,
     ]);
+  });
+
+  test.each([
+    [PageMap.SECURITY_CASE_VIEW_TIMELINE, "timeline"],
+    [PageMap.SECURITY_CASE_VIEW_DETECTIONS, "detections"],
+    [PageMap.SECURITY_CASE_VIEW_ENTITIES, "entities"],
+    [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, "playbook-runs"],
+    [PageMap.SECURITY_CASE_VIEW_NOTES, "notes"],
+    [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, "audit-logs"],
+    [PageMap.SECURITY_CASE_VIEW_DELETE, "delete"],
+  ])(
+    "on %s, the case's crumb opens its Overview and Security Cases the open cases",
+    (page: string, segment: string) => {
+      const trail: Array<[string, string]> = trailOf(page);
+
+      expect(trail[1]).toEqual([
+        "Security Events",
+        routeFor(PageMap.SECURITY_EVENTS_OVERVIEW),
+      ]);
+      expect(trail[2]).toEqual([
+        "Security Cases",
+        routeFor(PageMap.SECURITY_CASES),
+      ]);
+      expect(trail[3]).toEqual(["View Case", `${PRODUCT}/cases/${CASE_ID}`]);
+      // The page itself, which is not a link.
+      expect(trail[4]![1]).toBe(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
+    },
+  );
+
+  test("the case's crumb takes the case's number once the case is read, in the trail and the tab", () => {
+    visit(PageMap.SECURITY_CASE_VIEW_DETECTIONS);
+
+    const links: Array<Link> = nameRecordInTrail({
+      links: getSecurityEventsBreadcrumbs(
+        Navigation.getRoutePath(RouteUtil.getRoutes()),
+      ),
+      recordId: CASE_ID,
+      recordName: "CASE-142",
+    })!;
+
+    expect(
+      links.map((link: Link): string | undefined => {
+        return link.recordName;
+      }),
+    ).toEqual([undefined, undefined, undefined, "CASE-142", undefined]);
+
+    render(
+      <Page breadcrumbLinks={links}>
+        <div>Page content</div>
+      </Page>,
+    );
+
+    const trail: HTMLElement = screen.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+
+    expect(
+      within(trail).getByRole("link", { name: "CASE-142" }),
+    ).toHaveAttribute("href", `${PRODUCT}/cases/${CASE_ID}`);
+    expect(document.title).toContain("CASE-142");
+    expect(document.title).toContain("Detections");
   });
 });

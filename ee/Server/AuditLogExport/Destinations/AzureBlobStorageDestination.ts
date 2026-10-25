@@ -81,9 +81,12 @@ export function getAzureBlobPath(data: {
 /*
  * The Shared Key signature of a request: the string Azure signs, as its
  * documentation spells it (verb, the standard headers in their fixed
- * order, the x-ms- headers sorted, then the account and the path), and the
- * Authorization header made of it. Pure, so the tests check it against
- * the documented form and against a server that verifies it.
+ * order, the x-ms- headers sorted, then the account and the path, then
+ * each query parameter as name:value, names lowercased and sorted), and
+ * the Authorization header made of it. Pure, so the tests check it
+ * against the documented form and against a server that verifies it. An
+ * audit log export's Put Blob has no query; a backup's blocks, block list
+ * and listing do (ee/Server/Backup/Storage).
  */
 export function signAzureSharedKey(data: {
   method: string;
@@ -91,6 +94,8 @@ export function signAzureSharedKey(data: {
   accountKey: string;
   path: string;
   headers: Dictionary<string>;
+  // Unencoded, as the request URL carries them encoded.
+  query?: Dictionary<string> | undefined;
 }): { stringToSign: string; authorization: string } {
   const lower: Dictionary<string> = {};
 
@@ -113,6 +118,19 @@ export function signAzureSharedKey(data: {
     })
     .join("");
 
+  const query: Dictionary<string> = {};
+
+  for (const name of Object.keys(data.query || {})) {
+    query[name.toLowerCase()] = String((data.query || {})[name] ?? "");
+  }
+
+  const canonicalizedQuery: string = Object.keys(query)
+    .sort()
+    .map((name: string): string => {
+      return `\n${name}:${query[name] || ""}`;
+    })
+    .join("");
+
   const stringToSign: string = [
     data.method.toUpperCase(),
     lower["content-encoding"] || "",
@@ -127,7 +145,7 @@ export function signAzureSharedKey(data: {
     lower["if-none-match"] || "",
     lower["if-unmodified-since"] || "",
     lower["range"] || "",
-    `${canonicalizedHeaders}/${data.accountName}${data.path}`,
+    `${canonicalizedHeaders}/${data.accountName}${data.path}${canonicalizedQuery}`,
   ].join("\n");
 
   const signature: string = createHmac(

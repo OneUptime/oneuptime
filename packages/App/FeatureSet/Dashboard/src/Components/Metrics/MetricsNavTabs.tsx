@@ -5,7 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type MetricsTabKey = "viewer" | "insights" | "setup" | "settings";
+export type MetricsTabKey = "viewer" | "insights" | "ai" | "setup" | "settings";
 
 interface Props {
   active: MetricsTabKey;
@@ -31,6 +31,18 @@ const MetricsNavTabs: FunctionComponent<Props> = (
         RouteMap[PageMap.METRICS_INSIGHTS] as Route,
       ),
       carriesScope: true,
+    },
+    /*
+     * What OneUptime AI found in the project's metrics and did with it, and
+     * its settings (Types/AI/TelemetryAi): its own side menu, as Settings.
+     */
+    {
+      key: "ai",
+      label: "AI",
+      icon: IconProp.Sparkles,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.METRICS_AI_INSIGHTS] as Route,
+      ),
     },
     {
       key: "setup",

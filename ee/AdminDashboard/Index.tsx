@@ -15,7 +15,7 @@ import { AdminDashboardEnterprisePlugins } from "@oneuptime/admin-dashboard/Ente
  *
  * Assembled from one file per area so each area owns only its own keys -
  * except the Settings pages and their menu entries, which several areas add
- * (White Label, Audit Log Export) and EnterpriseSettings merges.
+ * (White Label, Audit Log Export, Backups) and EnterpriseSettings merges.
  * `satisfies` rejects a key the Admin Dashboard does not know and a component
  * with the wrong props, while keeping the object's own type.
  */

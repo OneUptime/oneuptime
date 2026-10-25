@@ -165,6 +165,8 @@ const VIEW_MENUS_WITHOUT_DEVELOPER_PAGES: Readonly<Record<string, string>> = {
     "An AI insight is written by OneUptime AI; the API cannot create one, so there is nothing to manage as code.",
   "Pages/Exceptions/View/SideMenu.tsx":
     "An exception is grouped from telemetry, not set up by anyone.",
+  "Pages/SecurityEvents/CaseView/SideMenu.tsx":
+    "A security case is opened by detections and worked on its own pages, not set up as code; its API and MCP tools are on the Security Cases docs page.",
   "Pages/Users/View/SideMenu.tsx":
     "A project member: people are invited, not managed as a resource.",
   "Pages/StatusPages/View/AnnouncementSideMenu.tsx":

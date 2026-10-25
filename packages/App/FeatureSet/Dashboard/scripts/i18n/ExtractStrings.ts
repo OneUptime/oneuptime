@@ -134,10 +134,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
  * is extracted. EnterpriseLicense is the license server's own table: no
  * project role may read it, and its enterprise-only column titles must stay
  * out of every locale file (a test in ee/ holds every frontend's locales to
- * that).
+ * that). BackupSetting and BackupRun are the instance's backups, which only
+ * the Admin Dashboard shows, in words of its own (ee/AdminDashboard/Backups).
  */
 export const SKIPPED_SOURCE_FILES: ReadonlySet<string> = new Set<string>([
   "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
+  "packages/Common/Models/DatabaseModels/BackupSetting.ts",
+  "packages/Common/Models/DatabaseModels/BackupRun.ts",
 ]);
 
 /*

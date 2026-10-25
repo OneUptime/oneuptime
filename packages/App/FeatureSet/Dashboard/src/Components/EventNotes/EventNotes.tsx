@@ -132,13 +132,17 @@ function EventNotes<TNote extends BaseModel>(
     props.eventNoun,
     translator,
   );
-  const copy: NotesCopy = isPrivateEvent
-    ? getPrivateEventPublicNotesCopy(
-        visibilityCopy,
-        props.eventNoun,
-        translator,
-      )
-    : visibilityCopy;
+  const copy: NotesCopy = {
+    ...(isPrivateEvent
+      ? getPrivateEventPublicNotesCopy(
+          visibilityCopy,
+          props.eventNoun,
+          translator,
+        )
+      : visibilityCopy),
+    // The kind's own words for what its notes are for, where it has them.
+    ...(props.description ? { description: props.description } : {}),
+  };
   // What the viewer holds, blocks included.
   const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();

@@ -47,8 +47,8 @@ import {
  *
  * Traces is the second lane: an AI tab among its tabs, with the same three
  * pages under a side menu of its own. Exceptions is the third, the same
- * way, and Logs the fourth (its logs page named Activity). Metrics adds a
- * lane to TelemetryAiLane and its words here; the pages are the lane's.
+ * way, Logs the fourth (its logs page named Activity) and Metrics the
+ * fifth: an AI tab among each product's tabs, the pages the lane's own.
  */
 
 // The pages of a lane's AI section.
@@ -86,6 +86,12 @@ export const TELEMETRY_AI_PAGES: Readonly<
     insightView: PageMap.LOGS_AI_INSIGHT_VIEW,
     logs: PageMap.LOGS_AI_ACTIVITY,
     settings: PageMap.LOGS_AI_SETTINGS,
+  },
+  [TelemetryAiLane.Metric]: {
+    insights: PageMap.METRICS_AI_INSIGHTS,
+    insightView: PageMap.METRICS_AI_INSIGHT_VIEW,
+    logs: PageMap.METRICS_AI_LOGS,
+    settings: PageMap.METRICS_AI_SETTINGS,
   },
 };
 
@@ -531,6 +537,107 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
       ),
     },
   },
+  /*
+   * Metrics: metrics that record too many values, histograms whose buckets
+   * do not fit, and busy services that send no metrics at all
+   * (Common/Utils/Metrics/MetricInsight) - "problems in your metrics" where
+   * all three are meant. The switch is named for what the maintainer asked
+   * for: improve metrics, and add the ones that do not exist yet. No fix
+   * waits for a verdict, but a fix may find nothing to change, so no line
+   * promises a pull request for every problem.
+   */
+  [TelemetryAiLane.Metric]: {
+    noticeContext: ProjectAiNoticeContext.Metrics,
+    ruleCriteriaSubject: RuleCriteriaSubject.Services,
+
+    /*
+     * The three kinds side by side, one sentence each part: "for ones that
+     * record too many values ..., and for busy services that send none, and
+     * files ..." read as one run-on list of and-clauses.
+     */
+    insightsIntro: translationKey(
+      "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics. It files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+    ),
+    insightsEmptyTitle: translationKey("No metric problems found"),
+    insightsEmptyDescription: translationKey(
+      "Every hour OneUptime files a finding when a metric records too many values, a histogram's buckets do not fit, or a busy service sends no metrics.",
+    ),
+    insightsOffEmptyTitle: translationKey(
+      "OneUptime is not looking for metric problems",
+    ),
+    insightsOffEmptyDescription: translationKey(
+      "Turn on 'Improve metrics and add missing ones' in AI Settings, and OneUptime looks through your metrics every hour.",
+    ),
+
+    logsIntro: translationKey(
+      "Everything OneUptime AI did with the problems it found in your metrics, newest first: each investigation, and each pull request it opened or was asked to open.",
+    ),
+    logsEmptyTitle: translationKey("Nothing yet"),
+    logsEmptyDescription: translationKey(
+      "When OneUptime AI looks into a problem in your metrics or opens a pull request for it, it shows up here.",
+    ),
+    /*
+     * What each investigation found, under it in Logs. No metric problem's
+     * pull request waits for the verdict, but it still says where the
+     * change belongs: the code, or a library, an agent or a collector
+     * outside it. A metric problem is never an expected error (the triage
+     * framings rule those verdicts out), so only these three are worded -
+     * in the words Exceptions' Logs use for them.
+     */
+    investigationVerdicts: {
+      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
+      [ErrorClass.Infrastructure]: translationKey(
+        "Found a cause outside the code",
+      ),
+      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
+    },
+
+    switchesCardDescription: translationKey(
+      "It works on problems in your metrics on its own. Turn it off if you do not want it to.",
+    ),
+    advancedDescription: translationKey(
+      "Which services' metrics OneUptime AI works on, when, and whether it opens pull requests on its own.",
+    ),
+    advancedDefaultsSummary: translationKey(
+      "OneUptime AI looks into every problem it finds in your metrics right away, and opens a pull request for each one it can fix.",
+    ),
+    rulesCardDescription: translationKey(
+      "With no rule, OneUptime AI looks into every problem in your metrics right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.",
+    ),
+    noRulesMessage: translationKey(
+      "No rules. Every problem found in your metrics is looked into, and a pull request opened for each one OneUptime AI can fix.",
+    ),
+
+    ruleNamePlaceholder: translationKey("Checkout services"),
+    waitDescription: translationKey(
+      "Counted from when the problem was first found. When several rules match, the shortest wait decides. At most 1440 (a day).",
+    ),
+    timing: {
+      [InvestigationRuleTiming.RightAway]: {
+        title: translationKey("Right away"),
+        description: translationKey(
+          "OneUptime AI starts as soon as the problem is found.",
+        ),
+      },
+      [InvestigationRuleTiming.AfterWait]: {
+        title: translationKey("Only if still found after a wait"),
+        description: translationKey(
+          "A problem that goes away during the wait is not looked into.",
+        ),
+      },
+    },
+    fixOptionDescriptions: {
+      [AiRuleFix.DoNotFix]: translationKey(
+        "OneUptime AI looks into the problem and writes what it found on the finding. It opens no pull request.",
+      ),
+      [AiRuleFix.AskFirst]: translationKey(
+        "The finding offers the pull request, and someone opens it with one click.",
+      ),
+      [AiRuleFix.WithoutAsking]: translationKey(
+        "OneUptime AI opens the pull request on its own. Nothing is ever merged: your team reviews it.",
+      ),
+    },
+  },
 };
 
 /*
@@ -591,6 +698,16 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsEmptyDescription,
   },
+  [TelemetryAiLane.Metric]: {
+    insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
+    viewPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Metric].insightView,
+    settingsPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Metric].settings,
+    intro: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].insightsIntro,
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].insightsEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].insightsEmptyDescription,
+  },
 };
 
 /*
@@ -634,6 +751,14 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyTitle,
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyDescription,
+  },
+  [TelemetryAiLane.Metric]: {
+    ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Metric],
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].insightsOffEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric]
+        .insightsOffEmptyDescription,
   },
 };
 
@@ -685,6 +810,16 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       title: translationKey("Find and fix new and rising exceptions"),
       description: translationKey(
         "Every 15 minutes OneUptime looks for new and rising exceptions and ones with no stack trace. OneUptime AI fixes what it can with pull requests.",
+      ),
+      note: translationKey("Needs a repository connected in Code."),
+    },
+  ],
+  [TelemetryAiLane.Metric]: [
+    {
+      column: "enableAutomaticMetricRemediation",
+      title: translationKey("Improve metrics and add missing ones"),
+      description: translationKey(
+        "Every hour OneUptime looks for metrics to improve and for metrics that are missing. OneUptime AI fixes what it can with pull requests.",
       ),
       note: translationKey("Needs a repository connected in Code."),
     },
@@ -920,6 +1055,8 @@ export const TELEMETRY_AI_TEST_IDS: {
   rulesTable: string;
   logs: string;
   logEntry: string;
+  // An entry's kind ("Pull request", "Investigation"), before its finding.
+  logKind: string;
   logVerdict: string;
   logsEmpty: string;
   logsSettings: string;
@@ -934,6 +1071,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   rulesTable: "telemetry-ai-rules-table",
   logs: "telemetry-ai-logs",
   logEntry: "telemetry-ai-log-entry",
+  logKind: "telemetry-ai-log-kind",
   logVerdict: "telemetry-ai-log-verdict",
   logsEmpty: "telemetry-ai-logs-empty",
   logsSettings: "telemetry-ai-logs-settings",

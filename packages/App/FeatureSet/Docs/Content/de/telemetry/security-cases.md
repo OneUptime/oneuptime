@@ -82,15 +82,27 @@ Die Fälle eines neuen Projekts durchlaufen vier Status, die Sie umbenennen und 
 | Contained | Die Bedrohung kann keinen Schaden mehr anrichten; die Bereinigung steht noch aus |
 | Geschlossen | Erledigt, mit einer Bewertung, was er war |
 
-Die Seite des Falls bietet alles, um ihn zu bearbeiten:
+Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls ist eine eigene Seite:
 
-- Oben: **Assign to Me**, **Run Playbook**, **Vorfall melden** und **Close Case**, die Statusschritte und die Priorität im Menü daneben.
-- **OneUptime AI**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+| Abschnitt im Seitenmenü | Seiten |
+| --- | --- |
+| **Übersicht** | **Übersicht**, **Zeitachse** |
+| **Untersuchung** | **Erkennungen**, **Entitäten**, **Playbook-Ausführungen** |
+| **Notizen** | **Private Notizen** |
+| **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
+
+Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel, **Assign to Me**, **Run Playbook**, **Vorfall melden** und **Close Case**, und im Menü ⋯ daneben **Priorität setzen**, **Fall bearbeiten** und **Fall löschen**. So lässt sich der Fall von jeder seiner Seiten aus bearbeiten, und ein Link zum Fall öffnet weiterhin seine **Übersicht**.
+
+- **Übersicht**: die Beschreibung, Labels und Statusschritte des Falls, wer ihn hat und was ihn eröffnet hat, und seine Kennzahlen: wie viele Erkennungen er hat, wie lange er schon offen ist und wie lange es bis zur Bestätigung und bis zur Eindämmung gedauert hat.
+- **OneUptime AI**, auf der **Übersicht**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, auf der **Übersicht**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
+- **Zeitachse**: alles, was mit dem Fall geschehen ist, jeweils mit der Person, die es getan hat.
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
-- **MITRE ATT&CK**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
-- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten.
-- **Notizen** und **Zeitachse**: was das Team geschrieben hat, und alles, was geschehen ist, jeweils mit der Person, die es getan hat.
+- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbook-Ausführungen**, wie viele es sind.
+- **Private Notizen**: was das Team zum Fall geschrieben hat.
+- **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
+- **Fall löschen**: löscht den Fall mit seinen Erkennungen, Notizen, seiner Zeitachse und seinen Playbook-Ausführungen endgültig. Um ihn als Nachweis zu behalten, schließen Sie ihn stattdessen mit einer Bewertung.
 
 Um mehrere Fälle auf einmal zu bearbeiten, wählen Sie sie in der Warteschlange aus und nutzen **Assign to Me**, **Change Status** oder **Change Priority**.
 

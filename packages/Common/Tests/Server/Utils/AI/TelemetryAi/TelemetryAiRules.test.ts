@@ -391,6 +391,7 @@ describe("the lane's switch", () => {
       enableAutomaticTraceRemediation: true,
       enableAutomaticExceptionRemediation: true,
       enableAutomaticLogRemediation: true,
+      enableAutomaticMetricRemediation: true,
     });
   });
 });
@@ -432,6 +433,21 @@ describe("getServiceId", () => {
     };
 
     expect(TelemetryAiRules.getServiceId(logFinding)).toBe(CHECKOUT);
+  });
+
+  test("a metric finding's service, from its evidence when the column is unset", () => {
+    const metricFinding: AIInsight = new AIInsight();
+    metricFinding.evidence = {
+      metric: {
+        serviceId: ` ${BILLING.toUpperCase()} `,
+      } as unknown as NonNullable<AIInsight["evidence"]>["metric"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(metricFinding)).toBe(BILLING);
+
+    // The column wins over the evidence, as for every lane.
+    metricFinding.telemetryServiceId = new ObjectID(CHECKOUT);
+    expect(TelemetryAiRules.getServiceId(metricFinding)).toBe(CHECKOUT);
   });
 });
 

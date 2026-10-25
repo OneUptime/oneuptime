@@ -1524,6 +1524,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.METRICS_AI_INSIGHTS,
+        logs: PageMap.METRICS_AI_LOGS,
+        settings: PageMap.METRICS_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "high cardinality",
+            "too many series",
+            "histogram buckets",
+            "missing metrics",
+            "metric naming",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "improve metrics and add missing ones",
+            "metrics remediation",
+            "auto fix",
+          ],
+        },
+      }),
     ],
   },
   {

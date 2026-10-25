@@ -13,6 +13,14 @@ export interface ComponentProps {
    * draws it, as its tiles do their labels.
    */
   ariaLabel?: string | undefined;
+  /*
+   * Lay the cells out by the bar's own width rather than the window's: a
+   * bar beside a side menu whose width the window does not tell (a security
+   * case's figures), so four cells go through a 2 x 2 grid until each has
+   * room for its label on one line. Left out, the bar follows the window's
+   * breakpoints, as it always has.
+   */
+  isLaidOutByOwnWidth?: boolean | undefined;
 }
 
 /*
@@ -28,10 +36,30 @@ const COLUMN_CLASS_NAMES: Record<EventStatBarColumns, string> = {
   4: "sm:grid-cols-2 lg:grid-cols-4",
 };
 
+/*
+ * The same, by the bar's own width (isLaidOutByOwnWidth): a cell gets 14rem
+ * - "TIME TO ACKNOWLEDGE" on one line beside its icon - before more share a
+ * row. The bar's wrapper is the size container these are read against.
+ */
+const OWN_WIDTH_COLUMN_CLASS_NAMES: Record<EventStatBarColumns, string> = {
+  1: "",
+  2: "[@container(min-width:28rem)]:grid-cols-2",
+  3: "[@container(min-width:42rem)]:grid-cols-3",
+  4: "[@container(min-width:28rem)]:grid-cols-2 [@container(min-width:56rem)]:grid-cols-4",
+};
+
+export const EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME: string =
+  "[container-type:inline-size]";
+
 export const getEventStatBarColumnClassName: (
   columns: EventStatBarColumns,
   cellCount: number,
-) => string = (columns: EventStatBarColumns, cellCount: number): string => {
+  isLaidOutByOwnWidth?: boolean | undefined,
+) => string = (
+  columns: EventStatBarColumns,
+  cellCount: number,
+  isLaidOutByOwnWidth?: boolean | undefined,
+): string => {
   /*
    * A caller that leaves out an optional cell must not end up with an empty
    * track, which would show as a blank grey block, so never lay out more
@@ -42,7 +70,9 @@ export const getEventStatBarColumnClassName: (
     Math.min(columns, Math.max(cellCount, 1)),
   );
 
-  return COLUMN_CLASS_NAMES[effectiveColumns as EventStatBarColumns];
+  return (
+    isLaidOutByOwnWidth ? OWN_WIDTH_COLUMN_CLASS_NAMES : COLUMN_CLASS_NAMES
+  )[effectiveColumns as EventStatBarColumns];
 };
 
 /*
@@ -65,9 +95,10 @@ const EventStatBar: FunctionComponent<ComponentProps> = (
   const columnClassName: string = getEventStatBarColumnClassName(
     props.columns,
     cellCount,
+    props.isLaidOutByOwnWidth,
   );
 
-  return (
+  const bar: ReactElement = (
     <div
       role={props.ariaLabel ? "group" : undefined}
       aria-label={
@@ -81,6 +112,15 @@ const EventStatBar: FunctionComponent<ComponentProps> = (
     >
       {props.children}
     </div>
+  );
+
+  if (!props.isLaidOutByOwnWidth) {
+    return bar;
+  }
+
+  // A size container cannot lay out its own grid: its wrapper is the one.
+  return (
+    <div className={EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME}>{bar}</div>
   );
 };
 

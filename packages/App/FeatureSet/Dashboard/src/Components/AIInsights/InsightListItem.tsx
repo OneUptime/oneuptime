@@ -23,6 +23,7 @@ import { showFullValueWhenCutShort } from "Common/UI/Components/Table/FullValueT
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InsightTitleText from "./InsightTitleText";
 
 export interface ComponentProps {
   insight: AIInsight;
@@ -221,7 +222,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
             className="line-clamp-2 text-sm font-semibold text-gray-900 [overflow-wrap:anywhere] group-hover:text-indigo-600"
             onMouseEnter={showFullValueWhenCutShort}
           >
-            {insight.title}
+            <InsightTitleText text={insight.title || ""} />
           </p>
 
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">

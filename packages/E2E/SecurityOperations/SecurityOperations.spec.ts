@@ -1822,54 +1822,306 @@ test.describe("the case queue", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * A case
+ * A case: its own side menu, and a page for each of its parts
  * ---------------------------------------------------------------------------
  */
 
+const SPRAY_CASE_ID: string = "20000000-0000-4000-8000-000000000142";
+
+/*
+ * A case's pages, as its side menu lists them: the section, the entry, the
+ * address under the case's own (its Overview is the case's address), and
+ * something only that page draws.
+ */
+interface CasePage {
+  section: string;
+  title: string;
+  segment: string;
+  text: string;
+  slug: string;
+  // What says the page is drawn, where its text alone would not.
+  ready?: ((page: Page) => Locator) | undefined;
+}
+
+const CASE_PAGES: ReadonlyArray<CasePage> = [
+  {
+    section: "Overview",
+    title: "Overview",
+    segment: "",
+    text: "Time to Contain",
+    slug: "overview",
+  },
+  {
+    section: "Overview",
+    title: "Timeline",
+    segment: "/timeline",
+    text: "took the case.",
+    slug: "timeline",
+  },
+  {
+    section: "Investigation",
+    title: "Detections",
+    segment: "/detections",
+    text: "31 times",
+    slug: "detections",
+  },
+  {
+    section: "Investigation",
+    title: "Entities",
+    segment: "/entities",
+    text: "a.ng@acme-commerce.example",
+    slug: "entities",
+  },
+  {
+    section: "Investigation",
+    title: "Playbook Runs",
+    segment: "/playbook-runs",
+    text: "Started on its own: Case Opened",
+    slug: "playbook-runs",
+  },
+  {
+    section: "Notes",
+    title: "Private Notes",
+    segment: "/notes",
+    text: "Approving the suspend.",
+    slug: "notes",
+  },
+  {
+    section: "Advanced",
+    title: "Audit Logs",
+    segment: "/audit-logs",
+    text: "Case Audit Logs",
+    slug: "audit-logs",
+  },
+  {
+    section: "Advanced",
+    title: "Delete Case",
+    segment: "/delete",
+    text: "To keep the record, close it with a verdict instead.",
+    slug: "delete",
+    // A card's description waits for a wider screen; its title is always there.
+    ready: (page: Page): Locator => {
+      return cardTitled(page, "Delete Case");
+    },
+  },
+];
+
+function casePagePath(casePage: CasePage): string {
+  return `${SPRAY_CASE_PATH}${casePage.segment}`;
+}
+
+function caseHeader(page: Page): Locator {
+  return page.getByTestId("security-case-header");
+}
+
+// The case's header has its actions: every one this case offers, and the ⋯.
+async function expectCaseActions(page: Page): Promise<void> {
+  for (const action of ["Run Playbook", "Declare Incident", "Close Case"]) {
+    await expect(
+      caseHeader(page).getByRole("button", { name: action, exact: true }),
+    ).toBeVisible();
+  }
+  await expect(
+    caseHeader(page).getByTestId("security-case-more"),
+  ).toBeVisible();
+}
+
+// The number drawn beside a menu entry, or "" when there is none.
+async function menuCount(page: Page, title: string): Promise<string> {
+  const badge: Locator = menuEntry(page, title).locator("span.rounded-full");
+
+  if ((await badge.count()) === 0) {
+    return "";
+  }
+
+  return ((await badge.first().textContent()) || "").trim();
+}
+
+async function waitForCasePage(page: Page, casePage: CasePage): Promise<void> {
+  const ready: Locator = casePage.ready
+    ? casePage.ready(page)
+    : page.getByText(casePage.text, { exact: false }).first();
+
+  await expect(ready).toBeVisible({ timeout: 30000 });
+}
+
 test.describe("a case", () => {
-  test("has everything to work it: header, detections, runs, timeline, entities and notes", async ({
+  test("opens on its Overview, under a side menu of its own, its header in full", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, SPRAY_CASE_PATH);
     await expect(
-      page.getByText("Password spray against Okta from 203.0.113.47").first(),
+      caseHeader(page).getByRole("heading", {
+        level: 1,
+        name: "Password spray against Okta from 203.0.113.47",
+      }),
     ).toBeVisible({ timeout: 30000 });
 
-    for (const action of ["Run Playbook", "Declare Incident", "Close Case"]) {
+    // The case's menu: an incident's sections, where a case has pages for them.
+    expect(
+      (await sideMenu(page).locator("h6").allInnerTexts()).map(
+        (title: string): string => {
+          return title.trim().toLowerCase();
+        },
+      ),
+    ).toEqual(["overview", "investigation", "notes", "advanced"]);
+    expect(await litEntries(page)).toEqual(["Overview"]);
+    await expect(menuSection(page, "Advanced")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Security Cases",
+      "CASE-142",
+    ]);
+
+    // The header in full: what it is, where it stands, who has it, its moves.
+    await expect(caseHeader(page)).toHaveAttribute("data-layout", "full");
+    await expectCaseActions(page);
+    for (const step of ["New", "Investigating", "Contained", "Closed"]) {
       await expect(
-        page.getByRole("button", { name: action }).first(),
+        page
+          .getByTestId("security-case-status-steps")
+          .getByText(step, { exact: true }),
       ).toBeVisible();
     }
-    for (const step of ["New", "Investigating", "Contained", "Closed"]) {
-      await expect(page.getByText(step, { exact: true }).first()).toBeVisible();
+    await expect(caseHeader(page).getByText("Assignee")).toBeVisible();
+
+    // The figures, OneUptime AI's read, and the ATT&CK tactics.
+    const figures: Locator = page.getByRole("group", { name: "Case figures" });
+    await expect(figures).toContainText("Detections");
+    await expect(figures).toContainText("Open For");
+    await expect(figures).toContainText("Time to Acknowledge");
+    await expect(figures).toContainText("Time to Contain");
+    await expect(page.getByTestId("security-case-ai-card")).toBeVisible();
+    await expect(page.getByText("TA0006 Credential Access")).toBeVisible();
+
+    // The case's other parts are pages of their own, not on its Overview.
+    for (const text of [
+      "31 times",
+      "took the case.",
+      "Approving the suspend.",
+    ]) {
+      await expect(page.getByText(text, { exact: false })).toHaveCount(0);
     }
 
-    // Detections: what fired, and what it was about.
-    await expect(page.getByText("Okta password spray").first()).toBeVisible();
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-desktop");
+  });
+
+  test("each part of the case is a page of its own: its entry lit, its address under the case's, its trail, the header on top", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    await waitForCasePage(page, CASE_PAGES[0]!);
+
+    for (const casePage of CASE_PAGES.slice(1)) {
+      if (
+        casePage.section === "Advanced" &&
+        (await menuSection(page, "Advanced").getAttribute("aria-expanded")) ===
+          "false"
+      ) {
+        await menuSection(page, "Advanced").click();
+      }
+
+      await menuEntry(page, casePage.title).click();
+      await expect
+        .poll(() => {
+          return pathnameOf(page);
+        })
+        .toBe(casePagePath(casePage));
+      await waitForCasePage(page, casePage);
+
+      expect([casePage.title, await litEntries(page)]).toEqual([
+        casePage.title,
+        [casePage.title],
+      ]);
+      expect(await breadcrumbs(page)).toEqual([
+        "Project",
+        "Security Events",
+        "Security Cases",
+        "CASE-142",
+        casePage.title,
+      ]);
+
+      // The header, compact, with every action the Overview has.
+      await expect(caseHeader(page)).toHaveAttribute("data-layout", "compact");
+      await expectCaseActions(page);
+      await expect(page.getByTestId("security-case-status-steps")).toHaveCount(
+        0,
+      );
+    }
+
+    // Read once, for every page: no page read the case again.
+    expect(
+      (await fixture(page)).listRequests.length,
+      "pages listed what they show",
+    ).toBeGreaterThan(0);
+    const caseReads: number = (
+      (await fixture(page)) as unknown as {
+        getItemRequests: Array<{ modelName: string; id: string }>;
+      }
+    ).getItemRequests.filter(
+      (request: { modelName: string; id: string }): boolean => {
+        return (
+          request.modelName === "SecurityCase" && request.id === SPRAY_CASE_ID
+        );
+      },
+    ).length;
+    expect(caseReads).toBe(1);
+
+    // The case's crumb opens its Overview.
+    await page
+      .getByRole("navigation", { name: "Breadcrumb" })
+      .getByRole("link", { name: "CASE-142", exact: true })
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(SPRAY_CASE_PATH);
+    await expect(caseHeader(page)).toHaveAttribute("data-layout", "full");
+  });
+
+  test("the Security Cases crumb goes back to the open cases", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/entities`);
+    await waitForCasePage(page, CASE_PAGES[3]!);
+
+    await page
+      .getByRole("navigation", { name: "Breadcrumb" })
+      .getByRole("link", { name: "Security Cases", exact: true })
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(CASES_PATH);
+  });
+
+  test("the Detections page: what fired, how often, on what, and the event that last set it off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/detections`, { width: 1344 });
+    await expect(page.getByText("Okta password spray").first()).toBeVisible({
+      timeout: 30000,
+    });
     await expect(page.getByText("31 times")).toBeVisible();
     await expect(
       page.getByText("Showing 1-3 of 3 security detections"),
     ).toBeVisible();
 
-    // The held run, its steps and the decision it waits for.
-    const held: Locator = page
-      .getByTestId("security-playbook-run-card")
-      .filter({ hasText: "Contain Compromised Okta Users" });
-    await expect(held).toContainText("Waiting for Approval");
-    await expect(held.getByRole("button", { name: "Approve" })).toBeEnabled();
-    await expect(held.getByRole("button", { name: "Reject" })).toBeEnabled();
-
-    // Timeline, entities, ATT&CK and notes.
-    await expect(page.getByText("took the case.")).toBeVisible();
-    await expect(page.getByText("475 events")).toBeVisible();
-    await expect(page.getByText("TA0006 Credential Access")).toBeVisible();
-    await expect(
-      page.getByText("Approving the suspend.", { exact: false }),
-    ).toBeVisible();
-
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     const detectionsTable: Locator = page
       .locator("table")
       .first()
@@ -1878,22 +2130,158 @@ test.describe("a case", () => {
       await overflowOf(detectionsTable),
       "detections table scrolls sideways",
     ).toBeLessThanOrEqual(1);
-
-    await screenshot(page, "case-desktop");
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 
-  test("approving the held step runs the rest of the playbook", async ({
+  test("the Entities page: each entity the case is about, with its week across every security event", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, SPRAY_CASE_PATH);
+    await open(page, `${SPRAY_CASE_PATH}/entities`, { width: 1344 });
+    const table: Locator = page.getByTestId("security-case-entities-table");
+    await expect(table).toBeVisible({ timeout: 30000 });
+
+    expect(
+      (await table.locator("thead th").allInnerTexts()).map(
+        (header: string): string => {
+          return header.trim().toLowerCase();
+        },
+      ),
+    ).toEqual([
+      "entity",
+      "type",
+      "events",
+      "findings",
+      "worst severity",
+      "last seen",
+    ]);
+
+    const address: Locator = table
+      .getByTestId("security-case-entity-row")
+      .filter({ hasText: "203.0.113.47" });
+    await expect(address.getByTestId("security-case-entity-events")).toHaveText(
+      "475",
+    );
+    await expect(address).toContainText("IP Address");
+    await expect(
+      address.getByTestId("security-case-entity-severity"),
+    ).toContainText("High");
+
+    // Each entity opens in Correlate.
+    await address.getByRole("link", { name: "203.0.113.47" }).click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${PRODUCT}/correlate`);
+
+    /*
+     * On a phone: two columns, the type and when under the value and the
+     * worst severity under the count - all of it inside the card, nothing
+     * left to scroll to sideways.
+     */
+    await open(page, `${SPRAY_CASE_PATH}/entities`, {
+      width: 390,
+      height: 844,
+    });
+    await expect(table).toBeVisible({ timeout: 30000 });
+    expect(
+      (await table.locator("thead th:visible").allInnerTexts()).map(
+        (header: string): string => {
+          return header.trim().toLowerCase();
+        },
+      ),
+    ).toEqual(["entity", "events"]);
+
+    const phoneAddress: Locator = table
+      .getByTestId("security-case-entity-row")
+      .filter({ hasText: "203.0.113.47" });
+    await expect(
+      phoneAddress.getByText("IP Address · last seen", { exact: false }),
+    ).toBeVisible();
+    await expect(
+      phoneAddress.getByTestId("security-case-entity-severity-under-count"),
+    ).toHaveText("High");
+    await expect(
+      phoneAddress.getByTestId("security-case-entity-severity"),
+    ).toBeHidden();
+
+    // The table fits the card: its scroller has nothing to scroll.
+    expect(
+      await table.evaluate((element: HTMLElement): number => {
+        const scroller: HTMLElement = element.parentElement as HTMLElement;
+
+        return scroller.scrollWidth - scroller.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
+    // A long value wraps whole inside its chip rather than cut short.
+    const longValue: Locator = table.getByText(
+      "k.morgan@acme-commerce.example",
+      { exact: true },
+    );
+    expect(
+      await longValue.evaluate((element: HTMLElement): number => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+  });
+
+  test("the Playbook Runs page: the held run with Approve and Reject, and its count beside the entry", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/playbook-runs`);
     const held: Locator = page
       .getByTestId("security-playbook-run-card")
       .filter({ hasText: "Contain Compromised Okta Users" });
     await expect(held).toContainText("Waiting for Approval", {
       timeout: 30000,
     });
+    await expect(held.getByRole("button", { name: "Approve" })).toBeEnabled();
+    await expect(held.getByRole("button", { name: "Reject" })).toBeEnabled();
+
+    // One run of this case waits: counted beside Playbook Runs, on any page of it.
+    await expect
+      .poll(() => {
+        return menuCount(page, "Playbook Runs");
+      })
+      .toBe("1");
+    await menuEntry(page, "Timeline").click();
+    await waitForCasePage(page, CASE_PAGES[1]!);
+    await expect
+      .poll(() => {
+        return menuCount(page, "Playbook Runs");
+      })
+      .toBe("1");
+
+    // Run Playbook is the header's: the card has no second one.
+    await menuEntry(page, "Playbook Runs").click();
+    await expect(held).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Run Playbook", exact: true }),
+    ).toHaveCount(1);
+  });
+
+  test("approving the held step runs the rest of the playbook, and the count beside the entry goes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/playbook-runs`);
+    const held: Locator = page
+      .getByTestId("security-playbook-run-card")
+      .filter({ hasText: "Contain Compromised Okta Users" });
+    await expect(held).toContainText("Waiting for Approval", {
+      timeout: 30000,
+    });
+    await expect
+      .poll(() => {
+        return menuCount(page, "Playbook Runs");
+      })
+      .toBe("1");
 
     await held.getByRole("button", { name: "Approve" }).click();
     const dialog: Locator = page.getByRole("dialog");
@@ -1921,14 +2309,94 @@ test.describe("a case", () => {
     expect(decided[0]!.body).toEqual({
       comment: "Confirmed with her manager.",
     });
+
+    // Nothing waits on this case any more.
+    await expect
+      .poll(() => {
+        return menuCount(page, "Playbook Runs");
+      })
+      .toBe("");
   });
 
-  test("a Security Viewer sees the held step, and why it cannot decide it", async ({
+  test("the Timeline page: everything that happened to the case, with who did it", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, SPRAY_CASE_PATH, { role: "viewer" });
+    await open(page, `${SPRAY_CASE_PATH}/timeline`);
+    await expect(page.getByText("took the case.")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(
+      page
+        .getByTestId("feed-entry")
+        .filter({ hasText: "Okta success after failures joined the case" }),
+    ).toBeVisible();
+  });
+
+  test("the Private Notes page: what the team wrote, and the composer for more", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/notes`);
+    await expect(
+      page.getByText("Approving the suspend.", { exact: false }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("notes-header")).toContainText(
+      "Private notes",
+    );
+  });
+
+  test("Audit Logs and Delete Case wait under Advanced; Delete Case asks before it deletes anything", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    await expect(menuSection(page, "Advanced")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+      { timeout: 30000 },
+    );
+    await expect(menuEntry(page, "Audit Logs")).toBeHidden();
+
+    await menuSection(page, "Advanced").click();
+    await menuEntry(page, "Audit Logs").click();
+    await expect(page.getByText("Case Audit Logs")).toBeVisible({
+      timeout: 30000,
+    });
+
+    await menuEntry(page, "Delete Case").click();
+    const card: Locator = cardTitled(page, "Delete Case");
+    await expect(card).toContainText(
+      "CASE-142 and its detections, notes, timeline and playbook runs are deleted for good.",
+    );
+    await card
+      .getByRole("button", { name: "Delete Case", exact: true })
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText(
+      "To keep the record, close it with a verdict instead.",
+    );
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(
+      (
+        (await fixture(page)) as unknown as {
+          deletes: Array<unknown>;
+        }
+      ).deletes,
+    ).toEqual([]);
+  });
+
+  test("a Security Viewer reads every page of the case, and is shown why it cannot change one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/playbook-runs`, { role: "viewer" });
     const held: Locator = page
       .getByTestId("security-playbook-run-card")
       .filter({ hasText: "Contain Compromised Okta Users" });
@@ -1937,17 +2405,449 @@ test.describe("a case", () => {
     });
     await expect(held.getByRole("button", { name: "Approve" })).toBeDisabled();
     await expect(held.getByRole("button", { name: "Reject" })).toBeDisabled();
+
+    // The header's changes are locked, each saying why on hover.
+    await expect(page.getByTestId("security-case-close")).toBeDisabled();
+    await page.getByTestId("security-case-close-disabled-wrapper").hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "You do not have permission",
+    );
+    // Run Playbook too: a viewer may read the runs, not start one.
+    await expect(page.getByTestId("security-case-run-playbook")).toBeDisabled();
+    await expect(
+      page.getByTestId("security-case-run-playbook-disabled-wrapper"),
+    ).toBeVisible();
+
+    // Delete Case is locked too.
+    await open(page, `${SPRAY_CASE_PATH}/delete`, { role: "viewer" });
+    const card: Locator = cardTitled(page, "Delete Case");
+    await expect(
+      card.getByRole("button", { name: "Delete Case", exact: true }),
+    ).toBeDisabled({ timeout: 30000 });
   });
 
-  test("dark theme, and a narrow screen", async ({ page }: { page: Page }) => {
-    await open(page, SPRAY_CASE_PATH, { theme: "dark" });
-    await expect(page.getByText("475 events")).toBeVisible({ timeout: 30000 });
-    await screenshot(page, "case-dark");
+  test("a case that is not there says so, and Open Cases goes back to the queue", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      `${PRODUCT}/cases/20000000-0000-4000-8000-000000000999/detections`,
+    );
+    const state: Locator = page.getByTestId("security-case-not-found");
+    await expect(state).toBeVisible({ timeout: 30000 });
+    await expect(state).toContainText("This case could not be found");
+    await expect(caseHeader(page)).toHaveCount(0);
+    await screenshot(page, "case-not-found", { fullPage: false });
 
-    await open(page, SPRAY_CASE_PATH, { width: 390, height: 844 });
-    await expect(page.getByText("475 events")).toBeVisible({ timeout: 30000 });
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
-    await screenshot(page, "case-mobile");
+    await state.getByRole("button", { name: "Open Cases" }).click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(CASES_PATH);
+  });
+
+  test("the header at a laptop's width: the pills and the actions on the first row, the actions at the right, the title under both across the header", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // CASE-141 is nobody's: the most buttons a case shows, Assign to Me among them.
+    for (const pathname of [
+      `${SPRAY_CASE_PATH}/detections`,
+      SPRAY_CASE_PATH,
+      `${DOMAIN_CASE_PATH}/entities`,
+    ]) {
+      await open(page, pathname, { width: 1344 });
+      await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
+      await pageAtRest(page);
+
+      const header: Box = await boxOf(caseHeader(page));
+      const actions: Box = await boxOf(
+        page.getByTestId("security-case-actions"),
+      );
+      const titleLocator: Locator = page.getByTestId("security-case-title");
+      const title: Box = await boxOf(titleLocator);
+      const chips: Box = await boxOf(
+        titleLocator.locator("xpath=preceding-sibling::div[1]"),
+      );
+      const buttons: Array<Box> = [];
+
+      for (const button of await page
+        .getByTestId("security-case-actions")
+        .getByRole("button")
+        .all()) {
+        buttons.push(await boxOf(button));
+      }
+
+      // The actions on the first row, beside the pills and level with them.
+      expect(actions.y + actions.height, pathname).toBeLessThanOrEqual(
+        title.y + 1,
+      );
+      expect(
+        Math.abs(chips.y + chips.height / 2 - (actions.y + actions.height / 2)),
+        pathname,
+      ).toBeLessThanOrEqual(2);
+      // Every button on that one row, the ⋯ last.
+      expect(
+        new Set(
+          buttons.map((box: Box): number => {
+            return Math.round(box.y);
+          }),
+        ).size,
+        pathname,
+      ).toBe(1);
+      // At the header's right edge, inside it.
+      expect(
+        header.x + header.width - (actions.x + actions.width),
+        pathname,
+      ).toBeLessThan(32);
+      // The title under both, from the pills' left edge to the actions' right one.
+      expect(Math.abs(title.x - chips.x), pathname).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(title.x + title.width - (actions.x + actions.width)),
+        pathname,
+      ).toBeLessThanOrEqual(1);
+      expect(await overflowOf(caseHeader(page)), pathname).toBeLessThanOrEqual(
+        1,
+      );
+    }
+  });
+
+  test("the header beside the side menu at a smaller laptop's width: the title right after the pills, the buttons under it at the right on one row, the ⋯ in the corner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // 1024 in production: the side menu leaves the header 684px.
+    await open(page, `${DOMAIN_CASE_PATH}/entities`, { width: 1088 });
+    await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
+    await pageAtRest(page);
+
+    const header: Box = await boxOf(caseHeader(page));
+    const actions: Box = await boxOf(page.getByTestId("security-case-actions"));
+    const titleLocator: Locator = page.getByTestId("security-case-title");
+    const title: Box = await boxOf(titleLocator);
+    const chips: Box = await boxOf(
+      titleLocator.locator("xpath=preceding-sibling::div[1]"),
+    );
+    const more: Box = await boxOf(page.getByTestId("security-case-more"));
+    const buttons: Array<Box> = [];
+
+    for (const action of [
+      "Assign to Me",
+      "Run Playbook",
+      "Declare Incident",
+      "Close Case",
+    ]) {
+      buttons.push(
+        await boxOf(
+          caseHeader(page).getByRole("button", { name: action, exact: true }),
+        ),
+      );
+    }
+
+    // The buttons under the title, at the right, all four on one row.
+    expect(actions.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
+    expect(header.x + header.width - (actions.x + actions.width)).toBeLessThan(
+      32,
+    );
+    expect(
+      new Set(
+        buttons.map((box: Box): number => {
+          return Math.round(box.y);
+        }),
+      ).size,
+    ).toBe(1);
+    // The ⋯ in the header's top-right corner, level with the pills - not alone on a row.
+    expect(header.x + header.width - (more.x + more.width)).toBeLessThan(28);
+    expect(
+      Math.abs(more.y + more.height / 2 - (chips.y + chips.height / 2)),
+    ).toBeLessThanOrEqual(4);
+    expect(more.y + more.height).toBeLessThan(title.y + title.height);
+    expect(await overflowOf(caseHeader(page))).toBeLessThanOrEqual(1);
+  });
+
+  test("the status steps and the figures follow the width they have beside the side menu, every word whole, at a laptop's, a small laptop's, a tablet's and a phone's width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Production's 1280, 1024 and 768 (the fixture's own frame is 64px
+     * narrower) and a phone. Four steps in one row at 768 broke
+     * "Investigating" into "Investi" and "gating", and four figures in one
+     * row at 1024 wrapped "TIME TO ACKNOWLEDGE" and pushed two of the
+     * figures a line down.
+     */
+    for (const width of [1344, 1088, 832, 390]) {
+      await open(page, SPRAY_CASE_PATH, { width });
+      const steps: Locator = page.getByTestId("security-case-status-steps");
+      await expect(steps).toBeVisible({ timeout: 30000 });
+      await pageAtRest(page);
+
+      const figures: Locator = page.getByRole("group", {
+        name: "Case figures",
+      });
+      const stepBoxes: Array<Box> = [];
+      const figureBoxes: Array<Box> = [];
+
+      for (const step of await steps.getByRole("listitem").all()) {
+        stepBoxes.push(await boxOf(step));
+      }
+      for (const figure of await figures.locator(":scope > div").all()) {
+        figureBoxes.push(await boxOf(figure));
+      }
+
+      // No word of a step's name or a figure's label split across two lines.
+      const brokenWords: Array<string> = await page.evaluate(
+        (): Array<string> => {
+          const broken: Array<string> = [];
+          const names: Array<Element> = [
+            ...Array.from(
+              document.querySelectorAll(
+                "[data-testid='security-case-status-steps'] button span:last-child",
+              ),
+            ),
+            ...Array.from(
+              document.querySelectorAll(
+                "[role='group'][aria-label='Case figures'] > div > div:first-child > span",
+              ),
+            ),
+          ];
+
+          for (const name of names) {
+            const text: Text | null = name.firstChild as Text | null;
+            const content: string = text?.textContent || "";
+            let start: number = 0;
+
+            for (const word of content.split(" ")) {
+              if (text && word.length > 0) {
+                const range: Range = document.createRange();
+                range.setStart(text, start);
+                range.setEnd(text, start + word.length);
+                const lines: Set<number> = new Set(
+                  Array.from(range.getClientRects()).map(
+                    (rect: DOMRect): number => {
+                      return Math.round(rect.top);
+                    },
+                  ),
+                );
+                if (lines.size > 1) {
+                  broken.push(word);
+                }
+              }
+              start += word.length + 1;
+            }
+          }
+
+          return broken;
+        },
+      );
+
+      expect(brokenWords, `words split across lines at ${width}`).toEqual([]);
+
+      const rowsOf: (boxes: Array<Box>) => number = (
+        boxes: Array<Box>,
+      ): number => {
+        return new Set(
+          boxes.map((box: Box): number => {
+            return Math.round(box.y);
+          }),
+        ).size;
+      };
+
+      if (width === 1344) {
+        // Room for each: the four steps in one row, and the four figures.
+        expect(rowsOf(stepBoxes)).toBe(1);
+        expect(rowsOf(figureBoxes)).toBe(1);
+      }
+
+      if (width === 1088) {
+        // Four figures in two rows of two, every label on one line.
+        expect(rowsOf(figureBoxes)).toBe(2);
+      }
+
+      if (width === 832) {
+        // A tablet's 440px of steps: two rows of two.
+        expect(rowsOf(stepBoxes)).toBe(2);
+        expect(rowsOf(figureBoxes)).toBe(2);
+      }
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("the header on a phone: the buttons fill their rows, the ⋯ in the top corner, nothing cut short", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of [undefined, "dark"] as const) {
+      await open(page, `${SPRAY_CASE_PATH}/detections`, {
+        width: 390,
+        height: 844,
+        theme,
+      });
+      await expect(caseHeader(page)).toBeVisible({ timeout: 30000 });
+      await pageAtRest(page);
+
+      const header: Box = await boxOf(caseHeader(page));
+      const more: Box = await boxOf(page.getByTestId("security-case-more"));
+      const title: Box = await boxOf(page.getByTestId("security-case-title"));
+      const buttons: Array<Box> = [];
+
+      for (const action of ["Run Playbook", "Declare Incident", "Close Case"]) {
+        const button: Locator = caseHeader(page).getByRole("button", {
+          name: action,
+          exact: true,
+        });
+
+        buttons.push(await boxOf(button));
+        expect(
+          await overflowOf(button.locator("span.truncate")),
+          `${action} is cut short`,
+        ).toBeLessThanOrEqual(1);
+      }
+
+      // The ⋯ in the header's top-right corner, above the title - not on a row of its own.
+      expect(header.x + header.width - (more.x + more.width)).toBeLessThan(28);
+      expect(more.y - header.y).toBeLessThan(24);
+      expect(more.y + more.height).toBeLessThan(title.y + title.height);
+
+      // The buttons under the title, each row of them filling the header's width.
+      const actions: Box = await boxOf(
+        page.getByTestId("security-case-actions"),
+      );
+      const rows: Map<number, Array<Box>> = new Map();
+      for (const box of buttons) {
+        expect(box.y).toBeGreaterThan(title.y);
+        rows.set(Math.round(box.y), [
+          ...(rows.get(Math.round(box.y)) || []),
+          box,
+        ]);
+      }
+      for (const row of rows.values()) {
+        const left: number = Math.min(
+          ...row.map((box: Box): number => {
+            return box.x;
+          }),
+        );
+        const right: number = Math.max(
+          ...row.map((box: Box): number => {
+            return box.x + box.width;
+          }),
+        );
+        expect(Math.abs(left - actions.x)).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(right - (actions.x + actions.width)),
+        ).toBeLessThanOrEqual(1);
+      }
+
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(page, `case-header-390-${theme || "light"}`, {
+        fullPage: false,
+      });
+    }
+  });
+
+  test("on a phone, the case's menu names the section and the page, and moves between its pages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/detections`, {
+      width: 390,
+      height: 844,
+    });
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Investigation / Detections", {
+      timeout: 30000,
+    });
+
+    await toggle.click();
+    const menu: Locator = page.getByRole("navigation", {
+      name: "Main navigation",
+    });
+    for (const title of ["Overview", "Timeline", "Entities", "Private Notes"]) {
+      await expect(
+        menu.getByRole("link", { name: title, exact: true }),
+      ).toBeVisible();
+    }
+    await screenshot(page, "case-side-menu-mobile", { fullPage: false });
+
+    await menu.getByRole("link", { name: "Entities", exact: true }).click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${SPRAY_CASE_PATH}/entities`);
+    await expect(toggle).toContainText("Investigation / Entities");
+  });
+
+  /*
+   * Every page opened straight from its address, at a laptop's width and a
+   * phone's: in the dark theme at the laptop's width, and on the phone for
+   * the pages whose own content changes there (the Overview's figures, the
+   * Entities table's columns) - the header's phone layout in the dark is
+   * the header's own test, above. Kept to these, so the suite stays inside
+   * its CI group's time.
+   */
+  const CASE_PAGE_SHOTS: ReadonlyArray<[number, "dark" | undefined]> = [
+    [1344, undefined],
+    [1344, "dark"],
+    [390, undefined],
+  ];
+  const CASE_PAGES_DARK_ON_A_PHONE: ReadonlyArray<string> = [
+    "Overview",
+    "Entities",
+  ];
+
+  test("a link straight to any of its pages opens that page, its entry lit; at 1280 and 390, in both themes, nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const casePage of CASE_PAGES) {
+      const shots: Array<[number, "dark" | undefined]> = [
+        ...CASE_PAGE_SHOTS,
+        ...(CASE_PAGES_DARK_ON_A_PHONE.includes(casePage.title)
+          ? ([[390, "dark"]] as Array<[number, "dark" | undefined]>)
+          : []),
+      ];
+
+      for (const [width, theme] of shots) {
+        await open(page, casePagePath(casePage), {
+          width,
+          height: width === 390 ? 844 : 1000,
+          theme,
+        });
+        await waitForCasePage(page, casePage);
+
+        if (width === 1344 && !theme) {
+          // Its own entry lit, and its section open, the Overview's too.
+          expect([casePage.title, await litEntries(page)]).toEqual([
+            casePage.title,
+            [casePage.title],
+          ]);
+          await expect(
+            menuSection(page, casePage.section),
+            `${casePage.title}'s section`,
+          ).toHaveAttribute("aria-expanded", "true");
+        }
+
+        expect(
+          await pageOverflow(page),
+          `${casePage.title} at ${width} ${theme || "light"}`,
+        ).toBeLessThanOrEqual(1);
+        await screenshot(
+          page,
+          `case-${casePage.slug}-${width === 390 ? 390 : 1280}-${theme || "light"}`,
+        );
+      }
+    }
   });
 });
 
@@ -4041,12 +4941,14 @@ test.describe("OneUptime AI on the Security pages", () => {
       card.getByTestId("security-case-ai-triaged-when"),
     ).toBeVisible();
 
-    // The card comes first, above the detections.
+    // The card leads the case's Overview, under its figures, above ATT&CK.
     const cardBox: Box = await boxOf(card);
-    const detections: Box = await boxOf(
-      page.getByText("Okta password spray").first(),
+    const figures: Box = await boxOf(
+      page.getByRole("group", { name: "Case figures" }),
     );
-    expect(cardBox.y).toBeLessThan(detections.y);
+    const attack: Box = await boxOf(page.getByText("MITRE ATT&CK").first());
+    expect(figures.y).toBeLessThan(cardBox.y);
+    expect(cardBox.y).toBeLessThan(attack.y);
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "case-ai-desktop");
@@ -4397,8 +5299,12 @@ test.describe("OneUptime AI on the Security pages", () => {
     }
 
     await open(page, SPRAY_CASE_PATH, { ai: "off" });
-    await expect(page.getByText("475 events")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Time to Contain")).toBeVisible({
+      timeout: 30000,
+    });
     await expect(aiCard(page)).toHaveCount(0);
+    // The ATT&CK tactics still follow the figures.
+    await expect(page.getByText("TA0006 Credential Access")).toBeVisible();
     expect(await askedAi()).toEqual([]);
 
     await open(page, CASES_PATH, { ai: "off" });
@@ -4794,7 +5700,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, SPRAY_CASE_PATH, { width: 1280 });
+    await open(page, `${SPRAY_CASE_PATH}/timeline`, { width: 1280 });
     const entry: Locator = page
       .getByTestId("feed-entry")
       .filter({ hasText: "OneUptime AI triaged this case: Likely Malicious." });
@@ -5379,7 +6285,7 @@ test.describe("every page fits the screen", () => {
     ["unassigned", UNASSIGNED_CASES_PATH, "CASE-141"],
     ["closed cases", CLOSED_CASES_PATH, "Benign Positive"],
     ["all cases", ALL_CASES_PATH, "CASE-142"],
-    ["case", SPRAY_CASE_PATH, "475 events"],
+    ["case", SPRAY_CASE_PATH, "Time to Contain"],
     ["entities", ENTITIES_PATH, "203.0.113.47"],
     ["detection rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
     ["rule library", RULE_LIBRARY_PATH, "Brute force from one IP address"],
@@ -5399,13 +6305,35 @@ test.describe("every page fits the screen", () => {
     ["case statuses", CASE_STATUSES_PATH, "Investigating"],
   ];
 
+  /*
+   * A case's pages the widest things are on, at the widths where the side
+   * menu leaves them least room; every page of a case is read at 1280 and
+   * 390 with the case's own tests (a case, above).
+   */
+  const CASE_PAGES_BESIDE_THE_MENU: ReadonlyArray<[string, string, string]> = [
+    ["case detections", `${SPRAY_CASE_PATH}/detections`, "31 times"],
+    [
+      "case entities",
+      `${SPRAY_CASE_PATH}/entities`,
+      "a.ng@acme-commerce.example",
+    ],
+    [
+      "case playbook runs",
+      `${SPRAY_CASE_PATH}/playbook-runs`,
+      "Started on its own: Case Opened",
+    ],
+  ];
+
   for (const width of [1280, 1024, 768, 390]) {
     test(`at ${width}, no page scrolls sideways`, async ({
       page,
     }: {
       page: Page;
     }) => {
-      for (const [name, pathname, text] of PAGES) {
+      for (const [name, pathname, text] of [
+        ...PAGES,
+        ...(width === 1024 || width === 768 ? CASE_PAGES_BESIDE_THE_MENU : []),
+      ]) {
         await open(page, pathname, { width });
         await expect(page.getByText(text).first(), name).toBeVisible({
           timeout: 30000,

@@ -128,6 +128,27 @@ describe("InsightDetectors.getAllDetectors", () => {
     ).toEqual([AIInsightType.ProfileHotspot]);
   });
 
+  test("Metrics' detectors find high cardinality, histogram buckets that do not fit and missing metrics; the drift detector stays AI Insights'", () => {
+    expect(
+      InsightDetectors.getTelemetryAiDetectors(TelemetryAiLane.Metric).map(
+        (detector: InsightDetector): AIInsightType => {
+          return detector.insightType;
+        },
+      ),
+    ).toEqual([
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ]);
+    expect(
+      InsightDetectors.getAllDetectors().map(
+        (detector: InsightDetector): AIInsightType => {
+          return detector.insightType;
+        },
+      ),
+    ).toContain(AIInsightType.MetricDrift);
+  });
+
   test("every registered detector exposes a detect function", () => {
     for (const detector of everyDetector()) {
       expect(typeof detector.detect).toBe("function");
