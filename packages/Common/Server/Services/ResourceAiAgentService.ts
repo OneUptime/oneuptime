@@ -803,7 +803,8 @@ export class Service extends DatabaseService<Model> {
     const nowTime: number = (now || OneUptimeDate.getCurrentDate()).getTime();
 
     return (
-      nowTime - refusedAt.getTime() >= RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_MS
+      nowTime - refusedAt.getTime() >=
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_MS
     );
   }
 

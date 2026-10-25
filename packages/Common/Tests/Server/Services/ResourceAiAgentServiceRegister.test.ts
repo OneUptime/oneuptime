@@ -2113,6 +2113,38 @@ describe("getReRegistrationAdmission", () => {
     expect(admission({ ...ONLINE, lastAliveAt: null })).toBe("offline");
     expect(admission(ONLINE)).toBeNull();
   });
+
+  test("unresponsive: online, but silent since a refusal for the whole takeover window", () => {
+    const windowMs: number =
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS * 1000;
+    const unanswered: AnyObject = {
+      ...ONLINE,
+      lastAliveAt: new Date(NOW.getTime() - windowMs - 30 * 1000),
+      lastRefusedRegistrationAt: new Date(NOW.getTime() - windowMs),
+      lastRefusedRegistrationReason: "previous_instance_online",
+    };
+
+    expect(admission(unanswered)).toBe("unresponsive");
+    // A moment short of the window, or answered since: still refused.
+    expect(
+      admission({
+        ...unanswered,
+        lastRefusedRegistrationAt: new Date(NOW.getTime() - windowMs + 1000),
+      }),
+    ).toBeNull();
+    expect(
+      admission({
+        ...unanswered,
+        lastAliveAt: new Date(NOW.getTime() - windowMs + 1000),
+      }),
+    ).toBeNull();
+    // The current key, a reset or a sign-off still come first.
+    expect(admission(unanswered, CURRENT_KEY)).toBe("continuity");
+    expect(admission({ ...unanswered, keyHash: null })).toBe("reset");
+    expect(admission({ ...unanswered, connectionStatus: "disconnected" })).toBe(
+      "signed_off",
+    );
+  });
 });
 
 describe("getFirstConnectionDefaults", () => {
