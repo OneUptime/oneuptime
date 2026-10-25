@@ -15,6 +15,7 @@ import { fetchDuplicateName, getDuplicateNameColumn } from "./DuplicateName";
 import {
   translatableTerm,
   translateNamedAction,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -59,6 +60,16 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    */
   description?: string | undefined;
 }
+
+/*
+ * What the dialog says under its title: what happens once Duplicate is
+ * pressed. The card behind it already said what the copy is; "Are you sure
+ * you want to duplicate this monitor?" asked the reader to confirm what they
+ * had just chosen and told them nothing new.
+ */
+export const DUPLICATE_DIALOG_DESCRIPTION: string = translationKey(
+  "The copy opens as soon as it is made.",
+);
 
 /*
  * DUPLICATE: A COPY, NAMED AND OPENED.
@@ -325,14 +336,10 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
 
       {showModal ? (
         <BasicFormModal<TBaseModel>
-          description={translator.translateTemplate(
-            "Are you sure you want to duplicate this {{itemName}}?",
-            {
-              itemName: translatableTerm(model.singularName || "", {
-                inSentence: true,
-              }),
-            },
-          )}
+          description={
+            translator.translateText(DUPLICATE_DIALOG_DESCRIPTION) ||
+            DUPLICATE_DIALOG_DESCRIPTION
+          }
           title={duplicateTitle}
           isLoading={isLoading}
           error={formError || undefined}

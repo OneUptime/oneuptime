@@ -3,6 +3,7 @@ import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope
 import {
   composedValue,
   PluralTemplate,
+  TemplateValues,
   TranslatableTerm,
   translatableTerm,
   translationKey,
@@ -394,30 +395,55 @@ export const doesApiKeyMissPartOfRole: (
  * The Add Custom Role dialog on a key's page: what a role gives the key.
  * The Owned exception is said only when a role offered has such a
  * permission - in most projects none has, and the sentence only lengthened
- * the dialog.
+ * the dialog. {{roles}} is the Roles page's name, drawn as a link to it:
+ * the page waits in the Teams menu's folded Settings section, which nothing
+ * on a key's page leads to.
  */
 export const ADD_ROLE_TO_API_KEY_DESCRIPTION: string = translationKey(
-  "The key gets everything the role allows. Make or change roles on the Roles page.",
+  "The key gets everything the role allows. Make or change roles on the {{roles}} page.",
 );
 
 export const ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED: string = translationKey(
-  "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.",
+  "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the {{roles}} page.",
 );
 
-export const getAddRoleToApiKeyDescription: (
-  translator: Translator,
-  data: { isAnyOfferedRolePartlyOwned: boolean },
-) => string = (
-  translator: Translator,
-  data: { isAnyOfferedRolePartlyOwned: boolean },
-): string => {
+// The same dialog on a team's Permissions page.
+export const ADD_ROLE_TO_TEAM_DESCRIPTION: string = translationKey(
+  "The team's members get everything the role allows. Make or change roles on the {{roles}} page.",
+);
+
+/*
+ * Add Custom Role, locked once the team or the key has every role there
+ * is. The card's description just above the button links to the Roles
+ * page; a tooltip cannot hold a link, so it says only why.
+ */
+export const EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP: string = translationKey(
+  "This team has every custom role already.",
+);
+
+export const EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP: string = translationKey(
+  "This key has every custom role already.",
+);
+
+// A sentence for TranslatedSentence: its template, and its plain values.
+export interface TemplatedSentence {
+  template: string;
+  values: TemplateValues;
+}
+
+export const getAddRoleToApiKeyDescription: (data: {
+  isAnyOfferedRolePartlyOwned: boolean;
+}) => TemplatedSentence = (data: {
+  isAnyOfferedRolePartlyOwned: boolean;
+}): TemplatedSentence => {
   if (!data.isAnyOfferedRolePartlyOwned) {
-    return text(translator, ADD_ROLE_TO_API_KEY_DESCRIPTION);
+    return { template: ADD_ROLE_TO_API_KEY_DESCRIPTION, values: {} };
   }
 
-  return translator.translateTemplate(ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED, {
-    scope: ownedScopeTitle(),
-  });
+  return {
+    template: ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+    values: { scope: ownedScopeTitle() },
+  };
 };
 
 /*

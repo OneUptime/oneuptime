@@ -43,7 +43,12 @@ export interface ModalSecondaryButton {
 
 export interface ComponentProps {
   title: string;
-  description?: string | undefined;
+  /*
+   * A line under the title. An element can carry a link - to the page where
+   * what the dialog picks from is made (Add a Custom Role's Roles page) -
+   * that never takes the dialog's first focus: nothing in the header does.
+   */
+  description?: string | ReactElement | undefined;
   children: Array<ReactElement> | ReactElement;
   onClose?: undefined | (() => void);
   submitButtonText?: undefined | string;
@@ -139,11 +144,10 @@ export const pickInitialFocusElement: (data: {
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, translateValue } = useTranslateValue();
   const translatedTitle: string = translateString(props.title) || props.title;
-  const translatedDescription: string | undefined = translateString(
-    props.description,
-  );
+  const translatedDescription: string | ReactElement | undefined =
+    translateValue(props.description);
   const translatedSubmitButtonText: string | undefined = translateString(
     props.submitButtonText,
   );
@@ -372,6 +376,8 @@ const Modal: FunctionComponent<ComponentProps> = (
         header,
       });
 
+    const placedFocusElement: HTMLElement = initialFocusElement || modal;
+
     if (isTopmostDialog()) {
       /*
        * Without scrolling the page behind the dialog. The Dashboard draws its
@@ -383,7 +389,71 @@ const Modal: FunctionComponent<ComponentProps> = (
        * dialog, and still there once it closed. Styled, the overlay is the
        * window's size: there is nothing to scroll to.
        */
-      (initialFocusElement || modal).focus({ preventScroll: true });
+      placedFocusElement.focus({ preventScroll: true });
+    }
+
+    /*
+     * A form that draws after the dialog opens - one that reads its record,
+     * or the options of a field, first - had no field yet when the focus was
+     * placed, so it went to the footer's button (Add a Role's Add Role) and
+     * stayed there once the fields came. Until a field arrives, the dialog
+     * watches its body; the first control of a form drawn there takes the
+     * focus, as it would have had the form drawn at once. Only while the
+     * focus is still where the dialog put it: a person who has tabbed,
+     * clicked or typed keeps their place. Content that is not a form - the
+     * list an Archive dialog fills in, a link in a notice - never takes it.
+     */
+    const content: HTMLDivElement | null = contentRef.current;
+    let lateFieldWatcher: MutationObserver | null = null;
+
+    const stopWatchingForALateField: () => void = (): void => {
+      lateFieldWatcher?.disconnect();
+      lateFieldWatcher = null;
+    };
+
+    const isFocusPlacedInBody: boolean = Boolean(
+      initialFocusElement && content && content.contains(initialFocusElement),
+    );
+
+    if (
+      content &&
+      !isFocusPlacedInBody &&
+      typeof MutationObserver !== "undefined"
+    ) {
+      lateFieldWatcher = new MutationObserver((): void => {
+        const activeElement: Element | null = document.activeElement;
+
+        if (
+          activeElement !== placedFocusElement &&
+          activeElement !== document.body &&
+          activeElement !== null
+        ) {
+          stopWatchingForALateField();
+          return;
+        }
+
+        if (!isTopmostDialog()) {
+          return;
+        }
+
+        // The first control of a form in the body.
+        const lateField: HTMLElement | undefined = getFocusableElements().find(
+          (element: HTMLElement): boolean => {
+            const form: Element | null = element.closest("form");
+
+            return Boolean(form && content.contains(form));
+          },
+        );
+
+        if (!lateField) {
+          return;
+        }
+
+        stopWatchingForALateField();
+        lateField.focus({ preventScroll: true });
+      });
+
+      lateFieldWatcher.observe(content, { childList: true, subtree: true });
     }
 
     const handleKeyDown: (event: KeyboardEvent) => void = (
@@ -436,6 +506,7 @@ const Modal: FunctionComponent<ComponentProps> = (
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      stopWatchingForALateField();
       document.removeEventListener("keydown", handleKeyDown);
 
       if (previouslyFocusedElementRef.current?.isConnected) {

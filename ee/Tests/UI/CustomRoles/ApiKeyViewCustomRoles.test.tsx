@@ -526,12 +526,18 @@ describe("an API key's custom roles", () => {
     const modal: HTMLElement = await screen.findByTestId("modal");
     expect(within(modal).getByText("Add a Custom Role")).toBeInTheDocument();
     // Auditor, the one role offered, gives a key all of itself: no exception said.
-    expect(
-      within(modal).getByText(
-        "The key gets everything the role allows. Make or change roles on the Roles page.",
-      ),
-    ).toBeInTheDocument();
+    expect(within(modal).getByTestId("modal-description")).toHaveTextContent(
+      "The key gets everything the role allows. Make or change roles on the Roles page.",
+    );
     expect(within(modal).queryByText(/Only resources they own/)).toBeNull();
+    // "Roles" is a link to the Roles page, where roles are made.
+    const rolesLink: HTMLElement = within(
+      within(modal).getByTestId("modal-description"),
+    ).getByRole("link", { name: "Roles" });
+    expect(rolesLink).toHaveAttribute(
+      "href",
+      expect.stringContaining("/teams/roles"),
+    );
 
     // Only Auditor: the key has Incident Responder.
     expect(
@@ -640,9 +646,15 @@ describe("an API key's custom roles", () => {
     });
 
     const modal: HTMLElement = await screen.findByTestId("modal");
-    expect(
-      await within(modal).findByText(
+    await waitFor(() => {
+      expect(within(modal).getByTestId("modal-description")).toHaveTextContent(
         "The key gets everything the role allows, except permissions scoped to “Only resources they own”: a key owns nothing. Make or change roles on the Roles page.",
+      );
+    });
+    expect(
+      within(within(modal).getByTestId("modal-description")).getByRole(
+        "link",
+        { name: "Roles" },
       ),
     ).toBeInTheDocument();
     // And the card of that role says how much of it the key would hold.
@@ -671,9 +683,11 @@ describe("an API key's custom roles", () => {
 
     // The reason waits on the button's wrapper, which can still be hovered.
     fireEvent.mouseEnter(button.parentElement!);
+    // A tooltip cannot hold a link: the card's own words link the Roles page.
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "This key has every custom role already. Make another on the Roles page.",
+      "This key has every custom role already.",
     );
+    expect(screen.getByRole("tooltip")).not.toHaveTextContent("Roles page");
 
     fireEvent.click(button);
     await act(async (): Promise<void> => {});

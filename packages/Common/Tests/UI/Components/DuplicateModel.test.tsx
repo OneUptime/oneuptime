@@ -1064,9 +1064,13 @@ describe("DuplicateModel", () => {
       expect(
         within(confirmDialog).getByTestId("modal-title")?.textContent,
       ).toBe("Duplicate Foo");
+      // What happens once Duplicate is pressed - not a question.
       expect(
         within(confirmDialog).getByTestId("modal-description")?.textContent,
-      ).toBe("Are you sure you want to duplicate this foo?");
+      ).toBe("The copy opens as soon as it is made.");
+      expect(
+        within(confirmDialog).getByTestId("modal-description")?.textContent,
+      ).not.toMatch(/are you sure/i);
       expect(
         within(confirmDialog).getByTestId("modal-footer-submit-button")
           ?.textContent,

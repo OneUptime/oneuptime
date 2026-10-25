@@ -155,9 +155,11 @@ describe("by default", () => {
 
     // Form.shareKey's column title is "Share Key".
     expect(modalTitle()).toBe("Reset Share Key");
+    // What a reset does to whoever relies on the old value - not a question.
     expect(modalDescription()).toBe(
-      "Are you sure you want to reset Share Key?",
+      "Share Key gets a new value. Anything that still uses the old value stops working until you give it the new one.",
     );
+    expect(modalDescription()).not.toMatch(/are you sure/i);
     expect(submitButton()).toHaveTextContent("Reset");
 
     await click(submitButton());
