@@ -515,6 +515,19 @@ and the explorer's reads follow:
   value keeps its row's geometry. Run against a row that writes counts out in full,
   the bars of one section start 4px apart and the test fails.
 
+## A host's and a cluster's Security card
+
+`ResourceSecurityCard.spec.ts` (9 tests, same fixture and command) opens the host and the
+cluster Overview with `?security=`, which has `POST /security-case/resource-security` answer
+what Security Events found about them this week: `news` (the host's three open cases of four,
+128 events, 4 findings at High and a risk of 64; the cluster's one case and 37 events) or
+`quiet` (nothing named them). Left out, the project uses no Security Events and the card draws
+nothing, as on every other spec here. It covers: no card in a project that uses no Security
+Events; the host's open cases, each opening its case, the rest counted; its events opening
+Security Events on what names it this week; its findings and risk; a quiet host's one line; the
+cluster's card; and the card whole at 1280 and 390 in both themes, with nothing scrolling
+sideways. Its screenshots are `host-security-card-*` and `cluster-security-card-1280`.
+
 ## Run it
 
 ```

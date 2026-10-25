@@ -654,6 +654,94 @@ describe("EventStatBar laid out by its own width", () => {
     expect(bar.children).toHaveLength(4);
   });
 
+  /*
+   * A record's Security card: four figures of a word and a short number.
+   * With 14rem a cell they filled two rows of mostly empty cells in a card
+   * as wide as a laptop's page (890px); with 9rem they share one row from
+   * 36rem, and a phone's card shows two a row.
+   */
+  test("compact cells keep 8rem two a row and 9rem three or four a row, in whole two-digit rems the runtime sorts the way numbers sort", () => {
+    const CONTAINER_COLUMNS: RegExp =
+      /^\[@container\(min-width:(\d+)rem\)\]:grid-cols-(\d+)$/;
+
+    expect(getEventStatBarColumnClassName(4, 4, true, "compact")).toBe(
+      "[@container(min-width:16rem)]:grid-cols-2 [@container(min-width:36rem)]:grid-cols-4",
+    );
+    expect(getEventStatBarColumnClassName(3, 3, true, "compact")).toBe(
+      "[@container(min-width:27rem)]:grid-cols-3",
+    );
+    expect(getEventStatBarColumnClassName(2, 2, true, "compact")).toBe(
+      "[@container(min-width:16rem)]:grid-cols-2",
+    );
+    // A cell left out never leaves an empty track.
+    expect(getEventStatBarColumnClassName(4, 3, true, "compact")).toBe(
+      "[@container(min-width:27rem)]:grid-cols-3",
+    );
+
+    for (const columns of [1, 2, 3, 4] as Array<EventStatBarColumns>) {
+      const names: Array<string> = getEventStatBarColumnClassName(
+        columns,
+        columns,
+        true,
+        "compact",
+      )
+        .split(" ")
+        .filter((name: string): boolean => {
+          return name.length > 0;
+        });
+      const widths: Array<number> = [];
+
+      for (const name of names) {
+        const match: RegExpMatchArray | null = name.match(CONTAINER_COLUMNS);
+
+        expect(match).not.toBeNull();
+        expect(Number(match![1]) / Number(match![2])).toBeGreaterThanOrEqual(
+          Number(match![2]) === 2 ? 8 : 9,
+        );
+        // Two digits: "36rem" sorts after "16rem" as text as it does as a number.
+        expect(match![1]).toHaveLength(2);
+        widths.push(Number(match![1]));
+      }
+
+      expect([...widths].sort()).toEqual(widths);
+    }
+
+    // Left out, or "regular", the cells keep 14rem as they always have; the window's breakpoints never take it.
+    expect(getEventStatBarColumnClassName(4, 4, true, "regular")).toBe(
+      getEventStatBarColumnClassName(4, 4, true),
+    );
+    expect(getEventStatBarColumnClassName(4, 4, false, "compact")).toBe(
+      "sm:grid-cols-2 lg:grid-cols-4",
+    );
+  });
+
+  test("a compact bar draws the compact classes in its size container", () => {
+    render(
+      <EventStatBar
+        columns={4}
+        ariaLabel="Security"
+        isLaidOutByOwnWidth={true}
+        cellSize="compact"
+      >
+        <EventStatTile variant="segment" label="Open Cases" value="4" />
+        <EventStatTile variant="segment" label="Events" value="128" />
+        <EventStatTile variant="segment" label="Findings" value="4" />
+        <EventStatTile variant="segment" label="Risk" value="64" />
+      </EventStatBar>,
+    );
+
+    const bar: HTMLElement = screen.getByRole("group", { name: "Security" });
+
+    expect(bar).toHaveClass(
+      "[@container(min-width:16rem)]:grid-cols-2",
+      "[@container(min-width:36rem)]:grid-cols-4",
+    );
+    expect(bar).not.toHaveClass("[@container(min-width:56rem)]:grid-cols-4");
+    expect(bar.parentElement?.className).toBe(
+      EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME,
+    );
+  });
+
   test("left out, the bar follows the window's breakpoints as it always has, with no wrapper", () => {
     for (const isLaidOutByOwnWidth of [undefined, false]) {
       const container: HTMLElement = drawFourTiles(isLaidOutByOwnWidth);

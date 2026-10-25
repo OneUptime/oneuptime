@@ -396,6 +396,7 @@
     "Security Events (SIEM)": "Eventos de segurança (SIEM)",
     "Security Cases and Playbooks (SOAR)": "Casos de segurança e playbooks (SOAR)",
     "Entity Risk (Risk-Based Alerting)": "Risco de entidades (alertas baseados em risco)",
+    "Connected Signals": "Sinais conectados",
     "Threat Intelligence (STIX/TAXII)": "Inteligência de ameaças (STIX/TAXII)",
     "OneUptime AI in Security": "OneUptime AI na segurança",
     "RUM Overview": "Visão geral do RUM",

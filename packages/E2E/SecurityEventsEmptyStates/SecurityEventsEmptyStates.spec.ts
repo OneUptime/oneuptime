@@ -219,6 +219,7 @@ interface RecordedModelRequest {
 interface RecordedApiRequest {
   method: string;
   url: string;
+  body?: Record<string, unknown> | null;
 }
 
 interface RecordedWrite {
@@ -237,6 +238,7 @@ interface FixtureState {
   role: string;
   latest: string;
   siem: string;
+  events: string;
   listRequests: Array<RecordedModelRequest>;
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedModelRequest>;
@@ -263,6 +265,8 @@ interface OpenOptions {
   latest?: "none" | "pending" | "old" | undefined;
   // Three SIEMs in the Send to your SIEM table.
   siem?: "none" | "rows" | undefined;
+  // One event in the window, so its drawer can be opened.
+  events?: "none" | "one" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -429,6 +433,9 @@ async function open(
   }
   if (options.siem && options.siem !== "none") {
     params.set("siem", options.siem);
+  }
+  if (options.events && options.events !== "none") {
+    params.set("events", options.events);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -3276,4 +3283,298 @@ test.describe("security events empty state", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(sidebar).toBeHidden();
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An event's Connected tab (?events=one)
+ * ---------------------------------------------------------------------------
+ *
+ * The drawer of the window's one event - Defender's encoded PowerShell on
+ * web-03, by k.morgan@acme-commerce.example from 203.0.113.30 - and its
+ * Connected tab: what the event names in the rest of OneUptime, looked up
+ * only once the tab is opened, in the hour around the event, each record
+ * whole inside the drawer at a laptop's width and a phone's, light and dark.
+ */
+
+// ?events=one's event: twenty minutes before NOW.
+const EVENT_TIME: string = "2026-09-22T11:40:00.000Z";
+// The records ConnectionsFixture.js lays out.
+const WEB_03_ID: string = "2d000000-0000-4000-8000-000000000002";
+const KAI_ID: string = "80000000-0000-4000-8000-000000000021";
+const WEB_03_STAGING: string = "web-03.staging.acme-commerce.example";
+
+function eventDrawer(page: Page): Locator {
+  return page.getByTestId("security-event-detail-panel");
+}
+
+function drawerTab(page: Page, name: string): Locator {
+  return eventDrawer(page).getByRole("tab", { name, exact: true });
+}
+
+function connectedRecords(page: Page): Locator {
+  return eventDrawer(page).getByTestId("security-connected-record");
+}
+
+// A record's line, by the name it is drawn with.
+function connectedRecord(page: Page, name: string): Locator {
+  return connectedRecords(page).filter({
+    has: page.getByTestId("security-connected-record-name").getByText(name, {
+      exact: true,
+    }),
+  });
+}
+
+async function connectedNames(page: Page): Promise<Array<string>> {
+  return (
+    await eventDrawer(page)
+      .getByTestId("security-connected-record-name")
+      .allInnerTexts()
+  ).map((text: string): string => {
+    return text.trim();
+  });
+}
+
+function connectionReads(state: FixtureState): Array<RecordedApiRequest> {
+  return state.apiRequests.filter((request: RecordedApiRequest): boolean => {
+    return (
+      request.method === "POST" &&
+      new URL(request.url).pathname.endsWith("/security-case/connections")
+    );
+  });
+}
+
+async function openEventDrawer(
+  page: Page,
+  options: OpenOptions = {},
+): Promise<void> {
+  await open(page, EVENTS_PATH, { ...options, events: "one" });
+  const row: Locator = page.getByTestId("security-event-row");
+  await expect(row).toHaveCount(1, { timeout: 30000 });
+  await row.click();
+  // The panel is fixed to the window's edge: its wrapper has no box of its own.
+  await expect(page.getByTestId("telemetry-detail-panel")).toBeVisible();
+}
+
+async function openConnectedTab(page: Page): Promise<void> {
+  await drawerTab(page, "Connected").click();
+  await expect(connectedRecords(page).first()).toBeVisible({
+    timeout: 30000,
+  });
+}
+
+/*
+ * The parts of the tab's records that run past the drawer's edges, or are
+ * cut off inside a box that hides what overflows it: none may be.
+ */
+async function recordPartsCutOff(page: Page): Promise<Array<string>> {
+  return page
+    .getByTestId("telemetry-detail-panel")
+    .evaluate((panel: Element): Array<string> => {
+      const edge: DOMRect = panel.getBoundingClientRect();
+      const problems: Array<string> = [];
+
+      panel
+        .querySelectorAll(
+          "[data-testid='security-connected-record'], [data-testid='security-connected-record'] *",
+        )
+        .forEach((element: Element): void => {
+          const box: DOMRect = element.getBoundingClientRect();
+          const text: string = (element.textContent || "").trim().slice(0, 40);
+
+          if (box.width === 0 || box.height === 0) {
+            return;
+          }
+
+          if (box.left < edge.left - 1 || box.right > edge.right + 1) {
+            problems.push(
+              `${element.tagName.toLowerCase()} "${text}" ${Math.round(box.left)}-${Math.round(box.right)} outside ${Math.round(edge.left)}-${Math.round(edge.right)}`,
+            );
+          }
+
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          const hides: boolean = ["hidden", "clip"].includes(style.overflowX);
+
+          if (hides && element.scrollWidth > element.clientWidth + 1) {
+            problems.push(
+              `${element.tagName.toLowerCase()} "${text}" cut off: ${element.scrollWidth} in ${element.clientWidth}`,
+            );
+          }
+        });
+
+      return problems;
+    });
+}
+
+test.describe("an event's Connected tab", () => {
+  test("is read only when it is opened: the host by its name and address, its staging namesake as a possible match, the member by email", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventDrawer(page);
+    await expect(drawerTab(page, "Overview")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    // The drawer opens on Overview: nothing has been looked up yet.
+    expect(connectionReads(await fixture(page))).toEqual([]);
+
+    await openConnectedTab(page);
+    await expect(drawerTab(page, "Connected")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // One read, of what the event names, at its time.
+    const reads: Array<RecordedApiRequest> = connectionReads(
+      await fixture(page),
+    );
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.body).toEqual({
+      entities: [
+        { type: "User", value: "k.morgan@acme-commerce.example" },
+        { type: "Host", value: "web-03" },
+        { type: "IP Address", value: "203.0.113.30" },
+      ],
+      time: EVENT_TIME,
+    });
+
+    // Exact first - a host, then a member - and the possible match last.
+    expect(await connectedNames(page)).toEqual([
+      "web-03",
+      "Kai Morgan",
+      WEB_03_STAGING,
+    ]);
+
+    const web03: Locator = connectedRecord(page, "web-03");
+    await expect(web03).toHaveAttribute("data-kind", "Host");
+    await expect(web03).toHaveAttribute("data-certainty", "Exact");
+    await expect(
+      web03.getByTestId("security-connected-record-reason"),
+    ).toContainText("Named web-03, the name it reports.");
+    expect(
+      await web03
+        .getByTestId("security-connected-record-name")
+        .getAttribute("href"),
+    ).toBe(`${DASHBOARD}/host/${WEB_03_ID}`);
+    await expect(web03.getByTestId("security-connected-possible")).toHaveCount(
+      0,
+    );
+
+    // Its logs, on the host and the hour around the event, ending by now.
+    const logs: URL = new URL(
+      (await web03
+        .getByTestId("security-connected-signal-links")
+        .getByRole("link", { name: "Logs" })
+        .getAttribute("href"))!,
+      `http://127.0.0.1:${PORT}`,
+    );
+    expect(logs.pathname).toBe(`${DASHBOARD}/logs`);
+    expect(JSON.parse(logs.searchParams.get("filters") || "[]")).toEqual([
+      ["hostId", [WEB_03_ID]],
+    ]);
+    expect(new Date(logs.searchParams.get("start")!).toISOString()).toBe(
+      "2026-09-22T11:10:00.000Z",
+    );
+    expect(new Date(logs.searchParams.get("end")!).toISOString()).toBe(
+      NOW.toISOString(),
+    );
+    // What is going on there: its two open incidents and three monitors.
+    await expect(
+      web03.getByTestId("security-connected-incidents"),
+    ).toContainText("2 active incidents");
+    await expect(
+      web03.getByTestId("security-connected-monitors"),
+    ).toContainText("Watched by 3 monitors");
+
+    const kai: Locator = connectedRecord(page, "Kai Morgan");
+    await expect(kai).toHaveAttribute("data-kind", "User");
+    await expect(kai).toHaveAttribute("data-certainty", "Exact");
+    await expect(
+      kai.getByTestId("security-connected-record-reason"),
+    ).toHaveText("Named by k.morgan@acme-commerce.example, their email.");
+    expect(
+      await kai
+        .getByTestId("security-connected-record-name")
+        .getAttribute("href"),
+    ).toBe(`${DASHBOARD}/users/${KAI_ID}`);
+
+    const staging: Locator = connectedRecord(page, WEB_03_STAGING);
+    await expect(staging).toHaveAttribute("data-certainty", "Possible");
+    await expect(
+      staging.getByTestId("security-connected-record-reason"),
+    ).toHaveText(
+      `Named web-03, a short or full form of its name ${WEB_03_STAGING}. Another machine may share it.`,
+    );
+    await expect(staging.getByTestId("security-connected-possible")).toHaveText(
+      "Possible match",
+    );
+
+    // Everything it names was found: no "not in OneUptime" line.
+    await expect(
+      eventDrawer(page).getByTestId("security-connected-not-found"),
+    ).toHaveCount(0);
+    await expect(
+      eventDrawer(page).getByTestId("security-connected-window"),
+    ).toContainText("Signals from");
+  });
+
+  for (const view of [
+    { width: 1280, theme: "light" as const },
+    { width: 1280, theme: "dark" as const },
+    { width: 390, theme: "light" as const },
+    { width: 390, theme: "dark" as const },
+  ]) {
+    test(`at ${view.width}, ${view.theme}, every record reads whole inside the drawer`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openEventDrawer(page, {
+        width: view.width,
+        height: view.width === 390 ? 844 : 1000,
+        theme: view.theme,
+      });
+      await openConnectedTab(page);
+      await expect(connectedRecords(page)).toHaveCount(3);
+
+      await expectNoHorizontalOverflow(page);
+      const panel: Box = await viewportBox(
+        page.getByTestId("telemetry-detail-panel"),
+      );
+      expect(panel.x, "drawer's left edge").toBeGreaterThanOrEqual(-1);
+      expect(panel.x + panel.width, "drawer's right edge").toBeLessThanOrEqual(
+        view.width + 1,
+      );
+      expect(await recordPartsCutOff(page)).toEqual([]);
+
+      // Every name, sentence and fact readable on the drawer's surface.
+      const signals: Locator = eventDrawer(page).getByTestId(
+        "security-connected-signals",
+      );
+      expect(await lowContrastText(signals, MIN_CONTRAST)).toEqual([]);
+      if (view.theme === "dark") {
+        const white: Array<string> = await signals.evaluate(
+          (root: Element, whiteRgb: string): Array<string> => {
+            return Array.from(root.querySelectorAll("*"))
+              .filter((element: Element): boolean => {
+                return getComputedStyle(element).backgroundColor === whiteRgb;
+              })
+              .map((element: Element): string => {
+                return `${element.tagName.toLowerCase()} "${(element.textContent || "").trim().slice(0, 40)}"`;
+              });
+          },
+          WHITE_RGB,
+        );
+        expect(white, "white surfaces in the dark theme").toEqual([]);
+      }
+
+      await screenshot(
+        page,
+        `events-connected-tab-${view.width}${view.theme === "dark" ? "-dark" : ""}`,
+        { fullPage: false },
+      );
+    });
+  }
 });

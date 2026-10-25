@@ -19,10 +19,12 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -466,6 +468,41 @@ ModelAPI.getList = async (args) => {
 
 ModelAPI.getCommonHeaders = () => {
   return {};
+};
+
+/*
+ * The device Overview's Security card asks what Security Events found
+ * about the device this week. This project uses no Security Events - no
+ * event arrived this week - so the server says so and the card draws
+ * nothing. Every other API call goes where it went before.
+ */
+const originalApiPost = API.post.bind(API);
+API.post = async (options) => {
+  const url = options.url.toString();
+
+  if (url.endsWith("/security-case/resource-security")) {
+    return new HTTPResponse(
+      200,
+      {
+        kind: options.data?.kind,
+        id: options.data?.id,
+        name: "",
+        isInUse: false,
+        windowDays: 7,
+        values: [],
+        entity: null,
+        eventCount: 0,
+        findingCount: 0,
+        maxSeverityId: 0,
+        lastSeen: null,
+        openCases: null,
+        risk: null,
+      },
+      {},
+    );
+  }
+
+  return originalApiPost(options);
 };
 
 function Shell() {

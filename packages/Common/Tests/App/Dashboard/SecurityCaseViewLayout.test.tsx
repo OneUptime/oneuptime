@@ -352,6 +352,11 @@ const SUB_PAGES: Array<[PageMap, string, string]> = [
   [PageMap.SECURITY_CASE_VIEW_TIMELINE, "timeline", "Timeline"],
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS, "detections", "Detections"],
   [PageMap.SECURITY_CASE_VIEW_ENTITIES, "entities", "Entities"],
+  [
+    PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
+    "connected-signals",
+    "Connected Signals",
+  ],
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, "playbook-runs", "Playbook Runs"],
   [PageMap.SECURITY_CASE_VIEW_NOTES, "notes", "Private Notes"],
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, "audit-logs", "Audit Logs"],
