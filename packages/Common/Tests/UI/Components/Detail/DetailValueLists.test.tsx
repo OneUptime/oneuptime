@@ -9,6 +9,7 @@ import { I18nextProvider } from "react-i18next";
 import BooleanValue from "../../../../UI/Components/Detail/BooleanValue";
 import Detail, {
   DETAIL_VALUE_BADGE_CLASS_NAME,
+  DETAIL_VALUE_BADGES_CLASS_NAME,
   DetailStyle,
 } from "../../../../UI/Components/Detail/Detail";
 import {
@@ -305,6 +306,101 @@ describe("a record's labels in a detail card", () => {
  * always was. A table's own cell draws a row of labels: see
  * Table/TableLabels.test.tsx.
  */
+/*
+ * Several pills as one value - a multi-select's choices, a record's related
+ * records - wrap in a row as a record's labels do. The pills are 22.7px (the
+ * one pill shape), so the row keeps the value's 24px line: without it, the
+ * row of a record's downtime statuses stood 1.3px shorter than the text
+ * beside it.
+ */
+describe("a row of pills as a value", () => {
+  interface Status {
+    name: string;
+    color: Color;
+  }
+
+  interface Row {
+    regions?: Array<string> | undefined;
+    statuses?: Array<Status> | undefined;
+  }
+
+  const renderRow: (item: Row, fields: Array<Field<Row>>) => void = (
+    item: Row,
+    fields: Array<Field<Row>>,
+  ): void => {
+    render(
+      <Detail<Row>
+        id="detail-value-pill-rows"
+        item={item}
+        fields={fields}
+        showDetailsInNumberOfColumns={2}
+      />,
+    );
+  };
+
+  const rowOf: (title: string) => HTMLElement = (
+    title: string,
+  ): HTMLElement => {
+    const value: HTMLElement = within(fieldNamed(title)).getByTestId(
+      "detail-value",
+    );
+    // The row the pills sit in.
+    const row: Element | null | undefined =
+      value.querySelector("[data-ou-pill]")?.parentElement;
+
+    if (!row) {
+      throw new Error(`${title} draws no pills`);
+    }
+
+    return row as HTMLElement;
+  };
+
+  test("a multi-select's choices: one wrapping row, on the value's 24px line, like a record's labels", () => {
+    renderRow({ regions: ["eu", "us"] }, [
+      {
+        key: "regions",
+        title: "Regions",
+        fieldType: FieldType.MultiSelectDropdown,
+        dropdownOptions: [
+          { value: "eu", label: "Europe" },
+          { value: "us", label: "United States" },
+        ],
+      },
+    ]);
+
+    const row: HTMLElement = rowOf("Regions");
+
+    expect(row.className).toBe(DETAIL_VALUE_BADGES_CLASS_NAME);
+    expect(row).toHaveClass("min-h-6", "items-center", "flex-wrap");
+    expect(row.className).toBe(DETAIL_LABELS_CLASS_NAME);
+    expect(row).toHaveTextContent("EuropeUnited States");
+  });
+
+  test("a record's related records too", () => {
+    renderRow(
+      {
+        statuses: [
+          { name: "Offline", color: new Color("#ef4444") },
+          { name: "Degraded", color: new Color("#f59e0b") },
+        ],
+      },
+      [
+        {
+          key: "statuses",
+          title: "Downtime statuses",
+          fieldType: FieldType.EntityArray,
+        },
+      ],
+    );
+
+    const row: HTMLElement = rowOf("Downtime statuses");
+
+    expect(row.className).toBe(DETAIL_VALUE_BADGES_CLASS_NAME);
+    expect(row.querySelectorAll("[data-ou-pill]")).toHaveLength(2);
+    expect(row).toHaveTextContent("OfflineDegraded");
+  });
+});
+
 describe("a record's labels outside a detail card and a table are left as they were", () => {
   test("one per line, the first three, then 'N more labels'", () => {
     const { container } = render(
