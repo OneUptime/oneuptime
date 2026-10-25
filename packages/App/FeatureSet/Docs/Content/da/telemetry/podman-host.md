@@ -201,7 +201,8 @@ Når agenten er ældre end din OneUptime, vises et advarselstegn ved siden af **
 ```bash
 podman pull oneuptime/podman-agent:release
 podman pull oneuptime/resource-ai-agent:release
-podman rm -f oneuptime-podman-agent oneuptime-podman-ai-agent
+podman stop oneuptime-podman-agent oneuptime-podman-ai-agent
+podman rm oneuptime-podman-agent oneuptime-podman-ai-agent
 ```
 
 Kør derefter begge `podman run`-kommandoer fra [Start agenten](#start-agenten) igen.

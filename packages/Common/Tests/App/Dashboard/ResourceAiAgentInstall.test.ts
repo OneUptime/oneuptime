@@ -831,7 +831,7 @@ describe("the write switch", () => {
       getResourceAiAgentWriteAccessCommands(AiResourceType.DockerHost);
 
     expect(docker.installerNote).toBe(
-      "Installed the Docker agent with install.sh? Run it again with ONEUPTIME_AI_ALLOW_WRITES=true (and ONEUPTIME_AI_WRITE_TARGETS) set in its environment: it starts the agent again with them. Started the agent with docker run? Remove it (docker rm -f oneuptime-docker-ai-agent) and start it again with -e ONEUPTIME_AI_ALLOW_WRITES=true.",
+      "Installed the Docker agent with install.sh? Run it again with ONEUPTIME_AI_ALLOW_WRITES=true (and ONEUPTIME_AI_WRITE_TARGETS) set in its environment: it starts the agent again with them. Started the agent with docker run? Remove it (docker stop oneuptime-docker-ai-agent && docker rm oneuptime-docker-ai-agent) and start it again with -e ONEUPTIME_AI_ALLOW_WRITES=true.",
     );
     // Compose second, from wherever its docker-compose.yml is.
     expect(docker.envIntro).toBe(
@@ -845,9 +845,11 @@ describe("the write switch", () => {
       getResourceAiAgentWriteAccessCommands(AiResourceType.PodmanHost);
 
     expect(podman.installerNote).toContain("Podman agent with install.sh");
+    // Stopped first, so the agent signs off and its successor is let in at once.
     expect(podman.installerNote).toContain(
-      "podman rm -f oneuptime-podman-ai-agent",
+      "podman stop oneuptime-podman-ai-agent && podman rm oneuptime-podman-ai-agent",
     );
+    expect(podman.installerNote).not.toContain("rm -f");
     expect(podman.restartCommand).toBe(
       `${COMPOSE_DIRECTORY_COMMENT}\npodman compose up -d oneuptime-podman-ai-agent`,
     );
@@ -990,8 +992,9 @@ describe("what AI may do, set where the agent runs", () => {
       "Docker agent with install.sh",
     );
     expect(instructions.intro?.[0]?.text).toContain(
-      "docker rm -f oneuptime-docker-ai-agent",
+      "docker stop oneuptime-docker-ai-agent && docker rm oneuptime-docker-ai-agent",
     );
+    expect(instructions.intro?.[0]?.text).not.toContain("rm -f");
     expect(
       instructions.steps.map((step: AgentAiSettingsStep) => {
         return step.ways[0]?.code;
@@ -1108,7 +1111,9 @@ describe("what AI may do, set where the agent runs", () => {
 
     expect(note).toContain("it pulls the newer agent");
     expect(note).toContain(`Pull ${RESOURCE_AI_AGENT_IMAGE}`);
-    expect(note).toContain("docker rm -f oneuptime-docker-ai-agent");
+    expect(note).toContain(
+      "docker stop oneuptime-docker-ai-agent && docker rm oneuptime-docker-ai-agent",
+    );
   });
 
   test("a Proxmox cluster with an older agent: pull and recreate in its install directory", () => {

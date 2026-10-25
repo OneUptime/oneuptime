@@ -609,10 +609,15 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
     if (isCli) {
       /*
        * The AI agent is part of the install, so the one upgrade command
-       * pulls and removes both, and says it only once.
+       * pulls, stops and removes both, and says it only once. Stopped, not
+       * removed with rm -f: the AI agent signs off, so the one started
+       * next is let in at once (issue #5253).
        */
       expect(topic).toContain(
-        `docker pull ${DOCKER_AGENT_IMAGE}\ndocker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
+        `docker pull ${DOCKER_AGENT_IMAGE}\ndocker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker stop ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}\ndocker rm ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
+      );
+      expect(topic).not.toContain(
+        `docker rm -f ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
       );
       expect(topic.split(`docker pull ${DOCKER_AI_AGENT_IMAGE}`)).toHaveLength(
         2,

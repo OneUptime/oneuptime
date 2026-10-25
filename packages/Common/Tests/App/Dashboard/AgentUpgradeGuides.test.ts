@@ -572,10 +572,11 @@ describe("Docker agent: a tab per install method", () => {
     },
   );
 
-  test("the CLI pulls the images the guide runs and removes the containers it names, then starts them from the guide", () => {
+  test("the CLI pulls the images the guide runs and stops and removes the containers it names, then starts them from the guide", () => {
     const cli: AgentUpgradeMethod = methodLabelled(guide, "Docker CLI");
+    // Stopped, not rm -f: the AI agent signs off and its successor is let in at once.
     expect(codesOf(cli)).toEqual([
-      `docker pull ${DOCKER_AGENT_IMAGE}\ndocker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
+      `docker pull ${DOCKER_AGENT_IMAGE}\ndocker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker stop ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}\ndocker rm ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
     ]);
     expect(cli.steps[cli.steps.length - 1]!.needsSetupGuide).toBe(true);
   });
@@ -632,9 +633,9 @@ describe("Podman agent: a tab per install method", () => {
     },
   );
 
-  test("the CLI pulls the Podman images and removes the Podman containers", () => {
+  test("the CLI pulls the Podman images and stops and removes the Podman containers", () => {
     expect(codesOf(methodLabelled(guide, "Podman CLI"))).toEqual([
-      `podman pull ${PODMAN_AGENT_IMAGE}\npodman pull ${PODMAN_AI_AGENT_IMAGE}\npodman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
+      `podman pull ${PODMAN_AGENT_IMAGE}\npodman pull ${PODMAN_AI_AGENT_IMAGE}\npodman stop ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}\npodman rm ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
     ]);
     expect(codesOf(methodLabelled(guide, "Podman Compose"))).toEqual([
       "podman compose pull\npodman compose up -d",
