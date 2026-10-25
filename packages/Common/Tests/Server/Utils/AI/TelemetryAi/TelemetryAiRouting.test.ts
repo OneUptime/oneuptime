@@ -345,10 +345,11 @@ describe("TelemetryAiRouting.sweepLane", () => {
     });
   });
 
-  test("every lane has its fix starter: the Profiler's and Traces'", () => {
+  test("every lane has its fix starter: the Profiler's, Traces' and Exceptions'", () => {
     expect(Object.keys(TELEMETRY_AI_FIX_STARTERS)).toEqual([
       TelemetryAiLane.Profile,
       TelemetryAiLane.Trace,
+      TelemetryAiLane.Exception,
     ]);
   });
 

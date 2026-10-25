@@ -55,6 +55,7 @@ import {
   TELEMETRY_AI_PAGES,
   TELEMETRY_AI_TEST_IDS,
   TelemetryAiLaneCopy,
+  getTelemetryAiLogVerdict,
 } from "./TelemetryAiCopy";
 
 /*
@@ -66,7 +67,9 @@ import {
  * for, who started it, and the Code task and pull request it led to.
  *
  * A page at a time, with Load more. Only about findings the reader may
- * read; a repository they may not read in Code is not named.
+ * read; a repository they may not read in Code is not named. A lane that
+ * words its investigations' verdicts (investigationVerdicts) says under
+ * each investigation what it found.
  */
 
 export interface ComponentProps {
@@ -118,6 +121,8 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   const at: Date = new Date(entry.at);
   const hasDate: boolean = !Number.isNaN(at.getTime());
   const pullRequestUrl: URL | null = getPullRequestUrl(entry.pullRequest?.url);
+  // What an investigation found, when its lane says (Exceptions does).
+  const verdict: string | null = getTelemetryAiLogVerdict(props.lane, entry);
 
   const meta: Array<ReactElement> = [];
 
@@ -214,6 +219,17 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
             );
           })}
         </div>
+
+        {verdict ? (
+          <p
+            className="mt-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
+            data-testid={TELEMETRY_AI_TEST_IDS.logVerdict}
+          >
+            {translator.translateText(verdict)}
+          </p>
+        ) : (
+          <></>
+        )}
 
         {entry.kind === TelemetryAiLogKind.PullRequest &&
         (entry.taskId || pullRequestUrl) ? (

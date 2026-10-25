@@ -568,3 +568,56 @@ describe("InsightFixRouting - it never throws", () => {
     );
   });
 });
+
+/*
+ * While Exceptions' AI section works on the project's exceptions, a new or
+ * spiking exception's pull request is the section's, as its own AI rules
+ * say - never a second one from AI Insights' routing; with its switch off
+ * the routing opens it as it always did. A latency regression is not an
+ * exception: the section's switch leaves it alone.
+ */
+describe("InsightFixRouting - Exceptions' AI section", () => {
+  test("its switch on: no exception fix from here, for either kind", async () => {
+    for (const insightType of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ]) {
+      const result: { fixAiRunId?: ObjectID | undefined } = await route(
+        makeExceptionInsight({ insightType }),
+        makeProject({ enableAutomaticExceptionRemediation: true }),
+      );
+
+      expect(result.fixAiRunId).toBeUndefined();
+    }
+
+    expect(budgetStatusMock).not.toHaveBeenCalled();
+    expect(createExceptionRunMock).not.toHaveBeenCalled();
+  });
+
+  test("its switch off, or unset: the exception's fix as it always was", async () => {
+    expect(
+      (
+        await route(
+          makeExceptionInsight(),
+          makeProject({ enableAutomaticExceptionRemediation: false }),
+        )
+      ).fixAiRunId,
+    ).toBeDefined();
+    expect(
+      (await route(makeExceptionInsight(), makeProject())).fixAiRunId,
+    ).toBeDefined();
+    expect(createExceptionRunMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a latency regression is not the section's", async () => {
+    expect(
+      (
+        await route(
+          makeLatencyInsight(),
+          makeProject({ enableAutomaticExceptionRemediation: true }),
+        )
+      ).fixAiRunId,
+    ).toBeDefined();
+    expect(createPerformanceRunMock).toHaveBeenCalledTimes(1);
+  });
+});

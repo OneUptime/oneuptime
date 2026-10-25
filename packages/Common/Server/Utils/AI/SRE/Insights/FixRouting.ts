@@ -122,6 +122,25 @@ export default class InsightFixRouting {
         return {};
       }
 
+      /*
+       * While the Exceptions product's AI section works on the project's
+       * exceptions ("Find and fix new and rising exceptions",
+       * Types/AI/TelemetryAi), a new or spiking exception's pull request is
+       * its, as its own AI rules say - never a second one from here. Its
+       * callers already leave such an insight to it; this keeps it so for
+       * any other. The scanner selects every lane's switch onto the
+       * project row it hands us.
+       */
+      if (
+        isExceptionInsight &&
+        TelemetryAiRules.isLaneOn(project, TelemetryAiLane.Exception)
+      ) {
+        logger.debug(
+          `AI insights: not routing a fix for exception insight ${insight.id.toString()} — the Exceptions AI section fixes the project's exceptions.`,
+        );
+        return {};
+      }
+
       // Exception insights are only fixable with the exception row to fix.
       if (isExceptionInsight && !insight.telemetryExceptionId) {
         logger.debug(

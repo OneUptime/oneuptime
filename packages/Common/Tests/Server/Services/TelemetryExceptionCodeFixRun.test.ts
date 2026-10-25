@@ -577,6 +577,199 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
 });
 
 /*
+ * Started for a finding of Exceptions' AI section (ExceptionInsightFix): the
+ * run links the finding that started it and the provider the AI rules
+ * picked, resolves only among the repositories the rules allow, and is
+ * queued as it is in a repository a person picked - so Code lists it with
+ * why it was opened, and the Runner of the right repository takes it.
+ */
+describe("TelemetryExceptionService.createCodeFixRunForException - from an exception finding", () => {
+  beforeEach(() => {
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the run links the finding that started it, and the provider its AI rules picked", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const insightId: ObjectID = ObjectID.generate();
+    const llmProviderId: ObjectID = ObjectID.generate();
+
+    await TelemetryExceptionService.createCodeFixRunForException({
+      telemetryExceptionId: exceptionId,
+      props: { isRoot: true },
+      taskType: CodeFixTaskType.ImproveExceptionHandling,
+      triggeredByAiInsightId: insightId,
+      llmProviderId,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          codeFixTaskType: CodeFixTaskType.ImproveExceptionHandling,
+          triggeredByTelemetryExceptionId: exceptionId,
+          triggeredByAiInsightId: insightId,
+          llmProviderId,
+        }),
+      }),
+    );
+  });
+
+  test("left out, neither is written - the exception page's own run is as it was", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await TelemetryExceptionService.createCodeFixRunForException({
+      telemetryExceptionId: exceptionId,
+      props: { isRoot: true },
+    });
+
+    const run: AIRun = create.mock.calls[0][0].data as AIRun;
+
+    expect(run.triggeredByAiInsightId).toBeUndefined();
+    expect(run.llmProviderId).toBeUndefined();
+  });
+
+  test("the rules' repositories bound where the exception may resolve; left out, any", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const resolve: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+      .mockResolvedValue(fakeResolution());
+    const allowance: {
+      isEveryRepository: boolean;
+      repositoryIds: Array<string>;
+    } = {
+      isEveryRepository: false,
+      repositoryIds: [resolvedRepositoryId.toString()],
+    };
+
+    await TelemetryExceptionService.createCodeFixRunForException({
+      telemetryExceptionId: exceptionId,
+      props: { isRoot: true },
+      codeRepositoryAllowance: allowance,
+    });
+
+    expect(resolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        projectId,
+        stackTrace: "at charge (/app/src/billing/charge.ts:12:5)",
+        serviceName: "checkout",
+        allowance,
+      }),
+    );
+
+    await TelemetryExceptionService.createCodeFixRunForException({
+      telemetryExceptionId: exceptionId,
+      props: { isRoot: true },
+    });
+
+    expect(resolve.mock.calls[1][0]).not.toHaveProperty("allowance");
+  });
+
+  test("none of the rules' repositories holds the code: refused, nothing queued", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+      .mockResolvedValue(null);
+    // With no repository, the Runner check asks about the project's.
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(true);
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+        codeRepositoryAllowance: {
+          isEveryRepository: false,
+          repositoryIds: [ObjectID.generate().toString()],
+        },
+      }),
+    ).rejects.toThrow(/Repository resolved/);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("a repository a person picked is the run's as it is - nothing resolved", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const resolve: jest.SpyInstance = jest.spyOn(
+      CodeRepositoryService,
+      "resolveRepositoryForException",
+    );
+    const pickedId: ObjectID = ObjectID.generate();
+    const findRepository: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryService, "findOneBy")
+      .mockImplementation(async (data: unknown) => {
+        const query: { _id: string; projectId: ObjectID } = (
+          data as { query: { _id: string; projectId: ObjectID } }
+        ).query;
+
+        return {
+          id: new ObjectID(query._id.toString()),
+          organizationName: "acme",
+          repositoryName: "payments",
+        } as unknown as CodeRepository;
+      });
+
+    await TelemetryExceptionService.createCodeFixRunForException({
+      telemetryExceptionId: exceptionId,
+      props: { isRoot: true, userId: ObjectID.generate() },
+      codeRepositoryId: pickedId,
+    });
+
+    expect(resolve).not.toHaveBeenCalled();
+    // The picked repository is read as the project's own.
+    expect(findRepository).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { _id: pickedId.toString(), projectId },
+        props: { isRoot: true },
+      }),
+    );
+    expect(
+      (create.mock.calls[0][0].data as AIRun).codeRepositoryId?.toString(),
+    ).toBe(pickedId.toString());
+  });
+
+  test("a picked repository that is not the project's: refused, nothing queued", async () => {
+    mockReadinessOk();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(CodeRepositoryService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(true);
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true, userId: ObjectID.generate() },
+        codeRepositoryId: ObjectID.generate(),
+      }),
+    ).rejects.toThrow(/Repository resolved/);
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+/*
  * The worker dispatches its task handler on the claimed run's taskType
  * (POST /ai-agent-task/get-pending-task), so the claim must normalize the
  * legacy null column to FixException before the run leaves the service.

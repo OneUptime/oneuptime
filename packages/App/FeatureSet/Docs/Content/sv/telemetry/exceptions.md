@@ -7,6 +7,7 @@ Undantagsspårning samlar in felen som din kod kastar och grupperar varje förek
 - [Gå igenom listan](#gå-igenom-listan): Det olösta först, bruset dolt.
 - [Ett undantags sida](#ett-undantags-sida): Stack trace, förekomster och sammanhang.
 - [Rätta det med AI](#rätta-det-med-ai): En pull request med rättelsen, eller ett regressionstest.
+- [Hitta och åtgärda nya och ökande undantag med AI](#hitta-och-åtgärda-nya-och-ökande-undantag-med-ai): Pull requests för de undantag som OneUptime hittar.
 :::
 
 ## Var undantag kommer ifrån
@@ -116,6 +117,44 @@ Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgi
 | **Förbättra felhantering** | För förväntade fel: validerar indata tidigare, håller användardata utanför meddelanden och markerar felet som hanterat. |
 
 AI behöver tre saker först: en LLM-leverantör, ett anslutet förråd (på GitHub, GitLab, Forgejo eller Gitea, eller valfri Git-server), och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent).
+
+## Hitta och åtgärda nya och ökande undantag med AI
+
+Var 15:e minut går OneUptime igenom dina undantag efter nya, efter dem som plötsligt inträffar mycket oftare och efter tjänster vars undantag saknar stack trace, och registrerar det den hittar som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request för vart och ett den kan åtgärda. Inget slås någonsin ihop: ditt team granskar varje pull request.
+
+| Fynd | När OneUptime registrerar det | Pull requesten |
+| --- | --- | --- |
+| **New Exception** | Ett undantag som sågs första gången under de senaste 24 timmarna och som redan har inträffat 3 gånger eller fler. | Rättar undantaget, eller hanterar det bättre. |
+| **Exception Spike** | Ett undantag som har inträffat 10 gånger eller fler under den senaste timmen, med 5 gånger eller mer sin timtakt under de 24 timmarna innan. | Rättar undantaget, eller hanterar det bättre. |
+| **Saknad stack trace** | De undantag som en tjänst registrerade under det senaste dygnet saknar stack trace och har tillsammans inträffat 20 gånger eller fler. | Får tjänsten att registrera en stack trace med varje undantag. |
+
+Pull requesten för ett nytt eller ökande undantag är undantagets egen AI-uppgift, den som undantagets sida **AI Assistance** startar, och den väntar tills OneUptime AI har undersökt fyndet. Hittar den den skyldiga koden (`code-fault`), rättar pull requesten den, som **Fix this exception with AI** gör. Hittar den ett förväntat fel (`user-error` eller `expected-denial`), hanterar pull requesten felet bättre, som **Förbättra felhantering** gör. Varje annan slutsats öppnar ingen pull request av sig själv. Med **Arkivera förväntade undantag** påslaget arkiveras ett förväntat nekande i stället och får ingen pull request.
+
+OneUptime AI öppnar bara själv en för ett undantag som kastats i din egen kod: ett undantag vars stack trace har en ram från din kod, och inte bara ramar från bibliotek eller körmiljön. En pull request som någon stängde utan att slå ihop den pausar de automatiska för det undantaget. Vem som helst kan ändå be om vilken som helst av dem med **Åtgärda med AI** på fyndet.
+
+### Slå på det
+
+**Undantag → AI → Inställningar** har reglaget **Hitta och åtgärda nya och ökande undantag**, som är på för nya projekt. Så länge det är av hör nya och ökande undantag som förut till AI-insikter: se [AI SRE](/docs/ai/ai-sre#insikter-proaktiv-upptäckt). När **Aktivera AI** är av hittas de fortfarande, men OneUptime AI gör ingenting med dem. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+
+OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
+
+### AI-regler
+
+Utan regler undersöker OneUptime AI direkt varje undantag den hittar och öppnar en pull request för vart och ett den kan åtgärda. **AI-regler** under **Fler inställningar** begränsar det, i tre steg:
+
+| Steg | Vad det avgör |
+| --- | --- |
+| **Matcha** | Vilka tjänster: de valda, de med vissa etiketter eller de vars namn matchar ett mönster. |
+| **Utreda** | **Direkt**, eller **Bara om fortfarande hittad efter en väntetid**: ett undantag som försvinner under väntetiden undersöks inte. |
+| **Åtgärd** | **Åtgärda inte**, **Fråga innan något åtgärdas** eller **Åtgärda utan att fråga**. Att fråga först lämnar pull requesten till en person: fyndet erbjuder **Åtgärda med AI**. |
+
+Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LLM-leverantör som OneUptime AI får använda för den. Är inget valt får den använda alla, och projektets standard-LLM-leverantör.
+
+### Se vad den gjorde
+
+- **Undantag → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis, ramarna från din kod i dess stack trace inräknade. **View Exception Group** öppnar undantaget, och för en tjänsts saknade stack traces öppnar **Öppna i Undantag** dess olösta undantag från det senaste dygnet.
+- **Undantag → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
+- Pull requesten säger varför den öppnades, med en länk till dess fynd. Den för ett nytt eller ökande undantag länkar också till undantaget och visas på undantagets sida **AI Assistance**. I Kod nämner dess uppgift undantaget den rättar, eller fyndet den kom från.
 
 ## Insikter i undantag
 
