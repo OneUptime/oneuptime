@@ -1055,11 +1055,14 @@ describe("the Enterprise Edition's own CI", () => {
 
   test("test.ee.yaml sets up config.env, installs Common, App and ee, and runs ee's tests", () => {
     const workflow = readYaml(".github/workflows/test.ee.yaml");
-    const jobs = Object.values(workflow.jobs);
 
-    expect(jobs).toHaveLength(1);
+    /*
+     * Two jobs: the ee tests and the guards that need ee/ (test), and the
+     * Backups page's browser checks (backups-ui), which run beside them.
+     */
+    expect(Object.keys(workflow.jobs)).toEqual(["test", "backups-ui"]);
 
-    const steps = jobs[0].steps;
+    const steps = workflow.jobs.test.steps;
     const find = (predicate) => {
       return steps.findIndex(predicate);
     };
@@ -1093,9 +1096,7 @@ describe("the Enterprise Edition's own CI", () => {
      * The guards' ee-direction checks skip without ee/, and the App Test job
      * deletes ee/, so this step is the only place they run.
      */
-    const steps = Object.values(
-      readYaml(".github/workflows/test.ee.yaml").jobs,
-    )[0].steps;
+    const steps = readYaml(".github/workflows/test.ee.yaml").jobs.test.steps;
     const indexOf = (predicate) => {
       return steps.findIndex(predicate);
     };
@@ -1122,6 +1123,67 @@ describe("the Enterprise Edition's own CI", () => {
     ]) {
       expect(fs.existsSync(path.join(REPO_ROOT, guard))).toBe(true);
     }
+  });
+
+  test("test.ee.yaml runs the Backups page's browser checks with ee/ present, after installing what the bundle reads", () => {
+    /*
+     * App Test's Dashboard Offline UI groups delete ee/, where the suite's
+     * Enterprise specs skip: this job is where they run. Its bundle reads
+     * Common's and the Admin Dashboard's packages (the Admin Dashboard's
+     * i18n module needs its language detector), and Playwright's from
+     * packages/E2E.
+     */
+    const job = readYaml(".github/workflows/test.ee.yaml").jobs["backups-ui"];
+    const steps = job.steps;
+    const indexOf = (predicate) => {
+      return steps.findIndex(predicate);
+    };
+    const install = (directory) => {
+      return indexOf((step) => {
+        return (
+          stepWorkingDirectory(step) === directory &&
+          /^npm (install|ci)\b/.test(stepCommand(step))
+        );
+      });
+    };
+    const common = install("packages/Common");
+    const admin = install("packages/App/FeatureSet/AdminDashboard");
+    const e2e = install("packages/E2E");
+    const chromium = indexOf((step) => {
+      return (
+        stepWorkingDirectory(step) === "packages/E2E" &&
+        /^npx playwright install --with-deps chromium$/.test(
+          stepCommand(step).trim(),
+        )
+      );
+    });
+    const suite = indexOf((step) => {
+      return (
+        stepWorkingDirectory(step) === "packages/E2E" &&
+        stepCommand(step).trim() === "npm run test-backups-ui"
+      );
+    });
+    const upload = indexOf((step) => {
+      return /^actions\/upload-artifact@/.test(step.uses || "");
+    });
+
+    for (const index of [common, admin, e2e, chromium, suite, upload]) {
+      expect(index).toBeGreaterThan(-1);
+    }
+    expect(Math.max(common, admin, e2e)).toBeLessThan(chromium);
+    expect(chromium).toBeLessThan(suite);
+    expect(suite).toBeLessThan(upload);
+    expect(steps.some(removesEnterprise)).toBe(false);
+    // Skips the preinstall hook that downloads every browser.
+    expect(stepCommand(steps[e2e])).toContain("--ignore-scripts");
+    // Its screenshots and traces, pass or fail, from the suite's outputDir.
+    expect(steps[upload].if).toBe("always()");
+    expect(String(steps[upload].with.path)).toContain(
+      "output/playwright/backups-ui/test-results",
+    );
+    expect(read("packages/E2E/playwright.backups-ui.config.ts")).toContain(
+      'outputDir: "../../output/playwright/backups-ui/test-results"',
+    );
   });
 
   describeWhenEnterprisePresent("with ee/ in the checkout", () => {

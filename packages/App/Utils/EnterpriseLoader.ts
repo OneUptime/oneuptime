@@ -93,6 +93,13 @@ export const ENTERPRISE_OWNED_JOB_NAMES: ReadonlyArray<string> = [
    * repeatable definition in Redis.
    */
   "AuditLogExport:ExportAuditLogs",
+  /*
+   * Runs the instance's scheduled backups, the backups and restores master
+   * admins start, and the retention that deletes old backups. An
+   * installation that moves back to the Community Edition keeps the
+   * repeatable definition in Redis.
+   */
+  "Backup:RunBackups",
 ];
 
 export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;

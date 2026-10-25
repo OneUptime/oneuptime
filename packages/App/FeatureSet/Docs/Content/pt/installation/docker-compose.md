@@ -397,7 +397,7 @@ Se você definiu `DATABASE_BACKUP_PASSWORD` e `DATABASE_RESTORE_PASSWORD`, dê a
 
 ## Backup e restauração
 
-O PostgreSQL guarda tudo o que você configura: monitores, incidentes, páginas de status, usuários. O `npm run backup` gera um dump dele em um arquivo na pasta `Backups`.
+O PostgreSQL guarda tudo o que você configura: monitores, incidentes, páginas de status, usuários. O `npm run backup` gera um dump dele em um arquivo na pasta `Backups`. A Enterprise Edition também pode fazer backup do PostgreSQL e do ClickHouse com agendamento, em um armazenamento seu, pelo Admin Dashboard: veja [Backups](/docs/installation/backups).
 
 :::steps
 ### Dê ao script de backup a senha do banco de dados

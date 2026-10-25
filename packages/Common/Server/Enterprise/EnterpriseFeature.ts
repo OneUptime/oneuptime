@@ -41,6 +41,13 @@ enum EnterpriseFeature {
    * use. Setting or changing them; what is set is enforced in every edition.
    */
   StatusPageAccessControls = "status-page-access-controls",
+  /*
+   * Backups of the instance's PostgreSQL and ClickHouse to storage of its
+   * own, on a schedule with a retention, and restoring them (Admin
+   * Dashboard > Settings > Backups). Setting backups up and making new ones
+   * needs it; restoring and deleting backups already made never does.
+   */
+  Backups = "backups",
 }
 
 export const ALL_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> =

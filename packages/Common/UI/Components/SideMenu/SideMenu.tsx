@@ -1,9 +1,11 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useState,
   useEffect,
 } from "react";
+import PageTrailEndContext from "../Page/PageTrailEnd";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -154,6 +156,8 @@ function withActiveSections(
 
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const { translateString } = useTranslateValue();
+  // The Page's last breadcrumb, for a page none of the entries read here is for.
+  const pageTrailEnd: Link | null = useContext(PageTrailEndContext);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
@@ -385,10 +389,24 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       translatedSectionTitle.trim().toLocaleLowerCase() ===
         translatedItemTitle.trim().toLocaleLowerCase(),
   );
+  /*
+   * An entry the menu cannot read (an Enterprise plugin's own component) or
+   * a page it does not list: named by the page's trail, as its breadcrumbs
+   * end, rather than "Navigation", which says nothing of where the reader is.
+   */
+  const pageTrailEndTitle: string | undefined = pageTrailEnd
+    ? pageTrailEnd.recordName ||
+      (pageTrailEnd.isRecordName
+        ? pageTrailEnd.title
+        : translateString(pageTrailEnd.title))
+    : undefined;
   const displayText: string =
     translatedSectionTitle && translatedItemTitle && !isPageNamedLikeSection
       ? `${translatedSectionTitle} / ${translatedItemTitle}`
-      : translatedItemTitle || translateString("Navigation") || "Navigation";
+      : translatedItemTitle ||
+        pageTrailEndTitle ||
+        translateString("Navigation") ||
+        "Navigation";
 
   // Re-run active item detection when location changes
   useEffect(() => {

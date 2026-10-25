@@ -285,8 +285,11 @@ export interface AwsSecurityHubFindingCount {
  * against AWS's published test vectors, which use service "service".
  */
 export interface AwsSigV4SignInput {
-  // PUT is an object upload to S3 (an audit log export's file).
-  method: "GET" | "POST" | "PUT";
+  /*
+   * PUT is an object upload to S3 (an audit log export's file, a backup's
+   * part); DELETE and HEAD are a backup's retention and checks.
+   */
+  method: "GET" | "POST" | "PUT" | "DELETE" | "HEAD";
   host: string;
   // Absolute path starting with "/", without the query string.
   path: string;

@@ -319,10 +319,14 @@ export default class AuditLogExportSettingsUtil {
    * export signed in with a SAS token keeps no access key), with text
    * trimmed. A value left over from a choice no longer made is dropped
    * rather than refused, so switching Sign in with from one to the other
-   * just works.
+   * just works. Only the definition's fields are read, so a backup
+   * destination (BackupSettingsUtil) is kept by the same rule.
    */
   public static normalize(data: {
-    definition: AuditLogExportDestinationDefinition;
+    definition: Pick<
+      AuditLogExportDestinationDefinition,
+      "configFields" | "secretFields"
+    >;
     config: JSONObject;
     secrets: JSONObject;
   }): { config: JSONObject; secrets: JSONObject } {
@@ -746,8 +750,11 @@ export default class AuditLogExportSettingsUtil {
     }
   }
 
-  // A SAS token holds a signature (sig=) among its query parameters.
-  private static isSasToken(value: string): boolean {
+  /*
+   * A SAS token holds a signature (sig=) among its query parameters.
+   * Public: a backup destination's SAS token is checked the same way.
+   */
+  public static isSasToken(value: string): boolean {
     const token: string = value.startsWith("?") ? value.slice(1) : value;
 
     if (hasControlOrSpace(token)) {
@@ -759,7 +766,8 @@ export default class AuditLogExportSettingsUtil {
     });
   }
 
-  private static isBase64(value: string): boolean {
+  // An Azure access key as the portal shows it (a backup destination's too).
+  public static isBase64(value: string): boolean {
     if (value.length < 16 || value.length % 4 !== 0) {
       return false;
     }

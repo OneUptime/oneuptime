@@ -337,6 +337,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Audit logging stops recording.",
     "Retention overrides stop applying.",
     "Status pages show Powered by OneUptime again.",
+    "Scheduled backups stop.",
     "Single sign-on.",
     "Core monitoring is never affected",
     "Master admins can always sign in with their password.",

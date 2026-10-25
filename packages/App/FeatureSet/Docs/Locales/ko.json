@@ -131,6 +131,7 @@
     "Local Development": "로컬 개발",
     "Docker Compose": "Docker Compose",
     "Upgrading": "업그레이드",
+    "Backups": "백업",
     "Kubernetes and Helm": "Kubernetes 및 Helm",
     "Cloud Marketplaces": "클라우드 마켓플레이스",
     "Sizing & Capacity Planning": "사이징 및 용량 계획",

@@ -397,7 +397,7 @@ Har du angivet `DATABASE_BACKUP_PASSWORD` og `DATABASE_RESTORE_PASSWORD`, så gi
 
 ## Backup og gendannelse
 
-PostgreSQL indeholder alt, hvad du konfigurerer: monitorer, hændelser, statussider, brugere. `npm run backup` dumper det til en fil i mappen `Backups`.
+PostgreSQL indeholder alt, hvad du konfigurerer: monitorer, hændelser, statussider, brugere. `npm run backup` dumper det til en fil i mappen `Backups`. Enterprise Edition kan også sikkerhedskopiere PostgreSQL og ClickHouse efter en tidsplan til dit eget lager fra Admin Dashboard: se [Sikkerhedskopier](/docs/installation/backups).
 
 :::steps
 ### Giv backupscriptet databasens adgangskode

@@ -261,6 +261,13 @@ ENV ONEUPTIME_EDITION=enterprise
 # here to agree with the image; the boot guard only acts on true without ee/.
 # What the App actually loaded is the edition, and that is what env.js reports.
 ENV IS_ENTERPRISE_EDITION=true
+# pg_dump and pg_restore for Admin Dashboard > Settings > Backups
+# (ee/Server/Backup/Postgres/PostgresTools.ts finds them in
+# /usr/libexec/postgresql<N>). pg_dump must be at least as new as the server it
+# dumps, so one set per PostgreSQL major a server may run. Enterprise only: the
+# Community Edition has no backups, and this stage is the only one that installs
+# them.
+RUN apk add --no-cache postgresql16-client postgresql17-client postgresql18-client
 USER node
 # The full TypeScript type-check already ran at build time (`npm run compile`
 # and the ee tsc above). Without this, ts-node/register redoes that entire check

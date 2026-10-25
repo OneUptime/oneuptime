@@ -50,6 +50,7 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | Paneles **Health** de la administración: resumen de la instancia, colas en segundo plano, logs de la instancia, PostgreSQL, Valkey, clúster de ClickHouse, logs de diagnóstico e ingesta de telemetría | No | Sí | No aplica |
 | **Query Console** de la administración | No | Sí | No disponible |
 | Alertas de salud de PostgreSQL y Valkey (Redis) | No | Sí | No aplica |
+| [Copias de seguridad](/docs/installation/backups) de PostgreSQL y ClickHouse en un almacenamiento propio, según una programación, con restauración | No | Sí | No aplica |
 | Vista de capacidad de ClickHouse, alertas de capacidad y depuración automática del disco | Sí | Sí | No aplica |
 | Estado de las migraciones, paquete de soporte y sondas globales en el panel de administración | Sí | Sí | No aplica |
 | Gestión de la licencia Enterprise, de los puestos y de las instancias | No | Sí | No aplica |
@@ -192,6 +193,7 @@ Qué se detiene cuando una licencia caduca:
 - **El registro de auditoría deja de grabar.** Los registros de auditoría grabados hasta entonces se conservan.
 - **Las anulaciones de retención dejan de aplicarse.** La telemetría nueva se conserva durante la retención predeterminada del proyecto. La telemetría ya almacenada conserva la retención con la que se escribió. Todavía puede borrar una anulación por la API, pero no configurar una.
 - **Las páginas de estado vuelven a mostrar Powered by OneUptime.** Una página que oculta la línea la muestra hasta que se activa una licencia. El ajuste se conserva.
+- **Las copias de seguridad programadas se detienen.** No se hace ninguna copia nueva. Las copias ya hechas siguen en su destino, y todavía puede restaurarlas y eliminarlas.
 
 Qué **no** se detiene:
 
