@@ -163,7 +163,7 @@ export function CaseAiSection({
               </Text>
               <GradientButton
                 testID="case-ai-set-priority"
-                label="Set priority"
+                label={`Set to ${toPlainText(suggestedPriority.name)}`}
                 variant="tonal"
                 size="sm"
                 disabled={busy}

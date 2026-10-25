@@ -120,6 +120,13 @@ type OpenSheet =
   | { kind: "close"; status: SecurityCaseStatusItem };
 
 /*
+ * "Assign to me" with its icon is wider than the response actions' usual
+ * minimum: from here they stack on a phone instead of breaking the label
+ * across two lines, and sit side by side where a pane has room.
+ */
+export const CASE_ACTION_MIN_WIDTH: number = 180;
+
+/*
  * The timeline entry OneUptime AI's triage writes holds its whole report,
  * which the OneUptime AI section draws already; the timeline lists the rest.
  */
@@ -621,6 +628,7 @@ export default function SecurityCaseDetailScreen({
             <ResponseActions
               actions={actions}
               busy={busy}
+              minWidth={CASE_ACTION_MIN_WIDTH}
               style={{ marginBottom: 0 }}
             />
           ) : null}

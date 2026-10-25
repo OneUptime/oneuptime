@@ -202,11 +202,11 @@ export function readCaseEntities(value: unknown): Array<SecurityEntity> {
  * phone reads them in. A source this build does not know reads as stored.
  */
 const SOURCE_LABELS: Readonly<Record<string, string>> = {
-  "Detection Rule": "A detection rule",
+  "Detection Rule": "Detection rule",
   "Threat Intel": "Threat intel",
-  "Connected Product": "A connected product",
+  "Connected Product": "Connected product",
   "Entity Risk": "Entity risk",
-  Manual: "Opened by hand",
+  Manual: "A person",
 };
 
 export function describeCaseSource(source: unknown): string {

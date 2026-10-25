@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../theme";
 import { elevation, radius, spacing, typography } from "../../theme/tokens";
 import { withAlpha } from "../../utils/color";
-import { formatResponseTimestamp } from "../ResponseDetailLayout";
+import { formatRelativeTime } from "../../utils/date";
 import GradientButton from "../GradientButton";
 import IconBadge from "../IconBadge";
 import CaseSheet from "./CaseSheet";
@@ -39,10 +39,9 @@ export function PlaybookApprovalCard({
   onDecide,
 }: PlaybookApprovalCardProps): React.JSX.Element {
   const { theme } = useTheme();
-  const targets: Array<PlaybookTarget> = [
-    ...step.proposed,
-    ...step.protectedTargets,
-  ];
+  const startedWhen: string = step.startedAt
+    ? formatRelativeTime(step.startedAt)
+    : "";
 
   return (
     <View
@@ -72,42 +71,43 @@ export function PlaybookApprovalCard({
         >
           <Text
             accessibilityRole="header"
-            style={{ ...typography.headline, color: theme.colors.textPrimary }}
+            style={{
+              ...typography.overline,
+              color: theme.colors.statusWarning,
+            }}
           >
             Approval needed
           </Text>
           <Text
+            testID="playbook-approval-step"
+            style={{ ...typography.headline, color: theme.colors.textPrimary }}
+          >
+            {step.stepTitle}
+          </Text>
+          <Text
             style={{ ...typography.subhead, color: theme.colors.textSecondary }}
           >
-            {`Playbook ${step.playbookName} is waiting for someone to approve step ${step.stepNumber}: ${step.stepTitle}. Nothing happens until somebody decides.`}
+            {`Step ${step.stepNumber} of ${step.playbookName}. Nothing happens until somebody approves or rejects it.`}
           </Text>
         </View>
       </View>
 
-      {targets.length > 0 ? (
-        <View style={{ gap: spacing.sm }}>
-          <Text
-            style={{
-              ...typography.footnote,
-              fontWeight: "700",
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {step.proposed.length > 0 ? "Acts on" : "Leaves alone"}
-          </Text>
-          {targets.map((target: PlaybookTarget): React.JSX.Element => {
-            return (
-              <TargetLine key={`${target.state}-${target.value}`} target={target} />
-            );
-          })}
-        </View>
+      {step.proposed.length > 0 ? (
+        <TargetGroup title="Acts on" targets={step.proposed} />
+      ) : null}
+      {step.protectedTargets.length > 0 ? (
+        <TargetGroup
+          title="Leaves alone, as protected"
+          targets={step.protectedTargets}
+        />
       ) : null}
 
       <Text
+        testID="playbook-approval-started"
         style={{ ...typography.footnote, color: theme.colors.textTertiary }}
       >
-        {step.startedAt
-          ? `${step.startedBy} · ${formatResponseTimestamp(step.startedAt)}`
+        {startedWhen && startedWhen !== "—"
+          ? `${step.startedBy}, ${startedWhen}`
           : step.startedBy}
       </Text>
 
@@ -148,6 +148,35 @@ export function PlaybookApprovalCard({
   );
 }
 
+function TargetGroup({
+  title,
+  targets,
+}: {
+  title: string;
+  targets: Array<PlaybookTarget>;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <Text
+        style={{
+          ...typography.footnote,
+          fontWeight: "700",
+          color: theme.colors.textSecondary,
+        }}
+      >
+        {title}
+      </Text>
+      {targets.map((target: PlaybookTarget): React.JSX.Element => {
+        return (
+          <TargetLine key={`${target.state}-${target.value}`} target={target} />
+        );
+      })}
+    </View>
+  );
+}
+
 function TargetLine({ target }: { target: PlaybookTarget }): React.JSX.Element {
   const { theme } = useTheme();
   const isProtected: boolean = target.state === "Protected";
@@ -175,11 +204,28 @@ function TargetLine({ target }: { target: PlaybookTarget }): React.JSX.Element {
           {target.value}
         </Text>
         <Text style={{ ...typography.caption, color: theme.colors.textSecondary }}>
-          {`${getEntityTerm(target.type).label} · ${describePlaybookTarget(target)}`}
+          {describeTargetLine(target)}
         </Text>
       </View>
     </View>
   );
+}
+
+/*
+ * A target's second line: what it is, and why the step picked it - or, for
+ * a protected one under its own heading, the protected entry it matches.
+ */
+export function describeTargetLine(target: PlaybookTarget): string {
+  const label: string = getEntityTerm(target.type).label;
+
+  if (target.state === "Protected") {
+    return target.protectedBy &&
+      target.protectedBy.toLowerCase() !== target.value.toLowerCase()
+      ? `${label} · Matches ${target.protectedBy}`
+      : label;
+  }
+
+  return `${label} · ${describePlaybookTarget(target)}`;
 }
 
 interface PlaybookDecisionSheetProps {

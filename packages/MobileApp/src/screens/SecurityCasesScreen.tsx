@@ -190,7 +190,7 @@ export default function SecurityCasesScreen(): React.JSX.Element {
           color: theme.colors.textSecondary,
         }}
       >
-        Open cases, the ones waiting for a decision and the most urgent first.
+        Open cases, the most urgent first.
       </Text>
       <View style={{ marginTop: spacing.md }}>
         <SearchField

@@ -31,7 +31,7 @@ export const CASE_LIST_FILTERS: ReadonlyArray<{
   { key: "open", label: "Open", accessibilityLabel: "Every open case" },
   {
     key: "mine",
-    label: "Assigned to me",
+    label: "Mine",
     accessibilityLabel: "Open cases assigned to me",
   },
   {

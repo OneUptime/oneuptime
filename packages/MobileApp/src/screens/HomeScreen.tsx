@@ -649,8 +649,8 @@ export default function HomeScreen(): React.JSX.Element {
                   subtitle={
                     securityKnown && awaitingApproval > 0
                       ? awaitingApproval === 1
-                        ? "1 case waits for an approval"
-                        : `${awaitingApproval} cases wait for an approval`
+                        ? "Approval needed on 1 case"
+                        : `Approval needed on ${awaitingApproval} cases`
                       : undefined
                   }
                   iconColor={theme.colors.statusWarning}

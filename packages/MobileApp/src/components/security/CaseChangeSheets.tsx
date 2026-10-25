@@ -174,7 +174,7 @@ export function CloseCaseSheet({
       icon="checkmark-circle-outline"
       iconColor={theme.colors.statusSuccess}
       title={`Close ${caseNumber}`}
-      description={`It moves to ${statusName} with the verdict you pick. Everyone on the case sees it on the timeline.`}
+      description={`It moves to ${statusName}. Pick what it turned out to be.`}
       dismissible={!closingNote.trim() && !submitting}
       onClose={close}
       footer={
