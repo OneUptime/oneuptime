@@ -72,16 +72,66 @@ beforeEach(() => {
 
 describe("every request names the selected project", () => {
   test.each([
-    ["statuses", () => fetchSecurityCaseStatuses(PROJECT_ID)],
-    ["priorities", () => fetchSecurityCasePriorities(PROJECT_ID)],
-    ["a count", () => countSecurityCases(PROJECT_ID)],
-    ["the open cases", () => fetchOpenSecurityCases(PROJECT_ID, ["s1"])],
-    ["one case", () => fetchSecurityCaseById(PROJECT_ID, CASE_ID)],
-    ["the timeline", () => fetchSecurityCaseFeed(PROJECT_ID, CASE_ID)],
-    ["the notes", () => fetchSecurityCaseNotes(PROJECT_ID, CASE_ID)],
-    ["a note", () => createSecurityCaseNote(PROJECT_ID, CASE_ID, "Note")],
-    ["the waiting runs", () => fetchWaitingPlaybookRuns(PROJECT_ID)],
-    ["a decision", () => decidePlaybookStep(PROJECT_ID, RUN_ID, "approve")],
+    [
+      "statuses",
+      () => {
+        return fetchSecurityCaseStatuses(PROJECT_ID);
+      },
+    ],
+    [
+      "priorities",
+      () => {
+        return fetchSecurityCasePriorities(PROJECT_ID);
+      },
+    ],
+    [
+      "a count",
+      () => {
+        return countSecurityCases(PROJECT_ID);
+      },
+    ],
+    [
+      "the open cases",
+      () => {
+        return fetchOpenSecurityCases(PROJECT_ID, ["s1"]);
+      },
+    ],
+    [
+      "one case",
+      () => {
+        return fetchSecurityCaseById(PROJECT_ID, CASE_ID);
+      },
+    ],
+    [
+      "the timeline",
+      () => {
+        return fetchSecurityCaseFeed(PROJECT_ID, CASE_ID);
+      },
+    ],
+    [
+      "the notes",
+      () => {
+        return fetchSecurityCaseNotes(PROJECT_ID, CASE_ID);
+      },
+    ],
+    [
+      "a note",
+      () => {
+        return createSecurityCaseNote(PROJECT_ID, CASE_ID, "Note");
+      },
+    ],
+    [
+      "the waiting runs",
+      () => {
+        return fetchWaitingPlaybookRuns(PROJECT_ID);
+      },
+    ],
+    [
+      "a decision",
+      () => {
+        return decidePlaybookStep(PROJECT_ID, RUN_ID, "approve");
+      },
+    ],
   ])("%s", async (_name: string, request: () => Promise<unknown>) => {
     await request();
 
@@ -202,7 +252,10 @@ describe("the open cases", () => {
       `/api/security-case/get-list?skip=0&limit=${SECURITY_CASE_LIST_LIMIT}`,
     );
     expect(lastBody()["query"]).toEqual({
-      securityCaseStatusId: { _type: "Includes", value: ["new", "investigating"] },
+      securityCaseStatusId: {
+        _type: "Includes",
+        value: ["new", "investigating"],
+      },
     });
     expect(lastBody()["sort"]).toEqual({ lastDetectedAt: "DESC" });
   });
@@ -261,7 +314,9 @@ describe("one case", () => {
 
     expect(lastCall()[0]).toBe("/api/security-case/get-list?skip=0&limit=1");
     expect(lastBody()["query"]).toEqual({ _id: CASE_ID });
-    expect(Object.keys(lastBody()["select"] as object)).toEqual(
+    expect(
+      Object.keys(lastBody()["select"] as Record<string, unknown>),
+    ).toEqual(
       expect.arrayContaining([
         "description",
         "source",
@@ -296,7 +351,9 @@ describe("one case", () => {
   test("a case that is not there is null, never undefined: React Query caches null", async () => {
     respondWith({ data: [], count: 0 });
 
-    await expect(fetchSecurityCaseById(PROJECT_ID, CASE_ID)).resolves.toBeNull();
+    await expect(
+      fetchSecurityCaseById(PROJECT_ID, CASE_ID),
+    ).resolves.toBeNull();
   });
 });
 

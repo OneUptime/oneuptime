@@ -1,7 +1,4 @@
-import {
-  getEntityTerm,
-  type SecurityEntityType,
-} from "./caseTerms";
+import { getEntityTerm, type SecurityEntityType } from "./caseTerms";
 
 /*
  * A PLAYBOOK RUN WAITING FOR SOMEBODY TO APPROVE ITS NEXT STEP, as the phone

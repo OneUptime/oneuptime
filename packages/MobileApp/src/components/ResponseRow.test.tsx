@@ -209,9 +209,7 @@ describe("A row's context icon and badge", () => {
   });
 
   test("a badge is words in a pill under the title, read as part of the row", async () => {
-    await render(
-      row({ badge: { label: "Approval needed", tone: "warning" } }),
-    );
+    await render(row({ badge: { label: "Approval needed", tone: "warning" } }));
 
     const badge: RenderedElement = screen.getByTestId("response-row-badge");
     expect(badge).toHaveStyle({ backgroundColor: lightColors.statusWarningBg });

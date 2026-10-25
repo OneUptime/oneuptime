@@ -222,7 +222,14 @@
         { "_id": "elevated", "order": 3.5 },
         { "_id": "low", "order": 5, "isLowPriority": true }
       ],
-      "sortedIds": ["emergency", "critical", "high", "elevated", "medium", "low"],
+      "sortedIds": [
+        "emergency",
+        "critical",
+        "high",
+        "elevated",
+        "medium",
+        "low"
+      ],
       "ranks": {
         "emergency": 0,
         "CRITICAL": 1,

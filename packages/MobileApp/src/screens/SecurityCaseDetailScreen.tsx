@@ -85,10 +85,7 @@ import {
   describeResponseAge,
   type ResponseAction,
 } from "../components/ResponseDetailLayout";
-import {
-  getCaseNumber,
-  getPersonName,
-} from "../components/SecurityCaseCard";
+import { getCaseNumber, getPersonName } from "../components/SecurityCaseCard";
 import {
   CaseAiSection,
   CaseEntitiesSection,
@@ -160,8 +157,11 @@ export default function SecurityCaseDetailScreen({
     useSecurityCaseStatuses(projectId);
   const prioritiesQuery: ReturnType<typeof useSecurityCasePriorities> =
     useSecurityCasePriorities(projectId);
-  const feedQuery: ReturnType<typeof useSecurityCaseFeed> =
-    useSecurityCaseFeed(projectId, caseId, exists);
+  const feedQuery: ReturnType<typeof useSecurityCaseFeed> = useSecurityCaseFeed(
+    projectId,
+    caseId,
+    exists,
+  );
   const notesQuery: ReturnType<typeof useSecurityCaseNotes> =
     useSecurityCaseNotes(projectId, caseId, exists);
   const runsQuery: ReturnType<typeof useCaseWaitingPlaybookRuns> =
@@ -207,7 +207,9 @@ export default function SecurityCaseDetailScreen({
   const refreshLists: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ["security-cases", projectId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["security-cases", projectId],
+        }),
         queryClient.invalidateQueries({
           queryKey: ["security-cases-open-count", projectId],
         }),
@@ -409,7 +411,9 @@ export default function SecurityCaseDetailScreen({
     securityCase.securityCasePriority?._id ??
     null;
   const status: SecurityCaseStatusItem | null =
-    findCaseValue(statuses, statusId) ?? securityCase.securityCaseStatus ?? null;
+    findCaseValue(statuses, statusId) ??
+    securityCase.securityCaseStatus ??
+    null;
   const priority: SecurityCasePriorityItem | null =
     findCaseValue(priorities, priorityId) ??
     securityCase.securityCasePriority ??
@@ -460,8 +464,10 @@ export default function SecurityCaseDetailScreen({
   const suggestedVerdict: SecurityCaseVerdict | undefined = getAiVerdictTerm(
     securityCase.aiVerdict,
   )?.suggestedCloseVerdict;
-  const suggestedPriority: SecurityCasePriorityItem | undefined =
-    findCaseValue(priorities, securityCase.aiSuggestedSecurityCasePriorityId);
+  const suggestedPriority: SecurityCasePriorityItem | undefined = findCaseValue(
+    priorities,
+    securityCase.aiSuggestedSecurityCasePriorityId,
+  );
   const offerSuggestedPriority: boolean =
     Boolean(suggestedPriority) &&
     String(suggestedPriority?._id).toLowerCase() !==
@@ -577,9 +583,7 @@ export default function SecurityCaseDetailScreen({
             status?.color ? rgbToHex(status.color) : theme.colors.textTertiary
           }
           severity={toPlainText(priority?.name) || undefined}
-          severityColor={
-            priority?.color ? rgbToHex(priority.color) : undefined
-          }
+          severityColor={priority?.color ? rgbToHex(priority.color) : undefined}
           meta={
             securityCase.lastDetectedAt
               ? describeResponseAge(
@@ -708,9 +712,7 @@ export default function SecurityCaseDetailScreen({
             }
             accessibilityHint="Opens the people this case can be assigned to"
           />
-          {teamName ? (
-            <CaseFieldRow label="Team" value={teamName} />
-          ) : null}
+          {teamName ? <CaseFieldRow label="Team" value={teamName} /> : null}
           {describeCaseSource(securityCase.source) ? (
             <CaseFieldRow
               label="Opened by"

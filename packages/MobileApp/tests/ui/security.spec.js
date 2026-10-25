@@ -13,7 +13,8 @@ const { installFixtures, projects, caseIds } = require("./fixtures");
  * project. The API is the fixture's fake (installFixtures' `security`).
  */
 
-const SPRAY = "Password spray against the VPN ended in a sign-in for alice@acme.test";
+const SPRAY =
+  "Password spray against the VPN ended in a sign-in for alice@acme.test";
 
 async function capture(page, name, testInfo) {
   await page.evaluate(() => {
@@ -43,7 +44,9 @@ async function openSecurity(page) {
   await expect(
     page.getByTestId("inbox-category-security").filter({ visible: true }),
   ).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText("CASE-142 · Security case").first()).toBeVisible();
+  await expect(
+    page.getByText("CASE-142 · Security case").first(),
+  ).toBeVisible();
 }
 
 function caseRows(page) {
@@ -99,7 +102,11 @@ test("the open cases, the most urgent first, and a case waiting for an approval 
     "Security case CASE-139",
     "Security case CASE-137",
   ]);
-  await expect(page.getByText("Approval needed", { exact: true }).filter({ visible: true })).toHaveCount(1);
+  await expect(
+    page
+      .getByText("Approval needed", { exact: true })
+      .filter({ visible: true }),
+  ).toHaveCount(1);
   await capture(page, "security-cases", testInfo);
 
   // Every case read went to the selected project.
@@ -131,16 +138,26 @@ test("a playbook step is approved from the case, with a comment, and the case is
   await page.goto("/");
   await expect(page.getByText("Overview", { exact: true })).toBeVisible();
   await openSecurity(page);
-  await page.getByText(SPRAY, { exact: true }).filter({ visible: true }).first().click();
+  await page
+    .getByText(SPRAY, { exact: true })
+    .filter({ visible: true })
+    .first()
+    .click();
 
-  const approval = page.getByTestId("playbook-approval-card").filter({ visible: true });
+  const approval = page
+    .getByTestId("playbook-approval-card")
+    .filter({ visible: true });
   await expect(approval).toBeVisible();
   await expect(approval).toContainText("Suspend the user in Okta");
-  await expect(approval).toContainText("Step 2 of Contain a compromised account");
+  await expect(approval).toContainText(
+    "Step 2 of Contain a compromised account",
+  );
   await expect(approval).toContainText("alice@acme.test");
   await expect(approval).toContainText("Leaves alone, as protected");
   await expect(
-    page.getByText("Needs an analyst", { exact: true }).filter({ visible: true }),
+    page
+      .getByText("Needs an analyst", { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   await capture(page, "security-case", testInfo);
 
@@ -150,11 +167,15 @@ test("a playbook step is approved from the case, with a comment, and the case is
   await expect(
     sheet.getByRole("checkbox", { name: "alice@acme.test, User" }),
   ).toHaveAttribute("aria-checked", "true");
-  await sheet.getByTestId("playbook-decision-comment").fill("Alice did not sign in.");
+  await sheet
+    .getByTestId("playbook-decision-comment")
+    .fill("Alice did not sign in.");
   await capture(page, "security-approve", testInfo);
   await sheet.getByTestId("playbook-decision-submit").click();
   await expect(page.getByTestId("playbook-approve-sheet")).toHaveCount(0);
-  await expect(page.getByTestId("playbook-approval-card").filter({ visible: true })).toHaveCount(0);
+  await expect(
+    page.getByTestId("playbook-approval-card").filter({ visible: true }),
+  ).toHaveCount(0);
   const decision = mutations.find((entry) => {
     return entry.path.endsWith("/approve");
   });
@@ -164,9 +185,14 @@ test("a playbook step is approved from the case, with a comment, and the case is
     body: { comment: "Alice did not sign in.", targets: ["alice@acme.test"] },
   });
 
-  await page.getByRole("button", { name: "Assign CASE-142 to me" }).filter({ visible: true }).click();
+  await page
+    .getByRole("button", { name: "Assign CASE-142 to me" })
+    .filter({ visible: true })
+    .click();
   await expect(
-    page.getByText("You have this case", { exact: true }).filter({ visible: true }),
+    page
+      .getByText("You have this case", { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   expect(
     mutations.find((entry) => {
@@ -178,12 +204,17 @@ test("a playbook step is approved from the case, with a comment, and the case is
     body: { data: { assignedToUserId: "responder-1" } },
   });
 
-  await page.getByRole("button", { name: "Close CASE-142" }).filter({ visible: true }).click();
+  await page
+    .getByRole("button", { name: "Close CASE-142" })
+    .filter({ visible: true })
+    .click();
   const close = page.getByTestId("close-case-sheet");
   await expect(close).toBeVisible();
   // OneUptime AI read the case as likely malicious: True Positive to start with.
   await expect(
-    close.getByRole("radio", { name: "True Positive, Suggested by OneUptime AI" }),
+    close.getByRole("radio", {
+      name: "True Positive, Suggested by OneUptime AI",
+    }),
   ).toHaveAttribute("aria-checked", "true");
   await close.getByTestId("close-case-note").fill("Suspended and reset.");
   await capture(page, "security-close", testInfo);
@@ -203,7 +234,9 @@ test("a playbook step is approved from the case, with a comment, and the case is
     },
   });
   await expect(
-    page.getByRole("button", { name: "Reopen CASE-142" }).filter({ visible: true }),
+    page
+      .getByRole("button", { name: "Reopen CASE-142" })
+      .filter({ visible: true }),
   ).toBeVisible();
 });
 
@@ -221,20 +254,29 @@ test("the reader's own case: Close case leads, and OneUptime AI's priority is on
     .click();
 
   await expect(
-    page.getByText("You have this case", { exact: true }).filter({ visible: true }),
+    page
+      .getByText("You have this case", { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Assign CASE-139 to me" }),
   ).toHaveCount(0);
   await capture(page, "security-case-mine", testInfo);
 
-  await page.getByRole("button", { name: "Set to Low" }).filter({ visible: true }).click();
-  await expect(page.getByTestId("case-ai-suggested-priority").filter({ visible: true })).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Set to Low" })
+    .filter({ visible: true })
+    .click();
+  await expect(
+    page.getByTestId("case-ai-suggested-priority").filter({ visible: true }),
+  ).toHaveCount(0);
   expect(
     mutations.find((entry) => {
       return entry.method === "PUT";
     }).body,
-  ).toEqual({ data: { securityCasePriorityId: "9e10e117-0004-4000-8000-000000000004" } });
+  ).toEqual({
+    data: { securityCasePriorityId: "9e10e117-0004-4000-8000-000000000004" },
+  });
 
   // The touch targets a thumb uses at night.
   for (const name of ["Close CASE-139", "Status: Contained", "Priority: Low"]) {

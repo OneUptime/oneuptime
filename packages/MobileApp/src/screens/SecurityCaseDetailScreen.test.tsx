@@ -176,12 +176,15 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
   };
 });
 
-const updateMock: jest.Mock =
-  securityCasesApi.updateSecurityCase as unknown as jest.Mock;
-const decideMock: jest.Mock =
-  securityCasesApi.decidePlaybookStep as unknown as jest.Mock;
-const noteMock: jest.Mock =
-  securityCasesApi.createSecurityCaseNote as unknown as jest.Mock;
+const updateMock: jest.MockedFunction<
+  typeof securityCasesApi.updateSecurityCase
+> = jest.mocked(securityCasesApi.updateSecurityCase);
+const decideMock: jest.MockedFunction<
+  typeof securityCasesApi.decidePlaybookStep
+> = jest.mocked(securityCasesApi.decidePlaybookStep);
+const noteMock: jest.MockedFunction<
+  typeof securityCasesApi.createSecurityCaseNote
+> = jest.mocked(securityCasesApi.createSecurityCaseNote);
 const alertSpy: jest.SpiedFunction<typeof Alert.alert> = jest
   .spyOn(Alert, "alert")
   .mockImplementation((): void => {
@@ -444,11 +447,15 @@ describe("a case nobody has", () => {
     );
 
     expect(within(guidance()).getByText("Case closed")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Assign CASE-142 to me" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Assign CASE-142 to me" }),
+    ).toBeNull();
   });
 
   test("a case deleted meanwhile is gone once it is read again", async () => {
-    updateMock.mockRejectedValue(refused(404, "This security case no longer exists."));
+    updateMock.mockRejectedValue(
+      refused(404, "This security case no longer exists."),
+    );
     const view: Awaited<ReturnType<typeof render>> = await renderScreen();
 
     await fireEvent.press(
@@ -496,7 +503,9 @@ describe("a case somebody else has", () => {
   test("names them, and offers taking it over", async () => {
     await renderScreen();
 
-    expect(within(guidance()).getByText("Priya Shah has this case")).toBeTruthy();
+    expect(
+      within(guidance()).getByText("Priya Shah has this case"),
+    ).toBeTruthy();
     expect(actionLabels()).toEqual(["Assign CASE-142 to me", "Close CASE-142"]);
     expect(
       screen.getByRole("button", { name: "Assigned to: Priya Shah" }),
@@ -546,7 +555,9 @@ describe("my case", () => {
 
     expect(within(guidance()).getByText("You have this case")).toBeTruthy();
     expect(actionLabels()).toEqual(["Close CASE-142"]);
-    expect(screen.getByRole("button", { name: "Assigned to: You" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Assigned to: You" }),
+    ).toBeTruthy();
   });
 
   test("once contained, says what is left", async () => {
@@ -571,7 +582,9 @@ describe("closing a case", () => {
     setCase({ aiVerdict: "Likely False Positive" });
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole("button", { name: "Close CASE-142" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Close CASE-142" }),
+    );
 
     expect(screen.getByTestId("close-case-sheet")).toBeTruthy();
     expect(
@@ -584,7 +597,9 @@ describe("closing a case", () => {
 
   test("closes with the verdict and the note, and the sheet goes once it has", async () => {
     await renderScreen();
-    await fireEvent.press(screen.getByRole("button", { name: "Close CASE-142" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Close CASE-142" }),
+    );
 
     await fireEvent.press(
       screen.getByTestId("close-case-verdict-True Positive"),
@@ -610,7 +625,9 @@ describe("closing a case", () => {
   test("a close that is refused keeps the sheet, and what was typed in it", async () => {
     updateMock.mockRejectedValue(refused(422, "Not allowed."));
     await renderScreen();
-    await fireEvent.press(screen.getByRole("button", { name: "Close CASE-142" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Close CASE-142" }),
+    );
     await fireEvent.press(
       screen.getByTestId("close-case-verdict-Undetermined"),
     );
@@ -628,7 +645,9 @@ describe("closing a case", () => {
       );
     });
     expect(screen.getByTestId("close-case-sheet")).toBeTruthy();
-    expect(screen.getByTestId("close-case-note").props.value).toBe("Keep this.");
+    expect(screen.getByTestId("close-case-note").props.value).toBe(
+      "Keep this.",
+    );
   });
 });
 
@@ -662,7 +681,9 @@ describe("a closed case", () => {
   test("Reopen moves it to the project's acknowledged status, with no verdict", async () => {
     await renderScreen();
 
-    await fireEvent.press(screen.getByRole("button", { name: "Reopen CASE-142" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Reopen CASE-142" }),
+    );
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(PROJECT_ID, CASE_ID, {
@@ -795,7 +816,8 @@ describe("OneUptime AI's read", () => {
     mockFeed.current = query<SecurityCaseFeedItem[]>([
       makeSecurityCaseFeedItem({
         _id: "f-2",
-        feedInfoInMarkdown: "OneUptime AI triaged the case: **Likely Malicious**.",
+        feedInfoInMarkdown:
+          "OneUptime AI triaged the case: **Likely Malicious**.",
         securityCaseFeedEventType: "AiTriage",
       }),
       makeSecurityCaseFeedItem({ _id: "f-1" }),

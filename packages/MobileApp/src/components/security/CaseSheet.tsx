@@ -254,7 +254,9 @@ export function CaseSheetOption({
       <Ionicons
         name={selected ? "radio-button-on" : "radio-button-off"}
         size={20}
-        color={selected ? theme.colors.actionPrimary : theme.colors.textTertiary}
+        color={
+          selected ? theme.colors.actionPrimary : theme.colors.textTertiary
+        }
       />
       <View style={{ flex: 1, gap: spacing.xxs }}>
         <View

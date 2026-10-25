@@ -23,7 +23,10 @@ function glyphFor(name: keyof typeof Ionicons.glyphMap): string {
 describe("what a row says", () => {
   test("its status and priority, title, number and who has it", async () => {
     await render(
-      <SecurityCaseCard securityCase={makeSecurityCase()} onPress={jest.fn()} />,
+      <SecurityCaseCard
+        securityCase={makeSecurityCase()}
+        onPress={jest.fn()}
+      />,
     );
 
     expect(screen.getByText("New")).toBeTruthy();

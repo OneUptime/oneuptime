@@ -58,7 +58,11 @@ export function PlaybookApprovalCard({
       }}
     >
       <View
-        style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.md }}
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: spacing.md,
+        }}
       >
         <IconBadge
           name="hand-left-outline"
@@ -184,12 +188,22 @@ function TargetLine({ target }: { target: PlaybookTarget }): React.JSX.Element {
   return (
     <View
       testID={isProtected ? "playbook-target-protected" : "playbook-target"}
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: spacing.sm,
+      }}
     >
       <Ionicons
-        name={isProtected ? "shield-checkmark-outline" : getEntityTerm(target.type).icon}
+        name={
+          isProtected
+            ? "shield-checkmark-outline"
+            : getEntityTerm(target.type).icon
+        }
         size={16}
-        color={isProtected ? theme.colors.statusSuccess : theme.colors.textSecondary}
+        color={
+          isProtected ? theme.colors.statusSuccess : theme.colors.textSecondary
+        }
         style={{ marginTop: 2 }}
       />
       <View style={{ flex: 1 }}>
@@ -203,7 +217,9 @@ function TargetLine({ target }: { target: PlaybookTarget }): React.JSX.Element {
         >
           {target.value}
         </Text>
-        <Text style={{ ...typography.caption, color: theme.colors.textSecondary }}>
+        <Text
+          style={{ ...typography.caption, color: theme.colors.textSecondary }}
+        >
           {describeTargetLine(target)}
         </Text>
       </View>
@@ -293,9 +309,7 @@ export function PlaybookDecisionSheet({
         isApproval ? theme.colors.statusSuccess : theme.colors.statusError
       }
       title={
-        step
-          ? `${isApproval ? "Approve" : "Reject"}: ${step.stepTitle}`
-          : ""
+        step ? `${isApproval ? "Approve" : "Reject"}: ${step.stepTitle}` : ""
       }
       description={
         isApproval
@@ -317,7 +331,9 @@ export function PlaybookDecisionSheet({
           <GradientButton
             testID="playbook-decision-submit"
             label={isApproval ? "Approve" : "Reject"}
-            icon={isApproval ? "checkmark-circle-outline" : "close-circle-outline"}
+            icon={
+              isApproval ? "checkmark-circle-outline" : "close-circle-outline"
+            }
             variant={isApproval ? "primary" : "destructive"}
             loading={submitting}
             disabled={hasNoTargetKept}

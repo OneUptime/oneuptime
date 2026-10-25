@@ -17,10 +17,7 @@ import {
   makeSecurityCasePriorities,
   makeSecurityCaseStatuses,
 } from "../__tests__/testSupport";
-import type {
-  ProjectSecurityCaseItem,
-  SecurityCaseItem,
-} from "../api/types";
+import type { ProjectSecurityCaseItem, SecurityCaseItem } from "../api/types";
 
 /*
  * The selected project's open security cases, inside the Inbox. What is
@@ -137,7 +134,9 @@ const TRAVEL: SecurityCaseItem = makeSecurityCase({
   lastDetectedAt: "2026-08-30T07:00:00.000Z",
 });
 
-function casesWith(overrides: Partial<OpenSecurityCases> = {}): OpenSecurityCases {
+function casesWith(
+  overrides: Partial<OpenSecurityCases> = {},
+): OpenSecurityCases {
   return {
     items: [wrap(SPRAY), wrap(POWERSHELL), wrap(TRAVEL)],
     statuses: makeSecurityCaseStatuses(),
@@ -202,7 +201,9 @@ describe("the order the cases are worked in", () => {
     expect(screen.getByText("Assigned to you")).toBeTruthy();
     expect(screen.getByText("Assigned to Priya Shah")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: /^Security case CASE-142.*Unassigned\./ }),
+      screen.getByRole("button", {
+        name: /^Security case CASE-142.*Unassigned\./,
+      }),
     ).toBeTruthy();
   });
 
@@ -224,7 +225,11 @@ describe("the filters", () => {
   test("Open, Mine and Unassigned, with how many each holds", async () => {
     await render(<SecurityCasesScreen />);
 
-    const chips: Array<string> = ["Every open case", "Open cases assigned to me", "Open cases nobody has picked up"];
+    const chips: Array<string> = [
+      "Every open case",
+      "Open cases assigned to me",
+      "Open cases nobody has picked up",
+    ];
     for (const name of chips) {
       expect(screen.getByRole("button", { name })).toBeTruthy();
     }
@@ -260,7 +265,9 @@ describe("the filters", () => {
       screen.getByRole("button", { name: "Open cases assigned to me" }),
     );
 
-    await fireEvent.press(screen.getByRole("button", { name: "Reset filters" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Reset filters" }),
+    );
 
     expect(rowTitles()).toHaveLength(3);
   });
@@ -293,11 +300,17 @@ describe("the filters", () => {
 
     expect(rowTitles()).toEqual(["Impossible travel"]);
 
-    await fireEvent.press(screen.getByRole("button", { name: "Every open case" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Every open case" }),
+    );
     expect(rowTitles()).toHaveLength(3);
 
     // A fold draws the list afresh with the same params: Open stays.
-    await view.rerender(<PaneStateScope scope="inbox-list"><></></PaneStateScope>);
+    await view.rerender(
+      <PaneStateScope scope="inbox-list">
+        <></>
+      </PaneStateScope>,
+    );
     await view.rerender(
       <PaneStateScope scope="inbox-list">
         <SecurityCasesScreen />
@@ -328,7 +341,9 @@ describe("search", () => {
     );
 
     expect(screen.getByText("No matching cases")).toBeTruthy();
-    await fireEvent.press(screen.getByRole("button", { name: "Clear filters" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Clear filters" }),
+    );
     expect(rowTitles()).toHaveLength(3);
   });
 });

@@ -356,13 +356,15 @@ describe.each(STATUS_LISTS)(
           statusId,
           choices: mobile
             .getCaseValueChoices(rows, statusId)
-            .map((choice: {
-              value: MobileRow;
-              isCurrent: boolean;
-              isArchived: boolean;
-            }): [string, boolean, boolean] => {
-              return [choice.value._id, choice.isCurrent, choice.isArchived];
-            }),
+            .map(
+              (choice: {
+                value: MobileRow;
+                isCurrent: boolean;
+                isArchived: boolean;
+              }): [string, boolean, boolean] => {
+                return [choice.value._id, choice.isCurrent, choice.isArchived];
+              },
+            ),
         }).toEqual({
           statusId,
           choices: choiceRows(
@@ -408,13 +410,15 @@ describe("assigning and setting a priority", () => {
         priorityId,
         choices: mobile
           .getCaseValueChoices(rows, priorityId)
-          .map((choice: {
-            value: MobileRow;
-            isCurrent: boolean;
-            isArchived: boolean;
-          }): [string, boolean, boolean] => {
-            return [choice.value._id, choice.isCurrent, choice.isArchived];
-          }),
+          .map(
+            (choice: {
+              value: MobileRow;
+              isCurrent: boolean;
+              isArchived: boolean;
+            }): [string, boolean, boolean] => {
+              return [choice.value._id, choice.isCurrent, choice.isArchived];
+            },
+          ),
       }).toEqual({
         priorityId,
         choices: choiceRows(

@@ -347,9 +347,7 @@ describe("approving a step", () => {
 
   test("a step that acts on nobody in particular sends no targets", async () => {
     const onSubmit: jest.Mock = jest.fn();
-    await render(
-      approve({ onSubmit, step: waitingStep({ stepResults: [] }) }),
-    );
+    await render(approve({ onSubmit, step: waitingStep({ stepResults: [] }) }));
 
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
     await fireEvent.press(screen.getByTestId("playbook-decision-submit"));

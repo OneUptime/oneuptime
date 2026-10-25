@@ -641,7 +641,10 @@ export default function HomeScreen(): React.JSX.Element {
               />
             </View>
             {securityCounts.isAvailable ? (
-              <ListGroup testID="home-security" style={{ marginTop: spacing.md }}>
+              <ListGroup
+                testID="home-security"
+                style={{ marginTop: spacing.md }}
+              >
                 <CountRow
                   testID="home-row-security-cases"
                   count={securityCounts.openCount}

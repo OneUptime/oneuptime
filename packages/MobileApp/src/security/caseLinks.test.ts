@@ -93,17 +93,47 @@ describe("a link to a case on this OneUptime", () => {
 
 describe("a link that stays a link", () => {
   test.each([
-    ["another OneUptime", `https://oneuptime.com/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
-    ["a lookalike host that starts like the server", `https://oneuptime.example.com.evil.test/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
-    ["a lookalike host that ends like the server", `https://evil-oneuptime.example.com/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
-    ["the server's address hidden in the user part", `https://oneuptime.example.com@evil.test/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
-    ["plain http to an https server", `http://oneuptime.example.com/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
+    [
+      "another OneUptime",
+      `https://oneuptime.com/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
+    [
+      "a lookalike host that starts like the server",
+      `https://oneuptime.example.com.evil.test/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
+    [
+      "a lookalike host that ends like the server",
+      `https://evil-oneuptime.example.com/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
+    [
+      "the server's address hidden in the user part",
+      `https://oneuptime.example.com@evil.test/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
+    [
+      "plain http to an https server",
+      `http://oneuptime.example.com/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
     ["an incident", `${SERVER}/dashboard/${PROJECT_ID}/incidents/${CASE_ID}`],
-    ["the case list", `${SERVER}/dashboard/${PROJECT_ID}/security-events/cases`],
-    ["a case id that is not a uuid", `${SERVER}/dashboard/${PROJECT_ID}/security-events/cases/CASE-142`],
-    ["a project id that is not a uuid", `${SERVER}/dashboard/acme/security-events/cases/${CASE_ID}`],
-    ["a path outside the dashboard", `${SERVER}/status-page/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
-    ["another scheme", `oneuptime://dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`],
+    [
+      "the case list",
+      `${SERVER}/dashboard/${PROJECT_ID}/security-events/cases`,
+    ],
+    [
+      "a case id that is not a uuid",
+      `${SERVER}/dashboard/${PROJECT_ID}/security-events/cases/CASE-142`,
+    ],
+    [
+      "a project id that is not a uuid",
+      `${SERVER}/dashboard/acme/security-events/cases/${CASE_ID}`,
+    ],
+    [
+      "a path outside the dashboard",
+      `${SERVER}/status-page/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
+    [
+      "another scheme",
+      `oneuptime://dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}`,
+    ],
     ["a mail link", "mailto:soc@example.test"],
     ["text that is not a link at all", "see the case"],
   ])("%s", (_name: string, href: string) => {
@@ -206,12 +236,32 @@ describe("ids", () => {
     expect(isUuid(null)).toBe(false);
   });
 
-  test("checking one takes no longer for a long text than a short one", () => {
+  test("a long text is no id, and is told so at once", () => {
     const long: string = "a".repeat(400000);
-    const started: number = Date.now();
+    const longAfterAnId: string = `${CASE_ID}${long}`;
 
     expect(isUuid(long)).toBe(false);
-    expect(looksLikeSecurityCaseLink(`https://example.com/${long}`)).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(isUuid(longAfterAnId)).toBe(false);
+    expect(looksLikeSecurityCaseLink(`https://example.com/${long}`)).toBe(
+      false,
+    );
+
+    /*
+     * The pattern is anchored at both ends and repeats nothing inside a
+     * repeat, so a long text fails within its first characters. The fastest
+     * of five runs is timed, so a busy machine cannot fail it; parsing a
+     * long URL is the platform's work, and is left out.
+     */
+    let fastest: number = Number.POSITIVE_INFINITY;
+
+    for (let run: number = 0; run < 5; run++) {
+      const started: number = Date.now();
+
+      isUuid(long);
+      isUuid(longAfterAnId);
+      fastest = Math.min(fastest, Date.now() - started);
+    }
+
+    expect(fastest).toBeLessThan(100);
   });
 });

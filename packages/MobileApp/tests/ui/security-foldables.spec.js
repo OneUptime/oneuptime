@@ -18,7 +18,8 @@ const WINDOWS = {
   inner: { width: 884, height: 1104 },
 };
 
-const SPRAY = "Password spray against the VPN ended in a sign-in for alice@acme.test";
+const SPRAY =
+  "Password spray against the VPN ended in a sign-in for alice@acme.test";
 
 async function capture(page, name, testInfo) {
   await page.evaluate(() => {
@@ -44,8 +45,13 @@ async function openSecurityCases(page, size) {
   await page.goto("/");
   await expect(page.getByText("Overview", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Inbox", exact: true }).click();
-  await page.getByTestId("inbox-category-security").filter({ visible: true }).click();
-  await expect(page.getByText("CASE-142 · Security case").first()).toBeVisible();
+  await page
+    .getByTestId("inbox-category-security")
+    .filter({ visible: true })
+    .click();
+  await expect(
+    page.getByText("CASE-142 · Security case").first(),
+  ).toBeVisible();
 }
 
 async function fold(page, size) {
@@ -90,7 +96,9 @@ test("the inner screen sets the open cases beside the case opened from them", as
     .filter({ visible: true })
     .click();
   await expect(
-    detailPane.getByText("You have this case", { exact: true }).filter({ visible: true }),
+    detailPane
+      .getByText("You have this case", { exact: true })
+      .filter({ visible: true }),
   ).toBeVisible();
   await expect(caseRow(page)).toHaveAttribute("aria-selected", "false");
 });
@@ -100,10 +108,16 @@ test("the cover screen is a phone: the case's actions stack and fit", async ({
 }, testInfo) => {
   await openSecurityCases(page, WINDOWS.cover);
   await expect(page.getByTestId("list-pane")).toHaveCount(0);
-  await page.getByText(SPRAY, { exact: true }).filter({ visible: true }).first().click();
+  await page
+    .getByText(SPRAY, { exact: true })
+    .filter({ visible: true })
+    .first()
+    .click();
 
   for (const name of ["Assign CASE-142 to me", "Close CASE-142"]) {
-    const button = page.getByRole("button", { name, exact: true }).filter({ visible: true });
+    const button = page
+      .getByRole("button", { name, exact: true })
+      .filter({ visible: true });
     const box = await button.boundingBox();
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(WINDOWS.cover.width);
@@ -171,7 +185,11 @@ test.describe("in dark mode", () => {
 
   test("the cover screen's case in the dark", async ({ page }, testInfo) => {
     await openSecurityCases(page, WINDOWS.cover);
-    await page.getByText(SPRAY, { exact: true }).filter({ visible: true }).first().click();
+    await page
+      .getByText(SPRAY, { exact: true })
+      .filter({ visible: true })
+      .first()
+      .click();
     await expect(
       page.getByTestId("playbook-approval-card").filter({ visible: true }),
     ).toBeVisible();

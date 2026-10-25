@@ -180,7 +180,11 @@ describe("what a status change writes", () => {
       getStatusWrite({
         statuses: STATUSES,
         fromStatusId: "new",
-        pick: { statusId: "closed", verdict: "True Positive", closingNote: " " },
+        pick: {
+          statusId: "closed",
+          verdict: "True Positive",
+          closingNote: " ",
+        },
       }),
     ).toEqual({ securityCaseStatusId: "closed", verdict: "True Positive" });
   });
@@ -208,6 +212,8 @@ describe("what a status change writes", () => {
 
 describe("what a priority change writes", () => {
   test("the priority, by id", () => {
-    expect(getPriorityWrite("high")).toEqual({ securityCasePriorityId: "high" });
+    expect(getPriorityWrite("high")).toEqual({
+      securityCasePriorityId: "high",
+    });
   });
 });

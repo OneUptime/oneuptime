@@ -51,7 +51,9 @@ type SecurityCaseModel = InstanceType<typeof SecurityCaseModelClass>;
 type SecurityCasePriorityModel = InstanceType<
   typeof SecurityCasePriorityModelClass
 >;
-type SecurityCaseStatusModel = InstanceType<typeof SecurityCaseStatusModelClass>;
+type SecurityCaseStatusModel = InstanceType<
+  typeof SecurityCaseStatusModelClass
+>;
 type SecurityPlaybookRunModel = InstanceType<
   typeof SecurityPlaybookRunModelClass
 >;

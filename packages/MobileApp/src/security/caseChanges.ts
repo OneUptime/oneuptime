@@ -59,7 +59,9 @@ export function isAssignToMeOffered<T extends CaseStatusRuleRow>(data: {
 }
 
 // Assign to Someone Else: on an open case. A closed one is reopened first.
-export function isAssignToSomeoneElseOffered<T extends CaseStatusRuleRow>(data: {
+export function isAssignToSomeoneElseOffered<
+  T extends CaseStatusRuleRow,
+>(data: {
   statuses: CaseValueList<T>;
   statusId: string | null | undefined;
 }): boolean {

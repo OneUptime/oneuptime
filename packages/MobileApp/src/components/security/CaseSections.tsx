@@ -64,7 +64,8 @@ export function CaseAiSection({
 }: CaseAiSectionProps): React.JSX.Element {
   const { theme } = useTheme();
   const [showReport, setShowReport] = useState<boolean>(false);
-  const term: SecurityCaseAiVerdictTerm | undefined = getAiVerdictTerm(aiVerdict);
+  const term: SecurityCaseAiVerdictTerm | undefined =
+    getAiVerdictTerm(aiVerdict);
   const body: string = getTriageReportBody(report);
   const triaged: boolean = Boolean(term) || Boolean(body);
   const triagedWhen: string = triagedAt ? formatRelativeTime(triagedAt) : "";

@@ -244,7 +244,12 @@ describe("a step's stored targets", () => {
         { type: "Host", value: "web-01", reason: "Grouped On", state: "Done" },
         { type: "Host", value: "", reason: "Grouped On", state: "Proposed" },
         { type: "Host", value: "web-02", reason: "Grouped On", state: "Bogus" },
-        { type: "Mainframe", value: "z15", reason: "Elsewhere", state: "Proposed" },
+        {
+          type: "Mainframe",
+          value: "z15",
+          reason: "Elsewhere",
+          state: "Proposed",
+        },
         null,
         "web-03",
       ]),
@@ -285,7 +290,10 @@ describe("the targets an approval keeps", () => {
     const step: WaitingPlaybookStep = read(waitingRun());
 
     expect(
-      getKeptTargetValues(step, new Set(["mallory@acme.test", "alice@acme.test"])),
+      getKeptTargetValues(
+        step,
+        new Set(["mallory@acme.test", "alice@acme.test"]),
+      ),
     ).toEqual(["alice@acme.test", "mallory@acme.test"]);
     expect(getKeptTargetValues(step, new Set(["mallory@acme.test"]))).toEqual([
       "mallory@acme.test",

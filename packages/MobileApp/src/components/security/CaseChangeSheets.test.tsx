@@ -159,9 +159,11 @@ describe("Change status", () => {
     await render(statusSheet({ onClose }));
 
     await fireEvent.press(screen.getByRole("button", { name: "Cancel" }));
-    await fireEvent.press(screen.getByTestId("case-status-sheet-dismiss-area", {
+    await fireEvent.press(
+      screen.getByTestId("case-status-sheet-dismiss-area", {
         includeHiddenElements: true,
-      }));
+      }),
+    );
 
     expect(onClose).toHaveBeenCalledTimes(2);
   });
@@ -218,10 +220,9 @@ describe("Change priority", () => {
         kind="priority"
         caseNumber="CASE-142"
         choices={
-          getCaseValueChoices(
-            priorities,
-            SECURITY_PRIORITY_IDS.high,
-          ) as Array<CaseValueChoice<SecurityCasePriorityItem>>
+          getCaseValueChoices(priorities, SECURITY_PRIORITY_IDS.high) as Array<
+            CaseValueChoice<SecurityCasePriorityItem>
+          >
         }
         suggestedId={SECURITY_PRIORITY_IDS.high}
         onPick={jest.fn()}
@@ -326,9 +327,11 @@ describe("Close case", () => {
       screen.getByTestId("close-case-note"),
       "Half a thought",
     );
-    await fireEvent.press(screen.getByTestId("close-case-sheet-dismiss-area", {
+    await fireEvent.press(
+      screen.getByTestId("close-case-sheet-dismiss-area", {
         includeHiddenElements: true,
-      }));
+      }),
+    );
     expect(onClose).not.toHaveBeenCalled();
 
     await fireEvent.press(screen.getByTestId("close-case-cancel"));
@@ -351,9 +354,11 @@ describe("Close case", () => {
     expect(
       isDisabled(screen.getByTestId("close-case-verdict-False Positive")),
     ).toBe(true);
-    await fireEvent.press(screen.getByTestId("close-case-sheet-dismiss-area", {
+    await fireEvent.press(
+      screen.getByTestId("close-case-sheet-dismiss-area", {
         includeHiddenElements: true,
-      }));
+      }),
+    );
     await fireEvent.press(screen.getByTestId("close-case-submit"));
     expect(onClose).not.toHaveBeenCalled();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -391,9 +396,9 @@ describe("Close case", () => {
     expect(screen.getByTestId("close-case-sheet")).toHaveStyle({
       backgroundColor: darkColors.backgroundSecondary,
     });
-    expect(
-      screen.getByTestId("close-case-verdict-True Positive"),
-    ).toHaveStyle({ backgroundColor: darkColors.cardAccent });
+    expect(screen.getByTestId("close-case-verdict-True Positive")).toHaveStyle({
+      backgroundColor: darkColors.cardAccent,
+    });
     expect(screen.getByTestId("close-case-sheet")).not.toHaveStyle({
       backgroundColor: lightColors.backgroundSecondary,
     });

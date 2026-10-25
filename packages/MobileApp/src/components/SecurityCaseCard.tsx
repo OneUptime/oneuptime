@@ -4,10 +4,7 @@ import { rgbToHex } from "../utils/color";
 import { formatRelativeTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
 import ResponseRow from "./ResponseRow";
-import type {
-  SecurityCaseItem,
-  SecurityCasePersonRef,
-} from "../api/types";
+import type { SecurityCaseItem, SecurityCasePersonRef } from "../api/types";
 
 interface SecurityCaseCardProps {
   securityCase: SecurityCaseItem;

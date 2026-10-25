@@ -117,11 +117,9 @@ describe("the shared status cases", () => {
 
 describe("the shared priority cases", () => {
   describe.each(
-    PRIORITY_CASES.map(
-      (priorityCase: PriorityCase): [string, PriorityCase] => {
-        return [priorityCase.name, priorityCase];
-      },
-    ),
+    PRIORITY_CASES.map((priorityCase: PriorityCase): [string, PriorityCase] => {
+      return [priorityCase.name, priorityCase];
+    }),
   )("%s", (_name: string, priorityCase: PriorityCase) => {
     test("priorities sort by their place, the most urgent first", () => {
       expect(
@@ -208,10 +206,11 @@ describe("reading what the API hands back", () => {
 
     const sorted: Array<CasePriorityRuleRow> = sortCaseValues(priorities);
 
-    expect(sorted.map((row: CasePriorityRuleRow) => row._id)).toEqual([
-      "high",
-      "low",
-    ]);
+    expect(
+      sorted.map((row: CasePriorityRuleRow) => {
+        return row._id;
+      }),
+    ).toEqual(["high", "low"]);
     expect(priorities[0]!._id).toBe("low");
   });
 });
@@ -230,9 +229,7 @@ describe("stages a case has reached", () => {
   });
 
   test("a new case has reached New and nothing after it", () => {
-    expect(hasCaseStatusReached(NEW_PROJECT_STATUSES, "new", "New")).toBe(
-      true,
-    );
+    expect(hasCaseStatusReached(NEW_PROJECT_STATUSES, "new", "New")).toBe(true);
     expect(
       hasCaseStatusReached(NEW_PROJECT_STATUSES, "new", "Acknowledged"),
     ).toBe(false);
@@ -338,9 +335,7 @@ describe("the choices Change Status and Change Priority offer", () => {
       choices.filter((choice: CaseValueChoice<CaseStatusRuleRow>) => {
         return choice.isCurrent;
       }),
-    ).toEqual([
-      { value: statuses[3], isCurrent: true, isArchived: false },
-    ]);
+    ).toEqual([{ value: statuses[3], isCurrent: true, isArchived: false }]);
   });
 
   test("an archived value the case still has stays, marked as archived", () => {

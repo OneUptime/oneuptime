@@ -80,9 +80,7 @@ describe("OneUptime AI", () => {
   });
 
   test("a case it has not triaged says so, and nothing else", async () => {
-    await render(
-      aiSection({ aiVerdict: null, report: null, triagedAt: null }),
-    );
+    await render(aiSection({ aiVerdict: null, report: null, triagedAt: null }));
 
     expect(screen.getByTestId("case-ai-not-triaged")).toHaveTextContent(
       "OneUptime AI has not triaged this case.",
@@ -110,7 +108,9 @@ describe("OneUptime AI", () => {
     await fireEvent.press(toggle);
 
     expect(screen.getByTestId("case-ai-report")).toBeTruthy();
-    expect(screen.getByText(/A brute force that ended in a success\./)).toBeTruthy();
+    expect(
+      screen.getByText(/A brute force that ended in a success\./),
+    ).toBeTruthy();
     expect(screen.queryByText(/Security Case Triage/)).toBeNull();
     expect(screen.getByText("Hide the report")).toBeTruthy();
 

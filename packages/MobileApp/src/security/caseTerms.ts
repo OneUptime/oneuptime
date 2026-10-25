@@ -51,9 +51,11 @@ export const SECURITY_CASE_VERDICTS: ReadonlyArray<SecurityCaseVerdictTerm> = [
 export function isSecurityCaseVerdict(
   value: unknown,
 ): value is SecurityCaseVerdict {
-  return SECURITY_CASE_VERDICTS.some((term: SecurityCaseVerdictTerm): boolean => {
-    return term.verdict === value;
-  });
+  return SECURITY_CASE_VERDICTS.some(
+    (term: SecurityCaseVerdictTerm): boolean => {
+      return term.verdict === value;
+    },
+  );
 }
 
 /*

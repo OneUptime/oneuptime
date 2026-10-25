@@ -1262,7 +1262,9 @@ describe("Security cases on Home", () => {
 
     const row: RenderedElement = screen.getByTestId("home-row-security-cases");
     expect(within(row).getByText("Open security cases")).toBeTruthy();
-    expect(screen.getByTestId("home-row-security-cases-count").props.children).toBe("4");
+    expect(
+      screen.getByTestId("home-row-security-cases-count").props.children,
+    ).toBe("4");
     expect(screen.queryByText(/^Approval needed on/)).toBeNull();
     expect(
       flatStyle(screen.getByTestId("home-row-security-cases-count")).color,
@@ -1324,9 +1326,9 @@ describe("Security cases on Home", () => {
         screen.getByTestId("home-row-security-cases-count").props.children,
       ).toBe("--");
       expect(screen.queryByText(/^Approval needed on/)).toBeNull();
-      expect(screen.getByTestId("home-tile-incidents-count").props.children).toBe(
-        "2",
-      );
+      expect(
+        screen.getByTestId("home-tile-incidents-count").props.children,
+      ).toBe("2");
     },
   );
 

@@ -699,7 +699,11 @@ describe("a security case page", () => {
         entityType: "security-case",
         entityId: CASE_ID,
         projectId: PROJECT_ID,
-        url: "https://oneuptime.com/dashboard/" + PROJECT_ID + "/security-events/cases/" + CASE_ID,
+        url:
+          "https://oneuptime.com/dashboard/" +
+          PROJECT_ID +
+          "/security-events/cases/" +
+          CASE_ID,
       }),
     );
 

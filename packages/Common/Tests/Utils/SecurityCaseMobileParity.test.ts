@@ -172,7 +172,8 @@ const playbookApprovalModule: ModuleExports = loadMobileModule(
   { "./caseTerms": caseTermsModule },
 );
 
-const MOBILE: MobileValueRules = caseValuesModule as unknown as MobileValueRules;
+const MOBILE: MobileValueRules =
+  caseValuesModule as unknown as MobileValueRules;
 
 // The server's answers to the questions the app asks.
 const SERVER: MobileValueRules = {
@@ -287,8 +288,18 @@ function askStatuses(
 
   const closes: Record<string, boolean> = {};
 
-  for (const from of [...statuses.map((s: MobileStatus) => s._id), null]) {
-    for (const to of [...statuses.map((s: MobileStatus) => s._id), null]) {
+  for (const from of [
+    ...statuses.map((s: MobileStatus) => {
+      return s._id;
+    }),
+    null,
+  ]) {
+    for (const to of [
+      ...statuses.map((s: MobileStatus) => {
+        return s._id;
+      }),
+      null,
+    ]) {
       closes[`${String(from)}->${String(to)}`] = rules.doesStatusCloseCase({
         statuses,
         fromStatusId: from,
@@ -300,7 +311,8 @@ function askStatuses(
   const statusOfStage: Record<string, string | null> = {};
 
   for (const stage of SECURITY_CASE_STAGES) {
-    statusOfStage[stage] = rules.getCaseStatusOfStage(statuses, stage)?._id ?? null;
+    statusOfStage[stage] =
+      rules.getCaseStatusOfStage(statuses, stage)?._id ?? null;
   }
 
   return {
@@ -460,11 +472,13 @@ function randomLists<T extends { _id: string }>(
 describe("the app's copy of the rules loads from the app's own files", () => {
   test("every question this suite asks is answered by the app's copy", () => {
     for (const name of Object.keys(SERVER)) {
-      expect({ name, type: typeof (MOBILE as unknown as ModuleExports)[name] })
-        .toEqual({
-          name,
-          type: name === "SECURITY_CASE_STAGES" ? "object" : "function",
-        });
+      expect({
+        name,
+        type: typeof (MOBILE as unknown as ModuleExports)[name],
+      }).toEqual({
+        name,
+        type: name === "SECURITY_CASE_STAGES" ? "object" : "function",
+      });
     }
   });
 

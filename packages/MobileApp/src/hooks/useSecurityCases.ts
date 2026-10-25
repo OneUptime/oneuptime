@@ -267,11 +267,7 @@ export function useSecurityCaseCounts(): SecurityCaseCounts {
     return getOpenCaseStatusIds(statuses.data ?? []);
   }, [statuses.data]);
   const open: UseQueryResult<number, Error> = useQuery({
-    queryKey: [
-      "security-cases-open-count",
-      projectId,
-      openStatusIds.join(","),
-    ],
+    queryKey: ["security-cases-open-count", projectId, openStatusIds.join(",")],
     queryFn: () => {
       return countSecurityCases(projectId, {
         securityCaseStatusId: toStatusIdsQuery(openStatusIds),
@@ -286,9 +282,7 @@ export function useSecurityCaseCounts(): SecurityCaseCounts {
   return {
     isAvailable: availability.isAvailable,
     openCount: open.data,
-    awaitingApprovalCount: awaiting.isError
-      ? undefined
-      : awaiting.caseIds.size,
+    awaitingApprovalCount: awaiting.isError ? undefined : awaiting.caseIds.size,
     isLoading: statuses.isLoading || open.isLoading,
     isError: statuses.isError || open.isError,
     refetch: async (): Promise<void> => {

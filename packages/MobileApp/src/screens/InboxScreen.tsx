@@ -191,85 +191,89 @@ export default function InboxScreen(): React.JSX.Element {
             borderBottomColor: theme.colors.borderSubtle,
           }}
         >
-          {visibleCategories.map((category: InboxCategory): React.JSX.Element => {
-            const selected: boolean = category.key === selectedView;
-            const contentColor: string = selected
-              ? theme.colors.actionPrimary
-              : theme.colors.textSecondary;
-            return (
-              <Pressable
-                key={category.key}
-                accessibilityRole="tab"
-                accessibilityLabel={category.label}
-                accessibilityState={{ selected }}
-                aria-selected={selected}
-                testID={`inbox-category-${category.key}`}
-                onPress={(): void => {
-                  if (!selected) {
-                    navigation.setParams(
-                      category.key === "security"
-                        ? { initialView: "security" }
-                        : {
-                            initialView: category.key,
-                            initialSegment: category.key,
-                            initialFilter: "all",
-                          },
-                    );
-                  }
-                }}
-                style={({ pressed }: PressableStateCallbackType): ViewStyle => {
-                  return {
-                    flex: 1,
-                    minHeight: 48,
-                    flexDirection: "row",
-                    gap: spacing.sm,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderTopLeftRadius: radius.md,
-                    borderTopRightRadius: radius.md,
-                    backgroundColor: pressed
-                      ? withAlpha(
-                          theme.colors.actionPrimary,
-                          theme.dark ? 0.16 : 0.08,
-                        )
-                      : "transparent",
-                  };
-                }}
-              >
-                {showIcons ? (
-                  <Ionicons
-                    name={selected ? category.selectedIcon : category.icon}
-                    size={18}
-                    color={contentColor}
-                  />
-                ) : null}
-                <Text
-                  style={{
-                    ...typography.callout,
-                    fontWeight: selected ? "700" : "600",
-                    color: contentColor,
+          {visibleCategories.map(
+            (category: InboxCategory): React.JSX.Element => {
+              const selected: boolean = category.key === selectedView;
+              const contentColor: string = selected
+                ? theme.colors.actionPrimary
+                : theme.colors.textSecondary;
+              return (
+                <Pressable
+                  key={category.key}
+                  accessibilityRole="tab"
+                  accessibilityLabel={category.label}
+                  accessibilityState={{ selected }}
+                  aria-selected={selected}
+                  testID={`inbox-category-${category.key}`}
+                  onPress={(): void => {
+                    if (!selected) {
+                      navigation.setParams(
+                        category.key === "security"
+                          ? { initialView: "security" }
+                          : {
+                              initialView: category.key,
+                              initialSegment: category.key,
+                              initialFilter: "all",
+                            },
+                      );
+                    }
+                  }}
+                  style={({
+                    pressed,
+                  }: PressableStateCallbackType): ViewStyle => {
+                    return {
+                      flex: 1,
+                      minHeight: 48,
+                      flexDirection: "row",
+                      gap: spacing.sm,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderTopLeftRadius: radius.md,
+                      borderTopRightRadius: radius.md,
+                      backgroundColor: pressed
+                        ? withAlpha(
+                            theme.colors.actionPrimary,
+                            theme.dark ? 0.16 : 0.08,
+                          )
+                        : "transparent",
+                    };
                   }}
                 >
-                  {category.label}
-                </Text>
-                <View
-                  testID={`inbox-category-${category.key}-indicator`}
-                  style={{
-                    position: "absolute",
-                    left: spacing.lg,
-                    right: spacing.lg,
-                    bottom: -1,
-                    height: 3,
-                    borderTopLeftRadius: 3,
-                    borderTopRightRadius: 3,
-                    backgroundColor: selected
-                      ? theme.colors.actionPrimary
-                      : "transparent",
-                  }}
-                />
-              </Pressable>
-            );
-          })}
+                  {showIcons ? (
+                    <Ionicons
+                      name={selected ? category.selectedIcon : category.icon}
+                      size={18}
+                      color={contentColor}
+                    />
+                  ) : null}
+                  <Text
+                    style={{
+                      ...typography.callout,
+                      fontWeight: selected ? "700" : "600",
+                      color: contentColor,
+                    }}
+                  >
+                    {category.label}
+                  </Text>
+                  <View
+                    testID={`inbox-category-${category.key}-indicator`}
+                    style={{
+                      position: "absolute",
+                      left: spacing.lg,
+                      right: spacing.lg,
+                      bottom: -1,
+                      height: 3,
+                      borderTopLeftRadius: 3,
+                      borderTopRightRadius: 3,
+                      backgroundColor: selected
+                        ? theme.colors.actionPrimary
+                        : "transparent",
+                    }}
+                  />
+                </Pressable>
+              );
+            },
+          )}
         </View>
       </View>
       {selectedView === "security" ? (

@@ -32,7 +32,9 @@ const PRIORITIES: Array<SecurityCasePriorityItem> = [
   { _id: "medium", name: "Medium", order: 3, isMediumPriority: true },
 ];
 
-function makeCase(overrides: Partial<SecurityCaseItem>): ProjectSecurityCaseItem {
+function makeCase(
+  overrides: Partial<SecurityCaseItem>,
+): ProjectSecurityCaseItem {
   return {
     projectId: "project-1",
     projectName: "Acme",
@@ -53,11 +55,31 @@ function ids(items: Array<ProjectSecurityCaseItem>): Array<string> {
 
 describe("the order of the open cases", () => {
   const cases: Array<ProjectSecurityCaseItem> = [
-    makeCase({ _id: "low-new", securityCasePriorityId: "low", lastDetectedAt: "2026-09-10T09:59:00.000Z" }),
-    makeCase({ _id: "high-old", securityCasePriorityId: "high", lastDetectedAt: "2026-09-10T07:00:00.000Z" }),
-    makeCase({ _id: "critical", securityCasePriorityId: "critical", lastDetectedAt: "2026-09-10T08:00:00.000Z" }),
-    makeCase({ _id: "high-new", securityCasePriorityId: "high", lastDetectedAt: "2026-09-10T09:00:00.000Z" }),
-    makeCase({ _id: "medium-waiting", securityCasePriorityId: "medium", lastDetectedAt: "2026-09-10T06:30:00.000Z" }),
+    makeCase({
+      _id: "low-new",
+      securityCasePriorityId: "low",
+      lastDetectedAt: "2026-09-10T09:59:00.000Z",
+    }),
+    makeCase({
+      _id: "high-old",
+      securityCasePriorityId: "high",
+      lastDetectedAt: "2026-09-10T07:00:00.000Z",
+    }),
+    makeCase({
+      _id: "critical",
+      securityCasePriorityId: "critical",
+      lastDetectedAt: "2026-09-10T08:00:00.000Z",
+    }),
+    makeCase({
+      _id: "high-new",
+      securityCasePriorityId: "high",
+      lastDetectedAt: "2026-09-10T09:00:00.000Z",
+    }),
+    makeCase({
+      _id: "medium-waiting",
+      securityCasePriorityId: "medium",
+      lastDetectedAt: "2026-09-10T06:30:00.000Z",
+    }),
   ];
 
   test("the most urgent first, then the latest detection", () => {
@@ -73,7 +95,13 @@ describe("the order of the open cases", () => {
   test("a case waiting for an approval comes before every other, whatever its priority", () => {
     expect(
       ids(sortCasesForTriage(cases, PRIORITIES, new Set(["medium-waiting"]))),
-    ).toEqual(["medium-waiting", "critical", "high-new", "high-old", "low-new"]);
+    ).toEqual([
+      "medium-waiting",
+      "critical",
+      "high-new",
+      "high-old",
+      "low-new",
+    ]);
   });
 
   test("cases waiting for approvals keep the same order among themselves", () => {
@@ -81,7 +109,13 @@ describe("the order of the open cases", () => {
       ids(
         sortCasesForTriage(cases, PRIORITIES, new Set(["low-new", "critical"])),
       ),
-    ).toEqual(["critical", "low-new", "high-new", "high-old", "medium-waiting"]);
+    ).toEqual([
+      "critical",
+      "low-new",
+      "high-new",
+      "high-old",
+      "medium-waiting",
+    ]);
   });
 
   test("a priority that is none of the project's goes after every known one", () => {
@@ -90,24 +124,26 @@ describe("the order of the open cases", () => {
       makeCase({ _id: "low", securityCasePriorityId: "low" }),
     ];
 
-    expect(ids(sortCasesForTriage(withUnknown, PRIORITIES, new Set()))).toEqual([
-      "low",
-      "unknown",
-    ]);
+    expect(ids(sortCasesForTriage(withUnknown, PRIORITIES, new Set()))).toEqual(
+      ["low", "unknown"],
+    );
   });
 
   test("a case's priority is read from its relation when the id column is missing", () => {
     const fromRelation: Array<ProjectSecurityCaseItem> = [
-      makeCase({ _id: "low", securityCasePriority: { _id: "low", name: "Low" } }),
+      makeCase({
+        _id: "low",
+        securityCasePriority: { _id: "low", name: "Low" },
+      }),
       makeCase({
         _id: "critical",
         securityCasePriority: { _id: "CRITICAL", name: "Critical" },
       }),
     ];
 
-    expect(ids(sortCasesForTriage(fromRelation, PRIORITIES, new Set()))).toEqual(
-      ["critical", "low"],
-    );
+    expect(
+      ids(sortCasesForTriage(fromRelation, PRIORITIES, new Set())),
+    ).toEqual(["critical", "low"]);
   });
 
   test("a case opened by hand, with no detection, is placed by when it opened", () => {
@@ -151,7 +187,9 @@ describe("the order of the open cases", () => {
   });
 
   test("a case with no readable time at all still sorts", () => {
-    expect(getCaseActivityTime({ _id: "x", title: "x", createdAt: "" })).toBe(0);
+    expect(getCaseActivityTime({ _id: "x", title: "x", createdAt: "" })).toBe(
+      0,
+    );
   });
 });
 
@@ -214,7 +252,11 @@ describe("search", () => {
     caseNumber: 142,
     caseNumberWithPrefix: "CASE-142",
     createdAt: "2026-09-10T09:00:00.000Z",
-    assignedToUser: { _id: PRIYA, name: "Priya Shah", email: "priya@example.test" },
+    assignedToUser: {
+      _id: PRIYA,
+      name: "Priya Shah",
+      email: "priya@example.test",
+    },
     assignedToTeam: { _id: "team-1", name: "Security Operations" },
     entities: [
       { type: "User", value: "alice@acme.test" },

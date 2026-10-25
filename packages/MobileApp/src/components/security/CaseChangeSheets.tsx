@@ -5,7 +5,10 @@ import { radius, spacing, typography } from "../../theme/tokens";
 import { rgbToHex } from "../../utils/color";
 import { toPlainText } from "../../utils/text";
 import GradientButton from "../GradientButton";
-import CaseSheet, { CaseSheetOption, type CaseSheetOptionTag } from "./CaseSheet";
+import CaseSheet, {
+  CaseSheetOption,
+  type CaseSheetOptionTag,
+} from "./CaseSheet";
 import type { CaseValueChoice } from "../../security/caseValues";
 import {
   SECURITY_CASE_VERDICTS,
@@ -223,9 +226,7 @@ export function CloseCaseSheet({
                 testID={`close-case-verdict-${term.verdict}`}
                 label={term.verdict}
                 description={term.description}
-                tags={
-                  term.verdict === suggestedVerdict ? [SUGGESTED_TAG] : []
-                }
+                tags={term.verdict === suggestedVerdict ? [SUGGESTED_TAG] : []}
                 selected={verdict === term.verdict}
                 disabled={submitting}
                 onPress={(): void => {

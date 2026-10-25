@@ -369,7 +369,9 @@ export default function SecurityCasesScreen(): React.JSX.Element {
               title={emptyState.title}
               subtitle={emptyState.subtitle}
               icon={emptyState.isGoodNews ? "success" : "security"}
-              actionLabel={filter !== "open" ? "Show every open case" : undefined}
+              actionLabel={
+                filter !== "open" ? "Show every open case" : undefined
+              }
               onAction={filter !== "open" ? resetFilters : undefined}
             />
           )
