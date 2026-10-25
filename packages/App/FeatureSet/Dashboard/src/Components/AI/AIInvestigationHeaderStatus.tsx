@@ -17,6 +17,69 @@ import {
   isActiveAIInvestigationStatus,
   isCompletedAIInvestigationWithSummary,
 } from "./AIInvestigationStatus";
+import { atContainerWidth } from "../EventView/EventHeaderLayout";
+
+/*
+ * The band is drawn inside the event header, which is a size container: its
+ * rows follow the header's own width. From this width the label and the
+ * report button share the top row; below it the button moves to the bottom
+ * row, after Show more.
+ */
+export const AI_HEADER_WIDE_WIDTH_REM: number = 36;
+
+/*
+ * The summary's lines, which wrap: the label (and, on a wide header, the
+ * report button), the summary, then Show more and - on a narrow header -
+ * the button, which takes a line of its own when the two do not fit one: in
+ * German, "Mehr anzeigen" and "Vollständigen Bericht anzeigen" do not on a
+ * phone, and in a grid's two columns they ran into each other. The lines
+ * are 8px apart: the two reach 4px past their line each way (-my-1), so
+ * on lines of their own they meet without overlapping.
+ */
+export const AI_HEADER_SUMMARY_ROWS_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-3 gap-y-2";
+
+// The label and the verdict: a line of their own on a narrow header, all the button leaves of the top row on a wide one.
+export const AI_HEADER_SUMMARY_HEADING_ROW_CLASS_NAME: string = `flex w-full min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 ${atContainerWidth(
+  AI_HEADER_WIDE_WIDTH_REM,
+  "w-auto flex-1",
+)}`;
+
+/*
+ * View full report: last, at the end of the bottom line, on a narrow header
+ * - beside Show more, or on a line of its own under it - and at the end of
+ * the top row on a wide one, its words level with the label's: the label's
+ * line is the 24px mark's, so the button sits 2px lower than a 20px line's
+ * (-mt-0.5 for -my-1's -mt-1). Whole at every width.
+ */
+export const AI_HEADER_VIEW_REPORT_CLASS_NAME: string = `group order-last -my-1 ms-auto inline-flex shrink-0 items-center justify-center gap-1.5 self-start whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
+  AI_HEADER_WIDE_WIDTH_REM,
+  "order-none -mt-0.5",
+)}`;
+
+/*
+ * The summary's line: all of it, so Show more always starts the next one,
+ * however wide the header; the summary in it keeps a readable measure.
+ */
+export const AI_HEADER_SUMMARY_LINE_CLASS_NAME: string = "min-w-0 basis-full";
+
+export const AI_HEADER_SUMMARY_TEXT_CLASS_NAME: string =
+  "max-w-4xl break-words text-sm leading-6";
+
+// Show more / Show less: first on the bottom line, its words whole.
+export const AI_HEADER_SHOW_MORE_CLASS_NAME: string =
+  "-my-1 -ms-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+// While it works: what it is doing, then View live progress - beside it on a wide header.
+export const AI_HEADER_PROGRESS_ROW_CLASS_NAME: string = `flex flex-col gap-2 ${atContainerWidth(
+  AI_HEADER_WIDE_WIDTH_REM,
+  "flex-row items-center justify-between gap-4",
+)}`;
+
+export const AI_HEADER_VIEW_PROGRESS_CLASS_NAME: string = `group inline-flex shrink-0 items-center justify-center gap-1.5 self-end whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
+  AI_HEADER_WIDE_WIDTH_REM,
+  "self-auto",
+)}`;
 
 export interface ComponentProps {
   status: AIRunStatus;
@@ -151,20 +214,50 @@ interface CompletedSummaryNoticeProps {
 }
 
 /*
- * A completed investigation's headline, lifted into the event header so the
- * most useful read on the page is visible without scrolling, and "View full
- * report" jumps to the panel. The summary is model-authored, so it is only
- * ever rendered as text. Once a responder has rated the report, a badge next
- * to the label says so, because a rejected report must not keep presenting
- * itself as the root cause.
+ * OneUptime AI's mark in the band: the sparkles on an indigo tile, with a
+ * dot that pings while a run is under way. Decoration - the words beside it
+ * say what it is.
+ */
+const AiMark: FunctionComponent<{ isLive?: boolean | undefined }> = (props: {
+  isLive?: boolean | undefined;
+}): ReactElement => {
+  return (
+    <span
+      aria-hidden="true"
+      data-testid="ai-header-mark"
+      className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white"
+    >
+      <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+      {props.isLive ? (
+        <span className="absolute -end-1 -top-1 flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75 motion-safe:animate-ping" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-white" />
+        </span>
+      ) : (
+        <></>
+      )}
+    </span>
+  );
+};
+
+/*
+ * The header's AI band, as a completed investigation's headline: lifted into
+ * the event header so the most useful read on the page is visible without
+ * scrolling, and "View full report" jumps to the panel. The summary is
+ * model-authored, so it is only ever rendered as text. Once a responder has
+ * rated the report, a badge next to the label says so, because a rejected
+ * report must not keep presenting itself as the root cause.
  *
- * The label and the report button share the top row so the summary gets the
- * card's full width below them, capped at a readable measure for wide
- * screens. Below lg that row has no room for the button: the notice is a
- * phone's width, or about 340px beside a tablet's side menu at 768px, where
- * the button would cut the label short. There it drops to the bottom row
- * beside Show more; the DOM order stays header, button, summary, the same
- * as a Card's header actions.
+ * The band is a section of the header, not a box inside it: the header
+ * paints its tint and its hairline (EventStatusPanel's "ai" notice), so
+ * nothing here draws a border, a frame or a shadow. The label and the report
+ * button share the top row, so the summary gets the band's whole width under
+ * them. On a narrow header - a phone's, or beside a tablet's side menu - that
+ * row has no room for the button, which would cut the label short: there it
+ * goes last, after Show more, and to a line of its own when the two do not
+ * fit one. The DOM order stays label, button, summary, the same as a Card's
+ * header actions. Both are read off the header's own width (it is a size
+ * container), never the window's.
  */
 const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   props: CompletedSummaryNoticeProps,
@@ -182,7 +275,7 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   /*
    * A rejected report is still worth reading, but as a claim a responder
    * has ruled out, so it drops to secondary text. gray-600 keeps about
-   * 6.8:1 on the notice's indigo tint, where gray-500 would fall below 4.5:1.
+   * 6.8:1 on the band's indigo tint, where gray-500 would fall below 4.5:1.
    */
   const isRejected: boolean = props.verdict === AIRunHumanVerdict.Rejected;
 
@@ -231,101 +324,144 @@ const CompletedSummaryNotice: FunctionComponent<CompletedSummaryNoticeProps> = (
   }, [isExpanded, props.summary]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-white py-3 pl-4 pr-3 shadow-sm">
-      <div
-        aria-hidden="true"
-        className="absolute inset-y-0 left-0 w-1 bg-indigo-500"
-      />
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
-        {/*
-          The button's column is as wide as the button even where the
-          button sits in the bottom row, so the label spans both columns
-          there instead of truncating beside an empty cell. A verdict badge
-          wraps under the label when the row is too narrow for both.
-        */}
-        <div className="col-span-2 row-start-1 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 lg:col-span-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white shadow-sm"
-            >
-              <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-            </span>
-            <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-indigo-600">
-              {translator.translateText("AI root cause analysis")}
-            </h3>
-          </div>
-          {verdictBadge ? (
-            <span
-              data-verdict={props.verdict}
-              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${verdictBadge.className}`}
-            >
-              <Icon icon={verdictBadge.icon} className="h-3 w-3" />
-              {translator.translateText(verdictBadge.text)}
-            </span>
-          ) : (
-            <></>
-          )}
+    <div
+      data-testid="ai-header-summary"
+      className={AI_HEADER_SUMMARY_ROWS_CLASS_NAME}
+    >
+      {/*
+        A verdict badge wraps under the label when the line is too narrow
+        for both; on a wide header the button keeps its width beside them.
+      */}
+      <div className={AI_HEADER_SUMMARY_HEADING_ROW_CLASS_NAME}>
+        <div className="flex min-w-0 items-center gap-2">
+          <AiMark />
+          <h3 className="truncate text-sm font-semibold text-indigo-900">
+            {translator.translateText("AI root cause analysis")}
+          </h3>
         </div>
-        <button
-          type="button"
-          onClick={props.onViewReport}
-          aria-controls={AI_INVESTIGATION_PANEL_ID}
-          className="group col-start-2 row-start-3 -my-0.5 inline-flex items-center justify-center gap-1.5 self-start justify-self-end whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 lg:row-start-1"
-        >
-          {translator.translateText("View full report")}
-          <Icon
-            icon={IconProp.ArrowDown}
-            className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
-          />
-        </button>
+        {verdictBadge ? (
+          <span
+            data-verdict={props.verdict}
+            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${verdictBadge.className}`}
+          >
+            <Icon icon={verdictBadge.icon} className="h-3 w-3" />
+            {translator.translateText(verdictBadge.text)}
+          </span>
+        ) : (
+          <></>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={props.onViewReport}
+        aria-controls={AI_INVESTIGATION_PANEL_ID}
+        className={AI_HEADER_VIEW_REPORT_CLASS_NAME}
+      >
+        {translator.translateText("View full report")}
+        <Icon
+          icon={IconProp.ArrowDown}
+          className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
+        />
+      </button>
+      <div className={AI_HEADER_SUMMARY_LINE_CLASS_NAME}>
         <p
           ref={summaryRef}
           id={summaryId}
-          className={`col-span-2 row-start-2 max-w-4xl break-words text-sm leading-6 ${
+          className={`${AI_HEADER_SUMMARY_TEXT_CLASS_NAME} ${
             isRejected ? "text-gray-600" : "text-gray-900"
           } ${isExpanded ? "" : "line-clamp-3"}`}
         >
           {props.summary}
         </p>
-        {isClamped ? (
-          <button
-            type="button"
-            onClick={() => {
-              setIsExpanded(!isExpanded);
-            }}
-            aria-expanded={isExpanded}
-            aria-controls={summaryId}
-            className="col-start-1 row-start-3 -my-1 -ml-1.5 inline-flex items-center gap-1 justify-self-start rounded-md px-1.5 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
-            {isExpanded
-              ? translator.translateText("Show less")
-              : translator.translateText("Show more")}
-            <Icon
-              icon={IconProp.ChevronDown}
-              className={`h-3.5 w-3.5 motion-safe:transition-transform ${
-                isExpanded ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-        ) : (
-          <></>
-        )}
       </div>
+      {isClamped ? (
+        <button
+          type="button"
+          onClick={() => {
+            setIsExpanded(!isExpanded);
+          }}
+          aria-expanded={isExpanded}
+          aria-controls={summaryId}
+          className={AI_HEADER_SHOW_MORE_CLASS_NAME}
+        >
+          {isExpanded
+            ? translator.translateText("Show less")
+            : translator.translateText("Show more")}
+          <Icon
+            icon={IconProp.ChevronDown}
+            className={`h-3.5 w-3.5 motion-safe:transition-transform ${
+              isExpanded ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
 
 /*
- * A deliberately prominent, but compact, live status for an incident header.
- * The full event trail remains in InvestigationPanel; this tells responders
- * that work is happening without making them hunt for that card.
+ * The band while OneUptime AI works: what it is doing, in a sentence, and
+ * View live progress, which jumps to the panel where the steps are. The mark
+ * pings while the run is under way.
+ */
+const ActiveInvestigationNotice: FunctionComponent<{
+  status: AIRunStatus;
+  onViewProgress: () => void;
+}> = (props: {
+  status: AIRunStatus;
+  onViewProgress: () => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const isRunning: boolean = props.status === AIRunStatus.Running;
+  const copy: { title: string; description: string } =
+    getAIInvestigationStatusCopy(props.status);
+
+  return (
+    <div
+      data-testid="ai-header-progress"
+      className={AI_HEADER_PROGRESS_ROW_CLASS_NAME}
+    >
+      <div className="flex min-w-0 items-start gap-2.5">
+        <AiMark isLive={isRunning} />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-indigo-900">
+            {translator.translateText(copy.title)}
+          </p>
+          <p className="mt-0.5 text-sm text-gray-700">
+            {translator.translateText(copy.description)}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={props.onViewProgress}
+        aria-controls={AI_INVESTIGATION_PANEL_ID}
+        aria-label={translator.translateText(
+          "View live AI investigation progress",
+        )}
+        className={AI_HEADER_VIEW_PROGRESS_CLASS_NAME}
+      >
+        {translator.translateText("View live progress")}
+        <Icon
+          icon={IconProp.ArrowDown}
+          className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
+        />
+      </button>
+    </div>
+  );
+};
+
+/*
+ * The header's AI band: while the run is queued or running, that OneUptime
+ * AI is on it; once it completed with a summary, the summary. The full event
+ * trail stays in InvestigationPanel; this tells responders that work is
+ * happening, or what it found, without making them hunt for that card.
  */
 const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   if (isCompletedAIInvestigationWithSummary(props.status, props.summary)) {
     return (
       <CompletedSummaryNotice
@@ -340,58 +476,11 @@ const AIInvestigationHeaderStatus: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const isRunning: boolean = props.status === AIRunStatus.Running;
-  const copy: { title: string; description: string } =
-    getAIInvestigationStatusCopy(props.status);
-
   return (
-    <div className="relative overflow-hidden rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-violet-50 px-3.5 py-3 shadow-sm">
-      <div
-        aria-hidden="true"
-        className="absolute inset-y-0 left-0 w-1 bg-indigo-500"
-      />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm"
-          >
-            <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
-              {isRunning ? (
-                <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-indigo-400 opacity-75" />
-              ) : (
-                <></>
-              )}
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full border-2 border-white bg-indigo-500" />
-            </span>
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-indigo-950">
-              {translator.translateText(copy.title)}
-            </p>
-            <p className="mt-0.5 text-xs leading-5 text-indigo-700">
-              {translator.translateText(copy.description)}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={props.onViewProgress}
-          aria-controls={AI_INVESTIGATION_PANEL_ID}
-          aria-label={translator.translateText(
-            "View live AI investigation progress",
-          )}
-          className="group inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-md px-2.5 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:self-auto"
-        >
-          {translator.translateText("View live progress")}
-          <Icon
-            icon={IconProp.ArrowDown}
-            className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-y-0.5"
-          />
-        </button>
-      </div>
-    </div>
+    <ActiveInvestigationNotice
+      status={props.status}
+      onViewProgress={props.onViewProgress}
+    />
   );
 };
 

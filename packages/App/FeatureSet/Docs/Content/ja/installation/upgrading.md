@@ -467,7 +467,7 @@ API クライアントと Terraform の構成は、プロジェクトの `enable
 - 修正がオンでスイッチがオフだったプロジェクトでは、その種類の各ルールでそのスイッチがオフになります。その種類の有効なルールがなければ、ルール **All incidents** (または **All alerts**) が一つ追加されます。すべてに一致し、ルールがないときの OneUptime AI と同じように確認なしで修正し、二つのスイッチをプロジェクトの設定どおりに保ちます。それらのプルリクエストを作成するには、このルールでスイッチをオンにするか、ルールを削除してください。
 - 調査の **この分析から修正 PR を作成** は変わりません。
 
-ルールの **Runner** には、自分の Runner だけが表示されます。**AI agent on the cluster or host** はなくなりました。影響を受けたクラスターやホストでのコマンドは、ルールの選択にかかわらず常にその AI エージェントを通じて実行されます。何も選んでいなかったルールは **Runner なし** と表示され、これまでどおり修正します。
+ルールの **Runner** には、自分の Runner と **グローバル Runner** が表示されます。**AI agent on the cluster or host** はなくなりました。影響を受けたクラスターやホストでのコマンドは、ルールの選択にかかわらず常にその AI エージェントを通じて実行されます。何も選んでいなかったルールは **グローバル Runner** と表示され、これまでどおり修正します。グローバル Runner で OneUptime AI が Bash コマンドを実行することはありません。
 
 API クライアントと Terraform の構成からは、プロジェクトのフィールド `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes`、`enableAlertInstrumentationFixTasks`(Terraform では `enable_automatic_incident_code_fixes` など)がなくなります。構成から削除してください。自動修復ルールの `openCodeFixPullRequests` と `openTelemetryPullRequests`(`open_code_fix_pull_requests` と `open_telemetry_pull_requests`)は、設定しなければ `true` で、どちらの種類のルールも `codeRepositories`(`code_repositories`)でリポジトリを指定します。空なら接続済みのすべてのリポジトリです。
 

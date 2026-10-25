@@ -354,9 +354,20 @@ const getActionGroup: GetActionGroupFunction = (): HTMLElement => {
 
 type ActionIdsFunction = () => Array<string>;
 
-// The ids of every button in the header's action row, in DOM order.
+/*
+ * The ids of every button in the header's action row, in DOM order - none
+ * when the header has nothing to offer, and so no row.
+ */
 const actionIds: ActionIdsFunction = (): Array<string> => {
-  return within(getActionGroup())
+  const group: HTMLElement | null = screen.queryByRole("group", {
+    name: "Event actions",
+  });
+
+  if (!group) {
+    return [];
+  }
+
+  return within(group)
     .getAllByRole("button")
     .map((button: HTMLElement): string => {
       return button.id;
@@ -626,7 +637,21 @@ describe("ChangeAlertState Declare Incident button", () => {
       expect(actionIds()).toEqual([ACKNOWLEDGE_ID, RESOLVE_ID, DECLARE_ID]);
       expect(wrapper).toHaveAttribute("tabindex", "0");
       expect(declare.parentElement).toBe(wrapper);
-      expect(wrapper.parentElement).toBe(getActionGroup());
+      expect(wrapper.parentElement).toBe(
+        screen.getByTestId("event-header-buttons"),
+      );
+      expect(getActionGroup()).toContainElement(wrapper);
+      /*
+       * A viewer may not change the alert's state either: those are locked
+       * the same way, each with its reason (EventStatusPanel's own suite
+       * reads the reason).
+       */
+      for (const id of [ACKNOWLEDGE_ID, RESOLVE_ID]) {
+        expect(document.getElementById(id)).toBeDisabled();
+        expect(screen.getByTestId(`${id}-disabled-wrapper`)).toContainElement(
+          document.getElementById(id),
+        );
+      }
       expect(declare).toBeDisabled();
       expect(declare).toHaveAttribute("aria-disabled", "true");
       expect(declare).toHaveClass("pointer-events-none");
@@ -643,9 +668,28 @@ describe("ChangeAlertState Declare Incident button", () => {
 
       expect(navigateSpy).not.toHaveBeenCalled();
       expect(modelFormModalMock).not.toHaveBeenCalled();
-      // The state actions are not gated by this button's permissions.
+      // The state actions are locked by their own permission, not by this button's.
+      expect(document.getElementById(ACKNOWLEDGE_ID)).toBeDisabled();
+      expect(document.getElementById(RESOLVE_ID)).toBeDisabled();
+    });
+
+    test("is locked for an Alert Member, who may still acknowledge and resolve the alert", async () => {
+      permissionsForTest = [Permission.AlertMember];
+      respondForAlert();
+
+      renderAlertHeader();
+
+      await waitForHeader();
+
+      expect(actionIds()).toEqual([ACKNOWLEDGE_ID, RESOLVE_ID, DECLARE_ID]);
+      expect(getDeclareButton()).toBeDisabled();
+      expect(screen.getByTestId(DECLARE_WRAPPER_TEST_ID)).toBeInTheDocument();
+      // The state actions are gated by the alert's state timeline, which they may add to.
       expect(document.getElementById(ACKNOWLEDGE_ID)).toBeEnabled();
       expect(document.getElementById(RESOLVE_ID)).toBeEnabled();
+      expect(
+        screen.queryByTestId(`${ACKNOWLEDGE_ID}-disabled-wrapper`),
+      ).toBeNull();
     });
 
     test("is locked for an alert member, saying which Incident permission is missing", async () => {
@@ -715,8 +759,11 @@ describe("ChangeAlertState Declare Incident button", () => {
       expect(
         screen.queryByRole("button", { name: "Declare Incident" }),
       ).not.toBeInTheDocument();
-      // The state actions are unaffected.
-      expect(actionIds()).toEqual([ACKNOWLEDGE_ID, RESOLVE_ID]);
+      /*
+       * Nor are the state actions: until the snapshot lands there is nothing
+       * honest to say about who may change the state (PermissionGate).
+       */
+      expect(actionIds()).toEqual([]);
     });
 
     test("leaves a resolved alert with no buttons before the snapshot has loaded", async () => {
@@ -728,7 +775,10 @@ describe("ChangeAlertState Declare Incident button", () => {
 
       await waitForHeader();
 
-      expect(within(getActionGroup()).queryAllByRole("button")).toEqual([]);
+      expect(actionIds()).toEqual([]);
+      expect(
+        screen.queryByRole("group", { name: "Event actions" }),
+      ).not.toBeInTheDocument();
     });
 
     test("is enabled for a master admin, even with an empty snapshot", async () => {
@@ -820,7 +870,7 @@ describe("ChangeAlertState Declare Incident button", () => {
 
       expect(row).toHaveClass("flex", "gap-2");
       expect(Array.from(row.children)).toEqual(buttonSkeletons);
-      expect(buttonSkeletons[0]).toHaveClass("w-28");
+      expect(buttonSkeletons[0]).toHaveClass("w-32");
       expect(buttonSkeletons[1]).toHaveClass("w-24");
       expect(buttonSkeletons[2]).toHaveClass("w-36");
       // Skeletons only: no real button until the header has loaded.
@@ -856,13 +906,7 @@ describe("ChangeIncidentState header", () => {
 
       await waitForHeader();
 
-      expect(
-        within(getActionGroup())
-          .queryAllByRole("button")
-          .map((button: HTMLElement): string => {
-            return button.id;
-          }),
-      ).toEqual(expectedIds);
+      expect(actionIds()).toEqual(expectedIds);
       expect(document.getElementById(DECLARE_ID)).toBeNull();
       expect(screen.queryByTestId(DECLARE_WRAPPER_TEST_ID)).toBeNull();
       expect(
@@ -880,7 +924,7 @@ describe("ChangeIncidentState header", () => {
 
     await waitForHeader();
 
-    expect(within(getActionGroup()).queryAllByRole("button")).toEqual([]);
+    expect(actionIds()).toEqual([]);
     expect(screen.queryByText("Declare Incident")).toBeNull();
   });
 });

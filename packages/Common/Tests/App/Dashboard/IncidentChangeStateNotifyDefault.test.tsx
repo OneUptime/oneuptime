@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { allowStateChanges } from "./StateChangePermission";
 import {
   afterEach,
   beforeEach,
@@ -395,6 +396,8 @@ beforeEach(() => {
   project.id = new ObjectID(PROJECT_ID);
 
   jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+  // These drive the buttons, not who may press them.
+  allowStateChanges();
 
   fetchNoteTemplateVariablesMock.mockResolvedValue({} as never);
 });

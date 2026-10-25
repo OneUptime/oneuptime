@@ -43,7 +43,7 @@ Skærmen er delt i to:
 | ---- | ------------- |
 | **Gruppenavigator** (til venstre) | Alle sidens grupper som et træ, med feltet **Search groups...** over og en optælling under, såsom `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
 | **Top of page** | Navigatorens første række: ressourcer uden gruppe, som besøgende ser først, over alle grupper. På en side uden grupper hedder det højre panel i stedet **All resources**. |
-| **Ressourcepanel** (til højre) | Den valgte gruppes ressourcer. Dets overskrift indeholder **Edit Group**, den primære knap **Tilføj monitor** og menuen **More actions**. |
+| **Ressourcepanel** (til højre) | Den valgte gruppes ressourcer. Dets overskrift indeholder **Edit Group**, den primære knap **Tilføj monitor** og menuen **Flere handlinger**. |
 | Kortets overskrift | **New Group** og en menu med tre prikker med **Import groups from CSV** og **Opdater**. |
 
 **Tomme tilstande fortæller dig, hvad du skal gøre.** En tom gruppe viser **No monitors here yet** med **Tilføj monitor**, **Add Multiple** og, kun så længe siden slet ingen grupper har, **Create a Group**. En søgning uden resultater viser **No resources match your search**.
@@ -79,7 +79,7 @@ I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal 
 
 ### Tilføj flere på én gang
 
-**Add Multiple** (også **Add multiple monitors** i menuen **More actions**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
+**Add Multiple** (også **Add multiple monitors** i menuen **Flere handlinger**) åbner **Add Multiple Monitors**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
 
 Flervalgslisten har fanen **Etiketter**: klik på en etiket, og alle monitorer med den vælges på én gang.
 
@@ -153,7 +153,7 @@ For at ændre en gruppe bruger du **Edit Group** i panelets overskrift eller **E
 | Hvor | Handlinger |
 | ----- | ------- |
 | Navigatorens rækkemenu | **Edit group**, **Flyt op**, **Flyt ned**, **Vis ID**, **Delete group** |
-| Panelets menu **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Opdater**, **Delete this group** |
+| Panelets menu **Flere handlinger** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Opdater**, **Delete this group** |
 
 En gruppe, der er gemt uden navn, vises som **Untitled group**, et godt tegn på, at du ville skrive noget.
 
@@ -195,7 +195,7 @@ Rækkefølgen bestemmer du selv, ikke alfabetet:
 | Hvad | Sådan ændrer du rækkefølgen |
 | ---- | ----------------- |
 | Ressourcer i en gruppe | Træk en række. Panelet siger det: **Drag a row to change the order visitors see**. |
-| Grupper i forhold til hinanden | **Flyt op** / **Flyt ned** i navigatorens rækkemenu eller **Move group up** / **Move group down** i **More actions**. |
+| Grupper i forhold til hinanden | **Flyt op** / **Flyt ned** i navigatorens rækkemenu eller **Move group up** / **Move group down** i **Flere handlinger**. |
 | Ressourcer uden gruppe | De står i **Top of page** og vises altid over alle grupper, så sæt det, som alle tjekker først, dér. |
 
 **To tilfælde, hvor træk er slået fra.** En søgning i feltet **Search in {group}...** slår omrokering fra (panelet siger `N of M shown · drag to reorder is off while filtering`), så ryd søgningen først. Og gittergrupper omrokeres aldrig ved at trække, fordi en monitors plads kommer fra dens række og kolonne.

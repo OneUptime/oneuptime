@@ -61,6 +61,7 @@ Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScr
 | Vad ett steg kan nå | Offentliga internetadresser | Det som dess värd kan nå |
 | Längsta körning för ett steg | 5 minuter | 1 timme |
 | Hemliga variabler | De som du låter globala Runners använda | De som listar den |
+| OneUptime AI:s Bash-kommandon | Aldrig | För de AI-regler som väljer den |
 
 En global Runner kör stegen från många projekt, så varje steg hålls åtskilt från alla andra:
 

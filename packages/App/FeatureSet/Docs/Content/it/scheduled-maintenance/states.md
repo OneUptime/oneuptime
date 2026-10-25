@@ -59,14 +59,14 @@ I quattro stati contrassegnati portano l'etichetta **Integrato** nella pagina de
 | Modo             | Dove                                                                                        | Cosa chiede                                                                                                     |
 | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **L'orologio**   | Un processo che gira ogni minuto                                                            | Niente: a **Inizia il** porta un evento in attesa a **In corso**, e a **Termina il** un evento in corso a **Terminato**. |
-| **L'intestazione** | La **Panoramica** dell'evento: i pulsanti **Segna come {{state}}**, e **Change state to** nel suo menu **⋯** | Una breve finestra di dialogo, **Segna la manutenzione programmata come {{state}}**, con **Notifica gli iscritti alla pagina di stato** e una nota facoltativa in **Aggiungi una nota pubblica**. |
+| **L'intestazione** | La **Panoramica** dell'evento: i pulsanti **Segna come {{state}}**, e **Cambia stato in** nel suo menu **⋯** | Una breve finestra di dialogo, **Segna la manutenzione programmata come {{state}}**, con **Notifica gli iscritti alla pagina di stato** e una nota facoltativa in **Aggiungi una nota pubblica**. |
 | **La cronologia** | **Cronologia stato** nel menu laterale dell'evento                                         | Una riga che aggiungete a mano, con **Stato della manutenzione programmata** e **Inizia il**.                   |
 | **Una riga dell'elenco** | Il menu **⋯** sulla riga di un evento nell'elenco degli eventi: i passi **Segna come {{state}}** e **Cambia stato** | La finestra dell'intestazione, con il nome dell'evento. Un evento che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. |
 | **Modifica in blocco** | **Segna come {{state}}** o **Cambia stato** su una selezione nell'elenco degli eventi                            | Lo stato, e una nota pubblica aggiunta a ogni evento. Gli eventi già in quello stato o oltre vengono saltati.  |
 | **La chat**      | I pulsanti dei messaggi Slack e Microsoft Teams dell'evento                                 | La stessa modifica, fatta a vostro nome. Vedere [Slack](/docs/workspace-connections/slack#agire-su-incidenti-avvisi-ed-eventi-da-slack). |
 | **L'API**        | Una riga creata in `/api/scheduled-maintenance-state-timeline`                              | Lo stato, e se gli iscritti vengono avvisati.                                                                   |
 
-I pulsanti dell'intestazione prendono il nome dai vostri stati. Finché l'evento è in attesa ne offre due: uno che lo avvia, con il nome del vostro stato in corso, e uno che lo chiude, con il nome del vostro stato terminato. Mentre l'evento è in corso, solo il secondo. Il menu **⋯** elenca ogni altro stato successivo a quello attuale.
+I pulsanti dell'intestazione prendono il nome dai vostri stati. Finché l'evento è in attesa ne offre due: uno che lo avvia, con il nome del vostro stato in corso, e uno che lo chiude, con il nome del vostro stato terminato. Mentre l'evento è in corso, solo il secondo. Il menu **⋯** elenca ogni altro stato successivo a quello attuale. Chi, con il proprio ruolo, non può cambiare lo stato dell'evento vede i pulsanti bloccati e nessun menu degli altri stati: puntandone uno, compaiono le autorizzazioni che glielo permetterebbero.
 
 ## Cosa fanno l'avvio e la fine
 
@@ -84,8 +84,8 @@ Passare da **In corso** a «In verifica», o da **Terminato** a **Completato**, 
 
 Prima dell'inizio, l'intestazione fa il conto alla rovescia; mentre l'evento è in corso, conta da quanto dura; una volta concluso, dice quanto è durato. Quando l'evento manca un limite di oltre due minuti, un avviso ambra lo segnala:
 
-- **Start overdue**: l'evento è ancora in attesa dopo il suo **Inizia il**.
-- **Overrunning**: l'evento è ancora in corso dopo il suo **Termina il**.
+- **Inizio in ritardo**: l'evento è ancora in attesa dopo il suo **Inizia il**.
+- **In sforamento**: l'evento è ancora in corso dopo il suo **Termina il**.
 
 L'avviso indica l'ora pianificata e lo stato che l'evento non ha ancora raggiunto. Subito dopo un limite, il processo che fa avanzare gli eventi potrebbe non essere ancora partito, quindi nei minuti successivi l'intestazione ricontrolla da sola e mostra il nuovo stato senza ricaricare.
 
@@ -126,7 +126,7 @@ Uno stato che aggiungete non ha flag, quindi la sua posizione è ciò che signif
 | Tra **Terminato** e **Completato**      | È concluso, ma non ancora completato: i promemoria che durano fino al completamento continuano.                  |
 | Sotto **Completato**                    | È completato, come in **Completato**.                                                                            |
 
-Tenete i vostri stati sotto **Programmato**: ogni nuovo evento parte da lì, e un evento non risale mai l'elenco, quindi uno stato sopra non viene mai raggiunto. Portate un evento in uno stato vostro dal menu **⋯** della sua intestazione, in **Change state to**.
+Tenete i vostri stati sotto **Programmato**: ogni nuovo evento parte da lì, e un evento non risale mai l'elenco, quindi uno stato sopra non viene mai raggiunto. Portate un evento in uno stato vostro dal menu **⋯** della sua intestazione, in **Cambia stato in**.
 
 > [!NOTE]
 > Su OneUptime Cloud, aggiungere o modificare gli stati di manutenzione richiede il piano **Growth** o superiore. Ogni piano può leggerli, usarli ed eliminare uno stato che avete aggiunto.
@@ -160,7 +160,7 @@ Gli stati scendono soltanto lungo l'elenco. Eliminate le righe successive allo s
 :::
 
 :::details Lo stato completato manca tra i pulsanti dell'intestazione
-I pulsanti dell'intestazione avviano e chiudono l'evento. Completarlo si trova nel menu **⋯**, in **Change state to**.
+I pulsanti dell'intestazione avviano e chiudono l'evento. Completarlo si trova nel menu **⋯**, in **Cambia stato in**.
 :::
 
 ## Passi successivi

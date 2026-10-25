@@ -120,6 +120,21 @@ describe("the Global Runners section of runbooks/agents", () => {
     );
   });
 
+  /*
+   * An AI rule that picks no Runner shows the Global Runner ("If there are
+   * no runners, it should use the global runner by default" - the
+   * maintainer), and a shell never runs on a host every project shares: so
+   * OneUptime AI's Bash commands run on a Runner of the project's own that
+   * an AI rule picks, never on a global one. The table says so in a row of
+   * its own, as GlobalRunnerWork has it.
+   */
+  it("says a global Runner never runs OneUptime AI's Bash commands, and a Runner of your own runs those of the AI rules that pick it", () => {
+    expect(GLOBAL_RUNNER_STEP_TYPES).not.toContain(RunbookStepType.Bash);
+    expect(SECTION).toContain(
+      "| OneUptime AI's Bash commands | Never | For the AI rules that pick it |",
+    );
+  });
+
   it("gives the longest a step runs on each as the code holds it", () => {
     expect(GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS).toBe(5 * 60 * 1000);
     expect(MAX_STEP_EXECUTION_TIMEOUT_IN_MS).toBe(60 * 60 * 1000);

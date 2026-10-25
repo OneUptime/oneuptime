@@ -22,7 +22,10 @@ import {
   AI_RULE_FIX_OPTIONS,
   AI_RULE_ONLY_FIXES_COPY,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
-import { REMEDIATION_NO_RUNNER_PLACEHOLDER } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import {
+  GLOBAL_RUNNER_CHOICE_LABEL,
+  REMEDIATION_NO_RUNNER_PLACEHOLDER,
+} from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { CATCH_ALL_RULE_NAMES } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1799400000000-AddAutomaticRemediationSwitchesAndInvestigationRules";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
@@ -199,12 +202,22 @@ describe("the AI SRE page", () => {
       `With none picked (**${AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksPlaceholder}**) it may pick any of the project's enabled runbooks; pick some to let it run only those.`,
     );
     /*
-     * A rule's Runner lists the project's own Runners: no "AI agent on the
-     * cluster or host" - commands on the affected cluster or host go
-     * through its AI agent whatever the rule picks.
+     * A rule's Runner lists the project's own Runners and the Global Runner,
+     * which a rule that picks none reads - "If there are no runners, it
+     * should use the global runner by default" (the maintainer) - and on
+     * which OneUptime AI runs no Bash commands: a shell never runs on a
+     * Runner every project shares. No "AI agent on the cluster or host":
+     * commands on the affected cluster or host go through its AI agent
+     * whatever the rule picks.
      */
     expect(rules).toContain(
-      `It lists your own Runners, the project's default first, and a new rule starts on the default; with **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**, OneUptime AI runs no commands of its own for the rule. Commands on the affected Kubernetes cluster or host always go through its AI agent, whatever the rule picks, and a global Runner never runs OneUptime AI's commands.`,
+      `It lists your own Runners and **${GLOBAL_RUNNER_CHOICE_LABEL}**: a new rule starts on the project's default Runner, listed first, or on **${GLOBAL_RUNNER_CHOICE_LABEL}** when the project has no default.`,
+    );
+    expect(rules).toContain(
+      `A global Runner is shared by every project and never runs a shell, so on **${GLOBAL_RUNNER_CHOICE_LABEL}** OneUptime AI runs no Bash commands of its own for the rule; pick one of your Runners to have it run them inside your network.`,
+    );
+    expect(rules).toContain(
+      `In a project that does not use global Runners, or on a server that runs none, the field reads **${REMEDIATION_NO_RUNNER_PLACEHOLDER}** instead. Commands on the affected Kubernetes cluster or host always go through its AI agent, whatever the rule picks.`,
     );
     expect(rules).toContain(
       "A runbook it picks from any of them is always proposed for approval.",

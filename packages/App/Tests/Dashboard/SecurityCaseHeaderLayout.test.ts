@@ -284,8 +284,9 @@ describe("the header is laid out by its own width", () => {
 });
 
 describe("the header's buttons", () => {
+  // An event header's classes live in its layout module, as a case's do.
   const eventStatusPanel: string = fs.readFileSync(
-    path.join(DASHBOARD_SRC, "Components", "EventView", "EventStatusPanel.tsx"),
+    path.join(DASHBOARD_SRC, "Components", "EventView", "EventHeaderLayout.ts"),
     "utf8",
   );
 

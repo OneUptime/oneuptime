@@ -56,7 +56,7 @@ Voer een **Naam** in — en desgewenst een **Beschrijving** onder **Meer velden*
 ### In het dashboard
 
 :::steps
-1. Open de monitor. Klik rechtsboven in het overzicht, naast **Vernieuwen**, op **More actions** (⋯).
+1. Open de monitor. Klik rechtsboven in het overzicht, naast **Vernieuwen**, op **Meer acties** (⋯).
 2. Kies onder **Status wijzigen naar** de nieuwe status.
 3. Klik op **Status wijzigen**. De nieuwe status begint nu en verschijnt meteen bij de monitor, en op elke statuspagina die hem toont.
 :::

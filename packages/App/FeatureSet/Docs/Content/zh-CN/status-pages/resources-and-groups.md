@@ -43,7 +43,7 @@ flowchart TB
 | ---- | ------------- |
 | **分组导航器**（左侧） | 以树形显示页面上的所有分组，上方有 **Search groups...** 框，下方有计数，例如 `3 groups · 12 resources`。较长的列表末尾有一个 **Show N more of M** 按钮。 |
 | **Top of page** | 导航器的第一行：不属于任何分组的资源，访客会在所有分组之上最先看到它们。在没有分组的页面上，右侧窗格的标题改为 **All resources**。 |
-| **资源窗格**（右侧） | 所选分组的资源。它的标题栏有 **Edit Group**、主按钮 **添加监视器** 和 **More actions** 菜单。 |
+| **资源窗格**（右侧） | 所选分组的资源。它的标题栏有 **Edit Group**、主按钮 **添加监视器** 和 **更多操作** 菜单。 |
 | 卡片标题 | **New Group**，以及包含 **Import groups from CSV** 和 **刷新** 的三点菜单。 |
 
 **空状态会告诉您该做什么。** 空分组会显示 **No monitors here yet**，以及 **添加监视器**、**Add Multiple**，并且只在页面一个分组都没有时显示 **Create a Group**。没有匹配结果的搜索会显示 **No resources match your search**。
@@ -79,7 +79,7 @@ flowchart TB
 
 ### 一次添加多个
 
-**Add Multiple**（也可以使用 **More actions** 菜单中的 **Add multiple monitors**）会打开 **Add Multiple Monitors**。它同样只有一页：一个 **监视器** 多选框，然后是同样折叠的 **更多字段**，其中的显示选项会应用到您选择的每个监视器。每个资源从其监视器获取显示名称和描述，**添加监视器** 会一次全部添加。这是填充新页面最快的方式。
+**Add Multiple**（也可以使用 **更多操作** 菜单中的 **Add multiple monitors**）会打开 **Add Multiple Monitors**。它同样只有一页：一个 **监视器** 多选框，然后是同样折叠的 **更多字段**，其中的显示选项会应用到您选择的每个监视器。每个资源从其监视器获取显示名称和描述，**添加监视器** 会一次全部添加。这是填充新页面最快的方式。
 
 多选框有一个 **标签** 选项卡：点击一个标签，带有该标签的所有监视器会被一次选中。
 
@@ -153,7 +153,7 @@ flowchart TB
 | 位置 | 操作 |
 | ----- | ------- |
 | 导航器的行菜单 | **Edit group**、**上移**、**下移**、**显示 ID**、**Delete group** |
-| 窗格的 **More actions** 菜单 | **Edit this group**、**Add a sub group**、**Move group up**、**Move group down**、**Show group ID**、**刷新**、**Delete this group** |
+| 窗格的 **更多操作** 菜单 | **Edit this group**、**Add a sub group**、**Move group up**、**Move group down**、**Show group ID**、**刷新**、**Delete this group** |
 
 没有名称就保存的分组会显示为 **Untitled group**，这很好地提醒您本来想输入点什么。
 
@@ -195,7 +195,7 @@ flowchart TB
 | 对象 | 如何调整顺序 |
 | ---- | ----------------- |
 | 分组内的资源 | 拖动一行。窗格上也会提示：**Drag a row to change the order visitors see**。 |
-| 分组之间 | 导航器行菜单中的 **上移** / **下移**，或 **More actions** 中的 **Move group up** / **Move group down**。 |
+| 分组之间 | 导航器行菜单中的 **上移** / **下移**，或 **更多操作** 中的 **Move group up** / **Move group down**。 |
 | 不属于任何分组的资源 | 它们在 **Top of page** 中，始终显示在所有分组之上，所以请把大家最先查看的内容放在这里。 |
 
 **有两种情况无法拖动。** 在 **Search in {group}...** 框中搜索时会关闭排序（窗格会显示 `N of M shown · drag to reorder is off while filtering`），所以请先清除搜索。另外，网格分组从不通过拖动排序，因为监视器的位置由它的行和列决定。

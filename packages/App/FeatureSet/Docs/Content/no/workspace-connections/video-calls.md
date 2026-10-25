@@ -31,7 +31,7 @@ Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Video Calls**, og kob
 
 ### Bli med med ett klikk
 
-Når regelen utløses, starter OneUptime én samtale for hendelsen og publiserer den med en **Join call**-knapp i kanalene hendelsens oppdateringer går til, og i hendelsens feed. Hendelsens side viser samtalen i kortet **Video Call** og en **Join call**-knapp i toppteksten.
+Når regelen utløses, starter OneUptime én samtale for hendelsen og publiserer den med en **Join call**-knapp i kanalene hendelsens oppdateringer går til, og i hendelsens feed. Hendelsens side viser samtalen i kortet **Video Call** og en **Bli med i samtalen**-knapp i toppteksten.
 :::
 
 Regelens betingelser bestemmer hvilke hendelser som får en samtale. For en bro bare ved Sev1-hendelser gir du regelen en betingelse på **Alvorlighetsgrad**. Samtaler starter for hendelser og varsler som opprettes som pågående. En hendelse som opprettes allerede løst, får ingen samtale.
@@ -234,7 +234,7 @@ Hver hendelse og hvert varsel som startes med denne tilkoblingen, deler rommet, 
 
 En Slack-regel kan i stedet starte huddlen i hendelsens Slack-kanal. Det er ingenting å koble til: velg **Slack huddle** i regelens trinn **Video Call**.
 
-Huddlen holdes i kanalen regelen oppretter for hendelsen, eller, når regelen i stedet publiserer i eksisterende kanaler, i den første av dem. Regelen må altså opprette en kanal eller publisere i en eksisterende. Knappen **Join huddle** åpner kanalens huddle i Slack. Den første responderen som åpner den, starter huddlen, og alle etter blir med i den. Slack gir ikke en app noen måte å starte en huddle på, så ingen er i huddlen før noen åpner den.
+Huddlen holdes i kanalen regelen oppretter for hendelsen, eller, når regelen i stedet publiserer i eksisterende kanaler, i den første av dem. Regelen må altså opprette en kanal eller publisere i en eksisterende. Knappen **Bli med i huddle** åpner kanalens huddle i Slack. Den første responderen som åpner den, starter huddlen, og alle etter blir med i den. Slack gir ikke en app noen måte å starte en huddle på, så ingen er i huddlen før noen åpner den.
 
 En Slack-huddle er bare for Slack-regler. En Microsoft Teams-regel starter samtalene sine med en av prosjektets tilkoblinger for videosamtaler.
 
