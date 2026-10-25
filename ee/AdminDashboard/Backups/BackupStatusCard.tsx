@@ -226,7 +226,8 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
         >
           <StatusIcon icon={IconProp.Spinner} tone="indigo" isSpinning={true} />
           <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold text-gray-900">
+            {/* The card's title, a heading as every card's is. */}
+            <h2 className="text-base font-semibold text-gray-900">
               {isRestore
                 ? run.manifest?.["startedAt"]
                   ? translator.translateTemplate(BackupsCopy.restoring, {
@@ -237,7 +238,7 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
                     })
                   : translator.translateText(BackupsCopy.restoringPlain)
                 : translator.translateText(BackupsCopy.backingUp)}
-            </div>
+            </h2>
             <div
               className="mt-1 text-sm text-gray-600"
               data-testid="backups-status-step"
@@ -291,6 +292,13 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
               <div
                 className="mt-3 h-2 w-full max-w-xl overflow-hidden rounded-full bg-gray-200"
                 role="progressbar"
+                aria-label={
+                  progress.step
+                    ? translator.translateText(
+                        BACKUP_STEP_COPY[progress.step.key],
+                      )
+                    : undefined
+                }
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={progress.percent}
@@ -437,12 +445,12 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
           tone={lastFailed ? "red" : isOn && !isLocked ? "green" : "gray"}
         />
         <div className="min-w-0 flex-1">
-          <div
+          <h2
             className="text-base font-semibold text-gray-900"
             data-testid="backups-status-title"
           >
             {translator.translateText(title)}
-          </div>
+          </h2>
           <div className="mt-1 space-y-0.5 break-words text-sm text-gray-600">
             {lines}
           </div>

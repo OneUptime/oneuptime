@@ -706,6 +706,23 @@ describe("the steps dialog", () => {
     expect(status(BackupStepKey.VerifyBackup)).toBe("pending");
     expect(status(BackupStepKey.DeleteOldBackups)).toBe("skipped");
 
+    // A mark says to a screen reader what its colour says on screen.
+    const said: (key: BackupStepKey) => string | null = (
+      key: BackupStepKey,
+    ): string | null => {
+      return (
+        within(screen.getByTestId(`backup-run-step-${key}`)).queryByTestId(
+          "backup-run-step-said-status",
+        )?.textContent || null
+      );
+    };
+
+    expect(said(BackupStepKey.CheckDestination)).toBe("Succeeded");
+    expect(said(BackupStepKey.BackUpClickhouse)).toBe("Failed");
+    // Waiting and Skipped are written beside the step's name already.
+    expect(said(BackupStepKey.VerifyBackup)).toBeNull();
+    expect(said(BackupStepKey.DeleteOldBackups)).toBeNull();
+
     const postgres: HTMLElement = screen.getByTestId(
       `backup-run-step-${BackupStepKey.BackUpPostgres}`,
     );

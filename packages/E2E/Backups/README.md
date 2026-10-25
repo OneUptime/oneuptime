@@ -38,13 +38,19 @@ pixels, light and dark:
   destination before anything is saved (the secret sent only among the
   secrets), the schedule's defaults, and what Start backing up writes;
 - a destination whose test fails, saying what to change;
-- backups on, a backup running (its step and the steps dialog), a backup that
-  failed (its error at the top, and the step it stopped on), a restore running;
+- backups on (the status card's ⋯ the same button as the tables'), a backup
+  running (its step, how long it has been going, and the steps dialog), a
+  backup that failed (its error at the top, the last good backup beside it,
+  and the step it stopped on), a restore running;
 - a restore's confirmation: what it replaces, the counts in the backup and now,
   the backup of the current data first, and Restore locked until `restore` is
-  typed; a backup that cannot be restored keeps it locked and says why;
-- deleting a backup, turning the schedule off and on, Find backups, and a
-  lapsed license, which pauses new backups but keeps restoring and deleting.
+  typed; a backup that cannot be restored says only why, and the dialog only
+  closes;
+- deleting a backup, turning the schedule off (Turn on becomes the one primary
+  button) and on, Find backups, and a lapsed license, which pauses new backups
+  but keeps restoring and deleting;
+- on a phone, the folded side menu names the page (not "Navigation"), and the
+  tables' own words are the Admin Dashboard's German.
 
 The server builds the page twice: `/admin/settings/backups` resolves the plugin
 as the Admin Dashboard's build does (the Enterprise Edition when ee/ is checked

@@ -891,6 +891,10 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-status-title")).toHaveTextContent(
       "Backups are on",
     );
+    // The card's title is a heading, as every card's is.
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Backups are on" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("backups-status-last")).toHaveTextContent(
       "Last backup 2 hours ago · 43 MB in 4 minutes",
     );
@@ -1242,6 +1246,14 @@ describe("the status card", () => {
     expect(within(card).getByRole("progressbar")).toHaveAttribute(
       "aria-valuenow",
       "25",
+    );
+    // The bar is named by the step it measures.
+    expect(
+      within(card).getByRole("progressbar", { name: "Restore PostgreSQL" }),
+    ).toBeInTheDocument();
+    // A heading, as every card's title is.
+    expect(within(card).getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Restoring the backup of",
     );
     expect(card).toHaveTextContent(
       "OneUptime keeps working on the current data until the switch-over",

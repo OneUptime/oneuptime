@@ -72,26 +72,45 @@ const STEP_SELECT: {
   clickhouseSizeInBytes: true,
 };
 
+/*
+ * A step's mark. The ones a step's line says nothing else of - done, failed,
+ * running - also say it to a screen reader, in the run's own words; skipped
+ * and waiting are written beside the step's name.
+ */
 const StepIcon: FunctionComponent<{ status: BackupStepStatus }> = (props: {
   status: BackupStepStatus;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const said: (status: BackupRunStatus) => ReactElement = (
+    status: BackupRunStatus,
+  ): ReactElement => {
+    return (
+      <span className="sr-only" data-testid="backup-run-step-said-status">
+        {translator.translateText(BACKUP_RUN_STATUS_COPY[status].title)}
+      </span>
+    );
+  };
+
   switch (props.status) {
     case BackupStepStatus.Succeeded:
       return (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
           <Icon icon={IconProp.Check} className="h-4 w-4" />
+          {said(BackupRunStatus.Succeeded)}
         </div>
       );
     case BackupStepStatus.Failed:
       return (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-red-700">
           <Icon icon={IconProp.Close} className="h-4 w-4" />
+          {said(BackupRunStatus.Failed)}
         </div>
       );
     case BackupStepStatus.Running:
       return (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
           <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
+          {said(BackupRunStatus.Running)}
         </div>
       );
     case BackupStepStatus.Skipped:
