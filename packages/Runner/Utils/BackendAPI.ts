@@ -35,11 +35,14 @@ interface ExceptionResponse {
   url?: string | null;
 }
 
-// Why the task was started, when a finding started it (see ExceptionDetails).
+/*
+ * Why the task was started, when a finding started it (see ExceptionDetails):
+ * as the wire has it, so any part may be missing.
+ */
 interface ExceptionStartedByResponse {
-  finding?: string | null;
-  findingUrl?: string | null;
-  isStartedByOneUptime?: boolean | null;
+  finding?: string | null | undefined;
+  findingUrl?: string | null | undefined;
+  isStartedByOneUptime?: boolean | null | undefined;
 }
 
 interface ServiceResponse {

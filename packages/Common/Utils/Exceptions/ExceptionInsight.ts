@@ -27,9 +27,10 @@ import FeedMarkdown, { mdText, MarkdownText } from "../Markdown/FeedMarkdown";
  *     are in a project whose Exceptions switch is off;
  *
  *   - Missing stack trace (ExceptionMissingStackTrace): a service whose
- *     exceptions over the last day were recorded with no stack trace at
- *     all - 20 or more times, together - so nobody can tell which of its
- *     code raised them, and OneUptime AI cannot fix them
+ *     exceptions seen in the last day were recorded with no stack trace at
+ *     all - and have happened 20 or more times together, by their
+ *     occurrence counts - so nobody can tell which of its code raised
+ *     them, and OneUptime AI cannot fix them
  *     (ExceptionMissingStackTraceDetector).
  *
  * What the pull request does:
@@ -438,7 +439,8 @@ export const EXCEPTION_STACK_TRACE_WINDOW_HOURS: number = 24;
 
 /*
  * The fewest times a service's exceptions without a stack trace happened,
- * together, before it is said to record them so: a handful is a one-off.
+ * together - their occurrence counts, since each was first seen - before
+ * it is said to record them so: a handful is a one-off.
  */
 export const EXCEPTION_STACK_TRACE_MIN_OCCURRENCES: number = 20;
 
@@ -685,6 +687,24 @@ function times(count: number): string {
   return count === 1 ? "once" : `${formatCount(count)} times`;
 }
 
+/*
+ * How often exceptions happened, as an exception's occurrence count says
+ * it: since it was first seen, not only on the day it was read in - the
+ * count of every occurrence, as the Exceptions list shows it.
+ */
+function timesSinceFirstSeen(data: {
+  occurrenceCount: number;
+  exceptionCount: number;
+}): string {
+  return data.exceptionCount === 1
+    ? `${times(data.occurrenceCount)} since it was first seen`
+    : `${times(data.occurrenceCount)} since they were first seen`;
+}
+
+function exceptionsNoun(count: number): string {
+  return count === 1 ? "exception" : "exceptions";
+}
+
 // The insight's title: what was found, in a sentence.
 export function getExceptionStackTraceTitle(data: {
   evidence: ExceptionStackTraceInsightEvidence;
@@ -703,26 +723,42 @@ export function getExceptionStackTraceTitle(data: {
 
 /*
  * What was found, in sentences: the opening of the request OneUptime
- * writes, and of the person's.
+ * writes, and of the person's. The exceptions are the ones seen in the
+ * day read; how often they happened is their occurrence count, since each
+ * was first seen.
  */
 export function describeExceptionStackTraceProblem(data: {
   evidence: ExceptionStackTraceInsightEvidence;
   serviceName: string;
 }): string {
   const evidence: ExceptionStackTraceInsightEvidence = data.evidence;
-  const service: string = data.serviceName || "The service";
+  const service: string = data.serviceName || "the service";
+  const isOne: boolean = evidence.exceptionCount === 1;
   const loudest: string = evidence.exceptions
     .map((group: ExceptionStackTraceGroupEvidence): string => {
       return `${describeStackTraceGroup(group)} (${times(group.occurrenceCount)})`;
     })
     .join(", ");
+  const recorded: string = `In the last day ${service} recorded ${formatCount(evidence.exceptionCount)} ${exceptionsNoun(evidence.exceptionCount)}`;
+  const others: string =
+    evidence.withStackTraceCount === 1
+      ? "while 1 other carried one"
+      : `while ${formatCount(evidence.withStackTraceCount)} others carried one`;
   const opening: string = isEveryException(evidence)
-    ? `Over the last day ${service} recorded its exceptions without a stack trace: ${formatCount(evidence.exceptionCount)} ${evidence.exceptionCount === 1 ? "exception" : "exceptions"}, ${times(evidence.occurrenceCount)}.`
-    : `Over the last day ${service} recorded ${formatCount(evidence.exceptionCount)} of its exceptions without a stack trace, ${times(evidence.occurrenceCount)}, while ${formatCount(evidence.withStackTraceCount)} others carried one.`;
+    ? `${recorded}, and ${isOne ? "it carried no stack trace" : "none of them carried a stack trace"}.`
+    : `${recorded} without a stack trace, ${others}.`;
+  let together: string = "It has";
+
+  if (!isOne) {
+    together = isEveryException(evidence)
+      ? "Together they have"
+      : `Together those ${formatCount(evidence.exceptionCount)} have`;
+  }
 
   return [
     opening,
-    "Without one, nobody can tell which of its code raised them.",
+    `${together} happened ${timesSinceFirstSeen(evidence)}.`,
+    `Without one, nobody can tell which of its code raised ${isOne ? "it" : "them"}.`,
     loudest ? `The loudest: ${loudest}.` : "",
   ]
     .filter((sentence: string): boolean => {
@@ -745,11 +781,13 @@ export function buildExceptionStackTraceDetail(data: {
   const lines: Array<MarkdownText> = [
     mdText`**Missing stack traces in ${data.serviceName}**`,
     FeedMarkdown.empty(),
-    mdText`- In the last day: ${formatCount(evidence.exceptionCount)} ${evidence.exceptionCount === 1 ? "exception" : "exceptions"} without a stack trace, ${times(evidence.occurrenceCount)}`,
+    mdText`- Seen in the last day: ${formatCount(evidence.exceptionCount)} ${exceptionsNoun(evidence.exceptionCount)} without a stack trace, ${timesSinceFirstSeen(evidence)}`,
     isEveryException(evidence)
-      ? mdText`- None of its exceptions that day carried a stack trace`
-      : mdText`- ${formatCount(evidence.withStackTraceCount)} of its other exceptions that day carried one`,
-    mdText`- Without a stack trace, no frame says which of its code raised them`,
+      ? mdText`- None of its exceptions seen that day carried a stack trace`
+      : mdText`- ${formatCount(evidence.withStackTraceCount)} of its other exceptions seen that day carried one`,
+    evidence.exceptionCount === 1
+      ? mdText`- Without a stack trace, no frame says which of its code raised it`
+      : mdText`- Without a stack trace, no frame says which of its code raised them`,
   ];
 
   if (evidence.exceptions.length > 0) {
@@ -823,8 +861,8 @@ export function buildExceptionStackTraceEvidenceNote(
 ): string {
   const lines: Array<string> = [
     `Window: ${evidence.windowStartTime} to ${evidence.windowEndTime}`,
-    `Exceptions without a stack trace: ${formatCount(evidence.exceptionCount)}, ${times(evidence.occurrenceCount)}`,
-    `Exceptions of the service that day with a stack trace: ${formatCount(evidence.withStackTraceCount)}`,
+    `Exceptions seen in the window without a stack trace: ${formatCount(evidence.exceptionCount)}, ${timesSinceFirstSeen(evidence)}`,
+    `Exceptions of the service seen in the window with a stack trace: ${formatCount(evidence.withStackTraceCount)}`,
   ];
 
   if (evidence.exceptions.length > 0) {

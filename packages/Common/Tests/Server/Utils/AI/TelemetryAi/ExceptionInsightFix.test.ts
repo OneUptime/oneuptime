@@ -124,7 +124,10 @@ const MISSING: ExceptionStackTraceInsightEvidence = {
   withStackTraceCount: 4,
 };
 
-function exceptionInsight(overrides: Partial<AIInsight> = {}): AIInsight {
+// A record's fields to set - any of them left empty (undefined) on purpose.
+type Fields<T> = { [K in keyof T]?: T[K] | undefined };
+
+function exceptionInsight(overrides: Fields<AIInsight> = {}): AIInsight {
   const value: AIInsight = new AIInsight();
   value.id = INSIGHT_ID;
   value.projectId = PROJECT_ID;
@@ -156,7 +159,7 @@ function stackTraceInsight(
 }
 
 function exception(
-  overrides: Partial<TelemetryException> = {},
+  overrides: Fields<TelemetryException> = {},
 ): TelemetryException {
   const value: TelemetryException = new TelemetryException();
   value.id = new ObjectID(EXCEPTION_ID);
@@ -694,7 +697,7 @@ describe("ExceptionInsightFix.start - OneUptime on its own, for a service's miss
     ).toEqual([CodeTaskContextType.Exception, CodeTaskContextType.Note]);
     expect(context[0]!.recordId).toBe(LOUDEST);
     expect(context[1]!.text).toContain(
-      "Exceptions of the service that day with a stack trace: 4",
+      "Exceptions of the service seen in the window with a stack trace: 4",
     );
 
     // Read as OneUptime: nobody here carries a person's rights.

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import ExceptionMissingStackTraceDetector from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/ExceptionMissingStackTraceDetector";
 import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
@@ -45,8 +45,11 @@ function sqlOf(operator: unknown, column: string): string {
   return raw.getSql ? raw.getSql(column) : "";
 }
 
+// A record's fields to set - any of them left empty (undefined) on purpose.
+type Fields<T> = { [K in keyof T]?: T[K] | undefined };
+
 function stackless(
-  overrides: Partial<TelemetryException> = {},
+  overrides: Fields<TelemetryException> = {},
 ): TelemetryException {
   return {
     id: ObjectID.generate(),
@@ -211,7 +214,7 @@ describe("ExceptionMissingStackTraceDetector", () => {
       14,
     );
     expect(candidate.detailMarkdown).toContain(
-      "- 14 of its other exceptions that day carried one",
+      "- 14 of its other exceptions seen that day carried one",
     );
   });
 

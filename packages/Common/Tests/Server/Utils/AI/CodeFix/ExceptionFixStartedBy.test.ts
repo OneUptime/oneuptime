@@ -33,7 +33,10 @@ const INSIGHT_ID: ObjectID = new ObjectID(
   "5240dddd-0000-4000-8000-0000000000d1",
 );
 
-function run(overrides: Partial<AIRun> = {}): AIRun {
+// A record's fields to set - any of them left empty (undefined) on purpose.
+type Fields<T> = { [K in keyof T]?: T[K] | undefined };
+
+function run(overrides: Fields<AIRun> = {}): AIRun {
   const value: AIRun = new AIRun();
   value.id = TASK_ID;
   value.triggeredByAiInsightId = INSIGHT_ID;

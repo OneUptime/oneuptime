@@ -819,21 +819,75 @@ describe("missing stack traces: what the finding says", () => {
         serviceName: "payments",
       }),
     ).toBe(
-      "Over the last day payments recorded its exceptions without a stack trace: 2 exceptions, 1,240 times. Without one, nobody can tell which of its code raised them. The loudest: TimeoutError: context deadline exceeded (900 times), *errors.errorString (340 times).",
+      "In the last day payments recorded 2 exceptions, and none of them carried a stack trace. Together they have happened 1,240 times since they were first seen. Without one, nobody can tell which of its code raised them. The loudest: TimeoutError: context deadline exceeded (900 times), *errors.errorString (340 times).",
     );
     expect(
       describeExceptionStackTraceProblem({
         evidence: stackTraceEvidence({
           withStackTraceCount: 30,
           exceptionCount: 1,
-          occurrenceCount: 1,
+          occurrenceCount: 25,
           exceptions: [],
         }),
         serviceName: "payments",
       }),
     ).toBe(
-      "Over the last day payments recorded 1 of its exceptions without a stack trace, once, while 30 others carried one. Without one, nobody can tell which of its code raised them.",
+      "In the last day payments recorded 1 exception without a stack trace, while 30 others carried one. It has happened 25 times since it was first seen. Without one, nobody can tell which of its code raised it.",
     );
+  });
+
+  /*
+   * An exception's count is every time it happened since it was first
+   * seen - what the Exceptions list shows - not only on the day read: the
+   * sentences say so, and never that the count happened that day.
+   */
+  test("how often they happened is said since they were first seen, never as the day's", () => {
+    const every: string = describeExceptionStackTraceProblem({
+      evidence: stackTraceEvidence(),
+      serviceName: "payments",
+    });
+
+    expect(every).toContain("since they were first seen");
+    expect(every).not.toContain("1,240 times in the last day");
+    expect(every).not.toContain("Over the last day");
+
+    // Some carried one: those without one are counted, apart from the rest.
+    expect(
+      describeExceptionStackTraceProblem({
+        evidence: stackTraceEvidence({
+          exceptionCount: 3,
+          occurrenceCount: 60,
+          withStackTraceCount: 1,
+          exceptions: [],
+        }),
+        serviceName: "payments",
+      }),
+    ).toBe(
+      "In the last day payments recorded 3 exceptions without a stack trace, while 1 other carried one. Together those 3 have happened 60 times since they were first seen. Without one, nobody can tell which of its code raised them.",
+    );
+
+    // One exception, the only one of the day: it, not they.
+    expect(
+      describeExceptionStackTraceProblem({
+        evidence: stackTraceEvidence({
+          exceptionCount: 1,
+          occurrenceCount: 42,
+          exceptions: [],
+        }),
+        serviceName: "payments",
+      }),
+    ).toBe(
+      "In the last day payments recorded 1 exception, and it carried no stack trace. It has happened 42 times since it was first seen. Without one, nobody can tell which of its code raised it.",
+    );
+  });
+
+  test("a service with no name is the service, in the middle of the sentence", () => {
+    expect(
+      describeExceptionStackTraceProblem({
+        evidence: stackTraceEvidence({ exceptions: [] }),
+        serviceName: "",
+      }),
+    ).toMatch(/^In the last day the service recorded 2 exceptions, /);
   });
 
   test("the evidence a person reads: the facts, then the exceptions", () => {
@@ -847,8 +901,8 @@ describe("missing stack traces: what the finding says", () => {
     expect(lines).toEqual([
       "**Missing stack traces in payments**",
       "",
-      "- In the last day: 2 exceptions without a stack trace, 1,240 times",
-      "- None of its exceptions that day carried a stack trace",
+      "- Seen in the last day: 2 exceptions without a stack trace, 1,240 times since they were first seen",
+      "- None of its exceptions seen that day carried a stack trace",
       "- Without a stack trace, no frame says which of its code raised them",
       "",
       "**The exceptions**",
@@ -868,10 +922,32 @@ describe("missing stack traces: what the finding says", () => {
     }).toString();
 
     expect(text).toContain("**The loudest of them**");
-    expect(text).toContain("- 3 of its other exceptions that day carried one");
     expect(text).toContain(
-      "- In the last day: 9 exceptions without a stack trace",
+      "- 3 of its other exceptions seen that day carried one",
     );
+    expect(text).toContain(
+      "- Seen in the last day: 9 exceptions without a stack trace, 1,240 times since they were first seen",
+    );
+  });
+
+  test("one exception: it, not they", () => {
+    const lines: Array<string> = buildExceptionStackTraceDetail({
+      serviceName: "payments",
+      evidence: stackTraceEvidence({
+        exceptionCount: 1,
+        occurrenceCount: 900,
+        exceptions: [stackTraceEvidence().exceptions[0]!],
+      }),
+    })
+      .toString()
+      .split("\n");
+
+    expect(lines.slice(2, 5)).toEqual([
+      "- Seen in the last day: 1 exception without a stack trace, 900 times since it was first seen",
+      "- None of its exceptions seen that day carried a stack trace",
+      "- Without a stack trace, no frame says which of its code raised it",
+    ]);
+    expect(lines).toContain("**The exceptions**");
   });
 
   test("the service's words are written as text", () => {
@@ -918,7 +994,7 @@ describe("missing stack traces: what OneUptime asks the AI", () => {
     expect(lines[0]).toBe("Record a stack trace with payments's exceptions");
     expect(lines[1]).toBe("");
     expect(lines[2]).toMatch(
-      /^OneUptime found this in the service's exceptions on its own\. Over the last day payments/,
+      /^OneUptime found this in the service's exceptions on its own\. In the last day payments recorded 2 exceptions/,
     );
     expect(lines[4]).toContain(
       "Make the service record a stack trace with every exception it records",
@@ -946,8 +1022,8 @@ describe("missing stack traces: what OneUptime asks the AI", () => {
     expect(buildExceptionStackTraceEvidenceNote(stackTraceEvidence())).toBe(
       [
         "Window: 2026-10-23T09:00:00.000Z to 2026-10-24T09:00:00.000Z",
-        "Exceptions without a stack trace: 2, 1,240 times",
-        "Exceptions of the service that day with a stack trace: 0",
+        "Exceptions seen in the window without a stack trace: 2, 1,240 times since they were first seen",
+        "Exceptions of the service seen in the window with a stack trace: 0",
         "",
         "TimeoutError: context deadline exceeded (900 times, last seen 2026-10-24T08:55:00.000Z)",
         "*errors.errorString (340 times, last seen 2026-10-24T08:40:00.000Z)",

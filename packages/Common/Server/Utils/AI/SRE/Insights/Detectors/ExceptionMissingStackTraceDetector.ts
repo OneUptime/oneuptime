@@ -32,12 +32,13 @@ import {
 } from "../Types";
 
 /*
- * ExceptionMissingStackTrace - a service whose exceptions over the last day
- * were recorded with no stack trace at all, 20 or more times together, so
- * no frame says which of its code raised them, and neither a person nor
- * OneUptime AI can fix them (Utils/Exceptions/ExceptionInsight). The
- * Exceptions product's AI section files it, and its pull request makes the
- * service record a stack trace with every exception.
+ * ExceptionMissingStackTrace - a service whose exceptions seen in the last
+ * day were recorded with no stack trace at all, and have happened 20 or
+ * more times together (their occurrence counts, since each was first
+ * seen), so no frame says which of its code raised them, and neither a
+ * person nor OneUptime AI can fix them (Utils/Exceptions/ExceptionInsight).
+ * The Exceptions product's AI section files it, and its pull request makes
+ * the service record a stack trace with every exception.
  *
  * Postgres only, and cheap: an exception group keeps its stack trace once
  * any occurrence brought one (the ingest upsert), so a group whose stack

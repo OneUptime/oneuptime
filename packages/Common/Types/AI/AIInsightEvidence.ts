@@ -95,7 +95,10 @@ export interface ExceptionStackTraceInsightEvidence {
   windowEndTime: string;
   // The loudest of them, loudest first.
   exceptions: Array<ExceptionStackTraceGroupEvidence>;
-  // All of them: how many kinds of exception, and how often they happened.
+  /*
+   * All of them: how many kinds of exception, and how often they happened
+   * since each was first seen (their lifetime occurrence counts, summed).
+   */
   exceptionCount: number;
   occurrenceCount: number;
   /*
