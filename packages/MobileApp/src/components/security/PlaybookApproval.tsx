@@ -278,8 +278,9 @@ interface PlaybookDecisionSheetProps {
 /**
  * Approve or reject the step, with a comment. An approval of a step that acts
  * on users or hosts lists them, every one ticked: untick any it should leave
- * alone - at least one stays, or the step is rejected instead. Protected ones
- * are listed and never acted on.
+ * alone - at least one stays, or the step is rejected instead. A step that
+ * acts on one lists it with no box to untick, since leaving it out would
+ * leave nothing to approve. Protected ones are listed and never acted on.
  */
 export function PlaybookDecisionSheet({
   step,
@@ -311,6 +312,8 @@ export function PlaybookDecisionSheet({
   const keptValues: Array<string> | undefined = step
     ? getKeptTargetValues(step, kept)
     : undefined;
+  // Only a choice between two or more is a choice: one target is the step's.
+  const canLeaveTargetsOut: boolean = Boolean(step && step.proposed.length > 1);
   const hasNoTargetKept: boolean =
     isApproval && keptValues !== undefined && keptValues.length === 0;
 
@@ -378,23 +381,74 @@ export function PlaybookDecisionSheet({
               ...typography.subhead,
               fontWeight: "700",
               color: theme.colors.textPrimary,
+              marginBottom: canLeaveTargetsOut ? 0 : spacing.sm,
             }}
           >
             Act on
           </Text>
-          <Text
-            style={{
-              ...typography.footnote,
-              color: theme.colors.textSecondary,
-              marginTop: spacing.xxs,
-              marginBottom: spacing.sm,
-            }}
-          >
-            Every one is ticked. Untick any the step should leave alone.
-          </Text>
+          {canLeaveTargetsOut ? (
+            <Text
+              style={{
+                ...typography.footnote,
+                color: theme.colors.textSecondary,
+                marginTop: spacing.xxs,
+                marginBottom: spacing.sm,
+              }}
+            >
+              Every one is ticked. Untick any the step should leave alone.
+            </Text>
+          ) : null}
           {step.proposed.map((target: PlaybookTarget): React.JSX.Element => {
             const key: string = target.value.toLowerCase();
             const checked: boolean = kept.has(key);
+
+            if (!canLeaveTargetsOut) {
+              return (
+                <View
+                  key={key}
+                  testID={`playbook-target-fixed-${target.value}`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.md,
+                    minHeight: 52,
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: spacing.sm,
+                    marginBottom: spacing.sm,
+                    borderRadius: radius.md,
+                    borderWidth: 1,
+                    borderColor: theme.colors.borderSubtle,
+                    backgroundColor: theme.colors.backgroundElevated,
+                  }}
+                >
+                  <Ionicons
+                    name={getEntityTerm(target.type).icon}
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      selectable
+                      style={{
+                        ...typography.subhead,
+                        fontWeight: "600",
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
+                      {target.value}
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.caption,
+                        color: theme.colors.textSecondary,
+                      }}
+                    >
+                      {`${getEntityTerm(target.type).label} · ${describePlaybookTarget(target)}`}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
 
             return (
               <Pressable

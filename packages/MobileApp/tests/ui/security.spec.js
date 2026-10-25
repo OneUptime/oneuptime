@@ -183,9 +183,11 @@ test("a playbook step is approved from the case, with a comment, and the case is
   await approval.getByTestId("playbook-approve").click();
   const sheet = page.getByTestId("playbook-approve-sheet");
   await expect(sheet).toBeVisible();
+  // One user to act on: listed, with no box to untick.
   await expect(
-    sheet.getByRole("checkbox", { name: "alice@acme.test, User" }),
-  ).toHaveAttribute("aria-checked", "true");
+    sheet.getByTestId("playbook-target-fixed-alice@acme.test"),
+  ).toBeVisible();
+  await expect(sheet.getByRole("checkbox")).toHaveCount(0);
   await sheet
     .getByTestId("playbook-decision-comment")
     .fill("Alice did not sign in.");

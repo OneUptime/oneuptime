@@ -266,6 +266,39 @@ describe("the approval card", () => {
   });
 });
 
+describe("approving a step that acts on one user", () => {
+  test("lists it with no box to untick, and approving acts on it", async () => {
+    const onSubmit: jest.Mock = jest.fn();
+    await render(
+      <PlaybookDecisionSheet
+        step={waitingStep()}
+        decision="approve"
+        submitting={false}
+        onSubmit={onSubmit}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("header", { name: "Act on" })).toBeTruthy();
+    expect(
+      screen.getByTestId("playbook-target-fixed-alice@acme.test"),
+    ).toHaveTextContent(/alice@acme\.test.*User · What the case is grouped on/);
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(
+      screen.queryByText(
+        "Every one is ticked. Untick any the step should leave alone.",
+      ),
+    ).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("playbook-decision-submit"));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      comment: "",
+      targets: ["alice@acme.test"],
+    });
+  });
+});
+
 describe("approving a step", () => {
   function approve(
     props: Partial<React.ComponentProps<typeof PlaybookDecisionSheet>> = {},
@@ -284,6 +317,12 @@ describe("approving a step", () => {
 
   test("says what approving does, and lists every target ticked", async () => {
     await render(approve());
+
+    expect(
+      screen.getByText(
+        "Every one is ticked. Untick any the step should leave alone.",
+      ),
+    ).toBeTruthy();
 
     expect(
       screen.getByRole("header", { name: "Approve: Suspend the user in Okta" }),
