@@ -6,7 +6,7 @@
 
 {{> StatusBadge badgeType=badgeType badgeText=badgeText }}
 
-{{> InfoBlock info=(concat "Backups of this " (brandNameHtml) " instance need attention: one did not finish.") }}
+{{> InfoBlock info=(concat "Backups keep a copy of this " (brandNameHtml) " instance's data in storage you chose, ready to restore.") }}
 
 {{> DetailBoxStart this }}
 {{#if oneuptimeHost}}
@@ -38,7 +38,7 @@
 {{> ButtonBlock buttonUrl=healthPageLink buttonText=healthPageButtonText }}
 {{/if}}
 
-{{> InfoBlock info=(concat "You are receiving this email because you are a master admin on this " (brandNameHtml) " instance and it backs itself up.") }}
+{{> InfoBlock info=(concat "You are receiving this email because you are a master admin on this " (brandNameHtml) " instance and backups are set up on it.") }}
 
 {{> Footer this}}
 

@@ -804,10 +804,14 @@ describeWhenEnterprisePresent(
       const card: string = readEe(
         "AdminDashboard/Backups/BackupStatusCard.tsx",
       );
-      const menu: string = card.slice(
-        card.indexOf("<MoreMenu"),
-        card.indexOf("</MoreMenu>"),
-      );
+      // The card's ⋯, the same button as every card header's.
+      const start: number = card.indexOf("<CardMoreMenu");
+      const end: number = card.indexOf("</CardMoreMenu>");
+
+      expect(start).toBeGreaterThan(0);
+      expect(end).toBeGreaterThan(start);
+
+      const menu: string = card.slice(start, end);
 
       expect(menu).toContain("text={BackupsCopy.findBackupsAction}");
       expect(menu).toContain("text={BackupsCopy.turnOffAction}");

@@ -1,7 +1,9 @@
 import { BACKUP_PLURALS, BackupsCopy } from "./BackupsCopy";
 import BackupsApi, { BackupsOverview, FindBackupsResult } from "./BackupsApi";
 import BackupsHero from "./BackupsHero";
-import BackupsLicenseNotice from "./BackupsLicenseNotice";
+import BackupsLicenseNotice, {
+  isBackupsPausedNoticeShown,
+} from "./BackupsLicenseNotice";
 import BackupRunStepsModal from "./BackupRunStepsModal";
 import BackupRunsTable from "./BackupRunsTable";
 import BackupSettingsCard from "./BackupSettingsCard";
@@ -472,10 +474,14 @@ const BackupsView: FunctionComponent<ComponentProps> = (
             setting={setting}
             activeRun={data.activeRun}
             lastBackup={data.lastBackup}
+            newestSucceeded={data.newestSucceeded}
             nextBackupAt={overview.nextBackupAt}
             canBackUp={canBackUp}
             lockedReason={BackupsCopy.licenseRequired}
+            isLicenseNoticeShown={isBackupsPausedNoticeShown(props.licenseMode)}
             isBusy={isStarting || isChangingSchedule || isFinding}
+            isStarting={isStarting}
+            isChangingSchedule={isChangingSchedule}
             isCancelRequested={Boolean(data.activeRun?.cancelRequestedAt)}
             now={now}
             onBackUpNow={() => {

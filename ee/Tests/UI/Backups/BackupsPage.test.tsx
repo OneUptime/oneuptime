@@ -718,7 +718,7 @@ describe("setting backups up, through the real form", () => {
         expect(postsTo("/find")).toHaveLength(1);
       });
       expect(await screen.findByTestId("backups-notice")).toHaveTextContent(
-        "Found 2 backups at the destination. 2 were new to this list.",
+        "Found 2 backups at the destination. Added 2 to the list.",
       );
     },
     FORM_TEST_TIMEOUT_IN_MS,
@@ -919,12 +919,31 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-settings-retention")).toHaveTextContent(
       "30 days",
     );
-    expect(screen.getByTestId("backups-settings-contents")).toHaveTextContent(
-      "PostgreSQL · Configuration · 41 MB now",
+    // Each database on a line of its own, with what it holds and its size now.
+    expect(
+      screen.getByTestId("backups-settings-contents-postgres"),
+    ).toHaveTextContent(
+      "PostgreSQL · projects, monitors, incidents, users · 41 MB now",
     );
-    expect(screen.getByTestId("backups-settings-contents")).toHaveTextContent(
-      "ClickHouse · Telemetry · 2.2 GB now",
-    );
+    expect(
+      screen.getByTestId("backups-settings-contents-clickhouse"),
+    ).toHaveTextContent("ClickHouse · logs, traces, metrics · 2.2 GB now");
+    // On: the schedule is not said to be off.
+    expect(screen.queryByTestId("backups-settings-schedule-off")).toBeNull();
+  });
+
+  test("settings that leave ClickHouse out say it is not backed up", async () => {
+    setUpInstance();
+    setting!.includesClickhouse = false;
+
+    await renderPage();
+
+    expect(
+      screen.getByTestId("backups-settings-contents-clickhouse"),
+    ).toHaveTextContent("ClickHouse · Not backed up");
+    expect(
+      screen.getByTestId("backups-settings-contents"),
+    ).not.toHaveTextContent("logs, traces, metrics");
   });
 
   test("no backup yet says so", async () => {
@@ -954,6 +973,8 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-status-step")).toHaveTextContent(
       "Starts within a minute.",
     );
+    // Waiting to start: nothing has run yet to say how long.
+    expect(screen.queryByTestId("backups-status-elapsed")).toBeNull();
     // A run going on: Back up now gives way to its steps and Cancel.
     expect(screen.queryByTestId("backups-back-up-now")).toBeNull();
     expect(screen.getByTestId("backups-active-cancel")).toBeEnabled();
@@ -1002,8 +1023,31 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-status-next")).toHaveTextContent(
       "Nothing runs until they are turned on again.",
     );
+    // The settings say the schedule they keep is off.
+    expect(screen.getByTestId("backups-settings-schedule")).toHaveTextContent(
+      "Every day at 02:00 UTC · Off",
+    );
     // Back up now still works while the schedule is off.
     expect(screen.getByTestId("backups-back-up-now")).toBeEnabled();
+    /*
+     * One primary action: turning the schedule back on, first; Back up now
+     * steps back to a plain button beside it.
+     */
+    const actions: Array<string> = Array.from(
+      screen
+        .getByTestId("backups-status-actions")
+        .querySelectorAll("button[data-testid]"),
+    ).map((button: Element): string => {
+      return button.getAttribute("data-testid") || "";
+    });
+
+    expect(actions).toEqual(["backups-turn-on", "backups-back-up-now"]);
+    expect(screen.getByTestId("backups-turn-on").className).toContain(
+      "bg-indigo-600",
+    );
+    expect(screen.getByTestId("backups-back-up-now").className).not.toContain(
+      "bg-indigo-600",
+    );
 
     await click(screen.getByTestId("backups-turn-on"));
 
@@ -1045,8 +1089,12 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-status-title")).toHaveTextContent(
       "The last backup failed",
     );
+    // When, and the newest backup there still is to go back to.
+    expect(screen.getByTestId("backups-status-last")).toHaveTextContent(
+      "Last backup 30 minutes ago · Last good backup 2 hours ago",
+    );
     expect(screen.getByTestId("backups-status-failed")).toHaveTextContent(
-      "30 minutes ago · ClickHouse could not write to the destination",
+      "ClickHouse could not write to the destination",
     );
     /*
      * The server's sentence takes the direction of its first letter, so on
@@ -1069,6 +1117,45 @@ describe("the status card", () => {
         `backup-run-step-message-${BackupStepKey.BackUpClickhouse}`,
       ),
     ).toHaveAttribute("dir", "auto");
+  });
+
+  test("a first backup that failed says there is nothing to restore yet", async () => {
+    setUpInstance();
+    runs = [
+      backupRun(FAILED_ID, {
+        status: BackupRunStatus.Failed,
+        startedAt: minutesAgo(10),
+        error: "The bucket oneuptime-backups does not exist.",
+      }),
+    ];
+
+    await renderPage();
+
+    expect(screen.getByTestId("backups-status-last")).toHaveTextContent(
+      "Last backup 10 minutes ago · No backup to restore yet",
+    );
+    expect(screen.getByTestId("backups-status-failed")).toHaveTextContent(
+      "The bucket oneuptime-backups does not exist.",
+    );
+  });
+
+  test("a backup that failed without a message shows no empty error box", async () => {
+    setUpInstance();
+    runs.push(
+      backupRun(FAILED_ID, {
+        status: BackupRunStatus.Failed,
+        startedAt: minutesAgo(5),
+        error: undefined,
+      }),
+    );
+
+    await renderPage();
+
+    expect(screen.getByTestId("backups-status-title")).toHaveTextContent(
+      "The last backup failed",
+    );
+    expect(screen.queryByTestId("backups-status-failed")).toBeNull();
+    expect(screen.getByTestId("backups-failed-view-steps")).toBeInTheDocument();
   });
 
   test("a backup running: its step, what it wrote, Cancel and View steps", async () => {
@@ -1094,6 +1181,10 @@ describe("the status card", () => {
 
     expect(screen.getByTestId("backups-status-step")).toHaveTextContent(
       "Step 2 of 5: Back up PostgreSQL · 12 MB written",
+    );
+    // How long it has been going, so a stuck one shows.
+    expect(screen.getByTestId("backups-status-elapsed")).toHaveTextContent(
+      "Running for 2 minutes",
     );
     // A dump's size is not known before it ends: no bar that would lie.
     expect(
@@ -1169,7 +1260,7 @@ describe("the status card", () => {
 
     expect(postsTo("/find")).toHaveLength(1);
     expect(await screen.findByTestId("backups-notice")).toHaveTextContent(
-      "Found 3 backups at the destination. 1 was new to this list.",
+      "Found 3 backups at the destination. Added 1 to the list.",
     );
   });
 
@@ -1228,9 +1319,13 @@ describe("without a license that includes backups", () => {
     expect(screen.getByTestId("backups-status-title")).toHaveTextContent(
       "New backups are paused",
     );
-    // Never a next backup it will not make.
-    expect(screen.getByTestId("backups-status-next")).toHaveTextContent(
-      "They need a license that includes backups. Restoring and deleting backups still work.",
+    /*
+     * Never a next backup it will not make - and not the license's reason
+     * again under the notice that just said it.
+     */
+    expect(screen.queryByTestId("backups-status-next")).toBeNull();
+    expect(screen.getByTestId("backups-status")).not.toHaveTextContent(
+      "They need a license that includes backups.",
     );
     expect(screen.getByTestId("backups-back-up-now")).toBeDisabled();
     expect(
@@ -1244,6 +1339,38 @@ describe("without a license that includes backups", () => {
 
     expect(rowActions(backup)).toEqual(["Restore", ["View steps", "Delete"]]);
     expect(action("Restore").disabled).toBe(false);
+  });
+});
+
+describe("new backups paused where the page shows no license notice", () => {
+  test("the card says why itself, once", async () => {
+    setUpInstance();
+    // The license reads as usable here, while the server pauses new backups.
+    mockLicenseMode = "editable";
+    overview = overviewOf({ isAvailable: false });
+
+    await renderPage();
+
+    expect(screen.queryByTestId("backups-license-lapsed")).toBeNull();
+    expect(screen.getByTestId("backups-status-title")).toHaveTextContent(
+      "New backups are paused",
+    );
+    expect(screen.getByTestId("backups-status-next")).toHaveTextContent(
+      "They need a license that includes backups. Restoring and deleting backups still work.",
+    );
+  });
+
+  test("a license without backups: the notice says it, the card does not again", async () => {
+    setUpInstance();
+    mockLicenseMode = "not-included";
+    overview = overviewOf({ isAvailable: false });
+
+    await renderPage();
+
+    expect(
+      screen.getByTestId("backups-license-not-included"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("backups-status-next")).toBeNull();
   });
 });
 

@@ -133,8 +133,13 @@ export function describeStepFacts(data: {
       progress.totalBytes &&
         step.status === BackupStepStatus.Running &&
         progress.doneBytes < progress.totalBytes &&
-        // A dump is compressed: the database's size says nothing of how far it is.
-        step.key !== BackupStepKey.BackUpPostgres
+        /*
+         * A database's size on disk is only a guess at its backup's: a dump
+         * is compressed, and ClickHouse says its total only at the end. A
+         * backup step says what it wrote, as the status card does.
+         */
+        step.key !== BackupStepKey.BackUpPostgres &&
+        step.key !== BackupStepKey.BackUpClickhouse
         ? data.translator.translateTemplate(BackupsCopy.stepsRead, {
             done: formatBackupSize(
               progress.doneBytes,
@@ -233,7 +238,8 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
           : BackupsCopy.stepsTitleBackup,
         { time: timeText },
       )}
-      modalWidth={ModalWidth.Large}
+      // A list of steps reads best in a column of its own width.
+      modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText={BackupsCopy.close}
       leftFooterElement={
@@ -259,7 +265,11 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
               BACKUP_RUN_TRIGGER_COPY[run.trigger || BackupRunTrigger.Manual],
             )}
           </span>
-          {run.startedAt ? (
+          {/*
+           * A backup's title is when it started; a restore's names the
+           * backup it restores, so when the restore started is said here.
+           */}
+          {run.startedAt && isRestore ? (
             <span>
               {translator.translateTemplate(BackupsCopy.stepsStarted, {
                 time: formatBackupDateTime(new Date(run.startedAt), clock),

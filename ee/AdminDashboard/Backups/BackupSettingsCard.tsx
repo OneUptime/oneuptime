@@ -15,8 +15,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * What the backups are set to, in four lines: where they go, when they
- * run, how long they are kept and what they hold (with each database's
- * size now) - and Edit, which opens the same form as the setup.
+ * run (and that they are off, when they are), how long they are kept and
+ * what they hold - each database on its own line, with what it holds, as
+ * the restore dialog names it, and its size now - and Edit, which opens
+ * the same form as the setup.
  */
 
 export interface ComponentProps {
@@ -135,6 +137,16 @@ const BackupSettingsCard: FunctionComponent<ComponentProps> = (
               },
               translator,
             })}
+            {props.setting.isEnabled === false ? (
+              <span
+                className="text-gray-500"
+                data-testid="backups-settings-schedule-off"
+              >
+                {` · ${translator.translateText(BackupsCopy.scheduleOff)}`}
+              </span>
+            ) : (
+              <></>
+            )}
           </span>
         </Row>
         <Row
@@ -149,8 +161,8 @@ const BackupSettingsCard: FunctionComponent<ComponentProps> = (
           label={BackupsCopy.contentsLabel}
           testId="backups-settings-contents"
         >
-          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-6">
-            <span>
+          <div className="flex flex-col gap-1">
+            <span data-testid="backups-settings-contents-postgres">
               <span className="font-medium">
                 {translator.translateText(BackupsCopy.databasePostgres)}
               </span>
@@ -162,7 +174,7 @@ const BackupSettingsCard: FunctionComponent<ComponentProps> = (
               </span>
             </span>
             {includesClickhouse ? (
-              <span>
+              <span data-testid="backups-settings-contents-clickhouse">
                 <span className="font-medium">
                   {translator.translateText(BackupsCopy.databaseClickhouse)}
                 </span>
@@ -174,8 +186,12 @@ const BackupSettingsCard: FunctionComponent<ComponentProps> = (
                 </span>
               </span>
             ) : (
-              <span className="text-gray-500">
-                {translator.translateText(BackupsCopy.contentsPostgres)}
+              // Left out by the settings: said, so it is not taken for forgotten.
+              <span
+                className="text-gray-500"
+                data-testid="backups-settings-contents-clickhouse"
+              >
+                {`${translator.translateText(BackupsCopy.databaseClickhouse)} · ${translator.translateText(BackupsCopy.notBackedUp)}`}
               </span>
             )}
           </div>

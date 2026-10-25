@@ -18,9 +18,9 @@ import {
 } from "Common/Types/Backup/BackupRunTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import { getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -28,10 +28,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The top of the Backups page: how backups are doing, in one look. What
- * runs now (a backup or a restore, its step, how far), or else whether
- * backups are on, when the last one ran (or that it failed, and why) and
- * when the next one runs - with Back up now, and Turn on for a schedule
- * that is off. The rest (Find backups, turning the schedule off) is in ⋯.
+ * runs now (a backup or a restore, its step, how far, for how long), or
+ * else whether backups are on, when the last one ran - or that it failed,
+ * why, and the newest backup there still is to go back to - and when the
+ * next one runs.
+ *
+ * One primary action: Back up now, or Turn on while the schedule is off
+ * (what puts the page right again). The rest - Find backups, turning the
+ * schedule off - is in the card's ⋯, the same button as every card's.
  */
 
 export interface ComponentProps {
@@ -40,12 +44,23 @@ export interface ComponentProps {
   activeRun: BackupRun | null;
   // The newest backup that finished, whatever its outcome.
   lastBackup: BackupRun | null;
+  // The newest backup that succeeded: what a failed last one leaves to restore.
+  newestSucceeded?: BackupRun | null | undefined;
   // The time the next scheduled backup runs (the overview's).
   nextBackupAt: string | null;
   // New backups and settings changes are allowed (the license includes backups).
   canBackUp: boolean;
   lockedReason?: string | undefined;
+  /*
+   * The page already says, above the card, that the license has paused new
+   * backups and what still works: the card does not say it again.
+   */
+  isLicenseNoticeShown?: boolean | undefined;
+  // Something is being sent: every action waits.
   isBusy: boolean;
+  // Which one, so only its own button spins.
+  isStarting?: boolean | undefined;
+  isChangingSchedule?: boolean | undefined;
   isCancelRequested: boolean;
   onBackUpNow: () => void;
   onSetEnabled: (isEnabled: boolean) => void;
@@ -96,8 +111,24 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
   const lastFailed: boolean =
     props.lastBackup?.status === BackupRunStatus.Failed;
 
-  const actions: ReactElement = (
-    <div className="flex flex-none items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+  const backUpNowButton: ReactElement = (
+    <Button
+      title={BackupsCopy.backUpNowButton}
+      icon={IconProp.CloudArrowUp}
+      // Off, turning the schedule back on comes first.
+      buttonStyle={isOn ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL}
+      disabled={!props.canBackUp || props.isBusy}
+      isLoading={Boolean(props.isStarting)}
+      tooltip={
+        props.canBackUp ? BackupsCopy.backUpNowTooltip : props.lockedReason
+      }
+      dataTestId="backups-back-up-now"
+      onClick={props.onBackUpNow}
+    />
+  );
+
+  const buttons: ReactElement = (
+    <>
       {run ? (
         <>
           <Button
@@ -125,70 +156,57 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
             }}
           />
         </>
+      ) : isOn ? (
+        backUpNowButton
       ) : (
         <>
-          {isOn ? (
-            <></>
-          ) : (
-            <Button
-              title={BackupsCopy.turnOnButton}
-              icon={IconProp.Play}
-              buttonStyle={ButtonStyleType.NORMAL}
-              disabled={!props.canBackUp || props.isBusy}
-              tooltip={
-                props.canBackUp ? BackupsCopy.turnOnTooltip : props.lockedReason
-              }
-              dataTestId="backups-turn-on"
-              onClick={() => {
-                props.onSetEnabled(true);
-              }}
-            />
-          )}
           <Button
-            title={BackupsCopy.backUpNowButton}
-            icon={IconProp.CloudArrowUp}
+            title={BackupsCopy.turnOnButton}
+            icon={IconProp.Play}
             buttonStyle={ButtonStyleType.PRIMARY}
             disabled={!props.canBackUp || props.isBusy}
-            isLoading={props.isBusy}
+            isLoading={Boolean(props.isChangingSchedule)}
             tooltip={
-              props.canBackUp
-                ? BackupsCopy.backUpNowTooltip
-                : props.lockedReason
+              props.canBackUp ? BackupsCopy.turnOnTooltip : props.lockedReason
             }
-            dataTestId="backups-back-up-now"
-            onClick={props.onBackUpNow}
+            dataTestId="backups-turn-on"
+            onClick={() => {
+              props.onSetEnabled(true);
+            }}
           />
+          {backUpNowButton}
         </>
       )}
-      <MoreMenu
-        menuIcon={IconProp.More}
-        text=""
-        ariaLabel={translator.translateText(BackupsCopy.statusTitle)}
-        dataTestId="backups-status-more"
-      >
-        {[
-          <MoreMenuItem
-            key="find"
-            icon={IconProp.MagnifyingGlass}
-            text={BackupsCopy.findBackupsAction}
-            onClick={props.onFindBackups}
-          />,
-          ...(isOn
-            ? [
-                <MoreMenuItem
-                  key="off"
-                  icon={IconProp.Stop}
-                  text={BackupsCopy.turnOffAction}
-                  isDisabled={!props.canBackUp}
-                  onClick={() => {
-                    props.onSetEnabled(false);
-                  }}
-                />,
-              ]
-            : []),
-        ]}
-      </MoreMenu>
-    </div>
+    </>
+  );
+
+  const moreMenu: ReactElement = (
+    <CardMoreMenu
+      ariaLabel={translator.translateText(BackupsCopy.statusTitle)}
+      dataTestId="backups-status-more"
+    >
+      {[
+        <MoreMenuItem
+          key="find"
+          icon={IconProp.MagnifyingGlass}
+          text={BackupsCopy.findBackupsAction}
+          onClick={props.onFindBackups}
+        />,
+        ...(isOn
+          ? [
+              <MoreMenuItem
+                key="off"
+                icon={IconProp.PauseCircle}
+                text={BackupsCopy.turnOffAction}
+                isDisabled={!props.canBackUp}
+                onClick={() => {
+                  props.onSetEnabled(false);
+                }}
+              />,
+            ]
+          : []),
+      ]}
+    </CardMoreMenu>
   );
 
   const getBody: () => ReactElement = (): ReactElement => {
@@ -197,6 +215,9 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
       const isRestore: boolean = run.kind === BackupRunKind.Restore;
       const isQueued: boolean = run.status === BackupRunStatus.Queued;
       const written: number | undefined = progress.step?.progress?.doneBytes;
+      const elapsed: number | null = isQueued
+        ? null
+        : getBackupRunDurationInMs(run, clock.now);
 
       return (
         <div
@@ -254,6 +275,18 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
                 <></>
               )}
             </div>
+            {elapsed !== null ? (
+              <div
+                className="mt-0.5 text-sm text-gray-500"
+                data-testid="backups-status-elapsed"
+              >
+                {translator.translateTemplate(BackupsCopy.runningFor, {
+                  duration: formatBackupDuration(elapsed, translator.language),
+                })}
+              </div>
+            ) : (
+              <></>
+            )}
             {progress.percent !== null ? (
               <div
                 className="mt-3 h-2 w-full max-w-xl overflow-hidden rounded-full bg-gray-200"
@@ -297,15 +330,35 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
           : BackupsCopy.statusOff;
     const lines: Array<ReactElement> = [];
 
-    if (last?.startedAt && !lastFailed) {
+    if (last?.startedAt) {
       const duration: number | null = getBackupRunDurationInMs(last, clock.now);
+      const goodBackup: BackupRun | null | undefined = props.newestSucceeded;
 
       lines.push(
         <div key="last" data-testid="backups-status-last">
           {translator.translateTemplate(BackupsCopy.lastBackup, {
             time: formatBackupTimeAgo(new Date(last.startedAt), clock),
           })}
-          {duration !== null ? (
+          {lastFailed ? (
+            /*
+             * A failed backup leaves the one before it: how old that is is
+             * what tells an operator how much a restore now would lose.
+             */
+            <span
+              className="text-gray-500"
+              data-testid="backups-status-last-good"
+            >
+              {" · "}
+              {goodBackup?.startedAt
+                ? translator.translateTemplate(BackupsCopy.lastGoodBackup, {
+                    time: formatBackupTimeAgo(
+                      new Date(goodBackup.startedAt),
+                      clock,
+                    ),
+                  })
+                : translator.translateText(BackupsCopy.noGoodBackup)}
+            </span>
+          ) : duration !== null ? (
             <span className="text-gray-500">
               {" · "}
               {translator.translateTemplate(BackupsCopy.lastBackupSize, {
@@ -329,43 +382,44 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (lastFailed && last) {
+    if (lastFailed && last?.error) {
+      /*
+       * Why, in the storage's or the database's own words: a few lines at
+       * most here, the whole of it in View steps.
+       */
       lines.push(
         <div
           key="failed"
-          className="min-w-0"
+          className="my-2 min-w-0 rounded-md bg-red-50 px-3 py-2 text-red-700"
           data-testid="backups-status-failed"
+          title={last.error}
         >
-          <span className="text-gray-700">
-            {last.startedAt
-              ? formatBackupTimeAgo(new Date(last.startedAt), clock)
-              : ""}
+          <span className="line-clamp-4 whitespace-pre-wrap" dir="auto">
+            {last.error}
           </span>
-          {last.error ? (
-            <span className="text-red-700">
-              {" · "}
-              <span dir="auto">{last.error}</span>
-            </span>
-          ) : (
-            <></>
-          )}
         </div>,
       );
     }
 
-    lines.push(
-      <div key="next" data-testid="backups-status-next">
-        {isLocked
-          ? translator.translateText(BackupsCopy.statusLockedText)
-          : isOn && props.nextBackupAt
-            ? translator.translateTemplate(BackupsCopy.nextBackup, {
-                time: `${formatBackupDateTime(new Date(props.nextBackupAt), clock)} (${formatBackupTimeUntil(new Date(props.nextBackupAt), clock)})`,
-              })
-            : isOn
-              ? ""
-              : translator.translateText(BackupsCopy.nextBackupOff)}
-      </div>,
-    );
+    const next: string = isLocked
+      ? props.isLicenseNoticeShown
+        ? ""
+        : translator.translateText(BackupsCopy.statusLockedText) || ""
+      : isOn && props.nextBackupAt
+        ? translator.translateTemplate(BackupsCopy.nextBackup, {
+            time: `${formatBackupDateTime(new Date(props.nextBackupAt), clock)} (${formatBackupTimeUntil(new Date(props.nextBackupAt), clock)})`,
+          })
+        : isOn
+          ? ""
+          : translator.translateText(BackupsCopy.nextBackupOff) || "";
+
+    if (next) {
+      lines.push(
+        <div key="next" data-testid="backups-status-next">
+          {next}
+        </div>,
+      );
+    }
 
     return (
       <div
@@ -412,14 +466,28 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The ⋯ stays at the title's end at every width, as a card header's does;
+   * the buttons sit between them on a wide screen and go under the text on
+   * a narrow one, stacked full width on a phone like every page's buttons.
+   * In the page's order they come before the ⋯, as they are read.
+   */
   return (
     <div
       className="mb-5 rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
       data-testid="backups-status"
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">{getBody()}</div>
-        {actions}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-4 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <div className="col-start-1 row-start-1 min-w-0">{getBody()}</div>
+        <div
+          className="col-span-2 col-start-1 row-start-2 flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center lg:col-span-1 lg:col-start-2 lg:row-start-1 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+          data-testid="backups-status-actions"
+        >
+          {buttons}
+        </div>
+        <div className="col-start-2 row-start-1 flex justify-end lg:col-start-3">
+          {moreMenu}
+        </div>
       </div>
     </div>
   );

@@ -229,19 +229,26 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
                       item.trigger || BackupRunTrigger.Manual
                     ],
                   )}
-                  {isElsewhere ? (
-                    <span
-                      className="text-amber-700"
-                      title={translator.translateText(
-                        BackupsCopy.previousDestinationTooltip,
-                      )}
-                    >
-                      {` · ${translator.translateText(BackupsCopy.previousDestinationNote)}`}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
                 </div>
+                {/*
+                 * A line of its own: beside what started it, the column took
+                 * the width of the longest pair, and pushed the others out.
+                 */}
+                {isElsewhere ? (
+                  <div
+                    className="text-xs text-amber-700"
+                    title={translator.translateText(
+                      BackupsCopy.previousDestinationTooltip,
+                    )}
+                    data-testid="backup-run-previous-destination"
+                  >
+                    {translator.translateText(
+                      BackupsCopy.previousDestinationNote,
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
               </div>
             );
           },

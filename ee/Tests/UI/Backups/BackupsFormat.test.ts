@@ -519,6 +519,27 @@ describe("how far a running run has got", () => {
         now,
       }),
     ).toEqual(["1 minute", "2 MB"]);
+    /*
+     * ClickHouse says its backup's total only at the end: a step in
+     * progress says what it wrote, as the status card does, never "of"
+     * the database's size on disk.
+     */
+    expect(
+      describeStepFacts({
+        step: {
+          key: BackupStepKey.BackUpClickhouse,
+          status: BackupStepStatus.Running,
+          startedAt: "2026-10-24T02:03:00Z",
+          progress: {
+            doneBytes: 1.3 * 1024 ** 3,
+            totalBytes: 2.1 * 1024 ** 3,
+            doneFiles: 233,
+          },
+        },
+        translator: ENGLISH,
+        now,
+      }),
+    ).toEqual(["2 minutes", "1.3 GB", "233 files"]);
     expect(
       describeStepFacts({
         step: {
@@ -651,13 +672,13 @@ describe("what Find backups found", () => {
         result: { found: 3, added: 2, updated: 0, removed: 0 },
         translator: ENGLISH,
       }),
-    ).toBe("Found 3 backups at the destination. 2 were new to this list.");
+    ).toBe("Found 3 backups at the destination. Added 2 to the list.");
     expect(
       describeFindResult({
         result: { found: 1, added: 1, updated: 0, removed: 0 },
         translator: ENGLISH,
       }),
-    ).toBe("Found 1 backup at the destination. 1 was new to this list.");
+    ).toBe("Found 1 backup at the destination. Added 1 to the list.");
     expect(
       describeFindResult({
         result: { found: 4, added: 0, updated: 4, removed: 0 },
@@ -670,5 +691,14 @@ describe("what Find backups found", () => {
         translator: ENGLISH,
       }),
     ).toBe("Found no backups at the destination.");
+  });
+
+  test("in the reader's language, each sentence whole", () => {
+    expect(
+      describeFindResult({
+        result: { found: 3, added: 1, updated: 0, removed: 0 },
+        translator: translatorFor("de"),
+      }),
+    ).toBe("3 Backups am Ziel gefunden. 1 zur Liste hinzugefügt.");
   });
 });

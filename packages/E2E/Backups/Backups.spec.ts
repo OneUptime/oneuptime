@@ -257,6 +257,15 @@ test.describe("the Enterprise Edition's Backups page", () => {
 
         await expectNoHorizontalScroll(page);
         expect(await isDark(page)).toBe(theme === "dark");
+        // On a phone the folded side menu names this page, not "Navigation".
+        if (viewport.name === "phone") {
+          await expect(page.getByTestId("mobile-sidemenu-toggle")).toHaveText(
+            /Backups/,
+          );
+          await expect(
+            page.getByTestId("mobile-sidemenu-toggle"),
+          ).not.toContainText("Navigation");
+        }
         await screenshot(page, `first-run-${viewport.name}-${theme}`);
       });
     }
@@ -431,6 +440,27 @@ test.describe("the Enterprise Edition's Backups page", () => {
       await expect(
         page.getByTestId("backups-settings-retention"),
       ).toContainText("30 days");
+      // Each database on its own line, with what it holds.
+      await expect(
+        page.getByTestId("backups-settings-contents-postgres"),
+      ).toContainText("projects, monitors, incidents, users");
+      await expect(
+        page.getByTestId("backups-settings-contents-clickhouse"),
+      ).toContainText("logs, traces, metrics");
+      // The status card's ⋯ is the same button as the tables' card headers'.
+      const statusMore: Locator = page.getByTestId("backups-status-more");
+      const tableMore: Locator = list(page, 0)
+        .locator("xpath=ancestor::*[.//*[@data-testid='card-header']][1]")
+        .getByTestId("card-header")
+        .getByRole("button", { name: "More options" });
+      const statusBox: { width: number; height: number } | null =
+        await statusMore.boundingBox();
+      const tableBox: { width: number; height: number } | null =
+        await tableMore.boundingBox();
+
+      expect(statusBox && tableBox).toBeTruthy();
+      expect(Math.round(statusBox!.width)).toBe(Math.round(tableBox!.width));
+      expect(Math.round(statusBox!.height)).toBe(Math.round(tableBox!.height));
 
       // Five backups, newest first; the one at a previous destination cannot be restored here.
       await expect(backupRows(page)).toHaveCount(5);
@@ -479,6 +509,10 @@ test.describe("the Enterprise Edition's Backups page", () => {
         "written",
       );
       await expect(page.getByTestId("backups-active-cancel")).toBeVisible();
+      // How long it has been going, so a stuck backup shows.
+      await expect(page.getByTestId("backups-status-elapsed")).toContainText(
+        "Running for 2 minutes",
+      );
       // While one runs, no other backup or restore can start.
       await expect(page.getByTestId("backups-back-up-now")).toHaveCount(0);
       await expect(
@@ -506,6 +540,13 @@ test.describe("the Enterprise Edition's Backups page", () => {
       await expect(
         dialog(page).getByTestId("backup-run-step-verify-backup"),
       ).toContainText("Waiting");
+      // ClickHouse's step says what it wrote, as the card does: no total it cannot know.
+      await expect(
+        dialog(page).getByTestId("backup-run-step-back-up-clickhouse"),
+      ).not.toContainText(" of ");
+      // A column of steps, never wider than 768 pixels.
+      const box: { width: number } | null = await dialog(page).boundingBox();
+      expect(box!.width).toBeLessThanOrEqual(768);
       await expectNoHorizontalScroll(page);
       await screenshot(page, `running-steps-${viewport.name}-light`);
     });
@@ -524,6 +565,10 @@ test.describe("the Enterprise Edition's Backups page", () => {
       );
       await expect(page.getByTestId("backups-status-failed")).toContainText(
         STORAGE_REFUSED,
+      );
+      // And the newest backup there still is to go back to.
+      await expect(page.getByTestId("backups-status-last")).toContainText(
+        "Last good backup",
       );
       // A new backup can be tried at once.
       await expect(page.getByTestId("backups-back-up-now")).toBeEnabled();
@@ -686,17 +731,19 @@ test.describe("the Enterprise Edition's Backups page", () => {
     ).toContainText(
       "A newer version of OneUptime made this backup. Update OneUptime first, then restore it.",
     );
-    const restore: Locator = dialog(page).getByTestId(
-      "modal-footer-submit-button",
-    );
-    const confirmation: Locator = dialog(page).getByRole("textbox");
-
-    if ((await confirmation.count()) > 0) {
-      await confirmation.fill("restore");
-    }
-
-    await expect(restore).toBeDisabled();
+    // Nothing to choose, tick or type, and no Restore: the dialog only closes.
+    await expect(dialog(page).getByRole("textbox")).toHaveCount(0);
+    await expect(dialog(page).getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toHaveCount(0);
+    await expect(
+      dialog(page).getByTestId("modal-footer-close-button"),
+    ).toHaveText("Close");
     await screenshot(page, "restore-problem-laptop-light");
+
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
     expect(await postsTo(page, "/backup/restore")).toEqual([]);
   });
 
@@ -740,6 +787,25 @@ test.describe("the Enterprise Edition's Backups page", () => {
     );
     await expect(page.getByTestId("backups-turn-on")).toBeVisible();
     await expect(page.getByTestId("backups-back-up-now")).toBeEnabled();
+    // Turning the schedule back on is the card's one primary action now.
+    const primary: Array<string> = await page
+      .getByTestId("backups-status-actions")
+      .locator("button")
+      .evaluateAll((buttons: Array<Element>): Array<string> => {
+        return buttons
+          .filter((button: Element): boolean => {
+            return (
+              getComputedStyle(button).backgroundColor === "rgb(79, 70, 229)"
+            );
+          })
+          .map((button: Element): string => {
+            return button.getAttribute("data-testid") || "";
+          });
+      });
+    expect(primary).toEqual(["backups-turn-on"]);
+    await expect(page.getByTestId("backups-settings-schedule")).toContainText(
+      "· Off",
+    );
 
     const updates: Array<RecordedWrite> = (await fixtureRecord(page)).writes;
     expect(updates).toEqual([
@@ -767,7 +833,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
     await page.getByRole("menuitem", { name: "Find backups" }).click();
 
     await expect(page.getByTestId("backups-notice")).toHaveText(
-      "Found 5 backups at the destination. 1 was new to this list.",
+      "Found 5 backups at the destination. Added 1 to the list.",
     );
     expect((await postsTo(page, "/backup/find")).length).toBe(1);
   });
@@ -840,6 +906,16 @@ test.describe("the Enterprise Edition's Backups page", () => {
           exact: true,
         }),
     ).toBeVisible();
+    // The tables' own words too: the Admin Dashboard's German, not English.
+    await expect(page.getByText("Rows per page", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByText(german["Rows per page"] as string).first(),
+    ).toBeVisible();
+    await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
+      german["Backups"] as string,
+    );
     await expectNoHorizontalScroll(page);
     await screenshot(page, "on-phone-german");
 

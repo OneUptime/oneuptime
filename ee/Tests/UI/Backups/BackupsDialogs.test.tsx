@@ -379,7 +379,9 @@ describe("the restore dialog", () => {
     expect(postsTo("/restore-preview")[0]!["includesClickhouse"]).toBe(false);
   });
 
-  test("a problem the server finds is said in words, and Restore stays locked whatever is typed", async () => {
+  test("a backup no choice can restore shows only why, and the dialog only closes", async () => {
+    let closed: number = 0;
+
     preview = (): RestorePreview => {
       return previewOf({
         problems: [
@@ -391,7 +393,9 @@ describe("the restore dialog", () => {
       });
     };
 
-    await openRestore();
+    await openRestore(backupRun(BACKUP_ID), undefined, () => {
+      closed++;
+    });
 
     expect(screen.getByTestId("restore-backup-problems")).toHaveTextContent(
       "A newer version of OneUptime made this backup. Update OneUptime first, then restore it.",
@@ -399,9 +403,114 @@ describe("the restore dialog", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(
       "This backup cannot be restored",
     );
+    // Nothing to choose, tick or type: nothing of it could happen.
+    expect(screen.queryByTestId("restore-backup-postgres")).toBeNull();
+    expect(screen.queryByTestId("restore-backup-first")).toBeNull();
+    expect(
+      screen.queryByTestId("delete-confirmation-type-to-confirm-input"),
+    ).toBeNull();
+    expect(screen.queryByTestId("modal-footer-submit-button")).toBeNull();
+    // Nor the warning about what a restore replaces.
+    expect(screen.getByRole("dialog")).not.toHaveTextContent(
+      "What you restore replaces the current data.",
+    );
+
+    // The footer's one button closes it.
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
+      "Close",
+    );
+    await click(screen.getByTestId("modal-footer-close-button"));
+
+    expect(closed).toBe(1);
+    expect(postsTo("/restore")).toEqual([]);
+  });
+
+  test("a problem with one database keeps the choice; once the other alone is chosen, Restore waits for the word", async () => {
+    preview = (body: JSONObject): RestorePreview => {
+      return previewOf({
+        problems:
+          body["includesClickhouse"] === true
+            ? [
+                {
+                  code: "clickhouse-file-missing",
+                  message: "The ClickHouse part is gone.",
+                },
+              ]
+            : [],
+      });
+    };
+
+    await openRestore();
+
+    expect(screen.getByTestId("restore-backup-problems")).toHaveTextContent(
+      "The ClickHouse part of the backup is missing at the destination.",
+    );
+    // The choice stays, to change it; the rest waits.
+    expect(screen.getByTestId("restore-backup-clickhouse")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("delete-confirmation-type-to-confirm-input"),
+    ).toBeNull();
+    expect(submit()).toBeDisabled();
+
+    await click(screen.getByTestId("restore-backup-clickhouse-checkbox"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("restore-backup-problems")).toBeNull();
+    });
+    expect(screen.getByTestId("restore-backup-first")).toBeInTheDocument();
 
     await type("restore");
-    expect(submit()).toBeDisabled();
+    expect(submit()).toBeEnabled();
+
+    await click(submit());
+
+    await waitFor(() => {
+      expect(postsTo("/restore")).toHaveLength(1);
+    });
+    expect(postsTo("/restore")[0]).toMatchObject({
+      includesPostgres: true,
+      includesClickhouse: false,
+    });
+  });
+
+  test("one issue reads as a sentence, several as a list", async () => {
+    preview = (): RestorePreview => {
+      return previewOf({
+        warnings: [
+          {
+            code: "older-version",
+            message: "OneUptime 14.0.80 made this backup.",
+          },
+        ],
+      });
+    };
+
+    await openRestore();
+
+    expect(screen.getByTestId("restore-backup-warnings").className).toContain(
+      "list-none",
+    );
+
+    cleanup();
+    preview = (): RestorePreview => {
+      return previewOf({
+        warnings: [
+          { code: "older-version", message: "Older." },
+          { code: "encryption-unknown", message: "Unknown secret." },
+        ],
+      });
+    };
+
+    await openRestore();
+
+    expect(screen.getByTestId("restore-backup-warnings").className).toContain(
+      "list-disc",
+    );
+    expect(
+      within(screen.getByTestId("restore-backup-warnings")).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(2);
   });
 
   test("the tools' problem keeps the server's own sentence, which names the versions", async () => {
@@ -466,9 +575,12 @@ describe("the restore dialog", () => {
     expect(
       screen.getByTestId("restore-backup-preview-error"),
     ).toHaveTextContent("Access Denied.");
-
-    await type("restore");
-    expect(submit()).toBeDisabled();
+    // Not checked, not restorable: the dialog says why, and closes.
+    expect(
+      screen.queryByTestId("delete-confirmation-type-to-confirm-input"),
+    ).toBeNull();
+    expect(screen.queryByTestId("modal-footer-submit-button")).toBeNull();
+    expect(postsTo("/restore")).toEqual([]);
   });
 
   test("a restore the server refuses says why, and the dialog stays open", async () => {
@@ -573,6 +685,10 @@ describe("the steps dialog", () => {
     expect(steps).toHaveTextContent("Failed");
     expect(steps).toHaveTextContent("Scheduled");
     expect(steps).toHaveTextContent("Took 3 minutes");
+    // When it started is its title: not said twice.
+    expect(steps).not.toHaveTextContent("Started");
+    // A column of steps, not a page-wide dialog.
+    expect(screen.getByTestId("modal").className).toContain("md:max-w-3xl");
     expect(screen.getByTestId("backup-run-location")).toHaveTextContent(
       run.location!,
     );
@@ -631,10 +747,12 @@ describe("the steps dialog", () => {
 
   test("a restore's dialog is titled with the backup it restored", async () => {
     const backupStartedAt: Date = new Date("2026-10-23T02:00:00Z");
+    const restoreStartedAt: Date = new Date("2026-10-24T09:30:00Z");
 
     await openSteps(
       backupRun(RESTORE_RUN_ID, {
         kind: BackupRunKind.Restore,
+        startedAt: restoreStartedAt,
         trigger: BackupRunTrigger.Manual,
         manifest: { startedAt: backupStartedAt.toISOString() },
         steps: [
@@ -656,6 +774,13 @@ describe("the steps dialog", () => {
       "Switch to the restored data",
     );
     expect(screen.getByRole("dialog")).toHaveTextContent("Started by hand");
+    // Its title names the backup, so when the restore itself started is said.
+    expect(screen.getByTestId("backup-run-steps")).toHaveTextContent(
+      `Started ${formatBackupDateTime(
+        restoreStartedAt,
+        getFeedClock({ language: "en" }),
+      )}`,
+    );
   });
 
   test("while the run goes on it is read again every few seconds, and shows what it read", async () => {

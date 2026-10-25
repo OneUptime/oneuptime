@@ -45,6 +45,21 @@ import React, {
 // What a master admin types to restore (the server checks it too).
 export const RESTORE_CONFIRMATION_WORD: string = "restore";
 
+/*
+ * The problems no choice of what to restore gets around: the backup is
+ * elsewhere, did not succeed, is gone or unreadable, or a newer OneUptime
+ * made it. The others (a part missing, PostgreSQL's tools or user) are
+ * about one database, and choosing the other one alone may still work.
+ */
+export const RESTORE_PROBLEMS_FOR_THE_WHOLE_BACKUP: ReadonlySet<string> =
+  new Set<string>([
+    "previous-destination",
+    "not-succeeded",
+    "manifest-missing",
+    "manifest-unreadable",
+    "newer-version",
+  ]);
+
 export interface ComponentProps {
   backup: BackupRun;
   onClose: () => void;
@@ -76,25 +91,35 @@ const IssueList: FunctionComponent<{
 }> = (props: { issues: Array<RestoreIssue>; testId: string }): ReactElement => {
   const translator: Translator = useTranslator();
 
-  return (
-    <ul className="mt-1 list-disc space-y-1 pl-5" data-testid={props.testId}>
-      {props.issues.map((issue: RestoreIssue) => {
-        const described: { text: string; detail: string | null } =
-          describeRestoreIssue({ issue, translator });
+  const items: Array<ReactElement> = props.issues.map(
+    (issue: RestoreIssue): ReactElement => {
+      const described: { text: string; detail: string | null } =
+        describeRestoreIssue({ issue, translator });
 
-        return (
-          <li key={issue.code} data-code={issue.code}>
-            <span>{described.text}</span>
-            {described.detail ? (
-              <span className="mt-0.5 block break-words opacity-80">
-                {described.detail}
-              </span>
-            ) : (
-              <></>
-            )}
-          </li>
-        );
-      })}
+      return (
+        <li key={issue.code} data-code={issue.code}>
+          <span>{described.text}</span>
+          {described.detail ? (
+            <span className="mt-0.5 block break-words opacity-80" dir="auto">
+              {described.detail}
+            </span>
+          ) : (
+            <></>
+          )}
+        </li>
+      );
+    },
+  );
+
+  // One issue is a sentence; a bullet is for telling several apart.
+  return (
+    <ul
+      className={
+        items.length > 1 ? "mt-1 list-disc space-y-1 pl-5" : "mt-1 list-none"
+      }
+      data-testid={props.testId}
+    >
+      {items}
     </ul>
   );
 };
@@ -217,8 +242,29 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
       ? formatBackupDateTime(new Date(preview.backup.startedAt), clock)
       : "";
 
-  const problems: Array<RestoreIssue> = preview?.problems || [];
-  const warnings: Array<RestoreIssue> = preview?.warnings || [];
+  // What the server found for what is chosen now: nothing chosen, nothing checked.
+  const problems: Array<RestoreIssue> = hasChoice
+    ? preview?.problems || []
+    : [];
+  const warnings: Array<RestoreIssue> = hasChoice
+    ? preview?.warnings || []
+    : [];
+  /*
+   * A backup that cannot be restored whatever is chosen - or that could not
+   * be checked at all - shows only why, and the dialog closes: nothing
+   * else in it would do anything.
+   */
+  const cannotRestoreAtAll: boolean =
+    Boolean(previewError) ||
+    problems.some((issue: RestoreIssue): boolean => {
+      return RESTORE_PROBLEMS_FOR_THE_WHOLE_BACKUP.has(issue.code);
+    });
+  /*
+   * A problem with what is chosen: the choice stays, to change it, and the
+   * rest of the dialog waits until what is chosen can be restored.
+   */
+  const isAskingToConfirm: boolean =
+    !cannotRestoreAtAll && problems.length === 0;
   const isConfirmed: boolean = isTypedNameConfirmed({
     typed,
     name: RESTORE_CONFIRMATION_WORD,
@@ -307,17 +353,24 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(BackupsCopy.restoreTitle, {
         time: backupTime,
       })}
-      description={BackupsCopy.restoreDescription}
+      // What a restore replaces, unless this one cannot happen at all.
+      description={
+        cannotRestoreAtAll ? undefined : BackupsCopy.restoreDescription
+      }
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
-      submitButtonText={BackupsCopy.restoreButton}
-      submitButtonStyleType={ButtonStyleType.DANGER}
-      disableSubmitButton={!canRestore}
+      {...(cannotRestoreAtAll
+        ? { closeButtonText: BackupsCopy.close }
+        : {
+            submitButtonText: BackupsCopy.restoreButton,
+            submitButtonStyleType: ButtonStyleType.DANGER,
+            disableSubmitButton: !canRestore,
+            onSubmit: () => {
+              void start();
+            },
+          })}
       isLoading={isStarting}
       error={error}
-      onSubmit={() => {
-        void start();
-      }}
     >
       <div className="space-y-5" data-testid="restore-backup-dialog">
         {isChecking && !preview ? (
@@ -367,105 +420,118 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div>
-          <div className="mb-2 text-sm font-medium text-gray-900">
-            {translator.translateText(BackupsCopy.restoreWhatTitle)}
-          </div>
-          <div className="space-y-2">
-            <ChoiceBox
-              testId="restore-backup-postgres"
-              title={BackupsCopy.restorePostgresTitle}
-              isChecked={includesPostgres}
-              isAvailable={backupHasPostgres}
-              onChange={setIncludesPostgres}
-              lines={postgresLines}
-            />
-            <ChoiceBox
-              testId="restore-backup-clickhouse"
-              title={BackupsCopy.restoreClickhouseTitle}
-              isChecked={includesClickhouse}
-              isAvailable={backupHasClickhouse}
-              onChange={setIncludesClickhouse}
-              lines={[
-                translator.translateTemplate(
-                  BackupsCopy.restoreClickhouseText,
-                  {
-                    size:
-                      typeof clickhouseSize === "number"
-                        ? formatBackupSize(clickhouseSize, translator.language)
-                        : "—",
-                  },
-                ),
-              ]}
-            />
-          </div>
-          {hasChoice ? (
-            <></>
-          ) : (
-            <p
-              className="mt-2 text-sm text-red-700"
-              data-testid="restore-backup-choose-something"
-            >
-              {translator.translateText(BackupsCopy.restoreChooseSomething)}
-            </p>
-          )}
-        </div>
-
-        <div
-          className="rounded-lg border border-gray-200 px-4 py-3"
-          data-testid="restore-backup-first"
-        >
-          <CheckboxElement
-            title={BackupsCopy.restoreBackupFirstTitle}
-            description={BackupsCopy.restoreBackupFirstText}
-            value={takeBackupFirst}
-            dataTestId="restore-backup-first-checkbox"
-            onChange={setTakeBackupFirst}
-          />
-          {takeBackupFirst ? (
-            <></>
-          ) : (
-            <div
-              className="mt-2 flex items-start gap-2 text-sm text-amber-700"
-              data-testid="restore-backup-without-backup"
-            >
-              <Icon
-                icon={IconProp.Alert}
-                className="mt-0.5 h-4 w-4 flex-none"
-              />
-              <span>
-                {translator.translateText(
-                  BackupsCopy.restoreWithoutBackupWarning,
-                )}
-              </span>
+        {cannotRestoreAtAll ? (
+          <></>
+        ) : (
+          <div>
+            <div className="mb-2 text-sm font-medium text-gray-900">
+              {translator.translateText(BackupsCopy.restoreWhatTitle)}
             </div>
-          )}
-        </div>
-
-        <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
-          <div className="font-medium text-gray-900">
-            {translator.translateText(BackupsCopy.restoreWhileRunningTitle)}
+            <div className="space-y-2">
+              <ChoiceBox
+                testId="restore-backup-postgres"
+                title={BackupsCopy.restorePostgresTitle}
+                isChecked={includesPostgres}
+                isAvailable={backupHasPostgres}
+                onChange={setIncludesPostgres}
+                lines={postgresLines}
+              />
+              <ChoiceBox
+                testId="restore-backup-clickhouse"
+                title={BackupsCopy.restoreClickhouseTitle}
+                isChecked={includesClickhouse}
+                isAvailable={backupHasClickhouse}
+                onChange={setIncludesClickhouse}
+                lines={[
+                  translator.translateTemplate(
+                    BackupsCopy.restoreClickhouseText,
+                    {
+                      size:
+                        typeof clickhouseSize === "number"
+                          ? formatBackupSize(
+                              clickhouseSize,
+                              translator.language,
+                            )
+                          : "—",
+                    },
+                  ),
+                ]}
+              />
+            </div>
+            {hasChoice ? (
+              <></>
+            ) : (
+              <p
+                className="mt-2 text-sm text-red-700"
+                data-testid="restore-backup-choose-something"
+              >
+                {translator.translateText(BackupsCopy.restoreChooseSomething)}
+              </p>
+            )}
           </div>
-          <p className="mt-1">
-            {translator.translateText(BackupsCopy.restoreWhileRunningText)}
-          </p>
-          {includesPostgres ? (
-            <p className="mt-1">
-              {translator.translateText(BackupsCopy.restoreSignInText)}
-            </p>
-          ) : (
-            <></>
-          )}
-        </div>
+        )}
 
-        <TypeToConfirmDelete
-          name={RESTORE_CONFIRMATION_WORD}
-          value={typed}
-          onChange={setTyped}
-          onConfirm={() => {
-            void start();
-          }}
-        />
+        {isAskingToConfirm ? (
+          <>
+            <div
+              className="rounded-lg border border-gray-200 px-4 py-3"
+              data-testid="restore-backup-first"
+            >
+              <CheckboxElement
+                title={BackupsCopy.restoreBackupFirstTitle}
+                description={BackupsCopy.restoreBackupFirstText}
+                value={takeBackupFirst}
+                dataTestId="restore-backup-first-checkbox"
+                onChange={setTakeBackupFirst}
+              />
+              {takeBackupFirst ? (
+                <></>
+              ) : (
+                <div
+                  className="mt-2 flex items-start gap-2 text-sm text-amber-700"
+                  data-testid="restore-backup-without-backup"
+                >
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="mt-0.5 h-4 w-4 flex-none"
+                  />
+                  <span>
+                    {translator.translateText(
+                      BackupsCopy.restoreWithoutBackupWarning,
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              <div className="font-medium text-gray-900">
+                {translator.translateText(BackupsCopy.restoreWhileRunningTitle)}
+              </div>
+              <p className="mt-1">
+                {translator.translateText(BackupsCopy.restoreWhileRunningText)}
+              </p>
+              {includesPostgres ? (
+                <p className="mt-1">
+                  {translator.translateText(BackupsCopy.restoreSignInText)}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
+
+            <TypeToConfirmDelete
+              name={RESTORE_CONFIRMATION_WORD}
+              value={typed}
+              onChange={setTyped}
+              onConfirm={() => {
+                void start();
+              }}
+            />
+          </>
+        ) : (
+          <></>
+        )}
       </div>
     </Modal>
   );

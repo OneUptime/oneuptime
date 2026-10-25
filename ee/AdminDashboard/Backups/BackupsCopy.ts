@@ -44,6 +44,8 @@ export const BackupsCopy: {
   statusLockedText: string;
   lastBackup: string;
   lastBackupSize: string;
+  lastGoodBackup: string;
+  noGoodBackup: string;
   nextBackup: string;
   nextBackupOff: string;
   backUpNowButton: string;
@@ -57,6 +59,7 @@ export const BackupsCopy: {
   restoring: string;
   restoringPlain: string;
   stepOf: string;
+  runningFor: string;
   cancelButton: string;
   cancelTooltip: string;
   cancelRequested: string;
@@ -71,11 +74,12 @@ export const BackupsCopy: {
   scheduleLabel: string;
   retentionLabel: string;
   contentsLabel: string;
-  contentsPostgres: string;
+  notBackedUp: string;
   sizeNow: string;
   // The schedule, in words.
   scheduleAt: string;
   scheduleWeekly: string;
+  scheduleOff: string;
   // The backups table.
   backupsTitle: string;
   backupsDescription: string;
@@ -225,6 +229,9 @@ export const BackupsCopy: {
   ),
   lastBackup: translationKey("Last backup {{time}}"),
   lastBackupSize: translationKey("{{size}} in {{duration}}"),
+  // Beside a failed last backup: the newest one there is to go back to.
+  lastGoodBackup: translationKey("Last good backup {{time}}"),
+  noGoodBackup: translationKey("No backup to restore yet"),
   nextBackup: translationKey("Next backup {{time}}"),
   nextBackupOff: translationKey("Nothing runs until they are turned on again."),
   backUpNowButton: translationKey("Back up now"),
@@ -240,6 +247,8 @@ export const BackupsCopy: {
   restoring: translationKey("Restoring the backup of {{time}}"),
   restoringPlain: translationKey("Restoring a backup"),
   stepOf: translationKey("Step {{number}} of {{total}}: {{step}}"),
+  // How long a backup or restore has been going: a stuck one shows.
+  runningFor: translationKey("Running for {{duration}}"),
   cancelButton: translationKey("Cancel"),
   cancelTooltip: translationKey(
     "Stop it. Nothing it wrote is kept, and nothing is changed.",
@@ -259,10 +268,13 @@ export const BackupsCopy: {
   scheduleLabel: translationKey("Schedule"),
   retentionLabel: translationKey("Kept for"),
   contentsLabel: translationKey("Backed up"),
-  contentsPostgres: translationKey("PostgreSQL only"),
+  // ClickHouse, when the settings leave it out.
+  notBackedUp: translationKey("Not backed up"),
   sizeNow: translationKey("{{size}} now"),
   scheduleAt: translationKey("{{frequency}} at {{time}} UTC"),
   scheduleWeekly: translationKey("Every {{day}} at {{time}} UTC"),
+  // Beside the schedule while scheduled backups are turned off.
+  scheduleOff: translationKey("Off"),
   backupsTitle: translationKey("Backups"),
   backupsDescription: translationKey(
     "Every backup at the destination, newest first. Restore one to go back to it.",
@@ -435,8 +447,9 @@ export const BackupsCopy: {
   close: translationKey("Close"),
   databasePostgres: translationKey("PostgreSQL"),
   databaseClickhouse: translationKey("ClickHouse"),
-  databasePostgresHint: translationKey("Configuration"),
-  databaseClickhouseHint: translationKey("Telemetry"),
+  // What each database holds, as the restore dialog names it.
+  databasePostgresHint: translationKey("projects, monitors, incidents, users"),
+  databaseClickhouseHint: translationKey("logs, traces, metrics"),
 };
 
 // What a run's status reads as, and what it means.
@@ -575,8 +588,8 @@ export const BACKUP_PLURALS: {
     other: "Found {{count}} backups at the destination.",
   },
   added: {
-    one: "{{count}} was new to this list.",
-    other: "{{count}} were new to this list.",
+    one: "Added {{count}} to the list.",
+    other: "Added {{count}} to the list.",
   },
 };
 

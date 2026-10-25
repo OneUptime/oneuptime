@@ -15,6 +15,19 @@ export interface ComponentProps {
   mode: EnterpriseLicenseMode;
 }
 
+/*
+ * Whether the notice says new backups are paused (no valid license, or one
+ * without backups): the status card below then leaves that out.
+ */
+export function isBackupsPausedNoticeShown(
+  mode: EnterpriseLicenseMode,
+): boolean {
+  return (
+    mode === EnterpriseLicenseMode.ReadOnly ||
+    mode === EnterpriseLicenseMode.NotIncluded
+  );
+}
+
 const BackupsLicenseNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
