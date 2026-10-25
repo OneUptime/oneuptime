@@ -27,6 +27,10 @@ import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/Threa
 import OneUptimeDate from "../../../../../Types/Date";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import {
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+  SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+} from "../../../../../Types/SecurityCase/SecurityConnection";
 import NormalizedSecurityEvent from "../../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityLogFormat from "../../../../../Types/SecurityEvent/SecurityLogFormat";
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
@@ -53,6 +57,9 @@ interface StoredLog {
   arrivedAt: Date;
   body: string;
   attributes?: JSONObject | undefined;
+  // The record the log was sent under.
+  primaryEntityId?: string | undefined;
+  primaryEntityType?: string | undefined;
 }
 
 function toClickhouse(date: Date): string {
@@ -129,6 +136,8 @@ function install(stored: Array<StoredLog>): Installed {
               createdAt: toClickhouse(log.arrivedAt),
               attributes: log.attributes || { "host.name": "web-03" },
               body: log.body,
+              primaryEntityId: log.primaryEntityId,
+              primaryEntityType: log.primaryEntityType,
             };
           });
       },
@@ -541,6 +550,34 @@ describe("SecurityLogScanner.scanSource", () => {
     expect((row["attributes"] as JSONObject)["oneuptime.log.id"]).toBe(
       stored[0]!.id,
     );
+  });
+
+  test("an event names the record its log was sent under, so Security Events connects it to that host exactly", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const hostId: string = "0192f1a0-0000-7000-8000-0000000000aa";
+    const stored: Array<StoredLog> = logs(
+      2,
+      startAt,
+      30,
+      SSH_LINES.failedPasswordRoot,
+    );
+    stored[0]!.primaryEntityId = hostId;
+    stored[0]!.primaryEntityType = ServiceType.Host;
+    const installed: Installed = install(stored);
+
+    await SecurityLogScanner.scanSource(source(startAt.toISOString()));
+
+    const first: JSONObject = installed.inserted[0]![
+      "attributes"
+    ] as JSONObject;
+    const second: JSONObject = installed.inserted[1]![
+      "attributes"
+    ] as JSONObject;
+
+    expect(first[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]).toBe(hostId);
+    expect(first[SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]).toBe(ServiceType.Host);
+    // A log that names no record connects its event to none.
+    expect(second[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]).toBeUndefined();
   });
 
   test("a store that fails leaves the cursor where it was", async () => {
