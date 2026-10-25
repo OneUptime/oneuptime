@@ -84,8 +84,10 @@ const OFF_FOR_NEW_PROJECTS: Array<string> = [...FIX_SWITCHES];
  * AI -> Settings) starts on as well: its fix is a pull request, which
  * changes no infrastructure and is never merged - the rule "turned on by
  * default" (Types/AI/TelemetryAi). So does finding and fixing slow and
- * failing operations (Traces -> AI -> Settings), and improving metrics and
- * adding missing ones (Metrics -> AI -> Settings), for the same reason.
+ * failing operations (Traces -> AI -> Settings), for the same reason,
+ * finding and fixing new and rising exceptions (Exceptions -> AI ->
+ * Settings), and improving metrics and adding missing ones (Metrics ->
+ * AI -> Settings).
  */
 const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
@@ -96,6 +98,7 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableInsightFixTasks",
   "enableAutomaticProfileRemediation",
   "enableAutomaticTraceRemediation",
+  "enableAutomaticExceptionRemediation",
   "enableAutomaticMetricRemediation",
   "autoArchiveNonActionableExceptions",
 ];

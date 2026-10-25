@@ -6,6 +6,7 @@ import TraceLatencyRegressionDetector from "./TraceLatencyRegressionDetector";
 import MetricDriftDetector from "./MetricDriftDetector";
 import DeployRegressionDetector from "./DeployRegressionDetector";
 import ProfileHotspotDetector from "./ProfileHotspotDetector";
+import ExceptionMissingStackTraceDetector from "./ExceptionMissingStackTraceDetector";
 import {
   TraceFailingOperationDetector,
   TraceMissingTracingDetector,
@@ -45,7 +46,10 @@ export default class InsightDetectors {
    * "Watch telemetry for problems" - and file what the lane's AI rules then
    * decide about. Profiles: slow code. Traces: slow operations, failing
    * operations and missing tracing - one detector each, sharing one look at
-   * the project's traces (TraceProblemDetector). Metrics: high
+   * the project's traces (TraceProblemDetector). Exceptions: new and rising
+   * exceptions - AI Insights' own two detectors, which the scanner runs
+   * once a look when both are on (InsightScanner.getDetectorsForProject) -
+   * and the services whose exceptions carry no stack trace. Metrics: high
    * cardinality, histogram buckets that do not fit and missing metrics -
    * one detector each, sharing one look at the project's metrics
    * (MetricProblemDetector).
@@ -61,6 +65,12 @@ export default class InsightDetectors {
           new TraceFailingOperationDetector(),
           new TraceSlowOperationDetector(),
           new TraceMissingTracingDetector(),
+        ];
+      case TelemetryAiLane.Exception:
+        return [
+          new NewExceptionDetector(),
+          new ExceptionSpikeDetector(),
+          new ExceptionMissingStackTraceDetector(),
         ];
       case TelemetryAiLane.Metric:
         return [

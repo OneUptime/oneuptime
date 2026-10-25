@@ -147,7 +147,7 @@ describe("isAiRuleTriggerEntity", () => {
 describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
-      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Metric.";
+      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Metric.";
 
     expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
       expected,
@@ -376,7 +376,7 @@ describe("getAiRuleCriteriaProblem", () => {
         criteria: { filters: [{ field: "services" }] },
       }),
     ).toBe(
-      "Services can only be used by profile AI rules or trace AI rules or metric AI rules.",
+      "Services can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
     );
     expect(
       getAiRuleCriteriaProblem({
@@ -384,7 +384,7 @@ describe("getAiRuleCriteriaProblem", () => {
         values: { serviceLabels: [{ _id: "x" }] },
       }),
     ).toBe(
-      "Service Labels can only be used by profile AI rules or trace AI rules or metric AI rules.",
+      "Service Labels can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
     );
     expect(
       getAiRuleCriteriaProblem({
@@ -392,7 +392,7 @@ describe("getAiRuleCriteriaProblem", () => {
         values: { serviceNamePattern: "checkout" },
       }),
     ).toBe(
-      "Service Name Pattern can only be used by profile AI rules or trace AI rules or metric AI rules.",
+      "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
     );
   });
 
@@ -504,6 +504,54 @@ describe("getAiRuleCriteriaProblem", () => {
         criteria: {
           filters: [null, { field: 3 }, { field: "incidentSeverities" }],
         },
+      }),
+    ).toBe("Incident Severities can only be used by incident AI rules.");
+  });
+});
+
+/*
+ * An exception AI rule (Exceptions' AI section) matches on the service the
+ * exception was raised in, as a profile or trace rule does - and on nothing
+ * of an incident's or an alert's.
+ */
+describe("exception AI rules", () => {
+  const Exception: AutoRemediationTriggerEntity =
+    AutoRemediationTriggerEntity.Exception;
+
+  test("match on the service, as a profile rule does", () => {
+    expect(AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Exception]).toEqual(
+      AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Profile],
+    );
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Exception,
+        criteria: {
+          filters: [
+            { field: "services" },
+            { field: "serviceLabels" },
+            { field: "serviceNamePattern" },
+          ],
+        },
+        values: {
+          services: ["a"],
+          serviceLabels: ["b"],
+          serviceNamePattern: "^checkout",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  test("may not match on an incident's or an alert's criteria", () => {
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Exception,
+        criteria: { filters: [{ field: "monitors" }] },
+      }),
+    ).toBe("Monitors can only be used by incident AI rules or alert AI rules.");
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Exception,
+        values: { incidentSeverities: ["x"] },
       }),
     ).toBe("Incident Severities can only be used by incident AI rules.");
   });

@@ -29,6 +29,7 @@ import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../../Types/AI/AIInsightType";
 import { PROFILE_INSIGHT_FINGERPRINT_PREFIX } from "../../../../Utils/Profiles/ProfileInsight";
 import { isTraceInsightFingerprintOfService } from "../../../../Utils/Traces/TraceInsight";
+import { isExceptionStackTraceFingerprintOfService } from "../../../../Utils/Exceptions/ExceptionInsight";
 import { isMetricInsightFingerprintOfService } from "../../../../Utils/Metrics/MetricInsight";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
@@ -242,8 +243,8 @@ function toAlertSubject(alert: Alert): AiActivitySubjectInput {
  * the detectors embed the entity a finding is about in its fingerprint
  * (ErrorLogSpikeDetector, MetricDriftDetector, TraceLatencyRegressionDetector,
  * DeployRegressionDetector, ProfileHotspotDetector, TraceProblemDetector,
- * MetricProblemDetector), and an exception finding's exception belongs to it
- * (exceptionOwners).
+ * ExceptionMissingStackTraceDetector, MetricProblemDetector), and an
+ * exception finding's exception belongs to it (exceptionOwners).
  */
 export function isPreventiveInsightAboutScope(data: {
   insight: Pick<
@@ -278,6 +279,9 @@ export function isPreventiveInsightAboutScope(data: {
     case AIInsightType.TraceFailingOperation:
     case AIInsightType.TraceMissingTracing:
       return isTraceInsightFingerprintOfService(fingerprint, scopeId);
+    // A service's exceptions with no stack trace: one finding per service.
+    case AIInsightType.ExceptionMissingStackTrace:
+      return isExceptionStackTraceFingerprintOfService(fingerprint, scopeId);
     // A service's metrics: Utils/Metrics/MetricInsight's fingerprints.
     case AIInsightType.MetricHighCardinality:
     case AIInsightType.MetricHistogramBuckets:

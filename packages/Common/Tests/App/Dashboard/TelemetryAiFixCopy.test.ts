@@ -10,6 +10,7 @@ import {
   TELEMETRY_AI_FIX_LANES,
   TELEMETRY_AI_FIX_LEAD,
   TELEMETRY_AI_FIX_LEADS,
+  TELEMETRY_AI_FIX_LEADS_BY_RECIPE,
   TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   doesInsightOfferTelemetryAiFix,
   getTelemetryAiFixLead,
@@ -17,6 +18,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
+import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import {
   TELEMETRY_AI_LANES,
   TelemetryAiLane,
@@ -33,14 +35,16 @@ import ObjectID from "../../../Types/ObjectID";
 const LINE_LIMIT: number = 150;
 
 describe("which findings draw Fix with AI", () => {
-  test("Traces' and Metrics' kinds, while open and with no fix linked", () => {
+  test("Traces', Exceptions' and Metrics' kinds, while open and with no fix linked", () => {
     expect(TELEMETRY_AI_FIX_LANES).toEqual([
       TelemetryAiLane.Trace,
+      TelemetryAiLane.Exception,
       TelemetryAiLane.Metric,
     ]);
 
     for (const insightType of [
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Exception].insightTypes,
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
     ]) {
       for (const status of [
@@ -78,7 +82,7 @@ describe("which findings draw Fix with AI", () => {
     for (const insightType of [
       AIInsightType.ProfileHotspot,
       AIInsightType.TraceLatencyRegression,
-      AIInsightType.NewException,
+      AIInsightType.ErrorLogSpike,
       // AI Insights' week-over-week drift is a heads-up, never a fix.
       AIInsightType.MetricDrift,
       "Unknown",
@@ -107,6 +111,27 @@ describe("what Fix with AI says", () => {
     }
 
     expect(getTelemetryAiFixLead("Unknown")).toBe(TELEMETRY_AI_FIX_LEAD);
+  });
+
+  test("each of Exceptions' kinds has its own line too: a fix, or stack traces recorded", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Exception]
+      .insightTypes) {
+      const lead: string | undefined = TELEMETRY_AI_FIX_LEADS[insightType];
+
+      expect(lead).toBeTruthy();
+      expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(lead).toContain("pull request");
+      expect(getTelemetryAiFixLead(insightType)).toBe(lead);
+    }
+
+    expect(getTelemetryAiFixLead(AIInsightType.NewException)).toBe(
+      "OneUptime AI opens a pull request that fixes this exception, for you to review.",
+    );
+    expect(
+      getTelemetryAiFixLead(AIInsightType.ExceptionMissingStackTrace),
+    ).toBe(
+      "OneUptime AI opens a pull request that makes this service record stack traces, for you to review.",
+    );
   });
 
   test("each of Metrics' kinds says what its pull request does, short enough for two lines", () => {
@@ -210,6 +235,44 @@ describe("what Fix with AI says", () => {
         }),
       ).toBeUndefined();
     }
+  });
+
+  test("an expected error says it is handled better, not fixed - whatever its kind", () => {
+    const lead: string | undefined =
+      TELEMETRY_AI_FIX_LEADS_BY_RECIPE[
+        CodeFixTaskType.ImproveExceptionHandling
+      ];
+
+    expect(lead).toBe(
+      "OneUptime AI opens a pull request that improves how your code handles this expected error, for you to review.",
+    );
+    expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+
+    for (const insightType of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(
+          insightType,
+          CodeFixTaskType.ImproveExceptionHandling,
+        ),
+      ).toBe(lead);
+      // A fix, or a recipe with no line of its own: the kind's line.
+      expect(
+        getTelemetryAiFixLead(insightType, CodeFixTaskType.FixException),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[insightType]);
+      expect(getTelemetryAiFixLead(insightType, undefined)).toBe(
+        TELEMETRY_AI_FIX_LEADS[insightType],
+      );
+    }
+
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.ExceptionMissingStackTrace,
+        CodeFixTaskType.CodeRequest,
+      ),
+    ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.ExceptionMissingStackTrace]);
   });
 
   test("the button and the rest read as the Profiler's own", () => {

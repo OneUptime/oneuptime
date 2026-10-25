@@ -633,6 +633,69 @@ describe("AI insight detail — Create Monitor on Traces' findings", () => {
   });
 });
 
+/*
+ * Exceptions' findings (Exceptions → AI): a new or rising exception keeps
+ * Create Monitor - an Exceptions monitor counts it - while a service's
+ * exceptions with no stack trace draw none: what an exception lacks is not
+ * a count a monitor can watch.
+ */
+describe("AI insight detail — Create Monitor on Exceptions' findings", () => {
+  const MISSING_STACK_TRACES: AIInsight = buildInsight({
+    insightType: AIInsightType.ExceptionMissingStackTrace,
+    title: "Exceptions in checkout have no stack trace",
+    serviceName: "checkout",
+    telemetryServiceId: SERVICE_ID,
+    evidence: {
+      exceptionStackTrace: {
+        serviceId: SERVICE_ID,
+        windowStartTime: "2026-10-23T09:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        exceptions: [],
+        exceptionCount: 2,
+        occurrenceCount: 120,
+        withStackTraceCount: 0,
+      },
+    },
+  });
+
+  beforeEach(() => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ProjectAdmin];
+    metricShapeRows = [];
+    analyticsListRequests = [];
+    PermissionGate.clearPermissionPropsCache();
+    window.localStorage.clear();
+
+    navigateMock = jest.fn() as jest.Mock<any, any>;
+    getJestSpyOn(Navigation, "navigate").mockImplementation(
+      (...args: Array<unknown>): void => {
+        navigateMock(...args);
+      },
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("missing stack traces draw no Create Monitor at all, and keep every other action", async () => {
+    await renderInsight(MISSING_STACK_TRACES);
+
+    expect(createMonitorButton()).toBeNull();
+
+    for (const name of ["Confirm", "Dismiss", "Resolve"]) {
+      expect(screen.getByRole("button", { name: name })).toBeEnabled();
+    }
+  });
+
+  test("a new exception keeps it", async () => {
+    await renderInsight(NEW_EXCEPTION);
+
+    expect(createMonitorButton()).toBeEnabled();
+  });
+});
+
 // Metrics' three kinds of finding (Metrics → AI): one of each.
 function metricInsight(
   insightType: AIInsightType,

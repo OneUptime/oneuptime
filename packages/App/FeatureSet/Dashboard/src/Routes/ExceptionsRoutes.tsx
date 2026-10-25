@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import ExceptionsLayout from "../Pages/Exceptions/Layout";
 import ExceptionViewLayout from "../Pages/Exceptions/View/Layout";
+import ExceptionsAILayout from "../Pages/Exceptions/AI/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { ExceptionsRoutePath, RouteUtil } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -15,6 +16,10 @@ import ExceptionsArchived from "../Pages/Exceptions/Archived";
 import ExceptionsDocumentationPage from "../Pages/Exceptions/Documentation";
 import ExceptionView from "../Pages/Exceptions/View/Index";
 import ExceptionDetailSection from "../Components/Exceptions/ExceptionDetailSection";
+import ExceptionsAIInsightsPage from "../Pages/Exceptions/AI/Insights";
+import ExceptionsAIInsightViewPage from "../Pages/Exceptions/AI/InsightView";
+import ExceptionsAILogsPage from "../Pages/Exceptions/AI/Logs";
+import ExceptionsAISettingsPage from "../Pages/Exceptions/AI/Settings";
 
 const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -80,6 +85,48 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {/* The AI section: what OneUptime found, what it did, its settings. */}
+        <PageRoute element={<ExceptionsAILayout />}>
+          <PageRoute
+            path={ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_INSIGHTS] || ""}
+            element={
+              <ExceptionsAIInsightsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.EXCEPTIONS_AI_INSIGHTS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_INSIGHT_VIEW] || ""}
+            element={
+              <ExceptionsAIInsightViewPage
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.EXCEPTIONS_AI_INSIGHT_VIEW] as Route
+                }
+              />
+            }
+          />
+          <PageRoute
+            path={ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_LOGS] || ""}
+            element={
+              <ExceptionsAILogsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.EXCEPTIONS_AI_LOGS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_SETTINGS] || ""}
+            element={
+              <ExceptionsAISettingsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.EXCEPTIONS_AI_SETTINGS] as Route}
+              />
+            }
+          />
+        </PageRoute>
       </PageRoute>
 
       {/* Exception View - separate from main layout */}

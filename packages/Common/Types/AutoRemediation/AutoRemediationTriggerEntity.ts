@@ -27,6 +27,14 @@ enum AutoRemediationTriggerEntity {
    */
   Trace = "Trace",
   /*
+   * The new and rising exceptions OneUptime found in a service, and the
+   * services whose exceptions carry no stack trace (Exceptions → AI): the
+   * rule says which services' exceptions OneUptime AI looks into, and
+   * whether it opens a pull request that fixes the code, improves how the
+   * code handles an expected error, or makes it record stack traces.
+   */
+  Exception = "Exception",
+  /*
    * The problems OneUptime found in a service's metrics, and the metrics a
    * busy service does not send at all (Metrics → AI): the rule says which
    * services' problems OneUptime AI looks into, and whether it opens a

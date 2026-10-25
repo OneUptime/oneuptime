@@ -520,7 +520,14 @@ jobs:
           # locally, Chromium only) moved here from group 7 on 2026-10-23,
           # when the Custom Roles specs for API keys would have taken that
           # group past 22: this group had taken 18.9 to 19.4, so about 21.5
-          # for the eight.
+          # for the eight. Exceptions AI (2.4 minutes locally with its bundle,
+          # Chromium only: Exceptions' AI tab - Insights, a finding's evidence
+          # with the frames of your own code, Fix with AI saying which pull
+          # request it opens, View Exception Group, Open in Exceptions and
+          # Create Monitor, Logs and Settings - at 1280 and 390 pixels, light
+          # and dark) joined them on 2026-10-24, when this group's run step
+          # took 16.7 and 17.1 minutes on master's two runs that day, the most
+          # steady of the lightest: about 19.5.
           - group: 9
             browsers: chromium
             suites: >-
@@ -532,6 +539,7 @@ jobs:
               test-postmortems-ui
               test-acknowledgement-timeout-ui
               test-archivable-values-ui
+              test-exceptions-ai-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -741,6 +749,8 @@ jobs:
             output/playwright/profiles-ui/test-results
             output/playwright/traces-ai-ui/*.png
             output/playwright/traces-ai-ui/test-results
+            output/playwright/exceptions-ai-ui/*.png
+            output/playwright/exceptions-ai-ui/test-results
             output/playwright/metrics-ai-ui/*.png
             output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png

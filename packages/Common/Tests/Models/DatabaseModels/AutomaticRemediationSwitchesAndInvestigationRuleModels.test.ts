@@ -358,14 +358,15 @@ describe("the AI rule", () => {
     ]);
     /*
      * Incidents and alerts, the slow code a service's profiles show, the
-     * slow and failing operations its traces show, and the problems its
-     * metrics show.
+     * slow and failing operations its traces show, its new and rising
+     * exceptions, and the problems its metrics show.
      */
     expect(Object.values(AutoRemediationTriggerEntity)).toEqual([
       "Incident",
       "Alert",
       "Profile",
       "Trace",
+      "Exception",
       "Metric",
     ]);
   });

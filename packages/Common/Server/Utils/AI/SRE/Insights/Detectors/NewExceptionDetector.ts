@@ -18,6 +18,8 @@ import {
   buildExceptionFailureModeKey,
   buildExceptionLabel,
 } from "./ExceptionIdentity";
+import ExceptionOwnCode, { ExceptionOwnCodeReading } from "./ExceptionOwnCode";
+import { buildNewExceptionDetail } from "../../../../../../Utils/Exceptions/ExceptionInsight";
 import {
   InsightCandidate,
   InsightDetector,
@@ -43,6 +45,12 @@ import {
  * bucketed on the (entity, type, normalized message) failure mode, counts are
  * summed across the member groups, and the insight is fingerprinted on that
  * bucket — see ExceptionIdentity.
+ *
+ * A finding also says where in the application's own code the exception
+ * was raised - the innermost frames of its stack trace that are not a
+ * library's or the runtime's (ExceptionOwnCode) - for the Exceptions
+ * product's AI section, whose automatic pull request needs one
+ * (Utils/Exceptions/ExceptionInsight). AI Insights files it the same.
  */
 
 /*
@@ -220,20 +228,55 @@ export default class NewExceptionDetector implements InsightDetector {
     const failureModes: Array<NewExceptionFailureMode> =
       NewExceptionDetector.bucketIntoFailureModes(exceptions);
 
+    /*
+     * The failure modes this tick files: the qualifying ones, loudest first
+     * (the list is sorted by the summed count the decision reads, so they
+     * lead it), up to the candidate cap.
+     */
+    const qualifying: Array<NewExceptionFailureMode> = failureModes.filter(
+      (failureMode: NewExceptionFailureMode): boolean => {
+        return NewExceptionDetector.evaluateNewException(
+          failureMode.totalOccurrenceCount,
+        ).qualifies;
+      },
+    );
+    const emitted: Array<NewExceptionFailureMode> = qualifying.slice(
+      0,
+      NEW_EXCEPTION_CANDIDATE_LIMIT,
+    );
+
+    // No silent caps — say what this tick left on the floor.
+    if (qualifying.length > emitted.length) {
+      logger.debug(
+        `AI Insights: NewException capped at ${NEW_EXCEPTION_CANDIDATE_LIMIT} candidates for project ${context.projectId.toString()} — ${
+          qualifying.length - emitted.length
+        } further failure mode(s) this tick were not emitted. They re-surface on later ticks while their exceptions stay inside the ${NEW_EXCEPTION_LOOKBACK_HOURS}h window.`,
+      );
+    }
+
+    // Where each one's code is: one read of their stack traces.
+    const ownCode: Map<string, ExceptionOwnCodeReading> =
+      emitted.length > 0
+        ? await ExceptionOwnCode.readMany({
+            projectId: context.projectId,
+            telemetryExceptionIds: emitted.map(
+              (failureMode: NewExceptionFailureMode): ObjectID => {
+                return failureMode.representativeExceptionId;
+              },
+            ),
+          })
+        : new Map<string, ExceptionOwnCodeReading>();
+
     const candidates: Array<InsightCandidate> = [];
 
     // Service names are resolved once per entity, not once per group.
     const serviceNameCache: Map<string, string | null> = new Map();
 
-    for (const failureMode of failureModes) {
+    for (const failureMode of emitted) {
       const decision: NewExceptionDecision =
         NewExceptionDetector.evaluateNewException(
           failureMode.totalOccurrenceCount,
         );
-
-      if (!decision.qualifies) {
-        continue;
-      }
 
       const serviceName: string | null = await this.resolveServiceName(
         failureMode.representative.primaryEntityId,
@@ -249,26 +292,9 @@ export default class NewExceptionDetector implements InsightDetector {
         ? failureMode.firstSeenAt.toISOString()
         : undefined;
 
-      const detailLines: Array<string> = [
-        "**New exception detected**",
-        "",
-        `- Exception: \`${label}\``,
-      ];
-      if (failureMode.safeMessage) {
-        detailLines.push(`- Message: ${failureMode.safeMessage}`);
-      }
-      if (serviceName) {
-        detailLines.push(`- Service: ${serviceName}`);
-      }
-      detailLines.push(
-        `- First seen: ${firstSeenAtIso || "unknown"} (within the last ${NEW_EXCEPTION_LOOKBACK_HOURS}h)`,
-        `- Occurrences so far: ${failureMode.totalOccurrenceCount}`,
+      const code: ExceptionOwnCodeReading | undefined = ownCode.get(
+        failureMode.representativeExceptionId.toString(),
       );
-      if (failureMode.groupCount > 1) {
-        detailLines.push(
-          `- Raised from ${failureMode.groupCount} distinct stack traces (same exception type and message — counted together as one failure mode)`,
-        );
-      }
 
       candidates.push({
         insightType: AIInsightType.NewException,
@@ -276,7 +302,17 @@ export default class NewExceptionDetector implements InsightDetector {
           failureMode.failureModeKey,
         ),
         title: `New exception: ${label}${serviceName ? ` in ${serviceName}` : ""}`,
-        detailMarkdown: detailLines.join("\n"),
+        detailMarkdown: buildNewExceptionDetail({
+          label,
+          message: failureMode.safeMessage,
+          serviceName,
+          firstSeenAt: firstSeenAtIso,
+          lookbackHours: NEW_EXCEPTION_LOOKBACK_HOURS,
+          totalOccurrenceCount: failureMode.totalOccurrenceCount,
+          groupCount: failureMode.groupCount,
+          stackFrameCount: code?.stackFrameCount,
+          ownCodeFrames: code?.ownCodeFrames,
+        }),
         severity: decision.severity,
         serviceName: serviceName || undefined,
         telemetryServiceId: serviceName
@@ -290,21 +326,21 @@ export default class NewExceptionDetector implements InsightDetector {
             totalOccurrenceCount: failureMode.totalOccurrenceCount,
             distinctExceptionGroupCount: failureMode.groupCount,
             firstSeenAt: firstSeenAtIso,
+            ...(serviceName && failureMode.representative.primaryEntityId
+              ? {
+                  serviceId:
+                    failureMode.representative.primaryEntityId.toString(),
+                }
+              : {}),
+            ...(code
+              ? {
+                  stackFrameCount: code.stackFrameCount,
+                  ownCodeFrames: code.ownCodeFrames,
+                }
+              : {}),
           },
         },
       });
-
-      if (candidates.length >= NEW_EXCEPTION_CANDIDATE_LIMIT) {
-        // No silent caps — say what this tick left on the floor.
-        if (failureModes.length > candidates.length) {
-          logger.debug(
-            `AI Insights: NewException capped at ${NEW_EXCEPTION_CANDIDATE_LIMIT} candidates for project ${context.projectId.toString()} — ${
-              failureModes.length - candidates.length
-            } further failure mode(s) this tick were not emitted. They re-surface on later ticks while their exceptions stay inside the ${NEW_EXCEPTION_LOOKBACK_HOURS}h window.`,
-          );
-        }
-        break;
-      }
     }
 
     return candidates;

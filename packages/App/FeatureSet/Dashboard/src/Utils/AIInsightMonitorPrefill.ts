@@ -78,6 +78,11 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *   TraceMissingTracing -> no Create Monitor at all (isAIInsightMonitorOffered):
  *                     what a trace lacks is not a count a monitor can watch,
  *                     so no button that could never be pressed is drawn.
+ *   ExceptionMissingStackTrace -> no Create Monitor either, for the same
+ *                     reason: an exception without a stack trace is still
+ *                     an exception, watched by an Exceptions monitor on
+ *                     the exceptions themselves; what it lacks is not a
+ *                     count.
  *   MetricHighCardinality / MetricHistogramBuckets / MetricMissingMetrics ->
  *                     no Create Monitor either: how many values a metric
  *                     records, whether a histogram's buckets fit its values
@@ -460,11 +465,13 @@ function getMetricDriftDirection(
 }
 
 /*
- * The kinds of insight no monitor could ever watch: what a trace lacks, and
- * Metrics' findings - facts about the code, not numbers that go up and down.
+ * The kinds of insight no monitor could ever watch: what a trace or an
+ * exception lacks, and Metrics' findings - facts about the code, not
+ * numbers that go up and down.
  */
 const AI_INSIGHT_TYPES_WITHOUT_MONITOR: ReadonlyArray<string> = [
   AIInsightType.TraceMissingTracing,
+  AIInsightType.ExceptionMissingStackTrace,
   AIInsightType.MetricHighCardinality,
   AIInsightType.MetricHistogramBuckets,
   AIInsightType.MetricMissingMetrics,
@@ -472,9 +479,10 @@ const AI_INSIGHT_TYPES_WITHOUT_MONITOR: ReadonlyArray<string> = [
 
 /*
  * Whether Create Monitor is offered on this kind of insight at all. Missing
- * tracing is not: what a trace lacks is not a count a monitor can watch, so
- * a greyed-out button that could never be pressed would only be clutter -
- * nor are Metrics' findings, whose fix is the pull request.
+ * tracing and missing stack traces are not: what a trace or an exception
+ * lacks is not a count a monitor can watch, so a greyed-out button that
+ * could never be pressed would only be clutter - nor are Metrics'
+ * findings, whose fix is the pull request.
  */
 export function isAIInsightMonitorOffered(
   insightType: string | undefined,

@@ -288,7 +288,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Trigger Entity Type",
     description:
-      "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Metric, the problems OneUptime finds in a service's metrics.",
+      "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Exception, the new and rising exceptions OneUptime finds in a service, or Metric, the problems OneUptime finds in a service's metrics.",
   })
   @Column({
     nullable: false,
@@ -1004,7 +1004,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Service,
     title: "Services",
     description:
-      "Profile, Trace and Metric AI rules only: match what OneUptime found in one of these services. Leave empty to match any service.",
+      "Profile, Trace, Exception and Metric AI rules only: match what OneUptime found in one of these services. Leave empty to match any service.",
   })
   @ManyToMany(
     () => {
@@ -1050,7 +1050,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Label,
     title: "Service Labels",
     description:
-      "Profile, Trace and Metric AI rules only: match what OneUptime found in a service that carries at least one of these labels. Leave empty to match any label.",
+      "Profile, Trace, Exception and Metric AI rules only: match what OneUptime found in a service that carries at least one of these labels. Leave empty to match any label.",
   })
   @ManyToMany(
     () => {
@@ -1095,7 +1095,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Service Name Pattern",
     description:
-      "Profile, Trace and Metric AI rules only: case-insensitive regex matched against the name of the service OneUptime found the problem in. Leave empty to match any name.",
+      "Profile, Trace, Exception and Metric AI rules only: case-insensitive regex matched against the name of the service OneUptime found the problem in. Leave empty to match any name.",
   })
   @Column({
     type: ColumnType.LongText,

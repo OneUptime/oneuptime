@@ -891,6 +891,11 @@ export enum ProjectAiNoticeContext {
    */
   Traces = "Traces",
   /*
+   * Exceptions → AI → Settings: new and rising exceptions OneUptime finds,
+   * still found with AI off.
+   */
+  Exceptions = "Exceptions",
+  /*
    * Metrics → AI → Settings: problems OneUptime finds in metrics, and the
    * metrics busy services do not send, still found with AI off.
    */
@@ -1099,6 +1104,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, slow and failing operations are still found, but none are looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Exceptions]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. New and rising exceptions are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, new and rising exceptions are still found, but none are looked into or fixed.",
     ),
   },
   [ProjectAiNoticeContext.Metrics]: {

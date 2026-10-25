@@ -663,9 +663,11 @@ describe("getAIInsightMonitorBlocker", () => {
     );
   });
 
-  test("missing tracing and Metrics' findings are not offered at all; every other kind is", () => {
+  test("missing tracing, missing stack traces and Metrics' findings are not offered at all; every other kind is", () => {
     const notOffered: Array<AIInsightType> = [
       AIInsightType.TraceMissingTracing,
+      // What an exception lacks is not a count either.
+      AIInsightType.ExceptionMissingStackTrace,
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
