@@ -105,7 +105,9 @@ describe("the kinds and reasons", () => {
     ];
 
     expect(new Set(all).size).toBe(all.length);
-    expect(new Set(all)).toEqual(new Set(Object.values(SecurityConnectionReason)));
+    expect(new Set(all)).toEqual(
+      new Set(Object.values(SecurityConnectionReason)),
+    );
   });
 });
 
@@ -141,9 +143,12 @@ describe("isHostNameLike", () => {
     "10.0.0.5",
     "2001:db8::7",
     "a".repeat(MAX_HOST_NAME_LENGTH + 1),
-  ])("%s is no machine's name, and is never looked up as one", (value: string) => {
-    expect(isHostNameLike(value)).toBe(false);
-  });
+  ])(
+    "%s is no machine's name, and is never looked up as one",
+    (value: string) => {
+      expect(isHostNameLike(value)).toBe(false);
+    },
+  );
 });
 
 describe("getShortHostName", () => {
@@ -407,7 +412,11 @@ describe("getSecurityConnectionLookups: what each entity is looked up as", () =>
     getSecurityConnectionLookups(entities);
 
   test("names: hosts, domains and untyped values shaped like a name, folded, each once", () => {
-    expect(lookups.hostNames).toEqual(["web-1", "db-1.acme.internal", "prod-eu"]);
+    expect(lookups.hostNames).toEqual([
+      "web-1",
+      "db-1.acme.internal",
+      "prod-eu",
+    ]);
     expect(lookups.hostNameEntities.get("web-1")).toEqual({
       type: SecurityEntityType.Host,
       value: "WEB-1",
@@ -461,9 +470,9 @@ describe("getSecurityConnectionLookups: what each entity is looked up as", () =>
       getSecurityConnectionLookups(many);
 
     expect(bounded.addresses.length).toBe(SECURITY_CONNECTION_MAX_ADDRESSES);
-    expect(bounded.hostNames.length + bounded.addresses.length).toBeLessThanOrEqual(
-      SECURITY_CONNECTION_MAX_ENTITIES,
-    );
+    expect(
+      bounded.hostNames.length + bounded.addresses.length,
+    ).toBeLessThanOrEqual(SECURITY_CONNECTION_MAX_ENTITIES);
   });
 
   test("an entity that is not one (no value, no object) is skipped", () => {
@@ -583,9 +592,10 @@ describe("windows", () => {
   test("a case nothing has joined is read around its opening, and one with no time around now", () => {
     const opened: Date = minutes(NOW, -600);
 
-    expect(
-      getCaseConnectionWindow({ createdAt: opened, now: NOW }),
-    ).toEqual({ start: minutes(opened, -30), end: minutes(opened, 30) });
+    expect(getCaseConnectionWindow({ createdAt: opened, now: NOW })).toEqual({
+      start: minutes(opened, -30),
+      end: minutes(opened, 30),
+    });
     expect(getCaseConnectionWindow({ now: NOW })).toEqual({
       start: minutes(NOW, -30),
       end: NOW,
@@ -649,9 +659,12 @@ describe("the way back: what a record is searched for by", () => {
       "web-1",
       "WEB-1",
     ]);
-    expect(
-      getObservableSearchValues(["a", "b", "c"], 4),
-    ).toEqual(["a", "A", "b", "B"]);
+    expect(getObservableSearchValues(["a", "b", "c"], 4)).toEqual([
+      "a",
+      "A",
+      "b",
+      "B",
+    ]);
   });
 });
 
@@ -672,9 +685,11 @@ describe("every rule reads outside text in linear time", () => {
     "%".repeat(400000),
   ];
 
-  test.each(worstCases.map((value: string, index: number) => {
-    return [index, value];
-  }))("worst case %i", (_index: number, value: string) => {
+  test.each(
+    worstCases.map((value: string, index: number) => {
+      return [index, value];
+    }),
+  )("worst case %i", (_index: number, value: string) => {
     const started: number = Date.now();
 
     isHostNameLike(value);

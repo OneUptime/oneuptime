@@ -135,7 +135,9 @@ function readBody(req: ExpressRequest): JSONObject {
 }
 
 // A time a request names, or nothing when it names none a person could mean.
-export function readOptionalDate(value: JSONValue | undefined): Date | undefined {
+export function readOptionalDate(
+  value: JSONValue | undefined,
+): Date | undefined {
   if (typeof value !== "string" || !value.trim() || value.length > 64) {
     return undefined;
   }

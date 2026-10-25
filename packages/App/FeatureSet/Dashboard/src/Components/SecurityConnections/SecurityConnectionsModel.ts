@@ -91,7 +91,9 @@ function isReason(value: unknown): value is SecurityConnectionReason {
   );
 }
 
-function readCertainty(value: JSONValue | undefined): SecurityConnectionCertainty {
+function readCertainty(
+  value: JSONValue | undefined,
+): SecurityConnectionCertainty {
   return value === SecurityConnectionCertainty.Exact
     ? SecurityConnectionCertainty.Exact
     : SecurityConnectionCertainty.Possible;
@@ -172,7 +174,9 @@ function readChanges(
     );
 }
 
-function readKinds(value: JSONValue | undefined): Array<SecurityConnectionKind> {
+function readKinds(
+  value: JSONValue | undefined,
+): Array<SecurityConnectionKind> {
   return readArray(value).filter(isKind) as Array<SecurityConnectionKind>;
 }
 
@@ -229,7 +233,11 @@ export function parseSecurityConnections(
           monitors: readRecordList(resource["monitors"]),
           recentChanges: readChanges(resource["recentChanges"]),
           ...(readOptionalString(resource["inventoryItemId"])
-            ? { inventoryItemId: readOptionalString(resource["inventoryItemId"]) }
+            ? {
+                inventoryItemId: readOptionalString(
+                  resource["inventoryItemId"],
+                ),
+              }
             : {}),
         };
       })
@@ -277,7 +285,9 @@ function readCase(value: JSONValue): ResourceSecurityCaseJson | null {
   };
 }
 
-function readCases(value: JSONValue | undefined): Array<ResourceSecurityCaseJson> {
+function readCases(
+  value: JSONValue | undefined,
+): Array<ResourceSecurityCaseJson> {
   return readArray(value)
     .map(readCase)
     .filter(
@@ -301,7 +311,8 @@ export function parseResourceSecurity(json: JSONObject): ResourceSecurityJson {
     id: readString(json["id"]),
     name: readString(json["name"]),
     isInUse: json["isInUse"] === true,
-    windowDays: readNumber(json["windowDays"]) || RESOURCE_SECURITY_WINDOW_IN_DAYS,
+    windowDays:
+      readNumber(json["windowDays"]) || RESOURCE_SECURITY_WINDOW_IN_DAYS,
     values: readArray(json["values"]).filter(
       (value: JSONValue): value is string => {
         return typeof value === "string" && value.length > 0;
@@ -373,7 +384,9 @@ export function parseIncidentSecurity(json: JSONObject): IncidentSecurityJson {
       })
       .filter(
         (
-          securityCase: IncidentSecurityJson["namingItsResources"][number] | null,
+          securityCase:
+            | IncidentSecurityJson["namingItsResources"][number]
+            | null,
         ): securityCase is IncidentSecurityJson["namingItsResources"][number] => {
           return securityCase !== null;
         },
@@ -408,7 +421,10 @@ export function getSecurityEventEntities(event: {
     }
   }
 
-  return mergeSecurityEntities(typed, entitiesFromObservables(event.observables));
+  return mergeSecurityEntities(
+    typed,
+    entitiesFromObservables(event.observables),
+  );
 }
 
 // ---------- Where a connection's links go ----------
@@ -526,7 +542,10 @@ function readWindow(
  * A user has none of these: their page is the link.
  */
 export function getSignalLinks(data: {
-  resource: Pick<SecurityConnectedResourceJson, "kind" | "id" | "inventoryItemId">;
+  resource: Pick<
+    SecurityConnectedResourceJson,
+    "kind" | "id" | "inventoryItemId"
+  >;
   windowStart: string;
   windowEnd: string;
 }): Array<SignalLink> {
@@ -624,7 +643,10 @@ export function getSignalLinks(data: {
   }
 
   if (data.resource.inventoryItemId) {
-    add("inventory", pageRoute(PageMap.INVENTORY_VIEW, data.resource.inventoryItemId));
+    add(
+      "inventory",
+      pageRoute(PageMap.INVENTORY_VIEW, data.resource.inventoryItemId),
+    );
   }
 
   return links;
@@ -692,7 +714,9 @@ export function getRecordSecurityEventsRoute(data: {
 // ---------- What a record's connections say at a glance ----------
 
 // Whether a record's page has something to say: an open case, an event or some risk.
-export function hasResourceSecurityNews(security: ResourceSecurityJson): boolean {
+export function hasResourceSecurityNews(
+  security: ResourceSecurityJson,
+): boolean {
   return (
     security.eventCount > 0 ||
     Boolean(security.openCases && security.openCases.count > 0) ||

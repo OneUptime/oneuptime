@@ -163,7 +163,10 @@ const UserViewIndex: FunctionComponent<
        * findings naming their email - for whoever may read it
        * (Components/SecurityConnections).
        */}
-      <ResourceSecurityCard kind={SecurityConnectionKind.User} modelId={userId} />
+      <ResourceSecurityCard
+        kind={SecurityConnectionKind.User}
+        modelId={userId}
+      />
     </Fragment>
   );
 };

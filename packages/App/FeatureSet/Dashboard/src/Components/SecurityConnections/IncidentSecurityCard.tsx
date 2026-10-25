@@ -22,10 +22,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import {
-  Translator,
-  composedValue,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -107,7 +104,9 @@ const IncidentSecurityCard: FunctionComponent<ComponentProps> = (
         <div className="space-y-4">
           {security.declaredBy.length > 0 ? (
             <section
-              data-testid={SECURITY_CONNECTIONS_TEST_IDS.incidentSecurityDeclared}
+              data-testid={
+                SECURITY_CONNECTIONS_TEST_IDS.incidentSecurityDeclared
+              }
             >
               <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
                 {translator.translateText(INCIDENT_SECURITY_DECLARED_BY)}

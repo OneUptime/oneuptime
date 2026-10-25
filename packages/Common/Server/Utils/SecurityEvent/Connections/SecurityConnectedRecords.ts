@@ -107,10 +107,19 @@ export const LOG_RESOURCE_KINDS: ReadonlyArray<{
   serviceType: ServiceType;
   kind: SecurityConnectionKind;
 }> = [
-  { serviceType: ServiceType.OpenTelemetry, kind: SecurityConnectionKind.Service },
+  {
+    serviceType: ServiceType.OpenTelemetry,
+    kind: SecurityConnectionKind.Service,
+  },
   { serviceType: ServiceType.Host, kind: SecurityConnectionKind.Host },
-  { serviceType: ServiceType.DockerHost, kind: SecurityConnectionKind.DockerHost },
-  { serviceType: ServiceType.PodmanHost, kind: SecurityConnectionKind.PodmanHost },
+  {
+    serviceType: ServiceType.DockerHost,
+    kind: SecurityConnectionKind.DockerHost,
+  },
+  {
+    serviceType: ServiceType.PodmanHost,
+    kind: SecurityConnectionKind.PodmanHost,
+  },
   {
     serviceType: ServiceType.KubernetesCluster,
     kind: SecurityConnectionKind.KubernetesCluster,
@@ -614,7 +623,9 @@ export default class SecurityConnectedRecords {
 
     const hostsHolding: (
       address: string,
-    ) => Promise<Array<{ id: string; name: string; identity?: string }>> = async (
+    ) => Promise<
+      Array<{ id: string; name: string; identity?: string }>
+    > = async (
       address: string,
     ): Promise<Array<{ id: string; name: string; identity?: string }>> => {
       const hosts: Array<Host> = await HostService.findBy({
@@ -638,15 +649,13 @@ export default class SecurityConnectedRecords {
         .filter((host: Host): boolean => {
           return recordReportsAddress(host.hostIpAddresses, address);
         })
-        .map(
-          (host: Host): { id: string; name: string; identity?: string } => {
-            return {
-              id: host.id!.toString(),
-              name: host.name || host.hostIdentifier || "",
-              ...(host.hostIdentifier ? { identity: host.hostIdentifier } : {}),
-            };
-          },
-        );
+        .map((host: Host): { id: string; name: string; identity?: string } => {
+          return {
+            id: host.id!.toString(),
+            name: host.name || host.hostIdentifier || "",
+            ...(host.hostIdentifier ? { identity: host.hostIdentifier } : {}),
+          };
+        });
     };
 
     const devicesHolding: (
@@ -721,10 +730,12 @@ export default class SecurityConnectedRecords {
           id: string;
           name: string;
           identity?: string;
-        }> | null =
-          await collector.read(SecurityConnectionKind.Host, async () => {
+        }> | null = await collector.read(
+          SecurityConnectionKind.Host,
+          async () => {
             return await hostsHolding(address);
-          });
+          },
+        );
 
         for (const host of hosts || []) {
           found.push({ kind: SecurityConnectionKind.Host, ...host });
@@ -1017,13 +1028,13 @@ export default class SecurityConnectedRecords {
             name: string;
             identity?: string;
           }> | null = await data.collector.read(kind, async () => {
-              return await this.readNamesById({
-                kind,
-                ids,
-                projectId: data.projectId,
-                props: data.props,
-              });
+            return await this.readNamesById({
+              kind,
+              ids,
+              projectId: data.projectId,
+              props: data.props,
             });
+          });
 
           for (const row of rows || []) {
             data.collector.add({
@@ -1069,7 +1080,9 @@ export default class SecurityConnectedRecords {
             ...common,
           })
         ).map(
-          (row: ServiceModel): { id: string; name: string; identity?: string } => {
+          (
+            row: ServiceModel,
+          ): { id: string; name: string; identity?: string } => {
             return {
               id: row.id!.toString(),
               name: row.name || "",

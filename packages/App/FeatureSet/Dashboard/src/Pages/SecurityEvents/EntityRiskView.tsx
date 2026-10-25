@@ -461,7 +461,9 @@ const SecurityEntityRiskViewPage: FunctionComponent<
         <ConnectedSignals
           request={{
             entities: [{ type, value: risk?.entityValue || value }],
-            ...(activity?.lastSeen ? { time: new Date(activity.lastSeen) } : {}),
+            ...(activity?.lastSeen
+              ? { time: new Date(activity.lastSeen) }
+              : {}),
             readLogResources: true,
           }}
           requestKey={`entity:${value}:${type}:${activity?.lastSeen || ""}`}

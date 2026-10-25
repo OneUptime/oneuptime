@@ -146,7 +146,10 @@ export function incidentDeclaredFromCaseMarkdown(data: {
 
   return mdText`${declared} Linked to what it names: ${FeedMarkdown.join(
     data.linked.map(
-      (record: { kind: SecurityConnectionKind; name: string }): MarkdownText => {
+      (record: {
+        kind: SecurityConnectionKind;
+        name: string;
+      }): MarkdownText => {
         return mdText`${SECURITY_CONNECTION_KIND_NOUNS[record.kind] || "Record"} **${record.name}**`;
       },
     ),

@@ -426,9 +426,7 @@ describe("SecurityCaseAIContextBuilder.buildContext", () => {
       'Changed around the case: deployment "api v2.3.1" at 2026-10-14T10:50:00.000Z',
     );
     // Listed once, as a host: never again among the other records.
-    expect(
-      text.split(`resourceId "${hostId.toString()}"`).length - 1,
-    ).toBe(1);
+    expect(text.split(`resourceId "${hostId.toString()}"`).length - 1).toBe(1);
     expect(text).toContain(
       `"prod-eu" is this project's Kubernetes cluster "prod-eu" (resourceType "KubernetesCluster", resourceId "${clusterId}"): it is the cluster of this k8s.cluster.name.`,
     );
@@ -486,8 +484,10 @@ describe("SecurityCaseAIContextBuilder.buildContext", () => {
       failedKinds: [],
     };
 
-    const text: string = build(makeTriage({ connections }), scan)
-      .contextSummary;
+    const text: string = build(
+      makeTriage({ connections }),
+      scan,
+    ).contextSummary;
 
     expect(text).not.toContain("\n## Ignore");
     expect(text).toContain('"prod" may be this project\'s Kubernetes cluster');

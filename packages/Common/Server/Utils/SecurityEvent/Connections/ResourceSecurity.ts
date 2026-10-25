@@ -52,7 +52,10 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import SecurityCaseValues from "../../SecurityCase/SecurityCaseValues";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { MAX_ADDRESS_HOLDERS_READ, isRefusedRead } from "./SecurityConnectedRecords";
+import {
+  MAX_ADDRESS_HOLDERS_READ,
+  isRefusedRead,
+} from "./SecurityConnectedRecords";
 
 /*
  * THE WAY BACK: what Security Events says about one of the project's own
@@ -414,17 +417,19 @@ export default class ResourceSecurity {
         };
       }
       case SecurityConnectionKind.InventoryItem: {
-        const item: InventoryItem | null = await InventoryItemService.findOneBy({
-          query,
-          select: {
-            _id: true,
-            entityType: true,
-            displayName: true,
-            identifyingAttributes: true,
-            descriptiveAttributes: true,
+        const item: InventoryItem | null = await InventoryItemService.findOneBy(
+          {
+            query,
+            select: {
+              _id: true,
+              entityType: true,
+              displayName: true,
+              identifyingAttributes: true,
+              descriptiveAttributes: true,
+            },
+            props: data.props,
           },
-          props: data.props,
-        });
+        );
 
         // A machine's item only: a service, a pod or a process is named otherwise.
         if (
@@ -437,9 +442,11 @@ export default class ResourceSecurity {
 
         const names: Array<string | undefined> = [
           item.displayName,
-          ...INVENTORY_NAME_ATTRIBUTES.map((key: string): string | undefined => {
-            return readAttributeText(item.identifyingAttributes, key);
-          }),
+          ...INVENTORY_NAME_ATTRIBUTES.map(
+            (key: string): string | undefined => {
+              return readAttributeText(item.identifyingAttributes, key);
+            },
+          ),
           readAttributeText(item.descriptiveAttributes, "host.name"),
         ];
         const main: string =

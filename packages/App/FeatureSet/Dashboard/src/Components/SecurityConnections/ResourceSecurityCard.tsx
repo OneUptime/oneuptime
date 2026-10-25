@@ -194,7 +194,9 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
         <Card
           title={RESOURCE_SECURITY_TITLE}
           description={
-            isService ? RESOURCE_SECURITY_SERVICE_QUIET : RESOURCE_SECURITY_QUIET
+            isService
+              ? RESOURCE_SECURITY_SERVICE_QUIET
+              : RESOURCE_SECURITY_QUIET
           }
           buttons={buttons}
         />
@@ -204,8 +206,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
 
   const cases: Array<ResourceSecurityCaseJson> =
     security.openCases?.items || [];
-  const moreCases: number =
-    (security.openCases?.count || 0) - cases.length;
+  const moreCases: number = (security.openCases?.count || 0) - cases.length;
   const lastSeen: string | undefined = security.lastSeen
     ? translator.translateTemplate(RESOURCE_SECURITY_LAST_SEEN, {
         when: OneUptimeDate.fromNow(new Date(security.lastSeen)),
@@ -313,7 +314,9 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
           </EventStatBar>
 
           {cases.length > 0 ? (
-            <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.resourceSecurityCases}>
+            <div
+              data-testid={SECURITY_CONNECTIONS_TEST_IDS.resourceSecurityCases}
+            >
               <ul className="divide-y divide-gray-100">
                 {cases.map(
                   (securityCase: ResourceSecurityCaseJson): ReactElement => {

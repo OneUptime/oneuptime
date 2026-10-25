@@ -540,7 +540,12 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
 
     if (values.length === 0 && !data.logResourceId) {
-      return { eventCount: 0, findingCount: 0, maxSeverityId: 0, lastSeen: null };
+      return {
+        eventCount: 0,
+        findingCount: 0,
+        maxSeverityId: 0,
+        lastSeen: null,
+      };
     }
 
     if (!this.database) {

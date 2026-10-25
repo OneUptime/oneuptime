@@ -83,12 +83,14 @@ beforeEach(() => {
   inUseSpy = jest
     .spyOn(SecurityEventService, "hasEventsSince")
     .mockResolvedValue(true);
-  countSpy = jest.spyOn(SecurityEventService, "countEventsNaming").mockResolvedValue({
-    eventCount: 42,
-    findingCount: 3,
-    maxSeverityId: 4,
-    lastSeen: new Date("2026-10-25T11:00:00.000Z"),
-  });
+  countSpy = jest
+    .spyOn(SecurityEventService, "countEventsNaming")
+    .mockResolvedValue({
+      eventCount: 42,
+      findingCount: 3,
+      maxSeverityId: 4,
+      lastSeen: new Date("2026-10-25T11:00:00.000Z"),
+    });
   jest
     .spyOn(SecurityCaseValues, "getOpenStatusIds")
     .mockResolvedValue([OPEN_STATUS]);
@@ -180,13 +182,7 @@ describe("ResourceSecurity.read", () => {
     });
     expect(countSpy.mock.calls[0]![0]).toEqual({
       projectId: PROJECT_ID,
-      values: [
-        "web-1",
-        "WEB-1",
-        "web one",
-        "WEB ONE",
-        "203.0.113.9",
-      ],
+      values: ["web-1", "WEB-1", "web one", "WEB ONE", "203.0.113.9"],
       startTime: new Date("2026-10-18T12:00:00.000Z"),
       endTime: NOW,
     });
@@ -200,9 +196,11 @@ describe("ResourceSecurity.read", () => {
 
   test("a public address another record holds too is left out: it would only be a possible connection", async () => {
     readHost();
-    jest.spyOn(HostService, "findBy").mockResolvedValue([
-      { id: new ObjectID(OTHER_HOST_ID), hostIpAddresses: "203.0.113.9" },
-    ] as never);
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([
+        { id: new ObjectID(OTHER_HOST_ID), hostIpAddresses: "203.0.113.9" },
+      ] as never);
 
     expect((await read())?.values).toEqual(["web-1", "web one"]);
   });
@@ -350,9 +348,9 @@ describe("ResourceSecurity.read", () => {
       hostIdentifier: "dock-1",
     } as never);
 
-    expect(
-      (await read(SecurityConnectionKind.DockerHost))?.values,
-    ).toEqual(["dock-1"]);
+    expect((await read(SecurityConnectionKind.DockerHost))?.values).toEqual([
+      "dock-1",
+    ]);
   });
 
   test("a network device by its names and addresses: a hostname that is an address counts as one, never as a name", async () => {
@@ -364,9 +362,7 @@ describe("ResourceSecurity.read", () => {
       otherAddresses: "198.51.100.2, 10.255.0.1",
     } as never);
 
-    expect(
-      (await read(SecurityConnectionKind.NetworkDevice))?.values,
-    ).toEqual([
+    expect((await read(SecurityConnectionKind.NetworkDevice))?.values).toEqual([
       "edge-fw",
       "edge-fw.corp.example",
       "198.51.100.1",
@@ -460,7 +456,11 @@ describe("IncidentSecurity.read", () => {
     const find: jest.SpyInstance = readIncident({
       id: HOST_ID,
       hosts: [
-        { id: new ObjectID(OTHER_HOST_ID), name: "Web One", hostIdentifier: "web-1" },
+        {
+          id: new ObjectID(OTHER_HOST_ID),
+          name: "Web One",
+          hostIdentifier: "web-1",
+        },
       ],
       kubernetesClusters: [
         {
@@ -502,9 +502,11 @@ describe("IncidentSecurity.read", () => {
       props: CALLER,
     });
 
-    expect(security?.declaredBy.map((item: { number: string }) => {
-      return item.number;
-    })).toEqual(["CASE-142"]);
+    expect(
+      security?.declaredBy.map((item: { number: string }) => {
+        return item.number;
+      }),
+    ).toEqual(["CASE-142"]);
     expect(security?.namingItsResources).toEqual([
       expect.objectContaining({
         number: "CASE-150",

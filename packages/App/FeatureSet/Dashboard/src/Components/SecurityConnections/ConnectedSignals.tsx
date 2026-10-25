@@ -68,10 +68,7 @@ import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
 import API from "Common/UI/Utils/API/API";
-import {
-  Translator,
-  composedValue,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -176,7 +173,10 @@ const ConnectedRecord: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const resource: SecurityConnectedResourceJson = props.resource;
-  const route: Route | null = getConnectedRecordRoute(resource.kind, resource.id);
+  const route: Route | null = getConnectedRecordRoute(
+    resource.kind,
+    resource.id,
+  );
   const match: SecurityConnectedResourceJson["matches"][number] | null =
     getLeadingMatch(resource);
   const links: Array<SignalLink> = getSignalLinks({
@@ -285,7 +285,9 @@ const ConnectedRecord: FunctionComponent<{
                       className="h-3.5 w-3.5 shrink-0 text-gray-400"
                     />
                     <span>
-                      {translator.translateText(SIGNAL_LINK_LABELS[link.key] || "")}
+                      {translator.translateText(
+                        SIGNAL_LINK_LABELS[link.key] || "",
+                      )}
                     </span>
                   </AppLink>
                 );
@@ -345,7 +347,10 @@ const ConnectedRecord: FunctionComponent<{
                   )}
                 </span>
                 <span className="text-gray-400">: </span>
-                <RecordList list={resource.monitors} getRoute={getMonitorRoute} />
+                <RecordList
+                  list={resource.monitors}
+                  getRoute={getMonitorRoute}
+                />
               </p>
             ) : (
               <></>

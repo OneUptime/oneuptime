@@ -35,7 +35,10 @@ const START: Date = new Date("2026-10-18T12:00:00.000Z");
 const END: Date = new Date("2026-10-25T12:00:00.000Z");
 
 function stubExecuteQuery(rows: Array<JSONObject>): Spy {
-  getJestSpyOn(SecurityEventService.database, "getDatasourceOptions").mockReturnValue({
+  getJestSpyOn(
+    SecurityEventService.database,
+    "getDatasourceOptions",
+  ).mockReturnValue({
     database: "oneuptime",
   } as never);
 
@@ -96,7 +99,9 @@ describe("SecurityEventService.countEventsNaming", () => {
     expect(statement.query).toContain(
       `FROM oneuptime.${SecurityEventService.model.tableName} WHERE projectId = {p0:String}`,
     );
-    expect(statement.query).toContain("AND (hasAny(observables, {p3:Array(String)}))");
+    expect(statement.query).toContain(
+      "AND (hasAny(observables, {p3:Array(String)}))",
+    );
     expect(statement.query).not.toContain("attributes[");
     expect(boundValues(statement)).toEqual([
       PROJECT_ID.toString(),
@@ -169,7 +174,12 @@ describe("SecurityEventService.countEventsNaming", () => {
         startTime: START,
         endTime: END,
       }),
-    ).toEqual({ eventCount: 0, findingCount: 0, maxSeverityId: 0, lastSeen: null });
+    ).toEqual({
+      eventCount: 0,
+      findingCount: 0,
+      maxSeverityId: 0,
+      lastSeen: null,
+    });
   });
 
   test("nothing to look for reads nothing", async () => {
@@ -182,7 +192,12 @@ describe("SecurityEventService.countEventsNaming", () => {
         startTime: START,
         endTime: END,
       }),
-    ).toEqual({ eventCount: 0, findingCount: 0, maxSeverityId: 0, lastSeen: null });
+    ).toEqual({
+      eventCount: 0,
+      findingCount: 0,
+      maxSeverityId: 0,
+      lastSeen: null,
+    });
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -235,12 +250,16 @@ describe("SecurityEventService.findLogResourcesNaming", () => {
       "SELECT attributes[{p0:String}] AS resourceType, attributes[{p1:String}] AS resourceId, count() AS eventCount FROM",
     );
     expect(statement.query).toContain("WHERE projectId = {p2:String}");
-    expect(statement.query).toContain("AND hasAny(observables, {p5:Array(String)})");
+    expect(statement.query).toContain(
+      "AND hasAny(observables, {p5:Array(String)})",
+    );
     expect(statement.query).toContain("AND has(attributeKeys, {p6:String})");
     expect(statement.query).toContain(
       "GROUP BY resourceType, resourceId ORDER BY eventCount DESC, resourceId ASC LIMIT {p7:Int32}",
     );
-    expect(boundValues(statement)[0]).toBe(SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE);
+    expect(boundValues(statement)[0]).toBe(
+      SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+    );
     expect(boundValues(statement)[1]).toBe(SECURITY_LOG_RESOURCE_ID_ATTRIBUTE);
     // The limit is held to a hundred whatever is asked.
     expect(boundValues(statement)[7]).toBe(100);

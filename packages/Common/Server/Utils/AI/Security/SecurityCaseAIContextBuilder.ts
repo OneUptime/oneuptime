@@ -942,9 +942,7 @@ export default class SecurityCaseAIContextBuilder {
 
       lines.push(
         `- ${value(host.matchedBy, TITLE_LENGTH)} ${
-          host.certainty === SecurityConnectionCertainty.Exact
-            ? "is"
-            : "may be"
+          host.certainty === SecurityConnectionCertainty.Exact ? "is" : "may be"
         } this project's host ${value(host.name, TITLE_LENGTH)} (resourceType "Host", resourceId "${host.id}")${
           host.osType ? `, ${value(host.osType, 60, false)}` : ""
         }, last seen ${isoOrUnknown(host.lastSeenAt)}: ${describeConnectionReason(host.reason)}. Owned by: ${
@@ -957,8 +955,9 @@ export default class SecurityCaseAIContextBuilder {
     }
 
     for (const record of records) {
-      const match: SecurityConnectedResourceJson["matches"][number] | undefined =
-        record.matches[0];
+      const match:
+        | SecurityConnectedResourceJson["matches"][number]
+        | undefined = record.matches[0];
 
       lines.push(
         `- ${

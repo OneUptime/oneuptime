@@ -94,7 +94,13 @@ function connected(
 
 const RESOLVED: SecurityConnectedRecordsResult = {
   records: [
-    connected(SecurityConnectionKind.Host, HOST_ID, "web-1", undefined, "web-1"),
+    connected(
+      SecurityConnectionKind.Host,
+      HOST_ID,
+      "web-1",
+      undefined,
+      "web-1",
+    ),
     connected(
       SecurityConnectionKind.KubernetesCluster,
       CLUSTER_ID,
@@ -154,9 +160,7 @@ function resource(
   })!;
 }
 
-function caseRead(
-  overrides: Record<string, unknown> = {},
-): jest.SpyInstance {
+function caseRead(overrides: Record<string, unknown> = {}): jest.SpyInstance {
   return jest.spyOn(SecurityCaseService, "findOneBy").mockResolvedValue({
     id: CASE_ID,
     _id: CASE_ID.toString(),
@@ -255,7 +259,10 @@ describe("the facts on each record", () => {
             incidentNumber: index,
             incidentNumberWithPrefix: `INC-${index}`,
             currentIncidentState: { name: "Investigating", color: "#f59e0b" },
-            hosts: [{ _id: HOST_ID }, { _id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }],
+            hosts: [
+              { _id: HOST_ID },
+              { _id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+            ],
           };
         });
       }
@@ -474,8 +481,8 @@ describe("the facts on each record", () => {
       },
     ]);
     expect(
-      resource(json, SecurityConnectionKind.KubernetesCluster).recentChanges?.[0]
-        ?.title,
+      resource(json, SecurityConnectionKind.KubernetesCluster)
+        .recentChanges?.[0]?.title,
     ).toBe("api rollout");
     expect(
       resource(json, SecurityConnectionKind.Host).recentChanges?.[0]?.title,
@@ -563,15 +570,16 @@ describe("the facts on each record", () => {
 
 describe("SecurityConnections.forEntities", () => {
   test("an event's entities in the hour around it, with the record its log line was sent under", async () => {
-    const json: SecurityConnectionsJson =
-      await SecurityConnections.forEntities({
+    const json: SecurityConnectionsJson = await SecurityConnections.forEntities(
+      {
         projectId: PROJECT_ID,
         entities: [{ type: SecurityEntityType.Host, value: "web-1" }],
         time: new Date("2026-10-25T10:00:00.000Z"),
         logResources: [{ type: "Host", id: HOST_ID }],
         props: CALLER,
         now: NOW,
-      });
+      },
+    );
 
     expect(json.windowStart).toBe("2026-10-25T09:30:00.000Z");
     expect(json.windowEnd).toBe("2026-10-25T10:30:00.000Z");
@@ -587,15 +595,16 @@ describe("SecurityConnections.forEntities", () => {
       { type: "Host", id: HOST_ID, eventCount: 2 },
     ]);
 
-    const json: SecurityConnectionsJson =
-      await SecurityConnections.forEntities({
+    const json: SecurityConnectionsJson = await SecurityConnections.forEntities(
+      {
         projectId: PROJECT_ID,
         entities: [{ type: SecurityEntityType.User, value: "k@acme.example" }],
         time: new Date("2026-10-26T10:00:00.000Z"),
         readLogResources: true,
         props: CALLER,
         now: NOW,
-      });
+      },
+    );
 
     expect(json.windowEnd).toBe(NOW.toISOString());
     expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
@@ -636,11 +645,7 @@ describe("the incident a case declares", () => {
       links.map((item: SecurityConnectedRecord): string => {
         return `${item.kind}:${item.name}`;
       }),
-    ).toEqual([
-      "Host:web-1",
-      "KubernetesCluster:prod-eu",
-      "Service:checkout",
-    ]);
+    ).toEqual(["Host:web-1", "KubernetesCluster:prod-eu", "Service:checkout"]);
     expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
       props: { isRoot: true },
     });

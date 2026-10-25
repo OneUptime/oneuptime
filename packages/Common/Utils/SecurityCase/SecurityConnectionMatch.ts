@@ -337,7 +337,10 @@ function readIpv6Groups(text: string): Array<number> | null {
           return null;
         }
 
-        groups.push(octets[0]! * 256 + octets[1]!, octets[2]! * 256 + octets[3]!);
+        groups.push(
+          octets[0]! * 256 + octets[1]!,
+          octets[2]! * 256 + octets[3]!,
+        );
         continue;
       }
 
@@ -364,9 +367,7 @@ function readIpv6Groups(text: string): Array<number> | null {
   }
 
   const head: Array<number> | null = readGroups(address.slice(0, doubleColon));
-  const tail: Array<number> | null = readGroups(
-    address.slice(doubleColon + 2),
-  );
+  const tail: Array<number> | null = readGroups(address.slice(doubleColon + 2));
 
   if (!head || !tail || head.length + tail.length > 7) {
     return null;
@@ -387,7 +388,9 @@ function readIpv6Groups(text: string): Array<number> | null {
  * 2001:0DB8:0:0:0:0:0:7 are both 2001:db8:0:0:0:0:0:7). Null when the value
  * is not an address.
  */
-export function canonicalAddress(value: string | undefined | null): string | null {
+export function canonicalAddress(
+  value: string | undefined | null,
+): string | null {
   const text: string = (value || "").trim();
 
   if (!text || text.length > 64) {
@@ -570,7 +573,9 @@ export function recordReportsAddress(
 ): boolean {
   const wanted: string | null = canonicalAddress(address);
 
-  return Boolean(wanted) && readRecordAddresses(recordAddresses).includes(wanted!);
+  return (
+    Boolean(wanted) && readRecordAddresses(recordAddresses).includes(wanted!)
+  );
 }
 
 // ---------- What a lookup looks for ----------
@@ -662,10 +667,7 @@ export function getSecurityConnectionLookups(
       continue;
     }
 
-    if (
-      HOST_NAME_ENTITY_TYPES.includes(entity.type) &&
-      isHostNameLike(value)
-    ) {
+    if (HOST_NAME_ENTITY_TYPES.includes(entity.type) && isHostNameLike(value)) {
       seen.add(folded);
       hostNames.add(folded);
       hostNameEntities.set(folded, { type: entity.type, value });
@@ -708,8 +710,16 @@ export function getBestCertainty(
  * (machines, clusters, devices, services, people), then by name.
  */
 export function compareConnectedResources(
-  a: { certainty: SecurityConnectionCertainty; kind: SecurityConnectionKind; name: string },
-  b: { certainty: SecurityConnectionCertainty; kind: SecurityConnectionKind; name: string },
+  a: {
+    certainty: SecurityConnectionCertainty;
+    kind: SecurityConnectionKind;
+    name: string;
+  },
+  b: {
+    certainty: SecurityConnectionCertainty;
+    kind: SecurityConnectionKind;
+    name: string;
+  },
 ): number {
   if (a.certainty !== b.certainty) {
     return a.certainty === SecurityConnectionCertainty.Exact ? -1 : 1;

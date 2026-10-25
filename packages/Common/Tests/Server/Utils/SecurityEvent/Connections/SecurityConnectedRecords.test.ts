@@ -210,16 +210,16 @@ describe("names", () => {
       { type: SecurityEntityType.Host, value: "web-1" },
     ]);
 
-    expect(record(result, SecurityConnectionKind.Host, HOST_ID)?.matches).toEqual(
-      [
-        {
-          entity: { type: SecurityEntityType.Host, value: "web-1" },
-          certainty: SecurityConnectionCertainty.Possible,
-          reason: SecurityConnectionReason.ShortHostName,
-          matchedValue: "web-1.acme.internal",
-        },
-      ],
-    );
+    expect(
+      record(result, SecurityConnectionKind.Host, HOST_ID)?.matches,
+    ).toEqual([
+      {
+        entity: { type: SecurityEntityType.Host, value: "web-1" },
+        certainty: SecurityConnectionCertainty.Possible,
+        reason: SecurityConnectionReason.ShortHostName,
+        matchedValue: "web-1.acme.internal",
+      },
+    ]);
   });
 
   test("a full name is also looked up by its short form", async () => {
@@ -321,7 +321,9 @@ describe("names", () => {
 
   test("Docker and Podman hosts by the names they report", async () => {
     spies["docker"]!.mockResolvedValue([host(HOST_ID, "dock-1")] as never);
-    spies["podman"]!.mockResolvedValue([host(OTHER_HOST_ID, "dock-1")] as never);
+    spies["podman"]!.mockResolvedValue([
+      host(OTHER_HOST_ID, "dock-1"),
+    ] as never);
 
     const result: SecurityConnectedRecordsResult = await resolve([
       { type: SecurityEntityType.Host, value: "dock-1" },
@@ -331,7 +333,10 @@ describe("names", () => {
       result.records.map((item: SecurityConnectedRecord): string => {
         return item.kind;
       }),
-    ).toEqual([SecurityConnectionKind.DockerHost, SecurityConnectionKind.PodmanHost]);
+    ).toEqual([
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+    ]);
   });
 });
 
@@ -366,7 +371,10 @@ describe("addresses", () => {
         certainty: SecurityConnectionCertainty.Exact,
         matches: [
           {
-            entity: { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
+            entity: {
+              type: SecurityEntityType.IpAddress,
+              value: "203.0.113.9",
+            },
             certainty: SecurityConnectionCertainty.Exact,
             reason: SecurityConnectionReason.Address,
             matchedValue: "203.0.113.9",
@@ -375,20 +383,20 @@ describe("addresses", () => {
       }),
     ]);
 
-    const holders: FindArgs = spies["host"]!.mock.calls
-      .map((call: Array<unknown>): FindArgs => {
+    const holders: FindArgs = spies["host"]!.mock.calls.map(
+      (call: Array<unknown>): FindArgs => {
         return call[0] as FindArgs;
-      })
-      .find((args: FindArgs): boolean => {
-        return Boolean(args.query["hostIpAddresses"]);
-      })!;
-    const visible: FindArgs = spies["host"]!.mock.calls
-      .map((call: Array<unknown>): FindArgs => {
+      },
+    ).find((args: FindArgs): boolean => {
+      return Boolean(args.query["hostIpAddresses"]);
+    })!;
+    const visible: FindArgs = spies["host"]!.mock.calls.map(
+      (call: Array<unknown>): FindArgs => {
         return call[0] as FindArgs;
-      })
-      .find((args: FindArgs): boolean => {
-        return Boolean(args.query["_id"]);
-      })!;
+      },
+    ).find((args: FindArgs): boolean => {
+      return Boolean(args.query["_id"]);
+    })!;
 
     expect(holders.props).toEqual({ isRoot: true });
     expect(holders.query["projectId"]).toBe(PROJECT_ID);
@@ -452,7 +460,9 @@ describe("addresses", () => {
       SecurityConnectionReason.PrivateAddress,
       SecurityConnectionReason.SharedAddress,
     ]);
-    expect(record(result, SecurityConnectionKind.Host, OTHER_HOST_ID)).toMatchObject({
+    expect(
+      record(result, SecurityConnectionKind.Host, OTHER_HOST_ID),
+    ).toMatchObject({
       certainty: SecurityConnectionCertainty.Possible,
       matches: [{ reason: SecurityConnectionReason.SharedAddress }],
     });
@@ -603,7 +613,11 @@ describe("the logs an event was read from", () => {
         return [item.kind, item.id, item.matches[0]?.reason];
       }),
     ).toEqual([
-      [SecurityConnectionKind.Host, HOST_ID, SecurityConnectionReason.LogSource],
+      [
+        SecurityConnectionKind.Host,
+        HOST_ID,
+        SecurityConnectionReason.LogSource,
+      ],
       [
         SecurityConnectionKind.Service,
         SERVICE_ID,
@@ -611,7 +625,8 @@ describe("the logs an event was read from", () => {
       ],
     ]);
 
-    const serviceRead: FindArgs = spies["service"]!.mock.calls[0]![0] as FindArgs;
+    const serviceRead: FindArgs = spies["service"]!.mock
+      .calls[0]![0] as FindArgs;
     expect(serviceRead.query["projectId"]).toBe(PROJECT_ID);
     expect(boundValues(serviceRead.query["_id"])).toEqual([SERVICE_ID]);
     expect(serviceRead.props).toBe(CALLER);
@@ -636,11 +651,15 @@ describe("one record, every way it is named", () => {
     ]);
 
     expect(result.records.length).toBe(1);
-    expect(result.records[0]!.certainty).toBe(SecurityConnectionCertainty.Exact);
+    expect(result.records[0]!.certainty).toBe(
+      SecurityConnectionCertainty.Exact,
+    );
     expect(
-      result.records[0]!.matches.map((match: { reason: SecurityConnectionReason }) => {
-        return match.reason;
-      }),
+      result.records[0]!.matches.map(
+        (match: { reason: SecurityConnectionReason }) => {
+          return match.reason;
+        },
+      ),
     ).toEqual([
       SecurityConnectionReason.HostName,
       SecurityConnectionReason.PrivateAddress,
@@ -696,9 +715,11 @@ describe("what the caller's role keeps from them, and what fails", () => {
 
     expect(result.unreadableKinds).toEqual([SecurityConnectionKind.Host]);
     expect(result.failedKinds).toEqual([SecurityConnectionKind.DockerHost]);
-    expect(result.records.map((item: SecurityConnectedRecord) => {
-      return item.kind;
-    })).toEqual([SecurityConnectionKind.KubernetesCluster]);
+    expect(
+      result.records.map((item: SecurityConnectedRecord) => {
+        return item.kind;
+      }),
+    ).toEqual([SecurityConnectionKind.KubernetesCluster]);
     expect(logger.error).toHaveBeenCalled();
   });
 

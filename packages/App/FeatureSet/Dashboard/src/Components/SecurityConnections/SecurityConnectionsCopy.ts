@@ -79,8 +79,7 @@ export const CONNECTED_FAILED: string = translationKey(
 
 export const CONNECTED_TRY_AGAIN: string = translationKey("Try again");
 
-export const CONNECTED_POSSIBLE_PILL: string =
-  translationKey("Possible match");
+export const CONNECTED_POSSIBLE_PILL: string = translationKey("Possible match");
 
 export const CONNECTED_POSSIBLE_TOOLTIP: string = translationKey(
   "Probably the same thing, but OneUptime cannot be sure. It is not counted on its page or linked to incidents.",
@@ -252,9 +251,8 @@ export const RESOURCE_SECURITY_FINDINGS: string = translationKey("Findings");
 
 export const RESOURCE_SECURITY_RISK: string = translationKey("Risk");
 
-export const RESOURCE_SECURITY_LAST_SEEN: string = translationKey(
-  "Last seen {{when}}",
-);
+export const RESOURCE_SECURITY_LAST_SEEN: string =
+  translationKey("Last seen {{when}}");
 
 export const RESOURCE_SECURITY_IN_WINDOW: string =
   translationKey("In the last 7 days");
@@ -279,9 +277,8 @@ export const INCIDENT_SECURITY_DESCRIPTION: string = translationKey(
   "The security case behind this incident, and the open cases naming what it affects.",
 );
 
-export const INCIDENT_SECURITY_DECLARED_BY: string = translationKey(
-  "Declared from",
-);
+export const INCIDENT_SECURITY_DECLARED_BY: string =
+  translationKey("Declared from");
 
 export const INCIDENT_SECURITY_NAMING: string = translationKey(
   "Open cases naming what it affects",

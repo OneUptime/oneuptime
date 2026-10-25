@@ -35,9 +35,9 @@ describe("QueryHelper.startsWithAnyOf", () => {
 
     expect(operator).toBeInstanceOf(FindOperator);
     expect(operator.type).toBe("raw");
-    expect(
-      sql.split('LOWER("Host"."hostIdentifier") LIKE :').length - 1,
-    ).toBe(2);
+    expect(sql.split('LOWER("Host"."hostIdentifier") LIKE :').length - 1).toBe(
+      2,
+    );
     expect(sql).toContain(" OR ");
     expect(sql.startsWith("(")).toBe(true);
     expect(sql.endsWith(")")).toBe(true);

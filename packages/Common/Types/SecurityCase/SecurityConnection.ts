@@ -261,7 +261,11 @@ export interface IncidentSecurityJson {
    */
   namingItsResources: Array<
     ResourceSecurityCaseJson & {
-      resources: Array<{ kind: SecurityConnectionKind; id: string; name: string }>;
+      resources: Array<{
+        kind: SecurityConnectionKind;
+        id: string;
+        name: string;
+      }>;
     }
   >;
   // How many open cases name them in all.

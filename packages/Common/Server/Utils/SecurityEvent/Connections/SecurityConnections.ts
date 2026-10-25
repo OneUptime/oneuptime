@@ -936,10 +936,18 @@ export default class SecurityConnections {
             : null;
           break;
         case SecurityConnectionKind.DockerHost:
-          key = keyForInventoryEntity(projectId, EntityType.DockerHost, record.id);
+          key = keyForInventoryEntity(
+            projectId,
+            EntityType.DockerHost,
+            record.id,
+          );
           break;
         case SecurityConnectionKind.PodmanHost:
-          key = keyForInventoryEntity(projectId, EntityType.PodmanHost, record.id);
+          key = keyForInventoryEntity(
+            projectId,
+            EntityType.PodmanHost,
+            record.id,
+          );
           break;
         case SecurityConnectionKind.NetworkDevice:
           key = keyForInventoryEntity(
