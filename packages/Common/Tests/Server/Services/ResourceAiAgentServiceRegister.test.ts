@@ -20,7 +20,6 @@ import ResourceAiAgentService, {
   MAX_RESOURCE_AI_AGENTS_PER_PROJECT,
   MAX_RESOURCE_AI_AGENT_IDENTIFIER_LENGTH,
   RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS,
-  RESOURCE_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS,
   RESOURCE_AI_AGENT_SELECT_WITHOUT_KEY,
   ResourceAiAgentRegistrationRefusedException,
   ResourceAiAgentRegistrationResult,
@@ -40,6 +39,7 @@ import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   MAX_POSTURE_STRING_LENGTH,
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+  RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   ResourceAiAgentRegistrationRefusalReason,
   ResourceAiRemediationMode,
   isTransientResourceAiAgentRegistrationRefusal,
@@ -59,8 +59,9 @@ import { FindOperator } from "typeorm";
  *     the clusters and vCenters by name); a database by its pinned id (in
  *     this project, else resource_not_found) or its endpoint;
  *  3. an existing agent row is re-keyed on proof of continuity, or when it
- *     is reset / signed off / offline; a live one is refused
- *     (previous_instance_online, transient, 20s) and the refusal recorded;
+ *     is reset / signed off / offline / left a refusal unanswered for the
+ *     takeover window; a live one is refused (previous_instance_online,
+ *     transient, retry once that window is up) and the refusal recorded;
  *  4. a new row is bounded per project (250) and per hour (30);
  *  5. only the key's hash is stored, and the posture is stored with the
  *     resource type and the registered identity forced;
@@ -1373,7 +1374,7 @@ describe("register: another agent is online (previous_instance_online)", () => {
       ResourceAiAgentServiceClass.hashKey(CURRENT_KEY),
     ],
   ])(
-    "%s: refused, transient, 20 seconds — and the key is not changed",
+    "%s: refused, transient, retry once the agent has had its time to answer — and the key is not changed",
     async (_label: string, previousAgentKey: string | undefined) => {
       const harness: Harness = setUp({ existing: makeAgent() });
 
@@ -1381,8 +1382,10 @@ describe("register: another agent is online (previous_instance_online)", () => {
         await refusalOf(register(previousAgentKey ? { previousAgentKey } : {}));
 
       expect(refusal.reason).toBe("previous_instance_online");
-      expect(refusal.retryAfterSeconds).toBe(20);
-      expect(RESOURCE_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS).toBe(20);
+      expect(refusal.retryAfterSeconds).toBe(
+        RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1,
+      );
+      expect(RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS).toBe(40);
       expect(
         isTransientResourceAiAgentRegistrationRefusal(refusal.reason),
       ).toBe(true);
@@ -1635,7 +1638,10 @@ describe("register: two agents registering a new resource at once", () => {
       await refusalOf(register());
 
     expect(refusal.reason).toBe("previous_instance_online");
-    expect(refusal.retryAfterSeconds).toBe(20);
+    // The winner just registered: the loser waits a whole takeover window.
+    expect(refusal.retryAfterSeconds).toBe(
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1,
+    );
     expect(harness.feed.mock.calls).toHaveLength(0);
 
     // The winner is looked up by the same resource.
@@ -2106,6 +2112,38 @@ describe("getReRegistrationAdmission", () => {
     ).toBe("offline");
     expect(admission({ ...ONLINE, lastAliveAt: null })).toBe("offline");
     expect(admission(ONLINE)).toBeNull();
+  });
+
+  test("unresponsive: online, but silent since a refusal for the whole takeover window", () => {
+    const windowMs: number =
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS * 1000;
+    const unanswered: AnyObject = {
+      ...ONLINE,
+      lastAliveAt: new Date(NOW.getTime() - windowMs - 30 * 1000),
+      lastRefusedRegistrationAt: new Date(NOW.getTime() - windowMs),
+      lastRefusedRegistrationReason: "previous_instance_online",
+    };
+
+    expect(admission(unanswered)).toBe("unresponsive");
+    // A moment short of the window, or answered since: still refused.
+    expect(
+      admission({
+        ...unanswered,
+        lastRefusedRegistrationAt: new Date(NOW.getTime() - windowMs + 1000),
+      }),
+    ).toBeNull();
+    expect(
+      admission({
+        ...unanswered,
+        lastAliveAt: new Date(NOW.getTime() - windowMs + 1000),
+      }),
+    ).toBeNull();
+    // The current key, a reset or a sign-off still come first.
+    expect(admission(unanswered, CURRENT_KEY)).toBe("continuity");
+    expect(admission({ ...unanswered, keyHash: null })).toBe("reset");
+    expect(admission({ ...unanswered, connectionStatus: "disconnected" })).toBe(
+      "signed_off",
+    );
   });
 });
 

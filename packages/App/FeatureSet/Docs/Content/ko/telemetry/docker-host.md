@@ -202,7 +202,8 @@ services:
 ```bash
 docker pull oneuptime/docker-agent:release
 docker pull oneuptime/resource-ai-agent:release
-docker rm -f oneuptime-docker-agent oneuptime-docker-ai-agent
+docker stop oneuptime-docker-agent oneuptime-docker-ai-agent
+docker rm oneuptime-docker-agent oneuptime-docker-ai-agent
 ```
 
 그런 다음 [에이전트 시작](#에이전트-시작)의 `docker run` 명령 두 개를 다시 실행하세요.

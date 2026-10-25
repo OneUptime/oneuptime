@@ -23,6 +23,7 @@ import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import { JSONObject } from "../../../Types/JSON";
 import {
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+  KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   KubernetesAgentPosture,
   KubernetesAiAgentRegistrationRefusalReason,
   KubernetesAiRemediationMode,
@@ -43,8 +44,9 @@ import { FindOperator } from "typeorm";
  *     asked to wait (legacy_runner_online, transient, 20s) — an ingestion
  *     key alone never takes a cluster from a live Runner;
  *  3. an existing agent row is re-keyed on proof of continuity, or when it
- *     is reset / signed off / offline; a live one is refused
- *     (previous_instance_online, transient, 20s) and the refusal recorded;
+ *     is reset / signed off / offline / left a refusal unanswered for the
+ *     takeover window; a live one is refused (previous_instance_online,
+ *     transient, retry once that window is up) and the refusal recorded;
  *  4. a new row is bounded per project (250) and per hour (30);
  *  5. only the key's hash is stored, and the posture is stored with
  *     inCluster and the cluster's identifier forced;
@@ -863,7 +865,7 @@ describe("register: another agent is online (previous_instance_online)", () => {
       KubernetesAiAgentServiceClass.hashKey(CURRENT_KEY),
     ],
   ])(
-    "%s: refused, transient, 20 seconds — and the key is not changed",
+    "%s: refused, transient, retry once the agent has had its time to answer — and the key is not changed",
     async (_label: string, previousAgentKey: string | undefined) => {
       const harness: Harness = setUp({ existing: makeAgent() });
 
@@ -871,7 +873,10 @@ describe("register: another agent is online (previous_instance_online)", () => {
         await refusalOf(register(previousAgentKey ? { previousAgentKey } : {}));
 
       expect(refusal.reason).toBe("previous_instance_online");
-      expect(refusal.retryAfterSeconds).toBe(20);
+      expect(refusal.retryAfterSeconds).toBe(
+        KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1,
+      );
+      expect(KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS).toBe(40);
       expect(
         isTransientKubernetesAiAgentRegistrationRefusal(refusal.reason),
       ).toBe(true);
@@ -1037,7 +1042,10 @@ describe("register: two pods registering a new cluster at once", () => {
       await refusalOf(register());
 
     expect(refusal.reason).toBe("previous_instance_online");
-    expect(refusal.retryAfterSeconds).toBe(20);
+    // The winner just registered: the loser waits a whole takeover window.
+    expect(refusal.retryAfterSeconds).toBe(
+      KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1,
+    );
     expect(harness.feed.mock.calls).toHaveLength(0);
   });
 
@@ -1491,6 +1499,38 @@ describe("getReRegistrationAdmission", () => {
     ).toBe("offline");
     expect(admission({ ...ONLINE, lastAliveAt: null })).toBe("offline");
     expect(admission(ONLINE)).toBeNull();
+  });
+
+  test("unresponsive: online, but silent since a refusal for the whole takeover window", () => {
+    const windowMs: number =
+      KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS * 1000;
+    const unanswered: Record<string, unknown> = {
+      ...ONLINE,
+      lastAliveAt: new Date(NOW.getTime() - windowMs - 30 * 1000),
+      lastRefusedRegistrationAt: new Date(NOW.getTime() - windowMs),
+      lastRefusedRegistrationReason: "previous_instance_online",
+    };
+
+    expect(admission(unanswered)).toBe("unresponsive");
+    // A moment short of the window, or answered since: still refused.
+    expect(
+      admission({
+        ...unanswered,
+        lastRefusedRegistrationAt: new Date(NOW.getTime() - windowMs + 1000),
+      }),
+    ).toBeNull();
+    expect(
+      admission({
+        ...unanswered,
+        lastAliveAt: new Date(NOW.getTime() - windowMs + 1000),
+      }),
+    ).toBeNull();
+    // The current key, a reset or a sign-off still come first.
+    expect(admission(unanswered, CURRENT_KEY)).toBe("continuity");
+    expect(admission({ ...unanswered, keyHash: null })).toBe("reset");
+    expect(admission({ ...unanswered, connectionStatus: "disconnected" })).toBe(
+      "signed_off",
+    );
   });
 });
 

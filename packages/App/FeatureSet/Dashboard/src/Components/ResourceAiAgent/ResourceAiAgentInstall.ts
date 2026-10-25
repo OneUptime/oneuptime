@@ -1022,7 +1022,7 @@ export function getResourceAiAgentWriteAccessCommands(
     installerNote: spec.directory
       ? null
       : translateTemplate(
-          "Installed the {{collectorName}} with install.sh? Run it again with {{allowWrites}}=true (and {{writeTargets}}) set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} rm -f {{service}}) and start it again with -e {{allowWrites}}=true.",
+          "Installed the {{collectorName}} with install.sh? Run it again with {{allowWrites}}=true (and {{writeTargets}}) set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} stop {{service}} && {{runtime}} rm {{service}}) and start it again with -e {{allowWrites}}=true.",
           {
             collectorName: translatableTerm(spec.collectorName),
             allowWrites: RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -1102,7 +1102,7 @@ export function getResourceAiAgentSettingsInstructions(data: {
         {
           text: isAgentOlder
             ? translateTemplate(
-                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it pulls the newer agent and starts it with them. Started the agent with {{runtime}} run? Pull {{image}}, remove the agent ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
+                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it pulls the newer agent and starts it with them. Started the agent with {{runtime}} run? Pull {{image}}, remove the agent ({{runtime}} stop {{service}} && {{runtime}} rm {{service}}) and start it again with them as -e flags.",
                 {
                   collectorName: translatableTerm(spec.collectorName),
                   runtime: spec.runtime,
@@ -1111,7 +1111,7 @@ export function getResourceAiAgentSettingsInstructions(data: {
                 },
               )
             : translateTemplate(
-                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
+                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} stop {{service}} && {{runtime}} rm {{service}}) and start it again with them as -e flags.",
                 {
                   collectorName: translatableTerm(spec.collectorName),
                   runtime: spec.runtime,
