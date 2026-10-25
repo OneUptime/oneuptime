@@ -193,14 +193,20 @@ const Button: FunctionComponent<ComponentProps> = ({
   let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm ${
     disabled ? "" : "hover:bg-gray-50"
   } focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
-  let loadingIconClassName: string = `w-5 h-5 mr-3 -ml-1 mr-1 animate-spin`;
+  /*
+   * The gap between an icon (or a spinner) and the words is on the words'
+   * side in either direction: margin-inline-end, not margin-right. In
+   * Persian a button's icon sits to the right of its words, and a right
+   * margin left it touching them, with the gap on the button's edge.
+   */
+  let loadingIconClassName: string = `w-5 h-5 -ms-1 me-3 animate-spin`;
   let iconClassName: string = `w-5 h-5`;
 
   if (
     buttonStyle !== ButtonStyleType.ICON &&
     buttonStyle !== ButtonStyleType.ICON_LIGHT
   ) {
-    iconClassName += ` mr-1`;
+    iconClassName += ` me-1`;
   } else {
     iconClassName += ` m-1`;
   }
@@ -385,7 +391,7 @@ const Button: FunctionComponent<ComponentProps> = ({
           : ``}
 
         {shortcutKey && (
-          <div className="ml-2">
+          <div className="ms-2">
             <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
               {shortcutKey}
             </kbd>

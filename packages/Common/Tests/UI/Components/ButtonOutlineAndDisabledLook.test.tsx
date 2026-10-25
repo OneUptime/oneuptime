@@ -401,6 +401,32 @@ describe("a disabled button looks it", () => {
     },
   );
 
+  /*
+   * Logical margins: the gap sits between the icon and the words whichever
+   * way the page reads. A right margin left a Persian button's icon touching
+   * its words.
+   */
+  test("an icon's and a spinner's gap is on the words' side in either direction", () => {
+    const withIcon: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.OUTLINE,
+      icon: IconProp.Refresh,
+    });
+    const icon: Element | null = withIcon.querySelector("svg");
+
+    expect(icon).toHaveClass("me-1");
+    expect(icon).not.toHaveClass("mr-1");
+
+    const busy: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.NORMAL,
+      isLoading: true,
+    });
+    const spinner: Element | null = busy.querySelector(".animate-spin");
+
+    expect(spinner).toHaveClass("-ms-1", "me-3");
+    expect(spinner).not.toHaveClass("mr-3");
+    expect(spinner).not.toHaveClass("-ml-1");
+  });
+
   test("a locked button that is also loading fades as well", () => {
     expect(
       renderButton({

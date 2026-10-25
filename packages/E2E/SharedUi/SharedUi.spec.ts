@@ -424,6 +424,60 @@ test.describe("an outline button draws a border, a fill, a hover and a focus rin
   });
 });
 
+/*
+ * The gap between a button's icon and its words, in pixels, on the words'
+ * side: the icon's end to the words' start, whichever way the page reads.
+ */
+async function iconGap(control: Locator): Promise<number> {
+  return await control.evaluate((element: Element): number => {
+    const icon: Element | null = element.querySelector("svg");
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let words: Node | null = walker.nextNode();
+
+    while (words && !(words.textContent || "").trim()) {
+      words = walker.nextNode();
+    }
+
+    if (!icon || !words) {
+      throw new Error("The button has no icon or no words");
+    }
+
+    const range: Range = document.createRange();
+    range.selectNodeContents(words);
+    const text: DOMRect = range.getBoundingClientRect();
+    const glyph: DOMRect = icon.getBoundingClientRect();
+    const isRightToLeft: boolean =
+      window.getComputedStyle(element).direction === "rtl";
+
+    return isRightToLeft ? glyph.left - text.right : text.left - glyph.right;
+  });
+}
+
+test.describe("a button's icon keeps its gap from the words, in either direction", () => {
+  test("in English and in Persian, where the icon sits to the right of the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["en", "fa"]) {
+      await open(page, `section=buttons${language === "fa" ? "&lang=fa" : ""}`);
+
+      for (const style of ["NORMAL", "OUTLINE", "PRIMARY", "LINK"]) {
+        const gap: number = await iconGap(button(page, `button-${style}`));
+
+        // me-1 is 4px; the icon's own box adds none.
+        expect(gap).toBeGreaterThanOrEqual(3);
+        expect(gap).toBeLessThanOrEqual(12);
+      }
+    }
+
+    await screenshot(page, "buttons-fa-1280");
+  });
+});
+
 test.describe("a button that cannot be pressed looks it", () => {
   test("every style fades and shows the not-allowed cursor when locked; pressable and busy ones do not", async ({
     page,
