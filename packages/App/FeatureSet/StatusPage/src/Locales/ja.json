@@ -396,13 +396,6 @@
   "Email is not valid.": "メールアドレスが無効です。",
   "Next": "次へ",
   "Opens in a new tab": "新しいタブで開きます",
-  "Note": "注記",
-  "Tip": "ヒント",
-  "Info": "情報",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "注意",
-  "Danger": "危険",
   "Loading the latest version": "最新バージョンを読み込んでいます",
   "A newer version of this page is available. It's loading now.": "このページの新しいバージョンがあります。現在読み込んでいます。",
   "You're offline": "オフラインです",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "読み込めませんでした。",
   "Try again": "再試行",
   "Loading...": "読み込み中...",
-  "Loading": "読み込み中"
+  "Loading": "読み込み中",
+  "markdownCallouts": {
+    "caution": "注意",
+    "danger": "危険",
+    "important": "重要",
+    "info": "情報",
+    "note": "注記",
+    "tip": "ヒント",
+    "warning": "警告"
+  }
 }

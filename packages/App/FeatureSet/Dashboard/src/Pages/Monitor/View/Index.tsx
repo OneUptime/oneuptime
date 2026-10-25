@@ -49,6 +49,8 @@ import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil"
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import MonitorOverviewPresentationUtil, {
   MonitorOverviewPresentation,
   MonitorOverviewPresentationInput,
@@ -90,6 +92,8 @@ import { useOutletContext } from "react-router-dom";
  * ReadProjectMonitor can all open the page.
  */
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // The hero, its facts and its sections are written in the reader's language.
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -141,7 +145,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   if (presentationInput) {
     try {
-      presentation = MonitorOverviewPresentationUtil.build(presentationInput);
+      presentation = MonitorOverviewPresentationUtil.build({
+        ...presentationInput,
+        translator: translator,
+      });
     } catch (err) {
       /*
        * A monitor type this build of the dashboard does not know has no

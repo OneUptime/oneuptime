@@ -793,6 +793,39 @@ describe("scanning a source tree", () => {
     expect(listSourceFiles(path.join(repository, "nowhere"))).toEqual([]);
   });
 
+  test("a root that is one source file lists that file alone", () => {
+    expect(
+      listSourceFiles(path.join(repository, "ui/Pages/A.tsx")).map(
+        (file: string) => {
+          return toRepositoryPath(file, repository);
+        },
+      ),
+    ).toEqual(["ui/Pages/A.tsx"]);
+  });
+
+  test("a root that is one file lists nothing when it is no source: a test, a declaration, a locale file", () => {
+    for (const name of [
+      "ui/Pages/A.test.tsx",
+      "ui/Types.d.ts",
+      "ui/Locales/en.json",
+    ]) {
+      expect(listSourceFiles(path.join(repository, name))).toEqual([]);
+    }
+  });
+
+  test("scans a root that is one file", () => {
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: "ui/Components/Z.ts", kind: "ui" }],
+      repository,
+    );
+
+    expect(
+      result.strings.map((entry: ExtractedString): string => {
+        return `${entry.file}:${entry.line} ${entry.text}`;
+      }),
+    ).toEqual(["ui/Components/Z.ts:1 A label"]);
+  });
+
   test("scans every root, in file order, with repository-relative names", () => {
     const result: SourceScanResult = scanSourceRoots(
       [
@@ -844,7 +877,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs and the AI and cloud connections' catalogs", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the cron schedule words and its common schedules", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -863,7 +896,23 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/LlmObservability",
       // Each cloud's title, its sign in methods, its shell and its fields.
       "ui packages/Common/Types/CloudConnection",
+      // The monitor pages' shared helpers: hero, uptime, metric groups.
+      "ui packages/Common/Utils/Monitor",
+      // A cron schedule in words.
+      "ui packages/Common/Utils/CronScheduleText.ts",
+      // The common schedules a workflow's Schedule trigger offers.
+      "ui packages/Common/Utils/CronTab.ts",
     ]);
+  });
+
+  test("name directories and files that exist", () => {
+    const repositoryRoot: string = path.join(__dirname, "..", "..", "..", "..");
+
+    for (const root of SOURCE_ROOTS) {
+      expect(fs.existsSync(path.join(repositoryRoot, root.directory))).toBe(
+        true,
+      );
+    }
   });
 
   /*

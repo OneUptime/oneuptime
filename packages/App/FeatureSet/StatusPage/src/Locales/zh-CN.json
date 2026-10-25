@@ -396,13 +396,6 @@
   "Email is not valid.": "电子邮件无效。",
   "Next": "下一步",
   "Opens in a new tab": "在新标签页中打开",
-  "Note": "注意",
-  "Tip": "提示",
-  "Info": "信息",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "小心",
-  "Danger": "危险",
   "Loading the latest version": "正在加载最新版本",
   "A newer version of this page is available. It's loading now.": "此页面有更新的版本，正在加载。",
   "You're offline": "你已离线",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "无法加载此内容。",
   "Try again": "重试",
   "Loading...": "加载中...",
-  "Loading": "加载中"
+  "Loading": "加载中",
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危险",
+    "important": "重要",
+    "info": "信息",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  }
 }

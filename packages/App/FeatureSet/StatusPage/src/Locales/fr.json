@@ -396,13 +396,6 @@
   "Email is not valid.": "L'e-mail n'est pas valide.",
   "Next": "Suivant",
   "Opens in a new tab": "S'ouvre dans un nouvel onglet",
-  "Note": "Remarque",
-  "Tip": "Astuce",
-  "Info": "Info",
-  "Important": "Important",
-  "Warning": "Avertissement",
-  "Caution": "Attention",
-  "Danger": "Danger",
   "Loading the latest version": "Chargement de la dernière version",
   "A newer version of this page is available. It's loading now.": "Une version plus récente de cette page est disponible. Elle se charge maintenant.",
   "You're offline": "Vous êtes hors ligne",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "Ce contenu n'a pas pu être chargé.",
   "Try again": "Réessayer",
   "Loading...": "Chargement...",
-  "Loading": "Chargement"
+  "Loading": "Chargement",
+  "markdownCallouts": {
+    "caution": "Attention",
+    "danger": "Danger",
+    "important": "Important",
+    "info": "Info",
+    "note": "Remarque",
+    "tip": "Astuce",
+    "warning": "Avertissement"
+  }
 }

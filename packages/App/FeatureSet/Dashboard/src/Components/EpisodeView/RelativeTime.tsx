@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { useWriteDatesInSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -18,10 +19,15 @@ export const RELATIVE_TIME_REFRESH_INTERVAL_IN_MS: number = 60 * 1000;
  * "5 minutes ago", with the exact local date and time on hover and in the
  * machine readable dateTime attribute. It re-renders once a minute so a page
  * left open does not keep saying "a few seconds ago".
+ *
+ * In the reader's language ("vor 5 Minuten"); inside a sentence, in the
+ * sentence's - English while the reader's language has not worded it.
  */
 const RelativeTime: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const writeDates: <T>(write: () => T) => T =
+    useWriteDatesInSentenceLanguage();
   const [, setTick] = useState<number>(0);
 
   useEffect(() => {
@@ -44,7 +50,9 @@ const RelativeTime: FunctionComponent<ComponentProps> = (
       title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)}
       className={props.className}
     >
-      {OneUptimeDate.fromNow(date)}
+      {writeDates((): string => {
+        return OneUptimeDate.fromNow(date);
+      })}
     </time>
   );
 };

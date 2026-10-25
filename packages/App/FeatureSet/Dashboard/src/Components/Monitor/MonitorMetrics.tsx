@@ -31,6 +31,8 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { buildMonitorMetricQueryConfig } from "./MonitorMetricQueryConfig";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -39,6 +41,7 @@ export interface ComponentProps {
 const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [monitorType, setMonitorType] = useState<MonitorType>(
     MonitorType.Manual, // unknown monitor type.
   );
@@ -184,7 +187,11 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
           return (
             <EmbeddedMetricCard
               key={category.title}
-              title={category.title}
+              /*
+               * The card draws its title as given (a chart's own title is a
+               * name someone typed), so a group's title is translated here.
+               */
+              title={translator.translateTemplate(category.title)}
               description={category.description}
               queryConfigs={categoryQueryConfigs[index] || []}
               timeRange={timeRange}

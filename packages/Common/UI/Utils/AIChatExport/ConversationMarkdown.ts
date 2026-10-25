@@ -8,6 +8,7 @@ import {
   AIChatWidget,
 } from "../../../Types/AI/AIChatTypes";
 import OneUptimeDate from "../../../Types/Date";
+import { inEnglishDates } from "../../../Types/DateLanguage";
 import neutralizeAssistantMarkdown from "./MarkdownSafety";
 import {
   citationsToMarkdown,
@@ -136,9 +137,10 @@ export default function convertConversationToMarkdown(
   const lines: Array<string> = [
     `# ${options.title || "AI conversation"}`,
     "",
-    `_Exported from OneUptime on ${OneUptimeDate.getDateAsLocalFormattedString(
-      options.exportedAt,
-    )}_`,
+    `_Exported from OneUptime on ${inEnglishDates((): string => {
+      // The export is English throughout.
+      return OneUptimeDate.getDateAsLocalFormattedString(options.exportedAt);
+    })}_`,
     "",
     "---",
     "",

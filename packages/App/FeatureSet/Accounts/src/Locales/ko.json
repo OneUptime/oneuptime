@@ -376,11 +376,13 @@
   "Switch to markdown source": "Markdown 원본으로 전환",
   "Switch to visual editor": "시각적 편집기로 전환",
   "Opens in a new tab": "새 탭에서 열림",
-  "Note": "참고",
-  "Tip": "팁",
-  "Info": "정보",
-  "Important": "중요",
-  "Warning": "경고",
-  "Caution": "주의",
-  "Danger": "위험"
+  "markdownCallouts": {
+    "caution": "주의",
+    "danger": "위험",
+    "important": "중요",
+    "info": "정보",
+    "note": "참고",
+    "tip": "팁",
+    "warning": "경고"
+  }
 }

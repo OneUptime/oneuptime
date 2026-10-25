@@ -901,13 +901,6 @@
   "Test passed, with a warning": "テストに合格しました（警告あり）",
   "Test failed": "テストに失敗しました",
   "Opens in a new tab": "新しいタブで開きます",
-  "Note": "注記",
-  "Tip": "ヒント",
-  "Info": "情報",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "注意",
-  "Danger": "危険",
   "Such as your company or team name. You can change it later.": "会社名やチーム名など。後から変更できます。",
   "If you have one, from an offer or a reseller.": "オファーやリセラーから受け取った場合に入力します。",
   "Plan": "プラン",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "読み込めませんでした。",
   "Try again": "再試行",
   "Dismiss": "閉じる",
-  "Loading": "読み込み中"
+  "Loading": "読み込み中",
+  "markdownCallouts": {
+    "caution": "注意",
+    "danger": "危険",
+    "important": "重要",
+    "info": "情報",
+    "note": "注記",
+    "tip": "ヒント",
+    "warning": "警告"
+  }
 }

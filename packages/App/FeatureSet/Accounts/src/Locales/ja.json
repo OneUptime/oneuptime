@@ -376,11 +376,13 @@
   "Switch to markdown source": "Markdown ソースに切り替え",
   "Switch to visual editor": "ビジュアルエディターに切り替え",
   "Opens in a new tab": "新しいタブで開きます",
-  "Note": "注記",
-  "Tip": "ヒント",
-  "Info": "情報",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "注意",
-  "Danger": "危険"
+  "markdownCallouts": {
+    "caution": "注意",
+    "danger": "危険",
+    "important": "重要",
+    "info": "情報",
+    "note": "注記",
+    "tip": "ヒント",
+    "warning": "警告"
+  }
 }

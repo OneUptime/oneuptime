@@ -396,13 +396,6 @@
   "Email is not valid.": "E-Mail ist ungültig.",
   "Next": "Weiter",
   "Opens in a new tab": "Öffnet in einem neuen Tab",
-  "Note": "Hinweis",
-  "Tip": "Tipp",
-  "Info": "Info",
-  "Important": "Wichtig",
-  "Warning": "Warnung",
-  "Caution": "Vorsicht",
-  "Danger": "Gefahr",
   "Loading the latest version": "Die neueste Version wird geladen",
   "A newer version of this page is available. It's loading now.": "Eine neuere Version dieser Seite ist verfügbar. Sie wird jetzt geladen.",
   "You're offline": "Sie sind offline",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "Dies konnte nicht geladen werden.",
   "Try again": "Erneut versuchen",
   "Loading...": "Wird geladen...",
-  "Loading": "Wird geladen"
+  "Loading": "Wird geladen",
+  "markdownCallouts": {
+    "caution": "Vorsicht",
+    "danger": "Gefahr",
+    "important": "Wichtig",
+    "info": "Info",
+    "note": "Hinweis",
+    "tip": "Tipp",
+    "warning": "Warnung"
+  }
 }

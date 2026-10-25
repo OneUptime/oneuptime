@@ -2,6 +2,8 @@ import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import CronTab from "../CronTab";
+import { describeCronSchedule } from "../CronScheduleText";
+import { Translator } from "../../UI/Utils/TranslateTemplate";
 import MonitoringIntervalUtil from "./MonitoringIntervalUtil";
 
 /*
@@ -433,18 +435,27 @@ export default class MonitorCheckScheduleUtil {
   /*
    * "Every 5 minutes". An empty or unreadable interval, or one that never
    * runs, is described as the schedule it actually gets: every minute.
+   * With a translator, in the reader's language ("Alle 5 Minuten",
+   * Common/Utils/CronScheduleText); in English without one.
    */
   public static describeInterval(
     monitoringInterval: string | null | undefined,
+    translator?: Translator | undefined,
   ): string {
+    const everyMinute: () => string = (): string => {
+      return translator
+        ? translator.translateTemplate("Every minute")
+        : "Every minute";
+    };
+
     const cron: string | null =
       MonitoringIntervalUtil.toCronOrNull(monitoringInterval);
 
     if (!cron || MonitorCheckScheduleUtil.isScheduleWithoutRuns(cron)) {
-      return "Every minute";
+      return everyMinute();
     }
 
-    return CronTab.getHumanReadableDescription(cron) || "Every minute";
+    return describeCronSchedule(cron, translator) || everyMinute();
   }
 
   /*
