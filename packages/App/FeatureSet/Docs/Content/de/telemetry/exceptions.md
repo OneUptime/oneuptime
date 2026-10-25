@@ -120,7 +120,7 @@ Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository
 
 ## Neue und zunehmende Ausnahmen mit KI finden und beheben
 
-Alle 15 Minuten durchsucht OneUptime Ihre Ausnahmen nach neuen, nach solchen, die plötzlich weit häufiger auftreten, und nach Diensten, deren Ausnahmen keinen Stack-Trace haben, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request dafür. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+Alle 15 Minuten durchsucht OneUptime Ihre Ausnahmen nach neuen, nach solchen, die plötzlich weit häufiger auftreten, und nach Diensten, deren Ausnahmen keinen Stack-Trace haben, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet für jeden, den es beheben kann, einen Pull Request. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
 
 | Befund | Wann OneUptime ihn anlegt | Der Pull Request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ### Sehen, was es getan hat
 
 - **Ausnahmen → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen, darunter die Frames Ihres Codes in seinem Stack-Trace. **Ausnahmegruppe anzeigen** öffnet die Ausnahme, und bei fehlenden Stack-Traces eines Dienstes öffnet **In Ausnahmen öffnen** seine nicht behobenen Ausnahmen vom letzten Tag.
-- **Ausnahmen → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- **Ausnahmen → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
 - Der Pull Request sagt, warum er geöffnet wurde, mit einem Link zu seinem Befund. Der einer neuen oder zunehmenden Ausnahme verlinkt auch die Ausnahme und erscheint auf ihrer Seite **KI-Unterstützung**. In Code nennt seine Aufgabe die Ausnahme, die sie behebt, oder den Befund, aus dem sie kam.
 
 ## Ausnahmen-Einblicke

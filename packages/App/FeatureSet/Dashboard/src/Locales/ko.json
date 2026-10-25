@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "이 우선순위의 케이스에 얼마나 빨리 사람이 필요한지 한 문장으로 적습니다.",
   "What a case in this status is waiting for, in a sentence.": "이 상태의 케이스가 무엇을 기다리는지 한 문장으로 적습니다.",
   "What the priority is called, like High or P1.": "우선순위의 이름입니다(예: High, P1).",
-  "What the status is called, like Investigating or Triage.": "상태의 이름입니다(예: 조사 중, 분류)."
+  "What the status is called, like Investigating or Triage.": "상태의 이름입니다(예: 조사 중, 분류).",
+  "Could not tell the cause": "원인을 파악하지 못했습니다",
+  "Found a cause outside the code": "코드 밖의 원인을 찾았습니다",
+  "Found a fault in the code": "코드의 결함을 찾았습니다",
+  "Found an expected error: a check doing its job": "예상된 오류를 찾았습니다: 제 역할을 하는 검사",
+  "Found an expected error: invalid input": "예상된 오류를 찾았습니다: 잘못된 입력"
 }

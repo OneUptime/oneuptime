@@ -37,7 +37,8 @@ The suite covers, on a laptop and on a phone, light and dark:
   to hold the code, and every reason it is not offered; Create Monitor on a
   new exception, and none on missing stack traces;
 - Logs: every investigation and pull request, newest first, a page at a
-  time, nothing yet and a read that failed.
+  time, what each investigation found (an expected error, under the spike's),
+  nothing yet and a read that failed.
 
 ## Run it
 

@@ -120,7 +120,7 @@ AI behöver tre saker först: en LLM-leverantör, ett anslutet förråd (på Git
 
 ## Hitta och åtgärda nya och ökande undantag med AI
 
-Var 15:e minut går OneUptime igenom dina undantag efter nya, efter dem som plötsligt inträffar mycket oftare och efter tjänster vars undantag saknar stack trace, och registrerar det den hittar som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request för det. Inget slås någonsin ihop: ditt team granskar varje pull request.
+Var 15:e minut går OneUptime igenom dina undantag efter nya, efter dem som plötsligt inträffar mycket oftare och efter tjänster vars undantag saknar stack trace, och registrerar det den hittar som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request för vart och ett den kan åtgärda. Inget slås någonsin ihop: ditt team granskar varje pull request.
 
 | Fynd | När OneUptime registrerar det | Pull requesten |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ### Se vad den gjorde
 
 - **Undantag → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis, ramarna från din kod i dess stack trace inräknade. **View Exception Group** öppnar undantaget, och för en tjänsts saknade stack traces öppnar **Öppna i Undantag** dess olösta undantag från det senaste dygnet.
-- **Undantag → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står.
+- **Undantag → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - Pull requesten säger varför den öppnades, med en länk till dess fynd. Den för ett nytt eller ökande undantag länkar också till undantaget och visas på undantagets sida **AI Assistance**. I Kod nämner dess uppgift undantaget den rättar, eller fyndet den kom från.
 
 ## Insikter i undantag

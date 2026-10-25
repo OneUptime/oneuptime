@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "Как быстро кейсу с этим приоритетом нужен человек, одним предложением.",
   "What a case in this status is waiting for, in a sentence.": "Чего ждёт кейс в этом статусе, одним предложением.",
   "What the priority is called, like High or P1.": "Как называется приоритет, например «High» или «P1».",
-  "What the status is called, like Investigating or Triage.": "Как называется статус, например «Расследование» или «Сортировка»."
+  "What the status is called, like Investigating or Triage.": "Как называется статус, например «Расследование» или «Сортировка».",
+  "Could not tell the cause": "Не удалось установить причину",
+  "Found a cause outside the code": "Найдена причина вне кода",
+  "Found a fault in the code": "Найдена ошибка в коде",
+  "Found an expected error: a check doing its job": "Найдена ожидаемая ошибка: проверка, которая делает свою работу",
+  "Found an expected error: invalid input": "Найдена ожидаемая ошибка: неверный ввод"
 }

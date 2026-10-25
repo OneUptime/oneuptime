@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "Hoe snel een zaak met deze prioriteit iemand nodig heeft, in één zin.",
   "What a case in this status is waiting for, in a sentence.": "Waar een zaak met deze status op wacht, in één zin.",
   "What the priority is called, like High or P1.": "Hoe de prioriteit heet, zoals High of P1.",
-  "What the status is called, like Investigating or Triage.": "Hoe de status heet, zoals Onderzoeken of Beoordeling."
+  "What the status is called, like Investigating or Triage.": "Hoe de status heet, zoals Onderzoeken of Beoordeling.",
+  "Could not tell the cause": "Oorzaak niet vast te stellen",
+  "Found a cause outside the code": "Oorzaak buiten de code gevonden",
+  "Found a fault in the code": "Fout in de code gevonden",
+  "Found an expected error: a check doing its job": "Verwachte fout gevonden: een controle die zijn werk doet",
+  "Found an expected error: invalid input": "Verwachte fout gevonden: ongeldige invoer"
 }

@@ -932,6 +932,19 @@ test.describe("Exceptions → AI → Logs", () => {
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
         await expect(entries.nth(2)).toContainText("Nothing to change");
 
+        /*
+         * What each investigation found: the spike's was an expected error,
+         * so the pull request above it handles that error better. A pull
+         * request says no verdict of its own.
+         */
+        await expect(
+          entries.nth(1).getByTestId("telemetry-ai-log-verdict"),
+        ).toHaveText("Found an expected error: invalid input");
+        await expect(entries.nth(1)).toContainText("Investigation");
+        await expect(
+          automatic.getByTestId("telemetry-ai-log-verdict"),
+        ).toHaveCount(0);
+
         await expectAiSection(page, testInfo, "Logs");
 
         if (isPhone(testInfo)) {
@@ -948,6 +961,13 @@ test.describe("Exceptions → AI → Logs", () => {
     await expect(
       page.getByTestId("telemetry-ai-log-entry").nth(3),
     ).toContainText("Failed");
+    // An investigation that failed found nothing to say.
+    await expect(
+      page
+        .getByTestId("telemetry-ai-log-entry")
+        .nth(3)
+        .getByTestId("telemetry-ai-log-verdict"),
+    ).toHaveCount(0);
 
     // A finding opens under Exceptions' AI tab.
     await page

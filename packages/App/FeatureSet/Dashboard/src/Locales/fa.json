@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "پرونده‌ای با این اولویت چقدر زود به یک نفر نیاز دارد، در یک جمله.",
   "What a case in this status is waiting for, in a sentence.": "پرونده‌ای در این وضعیت منتظر چه چیزی است، در یک جمله.",
   "What the priority is called, like High or P1.": "نام اولویت، مانند «High» یا «P1».",
-  "What the status is called, like Investigating or Triage.": "نام وضعیت، مانند «در حال بررسی» یا «تریاژ»."
+  "What the status is called, like Investigating or Triage.": "نام وضعیت، مانند «در حال بررسی» یا «تریاژ».",
+  "Could not tell the cause": "علت مشخص نشد",
+  "Found a cause outside the code": "علتی بیرون از کد پیدا شد",
+  "Found a fault in the code": "ایرادی در کد پیدا شد",
+  "Found an expected error: a check doing its job": "یک خطای مورد انتظار پیدا شد: بررسی‌ای که کارش را درست انجام می‌دهد",
+  "Found an expected error: invalid input": "یک خطای مورد انتظار پیدا شد: ورودی نامعتبر"
 }

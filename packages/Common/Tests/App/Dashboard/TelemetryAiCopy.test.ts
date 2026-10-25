@@ -14,6 +14,7 @@ import {
   describeTelemetryAiRuleTiming,
   getTelemetryAiFixOptions,
   getTelemetryAiInsightsScope,
+  getTelemetryAiLogVerdict,
   getTelemetryAiRulesTableId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
@@ -35,6 +36,7 @@ import {
   TelemetryAiLogState,
 } from "../../../Types/AI/TelemetryAiActivity";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
+import ErrorClass from "../../../Types/Telemetry/ErrorClass";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 
 /*
@@ -528,6 +530,84 @@ describe("Exceptions' AI section", () => {
     expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
       "Nothing is ever merged",
     );
+  });
+
+  /*
+   * The verdict decides a new or rising exception's pull request - a fix,
+   * better handling, or none on its own - so Logs says what each
+   * investigation found, for every verdict the investigation may reach.
+   */
+  test("its Logs say what each investigation found, for every verdict, in a short line", () => {
+    const verdicts: Readonly<Partial<Record<ErrorClass, string>>> =
+      copy.investigationVerdicts || {};
+
+    expect(Object.keys(verdicts).sort()).toEqual(
+      [...Object.values(ErrorClass)].sort(),
+    );
+
+    for (const words of Object.values(verdicts)) {
+      expect(words!.length).toBeGreaterThan(0);
+      expect(words!.length).toBeLessThanOrEqual(LINE_LIMIT);
+    }
+
+    expect(verdicts[ErrorClass.CodeFault]).toBe("Found a fault in the code");
+    // Both expected errors read as one, each saying which.
+    expect(verdicts[ErrorClass.UserError]).toMatch(
+      /^Found an expected error: /u,
+    );
+    expect(verdicts[ErrorClass.ExpectedDenial]).toMatch(
+      /^Found an expected error: /u,
+    );
+    expect(verdicts[ErrorClass.UserError]).not.toBe(
+      verdicts[ErrorClass.ExpectedDenial],
+    );
+    expect(verdicts[ErrorClass.Unknown]).toBe("Could not tell the cause");
+  });
+
+  test("a Logs entry's verdict: an investigation's, in its lane's words, and only one the lane words", () => {
+    for (const verdict of Object.values(ErrorClass)) {
+      expect(
+        getTelemetryAiLogVerdict(TelemetryAiLane.Exception, {
+          kind: TelemetryAiLogKind.Investigation,
+          classification: verdict,
+        }),
+      ).toBe(copy.investigationVerdicts![verdict]);
+
+      // A pull request is not a verdict, whatever its finding's was.
+      expect(
+        getTelemetryAiLogVerdict(TelemetryAiLane.Exception, {
+          kind: TelemetryAiLogKind.PullRequest,
+          classification: verdict,
+        }),
+      ).toBeNull();
+    }
+
+    // No verdict yet, or one the lane has no words for.
+    expect(
+      getTelemetryAiLogVerdict(TelemetryAiLane.Exception, {
+        kind: TelemetryAiLogKind.Investigation,
+      }),
+    ).toBeNull();
+    expect(
+      getTelemetryAiLogVerdict(TelemetryAiLane.Exception, {
+        kind: TelemetryAiLogKind.Investigation,
+        classification: "something-else",
+      }),
+    ).toBeNull();
+  });
+
+  test("a lane opts in to saying verdicts: the Profiler's and Traces' Logs say none", () => {
+    for (const lane of [TelemetryAiLane.Profile, TelemetryAiLane.Trace]) {
+      expect(
+        TELEMETRY_AI_LANE_COPY[lane].investigationVerdicts,
+      ).toBeUndefined();
+      expect(
+        getTelemetryAiLogVerdict(lane, {
+          kind: TelemetryAiLogKind.Investigation,
+          classification: ErrorClass.CodeFault,
+        }),
+      ).toBeNull();
+    }
   });
 
   test("its rules table has an id of its own, apart from the other lanes'", () => {

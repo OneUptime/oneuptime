@@ -120,7 +120,7 @@ L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté
 
 ## Trouver et corriger les exceptions nouvelles ou en hausse avec l'IA
 
-Toutes les 15 minutes, OneUptime parcourt vos exceptions à la recherche des nouvelles, de celles qui se produisent soudain bien plus souvent et des services dont les exceptions n'ont aucune stack trace, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour elle. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+Toutes les 15 minutes, OneUptime parcourt vos exceptions à la recherche des nouvelles, de celles qui se produisent soudain bien plus souvent et des services dont les exceptions n'ont aucune stack trace, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour celles qu'il peut corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
 
 | Constat | Quand OneUptime l'enregistre | La pull request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 ### Voir ce qu'il a fait
 
 - **Exceptions → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves, dont les frames de votre code dans sa stack trace. **View Exception Group** ouvre l'exception, et pour les stack traces manquantes d'un service, **Ouvrir dans Exceptions** ouvre ses exceptions non résolues du dernier jour.
-- **Exceptions → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune.
+- **Exceptions → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
 - La pull request explique pourquoi elle a été ouverte, avec un lien vers son constat. Celle d'une exception nouvelle ou en hausse renvoie aussi vers l'exception et apparaît sur sa page **Assistance IA**. Dans Code, sa tâche nomme l'exception qu'elle corrige, ou le constat d'où elle vient.
 
 ## Analyses des exceptions

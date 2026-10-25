@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "Hvor raskt en sak med denne prioriteten trenger en person, i én setning.",
   "What a case in this status is waiting for, in a sentence.": "Hva en sak med denne statusen venter på, i én setning.",
   "What the priority is called, like High or P1.": "Hva prioriteten heter, som High eller P1.",
-  "What the status is called, like Investigating or Triage.": "Hva statusen heter, som Undersøker eller Vurdering."
+  "What the status is called, like Investigating or Triage.": "Hva statusen heter, som Undersøker eller Vurdering.",
+  "Could not tell the cause": "Kunne ikke fastslå årsaken",
+  "Found a cause outside the code": "Fant en årsak utenfor koden",
+  "Found a fault in the code": "Fant en feil i koden",
+  "Found an expected error: a check doing its job": "Fant en forventet feil: en kontroll som gjør jobben sin",
+  "Found an expected error: invalid input": "Fant en forventet feil: ugyldig inndata"
 }

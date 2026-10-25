@@ -120,7 +120,7 @@ Prima l'IA ha bisogno di tre cose: un provider LLM, un repository collegato (su 
 
 ## Trovare e correggere le eccezioni nuove e in aumento con l'IA
 
-Ogni 15 minuti OneUptime esamina le vostre eccezioni alla ricerca di quelle nuove, di quelle che all'improvviso si verificano molto più spesso e dei servizi le cui eccezioni non hanno alcuno stack trace, e registra ciò che trova come insight IA, con le prove. Poi OneUptime AI analizza ciascuno e apre una pull request per esso. Non viene mai unito nulla: il vostro team revisiona ogni pull request.
+Ogni 15 minuti OneUptime esamina le vostre eccezioni alla ricerca di quelle nuove, di quelle che all'improvviso si verificano molto più spesso e dei servizi le cui eccezioni non hanno alcuno stack trace, e registra ciò che trova come insight IA, con le prove. Poi OneUptime AI analizza ciascuno e apre una pull request per quelli che può correggere. Non viene mai unito nulla: il vostro team revisiona ogni pull request.
 
 | Rilevamento | Quando OneUptime lo registra | La pull request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Eccezioni → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove, compresi i frame del vostro codice nel suo stack trace. **View Exception Group** apre l'eccezione e, sugli stack trace mancanti di un servizio, **Apri in Eccezioni** apre le sue eccezioni non risolte dell'ultimo giorno.
-- **Eccezioni → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- **Eccezioni → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - La pull request spiega perché è stata aperta, con un link al suo rilevamento. Quella di un'eccezione nuova o in aumento rimanda anche all'eccezione e compare sulla sua pagina **AI Assistance**. In Codice, la sua attività nomina l'eccezione che corregge, o il rilevamento da cui è nata.
 
 ## Informazioni sulle eccezioni

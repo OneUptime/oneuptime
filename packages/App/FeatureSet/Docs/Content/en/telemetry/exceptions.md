@@ -120,7 +120,7 @@ AI needs three things first: an LLM provider, a connected repository (on GitHub,
 
 ## Find and fix new and rising exceptions with AI
 
-Every 15 minutes OneUptime looks through your exceptions for new ones, ones that suddenly happen far more often, and services whose exceptions carry no stack trace, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request for it. Nothing is ever merged: your team reviews each pull request.
+Every 15 minutes OneUptime looks through your exceptions for new ones, ones that suddenly happen far more often, and services whose exceptions carry no stack trace, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request for the ones it can fix. Nothing is ever merged: your team reviews each pull request.
 
 | Finding | When OneUptime files it | The pull request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ### See what it did
 
 - **Exceptions → AI → Insights** lists what OneUptime found, each finding with its evidence, the frames of your code in its stack trace included. **View Exception Group** opens the exception, and on a service's missing stack traces, **Open in Exceptions** opens its unresolved exceptions from the last day.
-- **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
 - The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **AI Assistance** page. In Code, its task names the exception it fixes, or the finding it came from.
 
 ## Exceptions Insights

@@ -120,7 +120,7 @@ AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (o
 
 ## Nieuwe en stijgende uitzonderingen vinden en oplossen met AI
 
-Elke 15 minuten doorzoekt OneUptime uw uitzonderingen op nieuwe, op uitzonderingen die plotseling veel vaker optreden en op services waarvan de uitzonderingen geen stacktrace hebben, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent er een pull request voor. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+Elke 15 minuten doorzoekt OneUptime uw uitzonderingen op nieuwe, op uitzonderingen die plotseling veel vaker optreden en op services waarvan de uitzonderingen geen stacktrace hebben, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request voor elk inzicht dat het kan oplossen. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
 
 | Bevinding | Wanneer OneUptime die vastlegt | De pull request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Uitzonderingen → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs, de frames van uw code in haar stacktrace inbegrepen. **View Exception Group** opent de uitzondering, en bij de ontbrekende stacktraces van een service opent **Openen in Uitzonderingen** haar niet-opgeloste uitzonderingen van de afgelopen dag.
-- **Uitzonderingen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- **Uitzonderingen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
 - De pull request zegt waarom hij werd geopend, met een link naar zijn bevinding. Die van een nieuwe of stijgende uitzondering linkt ook naar de uitzondering en staat op haar pagina **AI Assistance**. In Code noemt zijn taak de uitzondering die ze verhelpt, of de bevinding waar ze vandaan kwam.
 
 ## Inzichten in uitzonderingen

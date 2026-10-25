@@ -12,6 +12,7 @@ import {
 } from "Common/Types/AI/TelemetryAiActivity";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
+import ErrorClass from "Common/Types/Telemetry/ErrorClass";
 import type { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import {
   PluralTemplate,
@@ -102,6 +103,14 @@ export interface TelemetryAiLaneCopy {
   logsIntro: string;
   logsEmptyTitle: string;
   logsEmptyDescription: string;
+  /*
+   * What an investigation found, said under its entry in Logs: its verdict
+   * (ErrorClass), in the lane's words. Optional: a lane opts in by adding
+   * its words, and one without them says no verdict there.
+   */
+  investigationVerdicts?:
+    | Readonly<Partial<Record<ErrorClass, string>>>
+    | undefined;
 
   // Settings: the switches card and More settings.
   switchesCardDescription: string;
@@ -319,6 +328,25 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     logsEmptyDescription: translationKey(
       "When OneUptime AI looks into an exception or opens a pull request for it, it shows up here.",
     ),
+    /*
+     * What the investigation found decides a new or rising exception's pull
+     * request - a fix for a fault of the code, better handling for an
+     * expected error, none on its own for the rest - so each investigation
+     * in Logs says it.
+     */
+    investigationVerdicts: {
+      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
+      [ErrorClass.UserError]: translationKey(
+        "Found an expected error: invalid input",
+      ),
+      [ErrorClass.ExpectedDenial]: translationKey(
+        "Found an expected error: a check doing its job",
+      ),
+      [ErrorClass.Infrastructure]: translationKey(
+        "Found a cause outside the code",
+      ),
+      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
+    },
 
     switchesCardDescription: translationKey(
       "It works on new and rising exceptions on its own. Turn it off if you do not want it to.",
@@ -648,6 +676,29 @@ export const TELEMETRY_AI_LOG_ASKED_BY: string =
 
 export const TELEMETRY_AI_LOG_OPEN_TASK: string = translationKey("Open task");
 
+/*
+ * What an investigation found, in its lane's words, for its Logs entry:
+ * null for a pull request, an investigation with no verdict yet, a lane
+ * that says no verdict, and a verdict the lane has no words for.
+ */
+export function getTelemetryAiLogVerdict(
+  lane: TelemetryAiLane,
+  entry: { kind: TelemetryAiLogKind; classification?: string | undefined },
+): string | null {
+  if (
+    entry.kind !== TelemetryAiLogKind.Investigation ||
+    !entry.classification
+  ) {
+    return null;
+  }
+
+  return (
+    TELEMETRY_AI_LANE_COPY[lane].investigationVerdicts?.[
+      entry.classification as ErrorClass
+    ] || null
+  );
+}
+
 export const TELEMETRY_AI_LOGS_SHOWING: PluralTemplate = {
   one: "Showing {{shown}} of {{total}} entry",
   other: "Showing {{shown}} of {{total}} entries",
@@ -667,6 +718,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   rulesTable: string;
   logs: string;
   logEntry: string;
+  logVerdict: string;
   logsEmpty: string;
   logsSettings: string;
   logsLoadMore: string;
@@ -680,6 +732,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   rulesTable: "telemetry-ai-rules-table",
   logs: "telemetry-ai-logs",
   logEntry: "telemetry-ai-log-entry",
+  logVerdict: "telemetry-ai-log-verdict",
   logsEmpty: "telemetry-ai-logs-empty",
   logsSettings: "telemetry-ai-logs-settings",
   logsLoadMore: "telemetry-ai-logs-load-more",

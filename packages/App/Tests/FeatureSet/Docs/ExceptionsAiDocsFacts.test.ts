@@ -375,6 +375,29 @@ describe("the Exception Tracking page's section on finding and fixing new and ri
     expect(section).toContain(
       "With no rule, OneUptime AI looks into every exception it finds right away, and opens a pull request for each one it can fix.",
     );
+    /*
+     * The opening says it the same way: a new or rising exception's pull
+     * request waits for the verdict and your own code, so not every
+     * finding gets one.
+     */
+    expect(section).toContain(
+      "OneUptime AI then looks into each one and opens a pull request for the ones it can fix.",
+    );
+    expect(section).not.toContain("opens a pull request for it.");
+  });
+
+  it("says Logs show what each investigation found, as the lane's Logs say it", () => {
+    const verdicts: Readonly<Record<string, string | undefined>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception].investigationVerdicts ||
+      {};
+
+    // Every verdict an investigation can reach has its words in Logs.
+    expect(Object.keys(verdicts).sort()).toEqual(
+      [...Object.values(ErrorClass)].sort(),
+    );
+    expect(section).toContain(
+      "- **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.",
+    );
   });
 
   it("says how many pull requests OneUptime AI opens on its own a day", () => {

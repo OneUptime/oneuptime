@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "用一句话说明此优先级的案例需要多快有人处理。",
   "What a case in this status is waiting for, in a sentence.": "用一句话说明处于此状态的案例在等待什么。",
   "What the priority is called, like High or P1.": "优先级的名称，例如“High”或“P1”。",
-  "What the status is called, like Investigating or Triage.": "状态的名称，例如“正在调查”或“初步研判”。"
+  "What the status is called, like Investigating or Triage.": "状态的名称，例如“正在调查”或“初步研判”。",
+  "Could not tell the cause": "无法确定原因",
+  "Found a cause outside the code": "发现代码之外的原因",
+  "Found a fault in the code": "发现代码缺陷",
+  "Found an expected error: a check doing its job": "发现预期错误：检查在正常工作",
+  "Found an expected error: invalid input": "发现预期错误：无效输入"
 }

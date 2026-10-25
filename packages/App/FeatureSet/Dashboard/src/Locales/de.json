@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "Wie schnell ein Fall mit dieser Priorität eine Person braucht, in einem Satz.",
   "What a case in this status is waiting for, in a sentence.": "Worauf ein Fall in diesem Status wartet, in einem Satz.",
   "What the priority is called, like High or P1.": "Wie die Priorität heißt, etwa Hoch oder P1.",
-  "What the status is called, like Investigating or Triage.": "Wie der Status heißt, etwa Untersuchung läuft oder Sichtung."
+  "What the status is called, like Investigating or Triage.": "Wie der Status heißt, etwa Untersuchung läuft oder Sichtung.",
+  "Could not tell the cause": "Ursache nicht erkennbar",
+  "Found a cause outside the code": "Ursache außerhalb des Codes gefunden",
+  "Found a fault in the code": "Fehler im Code gefunden",
+  "Found an expected error: a check doing its job": "Erwarteten Fehler gefunden: eine Prüfung, die ihre Arbeit tut",
+  "Found an expected error: invalid input": "Erwarteten Fehler gefunden: ungültige Eingabe"
 }

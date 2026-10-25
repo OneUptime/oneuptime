@@ -120,7 +120,7 @@ Antes, a IA precisa de três coisas: um provedor de LLM, um repositório conecta
 
 ## Encontrar e corrigir exceções novas ou em alta com IA
 
-A cada 15 minutos o OneUptime procura, nas suas exceções, as novas, as que de repente acontecem com muito mais frequência e os serviços cujas exceções não trazem stack trace, e registra o que encontra como insights de IA, com as evidências. Em seguida, o OneUptime AI analisa cada um e abre um pull request para ele. Nada é mesclado: sua equipe revisa cada pull request.
+A cada 15 minutos o OneUptime procura, nas suas exceções, as novas, as que de repente acontecem com muito mais frequência e os serviços cujas exceções não trazem stack trace, e registra o que encontra como insights de IA, com as evidências. Em seguida, o OneUptime AI analisa cada um e abre um pull request para os que puder corrigir. Nada é mesclado: sua equipe revisa cada pull request.
 
 | Constatação | Quando o OneUptime a registra | O pull request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Exceções → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências, incluindo os frames do seu código no stack trace dela. **View Exception Group** abre a exceção e, nos stack traces ausentes de um serviço, **Abrir em Exceções** abre as exceções não resolvidas dele do último dia.
-- **Exceções → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um.
+- **Exceções → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou.
 - O pull request diz por que foi aberto, com um link para a constatação. O de uma exceção nova ou em alta também leva à exceção e aparece na página **AI Assistance** dela. Em Código, a tarefa dele nomeia a exceção que corrige, ou a constatação de onde veio.
 
 ## Insights de exceções

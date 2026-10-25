@@ -120,7 +120,7 @@ AI trenger tre ting først: en LLM-leverandør, et tilkoblet lager (på GitHub, 
 
 ## Finn og rett nye og økende unntak med AI
 
-Hvert 15. minutt går OneUptime gjennom unntakene dine etter nye, etter dem som plutselig skjer langt oftere, og etter tjenester der unntakene ikke har noen stack trace, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull request for det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull request.
+Hvert 15. minutt går OneUptime gjennom unntakene dine etter nye, etter dem som plutselig skjer langt oftere, og etter tjenester der unntakene ikke har noen stack trace, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull request for hvert den kan rette. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull request.
 
 | Funn | Når OneUptime registrerer det | Pull requesten |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Unntak → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene, rammene fra koden din i stack tracen medregnet. **View Exception Group** åpner unntaket, og for en tjenestes manglende stack traces åpner **Åpne i Unntak** de uløste unntakene dens fra det siste døgnet.
-- **Unntak → KI → Logger** viser hver undersøkelse og hver pull request, nyeste først, med status for hver.
+- **Unntak → KI → Logger** viser hver undersøkelse og hver pull request, nyeste først, med status for hver og hva hver undersøkelse fant.
 - Pull requesten sier hvorfor den ble åpnet, med en lenke til funnet. Den for et nytt eller økende unntak lenker også til unntaket og vises på siden **AI Assistance** til unntaket. I Kode nevner oppgaven unntaket den retter, eller funnet den kom fra.
 
 ## Innsikt i unntak

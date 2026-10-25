@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "How fast a case at this priority needs a person, in a sentence.",
   "What a case in this status is waiting for, in a sentence.": "What a case in this status is waiting for, in a sentence.",
   "What the priority is called, like High or P1.": "What the priority is called, like High or P1.",
-  "What the status is called, like Investigating or Triage.": "What the status is called, like Investigating or Triage."
+  "What the status is called, like Investigating or Triage.": "What the status is called, like Investigating or Triage.",
+  "Could not tell the cause": "Could not tell the cause",
+  "Found a cause outside the code": "Found a cause outside the code",
+  "Found a fault in the code": "Found a fault in the code",
+  "Found an expected error: a check doing its job": "Found an expected error: a check doing its job",
+  "Found an expected error: invalid input": "Found an expected error: invalid input"
 }

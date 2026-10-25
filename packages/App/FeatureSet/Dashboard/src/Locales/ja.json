@@ -34407,5 +34407,10 @@
   "How fast a case at this priority needs a person, in a sentence.": "この優先度のケースにどれだけ早く担当者が必要かを一文で書きます。",
   "What a case in this status is waiting for, in a sentence.": "このステータスのケースが何を待っているかを一文で書きます。",
   "What the priority is called, like High or P1.": "優先度の名前です（例: 高、P1）。",
-  "What the status is called, like Investigating or Triage.": "ステータスの名前です（例: 調査中、トリアージ）。"
+  "What the status is called, like Investigating or Triage.": "ステータスの名前です（例: 調査中、トリアージ）。",
+  "Could not tell the cause": "原因を特定できませんでした",
+  "Found a cause outside the code": "コード以外の原因が見つかりました",
+  "Found a fault in the code": "コードの不具合が見つかりました",
+  "Found an expected error: a check doing its job": "想定内のエラーが見つかりました: 正しく機能しているチェック",
+  "Found an expected error: invalid input": "想定内のエラーが見つかりました: 無効な入力"
 }

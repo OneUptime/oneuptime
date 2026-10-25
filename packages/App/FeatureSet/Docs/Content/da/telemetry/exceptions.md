@@ -120,7 +120,7 @@ AI har først brug for tre ting: en LLM-udbyder, et forbundet lager (på GitHub,
 
 ## Find og ret nye og stigende undtagelser med AI
 
-Hvert 15. minut gennemgår OneUptime dine undtagelser for nye, for dem, der pludselig sker langt oftere, og for tjenester, hvis undtagelser ikke har noget stack trace, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request for den. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+Hvert 15. minut gennemgår OneUptime dine undtagelser for nye, for dem, der pludselig sker langt oftere, og for tjenester, hvis undtagelser ikke har noget stack trace, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request for dem, den kan rette. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
 
 | Fund | Hvornår OneUptime opretter det | Pull requesten |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 ### Se, hvad den gjorde
 
 - **Undtagelser → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser, rammerne fra din kode i dets stack trace medregnet. **View Exception Group** åbner undtagelsen, og for en tjenestes manglende stack traces åbner **Åbn i Undtagelser** dens uløste undtagelser fra det seneste døgn.
-- **Undtagelser → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- **Undtagelser → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - Pull requesten siger, hvorfor den blev åbnet, med et link til dens fund. En ny eller stigende undtagelses pull request linker også til undtagelsen og vises på undtagelsens side **AI Assistance**. I Kode nævner dens opgave den undtagelse, den retter, eller det fund, den kom fra.
 
 ## Indsigter i undtagelser

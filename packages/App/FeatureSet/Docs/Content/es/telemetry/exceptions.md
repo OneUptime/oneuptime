@@ -120,7 +120,7 @@ La IA necesita antes tres cosas: un proveedor de LLM, un repositorio conectado (
 
 ## Encontrar y corregir excepciones nuevas o en aumento con IA
 
-Cada 15 minutos OneUptime revisa sus excepciones en busca de las nuevas, de las que de repente ocurren mucho más a menudo y de los servicios cuyas excepciones no traen stack trace, y registra lo que encuentra como insights de IA, con las pruebas. Después, OneUptime AI analiza cada uno y abre un pull request para él. Nunca se fusiona nada: su equipo revisa cada pull request.
+Cada 15 minutos OneUptime revisa sus excepciones en busca de las nuevas, de las que de repente ocurren mucho más a menudo y de los servicios cuyas excepciones no traen stack trace, y registra lo que encuentra como insights de IA, con las pruebas. Después, OneUptime AI analiza cada uno y abre un pull request para los que puede corregir. Nunca se fusiona nada: su equipo revisa cada pull request.
 
 | Hallazgo | Cuándo lo registra OneUptime | El pull request |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 ### Ver lo que hizo
 
 - **Excepciones → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas, incluidos los frames de su código en su stack trace. **Ver grupo de excepciones** abre la excepción, y en los stack traces faltantes de un servicio, **Abrir en Excepciones** abre sus excepciones no resueltas del último día.
-- **Excepciones → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada uno.
+- **Excepciones → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada uno y lo que encontró cada investigación.
 - El pull request explica por qué se abrió, con un enlace a su hallazgo. El de una excepción nueva o en aumento también enlaza la excepción y aparece en su página **Asistencia de IA**. En Código, su tarea nombra la excepción que corrige, o el hallazgo del que vino.
 
 ## Análisis de excepciones
