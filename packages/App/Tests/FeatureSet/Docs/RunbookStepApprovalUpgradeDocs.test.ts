@@ -53,7 +53,9 @@ const NOTE_LEAD: string = `**${LEAD}**`;
 // The note before it (AutoRemediationRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**OneUptime AI fixes with any runbook, or only the ones a rule allows, and a rule picks its Runner.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (CodeRepositoryDefaultRunnerUpgradeDocs).
+const NEXT_LEAD: string =
+  "**A code repository that picks no Runner follows the project's default Runner.**";
 
 const AUTHORING_PAGE: string = "runbooks/authoring";
 const SECTION_HEADING: string = "## Failure handling and approvals";
@@ -130,7 +132,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on runbook step approvals", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on auto remediation rules and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on auto remediation rules and before the note on code repositories following the default Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -142,7 +144,9 @@ describe("the English upgrade note on runbook step approvals", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says where the switch sits, what the upgrade moves, what runs already started do, and what the API and Terraform see", () => {

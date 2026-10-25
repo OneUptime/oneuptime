@@ -68,7 +68,7 @@ La page d'une tâche est une conversation : ce qui a été demandé et le contex
 | **Échec** | Le tour n'a pas pu aboutir, et dit pourquoi. **Réessayer** redemande la même chose. |
 | **Arrêté** | Quelqu'un l'a arrêtée. **Réessayer** redemande la même chose. |
 
-Pour donner suite, écrivez dans la zone en bas, qui reste visible pendant que la conversation défile : répondez à l'IA, ajoutez du contexte ou demandez des modifications. Chaque réponse est le tour suivant de la même tâche : elle travaille sur la même branche et pousse vers la même pull request tant que celle-ci est ouverte. Une tâche ne fait qu'un tour à la fois, donc la zone attend pendant que l'IA travaille. Le **Journal** de chaque tour est le relevé exact de ce qu'il a fait.
+Pour donner suite, écrivez dans la zone en bas, qui reste visible pendant que la conversation défile : répondez à l'IA, ajoutez du contexte ou demandez des modifications. Chaque réponse est le tour suivant de la même tâche : elle travaille sur la même branche et pousse vers la même pull request tant que celle-ci est ouverte. Une tâche ne fait qu'un tour à la fois, donc la zone attend pendant que l'IA travaille. Le **Journal** de chaque tour est le relevé exact de ce qu'il a fait. Sur une tâche de plus d'un tour, un sélecteur en haut de la page **Journal** passe d'un tour à l'autre.
 
 Toute personne qui peut lire un dépôt lit ses tâches. Demander à l'IA, répondre et arrêter une tâche demandent la permission de modifier le dépôt, tout comme voir le diff d'une modification : les autres voient quels fichiers ont changé. Les tâches que OneUptime lance de lui-même (ci-dessous) figurent aussi dans leur dépôt, comme des conversations auxquelles vous pouvez répondre.
 
@@ -77,17 +77,18 @@ Toute personne qui peut lire un dépôt lit ses tâches. Demander à l'IA, répo
 ```mermaid title="D'un clic à une pull request"
 flowchart TB
     S["Une demande, un<br/>bouton ou un<br/>déclencheur"] --> Q["Une tâche de<br/>correction est<br/>mise en file"]
-    Q --> R["Un Runner qui exécute<br/>les corrections de<br/>code IA la prend"]
+    Q --> R["Le Runner du dépôt<br/>la prend"]
     R --> C["Il clone le dépôt<br/>et crée une branche"]
     C --> A["L'agent de code<br/>écrit la modification"]
-    A --> V["Les commandes de<br/>configuration, de build<br/>et de test la vérifient"]
+    A -->|"sur votre propre Runner"| V["Il compile et teste<br/>la modification comme<br/>le dit AGENTS.md"]
     V -->|"un échec"| A
     V --> P["Commit, push et<br/>ouverture d'une<br/>pull request"]
+    A -->|"sur le Runner global"| P
     P --> H["Une personne la relit<br/>et la fusionne"]
 ```
 
 1. Vous cliquez sur **Lancer la tâche** dans Code, ou sur **Corriger avec l'IA** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
-2. La tâche est mise en file sur son dépôt, et le Runner que le dépôt choisit la prend : l'un de vos Runners, ou un Runner global quand il n'en choisit aucun (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)).
+2. La tâche est mise en file sur son dépôt, et le Runner sur lequel le dépôt travaille la prend : celui qu'il choisit, sinon le Runner par défaut du projet, sinon un Runner global (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)).
 3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
 4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une demande part de la branche choisie quand elle a été faite, et sa pull request s'ouvre vers celle-ci. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
 5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA. Une correction d'exception, de trace lente ou d'incident consulte aussi les données de production pendant qu'elle travaille : les exceptions, les traces, les logs et les métriques des services du dépôt (voir [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction)).
@@ -175,7 +176,7 @@ Un dépôt dit comment il se compile et se teste dans un `AGENTS.md` à sa racin
 
 | Où l'IA travaille | Ce qu'elle fait du build et des tests du dépôt |
 | --- | --- |
-| L'un de vos Runners | Compile et teste sa modification avant l'ouverture de la pull request, corrige ce qui échoue et vérifie à nouveau, et indique dans son résumé les vérifications qu'elle a lancées. Chaque commande qu'elle lance dispose de 2 minutes au plus, sans les identifiants propres du Runner dans son environnement. |
+| L'un de vos Runners | Compile et teste sa modification avant l'ouverture de la pull request, corrige ce qui échoue et vérifie à nouveau, et indique dans son résumé les vérifications qu'elle a lancées. Chaque commande qu'elle lance dispose de 2 minutes, ou de 10 au plus pour une installation, un build ou une suite de tests lents, sans les identifiants propres du Runner dans son environnement. |
 | **Agent Runbook global** | Ne lance aucune commande : l'IA écrit la modification et ouvre la pull request, et la CI de votre dépôt la vérifie. |
 
 Rien de ce qui vient d'une pull request issue d'un fork n'est jamais lu comme les instructions du dépôt : une révision refuse une telle pull request, et une relecture lit la branche de base.
@@ -218,7 +219,7 @@ Ouvrez **Dépôts** dans le menu latéral de Code et cliquez sur **Connecter des
 
 Les commandes depuis les commentaires et les revues de production ont besoin de la GitHub App : elles ne fonctionnent donc pour l'instant que dans les dépôts GitHub, et les **Paramètres** du dépôt le disent.
 
-Pour GitLab, Forgejo ou Gitea, saisissez l'adresse du serveur (GitLab.com et Codeberg sont préremplis) et le jeton, puis choisissez les dépôts à connecter : la liste ne propose que ceux dans lesquels le jeton peut pousser, et en connecter d'autres plus tard peut réutiliser le jeton. OneUptime vérifie chaque jeton auprès de son serveur avant de le garder, le conserve chiffré et ne l'affiche plus jamais. Les **Paramètres** du dépôt montrent son serveur, le compte et les derniers caractères du jeton, avec **Remplacer le jeton d'accès**. Quand le serveur refuse un jeton expiré ou révoqué, ses dépôts affichent **Jeton refusé** et l'IA cesse d'y travailler, jusqu'à ce que le remplacement du jeton reconnecte chaque dépôt qui l'utilise.
+Pour GitLab, Forgejo ou Gitea, saisissez l'adresse du serveur (GitLab.com et Codeberg sont préremplis) et le jeton, puis choisissez les dépôts à connecter : la liste ne propose que ceux dans lesquels le jeton peut pousser, et en connecter d'autres plus tard peut réutiliser le jeton. OneUptime vérifie chaque jeton auprès de son serveur avant de le garder, le conserve chiffré et ne l'affiche plus jamais. Les **Paramètres** du dépôt montrent son serveur, le compte et les derniers caractères du jeton, avec **Remplacer le jeton d'accès**. Quand le serveur refuse un jeton expiré ou révoqué, ses dépôts affichent **Jeton refusé** et l'IA cesse d'y travailler, jusqu'à ce que le remplacement du jeton reconnecte chaque dépôt qui l'utilise. Sur un dépôt GitLab, les paramètres parlent de demandes de fusion, comme GitLab : **Demandes de fusion**, **Demandes de fusion de correctifs IA** et **Nombre max de demandes de fusion de correctifs ouvertes**.
 
 ### Un serveur Git sur un réseau privé
 
@@ -233,7 +234,7 @@ Une tâche a besoin de trois choses. La zone de demande de Code et la page **Ass
 | Un fournisseur LLM | Rien à configurer : un projet sans fournisseur propre utilise le fournisseur global, payé sur les crédits IA du projet. Un fournisseur à vous, sous **Paramètres du projet → IA → Fournisseurs LLM**, passe en premier. | Définissez une fois les variables d'environnement `GLOBAL_LLM_PROVIDER_*` sur le serveur, ou ajoutez un fournisseur au projet. |
 | Un dépôt connecté via la GitHub App | **Produits → Code**, puis **Connecter GitHub**. Si l'application est déjà installée sur le compte GitHub, cliquez plutôt sur **Connecter une installation existante** : l'installer de nouveau ne la connecte pas. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
 | Ou un dépôt sur GitLab, Forgejo ou Gitea, ou tout serveur Git | **Dépôts** dans Code, puis **Connecter des dépôts** (voir [Connecter un dépôt](#connecter-un-dépôt)). Nécessite le plan Growth. | Pareil, sans GitHub App à configurer. |
-| Un Runner qui exécute les corrections de code IA | Rien à faire tourner : un dépôt qui n'en choisit aucun travaille sur les Runners globaux de OneUptime. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA dans chaque dépôt qui ne choisit aucun Runner. |
+| Un Runner qui exécute les corrections de code IA | Rien à faire tourner : un dépôt qui n'en choisit aucun travaille sur le Runner par défaut du projet ou, à défaut, sur les Runners globaux de OneUptime. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA dans chaque dépôt qui travaille sur un Runner global. |
 
 Sur une instance auto-hébergée, le fournisseur global est un bloc de `config.env` (Docker Compose) ou de vos valeurs Helm. Pour un Ollama auto-hébergé :
 
@@ -251,14 +252,14 @@ Vous n'associez pas de dépôts à des services. Quand une tâche démarre, OneU
 
 ### Choisir le Runner du dépôt
 
-Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
+Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt qui n'en choisit aucun travaille sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, le premier choix, marqué **Par défaut du projet**, et le suit quand un autre Runner devient celui par défaut. Dans un projet sans Runner par défaut, il travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet. Pour garder un dépôt sur **Agent Runbook global** alors que le projet a un Runner par défaut, choisissez-le.
 
 | Runner | Ce qu'il fait d'une tâche |
 | --- | --- |
 | **Agent Runbook global** | Écrit la modification et ouvre la pull request sans la compiler ni la tester : la CI de votre dépôt vérifie la modification. |
 | L'un de vos Runners | Compile et teste aussi la modification comme le dit le `AGENTS.md` du dépôt, sur un hôte que vous contrôlez. |
 
-Seul le Runner qu'un dépôt choisit reçoit ses tâches et un jeton pour lui. Dans un projet qui désactive **Utiliser les agents Runbook globaux** sous **Runbooks → Agents de runbook**, chaque dépôt a besoin de l'un des Runners du projet. La page d'un Runner liste les dépôts qui le choisissent.
+Seul le Runner sur lequel un dépôt travaille reçoit ses tâches et un jeton pour lui. Dans un projet qui désactive **Utiliser les agents Runbook globaux** sous **Runbooks → Agents de runbook**, chaque dépôt a besoin de l'un des Runners du projet : celui qu'il choisit, ou le Runner par défaut du projet. La page d'un Runner liste les dépôts qui travaillent sur lui.
 
 ### Faire tourner votre propre Runner
 
@@ -317,11 +318,11 @@ La correction n'a pas pu être appliquée, le dépôt ou la branche d'où partai
 :::
 
 :::details Le Runner s'arrête au milieu d'une exécution
-Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est mise en échec avec une erreur. Elle n'est jamais remise en file d'elle-même, car le Runner peut déjà avoir poussé une partie d'une branche de correction ; relancez-la depuis l'endroit où vous l'aviez lancée.
+Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est mise en échec avec une erreur. Elle n'est jamais remise en file d'elle-même, car le Runner peut déjà avoir poussé une partie d'une branche de correction ; relancez-la depuis l'endroit où vous l'aviez lancée. Une commande lancée par l'agent de code entretient le heartbeat tant qu'elle tourne, si bien qu'un build ou une suite de tests longs n'est pas pris pour un Runner arrêté.
 :::
 
 :::details Aucun Runner ne prend la tâche
-Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre n'est pas connecté - celui que son dépôt choisit, ou un Runner global pour un dépôt qui n'en choisit aucun - échoue, avec un message qui dit lequel, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
+Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre n'est pas connecté - celui que son dépôt choisit, le Runner par défaut du projet pour un dépôt qui n'en choisit aucun, ou un Runner global - échoue, avec un message qui dit lequel, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
 :::
 
 ## Confidentialité

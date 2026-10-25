@@ -68,7 +68,7 @@ La pagina di un'attività è una conversazione: cosa è stato chiesto e il conte
 | **Non riuscito** | Il turno non è riuscito a finire, e dice perché. **Riprova** chiede di nuovo la stessa cosa. |
 | **Arrestato** | Qualcuno l'ha fermata. **Riprova** chiede di nuovo la stessa cosa. |
 
-Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conversazione scorre: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto.
+Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conversazione scorre: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto. In un'attività con più di un turno, un selettore in cima alla pagina **Registro** passa da un turno all'altro.
 
 Chi può leggere un repository ne legge le attività. Chiedere all'IA, rispondere e fermare un'attività richiedono il permesso di modificare il repository, e così vedere il diff di una modifica: tutti gli altri vedono quali file sono cambiati. Anche le attività che OneUptime avvia da solo (sotto) sono nel loro repository, come conversazioni in cui puoi rispondere.
 
@@ -77,17 +77,18 @@ Chi può leggere un repository ne legge le attività. Chiedere all'IA, risponder
 ```mermaid title="Da un clic a una pull request"
 flowchart TB
     S["Una richiesta, un<br/>pulsante o un<br/>trigger"] --> Q["Un'attività di<br/>correzione entra<br/>in coda"]
-    Q --> R["Un Runner che esegue<br/>le correzioni di<br/>codice AI la prende"]
+    Q --> R["Il Runner del<br/>repository la prende"]
     R --> C["Clona il repository<br/>e crea un branch"]
     C --> A["L'agente di codice<br/>scrive la modifica"]
-    A --> V["I comandi di setup,<br/>build e test<br/>la verificano"]
+    A -->|"su un tuo Runner"| V["Compila e testa<br/>la modifica come<br/>dice AGENTS.md"]
     V -->|"un errore"| A
     V --> P["Commit, push e<br/>apertura di una<br/>pull request"]
+    A -->|"sul Runner globale"| P
     P --> H["Una persona la rivede<br/>e ne fa il merge"]
 ```
 
 1. Fai clic su **Avvia attività** in Codice, o su **Correggi con l'IA** su un'eccezione non risolta, oppure un altro pulsante o trigger avvia un'attività (vedi [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione)).
-2. L'attività entra in coda sul suo repository, e il Runner scelto dal repository la prende: uno dei tuoi Runner, o un Runner globale quando non ne sceglie nessuno (vedi [Scegli il Runner del repository](#scegli-il-runner-del-repository)).
+2. L'attività entra in coda sul suo repository, e il Runner su cui lavora il repository la prende: quello che sceglie, altrimenti il Runner predefinito del progetto, altrimenti un Runner globale (vedi [Scegli il Runner del repository](#scegli-il-runner-del-repository)).
 3. Il Runner recupera il contesto dell'attività. Per una richiesta, sono le sue parole, il contesto aggiunto e la conversazione fin lì; per un'eccezione, il tipo, il messaggio e lo stack trace.
 4. Clona il repository in un proprio spazio di lavoro e crea un branch. Una correzione di un'eccezione si chiama `oneuptime-fix-exception-` seguito dai primi caratteri dell'id dell'esecuzione. Una richiesta parte dal branch scelto quando è stata fatta, e la sua pull request si apre verso di esso. Una risposta lavora invece sul branch della pull request aperta dell'attività.
 5. Un agente di codice, alimentato dal provider LLM del tuo progetto, legge il codice e scrive la modifica. Il server OneUptime effettua le chiamate al LLM, quindi il Runner non possiede mai la chiave API del tuo provider, e ogni chiamata viene misurata ed elencata nei log dell'IA. Una correzione di un'eccezione, di una traccia lenta o di un incidente legge anche i dati di produzione mentre lavora: le eccezioni, le tracce, i log e le metriche dei servizi del repository (vedi [Telemetria di produzione in una correzione](#telemetria-di-produzione-in-una-correzione)).
@@ -175,7 +176,7 @@ Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice
 
 | Dove lavora l'IA | Cosa fa con la build e i test del repository |
 | --- | --- |
-| Uno dei tuoi Runner | Compila e testa la sua modifica prima che si apra la pull request, corregge ciò che fallisce e verifica di nuovo, e dice nel suo riepilogo quali verifiche ha eseguito. Ogni comando che esegue ha fino a 2 minuti, senza le credenziali proprie del Runner nel suo ambiente. |
+| Uno dei tuoi Runner | Compila e testa la sua modifica prima che si apra la pull request, corregge ciò che fallisce e verifica di nuovo, e dice nel suo riepilogo quali verifiche ha eseguito. Ogni comando che esegue ha 2 minuti, o fino a 10 per un'installazione, una build o una suite di test lenta, senza le credenziali proprie del Runner nel suo ambiente. |
 | **Runner globale** | Non esegue alcun comando: scrive la modifica e apre la pull request, e la CI del tuo repository la controlla. |
 
 Nulla di una pull request che viene da un fork viene mai letto come istruzioni del repository: una revisione rifiuta una pull request simile, e una review legge il branch di base.
@@ -218,7 +219,7 @@ Apri **Repository** nel menu laterale di Codice e fai clic su **Connetti reposit
 
 I comandi dai commenti e le revisioni di produzione richiedono la GitHub App, quindi per ora funzionano solo nei repository GitHub, e le **Impostazioni** del repository lo dicono.
 
-Per GitLab, Forgejo o Gitea, inserisci l'indirizzo del server (GitLab.com e Codeberg sono già compilati) e il token, poi scegli i repository da collegare: l'elenco offre solo quelli in cui il token può inviare modifiche, e collegarne altri in seguito può riutilizzare il token. OneUptime verifica ogni token con il suo server prima di conservarlo, lo conserva cifrato e non lo mostra mai più. Le **Impostazioni** del repository mostrano il server, l'account e gli ultimi caratteri del token, con **Sostituisci il token di accesso**. Quando il server rifiuta un token scaduto o revocato, i suoi repository mostrano **Token rifiutato** e l'IA smette di lavorarci, finché sostituire il token non ricollega ogni repository che lo usa.
+Per GitLab, Forgejo o Gitea, inserisci l'indirizzo del server (GitLab.com e Codeberg sono già compilati) e il token, poi scegli i repository da collegare: l'elenco offre solo quelli in cui il token può inviare modifiche, e collegarne altri in seguito può riutilizzare il token. OneUptime verifica ogni token con il suo server prima di conservarlo, lo conserva cifrato e non lo mostra mai più. Le **Impostazioni** del repository mostrano il server, l'account e gli ultimi caratteri del token, con **Sostituisci il token di accesso**. Quando il server rifiuta un token scaduto o revocato, i suoi repository mostrano **Token rifiutato** e l'IA smette di lavorarci, finché sostituire il token non ricollega ogni repository che lo usa. In un repository GitLab le impostazioni parlano di merge request, come GitLab: **Merge request**, **Merge request di correzione IA** e **Max merge request di correzione aperte**.
 
 ### Un server Git su una rete privata
 
@@ -233,7 +234,7 @@ Un'attività ha bisogno di tre cose. La casella delle richieste di Codice e la p
 | Un provider LLM | Niente da configurare: un progetto senza un proprio provider usa il provider globale, pagato con i crediti IA del progetto. Un tuo provider, in **Impostazioni del progetto → IA → Provider LLM**, ha la precedenza. | Imposta una volta sul server le variabili d'ambiente `GLOBAL_LLM_PROVIDER_*`, oppure aggiungi un provider al progetto. |
 | Un repository collegato tramite la GitHub App | **Prodotti → Codice**, poi **Connetti GitHub**. Se l'app è già installata sull'account GitHub, fai invece clic su **Collega un'installazione esistente**: installarla di nuovo non la collega. Richiede il piano Growth. | Lo stesso, una volta che la tua istanza ha una GitHub App (vedi [Integrazione con GitHub](/docs/self-hosted/github-integration)). |
 | Oppure un repository su GitLab, Forgejo o Gitea, o su qualsiasi server Git | **Repository** in Codice, poi **Connetti repository** (vedi [Collegare un repository](#collegare-un-repository)). Richiede il piano Growth. | Lo stesso, senza GitHub App da configurare. |
-| Un Runner che esegue le correzioni di codice AI | Niente da gestire: un repository che non ne sceglie nessuno lavora sui Runner globali di OneUptime. | Il servizio `runner` di Docker Compose, o il Runner del chart Helm (`runner.enabled`, attivo per impostazione predefinita), si registra da solo ed esegue le correzioni di codice AI in ogni repository che non sceglie nessun Runner. |
+| Un Runner che esegue le correzioni di codice AI | Niente da gestire: un repository che non ne sceglie nessuno lavora sul Runner predefinito del progetto o, se non c'è, sui Runner globali di OneUptime. | Il servizio `runner` di Docker Compose, o il Runner del chart Helm (`runner.enabled`, attivo per impostazione predefinita), si registra da solo ed esegue le correzioni di codice AI in ogni repository che lavora su un Runner globale. |
 
 Su un'istanza self-hosted, il provider globale è un blocco di `config.env` (Docker Compose) o dei tuoi valori Helm. Per un Ollama self-hosted:
 
@@ -251,14 +252,14 @@ Non associ i repository ai servizi. Quando un'attività parte, OneUptime trova i
 
 ### Scegli il Runner del repository
 
-Ogni repository sceglie il Runner su cui l'IA ci lavora: nella sua pagina **Impostazioni** in Codice, apri **Altre impostazioni**, fai clic su **Modifica** nella scheda **Runner** e scegline uno. Un repository che la GitHub App importa parte sul [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto) del progetto, quando ne ha uno. Un repository che non ne sceglie nessuno lavora su **Runner globale**, che OneUptime esegue per ogni progetto.
+Ogni repository sceglie il Runner su cui l'IA ci lavora: nella sua pagina **Impostazioni** in Codice, apri **Altre impostazioni**, fai clic su **Modifica** nella scheda **Runner** e scegline uno. Un repository che non ne sceglie nessuno lavora sul [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto) del progetto, la prima scelta, contrassegnata **Predefinito del progetto**, e lo segue quando un altro Runner diventa il predefinito. In un progetto senza Runner predefinito, lavora su **Runner globale**, che OneUptime esegue per ogni progetto. Per tenere un repository su **Runner globale** mentre il progetto ha un Runner predefinito, sceglilo.
 
 | Runner | Cosa fa con un'attività |
 | --- | --- |
 | **Runner globale** | Scrive la modifica e apre la pull request senza compilarla né testarla: la CI del tuo repository controlla la modifica. |
 | Uno dei tuoi Runner | Compila e testa anche la modifica come dice l'`AGENTS.md` del repository, su un host che controlli tu. |
 
-Solo il Runner scelto da un repository riceve le sue attività e un token per esso. In un progetto che disattiva **Usa i Runner globali** in **Runbook → Agenti di runbook**, ogni repository ha bisogno di uno dei Runner del progetto. La pagina di un Runner elenca i repository che lo scelgono.
+Solo il Runner su cui lavora un repository riceve le sue attività e un token per esso. In un progetto che disattiva **Usa i Runner globali** in **Runbook → Agenti di runbook**, ogni repository ha bisogno di uno dei Runner del progetto: quello che sceglie, o il Runner predefinito del progetto. La pagina di un Runner elenca i repository che ci lavorano.
 
 ### Esegui un Runner tuo
 
@@ -317,11 +318,11 @@ La correzione non si è potuta applicare, il repository o il branch da cui parti
 :::
 
 :::details Il Runner si ferma a metà di un'esecuzione
-Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un errore. Non viene mai rimessa in coda da sola, perché il Runner potrebbe aver già fatto il push di una parte di un branch di correzione; riavviala da dove l'avevi avviata.
+Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un errore. Non viene mai rimessa in coda da sola, perché il Runner potrebbe aver già fatto il push di una parte di un branch di correzione; riavviala da dove l'avevi avviata. Un comando eseguito dall'agente di codice tiene vivo l'heartbeat mentre è in esecuzione, così una build o una suite di test lunga non viene scambiata per un Runner fermo.
 :::
 
 :::details Nessun Runner prende l'attività
-Un'attività che aspetta più di 30 minuti mentre il Runner che deve prenderla non è collegato - quello scelto dal suo repository, o un Runner globale per un repository che non ne sceglie nessuno - fallisce, con un messaggio che dice quale, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
+Un'attività che aspetta più di 30 minuti mentre il Runner che deve prenderla non è collegato - quello scelto dal suo repository, il Runner predefinito del progetto per un repository che non ne sceglie nessuno, o un Runner globale - fallisce, con un messaggio che dice quale, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
 :::
 
 ## Privacy

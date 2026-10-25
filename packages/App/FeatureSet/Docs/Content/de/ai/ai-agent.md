@@ -68,7 +68,7 @@ Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kon
 | **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum. **Erneut versuchen** fragt dasselbe noch einmal. |
 | **Gestoppt** | Jemand hat sie gestoppt. **Erneut versuchen** fragt dasselbe noch einmal. |
 
-Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat.
+Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat. Bei einer Aufgabe mit mehr als einem Durchgang wechselt eine Auswahl oben auf der Seite **Protokoll** zwischen ihren Durchgängen.
 
 Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten und eine Aufgabe stoppen erfordern die Berechtigung, das Repository zu bearbeiten, ebenso das Ansehen des Diffs einer Änderung: Alle anderen sehen, welche Dateien sich geändert haben. Die Aufgaben, die OneUptime selbst startet (unten), stehen ebenfalls in ihrem Repository, als Unterhaltungen, in denen Sie antworten können.
 
@@ -77,17 +77,18 @@ Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten un
 ```mermaid title="Vom Klick zum Pull Request"
 flowchart TB
     S["Eine Anfrage, eine<br/>Schaltfläche oder<br/>ein Auslöser"] --> Q["Eine Korrektur-<br/>aufgabe wird<br/>eingereiht"]
-    Q --> R["Ein Runner für KI-<br/>Codekorrekturen<br/>übernimmt sie"]
+    Q --> R["Der Runner des<br/>Repositorys<br/>übernimmt sie"]
     R --> C["Er klont das Repository<br/>und legt einen<br/>Branch an"]
     C --> A["Der Code-Agent<br/>schreibt die Änderung"]
-    A --> V["Einrichtungs-, Build-<br/>und Testbefehle<br/>prüfen sie"]
+    A -->|"auf Ihrem eigenen Runner"| V["Er baut und testet<br/>sie so, wie es die<br/>AGENTS.md vorgibt"]
     V -->|"ein Fehler"| A
     V --> P["Commit, Push und<br/>Pull Request öffnen"]
+    A -->|"auf dem globalen Runner"| P
     P --> H["Ein Mensch prüft<br/>und mergt ihn"]
 ```
 
 1. Sie klicken in Code auf **Aufgabe starten** oder bei einer ungelösten Ausnahme auf **Mit KI beheben**, oder eine andere Schaltfläche oder ein Auslöser startet eine Aufgabe (siehe [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten)).
-2. Die Aufgabe wird für ihr Repository eingereiht, und der Runner, den das Repository auswählt, übernimmt sie: einer Ihrer Runner oder ein globaler Runner, wenn es keinen auswählt (siehe [Den Runner des Repositorys auswählen](#den-runner-des-repositorys-auswählen)).
+2. Die Aufgabe wird für ihr Repository eingereiht, und der Runner, auf dem das Repository arbeitet, übernimmt sie: der, den es auswählt, sonst der Standard-Runner des Projekts, sonst ein globaler Runner (siehe [Den Runner des Repositorys auswählen](#den-runner-des-repositorys-auswählen)).
 3. Der Runner holt den Kontext der Aufgabe. Bei einer Anfrage sind das ihre Worte, der hinzugefügte Kontext und die bisherige Unterhaltung; bei einer Ausnahme ihr Typ, ihre Meldung und ihr Stack-Trace.
 4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs. Eine Anfrage geht von dem Branch aus, der beim Fragen ausgewählt wurde, und ihr Pull Request öffnet sich in ihn. Eine Antwort arbeitet stattdessen im Branch des offenen Pull Requests der Aufgabe.
 5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt. Eine Korrektur einer Ausnahme, eines langsamen Traces oder eines Vorfalls liest während der Arbeit auch Daten aus der Produktion: die Ausnahmen, Traces, Logs und Metriken der Dienste des Repositorys (siehe [Produktionstelemetrie in einer Korrektur](#produktionstelemetrie-in-einer-korrektur)).
@@ -175,7 +176,7 @@ Ein Repository beschreibt in einer `AGENTS.md` in seinem Stammverzeichnis, der D
 
 | Wo die KI arbeitet | Was sie mit Build und Tests des Repositorys macht |
 | --- | --- |
-| Einer Ihrer Runner | Baut und testet ihre Änderung, bevor der Pull Request geöffnet wird, behebt, was fehlschlägt, prüft erneut und nennt in ihrer Zusammenfassung die Prüfungen, die sie ausgeführt hat. Jeder Befehl, den sie ausführt, bekommt bis zu 2 Minuten, ohne die eigenen Zugangsdaten des Runners in seiner Umgebung. |
+| Einer Ihrer Runner | Baut und testet ihre Änderung, bevor der Pull Request geöffnet wird, behebt, was fehlschlägt, prüft erneut und nennt in ihrer Zusammenfassung die Prüfungen, die sie ausgeführt hat. Jeder Befehl, den sie ausführt, bekommt 2 Minuten, oder bis zu 10 für eine langsame Installation, einen langsamen Build oder eine langsame Testsuite, ohne die eigenen Zugangsdaten des Runners in seiner Umgebung. |
 | **Globaler Runner** | Führt keinen Befehl aus: Die KI schreibt die Änderung und öffnet den Pull Request, und das eigene CI Ihres Repositorys prüft sie. |
 
 Nichts aus einem Pull Request, der aus einem Fork kommt, wird je als Anleitung des Repositorys gelesen: Eine Überarbeitung lehnt einen solchen Pull Request ab, und ein Review liest den Basis-Branch.
@@ -218,7 +219,7 @@ Bis ein Deploy sie ausliefert, steht bei der Korrektur **Gemergt, wartet auf ein
 
 Befehle aus Kommentaren und Produktionsprüfungen brauchen die GitHub App, daher funktionieren sie vorerst nur in GitHub-Repositorys, und die **Einstellungen** des Repositorys sagen das.
 
-Für GitLab, Forgejo oder Gitea geben Sie die Adresse des Servers (GitLab.com und Codeberg sind vorausgefüllt) und das Token ein und wählen dann die Repositorys aus, die verbunden werden sollen: Die Liste bietet nur die an, in die das Token pushen kann, und weitere lassen sich später mit demselben Token verbinden. OneUptime prüft jedes Token bei seinem Server, bevor es es speichert, speichert es verschlüsselt und zeigt es nie wieder an. Die **Einstellungen** des Repositorys zeigen seinen Server, das Konto und die letzten Zeichen des Tokens, mit **Zugriffstoken ersetzen**. Lehnt der Server ein abgelaufenes oder widerrufenes Token ab, zeigen seine Repositorys **Token abgelehnt**, und die KI arbeitet nicht mehr darin, bis das Ersetzen des Tokens jedes Repository, das es nutzt, wieder verbindet.
+Für GitLab, Forgejo oder Gitea geben Sie die Adresse des Servers (GitLab.com und Codeberg sind vorausgefüllt) und das Token ein und wählen dann die Repositorys aus, die verbunden werden sollen: Die Liste bietet nur die an, in die das Token pushen kann, und weitere lassen sich später mit demselben Token verbinden. OneUptime prüft jedes Token bei seinem Server, bevor es es speichert, speichert es verschlüsselt und zeigt es nie wieder an. Die **Einstellungen** des Repositorys zeigen seinen Server, das Konto und die letzten Zeichen des Tokens, mit **Zugriffstoken ersetzen**. Lehnt der Server ein abgelaufenes oder widerrufenes Token ab, zeigen seine Repositorys **Token abgelehnt**, und die KI arbeitet nicht mehr darin, bis das Ersetzen des Tokens jedes Repository, das es nutzt, wieder verbindet. Bei einem GitLab-Repository sprechen die Einstellungen wie GitLab von Merge Requests: **Merge Requests**, **KI-Korrektur-Merge-Requests** und **Max. offene Korrektur-Merge-Requests**.
 
 ### Ein Git-Server in einem privaten Netzwerk
 
@@ -233,7 +234,7 @@ Eine Aufgabe braucht drei Dinge. Das Anfragefeld von Code und die Seite **KI-Unt
 | Ein LLM-Anbieter | Nichts einzurichten: Ein Projekt ohne eigenen Anbieter nutzt den globalen Anbieter, bezahlt aus dem KI-Guthaben des Projekts. Ein eigener Anbieter unter **Projekteinstellungen → KI → LLM-Anbieter** hat Vorrang. | Setzen Sie die Umgebungsvariablen `GLOBAL_LLM_PROVIDER_*` einmal auf dem Server, oder fügen Sie dem Projekt einen Anbieter hinzu. |
 | Ein über die GitHub App verbundenes Repository | **Produkte → Code**, dann **GitHub verbinden**. Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie stattdessen auf **Vorhandene Installation verbinden**: Eine erneute Installation verbindet sie nicht. Erfordert den Growth-Tarif. | Dasselbe, sobald Ihre Instanz eine GitHub App hat (siehe [GitHub-Integration](/docs/self-hosted/github-integration)). |
 | Oder ein Repository auf GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server | **Repositorys** in Code, dann **Repositorys verbinden** (siehe [Ein Repository verbinden](#ein-repository-verbinden)). Erfordert den Growth-Tarif. | Dasselbe, ohne GitHub App, die eingerichtet werden muss. |
-| Ein Runner, der KI-Codekorrekturen ausführt | Nichts zu betreiben: Ein Repository, das keinen auswählt, arbeitet auf den globalen Runnern von OneUptime. | Der Dienst `runner` von Docker Compose oder der Runner des Helm-Charts (`runner.enabled`, standardmäßig eingeschaltet) registriert sich selbst und führt KI-Codekorrekturen in jedem Repository aus, das keinen Runner auswählt. |
+| Ein Runner, der KI-Codekorrekturen ausführt | Nichts zu betreiben: Ein Repository, das keinen auswählt, arbeitet auf dem Standard-Runner des Projekts oder, ohne einen, auf den globalen Runnern von OneUptime. | Der Dienst `runner` von Docker Compose oder der Runner des Helm-Charts (`runner.enabled`, standardmäßig eingeschaltet) registriert sich selbst und führt KI-Codekorrekturen in jedem Repository aus, das auf einem globalen Runner arbeitet. |
 
 Auf einer selbst gehosteten Instanz ist der globale Anbieter ein Block in `config.env` (Docker Compose) oder in Ihren Helm-Werten. Für ein selbst gehostetes Ollama:
 
@@ -251,14 +252,14 @@ Sie ordnen Repositories keinen Diensten zu. Wenn eine Aufgabe startet, findet On
 
 ### Den Runner des Repositorys auswählen
 
-Jedes Repository wählt den Runner aus, auf dem die KI darin arbeitet: Öffnen Sie auf seiner Seite **Einstellungen** in Code **Weitere Einstellungen**, klicken Sie auf der Karte **Runner** auf **Bearbeiten** und wählen Sie einen aus. Ein Repository, das die GitHub App importiert, startet auf dem [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) des Projekts, wenn es einen hat. Ein Repository, das keinen auswählt, arbeitet auf **Globaler Runner**, den OneUptime für jedes Projekt betreibt.
+Jedes Repository wählt den Runner aus, auf dem die KI darin arbeitet: Öffnen Sie auf seiner Seite **Einstellungen** in Code **Weitere Einstellungen**, klicken Sie auf der Karte **Runner** auf **Bearbeiten** und wählen Sie einen aus. Ein Repository, das keinen auswählt, arbeitet auf dem [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) des Projekts, der ersten Auswahl, markiert mit **Projektstandard**, und wechselt mit, wenn ein anderer Runner zum Standard wird. In einem Projekt ohne Standard-Runner arbeitet es auf **Globaler Runner**, den OneUptime für jedes Projekt betreibt. Um ein Repository auf **Globaler Runner** zu halten, während das Projekt einen Standard-Runner hat, wählen Sie ihn aus.
 
 | Runner | Was er mit einer Aufgabe macht |
 | --- | --- |
 | **Globaler Runner** | Schreibt die Änderung und öffnet den Pull Request, ohne sie zu bauen oder zu testen: Das eigene CI Ihres Repositorys prüft die Änderung. |
 | Einer Ihrer Runner | Baut und testet die Änderung außerdem so, wie es die `AGENTS.md` des Repositorys beschreibt, auf einem Host, den Sie kontrollieren. |
 
-Nur der Runner, den ein Repository auswählt, erhält dessen Aufgaben und ein Token dafür. In einem Projekt, das **Globale Runner nutzen** unter **Runbooks → Runbook-Agents** ausschaltet, braucht jedes Repository einen der eigenen Runner des Projekts. Die Seite eines Runners listet die Repositorys auf, die ihn auswählen.
+Nur der Runner, auf dem ein Repository arbeitet, erhält dessen Aufgaben und ein Token dafür. In einem Projekt, das **Globale Runner nutzen** unter **Runbooks → Runbook-Agents** ausschaltet, braucht jedes Repository einen der eigenen Runner des Projekts: den, den es auswählt, oder den Standard-Runner des Projekts. Die Seite eines Runners listet die Repositorys auf, die auf ihm arbeiten.
 
 ### Einen eigenen Runner betreiben
 
@@ -317,11 +318,11 @@ Die Korrektur ließ sich nicht anwenden, das Repository oder der Branch, von dem
 :::
 
 :::details Der Runner bleibt mitten im Lauf stehen
-Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehler beendet. Er wird nie von selbst erneut eingereiht, weil der Runner bereits einen Teil eines Korrektur-Branches gepusht haben kann; starten Sie ihn dort neu, wo Sie ihn gestartet haben.
+Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehler beendet. Er wird nie von selbst erneut eingereiht, weil der Runner bereits einen Teil eines Korrektur-Branches gepusht haben kann; starten Sie ihn dort neu, wo Sie ihn gestartet haben. Ein Befehl, den der Code-Agent ausführt, hält den Heartbeat am Laufen, solange er läuft, sodass ein langer Build oder eine lange Testsuite nicht für einen angehaltenen Runner gehalten wird.
 :::
 
 :::details Kein Runner übernimmt die Aufgabe
-Eine Aufgabe, die länger als 30 Minuten wartet, während der Runner, der sie übernehmen soll, nicht verbunden ist - der, den ihr Repository auswählt, oder ein globaler Runner für ein Repository, das keinen auswählt -, schlägt mit einem Hinweis fehl, der sagt, welcher, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
+Eine Aufgabe, die länger als 30 Minuten wartet, während der Runner, der sie übernehmen soll, nicht verbunden ist - der, den ihr Repository auswählt, der Standard-Runner des Projekts für ein Repository, das keinen auswählt, oder ein globaler Runner -, schlägt mit einem Hinweis fehl, der sagt, welcher, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
 :::
 
 ## Datenschutz

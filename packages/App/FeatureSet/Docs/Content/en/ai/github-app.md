@@ -134,7 +134,7 @@ If a run cannot start, the app says why in the thread: it never fails silently.
 
 ## Turning it off
 
-Each repository has a switch: **Respond to GitHub Commands**, under **More settings** on the repository's **Settings** page. It is on for every repository and saves the moment you flip it. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
+Each repository has a switch: **Respond to GitHub Commands**, under **More settings** on the repository's **Settings** page. It is on for every repository and saves the moment you flip it. With it off, the app ignores mentions, assignments and the trigger label in that repository, and answers anyone who asks with a link to the switch.
 
 The same page holds the **GitHub Trigger Label**, under **More settings**, if you want a label other than `oneuptime`.
 

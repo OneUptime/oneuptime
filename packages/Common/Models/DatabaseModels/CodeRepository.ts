@@ -583,8 +583,9 @@ export default class CodeRepository extends BaseModel {
    * setup, build and test commands above when an operator set them) and
    * opens the pull request.
    * Only that Runner is handed the repository's AI work and a token for it.
-   * Empty means a global Runner - the one OneUptime runs for every project -
-   * while the project uses global Runners (Project.useGlobalRunners).
+   * Empty means the project's default Runner (below), and otherwise a
+   * global Runner - the one OneUptime runs for every project - while the
+   * project uses global Runners (Project.useGlobalRunners).
    *
    * Only one of the project's own Runners may be picked
    * (ProjectReferencesService refuses another project's Runner and a global

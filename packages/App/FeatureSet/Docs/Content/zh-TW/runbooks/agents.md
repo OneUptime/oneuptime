@@ -5,7 +5,7 @@
 :::cards
 - [安裝 Runner](#安裝-runner): 五個步驟，從儀表板到已連線的容器。
 - [為步驟指定 Runner](#為步驟指定-runner): 把步驟繫結到應執行它的 Runner。
-- [專案預設 Runner](#專案預設-runner): 未選擇 Runner 的步驟執行所在的 Runner。
+- [專案預設 Runner](#專案預設-runner): 未選擇 Runner 的步驟和程式碼儲存庫執行所在的 Runner。
 - [全域 Runner](#全域-runner): OneUptime 為所有專案執行的 Runner，以及它們執行什麼。
 - [逾時](#逾時): 認領逾時和執行逾時，以及兩者如何搭配。
 - [環境變數](#環境變數): 容器啟動時讀取的內容。
@@ -70,7 +70,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 - 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
-對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
+對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
 
@@ -156,7 +156,7 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 
 ## 專案預設 Runner
 
-專案可以把自己的某個 Runner 設為預設，就像把某個 Twilio 設定設為預設一樣。之後，所有未選擇 Runner 的運行手冊步驟都會在它上面執行：Bash、SSH 和 kubectl 步驟，以及原本會在全域 Runner 上執行的 JavaScript 步驟。
+專案可以把自己的某個 Runner 設為預設，就像把某個 Twilio 設定設為預設一樣。之後，所有未選擇 Runner 的運行手冊步驟都會在它上面執行：Bash、SSH 和 kubectl 步驟，以及原本會在全域 Runner 上執行的 JavaScript 步驟。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫，其中的 AI 也在它上面工作。
 
 若要把某個 Runner 設為預設，請前往 **運行手冊 → Runbook 代理程式** ，開啟該 Runner 所在列的 **⋯** 選單，點選 **設為專案預設** ，然後在對話方塊中確認。也可以開啟該 Runner，在它的 **專案預設值** 卡片上開啟 **用作專案預設** 。清單會在預設 Runner 的名稱旁標出 **專案預設** ，步驟的 **Runner** 下拉式清單也會在第一個選項上這樣標出。一個專案只有一個預設 Runner：把另一個 Runner 設為預設會取代它。同一選單中的 **不再用作專案預設** ，或 Runner 頁面上的開關，可以停止使用它。
 
@@ -172,7 +172,7 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 
 預設 Runner 必須是專案自己的、執行運行手冊步驟的 Runner：不能是全域 Runner，不能是 Kubernetes 代理程式安裝的叢集內 Runner，也不能是關閉了 **執行操作手冊** 的 Runner。只要某個 Runner 是預設 Runner，它的 **執行操作手冊** 就保持開啟。預設 Runner 未連線時，步驟的下拉式清單會提示這一點，在它上面的步驟會像對待任何 Runner 一樣等待它，直到 claim timeout 結束。
 
-只有運行手冊步驟使用預設 Runner。程式碼儲存庫在程式碼的設定中選擇自己的 Runner，AI 規則也選擇自己的 Runner。
+未選擇 Runner 的運行手冊步驟和程式碼儲存庫使用預設 Runner，並在另一個 Runner 成為預設時隨之轉移。AI 規則選擇自己的 Runner，新規則從預設 Runner 開始。
 
 ## 維運說明
 

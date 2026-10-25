@@ -68,7 +68,7 @@ De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde cont
 | **Mislukt** | De beurt kon niet worden afgerond, en zegt waarom. **Opnieuw proberen** vraagt hetzelfde nog eens. |
 | **Gestopt** | Iemand heeft hem gestopt. **Opnieuw proberen** vraagt hetzelfde nog eens. |
 
-Om verder te gaan, schrijf je in het vak onderaan, dat in beeld blijft terwijl het gesprek scrolt: antwoord AI, voeg context toe of vraag om wijzigingen. Elk antwoord is de volgende beurt van dezelfde taak: die werkt op dezelfde branch en pusht naar dezelfde pull request zolang die open is. Een taak doet één beurt tegelijk, dus het vak wacht terwijl AI werkt. Het **Logboek** van elke beurt is het letterlijke verslag van wat die deed.
+Om verder te gaan, schrijf je in het vak onderaan, dat in beeld blijft terwijl het gesprek scrolt: antwoord AI, voeg context toe of vraag om wijzigingen. Elk antwoord is de volgende beurt van dezelfde taak: die werkt op dezelfde branch en pusht naar dezelfde pull request zolang die open is. Een taak doet één beurt tegelijk, dus het vak wacht terwijl AI werkt. Het **Logboek** van elke beurt is het letterlijke verslag van wat die deed. Bij een taak met meer dan één beurt wisselt een keuzelijst boven aan de pagina **Logboek** tussen de beurten.
 
 Wie een repository kan lezen, leest zijn taken. AI iets vragen, antwoorden en een taak stoppen vereisen het recht om de repository te bewerken, en dat geldt ook voor de diff van een wijziging bekijken: alle anderen zien welke bestanden er veranderd zijn. De taken die OneUptime zelf start (hieronder) staan ook in hun repository, als gesprekken waarin je kunt antwoorden.
 
@@ -77,17 +77,18 @@ Wie een repository kan lezen, leest zijn taken. AI iets vragen, antwoorden en ee
 ```mermaid title="Van een klik tot een pull request"
 flowchart TB
     S["Een verzoek, een<br/>knop of een trigger"] --> Q["Een hersteltaak<br/>komt in de wachtrij"]
-    Q --> R["Een Runner die AI-<br/>codecorrecties uitvoert<br/>pakt de taak op"]
+    Q --> R["De Runner van de<br/>repository pakt<br/>de taak op"]
     R --> C["Hij kloont de repository<br/>en maakt een branch"]
     C --> A["De code-agent<br/>schrijft de wijziging"]
-    A --> V["Setup-, build- en<br/>testopdrachten<br/>controleren de wijziging"]
+    A -->|"op je eigen Runner"| V["Hij bouwt en test<br/>de wijziging zoals<br/>AGENTS.md zegt"]
     V -->|"een fout"| A
     V --> P["Commit, push en<br/>een pull request<br/>openen"]
+    A -->|"op de globale Runner"| P
     P --> H["Een mens beoordeelt<br/>en merget de pull request"]
 ```
 
 1. Je klikt op **Taak starten** in Code, of op **Oplossen met AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
-2. De taak komt in de wachtrij van zijn repository, en de Runner die de repository kiest pakt hem op: een van je Runners, of een globale Runner als hij er geen kiest (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)).
+2. De taak komt in de wachtrij van zijn repository, en de Runner waarop de repository werkt pakt hem op: de Runner die hij kiest, anders de standaard-Runner van het project, anders een globale Runner (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)).
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
 4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een vraag gaat uit van de branch die gekozen was toen die gesteld werd, en de pull request opent daarnaartoe. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
 5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs. Een herstel van een uitzondering, een trage trace of een incident leest tijdens het werk ook uit productie: de uitzonderingen, traces, logs en metrieken van de services van de repository (zie [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel)).
@@ -175,7 +176,7 @@ Een repository zegt in een `AGENTS.md` in de hoofdmap, het bestand dat codeerage
 
 | Waar AI werkt | Wat het met de build en tests van de repository doet |
 | --- | --- |
-| Een van je Runners | Bouwt en test zijn wijziging voordat de pull request opent, herstelt wat faalt en controleert opnieuw, en zegt in zijn samenvatting welke controles hij heeft gedraaid. Elke opdracht die hij draait, krijgt tot 2 minuten, zonder de eigen inloggegevens van de Runner in zijn omgeving. |
+| Een van je Runners | Bouwt en test zijn wijziging voordat de pull request opent, herstelt wat faalt en controleert opnieuw, en zegt in zijn samenvatting welke controles hij heeft gedraaid. Elke opdracht die hij draait, krijgt 2 minuten, of tot 10 voor een trage installatie, build of testsuite, zonder de eigen inloggegevens van de Runner in zijn omgeving. |
 | **Globale Runner** | Draait geen opdracht: hij schrijft de wijziging en opent de pull request, en de eigen CI van je repository controleert die. |
 
 Niets uit een pull request die uit een fork komt, wordt ooit gelezen als de instructies van de repository: een herziening weigert zo'n pull request, en een review leest de basisbranch.
@@ -218,7 +219,7 @@ Open **Repository's** in het zijmenu van Code en klik op **Repository's verbinde
 
 Opdrachten uit opmerkingen en productiebeoordelingen hebben de GitHub App nodig, dus voorlopig werken ze alleen in GitHub-repository's, en de **Instellingen** van de repository zeggen dat.
 
-Voor GitLab, Forgejo of Gitea voer je het adres van de server in (GitLab.com en Codeberg zijn al ingevuld) en het token, en kies je de repository's om te verbinden: de lijst biedt alleen de repository's aan waarnaar het token kan pushen, en later meer verbinden kan het token hergebruiken. OneUptime controleert elk token bij zijn server voordat het het bewaart, bewaart het versleuteld en toont het nooit meer. De **Instellingen** van de repository tonen de server, het account en de laatste tekens van het token, met **Toegangstoken vervangen**. Weigert de server een verlopen of ingetrokken token, dan tonen zijn repository's **Token geweigerd** en werkt AI er niet meer in, tot het vervangen van het token elke repository die het gebruikt weer verbindt.
+Voor GitLab, Forgejo of Gitea voer je het adres van de server in (GitLab.com en Codeberg zijn al ingevuld) en het token, en kies je de repository's om te verbinden: de lijst biedt alleen de repository's aan waarnaar het token kan pushen, en later meer verbinden kan het token hergebruiken. OneUptime controleert elk token bij zijn server voordat het het bewaart, bewaart het versleuteld en toont het nooit meer. De **Instellingen** van de repository tonen de server, het account en de laatste tekens van het token, met **Toegangstoken vervangen**. Weigert de server een verlopen of ingetrokken token, dan tonen zijn repository's **Token geweigerd** en werkt AI er niet meer in, tot het vervangen van het token elke repository die het gebruikt weer verbindt. Bij een GitLab-repository spreken de instellingen, net als GitLab, van merge requests: **Merge requests**, **AI-fix-merge-requests** en **Max. open fix-merge-requests**.
 
 ### Een Git-server op een privénetwerk
 
@@ -233,7 +234,7 @@ Een taak heeft drie dingen nodig. Het vraagvak van Code en de pagina **AI Assist
 | Een LLM-provider | Niets in te stellen: een project zonder eigen provider gebruikt de globale provider, betaald uit de AI-tegoeden van het project. Een eigen provider, onder **Projectinstellingen → AI → LLM-providers**, gaat voor. | Stel de omgevingsvariabelen `GLOBAL_LLM_PROVIDER_*` eenmalig in op de server, of voeg een provider toe aan het project. |
 | Een repository gekoppeld via de GitHub App | **Producten → Code**, dan **GitHub verbinden**. Is de app al op het GitHub-account geïnstalleerd, klik dan in plaats daarvan op **Een bestaande installatie koppelen**: opnieuw installeren koppelt hem niet. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
 | Of een repository op GitLab, Forgejo of Gitea, of op elke Git-server | **Repository's** in Code, dan **Repository's verbinden** (zie [Een repository verbinden](#een-repository-verbinden)). Vereist het Growth-abonnement. | Hetzelfde, zonder GitHub App om in te stellen. |
-| Een Runner die AI-codecorrecties uitvoert | Niets te draaien: een repository die er geen kiest, werkt op de globale Runners van OneUptime. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit in elke repository die geen Runner kiest. |
+| Een Runner die AI-codecorrecties uitvoert | Niets te draaien: een repository die er geen kiest, werkt op de standaard-Runner van het project of, zonder die, op de globale Runners van OneUptime. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit in elke repository die op een globale Runner werkt. |
 
 Op een zelf gehoste instantie is de globale provider één blok in `config.env` (Docker Compose) of in je Helm-waarden. Voor een zelf gehoste Ollama:
 
@@ -251,14 +252,14 @@ Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime d
 
 ### De Runner van de repository kiezen
 
-Elke repository kiest de Runner waarop AI erin werkt: open op zijn pagina **Instellingen** in Code **Meer instellingen**, klik op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
+Elke repository kiest de Runner waarop AI erin werkt: open op zijn pagina **Instellingen** in Code **Meer instellingen**, klik op **Bewerken** op de kaart **Runner** en kies er een. Een repository die er geen kiest, werkt op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, de eerste keuze, gemarkeerd met **Projectstandaard**, en verhuist mee wanneer een andere Runner de standaard wordt. In een project zonder standaard-Runner werkt hij op **Globale Runner**, die OneUptime voor elk project draait. Kies **Globale Runner** om een repository erop te houden terwijl het project een standaard-Runner heeft.
 
 | Runner | Wat hij met een taak doet |
 | --- | --- |
 | **Globale Runner** | Schrijft de wijziging en opent de pull request zonder die te bouwen of te testen: de eigen CI van je repository controleert de wijziging. |
 | Een van je Runners | Bouwt en test de wijziging ook zoals de `AGENTS.md` van de repository zegt, op een host die jij beheert. |
 
-Alleen de Runner die een repository kiest, krijgt zijn taken en een token ervoor. In een project dat **Globale Runners gebruiken** uitzet onder **Runbooks → Runbook-agenten**, heeft elke repository een van de eigen Runners van het project nodig. De pagina van een Runner toont de repositories die hem kiezen.
+Alleen de Runner waarop een repository werkt, krijgt zijn taken en een token ervoor. In een project dat **Globale Runners gebruiken** uitzet onder **Runbooks → Runbook-agenten**, heeft elke repository een van de eigen Runners van het project nodig: de Runner die hij kiest, of de standaard-Runner van het project. De pagina van een Runner toont de repositories die erop werken.
 
 ### Een eigen Runner draaien
 
@@ -317,11 +318,11 @@ Het herstel kon niet worden toegepast, de repository of de branch waarvan een vr
 :::
 
 :::details De Runner stopt midden in een run
-Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout beëindigd. Hij komt nooit vanzelf opnieuw in de wachtrij, omdat de Runner al een deel van een herstelbranch gepusht kan hebben; start hem opnieuw waar je hem startte.
+Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout beëindigd. Hij komt nooit vanzelf opnieuw in de wachtrij, omdat de Runner al een deel van een herstelbranch gepusht kan hebben; start hem opnieuw waar je hem startte. Een opdracht die de code-agent draait, houdt de heartbeat gaande zolang hij loopt, zodat een lange build of testsuite niet voor een gestopte Runner wordt aangezien.
 :::
 
 :::details Geen Runner pakt de taak op
-Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken niet verbonden is - die zijn repository kiest, of een globale Runner voor een repository die er geen kiest - mislukt met een melding die zegt welke, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
+Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken niet verbonden is - die zijn repository kiest, de standaard-Runner van het project voor een repository die er geen kiest, of een globale Runner - mislukt met een melding die zegt welke, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
 :::
 
 ## Privacy

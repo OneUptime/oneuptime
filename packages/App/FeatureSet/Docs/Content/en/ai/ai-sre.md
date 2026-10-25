@@ -427,7 +427,7 @@ They are folded under **More settings** at the bottom of each signal type's AI s
 | Daily token limit | Optional maximum tokens per UTC day for autonomous AI work linked to this signal type, including investigations, remediation, and follow-up fix tasks. Incident and alert usage is counted separately. When one limit is reached, only that signal type's AI work is paused until the next day — interactive AI chat is never blocked. Unset (the default) means **no limit**; set **0** to pause that lane. |
 | Daily fix-task limit | Maximum incident- or alert-linked fix tasks created per UTC day. Each signal type has its own limit. Unset (the default) means **no limit**; set 0 to pause that lane's fix tasks. |
 
-AI work outside incidents and alerts — insight triage, and fix tasks for exceptions, insights and performance regressions — has no setting of its own and none of the limits in the table; only the project's own daily limits (below) apply to it. Its pull requests count against a repository's **Max Open Fix Pull Requests** (on the repository's **Settings** page) once you set one; unset means no cap, and 0 blocks AI fix pull requests for that repository.
+AI work outside incidents and alerts — insight triage, and fix tasks for exceptions, insights and performance regressions — has no setting of its own and none of the limits in the table; only the project's own daily limits (below) apply to it. Its pull requests count against a repository's **Max Open Fix Pull Requests**, under **More settings** on the repository's **Settings** page: **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository.
 
 ### How tokens are counted
 
