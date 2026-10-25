@@ -55,17 +55,24 @@
       ],
     },
   ];
+
+  // Numbered on the homepage only; this partial is also used on the features table.
+  const productsEyebrow = (typeof sectionNumber !== 'undefined' && sectionNumber ? sectionNumber + ' / ' : '') + 'The index';
 -%>
 <%# Followed straight by a call to action (the product pages), the section leaves the space below to it. -%>
-<section id="products" class="bg-white scroll-mt-20 <%= typeof productsFlushBottom !== 'undefined' && productsFlushBottom ? 'pt-24 sm:pt-32' : 'py-24 sm:py-32' %>" aria-labelledby="products-title">
+<section id="products" class="scroll-mt-20 bg-white <%= typeof productsFlushBottom !== 'undefined' && productsFlushBottom ? 'pt-20 sm:pt-28' : 'py-20 sm:py-28' %>" aria-labelledby="products-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
-    <div class="max-w-3xl">
-      <p class="text-sm font-semibold text-emerald-600">Products</p>
-      <h2 id="products-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Every product, built in. <span class="text-gray-500">Start with one, add the rest when you need them.</span></h2>
-      <p class="mt-6 text-base leading-7 text-gray-600">Teams use OneUptime in place of separate tools like Pingdom, Statuspage, PagerDuty, Datadog and Sentry.</p>
-      <div class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-        <a href="/pricing" class="text-sm font-semibold text-gray-950 hover:text-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
-        <a href="/compare" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Compare OneUptime <span aria-hidden="true">&rarr;</span></a>
+    <div class="grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <p class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500"><%= productsEyebrow %></p>
+        <h2 id="products-title" class="mt-4 max-w-2xl font-serif text-3xl tracking-[-0.02em] text-gray-950 sm:text-5xl">Every product, built in. <span class="text-gray-500">Start with one, add the rest when you need them.</span></h2>
+      </div>
+      <div class="lg:col-span-5 lg:pt-8">
+        <p class="text-base leading-7 text-gray-600">Teams use OneUptime in place of separate tools like Pingdom, Statuspage, PagerDuty, Datadog and Sentry. Alerts, incidents, logs and traces share one data model, so context follows you from one product to the next.</p>
+        <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+          <a href="/pricing" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
+          <a href="/compare" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">Compare OneUptime <span aria-hidden="true">&rarr;</span></a>
+        </div>
       </div>
     </div>
 
@@ -73,7 +80,7 @@
       Three columns of about the same height: Reliability & Response over
       Automation & AI, Observability, and Infrastructure two abreast.
     -%>
-    <div class="mt-14 grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-14 grid grid-cols-1 gap-x-10 gap-y-12 border-t border-gray-200 pt-10 sm:grid-cols-2 lg:grid-cols-4">
       <% [
         { groups: [productGroups[0], productGroups[3]], wide: false },
         { groups: [productGroups[1]], wide: false },
@@ -82,13 +89,17 @@
       <div class="space-y-12 <%= column.wide ? 'sm:col-span-2' : '' %>">
         <% column.groups.forEach(function (group) { -%>
         <div>
-          <h3 class="text-sm font-semibold text-gray-950"><%= group.name %></h3>
-          <ul class="mt-5 grid grid-cols-2 gap-x-4 gap-y-1 <%= column.wide ? 'sm:gap-x-8' : 'sm:grid-cols-1' %>">
+          <h3 class="font-mono text-[11px] uppercase tracking-[0.16em] text-gray-500"><%= group.name %></h3>
+          <ul class="mt-3 divide-y divide-gray-100 border-t border-gray-200 <%= column.wide ? 'grid grid-cols-1 sm:grid-cols-2 sm:gap-x-8 sm:divide-y-0' : '' %>">
             <% group.products.forEach(function (product) { -%>
-            <li>
-              <a href="<%= product.href %>" class="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200"><%- include('./icons/' + product.icon, { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium leading-5 text-gray-900 group-hover:underline"><%= product.name %></span><span class="text-xs text-gray-500 max-sm:hidden sm:block"><%= product.blurb %></span></span>
+            <li class="<%= column.wide ? 'sm:border-t sm:border-gray-100' : '' %>">
+              <a href="<%= product.href %>" class="group -mx-2 flex items-center gap-3 rounded px-2 py-2.5 hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
+                <span class="flex h-7 w-7 flex-none items-center justify-center"><%- include('./icons/' + product.icon, { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-medium leading-5 text-gray-900 group-hover:underline group-hover:underline-offset-4"><%= product.name %></span>
+                  <span class="max-sm:hidden text-xs text-gray-500 sm:block"><%= product.blurb %></span>
+                </span>
+                <svg class="h-3.5 w-3.5 flex-none text-gray-300 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
               </a>
             </li>
             <% }); -%>

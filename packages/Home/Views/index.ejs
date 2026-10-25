@@ -11,11 +11,11 @@
   <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
-<body>
+<body class="bg-white text-gray-950 antialiased">
   <%- include('nav') -%>
 
   <main id="main-content">
-    <%# What it is, and the product in one look. %>
+    <%# The front page, the product, and the four jobs OneUptime does. %>
     <%- include('./Partials/home-hero') -%>
 
     <%- include('logo-roll') -%>
@@ -26,12 +26,14 @@
     <%# What happens when something breaks. %>
     <%- include('./Partials/home-how-it-works') -%>
 
-    <%- include('./Partials/home-ai') -%>
+    <%# The agent, and the report it leaves behind. %>
+    <%- include('./Partials/home-ai', { sectionNumber: '03' }) -%>
 
-    <%- include('./Partials/home-products') -%>
+    <%# The full product index. %>
+    <%- include('./Partials/home-products', { sectionNumber: '04' }) -%>
 
     <%# Open source, and where it runs. %>
-    <%- include('./Partials/home-own-it') -%>
+    <%- include('./Partials/home-own-it', { sectionNumber: '05' }) -%>
 
     <%- include('./Partials/home-air-gapped') -%>
 

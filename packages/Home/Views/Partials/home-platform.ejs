@@ -1,9 +1,8 @@
 <%
   /*
-   * The core products, each a card with a glimpse of its screen: the screen
-   * drawn at `frame`'s width and scale, moved up by `crop` to the part that
-   * shows what the product does (a cropped screen starts flush with the top),
-   * and faded out at the bottom.
+   * The core products, as a ledger: each row names the job, says what it does
+   * and shows the screen that does it. The screen is drawn at `frame`'s width
+   * and scale, moved up by `crop` to the part that shows the work.
    */
   const platformCards = [
     {
@@ -11,8 +10,7 @@
       title: 'Uptime monitoring',
       text: 'Check websites, APIs and servers every 10 seconds from around the world, and run synthetic checks of real user flows.',
       mock: 'mock-detect',
-      span: 'lg:col-span-4',
-      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.92]',
+      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.88]',
       // From the uptime history down: the history bars and the response-time chart.
       crop: '-mt-[379px]',
     },
@@ -21,8 +19,7 @@
       title: 'Status pages',
       text: 'Branded pages on your own domain that update from your monitors and notify subscribers.',
       mock: 'mock-communicate',
-      span: 'lg:col-span-2',
-      frame: 'top-6 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:w-[28rem] lg:scale-[0.72]',
+      frame: 'top-4 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.88]',
       crop: '',
     },
     {
@@ -30,8 +27,7 @@
       title: 'On-call and incidents',
       text: 'Schedules, escalations and alerts by phone, SMS, Slack or Teams, with one timeline per incident.',
       mock: 'mock-respond',
-      span: 'lg:col-span-2',
-      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:w-[28rem] lg:scale-[0.72]',
+      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.88]',
       // From the incident itself down: its state, then the feed.
       crop: '-mt-[83px]',
     },
@@ -40,38 +36,50 @@
       title: 'Logs, metrics and traces',
       text: 'OpenTelemetry-native observability: go from an alert to the slow trace and the exact log line.',
       mock: 'mock-diagnose',
-      span: 'lg:col-span-4',
-      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.92]',
+      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.88]',
       // The waterfall.
       crop: '-mt-[338px]',
     },
   ];
 -%>
-<section id="platform" class="bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="platform-title">
+<section id="platform" class="scroll-mt-20 border-b border-gray-900/10 bg-white py-20 sm:py-28" aria-labelledby="platform-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
-    <div class="max-w-3xl">
-      <p class="text-sm font-semibold text-emerald-600">Platform</p>
-      <h2 id="platform-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Everything you need to keep production up. <span class="text-gray-500">In one place, on one timeline.</span></h2>
+    <div class="grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <p class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500">01 / Platform</p>
+        <h2 id="platform-title" class="mt-4 max-w-2xl font-serif text-3xl tracking-[-0.02em] text-gray-950 sm:text-5xl">Everything you need to keep production up. <span class="text-gray-500">On one timeline.</span></h2>
+      </div>
+      <div class="lg:col-span-5 lg:pt-8">
+        <p class="text-base leading-7 text-gray-600">The alert, the on-call engineer, the status page update and the trace that explains it all live in the same place.</p>
+        <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+          <a href="/product/monitoring" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">See the platform <span aria-hidden="true">&rarr;</span></a>
+          <a href="/pricing" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">Pricing <span aria-hidden="true">&rarr;</span></a>
+        </div>
+      </div>
     </div>
 
-    <div class="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-6">
-      <% platformCards.forEach(function (card) { -%>
-      <a href="<%= card.href %>" class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-colors hover:border-gray-300 <%= card.span %>">
-        <div class="relative h-48 overflow-hidden bg-gradient-to-b from-slate-50 to-white sm:h-80" aria-hidden="true">
-          <div class="pointer-events-none absolute left-6 origin-top-left select-none <%= card.frame %>">
-            <div class="<%= card.crop %>">
-              <%- include('./home-mocks/' + card.mock) -%>
-            </div>
-          </div>
-          <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
-        </div>
-        <div class="flex flex-1 flex-col border-t border-gray-100 p-6">
-          <h3 class="text-base font-semibold text-gray-950"><%= card.title %></h3>
-          <p class="mt-2 text-sm leading-6 text-gray-600"><%= card.text %></p>
-          <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-gray-950">
-            Learn more
-            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+    <div class="mt-14 border-t border-gray-200">
+      <% platformCards.forEach(function (card, index) { -%>
+      <a href="<%= card.href %>" class="group grid grid-cols-1 gap-x-10 gap-y-6 border-b border-gray-200 py-9 lg:grid-cols-12 lg:gap-y-0 lg:py-12">
+        <div class="flex flex-col lg:col-span-5 lg:pr-6">
+          <p class="font-mono text-[11px] tracking-[0.16em] text-gray-400">0<%= index + 1 %></p>
+          <h3 class="mt-3 font-serif text-2xl tracking-[-0.01em] text-gray-950 sm:text-3xl"><%= card.title %></h3>
+          <p class="mt-3 max-w-md text-sm leading-6 text-gray-600"><%= card.text %></p>
+          <span class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-gray-950">
+            Explore <%= card.title.toLowerCase() %>
+            <svg class="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
           </span>
+        </div>
+
+        <div class="lg:col-span-7">
+          <div class="relative h-56 overflow-hidden rounded-md border border-gray-200 bg-[#faf9f5] sm:h-72" aria-hidden="true">
+            <div class="pointer-events-none absolute left-4 origin-top-left select-none <%= card.frame %>">
+              <div class="<%= card.crop %>">
+                <%- include('./home-mocks/' + card.mock) -%>
+              </div>
+            </div>
+            <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#faf9f5] to-transparent"></div>
+          </div>
         </div>
       </a>
       <% }); -%>

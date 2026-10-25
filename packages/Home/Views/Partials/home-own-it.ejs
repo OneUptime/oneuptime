@@ -1,86 +1,94 @@
-<% const installCommand = 'curl -sSL ' + (locals.homeUrl || 'https://oneuptime.com') + '/install.sh | bash'; -%>
-<section id="own-it" class="border-y border-gray-100 bg-gray-50/70 py-24 scroll-mt-20 sm:py-32" aria-labelledby="own-it-title">
+<%
+  const installCommand = 'curl -sSL ' + (locals.homeUrl || 'https://oneuptime.com') + '/install.sh | bash';
+  // Numbered on the homepage only; this section is also used on product pages.
+  const ownItEyebrow = (typeof sectionNumber !== 'undefined' && sectionNumber ? sectionNumber + ' / ' : '') + 'Open source';
+-%>
+<section id="own-it" class="scroll-mt-20 border-b border-gray-900/10 bg-[#f5f2ea] py-20 sm:py-28" aria-labelledby="own-it-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
-    <div class="max-w-3xl">
-      <p class="text-sm font-semibold text-emerald-600">Open source</p>
-      <h2 id="own-it-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Proudly open-source, and yours to run. <span class="text-gray-500">Use our cloud, or your own servers.</span></h2>
+    <div class="grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <p class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500"><%= ownItEyebrow %></p>
+        <h2 id="own-it-title" class="mt-4 max-w-2xl font-serif text-3xl tracking-[-0.02em] text-gray-950 sm:text-5xl">Proudly open-source, and yours to run. <span class="text-gray-500">Use our cloud, or your own servers.</span></h2>
+      </div>
+      <div class="lg:col-span-5 lg:pt-8">
+        <p class="text-base leading-7 text-gray-700">Open source under Apache 2.0, with enterprise features like SCIM and audit logs in a separately licensed ee/ directory. All of the code is on GitHub, so you can read it, run it and never be locked in.</p>
+        <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">
+            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
+            View the source
+          </a>
+        </div>
+      </div>
     </div>
-    <div class="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
-      <div class="lg:col-span-5">
-        <p class="text-base leading-7 text-gray-600">
-          Open source under Apache 2.0, with enterprise features like SCIM and audit logs in a separately licensed ee/ directory. All of the code is on GitHub, so you can read it, run it and never be locked in.
-        </p>
-        <dl class="mt-10 grid grid-cols-3 gap-6 border-t border-gray-200 pt-8">
-          <% if (locals.githubStars) { -%>
-          <div>
-            <dt class="text-sm text-gray-500">GitHub stars</dt>
-            <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-950"><%= locals.githubStars %></dd>
+
+    <dl class="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-gray-900/10 bg-gray-900/10 sm:grid-cols-4">
+      <% if (locals.githubStars) { -%>
+      <div class="bg-[#f5f2ea] px-4 py-4">
+        <dt class="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">GitHub stars</dt>
+        <dd class="mt-1 font-serif text-2xl text-gray-950"><%= locals.githubStars %></dd>
+      </div>
+      <% } -%>
+      <% if (locals.githubContributors) { -%>
+      <div class="bg-[#f5f2ea] px-4 py-4">
+        <dt class="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Contributors</dt>
+        <dd class="mt-1 font-serif text-2xl text-gray-950"><%= locals.githubContributors %></dd>
+      </div>
+      <% } -%>
+      <% if (locals.githubCommits) { -%>
+      <div class="bg-[#f5f2ea] px-4 py-4">
+        <dt class="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">Commits</dt>
+        <dd class="mt-1 font-serif text-2xl text-gray-950"><%= locals.githubCommits %></dd>
+      </div>
+      <% } -%>
+      <div class="bg-[#f5f2ea] px-4 py-4">
+        <dt class="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">License</dt>
+        <dd class="mt-1 font-serif text-2xl text-gray-950">Apache 2.0</dd>
+      </div>
+    </dl>
+
+    <div class="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <div id="oss-terminal" class="overflow-hidden rounded-md border border-gray-900/20 bg-[#14150f]">
+          <div class="flex items-center border-b border-white/10 px-4 py-2.5">
+            <span class="font-mono text-[11px] text-white/40">Install on any Linux host</span>
+            <button type="button" data-copy="<%= installCommand %>" class="ml-auto rounded px-2 py-1 font-mono text-[11px] text-white/60 hover:bg-white/10 hover:text-white"><span data-copy-label aria-live="polite">Copy</span></button>
           </div>
-          <% } -%>
-          <% if (locals.githubContributors) { -%>
-          <div>
-            <dt class="text-sm text-gray-500">Contributors</dt>
-            <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-950"><%= locals.githubContributors %></dd>
+          <div class="overflow-x-auto px-4 py-4">
+            <code class="whitespace-nowrap font-mono text-[13px] leading-6 text-gray-100"><span class="text-[#9be17c]">$</span> <%= installCommand %></code>
           </div>
-          <% } -%>
-          <% if (locals.githubCommits) { -%>
-          <div>
-            <dt class="text-sm text-gray-500">Commits</dt>
-            <dd class="mt-1 text-2xl font-semibold tracking-tight text-gray-950"><%= locals.githubCommits %></dd>
-          </div>
-          <% } -%>
-        </dl>
-        <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="mt-10 inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-gray-950 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
-          View on GitHub
-        </a>
+        </div>
+        <p class="mt-3 text-xs leading-5 text-gray-500">The Community Edition is free to run at any scale. Docker Compose on one server, or Kubernetes with the Helm chart.</p>
       </div>
 
-      <div class="space-y-4 lg:col-span-7">
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_3px_rgba(16,24,40,0.06)] sm:p-8">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-lg font-semibold text-gray-950">OneUptime Cloud</h3>
-            <span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Fully managed</span>
+      <div class="lg:col-span-5">
+        <div class="border-t border-gray-900/15 pt-5">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="font-serif text-xl text-gray-950">OneUptime Cloud</h3>
+            <span class="font-mono text-[10px] uppercase tracking-[0.12em] text-gray-500">Fully managed</span>
           </div>
           <p class="mt-2 text-sm leading-6 text-gray-600">We run it for you. Sign up and add your first monitor in minutes.</p>
-          <ul class="mt-6 grid grid-cols-1 gap-3 text-sm leading-6 text-gray-700 sm:grid-cols-2">
-            <li class="flex gap-3"><svg class="mt-1 h-4 w-4 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>Free plan, no credit card required</li>
-            <li class="flex gap-3"><svg class="mt-1 h-4 w-4 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>99.9% uptime target on paid plans</li>
-            <li class="flex gap-3"><svg class="mt-1 h-4 w-4 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>99.95% uptime target on Enterprise</li>
-            <li class="flex gap-3"><svg class="mt-1 h-4 w-4 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>Export your data through the API at any time</li>
+          <ul class="mt-4 space-y-2 text-sm leading-6 text-gray-700">
+            <li>Free plan, no credit card required</li>
+            <li>99.9% uptime target on paid plans</li>
+            <li>99.95% uptime target on Enterprise</li>
+            <li>Export your data through the API at any time</li>
           </ul>
-          <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <a href="/accounts/register" class="inline-flex h-10 items-center justify-center rounded-lg bg-gray-950 px-5 text-sm font-semibold text-white hover:bg-gray-800">Get started free</a>
-            <a href="/pricing" class="text-sm font-semibold text-gray-950 hover:text-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
+          <div class="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <a href="/accounts/register" class="inline-flex h-10 items-center justify-center rounded-md bg-gray-950 px-4 text-sm font-semibold text-white hover:bg-gray-800">Get started free</a>
+            <a href="/pricing" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
           </div>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_3px_rgba(16,24,40,0.06)] sm:p-8">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-lg font-semibold text-gray-950">Self-hosted</h3>
-            <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">Community Edition is free</span>
+        <div class="mt-8 border-t border-gray-900/15 pt-5">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="font-serif text-xl text-gray-950">Self-hosted</h3>
+            <span class="font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-700">Community is free</span>
           </div>
-          <p class="mt-2 text-sm leading-6 text-gray-600">Run OneUptime with Docker Compose on one server, or on Kubernetes with our Helm chart. The Community Edition is free to run, with no license fee at any scale, and it can run <a href="/enterprise/air-gapped" class="underline decoration-gray-300 underline-offset-4 hover:text-gray-900">air-gapped</a>.</p>
-
-          <div id="oss-terminal" class="mt-6 overflow-hidden rounded-xl bg-gray-950">
-            <div class="relative flex items-center border-b border-white/10 px-4 py-2.5">
-              <button type="button" id="oss-terminal-dots" aria-label="Run builder tribute" class="flex cursor-pointer gap-1.5 border-0 bg-transparent p-0">
-                <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
-                <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
-                <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
-              </button>
-              <span id="oss-terminal-title" class="absolute left-1/2 -translate-x-1/2 font-mono text-xs text-gray-500">terminal</span>
-              <button type="button" data-copy="<%= installCommand %>" class="ml-auto rounded-md px-2 py-0.5 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white"><span data-copy-label aria-live="polite">Copy</span></button>
-            </div>
-            <div id="oss-terminal-content" class="overflow-x-auto px-4 py-3.5">
-              <code class="whitespace-nowrap font-mono text-[13px] leading-6 text-gray-100"><span class="text-emerald-400">$</span> <%= installCommand %></code>
-            </div>
-          </div>
-
-          <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <a href="/enterprise/self-hosted" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Self-hosting guide <span aria-hidden="true">&rarr;</span></a>
-            <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Helm chart <span aria-hidden="true">&rarr;</span></a>
-            <a href="/enterprise/overview" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Enterprise Edition <span aria-hidden="true">&rarr;</span></a>
+          <p class="mt-2 text-sm leading-6 text-gray-600">The Community Edition can run <a href="/enterprise/air-gapped" class="underline decoration-gray-300 underline-offset-4 hover:text-gray-900">air-gapped</a>, with no license fee at any scale.</p>
+          <div class="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <a href="/enterprise/self-hosted" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">Self-hosting guide <span aria-hidden="true">&rarr;</span></a>
+            <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">Helm chart <span aria-hidden="true">&rarr;</span></a>
+            <a href="/enterprise/overview" class="text-sm font-semibold text-gray-950 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-600">Enterprise Edition <span aria-hidden="true">&rarr;</span></a>
           </div>
         </div>
       </div>
@@ -104,158 +112,5 @@
             }, function () {});
         });
     });
-
-    // Console Easter Egg - For those who inspect
-    const asciiArt = `
-%c
-    ╔═══════════════════════════════════════════════════════════════════════╗
-    ║                                                                       ║
-    ║                   🔧  TO THE BUILDERS, THE DREAMERS  🔧                ║
-    ║                       THE ONES WHO WON'T QUIT                         ║
-    ║                                                                       ║
-    ║   We see you.                                                         ║
-    ║                                                                       ║
-    ║   The late nights and early mornings.                                 ║
-    ║   The countless iterations no one will ever see.                      ║
-    ║   The persistence when it would be easier to stop.                    ║
-    ║                                                                       ║
-    ║   We believe in you.                                                  ║
-    ║                                                                       ║
-    ║   In your vision. In your craft.                                      ║
-    ║   In the fire that made you start                                     ║
-    ║   and the resolve that keeps you going.                               ║
-    ║                                                                       ║
-    ║   We build alongside you.                                             ║
-    ║                                                                       ║
-    ║   Shoulder to shoulder. As builders ourselves,                        ║
-    ║   who understand what it takes                                        ║
-    ║   to ship something that matters.                                     ║
-    ║                                                                       ║
-    ║   Keep building.                                                      ║
-    ║   The world runs on what you create.                                  ║
-    ║                                                                       ║
-    ║                                        - with ❤️ from OneUptime         ║
-    ║                                                                       ║
-    ╚═══════════════════════════════════════════════════════════════════════╝
-`;
-
-    console.log(asciiArt, 'font-family: monospace; color: #4ade80; font-size: 11px; line-height: 1.4;');
-    console.log('%c👋 Hey there, curious developer!', 'font-size: 16px; font-weight: bold; color: #60a5fa;');
-    console.log('%cWe\'re always looking for builders. Check out our open issues: https://github.com/oneuptime/oneuptime/issues', 'color: #94a3b8;');
-
-    // Terminal Easter Egg - Click the window dots to reveal
-    const terminal = document.getElementById('oss-terminal');
-    const terminalDots = document.getElementById('oss-terminal-dots');
-    const terminalContent = document.getElementById('oss-terminal-content');
-    const terminalTitle = document.getElementById('oss-terminal-title');
-    let easterEggActive = false;
-    let originalContent = '';
-    let originalTitle = '';
-
-    if (terminal && terminalDots && terminalContent && terminalTitle) {
-        originalContent = terminalContent.innerHTML;
-        originalTitle = terminalTitle.textContent;
-
-        // Escape key to revert
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && easterEggActive) {
-                easterEggActive = false;
-                terminalTitle.textContent = originalTitle;
-                terminalContent.innerHTML = originalContent;
-                terminalContent.style.minHeight = '';
-                terminalContent.style.padding = '';
-            }
-        });
-
-        terminalDots.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (easterEggActive) return;
-            easterEggActive = true;
-
-            terminalTitle.textContent = 'builder_tribute.sh';
-
-            const lines = [
-                { text: '$ echo "TO THE BUILDERS, THE DREAMERS"', type: 'command' },
-                { text: 'The ones who won\'t quit', type: 'subheader' },
-                { text: '', type: 'blank' },
-                { text: 'We see you.', type: 'output highlight' },
-                { text: '', type: 'blank' },
-                { text: 'The late nights and early mornings.', type: 'output' },
-                { text: 'The countless iterations no one will ever see.', type: 'output' },
-                { text: 'The persistence when it would be easier to stop.', type: 'output' },
-                { text: '', type: 'blank' },
-                { text: 'We believe in you.', type: 'output highlight' },
-                { text: '', type: 'blank' },
-                { text: 'In your vision. In your craft.', type: 'output' },
-                { text: 'In the fire that made you start', type: 'output' },
-                { text: 'and the resolve that keeps you going.', type: 'output' },
-                { text: '', type: 'blank' },
-                { text: 'We build alongside you.', type: 'output highlight' },
-                { text: '', type: 'blank' },
-                { text: 'Shoulder to shoulder. As builders ourselves,', type: 'output' },
-                { text: 'who understand what it takes', type: 'output' },
-                { text: 'to ship something that matters.', type: 'output' },
-                { text: '', type: 'blank' },
-                { text: 'Keep building.', type: 'output highlight' },
-                { text: 'The world runs on what you create.', type: 'output' },
-                { text: '', type: 'blank' },
-                { text: '- with ❤️ from OneUptime', type: 'signature' }
-            ];
-
-            terminalContent.innerHTML = '';
-            terminalContent.style.minHeight = '520px';
-            terminalContent.style.padding = '20px 24px';
-
-            let lineIndex = 0;
-
-            function typeLine() {
-                if (lineIndex >= lines.length) return;
-
-                const line = lines[lineIndex];
-                const lineEl = document.createElement('div');
-                lineEl.style.opacity = '0';
-                lineEl.style.transform = 'translateY(5px)';
-                lineEl.style.transition = 'all 0.3s ease-out';
-                lineEl.style.fontFamily = "'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace";
-                lineEl.style.fontSize = '14px';
-                lineEl.style.lineHeight = '1.6';
-                lineEl.style.letterSpacing = '0.3px';
-                lineEl.style.marginBottom = '2px';
-
-                if (line.type === 'command') {
-                    lineEl.innerHTML = '<span style="color: #28c840;">$</span> <span style="color: #f5f5f5;">echo "TO THE BUILDERS, THE DREAMERS"</span>';
-                } else if (line.type === 'subheader') {
-                    lineEl.style.color = '#98989d';
-                    lineEl.style.fontStyle = 'italic';
-                    lineEl.textContent = line.text;
-                } else if (line.type === 'blank') {
-                    lineEl.innerHTML = '&nbsp;';
-                } else if (line.type === 'output highlight') {
-                    lineEl.style.color = '#28c840';
-                    lineEl.style.fontWeight = '500';
-                    lineEl.textContent = line.text;
-                } else if (line.type === 'signature') {
-                    lineEl.style.color = '#98989d';
-                    lineEl.style.marginTop = '4px';
-                    lineEl.textContent = line.text;
-                } else {
-                    lineEl.style.color = '#ffffff';
-                    lineEl.textContent = line.text;
-                }
-
-                terminalContent.appendChild(lineEl);
-
-                setTimeout(() => {
-                    lineEl.style.opacity = '1';
-                    lineEl.style.transform = 'translateY(0)';
-                }, 50);
-
-                lineIndex++;
-                setTimeout(typeLine, 150);
-            }
-
-            typeLine();
-        });
-    }
 })();
 </script>
