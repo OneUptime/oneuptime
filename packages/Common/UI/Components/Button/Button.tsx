@@ -37,28 +37,22 @@ export enum ButtonSize {
 
 /*
  * How a button that cannot be pressed looks - a locked action, a Next with
- * nothing chosen yet: faded, with the not-allowed cursor, and no hover (the
- * style leaves its hover classes off). Before, only the filled styles had a
- * disabled look; a disabled plain or outline button looked exactly like one
- * that works until it was hovered, so a locked action looked pressable
- * ("Turn monitoring on", a viewer's Triage again, a Reset the reader may not
- * make). The filled styles (PRIMARY, SECONDARY, DANGER) fade their fill
- * instead, which reads the same and keeps their white text legible. A
- * loading button is busy, not locked: it keeps its look and shows its
- * spinner.
+ * nothing chosen yet - whatever its style: faded as a whole, with the
+ * not-allowed cursor, and no hover (the style leaves its hover classes off).
+ * Before, a disabled plain or outline button looked exactly like one that
+ * works until it was hovered, so a locked action looked pressable ("Turn
+ * monitoring on", a viewer's Triage again, a Reset the reader may not make),
+ * and the three styles that had a disabled look swapped their fill for a
+ * paler one - indigo-300, red-300 - which in the dark theme was a bright
+ * block brighter than the button it stood for, and on SECONDARY darker than
+ * its own light fill. A loading button is busy, not locked: it keeps its
+ * look and shows its spinner.
  */
 export const BUTTON_DISABLED_CLASS_NAME: string =
   "cursor-not-allowed opacity-50";
 
-// The cursor a filled style's faded fill comes with.
+// The cursor of a locked button's tooltip wrapper, which takes the pointer.
 export const BUTTON_DISABLED_CURSOR_CLASS_NAME: string = "cursor-not-allowed";
-
-/*
- * The styles that fade their own fill when disabled; every other style
- * fades as a whole (BUTTON_DISABLED_CLASS_NAME).
- */
-export const BUTTON_STYLES_WITH_A_DISABLED_FILL: ReadonlyArray<ButtonStyleType> =
-  [ButtonStyleType.PRIMARY, ButtonStyleType.SECONDARY, ButtonStyleType.DANGER];
 
 /*
  * OUTLINE: the plain bordered button. NORMAL's border, fill, text, shadow,
@@ -211,12 +205,17 @@ const Button: FunctionComponent<ComponentProps> = ({
     iconClassName += ` m-1`;
   }
 
+  /*
+   * A link's icon - or its spinner while it is busy - sits on its words'
+   * line: drawn as a block, the spinner pushed the words onto a line of
+   * their own.
+   */
   if (buttonStyle === ButtonStyleType.LINK) {
     buttonStyleCssClass = `text-indigo-600 ${
       disabled ? "" : "hover:text-indigo-900"
     } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
-    if (icon) {
+    if (icon || isLoading) {
       buttonStyleCssClass += ` flex`;
     }
   }
@@ -226,18 +225,18 @@ const Button: FunctionComponent<ComponentProps> = ({
       disabled ? "" : "hover:text-gray-500"
     } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
-    if (icon) {
+    if (icon || isLoading) {
       buttonStyleCssClass += ` flex`;
     }
   }
 
   /*
    * A Delete that cannot be pressed yet - its dialog is still checking what
-   * it would change - looks it, as a disabled primary button does.
+   * it would change - looks it (BUTTON_DISABLED_CLASS_NAME).
    */
   if (buttonStyle === ButtonStyleType.DANGER) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent ${
-      disabled ? "bg-red-300" : "bg-red-600 hover:bg-red-700"
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 ${
+      disabled ? "" : "hover:bg-red-700"
     } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
@@ -249,15 +248,15 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   if (buttonStyle === ButtonStyleType.PRIMARY) {
     loadingIconClassName += ` text-indigo-100`;
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent ${
-      disabled ? "bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700"
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 ${
+      disabled ? "" : "hover:bg-indigo-700"
     } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.SECONDARY) {
     loadingIconClassName += ` text-indigo-500`;
-    buttonStyleCssClass = `inline-flex rounded-md border border-transparent ${
-      disabled ? "bg-indigo-300" : "bg-indigo-100 hover:bg-indigo-200"
+    buttonStyleCssClass = `inline-flex rounded-md border border-transparent bg-indigo-100 ${
+      disabled ? "" : "hover:bg-indigo-200"
     } text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
@@ -308,13 +307,9 @@ const Button: FunctionComponent<ComponentProps> = ({
     }   focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
-  // Locked: faded as a whole, or by its own fill (see BUTTON_DISABLED_CLASS_NAME).
+  // Locked: faded as a whole, whatever the style.
   if (disabled) {
-    buttonStyleCssClass += BUTTON_STYLES_WITH_A_DISABLED_FILL.includes(
-      buttonStyle,
-    )
-      ? ` ${BUTTON_DISABLED_CURSOR_CLASS_NAME}`
-      : ` ${BUTTON_DISABLED_CLASS_NAME}`;
+    buttonStyleCssClass += ` ${BUTTON_DISABLED_CLASS_NAME}`;
   }
 
   // Center the icon against both desktop and taller mobile label lines.

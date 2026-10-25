@@ -1,6 +1,7 @@
 import FileModel from "Common/Models/DatabaseModels/File";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/Button";
 import FilePicker from "Common/UI/Components/FilePicker/FilePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
 import KeyboardKey, {
@@ -556,7 +557,16 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
                   ? tx("Write something first")
                   : `${tx(props.submitLabel || props.copy.submitLabel)} (${submitShortcut})`
               }
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-indigo-300"
+              /*
+               * An empty note cannot be posted, and the button looks it the
+               * way every locked button does (BUTTON_DISABLED_CLASS_NAME): a
+               * paler fill of its own was a bright block in the dark theme.
+               * While the note posts it is busy, not locked, so it keeps its
+               * look beside its spinner.
+               */
+              className={`inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                isBlank ? BUTTON_DISABLED_CLASS_NAME : "hover:bg-indigo-700"
+              }`}
             >
               {props.isSubmitting && (
                 <Icon

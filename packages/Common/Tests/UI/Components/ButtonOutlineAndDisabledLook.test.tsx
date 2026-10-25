@@ -7,7 +7,6 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import Button, {
   BUTTON_DISABLED_CLASS_NAME,
   BUTTON_DISABLED_CURSOR_CLASS_NAME,
-  BUTTON_STYLES_WITH_A_DISABLED_FILL,
   ButtonSize,
   ButtonStyleType,
   ComponentProps,
@@ -72,16 +71,14 @@ const ALL_STYLES: Array<[string, ButtonStyleType]> = Object.keys(
     return [key, ButtonStyleType[key as keyof typeof ButtonStyleType]];
   });
 
-const STYLES_THAT_FADE_AS_A_WHOLE: Array<[string, ButtonStyleType]> =
-  ALL_STYLES.filter(([, style]: [string, ButtonStyleType]) => {
-    return !BUTTON_STYLES_WITH_A_DISABLED_FILL.includes(style);
-  });
-
-const STYLES_WITH_A_FILL: Array<[string, ButtonStyleType]> = ALL_STYLES.filter(
-  ([, style]: [string, ButtonStyleType]) => {
-    return BUTTON_STYLES_WITH_A_DISABLED_FILL.includes(style);
-  },
-);
+// The filled styles, whose disabled look was a paler fill of their own.
+const FILLED_STYLES: Array<[string, ButtonStyleType]> = [
+  ["PRIMARY", ButtonStyleType.PRIMARY],
+  ["SECONDARY", ButtonStyleType.SECONDARY],
+  ["DANGER", ButtonStyleType.DANGER],
+  ["SUCCESS", ButtonStyleType.SUCCESS],
+  ["WARNING", ButtonStyleType.WARNING],
+];
 
 // The classes no stylesheet in the repository defines.
 const UNDEFINED_OUTLINE_CLASSES: Array<string> = [
@@ -177,7 +174,11 @@ describe("an outline button has a border, a fill, a hover and a focus ring", () 
       expect(button).toHaveClass(...hover);
       expect(button).not.toHaveClass("hover:bg-gray-50");
       // At rest it is the plain outline button.
-      expect(button).toHaveClass("border-gray-300", "bg-white", "text-gray-700");
+      expect(button).toHaveClass(
+        "border-gray-300",
+        "bg-white",
+        "text-gray-700",
+      );
     },
   );
 
@@ -235,9 +236,10 @@ describe("an outline button is the plain bordered button, sized to its label", (
   );
 
   test("its label is the reading size on a phone and a control's from md up, as NORMAL's is", () => {
-    expect(
-      renderButton({ buttonStyle: ButtonStyleType.OUTLINE }),
-    ).toHaveClass("text-base", "md:text-sm");
+    expect(renderButton({ buttonStyle: ButtonStyleType.OUTLINE })).toHaveClass(
+      "text-base",
+      "md:text-sm",
+    );
   });
 
   test("its size is the button's size, as for every style", () => {
@@ -247,15 +249,16 @@ describe("an outline button is the plain bordered button, sized to its label", (
         buttonSize: ButtonSize.Small,
       }),
     ).toHaveClass("px-2", "py-1");
-    expect(
-      renderButton({ buttonStyle: ButtonStyleType.OUTLINE }),
-    ).toHaveClass("px-3", "py-2");
+    expect(renderButton({ buttonStyle: ButtonStyleType.OUTLINE })).toHaveClass(
+      "px-3",
+      "py-2",
+    );
   });
 
   test("the exported class name is what the button draws", () => {
-    expect(
-      renderButton({ buttonStyle: ButtonStyleType.OUTLINE }),
-    ).toHaveClass(...OUTLINE_BUTTON_CLASS_NAME.split(" "));
+    expect(renderButton({ buttonStyle: ButtonStyleType.OUTLINE })).toHaveClass(
+      ...OUTLINE_BUTTON_CLASS_NAME.split(" "),
+    );
   });
 
   test("an icon-only outline button (a menu toggle) keeps its border too", () => {
@@ -272,7 +275,7 @@ describe("an outline button is the plain bordered button, sized to its label", (
 });
 
 describe("a disabled button looks it", () => {
-  test.each(STYLES_THAT_FADE_AS_A_WHOLE)(
+  test.each(ALL_STYLES)(
     "%s fades, with the not-allowed cursor, when disabled",
     (_name: string, buttonStyle: ButtonStyleType) => {
       expect(renderButton({ buttonStyle, disabled: true })).toHaveClass(
@@ -281,7 +284,7 @@ describe("a disabled button looks it", () => {
     },
   );
 
-  test.each(STYLES_THAT_FADE_AS_A_WHOLE)(
+  test.each(ALL_STYLES)(
     "%s does not fade when it can be pressed",
     (_name: string, buttonStyle: ButtonStyleType) => {
       for (const disabled of [false, undefined]) {
@@ -295,16 +298,18 @@ describe("a disabled button looks it", () => {
     },
   );
 
-  test.each(STYLES_WITH_A_FILL)(
-    "%s fades its own fill and takes the not-allowed cursor, never fading twice",
+  /*
+   * A filled style keeps its fill and fades with it: a paler fill of its own
+   * (indigo-300, red-300) was a bright block in the dark theme, brighter than
+   * the enabled button, and SECONDARY's was darker than its own light fill.
+   */
+  test.each(FILLED_STYLES)(
+    "%s keeps its own fill when locked and fades as a whole, in both themes",
     (_name: string, buttonStyle: ButtonStyleType) => {
       const disabled: Array<string> = classesOf(
         renderButton({ buttonStyle, disabled: true }),
       );
       const enabled: Array<string> = classesOf(renderButton({ buttonStyle }));
-
-      expect(disabled).toContain(BUTTON_DISABLED_CURSOR_CLASS_NAME);
-      expect(disabled).not.toContain("opacity-50");
 
       const fill: (classes: Array<string>) => string | undefined = (
         classes: Array<string>,
@@ -315,7 +320,11 @@ describe("a disabled button looks it", () => {
       };
 
       expect(fill(disabled)).toBeDefined();
-      expect(fill(disabled)).not.toBe(fill(enabled));
+      expect(fill(disabled)).toBe(fill(enabled));
+      expect(disabled).toContain("opacity-50");
+      expect(disabled).toContain(BUTTON_DISABLED_CURSOR_CLASS_NAME);
+      expect(disabled).not.toContain("bg-indigo-300");
+      expect(disabled).not.toContain("bg-red-300");
     },
   );
 
@@ -367,6 +376,30 @@ describe("a disabled button looks it", () => {
 
     expect(busyOutline.querySelector(".animate-spin")).not.toBeNull();
   });
+
+  /*
+   * A link's spinner sits on its words' line: drawn as a block, a busy
+   * Resend or Show more pushed its words onto a line of their own.
+   */
+  test.each([
+    ["LINK", ButtonStyleType.LINK],
+    ["SECONDARY_LINK", ButtonStyleType.SECONDARY_LINK],
+  ])(
+    "a busy %s keeps its spinner beside its words",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      const busy: HTMLElement = renderButton({
+        buttonStyle,
+        isLoading: true,
+      });
+
+      expect(busy).toHaveClass("flex");
+      expect(busy.querySelector(".animate-spin")).not.toBeNull();
+      expect(busy).toHaveTextContent("Ping");
+
+      // A plain link with no icon and nothing to wait for stays inline.
+      expect(renderButton({ buttonStyle })).not.toHaveClass("flex");
+    },
+  );
 
   test("a locked button that is also loading fades as well", () => {
     expect(
@@ -457,9 +490,7 @@ describe("a locked button with a reason", () => {
  * class with no rule keeps its light colour there - a white button on a
  * slate card - so every colour the outline styles draw needs one.
  */
-const darkRuleCovers: (token: string) => boolean = (
-  token: string,
-): boolean => {
+const darkRuleCovers: (token: string) => boolean = (token: string): boolean => {
   return THEME_RULES.some((rule: StyleRule) => {
     const selectorText: string = rule.selectors.join(", ");
 
