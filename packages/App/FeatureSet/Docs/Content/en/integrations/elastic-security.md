@@ -74,6 +74,7 @@ Each detection alert becomes one Detection Finding event (OCSF class `2004`), wi
 | `kibana.alert.workflow_status`: `open`, `acknowledged` or `closed` | Status |
 | `kibana.alert.rule.threat`, sub-techniques included | MITRE ATT&CK tactics and techniques |
 | `user.name`, `host.name`, `source.ip` or `host.ip`, `process.name` or `process.executable` | Principal user, host, IP and process |
+| `process.name`, `process.executable` and `process.command_line`; `process.parent.name`, `process.parent.executable` and `process.parent.command_line` | Process name, path and command line; parent process name, path and command line |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Target user, host, IP, port and resource |
 | Those, and `related.*`, `dns.question.name`, `url.domain` and file hashes | Observables |
 | The whole alert, flattened to dotted keys, with `_index` and `_id` | `attributes` |

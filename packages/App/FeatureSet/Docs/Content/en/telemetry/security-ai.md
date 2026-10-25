@@ -40,6 +40,8 @@ Open a case: the **OneUptime AI** card is at the top of its page.
 | A read, such as **Likely Malicious** | The triage finished. **Triage again** reads the case afresh. |
 | **The triage did not finish** | The run stopped. **Try again** starts another. |
 
+A Security Viewer reads the same card: **Triage with AI** and **Try again** stay greyed beside a line that says who can start a triage, and **Triage again** and **Set priority** are not offered.
+
 A triage reads:
 
 - the case: its title, priority, status, entities and ATT&CK mapping;
@@ -63,7 +65,7 @@ It can also read the rest of OneUptime the way an incident's investigation does:
 The read is OneUptime AI's, never the case's verdict: **Close Case** starts on the verdict it suggests, and a person picks. Under the read, the card has:
 
 - **Suggested priority**, with **Set priority** when the case is at another one.
-- **Suggested playbook**, with **Run playbook**, which runs it as you, with every approval it needs.
+- **Suggested playbook**, with **Run playbook**, which runs it as you, with every approval it needs. While that playbook is already running on the case, its run's status, such as **Waiting for Approval**, takes the place of **Run playbook**: the run is on the case's **Playbook Runs**, and a second one would ask for the same approval again.
 - The report: what happened, how sure it is and what to do next, each claim followed by a citation such as C1.
 - **Evidence checked**: every query the triage ran. A citation opens its query, and expanding one runs it again with your permissions, over the time the triage read.
 - **Ask about this case**, which opens Ask AI on the case.

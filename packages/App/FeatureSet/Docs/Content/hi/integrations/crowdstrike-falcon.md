@@ -79,6 +79,7 @@ Falcon ने जो बेस URL दिखाया, वह बताता �
 | `status`, जैसे `new`, `in_progress` या `closed` | स्थिति |
 | `tactic_id`, `technique_id` | MITRE ATT&CK टैक्टिक और तकनीकें |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` या `cmdline` | प्रिंसिपल होस्ट, IP, यूज़र और प्रोसेस |
+| `filename`, `filepath` और `cmdline`; `parent_details.filename`, `parent_details.filepath` और `parent_details.cmdline` | प्रोसेस का नाम, पाथ और कमांड लाइन; पैरेंट प्रोसेस का नाम, पाथ और कमांड लाइन |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observable |
 | बाकी सब कुछ, जैसे `device.platform_name`, `falcon_host_link`, `product` और `timestamp` | `attributes`, डॉट वाली कुंजियों में फैलाया हुआ |
 

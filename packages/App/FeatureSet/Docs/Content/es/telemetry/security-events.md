@@ -44,7 +44,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
 | **ATT&CK Coverage** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
-| **Esperando aprobación** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
+| **Aprobaciones** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones de playbooks** | Playbooks | Lo que hizo cada playbook, paso a paso |
 | **Protected Entities** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
@@ -205,10 +205,12 @@ Cada evento se guarda con campos tipados y su payload de origen:
 | Gravedad | `severityName`, uno de Unknown, Informational, Low, Medium, High, Critical, Fatal u Other, y `severityId` |
 | Quién lo hizo | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Qué tocó | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| El proceso | `processName`, `processPath` y `processCommandLine`: en el inicio de un proceso, el proceso que se inició; en otro caso, el proceso que actuó. `parentProcessName`, `parentProcessPath` y `parentProcessCommandLine`: el proceso que lo inició |
+| El proceso | `processName`, `processPath` y `processCommandLine`: en una actividad de proceso, el proceso iniciado, abierto, inyectado o finalizado; en otro caso, el proceso que actuó. `parentProcessName`, `parentProcessPath` y `parentProcessCommandLine`: el proceso que lo inició |
 | Origen | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Contenido | `message`, `mitreTactics`, `mitreTechniques` y `observables`: cada usuario, host, dirección IP, dominio y hash extraído del evento |
 | Atributos | El payload de origen completo, aplanado en claves con puntos |
+
+Los eventos guardados antes de que OneUptime leyera los campos de proceso los dejan vacíos y nombran su proceso solo como `principalProcess`, el proceso que actuó. No se completan después: conservan lo que tenían al guardarse hasta que termina su retención.
 
 ## Explorar los eventos de seguridad
 

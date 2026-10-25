@@ -74,6 +74,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 | `kibana.alert.workflow_status`: `open`، `acknowledged` یا `closed` | وضعیت |
 | `kibana.alert.rule.threat`، با زیرتکنیک‌ها | تاکتیک‌ها و تکنیک‌های MITRE ATT&CK |
 | `user.name`، `host.name`، `source.ip` یا `host.ip`، `process.name` یا `process.executable` | کاربر، میزبان، IP و فرایند اصلی |
+| `process.name`، `process.executable` و `process.command_line`؛ `process.parent.name`، `process.parent.executable` و `process.parent.command_line` | نام، مسیر و خط فرمان فرایند؛ نام، مسیر و خط فرمان فرایند والد |
 | `user.target.name`، `destination.domain`، `destination.ip`، `destination.port`، `file.path` | کاربر، میزبان، IP، پورت و منبع هدف |
 | همان‌ها، و `related.*`، `dns.question.name`، `url.domain` و هش‌های پرونده | Observableها |
 | کل هشدار، تخت‌شده به کلیدهای نقطه‌دار، با `_index` و `_id` | `attributes` |

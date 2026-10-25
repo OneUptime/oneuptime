@@ -79,6 +79,7 @@ flowchart TB
 | `status`, например `new`, `in_progress` или `closed` | Статус |
 | `tactic_id`, `technique_id` | Тактики и техники MITRE ATT&CK |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` или `cmdline` | Хост, IP, пользователь и процесс субъекта |
+| `filename`, `filepath` и `cmdline`; `parent_details.filename`, `parent_details.filepath` и `parent_details.cmdline` | Имя, путь и командная строка процесса; имя, путь и командная строка родительского процесса |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Наблюдаемые объекты |
 | Всё остальное, например `device.platform_name`, `falcon_host_link`, `product` и `timestamp` | `attributes`, развёрнутые в ключи с точками |
 

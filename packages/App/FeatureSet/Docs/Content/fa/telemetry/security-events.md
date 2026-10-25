@@ -44,7 +44,7 @@ flowchart TB
 | **Threat Intel** | Detections | فیدهای STIX/TAXII از شاخص‌های شناخته‌شدهٔ مخرب |
 | **ATT&CK Coverage** | Detections | تکنیک‌های MITRE ATT&CK که قاعده‌های شما پوشش می‌دهند |
 | **Playbooks** | Playbooks | گام‌هایی که خودکار یا دستی روی پرونده‌ها اجرا می‌شوند |
-| **در انتظار تأیید** | Playbooks | گام‌های پلی‌بوک که منتظرند کسی آن‌ها را تأیید یا رد کند |
+| **تأییدها** | Playbooks | گام‌های پلی‌بوک که منتظرند کسی آن‌ها را تأیید یا رد کند |
 | **اجراهای پلی‌بوک** | Playbooks | آنچه هر پلی‌بوک گام به گام انجام داد |
 | **Protected Entities** | Playbooks | کاربران و میزبان‌هایی که هیچ پلی‌بوکی آن‌ها را مهار نمی‌کند |
 | **تنظیمات** | هوش مصنوعی | اینکه آیا OneUptime AI هر پروندهٔ تازه را بررسی اولیه می‌کند |
@@ -205,10 +205,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | شدت | `severityName` ، یکی از Unknown، Informational، Low، Medium، High، Critical، Fatal یا Other، و `severityId` |
 | چه کسی انجامش داد | `principalUser` ، `principalHost` ، `principalIp` ، `principalProcess` |
 | به چه چیزی دست زد | `targetUser` ، `targetHost` ، `targetIp` ، `targetPort` ، `targetResource` |
-| فرایند | `processName` ، `processPath` و `processCommandLine` : در اجرای یک فرایند، فرایندی که اجرا شد، و در غیر این صورت فرایندی که عمل کرد. `parentProcessName` ، `parentProcessPath` و `parentProcessCommandLine` : فرایندی که آن را اجرا کرد |
+| فرایند | `processName` ، `processPath` و `processCommandLine` : در فعالیت یک فرایند، فرایندی که اجرا، باز، به آن تزریق یا پایان داده شد، و در غیر این صورت فرایندی که عمل کرد. `parentProcessName` ، `parentProcessPath` و `parentProcessCommandLine` : فرایندی که آن را اجرا کرد |
 | منبع | `productName` ، `vendorName` ، `ruleId` ، `ruleName` ، `eventUid` |
 | محتوا | `message` ، `mitreTactics` ، `mitreTechniques` و `observables` : هر کاربر، میزبان، نشانی IP، دامنه و هشی که از رویداد برداشته شده |
 | ویژگی‌ها | کل محتوای منبع، که به کلیدهای نقطه‌دار تخت شده است |
+
+رویدادهایی که پیش از آنکه OneUptime فیلدهای فرایند را بخواند ذخیره شده‌اند، این فیلدها را خالی می‌گذارند و فرایندشان را فقط به‌صورت `principalProcess`، فرایندی که عمل کرد، نام می‌برند. این رویدادها بعداً تکمیل نمی‌شوند: تا پایان نگهداری‌شان همان چیزی را دارند که با آن ذخیره شدند.
 
 ## کاوش رویدادهای امنیتی
 

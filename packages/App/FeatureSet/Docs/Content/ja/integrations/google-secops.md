@@ -227,7 +227,18 @@ Google SecOps は、ルールを書いたのが誰かによって検出の重大
 
 ## Google SecOps にセキュリティイベントを送る
 
-OneUptime は見つけたものを Google SecOps にも送れます。チームが使っている SIEM で、OneUptime の検出をその SIEM 自身の検出と並べて見られます。各セキュリティイベントは UDM イベントとしてインポートされます。サインインは `USER_LOGIN`、プロセスの起動は `PROCESS_LAUNCH`、ネットワーク接続は `NETWORK_CONNECTION`、それ以外は `GENERIC_EVENT` となり、重大度、MITRE ATT&CK のタグ、検出したルールが付きます。
+OneUptime は見つけたものを Google SecOps にも送れます。チームが使っている SIEM で、OneUptime の検出をその SIEM 自身の検出と並べて見られます。各セキュリティイベントは、重大度、MITRE ATT&CK のタグ、検出したルールとともに、次の UDM イベントとしてインポートされます。
+
+| セキュリティイベント | UDM イベントタイプ |
+| --- | --- |
+| サインイン | `USER_LOGIN` |
+| プロセスの起動、オープン、インジェクション、終了 | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| 権限を昇格したプロセス | `PROCESS_PRIVILEGE_ESCALATION` |
+| その他のプロセスのアクティビティ | `PROCESS_UNCATEGORIZED` |
+| ネットワーク接続 | `NETWORK_CONNECTION` |
+| それ以外、またはそのタイプに必要なフィールドがないイベント | `GENERIC_EVENT` |
+
+プロセスのイベントでは、`principal` は動作したプロセス、`target` は動作の対象になったプロセスです。起動では、親プロセスと、それが起動したプロセスです。
 
 :::steps
 ### イベントをインポートできるキーを作成する

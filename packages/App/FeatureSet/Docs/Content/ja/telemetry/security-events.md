@@ -31,7 +31,7 @@ flowchart TB
 | --- | --- | --- |
 | **概要** | 概要 | セキュリティの設定状況、いま誰かの対応が必要なもの、ケースがどれだけ速く処理されているか |
 | **未解決のケース** | セキュリティケース | キュー。まだクローズしていないすべてのケースを、その対象ごとにまとめたもの |
-| **自分に割り当て済み** | セキュリティケース | 自分に割り当てられた未解決のケース |
+| **自分の担当** | セキュリティケース | 自分に割り当てられた未解決のケース |
 | **未担当** | セキュリティケース | まだ誰も担当していない未解決のケース |
 | **クローズ済みのケース** | セキュリティケース | 判定付きでクローズされたケース。新しい順 |
 | **すべてのケース** | セキュリティケース | 未解決とクローズ済みを含むすべてのケース |
@@ -205,10 +205,12 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | 重大度 | `severityName` (Unknown、Informational、Low、Medium、High、Critical、Fatal、Other のいずれか) と `severityId` |
 | 誰が行ったか | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 何に触れたか | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
-| プロセス | `processName`、`processPath`、`processCommandLine`: プロセスの起動では起動したプロセス、それ以外では動作したプロセス。`parentProcessName`、`parentProcessPath`、`parentProcessCommandLine`: それを起動したプロセス |
+| プロセス | `processName`、`processPath`、`processCommandLine`: プロセスのアクティビティでは起動、オープン、インジェクション、終了の対象になったプロセス、それ以外では動作したプロセス。`parentProcessName`、`parentProcessPath`、`parentProcessCommandLine`: それを起動したプロセス |
 | ソース | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 内容 | `message`、`mitreTactics`、`mitreTechniques`、`observables`: イベントから取り出したすべてのユーザー、ホスト、IP アドレス、ドメイン、ハッシュ |
 | 属性 | ソースのペイロード全体を、ドット区切りのキーに平坦化したもの |
+
+OneUptime がプロセスのフィールドを読み取る前に保存されたイベントでは、これらのフィールドは空のままで、プロセスは動作したプロセスである `principalProcess` としてだけ記録されています。後から補完されることはなく、保持期間が終わるまで保存時の内容のままです。
 
 ## セキュリティイベントを調べる
 

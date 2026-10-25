@@ -93,6 +93,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | `Workflow.Status`：`NEW`、`NOTIFIED`、`RESOLVED` 或 `SUPPRESSED`，否则使用较旧的 `WorkflowState` | 状态 |
 | `TTPs/` 下的 `Types`：`TTPs/Initial Access/...` 变为 `TA0001` | MITRE ATT&CK 战术和技术 |
 | 访问密钥或用户资源的 IAM 用户，`Network.SourceIpV4` 或 `SourceIpV6`，`Process.Name` 或 `Process.Path` | 主体的用户、IP 和进程 |
+| `Process.Name` 和 `Process.Path` | 进程名称和路径。发现结果既不包含命令行，也不包含父进程。 |
 | `AwsEc2Instance` 资源的实例 ID，`Network.DestinationIpV4` 或 `DestinationIpV6`，`Network.DestinationPort`，第一个 `Resources[].Id` | 目标的主机、IP、端口和资源 |
 | 以上这些，以及每个 `Resources[].Id`、`AwsAccountId`、网络的域名、恶意软件名称和威胁情报值 | Observable |
 | 整个发现结果，展平为点分隔的键，例如 `Compliance.Status` 和 `Remediation.Recommendation.Url` | `attributes` |

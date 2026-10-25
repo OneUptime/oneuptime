@@ -44,7 +44,7 @@ flowchart TB
 | **Threat Intel** | Detections | Фиды STIX/TAXII с известными вредоносными индикаторами |
 | **ATT&CK Coverage** | Detections | Техники MITRE ATT&CK, которые покрывают ваши правила |
 | **Playbooks** | Playbooks | Шаги, которые выполняются для кейсов сами или вручную |
-| **Ожидает одобрения** | Playbooks | Шаги плейбуков, которые ждут, пока кто-то их одобрит или отклонит |
+| **Одобрения** | Playbooks | Шаги плейбуков, которые ждут, пока кто-то их одобрит или отклонит |
 | **Запуски плейбуков** | Playbooks | Что сделал каждый плейбук, шаг за шагом |
 | **Protected Entities** | Playbooks | Пользователи и хосты, к которым ни один плейбук не применяет сдерживание |
 | **Настройки** | ИИ | Оценивает ли OneUptime AI каждый новый кейс |
@@ -205,10 +205,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Серьёзность | `severityName`, одно из значений Unknown, Informational, Low, Medium, High, Critical, Fatal или Other, и `severityId` |
 | Кто это сделал | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Что было затронуто | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| Процесс | `processName`, `processPath` и `processCommandLine`: при запуске процесса — запущенный процесс, иначе — процесс, который действовал. `parentProcessName`, `parentProcessPath` и `parentProcessCommandLine`: процесс, который его запустил |
+| Процесс | `processName`, `processPath` и `processCommandLine`: в активности процесса — процесс, который запустили, открыли, в который внедрились или который завершили, иначе — процесс, который действовал. `parentProcessName`, `parentProcessPath` и `parentProcessCommandLine`: процесс, который его запустил |
 | Источник | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Содержимое | `message`, `mitreTactics`, `mitreTechniques` и `observables`: каждый пользователь, хост, IP-адрес, домен и хеш, извлечённые из события |
 | Атрибуты | Все исходные данные источника, развёрнутые в ключи с точками |
+
+События, сохранённые до того, как OneUptime стал читать поля процесса, оставляют их пустыми и называют свой процесс только как `principalProcess` — процесс, который действовал. Позже они не дополняются: они хранят то, с чем были сохранены, пока не закончится их срок хранения.
 
 ## Обзор событий безопасности
 

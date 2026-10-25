@@ -227,7 +227,18 @@ Google SecOps는 누가 규칙을 작성했느냐에 따라 탐지의 심각도�
 
 ## Google SecOps로 보안 이벤트 보내기
 
-OneUptime은 찾은 것을 Google SecOps로도 보낼 수 있으므로, 팀이 사용하는 SIEM에서 OneUptime의 탐지를 자체 탐지와 나란히 볼 수 있습니다. 각 보안 이벤트는 UDM 이벤트로 가져옵니다. 로그인은 `USER_LOGIN`, 프로세스 시작은 `PROCESS_LAUNCH`, 네트워크 연결은 `NETWORK_CONNECTION`, 나머지는 `GENERIC_EVENT`가 되며, 심각도, MITRE ATT&CK 태그, 이를 찾은 규칙이 함께 붙습니다.
+OneUptime은 찾은 것을 Google SecOps로도 보낼 수 있으므로, 팀이 사용하는 SIEM에서 OneUptime의 탐지를 자체 탐지와 나란히 볼 수 있습니다. 각 보안 이벤트는 심각도, MITRE ATT&CK 태그, 이를 찾은 규칙과 함께 다음 UDM 이벤트로 가져옵니다.
+
+| 보안 이벤트 | UDM 이벤트 유형 |
+| --- | --- |
+| 로그인 | `USER_LOGIN` |
+| 프로세스의 시작, 열기, 인젝션, 종료 | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| 권한을 상승시킨 프로세스 | `PROCESS_PRIVILEGE_ESCALATION` |
+| 그 밖의 프로세스 활동 | `PROCESS_UNCATEGORIZED` |
+| 네트워크 연결 | `NETWORK_CONNECTION` |
+| 그 외 모든 것, 또는 유형에 필요한 필드가 없는 이벤트 | `GENERIC_EVENT` |
+
+프로세스 이벤트에서 `principal`은 동작한 프로세스이고 `target`은 그 동작의 대상이 된 프로세스입니다. 시작에서는 부모 프로세스와 그것이 시작한 프로세스입니다.
 
 :::steps
 ### 이벤트를 가져올 수 있는 키 만들기

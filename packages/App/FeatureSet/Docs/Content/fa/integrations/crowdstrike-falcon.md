@@ -79,6 +79,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 | `status`، مانند `new`، `in_progress` یا `closed` | وضعیت |
 | `tactic_id`, `technique_id` | تاکتیک‌ها و تکنیک‌های MITRE ATT&CK |
 | `device.hostname`، `device.local_ip`، `user_name`، `filename` یا `cmdline` | میزبان، IP، کاربر و فرایند اصلی |
+| `filename`، `filepath` و `cmdline`؛ `parent_details.filename`، `parent_details.filepath` و `parent_details.cmdline` | نام، مسیر و خط فرمان فرایند؛ نام، مسیر و خط فرمان فرایند والد |
 | `device.hostname`، `device.local_ip`، `device.external_ip`، `user_name`، `sha256` | Observableها |
 | هر چیز دیگر، مانند `device.platform_name`، `falcon_host_link`، `product` و `timestamp` | `attributes`، تخت‌شده به کلیدهای نقطه‌دار |
 

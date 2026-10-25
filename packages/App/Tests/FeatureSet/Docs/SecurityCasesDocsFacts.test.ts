@@ -254,9 +254,9 @@ describe("Security Cases and Playbooks docs", () => {
       SECURITY_PLAYBOOK_RUN_VIEWS.map((view: { title: string }): string => {
         return view.title;
       }),
-    ).toEqual(["Waiting for Approval", "Playbook Runs"]);
+    ).toEqual(["Approvals", "Playbook Runs"]);
     expect(page).toContain(
-      "**Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.",
+      "**Approvals**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.",
     );
     expect(page).toContain(
       "under **Products → Security Events → Playbooks → Playbook Runs**, step by step:",

@@ -44,7 +44,7 @@ flowchart TB
 | **Threat Intel** | Detections | ज्ञात हानिकारक संकेतकों की STIX/TAXII फ़ीड |
 | **ATT&CK Coverage** | Detections | वे MITRE ATT&CK तकनीकें जिन्हें आपके नियम कवर करते हैं |
 | **Playbooks** | Playbooks | केस पर चलने वाले चरण, अपने आप या हाथ से |
-| **स्वीकृति की प्रतीक्षा में** | Playbooks | वे प्लेबुक चरण जो किसी के स्वीकार या अस्वीकार करने का इंतज़ार कर रहे हैं |
+| **स्वीकृतियाँ** | Playbooks | वे प्लेबुक चरण जो किसी के स्वीकार या अस्वीकार करने का इंतज़ार कर रहे हैं |
 | **प्लेबुक रन** | Playbooks | हर प्लेबुक ने चरण-दर-चरण क्या किया |
 | **Protected Entities** | Playbooks | वे उपयोगकर्ता और होस्ट जिन्हें कोई प्लेबुक कंटेन नहीं करती |
 | **सेटिंग्स** | एआई | क्या OneUptime AI हर नए केस का ट्राइएज करता है |
@@ -205,10 +205,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | गंभीरता | `severityName`, जो Unknown, Informational, Low, Medium, High, Critical, Fatal या Other में से एक है, और `severityId` |
 | किसने किया | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | किस पर असर हुआ | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| प्रक्रिया | `processName`, `processPath` और `processCommandLine`: किसी प्रक्रिया के शुरू होने पर वह प्रक्रिया जो शुरू हुई, वरना वह प्रक्रिया जिसने काम किया। `parentProcessName`, `parentProcessPath` और `parentProcessCommandLine`: वह प्रक्रिया जिसने उसे शुरू किया |
+| प्रक्रिया | `processName`, `processPath` और `processCommandLine`: किसी प्रक्रिया की गतिविधि में वह प्रक्रिया जो शुरू की गई, खोली गई, जिसमें इंजेक्शन हुआ या जो बंद की गई, वरना वह प्रक्रिया जिसने काम किया। `parentProcessName`, `parentProcessPath` और `parentProcessCommandLine`: वह प्रक्रिया जिसने उसे शुरू किया |
 | स्रोत | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | सामग्री | `message`, `mitreTactics`, `mitreTechniques` और `observables`: इवेंट से निकाला गया हर उपयोगकर्ता, होस्ट, IP पता, डोमेन और हैश |
 | विशेषताएँ | पूरा स्रोत पेलोड, बिंदु वाली कुंजियों में चपटा किया हुआ |
+
+जो इवेंट OneUptime के प्रक्रिया फ़ील्ड पढ़ने से पहले सहेजे गए, उनमें ये फ़ील्ड खाली रहते हैं और उनकी प्रक्रिया सिर्फ़ `principalProcess` के रूप में दर्ज होती है, यानी वह प्रक्रिया जिसने काम किया। इन्हें बाद में भरा नहीं जाता: रिटेंशन खत्म होने तक ये वैसे ही रहते हैं जैसे सहेजे गए थे।
 
 ## सुरक्षा इवेंट एक्सप्लोर करें
 

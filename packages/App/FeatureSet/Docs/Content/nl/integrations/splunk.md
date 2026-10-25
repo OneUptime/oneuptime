@@ -78,6 +78,7 @@ Elke rij die de zoekopdracht teruggeeft, wordt een Detection Finding-gebeurtenis
 | `status_label`, anders `status_description`, anders de naam van de beoordelingsstatus die `status` bevat | Status |
 | `annotations.mitre_attack`, en velden zoals `mitre_technique_id` en `mitre_tactic` | MITRE ATT&CK-tactieken en -technieken |
 | `user` of `src_user`; `src`, `src_ip` of `src_host`; `process`, `process_name` of `parent_process` | Gebruiker, IP, host en proces van de actor |
+| `process_name` of `process_exec`, `process_path` en `process`; `parent_process_name` of `parent_process_exec`, `parent_process_path` en `parent_process` | Naam, pad en opdrachtregel van het proces; naam, pad en opdrachtregel van het bovenliggende proces |
 | `dest_user`; `dest`, `dest_ip` of `dest_host`; `dest_port` | Gebruiker, IP, host en poort van het doel |
 | `file_path`, `url` of `risk_object` | Doelresource |
 | Elke gebruiker, host en IP, plus `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` en `risk_object` | Observables |

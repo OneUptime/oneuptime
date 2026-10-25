@@ -93,6 +93,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | `Workflow.Status`: `NEW`、`NOTIFIED`、`RESOLVED`、`SUPPRESSED`。なければ旧来の `WorkflowState` | ステータス |
 | `TTPs/` の下の `Types`: `TTPs/Initial Access/...` は `TA0001` になります | MITRE ATT&CK の戦術と手法 |
 | アクセスキーまたはユーザーリソースの IAM ユーザー、`Network.SourceIpV4` または `SourceIpV6`、`Process.Name` または `Process.Path` | 主体のユーザー、IP、プロセス |
+| `Process.Name`、`Process.Path` | プロセスの名前とパス。検出結果にはコマンドラインも親プロセスもありません。 |
 | `AwsEc2Instance` リソースのインスタンス ID、`Network.DestinationIpV4` または `DestinationIpV6`、`Network.DestinationPort`、最初の `Resources[].Id` | ターゲットのホスト、IP、ポート、リソース |
 | それらに加え、各 `Resources[].Id`、`AwsAccountId`、ネットワークのドメイン、マルウェア名、脅威インテリジェンスの値 | オブザーバブル |
 | 検出結果全体。`Compliance.Status` や `Remediation.Recommendation.Url` のようなドット区切りのキーに展開されます | `attributes` |
