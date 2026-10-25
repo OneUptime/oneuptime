@@ -250,6 +250,126 @@ test.describe("Logs → AI tab", () => {
       await expectNoSidewaysScroll(page);
     }
   });
+
+  /*
+   * The shared telemetry tab bar (Components/Telemetry/NavTabs): five tabs
+   * need about 510px and a phone gives them 326, so they used to wrap,
+   * Setup Guide and Settings on a line of their own. They stay on one line
+   * now, the line scrolls sideways with its hidden edge faded, and the lit
+   * tab opens in its middle - only the bar scrolls, never the page.
+   */
+  test("the tabs stay on one line: on a phone the line scrolls, the lit tab in view and its neighbours peeking", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(page, `${AI}/insights`, async () => {
+      const tabs: Locator = logsTabs(page);
+      const scroller: Locator = page.getByTestId("telemetry-nav-tabs-scroller");
+
+      await expect(tabs).toBeVisible({ timeout: 60000 });
+
+      const tops: Array<number> = await tabs
+        .getByRole("link")
+        .evaluateAll((links: Array<Element>): Array<number> => {
+          return links.map((link: Element): number => {
+            return Math.round(link.getBoundingClientRect().top);
+          });
+        });
+
+      // Every tab on the same line, never one under another.
+      expect(new Set(tops).size).toBe(1);
+      expect(tops.length).toBe(5);
+      await expect(
+        tabs.getByRole("link", { name: "AI", exact: true }),
+      ).toHaveAttribute("aria-current", "page");
+
+      const measure: () => Promise<{
+        overflow: number;
+        scrollLeft: number;
+        litLeft: number;
+        litRight: number;
+        barLeft: number;
+        barRight: number;
+      }> = async () => {
+        return scroller.evaluate(
+          (
+            element: Element,
+          ): {
+            overflow: number;
+            scrollLeft: number;
+            litLeft: number;
+            litRight: number;
+            barLeft: number;
+            barRight: number;
+          } => {
+            const bar: DOMRect = element.getBoundingClientRect();
+            const lit: DOMRect = element
+              .querySelector("[aria-current='page']")!
+              .getBoundingClientRect();
+
+            return {
+              overflow: element.scrollWidth - element.clientWidth,
+              scrollLeft: element.scrollLeft,
+              litLeft: lit.left,
+              litRight: lit.right,
+              barLeft: bar.left,
+              barRight: bar.right,
+            };
+          },
+        );
+      };
+
+      if (!isPhone(testInfo)) {
+        // A laptop has the room: nothing scrolls and no edge fades.
+        expect((await measure()).overflow).toBeLessThanOrEqual(1);
+        await expect(scroller).toHaveAttribute("data-hidden-left", "false");
+        await expect(scroller).toHaveAttribute("data-hidden-right", "false");
+        return;
+      }
+
+      const opened: Awaited<ReturnType<typeof measure>> = await measure();
+
+      // The tabs do not fit, so the line scrolls - the page does not.
+      expect(opened.overflow).toBeGreaterThan(100);
+      await expectNoSidewaysScroll(page);
+
+      // The lit tab opens whole, near the middle, with a tab on each side.
+      expect(opened.litLeft).toBeGreaterThanOrEqual(opened.barLeft);
+      expect(opened.litRight).toBeLessThanOrEqual(opened.barRight);
+      expect(opened.scrollLeft).toBeGreaterThan(0);
+      await expect(scroller).toHaveAttribute("data-hidden-left", "true");
+      await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+
+      // Scrolled to its end, the last tab is whole and that edge is sharp.
+      await scroller.evaluate((element: Element): void => {
+        element.scrollLeft = element.scrollWidth;
+      });
+      await expect(scroller).toHaveAttribute("data-hidden-right", "false");
+
+      const settings: { left: number; right: number } = await tabs
+        .getByRole("link", { name: "Settings", exact: true })
+        .evaluate((link: Element): { left: number; right: number } => {
+          const box: DOMRect = link.getBoundingClientRect();
+
+          return { left: box.left, right: box.right };
+        });
+      const atEnd: Awaited<ReturnType<typeof measure>> = await measure();
+
+      expect(settings.right).toBeLessThanOrEqual(atEnd.barRight + 1);
+      expect(settings.left).toBeGreaterThanOrEqual(atEnd.barLeft);
+
+      // Back at the start, the first tab is whole and that edge is sharp.
+      await scroller.evaluate((element: Element): void => {
+        element.scrollLeft = 0;
+      });
+      await expect(scroller).toHaveAttribute("data-hidden-left", "false");
+      await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+      await expectNoSidewaysScroll(page);
+    });
+
+    await screenshot(page, testInfo, "tabs-one-line");
+  });
 });
 
 test.describe("Logs → AI → Settings", () => {
