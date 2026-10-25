@@ -226,9 +226,23 @@ describe("what Fix with AI says", () => {
     expect(
       getTelemetryAiFixLead(
         AIInsightType.LogMissingLogging,
+        undefined,
         logsLacking(LogLoggingGap.NoTraceContext),
       ),
     ).toBe(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD);
+
+    // The pull request the server says it starts speaks first, as it does for every kind.
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.LogMissingLogging,
+        CodeFixTaskType.ImproveExceptionHandling,
+        logsLacking(LogLoggingGap.NoTraceContext),
+      ),
+    ).toBe(
+      TELEMETRY_AI_FIX_LEADS_BY_RECIPE[
+        CodeFixTaskType.ImproveExceptionHandling
+      ],
+    );
 
     // Failures that write no line, or no gap said: the logging they lack.
     for (const evidence of [
@@ -239,7 +253,11 @@ describe("what Fix with AI says", () => {
       undefined,
     ]) {
       expect(
-        getTelemetryAiFixLead(AIInsightType.LogMissingLogging, evidence),
+        getTelemetryAiFixLead(
+          AIInsightType.LogMissingLogging,
+          undefined,
+          evidence,
+        ),
       ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.LogMissingLogging]);
     }
 
@@ -253,6 +271,7 @@ describe("what Fix with AI says", () => {
       expect(
         getTelemetryAiFixLead(
           insightType,
+          undefined,
           logsLacking(LogLoggingGap.NoTraceContext),
         ),
       ).toBe(TELEMETRY_AI_FIX_LEADS[insightType]);

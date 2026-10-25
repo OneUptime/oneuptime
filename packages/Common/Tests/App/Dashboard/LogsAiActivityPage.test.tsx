@@ -224,7 +224,10 @@ describe("Logs → AI → Activity", () => {
   test.each([
     [ErrorClass.CodeFault, "Found a fault in the code"],
     [ErrorClass.UserError, "Found an expected error: invalid input"],
-    [ErrorClass.ExpectedDenial, "Found an expected error: a check doing its job"],
+    [
+      ErrorClass.ExpectedDenial,
+      "Found an expected error: a check doing its job",
+    ],
     [ErrorClass.Infrastructure, "Found a cause outside the code"],
     [ErrorClass.Unknown, "Could not tell the cause"],
   ])(
@@ -281,9 +284,7 @@ describe("Logs → AI → Activity", () => {
       "data-kind",
       TelemetryAiLogKind.Investigation,
     );
-    expect(investigation!).toHaveTextContent(
-      "Found a cause outside the code",
-    );
+    expect(investigation!).toHaveTextContent("Found a cause outside the code");
     expect(screen.queryByText("Pull request")).not.toBeInTheDocument();
     expect(screen.queryByText("Open task")).not.toBeInTheDocument();
   });
