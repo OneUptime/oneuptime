@@ -25,6 +25,19 @@ import {
   buildSecurityEventJson,
   buildSecurityEventOverviewFields,
 } from "./SecurityEventDetailFields";
+import ConnectedSignals from "../SecurityConnections/ConnectedSignals";
+import {
+  CONNECTED_SIGNALS_EVENT_DESCRIPTION,
+  CONNECTED_TAB_LABEL,
+} from "../SecurityConnections/SecurityConnectionsCopy";
+import { getSecurityEventEntities } from "../SecurityConnections/SecurityConnectionsModel";
+import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  SecurityLogResource,
+  readSecurityLogResource,
+} from "Common/Utils/SecurityCase/SecurityConnectionMatch";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export const SECURITY_EVENT_DETAIL_PANEL_TEST_ID: string =
   "security-event-detail-panel";
@@ -32,6 +45,11 @@ export const SECURITY_EVENT_DETAIL_PANEL_TEST_ID: string =
 export const SECURITY_EVENT_DETAIL_OVERVIEW_TAB_ID: string = "overview";
 export const SECURITY_EVENT_DETAIL_ATTRIBUTES_TAB_ID: string = "attributes";
 export const SECURITY_EVENT_DETAIL_JSON_TAB_ID: string = "json";
+/*
+ * What the event names in the rest of OneUptime, and what was happening
+ * there in the hour around it (Components/SecurityConnections).
+ */
+export const SECURITY_EVENT_DETAIL_CONNECTED_TAB_ID: string = "connected";
 
 export const SECURITY_EVENT_DETAIL_JSON_TEST_ID: string =
   "security-event-detail-json";
@@ -159,6 +177,7 @@ const FieldRow: FunctionComponent<{
 const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [activeTabId, setActiveTabId] = useState<string>(
     SECURITY_EVENT_DETAIL_OVERVIEW_TAB_ID,
   );
@@ -191,6 +210,20 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   const attributeColumnKeys: Set<string> = useMemo(() => {
     return new Set(props.attributeColumnKeys || []);
   }, [props.attributeColumnKeys]);
+
+  // Its users, hosts and addresses, and the record its log line was sent under.
+  const connectedEntities: Array<SecurityEntity> = useMemo(() => {
+    return getSecurityEventEntities(
+      event as unknown as { [column: string]: unknown },
+    );
+  }, [event]);
+
+  const logResources: Array<SecurityLogResource> = useMemo(() => {
+    const resource: SecurityLogResource | null =
+      readSecurityLogResource(attributes);
+
+    return resource ? [resource] : [];
+  }, [attributes]);
 
   const observables: Array<string> = useMemo(() => {
     return (event.observables || []).filter((observable: string): boolean => {
@@ -404,6 +437,34 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
       label: "Attributes",
       content: attributesTab,
       badge: attributeKeys.length,
+    },
+    {
+      id: SECURITY_EVENT_DETAIL_CONNECTED_TAB_ID,
+      label: translator.translateText(CONNECTED_TAB_LABEL) || "Connected",
+      content: (
+        <div className="p-4">
+          {activeTabId === SECURITY_EVENT_DETAIL_CONNECTED_TAB_ID ? (
+            <ConnectedSignals
+              request={{
+                entities: connectedEntities,
+                ...(time ? { time } : {}),
+                logResources,
+              }}
+              requestKey={`event:${event.eventUid || ""}:${
+                time ? time.toISOString() : ""
+              }:${connectedEntities
+                .map((entity: SecurityEntity): string => {
+                  return entity.value;
+                })
+                .join("|")}`}
+              description={CONNECTED_SIGNALS_EVENT_DESCRIPTION}
+              isEmbedded={true}
+            />
+          ) : (
+            <></>
+          )}
+        </div>
+      ),
     },
     {
       id: SECURITY_EVENT_DETAIL_JSON_TAB_ID,

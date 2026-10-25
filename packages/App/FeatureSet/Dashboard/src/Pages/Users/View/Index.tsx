@@ -1,5 +1,7 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserCustomFields from "../../../Components/CustomFields/UserCustomFields";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
@@ -155,6 +157,13 @@ const UserViewIndex: FunctionComponent<
       </Card>
 
       <UserCustomFields userId={userId} hideIfEmpty={true} />
+
+      {/*
+       * What Security Events found about them this week - sign-ins and
+       * findings naming their email - for whoever may read it
+       * (Components/SecurityConnections).
+       */}
+      <ResourceSecurityCard kind={SecurityConnectionKind.User} modelId={userId} />
     </Fragment>
   );
 };

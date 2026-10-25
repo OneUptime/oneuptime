@@ -33,6 +33,8 @@ import TechStackView from "../../../Components/TechStack/TechStackView";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
@@ -648,6 +650,15 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route,
             { modelId: modelId },
           )}
+        />
+        {/*
+         * What Security Events found about it this week, for whoever
+         * may read it (Components/SecurityConnections).
+         */}
+        <ResourceSecurityCard
+          kind={SecurityConnectionKind.Service}
+          modelId={modelId}
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         />
       </div>
 

@@ -44,6 +44,12 @@ export enum SecurityConnectionKind {
   NetworkDevice = "NetworkDevice",
   Service = "Service",
   User = "User",
+  /*
+   * An inventory item: only ever looked up the way back, for its page's
+   * Security card - a machine's item is what its host, device or cluster
+   * is, and a connection names that record instead.
+   */
+  InventoryItem = "InventoryItem",
 }
 
 // The order connections are listed in: machines, then clusters, services, people.
@@ -56,6 +62,7 @@ export const SECURITY_CONNECTION_KINDS: ReadonlyArray<SecurityConnectionKind> =
     SecurityConnectionKind.NetworkDevice,
     SecurityConnectionKind.Service,
     SecurityConnectionKind.User,
+    SecurityConnectionKind.InventoryItem,
   ];
 
 export enum SecurityConnectionCertainty {

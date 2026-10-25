@@ -1,5 +1,9 @@
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../../Models/DatabaseModels/Host";
+import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
+import { JSONObject } from "../../../../Types/JSON";
+import EntityType from "../../../../Types/Telemetry/EntityType";
+import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
@@ -120,6 +124,40 @@ export function toResourceSecurityCaseJson(
         }
       : {}),
   };
+}
+
+/*
+ * The inventory items that are machines, named the way security tools name
+ * machines: a host, a node, a container host, a device, a VM, an appliance.
+ */
+export const INVENTORY_MACHINE_TYPES: ReadonlyArray<EntityType> = [
+  EntityType.Host,
+  EntityType.KubernetesNode,
+  EntityType.KubernetesCluster,
+  EntityType.DockerHost,
+  EntityType.PodmanHost,
+  EntityType.NetworkDevice,
+  EntityType.VMwareHost,
+  EntityType.VMwareVirtualMachine,
+  EntityType.ProxmoxNode,
+  EntityType.ProxmoxGuest,
+  EntityType.Appliance,
+];
+
+// The identifying attributes a machine's item is named by.
+export const INVENTORY_NAME_ATTRIBUTES: ReadonlyArray<string> = [
+  "host.name",
+  "k8s.node.name",
+  "k8s.cluster.name",
+];
+
+function readAttributeText(
+  attributes: JSONObject | undefined | null,
+  key: string,
+): string | undefined {
+  const value: unknown = attributes ? attributes[key] : undefined;
+
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 export interface ResourceSecurityIdentity {
@@ -373,6 +411,48 @@ export default class ResourceSecurity {
           names: [],
           entity: null,
           isSearchedByLogs: true,
+        };
+      }
+      case SecurityConnectionKind.InventoryItem: {
+        const item: InventoryItem | null = await InventoryItemService.findOneBy({
+          query,
+          select: {
+            _id: true,
+            entityType: true,
+            displayName: true,
+            identifyingAttributes: true,
+            descriptiveAttributes: true,
+          },
+          props: data.props,
+        });
+
+        // A machine's item only: a service, a pod or a process is named otherwise.
+        if (
+          !item ||
+          !item.entityType ||
+          !INVENTORY_MACHINE_TYPES.includes(item.entityType)
+        ) {
+          return null;
+        }
+
+        const names: Array<string | undefined> = [
+          item.displayName,
+          ...INVENTORY_NAME_ATTRIBUTES.map((key: string): string | undefined => {
+            return readAttributeText(item.identifyingAttributes, key);
+          }),
+          readAttributeText(item.descriptiveAttributes, "host.name"),
+        ];
+        const main: string =
+          names.find((name: string | undefined): boolean => {
+            return Boolean(name && name.trim());
+          }) || "";
+
+        return {
+          name: item.displayName || main,
+          names,
+          addresses: readAttributeText(item.descriptiveAttributes, "host.ip"),
+          entity: main ? { type: SecurityEntityType.Host, value: main } : null,
+          isSearchedByLogs: false,
         };
       }
       case SecurityConnectionKind.User: {

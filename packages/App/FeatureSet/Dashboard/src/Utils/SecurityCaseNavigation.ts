@@ -16,8 +16,12 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   incident has its State Timeline here
  *   Investigation   what it is made of and what was done about it: the
  *                   Detections that opened it or joined it, the Entities it
- *                   is about, and the Playbook Runs on it - counted beside
- *                   its entry while one waits for an approval
+ *                   is about, its Connected Signals - those entities as the
+ *                   rest of OneUptime knows them: the hosts, clusters,
+ *                   services and users, their logs, traces and metrics
+ *                   around the case, the incidents and alerts on them and
+ *                   what changed - and the Playbook Runs on it, counted
+ *                   beside their entry while one waits for an approval
  *   Notes           what the team wrote (Private Notes, as an incident's
  *                   and an alert's are named: a case has no public side)
  *   Advanced        what most visits never need, folded: the case's Audit
@@ -84,6 +88,11 @@ export const SECURITY_CASE_MENU: Array<SecurityCaseMenuSection> = [
         page: PageMap.SECURITY_CASE_VIEW_ENTITIES,
         title: "Entities",
         icon: IconProp.Fingerprint,
+      },
+      {
+        page: PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
+        title: "Connected Signals",
+        icon: IconProp.Link,
       },
       {
         page: PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,

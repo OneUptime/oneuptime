@@ -38,6 +38,8 @@ import {
 } from "../../Components/SecurityEvents/EntityRisk/EntityRiskModel";
 import EntityRiskScore from "../../Components/SecurityEvents/EntityRisk/EntityRiskScore";
 import EntityRiskSources from "../../Components/SecurityEvents/EntityRisk/EntityRiskSources";
+import ConnectedSignals from "../../Components/SecurityConnections/ConnectedSignals";
+import { CONNECTED_SIGNALS_ENTITY_DESCRIPTION } from "../../Components/SecurityConnections/SecurityConnectionsCopy";
 import useEntityRiskSettings, {
   EntityRiskSettings,
 } from "../../Components/SecurityEvents/EntityRisk/useEntityRiskSettings";
@@ -138,6 +140,8 @@ const SecurityEntityRiskViewPage: FunctionComponent<
   const [riskError, setRiskError] = useState<string>("");
   const [activity, setActivity] = useState<EntityActivity | null>(null);
   const [activityError, setActivityError] = useState<string>("");
+  // Whether its activity has been read (an entity with none reads as null).
+  const [isActivityLoaded, setIsActivityLoaded] = useState<boolean>(false);
   const [readCount, setReadCount] = useState<number>(0);
   const [isConfirmingReset, setIsConfirmingReset] = useState<boolean>(false);
   const [isResetting, setIsResetting] = useState<boolean>(false);
@@ -153,6 +157,7 @@ const SecurityEntityRiskViewPage: FunctionComponent<
     // Another entity's page starts afresh: nothing of the last one shows meanwhile.
     setRisk(null);
     setActivity(null);
+    setIsActivityLoaded(false);
     setIsRiskLoaded(false);
     setRiskError("");
 
@@ -200,11 +205,13 @@ const SecurityEntityRiskViewPage: FunctionComponent<
         if (isCurrent) {
           setActivity(rows[0] || null);
           setActivityError("");
+          setIsActivityLoaded(true);
         }
       })
       .catch((error: unknown) => {
         if (isCurrent) {
           setActivityError(API.getFriendlyMessage(error as Error));
+          setIsActivityLoaded(true);
         }
       });
 
@@ -444,6 +451,25 @@ const SecurityEntityRiskViewPage: FunctionComponent<
           </EventStatBar>
         )}
       </div>
+
+      {/*
+       * Where OneUptime knows it - the host, cluster, device, service or
+       * user it is - and what was happening there around its last event.
+       * Read once its activity is in, so the window is its last event's.
+       */}
+      {isActivityLoaded ? (
+        <ConnectedSignals
+          request={{
+            entities: [{ type, value: risk?.entityValue || value }],
+            ...(activity?.lastSeen ? { time: new Date(activity.lastSeen) } : {}),
+            readLogResources: true,
+          }}
+          requestKey={`entity:${value}:${type}:${activity?.lastSeen || ""}`}
+          description={CONNECTED_SIGNALS_ENTITY_DESCRIPTION}
+        />
+      ) : (
+        <></>
+      )}
 
       {breakdown && hasScore ? (
         <EntityRiskSources sources={breakdown.sources} />

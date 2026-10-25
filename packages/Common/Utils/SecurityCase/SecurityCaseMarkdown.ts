@@ -125,6 +125,7 @@ export const SECURITY_CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.NetworkDevice]: "Network device",
   [SecurityConnectionKind.Service]: "Service",
   [SecurityConnectionKind.User]: "Member",
+  [SecurityConnectionKind.InventoryItem]: "Inventory item",
 };
 
 /*

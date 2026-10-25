@@ -84,6 +84,7 @@ import {
   EventStatusFact,
 } from "../../../Components/EventView/EventStatusPanel";
 import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import IncidentSecurityCard from "../../../Components/SecurityConnections/IncidentSecurityCard";
 import CallSummarySection from "../../../Components/AI/CallSummary/CallSummarySection";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import useEventVideoCalls, {
@@ -1576,6 +1577,18 @@ const IncidentView: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+
+          {/*
+           * The security case behind the incident, and the open cases naming
+           * what it affects - under what it affects. Nothing at all for an
+           * incident Security Events has nothing to say about, or for whoever
+           * may not read security cases.
+           */}
+          <IncidentSecurityCard
+            incidentId={modelId}
+            headerLayout="stacked"
+            refreshToken={feedRefreshToken}
           />
 
           <EventVideoCallsCard

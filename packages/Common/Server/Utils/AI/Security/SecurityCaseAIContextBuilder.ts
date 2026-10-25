@@ -1073,6 +1073,7 @@ export const CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.NetworkDevice]: "network device",
   [SecurityConnectionKind.Service]: "service",
   [SecurityConnectionKind.User]: "member",
+  [SecurityConnectionKind.InventoryItem]: "inventory item",
 };
 
 // Why an entity is (or may be) a record, as the context says it.
