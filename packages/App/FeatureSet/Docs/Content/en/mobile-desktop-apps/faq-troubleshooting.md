@@ -32,9 +32,9 @@ Yes. Each phone or tablet is a push device of its own, with its own on-call rule
 :::
 
 :::details What can I do in the app?
-- **Home**: what needs attention in the project: active incidents and alerts, monitors with issues, and grouped events.
+- **Home**: what needs attention in the project: active incidents and alerts, open security cases if your role lets you see them, monitors with issues, and grouped events.
 - **Monitors**: every monitor, filtered by health, with its details.
-- **Inbox**: incidents and alerts, and the episodes that group them. Open one to **Acknowledge**, **Resolve** or **Add Note**.
+- **Inbox**: incidents and alerts, and the episodes that group them. Open one to **Acknowledge**, **Resolve** or **Add Note**. If your role lets you see the project's security cases, **Security** lists the open ones: open one to **Approve** or **Reject** a playbook step waiting for approval, take it on with **Assign to me**, or **Close case**.
 - **On-Call**: whether you are on call and until when, who else is, the pages sent to you, and **Cover for me**, which hands your pages to a teammate for a while.
 - **Settings**: your projects and single sign-on, appearance, critical alerts and the alarm sound, **Biometrics Login**, your on-call calendar feed, and **Log Out**.
 
@@ -42,7 +42,7 @@ Everything else is in the dashboard.
 :::
 
 :::details Can I acknowledge a page from the notification?
-No. Tap the notification: the app opens the incident, alert or episode it is about, in the right project, and you acknowledge it there. If the app is locked or you are signed out, it opens the page once you are in.
+No. Tap the notification: the app opens the incident, alert, episode or security case it is about, in the right project, and you acknowledge it there. If the app is locked or you are signed out, it opens the page once you are in.
 :::
 
 :::details Is my sign-in safe on the phone?

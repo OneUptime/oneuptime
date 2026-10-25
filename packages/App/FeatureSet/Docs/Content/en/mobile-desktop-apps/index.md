@@ -16,7 +16,7 @@ OneUptime has an app for your phone and one for your computer. **OneUptime On-Ca
 | What it is | OneUptime On-Call, a native app for iPhone, iPad and Android | The OneUptime dashboard, installed from your browser |
 | Where you get it | The App Store, Google Play, or an APK from GitHub | Your own OneUptime: there is nothing to download |
 | On-call pages | Push notifications, which can ring through silent mode and Do Not Disturb | Browser notifications, once you register the browser |
-| What you can do | Incidents, alerts, monitors and who is on call; acknowledge, resolve and add notes | Everything the dashboard does |
+| What you can do | Incidents, alerts, security cases, monitors and who is on call; acknowledge, resolve, approve playbook steps and add notes | Everything the dashboard does |
 | Updates | From the store, or by installing a newer APK | Every time it opens, it loads the dashboard from your OneUptime |
 | Runs on | iOS 16.4 or later, Android 7.0 or later | Windows, macOS and Linux, with Edge or Chrome, or Safari on macOS Sonoma 14 or later |
 

@@ -32,9 +32,9 @@ Ja. Varje telefon eller surfplatta är en egen push-enhet, med egna jourregler o
 :::
 
 :::details Vad kan jag göra i appen?
-- **Home**: vad som behöver uppmärksamhet i projektet: aktiva incidenter och varningar, monitorer med problem och grupperade händelser.
+- **Home**: vad som behöver uppmärksamhet i projektet: aktiva incidenter och varningar, öppna säkerhetsärenden om din roll låter dig se dem, monitorer med problem och grupperade händelser.
 - **Monitors**: alla monitorer, filtrerade efter hälsa, med sina detaljer.
-- **Inbox**: incidenter och varningar, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**.
+- **Inbox**: incidenter och varningar, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**. Låter din roll dig se projektets säkerhetsärenden visar **Security** de öppna: öppna ett för att använda **Approve** eller **Reject** på ett playbook-steg som väntar på godkännande, ta ärendet med **Assign to me** eller använda **Close case**.
 - **On-Call**: om du har jour och till när, vem mer som har det, larmen som skickats till dig, och **Cover for me**, som lämnar över dina larm till en kollega en stund.
 - **Settings**: dina projekt och enkel inloggning, utseendet, kritiska varningar och larmljudet, **Biometrics Login**, ditt jourkalenderflöde och **Log Out**.
 
@@ -42,7 +42,7 @@ Allt annat finns i instrumentpanelen.
 :::
 
 :::details Kan jag bekräfta ett larm från aviseringen?
-Nej. Tryck på aviseringen: appen öppnar incidenten, varningen eller episoden den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar den larmet så snart du är inne.
+Nej. Tryck på aviseringen: appen öppnar incidenten, varningen, episoden eller säkerhetsärendet den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar den larmet så snart du är inne.
 :::
 
 :::details Är min inloggning säker på telefonen?

@@ -159,8 +159,14 @@ npx playwright show-report
 
 `tests/ui/oncall.spec.js` covers the overview, roster search and coverage filters,
 teammate picker, coverage confirmation, coverage history, page-to-incident
-navigation, policy assignments and calendar setup. Other specifications cover
-the remaining operational, authentication and settings screens.
+navigation, policy assignments and calendar setup. `tests/ui/security.spec.js`
+and `security-foldables.spec.js` cover security cases (installFixtures'
+`security` option): Home's row and the Inbox's Security category only for
+people who can see cases, the open cases in triage order, what OneUptime AI
+found shown at once, a playbook step approved with a comment (Approve the
+screen's one filled button until it is decided), a case taken on and closed
+with a verdict, the inner screen's two panes and a fold mid-approval. Other specifications cover the
+remaining operational, authentication and settings screens.
 
 After editing source, use `npm run test-ui` again so screenshots reflect a fresh
 export. When only the test changes and the export is already current, a focused

@@ -407,10 +407,17 @@ export function ResponseActions({
   actions,
   busy,
   style,
+  minWidth = RESPONSE_ACTION_MIN_WIDTH,
 }: {
   actions: ResponseAction[];
   busy: boolean;
   style?: StyleProp<ViewStyle>;
+  /*
+   * The narrowest each action may be before they stack: a screen whose labels
+   * are longer than "Acknowledge" ("Assign to me") asks for more, so a label
+   * never breaks across two lines inside its button.
+   */
+  minWidth?: number;
 }): React.JSX.Element {
   const { theme } = useTheme();
   return (
@@ -449,7 +456,7 @@ export function ResponseActions({
                 flex: 1,
                 flexDirection: "row",
                 gap: spacing.sm,
-                minWidth: RESPONSE_ACTION_MIN_WIDTH,
+                minWidth,
                 minHeight: 54,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,

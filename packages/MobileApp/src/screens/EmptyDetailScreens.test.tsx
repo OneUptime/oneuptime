@@ -71,6 +71,19 @@ describe("Beside the Inbox", () => {
     ).toBeTruthy();
   });
 
+  test("and no case while Security is", async () => {
+    mockRoute.params = { initialView: "security" };
+    await render(<InboxEmptyDetail />);
+
+    expect(
+      screen.getByRole("header", { name: "No case selected" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Choose one from the list to see it here."),
+    ).toBeTruthy();
+    expect(screen.queryByText(AN_ORDER)).toBeNull();
+  });
+
   test("it never gives an order the list beside it cannot meet", async () => {
     // Beside an empty or filtered-out list, "Choose an incident" was a dead end.
     await render(<InboxEmptyDetail />);

@@ -17,11 +17,23 @@ import type { InboxStackParamList } from "../navigation/types";
  * (OnCallStackNavigator).
  */
 
-/** Beside the Inbox: an incident or an alert, depending on the tab. */
+/** Beside the Inbox: an incident, an alert or a security case, depending on the tab. */
 export function InboxEmptyDetail(): React.JSX.Element {
   const route: RouteProp<InboxStackParamList, "InboxList"> =
     useRoute<RouteProp<InboxStackParamList, "InboxList">>();
-  const alerts: boolean = route.params?.initialView === "alerts";
+  const view: string | undefined = route.params?.initialView;
+
+  if (view === "security") {
+    return (
+      <EmptyDetailPane
+        icon="shield-outline"
+        title="No case selected"
+        message="Choose one from the list to see it here."
+      />
+    );
+  }
+
+  const alerts: boolean = view === "alerts";
 
   return (
     <EmptyDetailPane
