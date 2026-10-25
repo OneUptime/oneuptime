@@ -362,7 +362,10 @@ export function addRiskObservation(
 
     next = {
       ...existing,
-      sourceName: clampName(observation.sourceName) || existing.sourceName,
+      // Named as its latest finding names it: a rule renamed since reads as it is now.
+      sourceName: isLater
+        ? clampName(observation.sourceName) || existing.sourceName
+        : existing.sourceName,
       severity: worse(existing.severity, observation.severity),
       points: Math.max(existing.points, points),
       hits: existing.hits + 1,
