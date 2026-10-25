@@ -10,6 +10,7 @@ import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediati
 import Label from "../../../../Models/DatabaseModels/Label";
 import Project from "../../../../Models/DatabaseModels/Project";
 import Service from "../../../../Models/DatabaseModels/Service";
+import AIInsightType from "../../../../Types/AI/AIInsightType";
 import {
   TELEMETRY_AI_LANES,
   TELEMETRY_AI_LANE_LIST,
@@ -17,7 +18,8 @@ import {
   TelemetryAiRuleFacts,
   TelemetryAiWork,
   decideTelemetryAiWork,
-  getTelemetryAiLaneOfInsightType,
+  getTelemetryAiInsightTypesWorkedOn,
+  getTelemetryAiLaneWorkingOn,
 } from "../../../../Types/AI/TelemetryAi";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
@@ -118,11 +120,13 @@ export const TELEMETRY_AI_PROJECT_SELECT: {
   enableAi: true;
   enableAutomaticProfileRemediation: true;
   enableAutomaticTraceRemediation: true;
+  enableAutomaticExceptionRemediation: true;
 } = {
   _id: true,
   enableAi: true,
   enableAutomaticProfileRemediation: true,
   enableAutomaticTraceRemediation: true,
+  enableAutomaticExceptionRemediation: true,
 };
 
 export default class TelemetryAiRules {
@@ -142,12 +146,47 @@ export default class TelemetryAiRules {
     });
   }
 
+  /*
+   * The lane that works on an insight of this type in the project: its
+   * lane - unless AI Insights shares the type (new and spiking exceptions)
+   * and the lane's switch is off, when AI Insights works on it as it always
+   * did (null). The project row must carry every lane's switch
+   * (TELEMETRY_AI_PROJECT_SELECT, or the scanner's own select).
+   */
+  public static getLaneWorkingOn(
+    insightType: unknown,
+    project: Project,
+  ): TelemetryAiLane | null {
+    return getTelemetryAiLaneWorkingOn(
+      insightType,
+      (lane: TelemetryAiLane): boolean => {
+        return TelemetryAiRules.isLaneOn(project, lane);
+      },
+    );
+  }
+
+  /*
+   * The insight types the lanes work on in the project: AI Insights' own
+   * sweeps leave these alone.
+   */
+  public static getInsightTypesWorkedOn(
+    project: Project,
+  ): Array<AIInsightType> {
+    return getTelemetryAiInsightTypesWorkedOn(
+      (lane: TelemetryAiLane): boolean => {
+        return TelemetryAiRules.isLaneOn(project, lane);
+      },
+    );
+  }
+
   // The service a problem was found in: its column, else its evidence's.
   public static getServiceId(problem: AIInsight): string {
     return (
       problem.telemetryServiceId?.toString() ||
       problem.evidence?.profile?.serviceId ||
       problem.evidence?.trace?.serviceId ||
+      problem.evidence?.exception?.serviceId ||
+      problem.evidence?.exceptionStackTrace?.serviceId ||
       ""
     )
       .trim()
@@ -156,15 +195,18 @@ export default class TelemetryAiRules {
 
   /*
    * The work the rules decide for one problem now (the triage runner and
-   * the insight's routes read it): null for an insight no lane works on.
+   * the insight's routes read it): null for an insight no lane works on -
+   * a kind a lane shares with AI Insights, while that lane's switch is off,
+   * included (getLaneWorkingOn).
    */
   @CaptureSpan()
   public static async decideForInsight(data: {
     insight: AIInsight;
     project: Project;
   }): Promise<TelemetryAiWork | null> {
-    const lane: TelemetryAiLane | null = getTelemetryAiLaneOfInsightType(
+    const lane: TelemetryAiLane | null = TelemetryAiRules.getLaneWorkingOn(
       data.insight.insightType,
+      data.project,
     );
     const projectId: ObjectID | undefined =
       data.insight.projectId || data.project.id || undefined;

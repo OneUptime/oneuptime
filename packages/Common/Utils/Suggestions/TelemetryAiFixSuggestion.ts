@@ -1,4 +1,5 @@
 import { CodeTaskBlockerType } from "../../Types/AI/CodeTask";
+import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import { JSONObject } from "../../Types/JSON";
 import { getCodeFixOffer } from "./CodeFixSuggestion";
 import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
@@ -51,6 +52,12 @@ export interface TelemetryAiFixSuggestion {
   repositories: Array<TelemetryAiFixRepository>;
   // InProgress: the Code task already working on it.
   taskId: string | null;
+  /*
+   * Act: the Code recipe the pull request would be (CodeFixTaskType), when
+   * the lane says - an exception's is a fix, or better handling of an
+   * expected error - so the strip can say which. Absent: a request in Code.
+   */
+  recipe?: string | undefined;
 }
 
 export const NO_TELEMETRY_AI_FIX_SUGGESTION: TelemetryAiFixSuggestion = {
@@ -239,12 +246,17 @@ export function parseTelemetryAiFixSuggestion(
     return NO_TELEMETRY_AI_FIX_SUGGESTION;
   }
 
+  const recipe: string | null = readText(record["recipe"]);
+
   return {
     offer,
     blocker: null,
     repository,
     repositories: repository ? [] : repositories,
     taskId: null,
+    ...(recipe && CodeFixTaskTypeHelper.isValidTaskType(recipe)
+      ? { recipe }
+      : {}),
   };
 }
 
@@ -277,5 +289,6 @@ export function telemetryAiFixSuggestionToJSON(
       },
     ),
     taskId: suggestion.taskId,
+    ...(suggestion.recipe ? { recipe: suggestion.recipe } : {}),
   };
 }

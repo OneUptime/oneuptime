@@ -164,12 +164,34 @@ where <verdict> is exactly one of: code-fault, user-error, expected-denial, infr
 - unknown: the evidence does not support a confident verdict.
 user-error and expected-denial do not apply to tracing findings: do not use them.`;
 
+/*
+ * The Exceptions product's AI section's finding that is not about one
+ * exception (Utils/Exceptions/ExceptionInsight): a service whose exceptions
+ * carry no stack trace. New and rising exceptions keep the preventive
+ * framing above - it is the exceptions' own - whichever works on them.
+ */
+const EXCEPTION_STACK_TRACE_TRIAGE_FRAMING: string = `IMPORTANT — this is OBSERVABILITY TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's exceptions and found that it records them without a stack trace, so nobody can tell which of its code raised them. Your job:
+- Establish how the service raises and records its exceptions: read its code with the code tools when a repository holds it, and its exceptions with the exception tools.
+- Say why they carry no stack trace: errors raised as strings or plain objects, errors created without a stack (as Go's are unless wrapped), or exceptions recorded by message rather than with the error itself.
+- Recommend exactly ONE change that makes the next exception carry its stack trace, naming the file it goes in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the code raises or records its exceptions in a way a code change should fix.
+- infrastructure: the stack traces are lost outside this code (an agent, a collector, a log shipper or the SDK's configuration) and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to this finding: do not use them.`;
+
 // The framing an insight's triage is given, by what kind of finding it is.
 const TRIAGE_FRAMING_BY_TYPE: Partial<Record<AIInsightType, string>> = {
   [AIInsightType.ProfileHotspot]: PROFILE_TRIAGE_FRAMING,
   [AIInsightType.TraceSlowOperation]: TRACE_SLOW_TRIAGE_FRAMING,
   [AIInsightType.TraceFailingOperation]: TRACE_FAILING_TRIAGE_FRAMING,
   [AIInsightType.TraceMissingTracing]: TRACE_TRACING_TRIAGE_FRAMING,
+  [AIInsightType.ExceptionMissingStackTrace]:
+    EXCEPTION_STACK_TRACE_TRIAGE_FRAMING,
 };
 
 export default class InsightTriageRunner {
@@ -310,8 +332,9 @@ export default class InsightTriageRunner {
    * What a telemetry lane's problem may be investigated with: the code
    * repositories and MCP servers its lane's AI rules allow for it
    * (Types/AI/TelemetryAi). Null for every other insight - triaged as it
-   * always was. Rules that cannot be read allow nothing beyond OneUptime's
-   * own data.
+   * always was - and for a kind a lane shares with AI Insights while the
+   * lane's switch is off (AI Insights' then). Rules that cannot be read
+   * allow nothing beyond OneUptime's own data.
    */
   private static async getTelemetryAiScope(data: {
     insight: AIInsight;
@@ -327,6 +350,13 @@ export default class InsightTriageRunner {
       select: TELEMETRY_AI_PROJECT_SELECT,
       props: { isRoot: true },
     });
+
+    if (
+      project &&
+      !TelemetryAiRules.getLaneWorkingOn(data.insight.insightType, project)
+    ) {
+      return null;
+    }
 
     const work: TelemetryAiWork | null = project
       ? await TelemetryAiRules.decideForInsight({
@@ -516,8 +546,7 @@ export default class InsightTriageRunner {
     const project: Project | null = await ProjectService.findOneById({
       id: insight.projectId,
       select: {
-        _id: true,
-        enableAi: true,
+        ...TELEMETRY_AI_PROJECT_SELECT,
         enableInsightFixTasks: true,
         autoArchiveNonActionableExceptions: true,
       },
@@ -537,8 +566,11 @@ export default class InsightTriageRunner {
      */
     const isVerdictGatedInsight: boolean =
       insight.insightType !== AIInsightType.TraceLatencyRegression &&
-      // A telemetry lane's rules decide its fixes (TelemetryAiRouting).
-      !getTelemetryAiLaneOfInsightType(insight.insightType);
+      /*
+       * A telemetry lane's rules decide its fixes (TelemetryAiRouting) - a
+       * kind it shares with AI Insights only while its switch is on.
+       */
+      !TelemetryAiRules.getLaneWorkingOn(insight.insightType, project);
 
     if (
       classification === ExceptionAIClassification.CodeFault &&
@@ -674,6 +706,7 @@ export default class InsightTriageRunner {
       "metricDrift",
       "profile",
       "trace",
+      "exceptionStackTrace",
     ];
 
     for (const section of sections) {

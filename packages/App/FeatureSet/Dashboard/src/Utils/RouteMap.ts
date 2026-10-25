@@ -892,6 +892,14 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: `${RouteParams.ModelID}/ai-assistance`,
   [PageMap.EXCEPTIONS_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
+  /*
+   * The AI section: static paths, so they outrank an exception's own pages
+   * (`:id/logs`, `:id/settings`) when a route is matched.
+   */
+  [PageMap.EXCEPTIONS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.EXCEPTIONS_AI_LOGS]: "ai/logs",
+  [PageMap.EXCEPTIONS_AI_SETTINGS]: "ai/settings",
 };
 
 export const LlmRoutePath: Dictionary<string> = {
@@ -8118,6 +8126,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_SETTINGS]
     }`,
   ),
 };
