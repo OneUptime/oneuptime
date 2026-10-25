@@ -21,3 +21,21 @@ Inter font production ships.
 The "before" shots swap master's `Pages/SecurityEvents/Overview.tsx` and
 `Components/SecurityOverview/RankedBars.tsx` (or the Network Overview and `ExceptionExplorer.tsx`)
 into the fixture build for the shot, and put the branch's back after it.
+
+## UI review
+
+Added by the UI review, at twice the pixel density with Inter. The rows no offline fixture renders
+were drawn by a review harness: the real components (`MessageQueueServicesCard`,
+`AiActivityInsightsView`, `TrafficTopList`, `TracesDashboard`) inside the production `Page` beside a
+side menu, over made-up data.
+
+| File | What it shows |
+| --- | --- |
+| `exception-no-occurrence-before-1280.png`, `exception-no-occurrence-after-1280.png` | An exception with no occurrence stored (ExceptionDetail fixture, `?occurrence=none`). Before: the dashed box at the top of a card stretched to the details' height. After: the box takes the card's room, its words in the middle. |
+| `traffic-empty-before-1280.png`, `traffic-empty-after-1280.png`, `traffic-empty-after-1280-dark.png` | A traffic page's top lists with no applications beside four networks (a Meraki organization without traffic analysis). Before: the sentence at the top of a tall card. After: in its middle, as every other row's empty list. |
+| `message-queue-one-side-1280.png` | A queue's Producers beside Consumers with none: the empty side as tall as the table, its sentence in the middle. |
+| `ai-insights-hotspots-1280-dark.png` | Incidents > AI > Insights: the monitors that keep failing beside no service, dark theme. |
+| `traces-no-errors-1280.png` | The Traces overview's Recent Errors (none) beside Slowest Requests: both columns end on one line. |
+
+The review's "before" shots swap the branch's `ExceptionLatestOccurrence.tsx` and `TrafficTopList.tsx`
+(before the review) into the watching builds, the same way.
