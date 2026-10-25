@@ -1,4 +1,5 @@
 import IncidentLabelRule from "../../../../Models/DatabaseModels/IncidentLabelRule";
+import Label from "../../../../Models/DatabaseModels/Label";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
 import MonitorLabelRule from "../../../../Models/DatabaseModels/MonitorLabelRule";
 import MonitorOwnerRule from "../../../../Models/DatabaseModels/MonitorOwnerRule";
@@ -74,6 +75,57 @@ const FORM_FIELDS: Array<Record<string, unknown>> = [
 function lastTableProps(): Record<string, any> {
   return mockTableProps[mockTableProps.length - 1]!;
 }
+
+/*
+ * Every rule list - label, owner, privacy, on-call, reminder and the rest -
+ * turns a rule off and on from its row: the shared row switch (ModelTable's
+ * rowSwitch), with no Edit, flip, Save.
+ */
+describe("RuleTable's row switch", () => {
+  beforeEach(() => {
+    mockTableProps.length = 0;
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    cleanup();
+  });
+
+  it("gives a rule with an Enabled switch Enable or Disable in each row", () => {
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(baseProps() as any)}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    expect(lastTableProps()["rowSwitch"]).toEqual({ column: "isEnabled" });
+  });
+
+  it("keeps a list's own row switch", () => {
+    const own: Record<string, unknown> = {
+      column: "isEnabled",
+      singularName: "Rule",
+    };
+
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(baseProps() as any)}
+        rowSwitch={own}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    expect(lastTableProps()["rowSwitch"]).toBe(own);
+  });
+
+  it("gives a model without the switch none", () => {
+    render(<RuleTable<Label> {...(baseProps() as any)} modelType={Label} />);
+
+    expect(lastTableProps()["rowSwitch"]).toBeUndefined();
+  });
+});
 
 function baseProps(): Record<string, any> {
   return {

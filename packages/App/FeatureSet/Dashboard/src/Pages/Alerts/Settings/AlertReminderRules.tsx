@@ -62,6 +62,8 @@ const AlertReminderRulesPage: FunctionComponent<
     <Fragment>
       <ModelTable<AlertReminderRule>
         modelType={AlertReminderRule}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         id="alert-reminder-rules-table"
         name="Settings > Alert Reminder Rules"
         userPreferencesKey="alert-reminder-rules-table"

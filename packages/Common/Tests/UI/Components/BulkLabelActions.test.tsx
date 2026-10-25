@@ -93,6 +93,7 @@ import {
   BulkActionOnClickProps,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -546,6 +547,18 @@ describe("useBulkLabelActions", () => {
      * behind a divider, which is for irreversible actions.
      */
     expect(capturedActions[1]!.buttonStyleType).toBe(ButtonStyleType.NORMAL);
+  });
+
+  test("keeps both in a run of their own in Bulk Actions (ActionMenuGroup)", async () => {
+    render(<Harness items={[]} />);
+
+    await waitForMountedLabelFetch();
+
+    expect(
+      capturedActions.map((action: BulkActionButtonSchema<Monitor>) => {
+        return action.menuGroup;
+      }),
+    ).toEqual([ActionMenuGroup.Labels, ActionMenuGroup.Labels]);
   });
 
   test("leaves the click contract unconditional on both actions", async () => {

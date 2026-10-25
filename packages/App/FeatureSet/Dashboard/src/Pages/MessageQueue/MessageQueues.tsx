@@ -162,9 +162,10 @@ const MessageQueues: FunctionComponent<
       resourceIdField: "messageQueueId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<MessageQueue>({
-    modelType: MessageQueue,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<MessageQueue>({
+      modelType: MessageQueue,
+    });
 
   const messageQueueExtraFacets: Array<ResourceFacet> = [
     {
@@ -230,6 +231,8 @@ const MessageQueues: FunctionComponent<
     <Fragment>
       <ModelTable<MessageQueue>
         modelType={MessageQueue}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="message-queues-table"
         userPreferencesKey="message-queues-table"

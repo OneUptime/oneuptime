@@ -97,9 +97,10 @@ const StorageArrays: FunctionComponent<
       resourceIdField: "storageArrayId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<StorageArray>({
-    modelType: StorageArray,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<StorageArray>({
+      modelType: StorageArray,
+    });
 
   const storageArrayExtraFacets: Array<ResourceFacet> = [
     {
@@ -175,6 +176,8 @@ const StorageArrays: FunctionComponent<
     <Fragment>
       <ModelTable<StorageArray>
         modelType={StorageArray}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="storage-arrays-table"
         userPreferencesKey="storage-arrays-table"

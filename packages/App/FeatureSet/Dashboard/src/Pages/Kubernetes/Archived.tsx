@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const KubernetesArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<KubernetesCluster>({
-    modelType: KubernetesCluster,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<KubernetesCluster>({
+      modelType: KubernetesCluster,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const KubernetesArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="kubernetes-archived-table"
         userPreferencesKey="kubernetes-archived-table"
         topContent={filterBar}

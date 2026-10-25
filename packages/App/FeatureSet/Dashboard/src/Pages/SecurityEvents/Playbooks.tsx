@@ -24,8 +24,10 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -66,11 +68,15 @@ const SecurityPlaybooksPage: FunctionComponent<
    * Enable and Disable in Bulk Actions: a disabled playbook stops running on
    * its own, and can still be run by hand from a case.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<SecurityPlaybook>> =
-    useBulkSwitchActions<SecurityPlaybook>({
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<SecurityPlaybook> = useSwitchActions<SecurityPlaybook>(
+    {
       modelType: SecurityPlaybook,
       column: "isEnabled",
-    });
+    },
+  );
 
   /*
    * Create from Template, beside Create Playbook: the templates, each
@@ -94,6 +100,8 @@ const SecurityPlaybooksPage: FunctionComponent<
     <div className="space-y-6">
       <ModelTable<SecurityPlaybook>
         modelType={SecurityPlaybook}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        actionButtons={[...switchRowActions]}
         id="security-playbooks-table"
         name="Security Events > Playbooks"
         userPreferencesKey="security-playbooks-table"

@@ -165,7 +165,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure. Son me
 
 **Vue d'ensemble** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées par défaut, pour que le menu s'ouvre sur les listes dont vous vous servez chaque jour. Cliquez sur le titre d'une section pour la déplier et trouver les pages dont parle le reste de cette documentation ; une section s'ouvre aussi d'elle-même dès que vous êtes sur l'une de ses pages. La configuration des incidents ne se trouve pas dans les paramètres du projet ; elle vit entièrement ici.
 
-La liste des incidents elle-même affiche **Numéro d'incident**, **Titre**, **État**, **Gravité**, **Ressources affectées**, **Déclaré**, **Durée**, **Étiquettes** et **Propriétaires**, avec une action groupée **Modifier l'état** pour en clore plusieurs d'un coup.
+La liste des incidents elle-même affiche **Numéro d'incident**, **Titre**, **État**, **Gravité**, **Ressources affectées**, **Déclaré**, **Durée**, **Étiquettes** et **Propriétaires**. Le menu **⋯** au bout de la ligne de chaque incident propose **Prendre en compte** et **Résoudre** tant que l'incident peut franchir cette étape, **Modifier l'état**, **Modifier la gravité**, **M'attribuer** tant que vous n'en êtes pas propriétaire, et **Ajouter un propriétaire** pour le confier à quelqu'un d'autre. Sélectionnez plusieurs incidents pour faire de même sur tous à la fois.
 
 ## Ce que montre chaque page d'un incident
 

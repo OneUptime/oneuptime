@@ -58,9 +58,10 @@ const DockerSwarmClusters: FunctionComponent<
       resourceIdField: "dockerSwarmClusterId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<DockerSwarmCluster>({
-    modelType: DockerSwarmCluster,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<DockerSwarmCluster>({
+      modelType: DockerSwarmCluster,
+    });
 
   const dockerSwarmExtraFacets: Array<ResourceFacet> = [
     {
@@ -116,6 +117,8 @@ const DockerSwarmClusters: FunctionComponent<
     <Fragment>
       <ModelTable<DockerSwarmCluster>
         modelType={DockerSwarmCluster}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="docker-swarm-clusters-table"
         userPreferencesKey="docker-swarm-clusters-table"

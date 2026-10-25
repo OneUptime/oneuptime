@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const VMwareArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<VMwareVCenter>({
-    modelType: VMwareVCenter,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<VMwareVCenter>({
+      modelType: VMwareVCenter,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const VMwareArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<VMwareVCenter>
         modelType={VMwareVCenter}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="vmware-archived-table"
         userPreferencesKey="vmware-archived-table"
         topContent={filterBar}

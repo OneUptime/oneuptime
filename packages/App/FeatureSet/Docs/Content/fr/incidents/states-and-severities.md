@@ -167,13 +167,14 @@ Archivez un état ou une gravité que votre équipe ne doit plus utiliser, au li
 
 ## Faire passer un incident d'un état à l'autre
 
-Un incident change d'état de quatre façons :
+Un incident change d'état de cinq façons :
 
 | Façon                     | Où                                                                                          | Ce qui est demandé                                                                                                                                                                                           |
 | ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Boutons de l'en-tête**  | L'en-tête de l'incident : **Prendre en compte** et **Résoudre**, et **Changer l'état en** dans son menu **⋯** | Une courte confirmation — **Prendre en compte l'incident** ou **Résoudre l'incident** — avec **Notifier les abonnés de la page de statut** et, replié sous **Ajouter une note publique**, la **Note publique** facultative et son sélecteur **Sélectionner le modèle de note** (quand le projet a des modèles de notes). |
 | **Chronologie d'état**    | **Chronologie d'état** dans le menu latéral de l'incident                                   | Une ligne ajoutée à la main, avec **Statut de l'incident**, **Commence le** et **Notifier les abonnés de la page de statut**.                                                                               |
-| **Modification groupée**  | **Modifier l'état** sur une sélection dans la liste des incidents                           | Une page avec l'état, **Notifier les abonnés de la page de statut** et le même **Ajouter une note publique** replié.                                                                                        |
+| **Ligne de la liste** | Le menu **⋯** sur la ligne d'un incident dans la liste des incidents : **Prendre en compte**, **Résoudre** et **Modifier l'état** | La confirmation de l'en-tête, qui nomme l'incident. Un incident qu'un autre changement a déjà fait avancer est laissé tel quel, et la boîte de dialogue dit pourquoi. |
+| **Modification groupée**  | **Prendre en compte**, **Résoudre** ou **Modifier l'état** sur une sélection dans la liste des incidents                           | Une page avec l'état, **Notifier les abonnés de la page de statut** et le même **Ajouter une note publique** replié.                                                                                        |
 | **Automatiquement**       | Un critère de moniteur, ou votre propre code                                                | Un critère avec **Résoudre automatiquement l'incident** activé résout son incident quand le critère n'est plus rempli. L'API change l'état en créant une ligne à `/api/incident-state-timeline`.           |
 
 Si l'état courant précède l'état pris en compte, l'en-tête propose **Prendre en compte** et **Résoudre** ; s'il se situe entre les deux, seulement **Résoudre**. La prise en compte arrête aussi toute escalade d'astreinte de l'incident.
@@ -182,7 +183,7 @@ Chacune de ces façons écrit une ligne de chronologie. Un changement d'état fa
 
 ## Ce que fait la prise en compte
 
-Un incident est pris en compte dès qu'il passe dans votre état pris en compte, dans un état qui le suit — un état **Mitigated** ou **Investigating** que vous avez placé sous **Pris en compte** — ou dans un état résolu, quelle que soit celle des quatre façons ci-dessus qui le déplace. La colonne **Compte comme** de la page de paramètres des états montre de quels états il s'agit. Une fois qu'il est pris en compte :
+Un incident est pris en compte dès qu'il passe dans votre état pris en compte, dans un état qui le suit — un état **Mitigated** ou **Investigating** que vous avez placé sous **Pris en compte** — ou dans un état résolu, quelle que soit celle des cinq façons ci-dessus qui le déplace. La colonne **Compte comme** de la page de paramètres des états montre de quels états il s'agit. Une fois qu'il est pris en compte :
 
 - **Prendre en compte n'est plus proposé.** Ni dans l'en-tête de l'incident, ni dans l'application mobile (son bouton et son balayage), ni dans Slack ou Microsoft Teams, ni via `acknowledge_incident` du serveur MCP de OneUptime. Le prendre en compte malgré tout — depuis une alerte d'astreinte, Slack ou Teams — est refusé avec « Incident is already acknowledged. » (ou « Incident is already resolved. »), au lieu de le faire remonter dans sa liste.
 - **L'astreinte cesse d'alerter pour lui.** Un intervenant qui prend en compte son alerte après qu'un collègue a pris l'incident en compte, ou l'a fait avancer, voit son alerte prise en compte et l'incident reste où il est.
@@ -194,7 +195,7 @@ Les alertes et les épisodes suivent la même règle, avec vos états d'alerte.
 
 ## Ce que fait la résolution
 
-Un incident est résolu quand il passe d'un état situé au-dessus de votre état résolu à l'état résolu, ou à tout état qui le suit — quelle que soit celle des quatre façons ci-dessus qui le déplace. Chaque résolution :
+Un incident est résolu quand il passe d'un état situé au-dessus de votre état résolu à l'état résolu, ou à tout état qui le suit — quelle que soit celle des cinq façons ci-dessus qui le déplace. Chaque résolution :
 
 - **Rend les moniteurs que l'incident retient.** Un incident déclaré ouvert retient ses moniteurs : il les a mis dans son statut **Changer le statut du moniteur en**, quand il en nomme un, et, déclaré à la main, a mis leur surveillance en pause. Une modification pendant qu'il est ouvert — ajouter des moniteurs, ou changer ce statut — lui fait aussi les retenir. La résolution reprend leur surveillance et les remet en état opérationnel, sauf si un autre incident ouvert les concerne encore, et à partir de là l'incident ne retient plus rien. Un incident déclaré déjà résolu ne rend donc rien, pas plus qu'une seconde résolution après une réouverture : un statut que ses moniteurs ont reçu entre-temps — de leurs sondes, d'une maintenance ou défini à la main — reste.
 - **Marque le SLA comme résolu** et, quand les brouillons de post-mortem de OneUptime AI sont activés, rédige un post-mortem.

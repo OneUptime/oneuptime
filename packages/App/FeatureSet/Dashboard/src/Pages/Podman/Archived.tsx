@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const PodmanArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<PodmanHost>({
-    modelType: PodmanHost,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<PodmanHost>({
+      modelType: PodmanHost,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const PodmanArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<PodmanHost>
         modelType={PodmanHost}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="podman-archived-table"
         userPreferencesKey="podman-archived-table"
         topContent={filterBar}

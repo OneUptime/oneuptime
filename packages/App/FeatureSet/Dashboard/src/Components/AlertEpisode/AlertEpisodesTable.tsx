@@ -1,5 +1,4 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisodeElement from "./AlertEpisode";
 import { Black } from "Common/Types/BrandColors";
@@ -12,6 +11,11 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useValueChangeActions from "Common/UI/Components/BulkUpdate/ValueChangeActions";
+import User from "Common/UI/Utils/User";
+import useEventStateActions from "../EventView/useEventStateActions";
+import { EventStateKind } from "../EventView/EventStateKinds";
+import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -20,8 +24,6 @@ import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwne
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners from "../ResourceOwners/useResourceOwners";
-import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
-import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
@@ -37,33 +39,12 @@ import Route from "Common/Types/API/Route";
 import { ALERT_EPISODES_DOCS_PATH } from "../EpisodeView/EpisodeDocsLinks";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
-import {
-  BulkActionButtonSchema,
-  BulkActionFailed,
-  BulkActionOnClickProps,
-} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
-import ObjectID from "Common/Types/ObjectID";
-import { JSONObject } from "Common/Types/JSON";
-import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
-import useNoteTemplates from "../EventView/useNoteTemplates";
-import BulkChangeStateModal, {
-  BulkChangeStateSubmitData,
-} from "../EventView/BulkChangeStateModal";
-import {
-  BulkStateChangeNoteType,
-  BulkStateChangeSkipDecision,
-  buildBulkStateChangeMiscDataProps,
-  getBulkStateChangeSkipDecision,
-} from "../../Utils/BulkStateChange";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -83,28 +64,40 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
-  const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
-    useState<boolean>(false);
-  const [bulkActionProps, setBulkActionProps] =
-    useState<BulkActionOnClickProps<AlertEpisode> | null>(null);
 
-  const { noteTemplates } = useNoteTemplates<AlertNoteTemplate>({
-    modelType: AlertNoteTemplate,
+  /*
+   * Acknowledge, Resolve and Change State, in each row's ⋯ menu and in Bulk
+   * Actions, as the episode's own page offers them (EventView/
+   * useEventStateActions).
+   */
+  const {
+    rowActions: stateRowActions,
+    bulkActions: stateBulkActions,
+    modals: stateActionModals,
+  } = useEventStateActions<AlertEpisode>({
+    kind: EventStateKind.AlertEpisode,
+    states: alertStates,
+  });
+
+  // Change Severity: the episode's Edit form's severity, from the list.
+  const {
+    rowActions: severityRowActions,
+    bulkActions: severityBulkActions,
+    modals: severityModals,
+  } = useValueChangeActions<AlertEpisode, AlertSeverity>({
+    modelType: AlertEpisode,
+    column: "alertSeverity",
+    idColumn: "alertSeverityId",
+    valueModelType: AlertSeverity,
+    title: "Change Severity",
+    fieldTitle: "Severity",
+    placeholder: "Choose a severity",
+    // The list's own Severity filter wears the same icon.
+    icon: IconProp.Fire,
   });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AlertEpisode>({ modelType: AlertEpisode });
-
-  /*
-   * Owners in Bulk Actions, as the incidents and alerts lists have them:
-   * the list shows and filters episodes by their owners.
-   */
-  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
-    useBulkOwnerActions<AlertEpisode>({
-      ownerUserModelType: AlertEpisodeOwnerUser,
-      ownerTeamModelType: AlertEpisodeOwnerTeam,
-      resourceIdField: "alertEpisodeId",
-    });
 
   /*
    * The page's saved views and the chips' selections in the address travel
@@ -135,6 +128,29 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: AlertEpisodeOwnerTeam,
     resourceIdField: "alertEpisodeId",
     showLabelsFacet: true,
+  });
+
+  /*
+   * Owners, as the incidents and alerts lists have them: Assign to Me and
+   * Add Owner in each row's ⋯ menu, and Assign to Me, Add Owner and Remove
+   * Owner in Bulk Actions. A row the viewer owns already is not offered
+   * Assign to Me.
+   */
+  const {
+    bulkActions: ownerBulkActions,
+    rowActions: ownerRowActions,
+    modals: ownerBulkActionModals,
+  } = useBulkOwnerActions<AlertEpisode>({
+    ownerUserModelType: AlertEpisodeOwnerUser,
+    ownerTeamModelType: AlertEpisodeOwnerTeam,
+    resourceIdField: "alertEpisodeId",
+    offerAssignToMeInBulk: true,
+    isOwnedByMe: (episode: AlertEpisode): boolean | undefined => {
+      return isOwnedByViewer({
+        owners: getOwnersForResource(episode),
+        viewerId: User.getUserId(),
+      });
+    },
   });
 
   // Fetch alert states on mount
@@ -172,136 +188,6 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     fetchAlertStates();
   }, []);
 
-  const handleBulkStateChange: (
-    data: BulkChangeStateSubmitData,
-  ) => Promise<void> = async (
-    data: BulkChangeStateSubmitData,
-  ): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
-    const targetStateId: ObjectID = data.stateId;
-
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    const targetState: AlertState | undefined = alertStates.find(
-      (s: AlertState) => {
-        return s.id?.toString() === targetStateId.toString();
-      },
-    );
-
-    if (!targetState) {
-      return;
-    }
-
-    const targetOrder: number = targetState.order || 0;
-
-    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
-      noteType: BulkStateChangeNoteType.Private,
-      note: data.note,
-    });
-
-    onBulkActionStart();
-
-    const inProgressItems: Array<AlertEpisode> = [...items];
-    const totalItems: Array<AlertEpisode> = [...items];
-    const successItems: Array<AlertEpisode> = [];
-    const failedItems: Array<BulkActionFailed<AlertEpisode>> = [];
-
-    for (const episode of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(episode), 1);
-
-      try {
-        if (!episode.id) {
-          throw new Error("Episode ID not found");
-        }
-
-        // Fetch the episode's current state order since it's not loaded in the table
-        const fetchedEpisode: AlertEpisode | null =
-          await ModelAPI.getItem<AlertEpisode>({
-            modelType: AlertEpisode,
-            id: episode.id,
-            select: {
-              currentAlertState: {
-                order: true,
-                name: true,
-              },
-            },
-          });
-
-        const currentOrder: number =
-          fetchedEpisode?.currentAlertState?.order || 0;
-
-        // Skip if already at or past the target state
-        const skipDecision: BulkStateChangeSkipDecision =
-          getBulkStateChangeSkipDecision({
-            currentOrder: currentOrder,
-            targetOrder: targetOrder,
-            currentStateName: fetchedEpisode?.currentAlertState?.name,
-            targetStateName: targetState.name,
-          });
-
-        if (skipDecision.shouldSkip) {
-          failedItems.push({
-            item: episode,
-            failedMessage: skipDecision.skippedMessage!,
-          });
-        } else {
-          // Create state timeline to change state
-          const stateTimeline: AlertEpisodeStateTimeline =
-            new AlertEpisodeStateTimeline();
-          stateTimeline.alertEpisodeId = episode.id;
-          stateTimeline.alertStateId = targetStateId;
-          stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
-
-          await ModelAPI.create<AlertEpisodeStateTimeline>({
-            model: stateTimeline,
-            modelType: AlertEpisodeStateTimeline,
-            miscDataProps: miscDataProps,
-          });
-
-          successItems.push(episode);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: episode,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
-    setShowBulkStateChangeModal(false);
-    setBulkActionProps(null);
-
-    // Trigger sidebar badge count refresh
-    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
-  };
-
-  const getBulkChangeStateAction: () => BulkActionButtonSchema<AlertEpisode> =
-    (): BulkActionButtonSchema<AlertEpisode> => {
-      return {
-        title: "Change State",
-        buttonStyleType: ButtonStyleType.NORMAL,
-        icon: IconProp.TransparentCube,
-        onClick: async (
-          actionProps: BulkActionOnClickProps<AlertEpisode>,
-        ): Promise<void> => {
-          setBulkActionProps(actionProps);
-          setShowBulkStateChangeModal(true);
-        },
-      };
-    };
-
   return (
     <>
       <ModelTable<AlertEpisode>
@@ -309,12 +195,18 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey="alert-episodes-table"
         bulkActions={{
           buttons: [
-            getBulkChangeStateAction(),
-            ...labelBulkActions,
+            ...stateBulkActions,
+            ...severityBulkActions,
             ...ownerBulkActions,
+            ...labelBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
+        actionButtons={[
+          ...stateRowActions,
+          ...severityRowActions,
+          ...ownerRowActions,
+        ]}
         modelType={AlertEpisode}
         id="alert-episodes-table"
         urlStateKey={tableUrlStateKey}
@@ -490,6 +382,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               currentAlertState: {
+                _id: true,
                 name: true,
                 color: true,
               },
@@ -513,6 +406,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               alertSeverity: {
+                _id: true,
                 name: true,
                 color: true,
               },
@@ -621,29 +515,8 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {showBulkStateChangeModal && (
-        <BulkChangeStateModal
-          title="Change Episode State"
-          description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated."
-          stateFieldKey="alertStateId"
-          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            // Archived states are never offered as one to move to.
-            array: ArchivedValuePicker.getLiveValues(alertStates),
-            labelField: "name",
-            valueField: "_id",
-          })}
-          noteType={BulkStateChangeNoteType.Private}
-          noteTitle="Private Note"
-          noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected."
-          noteTemplates={noteTemplates}
-          noteModel={new AlertEpisodeInternalNote()}
-          onClose={() => {
-            setShowBulkStateChangeModal(false);
-            setBulkActionProps(null);
-          }}
-          onSubmit={handleBulkStateChange}
-        />
-      )}
+      {stateActionModals}
+      {severityModals}
     </>
   );
 };

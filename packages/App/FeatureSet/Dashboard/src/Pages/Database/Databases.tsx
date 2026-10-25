@@ -137,9 +137,10 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "databaseServerId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<DatabaseServer>({
-    modelType: DatabaseServer,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<DatabaseServer>({
+      modelType: DatabaseServer,
+    });
 
   // Archiving takes databases out of every count: re-count once it is done.
   const archiveBulkActionsWithSummary: Array<
@@ -254,6 +255,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <DatabaseServerSummaryStrip refreshToken={summaryRefreshToken} />
       <ModelTable<DatabaseServer>
         modelType={DatabaseServer}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="database-servers-table"
         userPreferencesKey="database-servers-table"

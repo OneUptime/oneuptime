@@ -47,9 +47,10 @@ const RumApplications: FunctionComponent<
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
-  const { archiveBulkActions } = useBulkArchiveActions<RumApplication>({
-    modelType: RumApplication,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<RumApplication>({
+      modelType: RumApplication,
+    });
 
   /*
    * Labels and owners in Bulk Actions, as on every other resource list:
@@ -121,6 +122,8 @@ const RumApplications: FunctionComponent<
     <Fragment>
       <ModelTable<RumApplication>
         modelType={RumApplication}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         id="rum-applications-table"
         userPreferencesKey="rum-applications-table"
         topContent={getFirstRunTopContent({

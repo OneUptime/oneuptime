@@ -6,6 +6,7 @@ import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import { PermissionCheckableModel } from "Common/UI/Utils/PermissionGate";
+import DeleteItemNames from "Common/UI/Components/DeleteConfirmation/DeleteItemNames";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   BulkStateChangeNoteTemplate,
@@ -41,6 +42,25 @@ export interface ComponentProps {
    * it is offered.
    */
   noteModel?: PermissionCheckableModel | undefined;
+  /*
+   * The state the change moves to, when the dialog is about one - an
+   * Acknowledge, a Resolve or a "Mark as Ongoing" from a row's ⋯ menu or
+   * from Bulk Actions: the state picker is left out, and the change goes
+   * there.
+   */
+  fixedStateId?: string | undefined;
+  /*
+   * The records the change is about, named above the fields: the row it
+   * was asked for on, or the rows selected.
+   */
+  itemNames?: Array<string> | undefined;
+  // Why the change could not be made, shown at the top of the dialog.
+  error?: string | undefined;
+  /*
+   * Set while one row's change is written: the dialog stays as it was
+   * filled in, its button busy (BasicFormModal.isSubmitting).
+   */
+  isSubmitting?: boolean | undefined;
   onClose: () => void;
   onSubmit: (data: BulkChangeStateSubmitData) => Promise<void>;
 }
@@ -65,6 +85,7 @@ export const getBulkChangeStateFormFields: (data: {
   noteTemplates: Array<BulkStateChangeNoteTemplate>;
   showNotifyStatusPageSubscribers?: boolean | undefined;
   noteModel?: PermissionCheckableModel | undefined;
+  fixedStateId?: string | undefined;
 }) => Fields<JSONObject> = (data: {
   stateFieldKey: string;
   stateOptions: Array<DropdownOption>;
@@ -74,6 +95,7 @@ export const getBulkChangeStateFormFields: (data: {
   noteTemplates: Array<BulkStateChangeNoteTemplate>;
   showNotifyStatusPageSubscribers?: boolean | undefined;
   noteModel?: PermissionCheckableModel | undefined;
+  fixedStateId?: string | undefined;
 }): Fields<JSONObject> => {
   return [
     {
@@ -84,6 +106,10 @@ export const getBulkChangeStateFormFields: (data: {
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
       dropdownOptions: data.stateOptions,
+      // Not asked when the dialog is about one state already.
+      showIf: (): boolean => {
+        return !data.fixedStateId;
+      },
     },
     /*
      * A bulk change does not look at each event's own settings: the box
@@ -118,11 +144,31 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       onClose={props.onClose}
+      error={props.error}
+      isSubmitting={props.isSubmitting}
       submitButtonText={props.submitButtonText || "Change State"}
+      /*
+       * The records it lands on: one row's name, as a row's question names
+       * it (a ⋯ action), or the selection's names (Bulk Actions).
+       */
+      beforeFormElement={
+        props.itemNames && props.itemNames.length === 1 ? (
+          <p
+            data-testid="state-change-item-name"
+            className="break-words text-sm font-semibold text-gray-900"
+          >
+            {props.itemNames[0]}
+          </p>
+        ) : props.itemNames && props.itemNames.length > 1 ? (
+          <DeleteItemNames
+            names={props.itemNames}
+            totalCount={props.itemNames.length}
+          />
+        ) : undefined
+      }
       onSubmit={async (formData: JSONObject) => {
-        const selectedStateId: string = String(
-          formData[props.stateFieldKey] || "",
-        );
+        const selectedStateId: string =
+          props.fixedStateId || String(formData[props.stateFieldKey] || "");
 
         if (!selectedStateId) {
           return;
@@ -153,6 +199,7 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
           showNotifyStatusPageSubscribers:
             props.showNotifyStatusPageSubscribers,
           noteModel: props.noteModel,
+          fixedStateId: props.fixedStateId,
         }),
       }}
     />

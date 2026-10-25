@@ -64,7 +64,9 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 
 **Avvisi** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono compresse, e una sezione si apre da sola quando siete su una delle sue pagine. La configurazione degli avvisi sta qui, non nelle **Impostazioni del progetto**.
 
-L'elenco mostra **Numero dell'avviso**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate** (prima il monitor dell'avviso), **Creato**, **Durata**, **Etichette** e **Proprietari**. Selezionate gli avvisi per agire su più avvisi alla volta: **Cambia stato**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Collega a incidente**, **Dichiara incidente** o eliminarli.
+L'elenco mostra **Numero dell'avviso**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate** (prima il monitor dell'avviso), **Creato**, **Durata**, **Etichette** e **Proprietari**. Selezionate gli avvisi per agire su più avvisi alla volta: **Riconosci**, **Risolvi**, **Cambia stato**, **Cambia gravità**, **Assegna a me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Collega a incidente**, **Dichiara incidente** o eliminarli.
+
+Il menu **⋯** in fondo alla riga di ogni avviso fa lo stesso per quel solo avviso: **Riconosci** e **Risolvi** finché l'avviso può fare quel passo, **Cambia stato**, **Cambia gravità**, **Assegna a me** finché non ne siete proprietari e **Add Owner** per affidarlo a qualcun altro.
 
 ## Creare un avviso a mano
 

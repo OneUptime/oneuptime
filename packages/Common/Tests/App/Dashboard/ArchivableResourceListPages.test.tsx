@@ -49,6 +49,7 @@ interface CapturedTableProps {
   isEditable: boolean;
   isViewable: boolean;
   bulkActions?: { buttons: Array<unknown> };
+  actionButtons?: Array<unknown>;
   cardProps: { title: string; description: string };
   noItemsMessage?: string;
   sortBy?: string;
@@ -214,7 +215,7 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkOwnerActions", () => {
   return {
     __esModule: true,
     default: () => {
-      return { bulkActions: ["owner-action"], modals: <></> };
+      return { rowActions: [], bulkActions: ["owner-action"], modals: <></> };
     },
   };
 });
@@ -225,6 +226,13 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkSwitchActions", () => {
     __esModule: true,
     default: () => {
       return ["switch-action"];
+    },
+    // The bulk switch and each row's, from one declaration.
+    useSwitchActions: () => {
+      return {
+        bulkActions: ["switch-action"],
+        rowActions: ["switch-row-action"],
+      };
     },
   };
 });
@@ -237,6 +245,8 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkArchiveActions", () => {
       return {
         archiveBulkActions: ["archive-action"],
         unarchiveBulkActions: ["unarchive-action"],
+        archiveRowActions: ["archive-row-action"],
+        unarchiveRowActions: ["unarchive-row-action"],
       };
     },
   };
@@ -449,6 +459,20 @@ describe.each(LISTS)("$name list", (list: ArchivableList) => {
     ]);
   });
 
+  /*
+   * Each row's ⋯ menu offers what Bulk Actions offers the row: Enable or
+   * Disable where the records are switched, then Archive - never Unarchive
+   * on a live list.
+   */
+  test("offers Archive in each row's ⋯ menu too, after the switch, and no Unarchive", async () => {
+    const props: CapturedTableProps = await renderPage(list.renderLive());
+
+    expect(props.actionButtons).toEqual([
+      ...(list.isSwitched ? ["switch-row-action"] : []),
+      "archive-row-action",
+    ]);
+  });
+
   test("archives in this resource's words", async () => {
     await renderPage(list.renderLive());
 
@@ -479,6 +503,8 @@ describe.each(LISTS)("Archived $name page", (list: ArchivableList) => {
     const props: CapturedTableProps = await renderPage(list.renderArchived());
 
     expect(props.bulkActions?.buttons).toEqual(["unarchive-action"]);
+    // And in each row's ⋯ menu: Unarchive alone, as in Bulk Actions.
+    expect(props.actionButtons).toEqual(["unarchive-row-action"]);
     expect(lastArchiveHookOptions()).toEqual({
       modelType: list.modelType,
       singularName: list.copy.singularName,

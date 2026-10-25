@@ -727,13 +727,17 @@ describe("a monitor group's monitors", () => {
     const table: CapturedTable = monitors[monitors.length - 1]!;
 
     expect(table.isDeleteable).toBe(false);
+    /*
+     * Remove, between the monitors list's own Enable or Disable (one of
+     * the two, by the row) and Archive - never Delete.
+     */
     expect(
       (table["actionButtons"] as Array<{ title: string }>).map(
         (action: { title: string }): string => {
           return action.title;
         },
       ),
-    ).toEqual(["Remove"]);
+    ).toEqual(["Enable", "Disable", "Remove", "Archive"]);
   });
 });
 
@@ -778,13 +782,20 @@ describe("a monitor template's linked monitors", () => {
     const table: CapturedTable = monitors[monitors.length - 1]!;
 
     expect(table.isDeleteable).toBe(false);
+    // Between the monitors list's own Enable or Disable and Archive.
     expect(
       (table["actionButtons"] as Array<{ title: string }>).map(
         (action: { title: string }): string => {
           return action.title;
         },
       ),
-    ).toEqual(["Sync from Template", "Unlink from Template"]);
+    ).toEqual([
+      "Enable",
+      "Disable",
+      "Sync from Template",
+      "Unlink from Template",
+      "Archive",
+    ]);
   });
 
   /*
