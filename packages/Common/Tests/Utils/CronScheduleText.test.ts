@@ -176,18 +176,45 @@ describe("in German", () => {
     ["0 0 1 * *", "Jeden Monat am 1. um 00:00 (UTC)"],
     ["0 12 1,15 * *", "Jeden Monat am 1. und 15. um 12:00 (UTC)"],
     ["0 0 1 */3 *", "Alle 3 Monate am 1. um 00:00 (UTC)"],
+    // A yearly schedule names its dates as German writes a date.
+    ["0 0 1 1 *", "Jedes Jahr am 1. Januar um 00:00 (UTC)"],
+    [
+      "0 0 1,15 3,9 *",
+      "Jedes Jahr am 1. März, 15. März, 1. September und 15. September um 00:00 (UTC)",
+    ],
+    ["30 6 29 2 *", "Jedes Jahr am 29. Februar um 06:30 (UTC)"],
+    // As many dates as a sentence names (MAX_YEARLY_DATES_IN_WORDS).
+    [
+      "0 0 1,10,20 2,9 *",
+      "Jedes Jahr am 1. Februar, 10. Februar, 20. Februar, 1. September, 10. September und 20. September um 00:00 (UTC)",
+    ],
   ];
 
   test.each(cases)("%s reads %s", (expression: string, german: string) => {
     expect(describeCronSchedule(expression, GERMAN)).toBe(german);
   });
 
-  test("a schedule on given days of given months, and one only cron's fields can describe, read in English", () => {
-    for (const expression of ["0 0 1 1 *", "15,45 8-10 * * *"]) {
+  test("one only cron's fields can describe reads in English, and so does a year of more dates than a sentence can name", () => {
+    for (const expression of [
+      "15,45 8-10 * * *",
+      // Three days of three months: nine dates.
+      "0 0 1,10,20 2,9,11 *",
+      // A day April does not have: it never runs.
+      "0 0 31 4 *",
+    ]) {
       expect(describeCronSchedule(expression, GERMAN)).toBe(
         CronTab.getHumanReadableDescription(expression),
       );
     }
+  });
+
+  test("a yearly schedule German has not worded reads in English, its dates too", () => {
+    expect(
+      describeCronSchedule(
+        "0 0 1 1 *",
+        translatorFor("de", ["Every year on {{dates}} at {{time}} (UTC)"]),
+      ),
+    ).toBe("On the 1st of January at 00:00 (UTC)");
   });
 
   test("a sentence German has not worded reads in English, its weekdays too", () => {
@@ -222,6 +249,7 @@ describe("in every language", () => {
         "0 9 * * 1",
         "0 12 1,15 * *",
         "0 0 1 */3 *",
+        "0 0 1 1 *",
       ]) {
         const english: string | null =
           CronTab.getHumanReadableDescription(expression);
@@ -233,7 +261,14 @@ describe("in every language", () => {
         expect(translated).toBeTruthy();
         expect(translated).not.toBe(english);
         // None of the English sentence's own words is left in it.
-        for (const words of ["Every", " at minute ", "on the hour", "day at"]) {
+        for (const words of [
+          "Every",
+          " at minute ",
+          "on the hour",
+          "day at",
+          "January",
+          "1st",
+        ]) {
           expect(translated).not.toContain(words);
         }
       }
@@ -249,6 +284,25 @@ describe("in every language", () => {
       );
 
       expect(translated).not.toContain("Monday");
+    },
+  );
+
+  /*
+   * Intl writes a day of a month in the case its language's dates take:
+   * Russian "1 января" (of January), Spanish "1 de enero".
+   */
+  test.each([
+    ["ru", "Каждый год 1 января в 00:00 (UTC)"],
+    ["es", "Cada año el 1 de enero a las 00:00 (UTC)"],
+    ["fr", "Chaque année le 1 janvier à 00:00 (UTC)"],
+    ["ja", "毎年 1月1日 00:00 (UTC)"],
+    ["fa", "هر سال 1 ژانویه ساعت 00:00 (UTC)"],
+  ])(
+    "%s: a yearly schedule's date as the language writes a date",
+    (language: string, expected: string) => {
+      expect(describeCronSchedule("0 0 1 1 *", translatorFor(language))).toBe(
+        expected,
+      );
     },
   );
 

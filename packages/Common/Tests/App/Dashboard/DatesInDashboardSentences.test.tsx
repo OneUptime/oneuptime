@@ -125,7 +125,7 @@ describe("the locale files these cases read", () => {
       unknown
     >;
 
-    expect(german["Recorded {{time}}"]).toBe("Aufgezeichnet {{time}}");
+    expect(german["Added {{time}}"]).toBe("Hinzugefügt {{time}}");
     expect(german["Checked {{time}}"]).toBe("Geprüft {{time}}");
     // Not worded in German yet: these read in English.
     expect(german["Last seen {{time}}"]).toBe("Last seen {{time}}");
@@ -152,12 +152,12 @@ describe("RelativeTime", () => {
         inLanguage(
           "de",
           <TranslatedSentence
-            template="Recorded {{time}}"
+            template="Added {{time}}"
             slots={{ time: <RelativeTime date={FIVE_HOURS_AGO} /> }}
           />,
         ),
       ),
-    ).toBe("Aufgezeichnet vor 5 Stunden");
+    ).toBe("Hinzugefügt vor 5 Stunden");
   });
 
   test("in a sentence it has not worded, in English", () => {

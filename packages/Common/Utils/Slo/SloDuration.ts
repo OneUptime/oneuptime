@@ -128,9 +128,12 @@ export const formatDurationCompact: FormatDurationCompactFunction = (
 
 /*
  * formatDurationCompact in a reader's language, for a duration that goes
- * into a translated sentence: "12 Min." in German, "3h 12min" in French,
- * "3小时12分钟" in Chinese - the same units, with the narrow names the
- * language writes them with (Intl, through Common/Types/DateLanguage).
+ * into a translated sentence: "2 Std., 12 Min." in German, "3 h 12 min" in
+ * French, "3 ساعت 12 دقیقه" in Persian, "3小时12分钟" in Chinese - the same
+ * two largest units, each with the short name the language abbreviates it
+ * with (Intl, through Common/Types/DateLanguage). Not Intl's narrow names:
+ * those are Latin letters in some languages ("3h 12m" inside a Persian or a
+ * Japanese sentence) and a bare "T" for a German day.
  *
  * `language` is the sentence's language (a Translator's), or the date
  * display language without one. English, and a language Intl cannot write,
@@ -163,7 +166,7 @@ export const formatDurationCompactInLanguage: (
         return formatDurationText({
           parts: parts.length > 0 ? parts : [{ count: 0, unit: "second" }],
           locale: locale,
-          unitDisplay: "narrow",
+          unitDisplay: "short",
           listStyle: "narrow",
         });
       },

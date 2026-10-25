@@ -3,6 +3,7 @@ import { getDateLocale, isEnglishDateLanguage } from "../Types/DateLanguage";
 import {
   composedValue,
   ComposedValue,
+  translationKey,
   Translator,
 } from "../UI/Utils/TranslateTemplate";
 
@@ -19,11 +20,12 @@ import {
  * sentence the reader's language has not worded yet reads in English, names
  * and all.
  *
- * Two shapes read in English in every language: a schedule on given days of
- * given months ("On the 1st of January at 00:00 (UTC)"), whose day and month
- * take a different case in each language, and one CronTab can only list
- * field by field ("minute 5, 35, hour 3 (UTC)"), which is cron's own terms
- * rather than a sentence.
+ * A schedule on given days of given months ("Jedes Jahr am 1. Januar um
+ * 00:00 (UTC)") names its dates as the language writes a date, so the day
+ * and the month take the case and order the language gives them; one that
+ * names more than MAX_YEARLY_DATES_IN_WORDS dates reads in English, as does
+ * one CronTab can only list field by field ("minute 5, 35, hour 3 (UTC)"),
+ * which is cron's own terms rather than a sentence.
  *
  * Without a translator, and in English, this is getHumanReadableDescription
  * word for word. Null when the expression cannot be parsed.
@@ -191,6 +193,70 @@ const formatDayOfMonth: (day: number, locale: string) => string | null = (
   }
 };
 
+/*
+ * The most dates a yearly schedule names in another language before it is
+ * read in English, as CronTab lists it ("On the 1st and 15th of January
+ * and July"): a sentence that names eight dates is no easier to read.
+ */
+export const MAX_YEARLY_DATES_IN_WORDS: number = 6;
+
+// The sentence a yearly schedule is worded in, in a language that has it.
+const EVERY_YEAR: string = translationKey(
+  "Every year on {{dates}} at {{time}} (UTC)",
+);
+
+/*
+ * A yearly schedule's dates as the language writes a day of a month:
+ * "1. Januar", "1 января", "1 de enero", "1月1日" - Intl puts the day and
+ * the month in the case and order the language's dates take, which a
+ * sentence built from a day and a month name could not. Every day of each
+ * month the schedule names, month by month; null when there are more than
+ * MAX_YEARLY_DATES_IN_WORDS of them, or Intl cannot write one.
+ */
+const yearlyDatesInLocale: (data: {
+  daysOfMonth: Array<number>;
+  months: Array<number>;
+  locale: string;
+}) => Array<string> | null = (data: {
+  daysOfMonth: Array<number>;
+  months: Array<number>;
+  locale: string;
+}): Array<string> | null => {
+  if (
+    data.daysOfMonth.length * data.months.length >
+    MAX_YEARLY_DATES_IN_WORDS
+  ) {
+    return null;
+  }
+
+  const dates: Array<Date> = [];
+
+  for (const month of data.months) {
+    for (const day of data.daysOfMonth) {
+      // A leap year, so a schedule on 29 February can be named.
+      const date: Date = new Date(Date.UTC(2024, month - 1, day));
+
+      // A day the month does not have (31 April) never runs: no sentence.
+      if (date.getUTCMonth() !== month - 1) {
+        return null;
+      }
+
+      dates.push(date);
+    }
+  }
+
+  return formatEach({
+    values: dates.map((date: Date): number => {
+      return date.getTime();
+    }),
+    locale: data.locale,
+    options: { day: "numeric", month: "long" },
+    toDate: (time: number): Date => {
+      return new Date(time);
+    },
+  });
+};
+
 // "1st and 15th", "1. und 15.", "1日と15日".
 const daysOfMonthInSentence: (days: Array<number>) => ComposedValue = (
   days: Array<number>,
@@ -310,8 +376,40 @@ const describeShape: (data: {
           );
     }
 
+    case "yearly": {
+      /*
+       * Only in a language that words the sentence, and Intl writes the
+       * dates in: CronTab's English otherwise ("On the 1st of January at
+       * 00:00 (UTC)"), the dates English too.
+       */
+      const locale: string = getDateLocale(t.language);
+
+      if (
+        !t.hasTranslation(EVERY_YEAR) ||
+        isEnglishDateLanguage(t.language) ||
+        locale.startsWith("en-")
+      ) {
+        return data.english;
+      }
+
+      const dates: Array<string> | null = yearlyDatesInLocale({
+        daysOfMonth: shape.daysOfMonth,
+        months: shape.months,
+        locale: locale,
+      });
+
+      if (!dates || dates.length === 0) {
+        return data.english;
+      }
+
+      return t.translateTemplate(EVERY_YEAR, {
+        dates: joinInLocale(dates, locale),
+        time: CronTab.describeTimeOfDay(shape.hour, shape.minute),
+      });
+    }
+
     default:
-      // Given days of given months, and field by field: English.
+      // Field by field: cron's own terms, in English.
       return data.english;
   }
 };

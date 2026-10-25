@@ -972,6 +972,8 @@ const SAME_AS_ENGLISH: Record<string, ReadonlyArray<string>> = {
   Host: ["de", "es", "it", "pt", "nl"],
   Interfaces: ["fr", "es", "pt", "nl"],
   Manual: ["es", "pt"],
+  // OneUptime's own status name, which these languages write as English does.
+  Offline: ["de", "it", "pt", "nl", "da", "sv"],
   Spans: ["de", "fr", "es", "pt", "nl", "da", "no", "sv"],
   Up: ["nl"],
   "{{count}} down": ["nl"],
@@ -1336,6 +1338,41 @@ describe("the monitor overview in German", () => {
       value: "2 Sonden",
     });
     expect(presentation.pulse.cadenceText).toBe("Jede Minute");
+  });
+
+  /*
+   * A status's name reads as the hero's badge (StatusBadge) reads it: one
+   * of OneUptime's own in the reader's words, a name the project gave a
+   * status as written.
+   */
+  test("the last recorded status names OneUptime's own status in German, and the project's own as written", () => {
+    const disabled: Partial<MonitorOverviewPresentationInput> = {
+      pause: {
+        isDisabled: true,
+        byManualIncident: false,
+        byScheduledMaintenance: false,
+      },
+    };
+
+    expect(
+      build(running(MonitorType.API, disabled), GERMAN).lastKnownStatus,
+    ).toBe("Zuletzt erfasster Status: Betriebsbereit");
+    expect(
+      build(
+        running(MonitorType.API, {
+          ...disabled,
+          currentStatus: {
+            ...OPERATIONAL,
+            name: "Checkout healthy (EU)",
+          },
+        }),
+        GERMAN,
+      ).lastKnownStatus,
+    ).toBe("Zuletzt erfasster Status: Checkout healthy (EU)");
+    // English names it as it is named.
+    expect(build(running(MonitorType.API, disabled)).lastKnownStatus).toBe(
+      "Last recorded status: Operational",
+    );
   });
 
   test("a synthetic monitor's target is a German word", () => {

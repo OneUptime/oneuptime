@@ -469,8 +469,15 @@ const HostServices: FunctionComponent<
   ];
 
   const description: ReactElement = (() => {
+    // One paragraph, every sentence in the reader's language.
     const parts: Array<string> = [
-      `Windows services on this host (last ${SERVICE_LOOKBACK_MINUTES} minutes).`,
+      translator.translatePlural(
+        {
+          one: "Windows services on this host (last {{count}} minute).",
+          other: "Windows services on this host (last {{count}} minutes).",
+        },
+        SERVICE_LOOKBACK_MINUTES,
+      ),
     ];
     if (latestSampleAt) {
       parts.push(

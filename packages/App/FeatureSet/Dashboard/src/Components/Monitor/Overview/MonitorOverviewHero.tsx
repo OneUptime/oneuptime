@@ -180,7 +180,10 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     );
   }, [props.monitorType]);
 
-  const typeTitle: string = typeProps?.title || props.monitorType;
+  // The type's name as the monitor type picker draws it: "SSL-Zertifikat".
+  const typeTitle: string =
+    translator.translateText(typeProps?.title || props.monitorType) ||
+    props.monitorType;
   const typeIcon: IconProp = typeProps?.icon || IconProp.Activity;
 
   type GetCallToActionFunction = (
@@ -626,10 +629,17 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
                 data-testid="monitor-overview-headline"
                 className="mt-2 text-xl font-semibold tracking-tight text-gray-900"
               >
+                {/*
+                 * A status's name reads as its badge reads it: OneUptime's
+                 * own names ("Operational") in the reader's words, a name
+                 * the project gave a status as written.
+                 */}
                 {presentation.headline.since ? (
                   <TranslatedSentence
                     template="{{headline}} for {{duration}}"
-                    values={{ headline: presentation.headline.text }}
+                    values={{
+                      headline: translatableTerm(presentation.headline.text),
+                    }}
                     slots={{
                       duration: (
                         <span
@@ -645,7 +655,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
                     }}
                   />
                 ) : (
-                  presentation.headline.text
+                  translator.translateTerm(presentation.headline.text)
                 )}
               </h2>
               {presentation.explanation ? (

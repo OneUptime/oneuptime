@@ -13,6 +13,11 @@ import {
 import IconProp from "../../../Types/Icon/IconProp";
 import CronTab from "../../../Utils/CronTab";
 import { describeCronSchedule } from "../../../Utils/CronScheduleText";
+import {
+  getDateLocale,
+  getDateTimeFormat,
+  isEnglishDateLanguage,
+} from "../../../Types/DateLanguage";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -61,6 +66,8 @@ const isVariableGroup: (group: ValueSuggestionGroup) => boolean = (
   );
 };
 
+const NEXT_RUNS: string = translationKey("Next runs");
+
 const NO_VARIABLES_MESSAGE: string = translationKey(
   "There are no variables yet. Add one under this workflow's Variables, or a global one for every workflow in the project.",
 );
@@ -90,23 +97,50 @@ const inferInitialMode: (value: string) => ScheduleMode = (
   return "preset";
 };
 
-const formatUtc: (date: Date) => string = (date: Date): string => {
-  try {
-    return (
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: "UTC",
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }).format(date) + " UTC"
-    );
-  } catch {
-    return date.toUTCString();
+const NEXT_RUN_FORMAT: Intl.DateTimeFormatOptions = {
+  weekday: "short",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+};
+
+/*
+ * A next run, in UTC as the schedule is: "Mon, Oct 26, 2026, 09:00 UTC",
+ * or in the language of the list it is under - "Mo., 26. Okt. 2026, 09:00
+ * UTC" - with the Gregorian calendar and Latin digits every date has
+ * (Common/Types/DateLanguage).
+ */
+export const formatNextRun: (date: Date, language: string) => string = (
+  date: Date,
+  language: string,
+): string => {
+  const english: () => string = (): string => {
+    try {
+      return (
+        new Intl.DateTimeFormat("en-US", {
+          ...NEXT_RUN_FORMAT,
+          timeZone: "UTC",
+        }).format(date) + " UTC"
+      );
+    } catch {
+      return date.toUTCString();
+    }
+  };
+
+  if (isEnglishDateLanguage(language)) {
+    return english();
   }
+
+  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(language),
+    timezones: ["UTC"],
+    options: NEXT_RUN_FORMAT,
+  });
+
+  return format ? `${format.format(date)} UTC` : english();
 };
 
 /**
@@ -228,6 +262,11 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
       return null;
     }
 
+    // The runs are dated in the language their heading is in.
+    const nextRunsLanguage: string = translator.hasTranslation(NEXT_RUNS)
+      ? translator.language
+      : "en";
+
     return (
       <div className="rounded-md border border-gray-200 bg-gray-50/60 px-3 py-2.5">
         <div className="flex items-start gap-2">
@@ -240,7 +279,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             {nextRuns.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                  {translator.translateText("Next runs")}
+                  {translator.translateText(NEXT_RUNS)}
                 </p>
                 <ul className="mt-0.5 space-y-0.5">
                   {nextRuns.map((run: Date, index: number) => {
@@ -249,7 +288,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                         key={index}
                         className="text-xs text-gray-600 font-mono"
                       >
-                        {formatUtc(run)}
+                        {formatNextRun(run, nextRunsLanguage)}
                       </li>
                     );
                   })}

@@ -58,6 +58,11 @@ const DISPLAY_HELPERS: ReadonlySet<string> = new Set<string>([
   "convertMinutesToDaysHoursAndMinutes",
   "secondsToFormattedFriendlyTimeString",
   "differenceBetweenTwoDatesAsFromattedString",
+  // Through getDateAsFormattedString and getDateAsLocalFormattedString.
+  "getCurrentDateAsFormattedString",
+  "getDateString",
+  // "1,72 s" in German: the decimal comma.
+  "getHumanizedDurationFromNanoseconds",
 ]);
 
 // Helpers of their own the Dashboard writes the same words with.
@@ -294,6 +299,109 @@ describe("English text never holds a date in another language", () => {
     );
 
     expect(found).toEqual([]);
+  });
+});
+
+/*
+ * OneUptimeDate's methods that write in the display language: those whose
+ * body asks for it (writeInDateDisplayLanguage, getDateDisplayLanguage),
+ * and every method that calls one of them - getDateString is
+ * getDateAsLocalFormattedString under another name.
+ */
+function getLocalizedDateMethods(): Array<string> {
+  const file: string = path.join(REPO, "packages/Common/Types/Date.ts");
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    fs.readFileSync(file, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const calls: Map<string, Set<string>> = new Map<string, Set<string>>();
+  const isPublic: Map<string, boolean> = new Map<string, boolean>();
+  const localized: Set<string> = new Set<string>();
+
+  const readMethod: (method: ts.MethodDeclaration) => void = (
+    method: ts.MethodDeclaration,
+  ): void => {
+    const name: string = method.name.getText(source);
+    const called: Set<string> = new Set<string>();
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (ts.isCallExpression(node)) {
+        const callee: ts.Expression = node.expression;
+
+        if (
+          ts.isIdentifier(callee) &&
+          (callee.text === "writeInDateDisplayLanguage" ||
+            callee.text === "getDateDisplayLanguage")
+        ) {
+          localized.add(name);
+        }
+
+        if (
+          ts.isPropertyAccessExpression(callee) &&
+          (callee.expression.kind === ts.SyntaxKind.ThisKeyword ||
+            (ts.isIdentifier(callee.expression) &&
+              callee.expression.text === "OneUptimeDate"))
+        ) {
+          called.add(callee.name.text);
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(method);
+    calls.set(name, called);
+    isPublic.set(
+      name,
+      !(ts.getCombinedModifierFlags(method) & ts.ModifierFlags.Private),
+    );
+  };
+
+  const visitClass: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isMethodDeclaration(node)) {
+      readMethod(node);
+    }
+
+    ts.forEachChild(node, visitClass);
+  };
+
+  visitClass(source);
+
+  let grew: boolean = true;
+
+  while (grew) {
+    grew = false;
+
+    for (const [name, called] of calls) {
+      if (
+        !localized.has(name) &&
+        [...called].some((callee: string): boolean => {
+          return localized.has(callee);
+        })
+      ) {
+        localized.add(name);
+        grew = true;
+      }
+    }
+  }
+
+  return [...localized]
+    .filter((name: string): boolean => {
+      return isPublic.get(name) === true;
+    })
+    .sort();
+}
+
+describe("the guard knows every helper that writes in the reader's language", () => {
+  test("DISPLAY_HELPERS is exactly OneUptimeDate's methods that do", () => {
+    const methods: Array<string> = getLocalizedDateMethods();
+
+    // A reading of Date.ts that found nothing would pass anything.
+    expect(methods.length).toBeGreaterThan(20);
+    expect([...DISPLAY_HELPERS].sort()).toEqual(methods);
   });
 });
 

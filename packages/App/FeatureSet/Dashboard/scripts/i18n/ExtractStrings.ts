@@ -135,6 +135,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
+  // The common schedules a workflow's Schedule trigger offers.
+  { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
 ];
 
 /*

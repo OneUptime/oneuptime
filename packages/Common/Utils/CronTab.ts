@@ -30,9 +30,23 @@
  */
 
 export interface CronPreset {
+  /*
+   * In English: a key of the Dashboard's locales, which the picker's
+   * dropdown looks up as it draws it.
+   */
   label: string;
   value: string;
 }
+
+/*
+ * Marks an English label as a key of the Dashboard's locales, so its
+ * extractor (scripts/i18n/ExtractStrings.ts, which reads this file) finds
+ * it - the same marker as Common/UI/Utils/TranslateTemplate's, kept here so
+ * CronTab stays free of every dependency. It returns the text unchanged.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
 
 /*
  * One field of a parsed expression, as parseFields hands it out: the values
@@ -174,24 +188,39 @@ export default class CronTab {
    * is a valid 5-field cron expression.
    */
   public static readonly PRESETS: Array<CronPreset> = [
-    { label: "Every minute", value: "* * * * *" },
-    { label: "Every 5 minutes", value: "*/5 * * * *" },
-    { label: "Every 10 minutes", value: "*/10 * * * *" },
-    { label: "Every 15 minutes", value: "*/15 * * * *" },
-    { label: "Every 30 minutes", value: "*/30 * * * *" },
-    { label: "Every hour", value: "0 * * * *" },
-    { label: "Every 2 hours", value: "0 */2 * * *" },
-    { label: "Every 3 hours", value: "0 */3 * * *" },
-    { label: "Every 6 hours", value: "0 */6 * * *" },
-    { label: "Every 12 hours", value: "0 */12 * * *" },
-    { label: "Every day at midnight", value: "0 0 * * *" },
-    { label: "Every day at 9:00 AM", value: "0 9 * * *" },
-    { label: "Every Monday at 9:00 AM", value: "0 9 * * 1" },
-    { label: "Every week (Sunday at midnight)", value: "0 0 * * 0" },
-    { label: "Every month (1st at midnight)", value: "0 0 1 * *" },
-    { label: "Every 3 months (1st at midnight)", value: "0 0 1 */3 *" },
-    { label: "Every 6 months (1st at midnight)", value: "0 0 1 */6 *" },
-    { label: "Every year (Jan 1st at midnight)", value: "0 0 1 1 *" },
+    { label: translationKey("Every minute"), value: "* * * * *" },
+    { label: translationKey("Every 5 minutes"), value: "*/5 * * * *" },
+    { label: translationKey("Every 10 minutes"), value: "*/10 * * * *" },
+    { label: translationKey("Every 15 minutes"), value: "*/15 * * * *" },
+    { label: translationKey("Every 30 minutes"), value: "*/30 * * * *" },
+    { label: translationKey("Every hour"), value: "0 * * * *" },
+    { label: translationKey("Every 2 hours"), value: "0 */2 * * *" },
+    { label: translationKey("Every 3 hours"), value: "0 */3 * * *" },
+    { label: translationKey("Every 6 hours"), value: "0 */6 * * *" },
+    { label: translationKey("Every 12 hours"), value: "0 */12 * * *" },
+    { label: translationKey("Every day at midnight"), value: "0 0 * * *" },
+    { label: translationKey("Every day at 9:00 AM"), value: "0 9 * * *" },
+    { label: translationKey("Every Monday at 9:00 AM"), value: "0 9 * * 1" },
+    {
+      label: translationKey("Every week (Sunday at midnight)"),
+      value: "0 0 * * 0",
+    },
+    {
+      label: translationKey("Every month (1st at midnight)"),
+      value: "0 0 1 * *",
+    },
+    {
+      label: translationKey("Every 3 months (1st at midnight)"),
+      value: "0 0 1 */3 *",
+    },
+    {
+      label: translationKey("Every 6 months (1st at midnight)"),
+      value: "0 0 1 */6 *",
+    },
+    {
+      label: translationKey("Every year (Jan 1st at midnight)"),
+      value: "0 0 1 1 *",
+    },
   ];
 
   /**

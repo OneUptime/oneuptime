@@ -13,6 +13,7 @@ import {
   ComposedValue,
   createTranslator,
   PluralTemplate,
+  translatableTerm,
   translationKey,
   Translator,
 } from "../../UI/Utils/TranslateTemplate";
@@ -51,8 +52,9 @@ import { MonitorUptimeCaveat } from "./MonitorUptimeSummaryUtil";
  * reader's Translator (input.translator), and each sentence is looked up
  * whole, with its values in it ("Expires in {{duration}}"), as the
  * Dashboard's extractor finds it here. Without one it writes English, word
- * for word as it always has. What a monitor's owner named - a status, a
- * probe, a host - goes in as written.
+ * for word as it always has. What a monitor's owner named - a probe, a
+ * host - goes in as written; a status's name is drawn as StatusBadge draws
+ * it, in the reader's words when it is one of OneUptime's own.
  */
 
 export enum MonitorOverviewRunState {
@@ -1261,14 +1263,21 @@ export default class MonitorOverviewPresentationUtil {
     const status: MonitorOverviewStatusRef | undefined = input.currentStatus;
     const statusTone: MonitorOverviewTone =
       MonitorOverviewPresentationUtil.getStatusTone(status);
-    // The status's name goes in as its owner named it.
+    /*
+     * The status's name as the hero's badge draws it (StatusBadge): one of
+     * OneUptime's own names ("Operational") in the reader's words, a name
+     * the project gave a status as written.
+     */
     const lastKnownStatus: string | undefined = status
       ? t.translateTemplate("Last recorded status: {{status}}", {
-          status: status.name,
+          status: translatableTerm(status.name),
         })
       : undefined;
 
-    // The badge and headline for the states that lead with the status.
+    /*
+     * The badge and headline for the states that lead with the status: the
+     * name itself, which the hero draws as its badge does.
+     */
     const statusBadge: MonitorOverviewBadge = status
       ? {
           text: status.name,

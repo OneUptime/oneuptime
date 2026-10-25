@@ -308,7 +308,7 @@ export const getOpenNowTileContent: (data: {
               return translator.translateText(note) || note;
             })
             .join(" · ")
-        : "Unresolved on this monitor",
+        : translator.translateTemplate("Unresolved on this monitor"),
   };
 };
 

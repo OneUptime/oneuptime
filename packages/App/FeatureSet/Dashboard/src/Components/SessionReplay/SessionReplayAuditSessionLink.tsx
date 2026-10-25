@@ -2,7 +2,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
@@ -38,22 +38,26 @@ const SessionReplayAuditSessionLink: FunctionComponent<
       sessionId: sessionId,
       summary: props.summary,
     });
+  const startedAt: Date | null = presentation.startedAt;
+  /*
+   * In English, as the rest of the link and the audit log around it still
+   * are, its times too.
+   */
   const context: Array<string> = [
-    presentation.startedAt
-      ? translateTemplate("Recorded {{time}}", {
-          time: OneUptimeDate.fromNow(presentation.startedAt),
+    startedAt
+      ? inEnglishDates((): string => {
+          return `Recorded ${OneUptimeDate.fromNow(startedAt)}`;
         })
       : "",
     presentation.durationLabel,
     presentation.deviceLabel,
   ].filter(Boolean);
-  const absoluteStart: string = presentation.startedAt
-    ? OneUptimeDate.getDateAsLocalFormattedString(presentation.startedAt)
-    : "";
   const hoverDetails: string = [
     `Session ${presentation.fullSessionId}`,
-    absoluteStart
-      ? translateTemplate("Recorded {{time}}", { time: absoluteStart })
+    startedAt
+      ? inEnglishDates((): string => {
+          return `Recorded ${OneUptimeDate.getDateAsLocalFormattedString(startedAt)}`;
+        })
       : "",
     props.summary?.entryUrl || "",
   ]
