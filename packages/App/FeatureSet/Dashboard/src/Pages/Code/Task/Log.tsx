@@ -49,10 +49,24 @@ import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
 import Link from "Common/Types/Link";
 import CodeApi, { CodeTaskResponse } from "../../../Components/Code/CodeApi";
 import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
+import {
+  CODE_TASK_LOG_TURN_COPY,
+  CodeTaskLogTurn,
+  getCodeTaskLogTurnRoute,
+  getCodeTaskLogTurns,
+  getShownTurnRunId,
+} from "../../../Components/Code/CodeTaskLogTurns";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 const POLL_INTERVAL_MS: number = 5000;
+
+export const CODE_TASK_LOG_TURN_PICKER_TEST_ID: string =
+  "code-task-log-turn-picker";
 
 /*
  * A task's Log page in Code: everything recorded about one of its turns (one
@@ -60,7 +74,9 @@ const POLL_INTERVAL_MS: number = 5000;
  * did something you did not expect. The conversation shows the same steps
  * in plain words; this is the verbatim record. Which turn is the `turn`
  * query parameter (the conversation links each turn's Log); without one,
- * the task's first turn.
+ * the task's first turn. A task of more than one turn lists them all in a
+ * picker at the top (CodeTaskLogTurns), so another turn's record is one
+ * pick away.
  *
  * Two things are worth knowing about the data:
  *
@@ -491,14 +507,86 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
   );
 };
 
+/*
+ * The task's turns, one pick away: "Turn 2 · Failed", with what was asked
+ * under each. Only for a task of more than one turn.
+ */
+const CodeTaskLogTurnPicker: FunctionComponent<{
+  taskId: string;
+  turns: Array<CodeTaskLogTurn>;
+  shownRunId: string;
+}> = (props: {
+  taskId: string;
+  turns: Array<CodeTaskLogTurn>;
+  shownRunId: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const options: Array<DropdownOption> = props.turns.map(
+    (turn: CodeTaskLogTurn): DropdownOption => {
+      const description: string = turn.isSummaryTranslated
+        ? translator.translateText(turn.summary) || turn.summary
+        : turn.summary;
+
+      return {
+        value: turn.runId,
+        label: `${translator.translateTemplate(CODE_TASK_LOG_TURN_COPY.option, {
+          number: translator.formatNumber(turn.number),
+        })} · ${translator.translateText(turn.stateLabel) || turn.stateLabel}`,
+        ...(description ? { description } : {}),
+        // Translated here, part by part; the request is as its person wrote it.
+        isUserContent: true,
+      };
+    },
+  );
+
+  const shown: DropdownOption | undefined = options.find(
+    (option: DropdownOption): boolean => {
+      return (
+        String(option.value).toLowerCase() === props.shownRunId.toLowerCase()
+      );
+    },
+  );
+
+  return (
+    <div
+      className="w-full sm:w-72"
+      data-testid={CODE_TASK_LOG_TURN_PICKER_TEST_ID}
+    >
+      <Dropdown
+        options={options}
+        value={shown}
+        ariaLabel={CODE_TASK_LOG_TURN_COPY.label}
+        dataTestId={`${CODE_TASK_LOG_TURN_PICKER_TEST_ID}-dropdown`}
+        onChange={(
+          value: DropdownValue | Array<DropdownValue> | null,
+        ): void => {
+          const runId: string = Array.isArray(value)
+            ? String(value[0] ?? "")
+            : String(value ?? "");
+
+          if (
+            !runId ||
+            runId.toLowerCase() === props.shownRunId.toLowerCase()
+          ) {
+            return;
+          }
+
+          Navigation.navigate(
+            getCodeTaskLogTurnRoute({ taskId: props.taskId, runId: runId }),
+          );
+        }}
+      />
+    </div>
+  );
+};
+
 const CodeTaskLogPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const { id } = useParams();
   const turnParam: string | null = Navigation.getQueryStringByName("turn");
-  const runId: string =
-    turnParam && ObjectID.isValidUUID(turnParam) ? turnParam : id || "";
 
   const [entries, setEntries] = useState<Array<LogEntry>>([]);
   const [llmCalls, setLlmCalls] = useState<Array<LlmCallLog>>([]);
@@ -508,6 +596,39 @@ const CodeTaskLogPage: FunctionComponent<
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
   const [task, setTask] = useState<CodeTaskResponse | null>(null);
+
+  /*
+   * The turn shown: the one the address names when it is one of the task's
+   * turns (once they are read), else the task's first.
+   */
+  const runId: string = getShownTurnRunId({
+    taskId: id || "",
+    turnParam,
+    turns: task?.turns,
+  });
+
+  const turns: Array<CodeTaskLogTurn> = useMemo(() => {
+    return getCodeTaskLogTurns(task?.turns || []);
+  }, [task]);
+
+  /*
+   * Another turn picked: its record starts from nothing, so nothing of the
+   * turn before stays on the page while it is read.
+   */
+  const shownRunIdRef: React.MutableRefObject<string> = useRef<string>(runId);
+
+  if (shownRunIdRef.current !== runId) {
+    shownRunIdRef.current = runId;
+    signatureRef.current = "";
+  }
+
+  useEffect(() => {
+    setEntries([]);
+    setLlmCalls([]);
+    setStatus(undefined);
+    setError(undefined);
+    setHasLoadedOnce(false);
+  }, [runId]);
 
   /*
    * The task, read once for the trail - Code > the repository > Task #42 >
@@ -560,6 +681,14 @@ const CodeTaskLogPage: FunctionComponent<
             headers: ModelAPI.getCommonHeaders(),
           });
 
+        /*
+         * Another turn was picked while this one was read: its answer is
+         * not the page's any more.
+         */
+        if (shownRunIdRef.current !== runId) {
+          return;
+        }
+
         if (response instanceof HTTPErrorResponse) {
           throw response;
         }
@@ -591,6 +720,10 @@ const CodeTaskLogPage: FunctionComponent<
         setError(undefined);
         setHasLoadedOnce(true);
       } catch (err) {
+        if (shownRunIdRef.current !== runId) {
+          return;
+        }
+
         // Keep already-loaded data on transient poll failures.
         if (!signatureRef.current) {
           setError(API.getFriendlyMessage(err));
@@ -625,32 +758,61 @@ const CodeTaskLogPage: FunctionComponent<
     };
   }, [isActive, fetchData]);
 
-  if (!hasLoadedOnce) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error && entries.length === 0) {
-    return <ErrorMessage message={error} />;
-  }
-
   const conversationRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.CODE_TASK_VIEW] as Route,
     { modelId: new ObjectID(id || "") },
   );
 
+  /*
+   * The way back, and the task's turns: in sight whichever turn's record is
+   * on its way, so picking another never blanks the page.
+   */
+  const header: ReactElement = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <LinkComponent
+        to={conversationRoute}
+        dataTestId="code-task-log-back"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
+      >
+        <>
+          <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
+          {translator.translateText("Back to the conversation")}
+        </>
+      </LinkComponent>
+      {turns.length > 1 ? (
+        <CodeTaskLogTurnPicker
+          taskId={id || ""}
+          turns={turns}
+          shownRunId={runId}
+        />
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+
+  if (!hasLoadedOnce) {
+    return (
+      <div className="space-y-5">
+        {header}
+        <PageLoader isVisible={true} />
+      </div>
+    );
+  }
+
+  if (error && entries.length === 0) {
+    return (
+      <div className="space-y-5">
+        {header}
+        <ErrorMessage message={error} />
+      </div>
+    );
+  }
+
   return (
     <Fragment>
       <div className="space-y-5">
-        <LinkComponent
-          to={conversationRoute}
-          dataTestId="code-task-log-back"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
-        >
-          <>
-            <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
-            {translator.translateText("Back to the conversation")}
-          </>
-        </LinkComponent>
+        {header}
 
         {!canReadContent ? (
           <Alert
