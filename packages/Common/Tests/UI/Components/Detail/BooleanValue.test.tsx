@@ -60,8 +60,9 @@ function renderDetail(value: unknown): HTMLElement {
 }
 
 function pillOf(container: HTMLElement): HTMLElement {
-  const pill: HTMLElement | null =
-    container.querySelector<HTMLElement>("[data-boolean-value]");
+  const pill: HTMLElement | null = container.querySelector<HTMLElement>(
+    "[data-boolean-value]",
+  );
 
   if (!pill) {
     throw new Error("No yes/no pill was drawn");
@@ -77,7 +78,9 @@ function expectPainted(pill: HTMLElement, color: Color): void {
     backgroundColor: colors.light.backgroundColor,
     color: colors.light.textColor,
   });
-  expect(pill.style.boxShadow).toBe(`inset 0 0 0 1px ${colors.light.ringColor}`);
+  expect(pill.style.boxShadow).toBe(
+    `inset 0 0 0 1px ${colors.light.ringColor}`,
+  );
   // The dark theme's colours ride along for Theme.css's [data-ou-pill] rule.
   expect(pill).toHaveAttribute("data-ou-pill");
   expect(pill.style.getPropertyValue("--ou-pill-dark-bg")).toBe(

@@ -652,10 +652,9 @@ describe("an API key's custom roles", () => {
       );
     });
     expect(
-      within(within(modal).getByTestId("modal-description")).getByRole(
-        "link",
-        { name: "Roles" },
-      ),
+      within(within(modal).getByTestId("modal-description")).getByRole("link", {
+        name: "Roles",
+      }),
     ).toBeInTheDocument();
     // And the card of that role says how much of it the key would hold.
     expect(

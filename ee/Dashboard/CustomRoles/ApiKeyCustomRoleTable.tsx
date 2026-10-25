@@ -189,9 +189,9 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
   );
 
   // Add a Custom Role's words, with the Roles page drawn as a link.
-  const addRoleDescription: TemplatedSentence = getAddRoleToApiKeyDescription(
-    { isAnyOfferedRolePartlyOwned: isAnyOfferedRolePartlyOwned },
-  );
+  const addRoleDescription: TemplatedSentence = getAddRoleToApiKeyDescription({
+    isAnyOfferedRolePartlyOwned: isAnyOfferedRolePartlyOwned,
+  });
 
   const roleOptions: Array<CardSelectOption> = offeredRoles.map(
     (role: CustomRoleSummary): CardSelectOption => {

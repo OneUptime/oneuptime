@@ -199,9 +199,9 @@ describe("a Delete question in Japanese and Chinese", () => {
     expect(
       screen.getByTestId("delete-confirmation-consequence"),
     ).toHaveTextContent("ホストのコンテナも削除されます。");
-    expect(messageText().startsWith("test01 を削除してもよろしいですか？この操作")).toBe(
-      true,
-    );
+    expect(
+      messageText().startsWith("test01 を削除してもよろしいですか？この操作"),
+    ).toBe(true);
   });
 
   test("a record with no name asks about its kind, with no space after the question mark either", async () => {
@@ -284,7 +284,10 @@ describe("a timeline's Delete question with names in bold", () => {
   });
 
   test.each([
-    ["ja", "10:42 に始まった Resolved の状態を削除してもよろしいですか？この操作は元に戻せません。"],
+    [
+      "ja",
+      "10:42 に始まった Resolved の状態を削除してもよろしいですか？この操作は元に戻せません。",
+    ],
     ["zh-CN", "确定要删除开始于 10:42 的 Resolved 状态吗？此操作无法撤消。"],
   ])(
     "in %s it puts no space after the question mark",

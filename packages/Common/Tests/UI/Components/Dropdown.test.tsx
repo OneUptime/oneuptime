@@ -416,7 +416,10 @@ describe("Dropdown picked value", () => {
         MULTI_SELECT_CHIP_LABEL_CLASS_NAME,
       );
       expect(label).not.toHaveClass("truncate");
-      expect(label).toHaveClass("whitespace-normal", "[overflow-wrap:anywhere]");
+      expect(label).toHaveClass(
+        "whitespace-normal",
+        "[overflow-wrap:anywhere]",
+      );
       expect(label.parentElement).toHaveClass("min-w-0");
     }
 
@@ -450,9 +453,9 @@ describe("Dropdown picked value", () => {
       />,
     );
 
-    expect(screen.getByTestId("dropdown-value-label").getAttribute("class")).toBe(
-      SINGLE_SELECT_VALUE_LABEL_CLASS_NAME,
-    );
+    expect(
+      screen.getByTestId("dropdown-value-label").getAttribute("class"),
+    ).toBe(SINGLE_SELECT_VALUE_LABEL_CLASS_NAME);
   });
 });
 

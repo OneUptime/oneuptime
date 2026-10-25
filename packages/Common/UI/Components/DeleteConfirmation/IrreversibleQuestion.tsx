@@ -47,7 +47,8 @@ const IrreversibleQuestion: FunctionComponent<ComponentProps> = (
 
   // How the drawn question ends: its last piece of text, or a slot.
   const lastPart: SentencePart | undefined = parts[parts.length - 1];
-  const endsWith: string = lastPart && lastPart.kind === "text" ? lastPart.text : "";
+  const endsWith: string =
+    lastPart && lastPart.kind === "text" ? lastPart.text : "";
 
   return (
     <>

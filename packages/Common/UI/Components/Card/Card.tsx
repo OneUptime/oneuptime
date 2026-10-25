@@ -467,7 +467,8 @@ const Card: FunctionComponent<ComponentProps> = (
    * edge (the one exception to rule 4 of CardHeaderActionsGuard).
    */
   const isDescriptionKeptOnPhones: boolean =
-    Boolean(translatedDescription) && isCardDescriptionAllItSays(props.children);
+    Boolean(translatedDescription) &&
+    isCardDescriptionAllItSays(props.children);
 
   const renderButtons: () => Array<ReactElement> = (): Array<ReactElement> => {
     return (props.buttons || []).map(

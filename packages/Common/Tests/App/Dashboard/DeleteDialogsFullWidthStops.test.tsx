@@ -21,7 +21,10 @@ const readLocale: (language: string) => Record<string, string> = (
   language: string,
 ): Record<string, string> => {
   return JSON.parse(
-    fs.readFileSync(path.join(DASHBOARD, "Locales", `${language}.json`), "utf8"),
+    fs.readFileSync(
+      path.join(DASHBOARD, "Locales", `${language}.json`),
+      "utf8",
+    ),
   ) as Record<string, string>;
 };
 
@@ -100,7 +103,10 @@ describe("the status and state timelines' Delete questions", () => {
   ])(
     "%s say the question and that it cannot be undone with IrreversibleQuestion",
     (_what: string, file: string) => {
-      const source: string = fs.readFileSync(path.join(DASHBOARD, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD, file),
+        "utf8",
+      );
 
       expect(source).toContain(
         'import IrreversibleQuestion from "Common/UI/Components/DeleteConfirmation/IrreversibleQuestion";',

@@ -135,9 +135,9 @@ const getTrailingSentences: GetSentencesFunction = (
 };
 
 // The first sentence, the one that names the record, in the reader's language.
-const getFirstSentenceText: (options: DeleteConfirmationTextOptions) => string = (
+const getFirstSentenceText: (
   options: DeleteConfirmationTextOptions,
-): string => {
+) => string = (options: DeleteConfirmationTextOptions): string => {
   const kind: DeleteConfirmationKind = options.kind || "question";
   const name: string = options.name.trim();
 

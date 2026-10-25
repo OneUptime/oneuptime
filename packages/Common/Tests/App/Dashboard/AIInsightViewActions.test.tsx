@@ -377,9 +377,9 @@ describe("AI insight detail — human actions", () => {
       "opacity-50",
       "cursor-not-allowed",
     );
-    expect(
-      screen.getByRole("button", { name: "Dismiss" }),
-    ).not.toHaveClass("opacity-50");
+    expect(screen.getByRole("button", { name: "Dismiss" })).not.toHaveClass(
+      "opacity-50",
+    );
     // Dismiss still changes something (the verdict and the status).
     expect(screen.getByRole("button", { name: "Dismiss" })).toBeEnabled();
   });

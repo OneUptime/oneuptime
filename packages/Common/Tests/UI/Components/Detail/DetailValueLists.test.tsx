@@ -36,10 +36,7 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Route from "../../../../Types/API/Route";
 import Color from "../../../../Types/Color";
-import {
-  PILL_CLASS_NAME,
-  PillSize,
-} from "../../../../UI/Components/Pill/Pill";
+import { PILL_CLASS_NAME, PillSize } from "../../../../UI/Components/Pill/Pill";
 
 /*
  * What a page hands a detail field to draw - a record's labels, a list of

@@ -155,7 +155,9 @@ describe("a card with no body keeps its description on a phone", () => {
       "wrap",
     );
     expect(
-      Number.isNaN(resolveSpacing(classOf(actions), PHONE_WIDTH_IN_PX, "margin").left),
+      Number.isNaN(
+        resolveSpacing(classOf(actions), PHONE_WIDTH_IN_PX, "margin").left,
+      ),
     ).toBe(true);
     expect(
       resolveFlex(classOf(actions), PHONE_WIDTH_IN_PX, "justify-content"),
@@ -179,9 +181,7 @@ describe("a card with no body keeps its description on a phone", () => {
   });
 
   test("with no actions it keeps the default header, the sentence under the title", () => {
-    render(
-      <Card title="Billing" description="Your plan renews on the 1st." />,
-    );
+    render(<Card title="Billing" description="Your plan renews on the 1st." />);
 
     expect(screen.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",

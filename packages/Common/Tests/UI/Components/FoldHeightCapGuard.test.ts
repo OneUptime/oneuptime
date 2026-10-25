@@ -97,7 +97,7 @@ describe("no fold caps its open height", () => {
         [
           "/* the open body was max-h-[5000px] */",
           'const a: string = "overflow-hidden max-h-[5000px] opacity-100";',
-          "const b: string = `overflow-hidden ${open ? \"max-h-[2000px]\" : \"max-h-0\"}`;",
+          'const b: string = `overflow-hidden ${open ? "max-h-[2000px]" : "max-h-0"}`;',
           'const c: string = "md:max-h-[1200px]";',
           'const d: string = "max-h-96 overflow-y-auto";',
           'const e: string = "max-h-[60vh] overflow-y-auto";',
