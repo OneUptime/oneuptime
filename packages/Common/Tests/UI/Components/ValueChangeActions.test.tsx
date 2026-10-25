@@ -558,11 +558,9 @@ describe("Change Severity in Bulk Actions", () => {
       { id: INCIDENT_ONE_ID, data: { incidentSeverityId: CRITICAL_ID } },
     ]);
     expect(
-      (last.unchanged || []).map(
-        (entry: BulkActionUnchanged<Incident>) => {
-          return [entry.item._id, entry.reason];
-        },
-      ),
+      (last.unchanged || []).map((entry: BulkActionUnchanged<Incident>) => {
+        return [entry.item._id, entry.reason];
+      }),
     ).toEqual([
       [INCIDENT_TWO_ID, VALUE_CHANGE_ALREADY.replace("{{value}}", "Critical")],
     ]);

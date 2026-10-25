@@ -497,11 +497,9 @@ describe("Assign to Me in Bulk Actions", () => {
       { id: CASE_ONE_ID, data: { assignedToUserId: VIEWER_ID } },
     ]);
     expect(
-      (last.unchanged || []).map(
-        (entry: BulkActionUnchanged<SecurityCase>) => {
-          return [entry.item._id, entry.reason];
-        },
-      ),
+      (last.unchanged || []).map((entry: BulkActionUnchanged<SecurityCase>) => {
+        return [entry.item._id, entry.reason];
+      }),
     ).toEqual([[CASE_TWO_ID, ALREADY_ASSIGNED_TO_YOU]]);
   });
 });

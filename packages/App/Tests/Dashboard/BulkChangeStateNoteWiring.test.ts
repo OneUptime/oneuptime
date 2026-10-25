@@ -326,9 +326,14 @@ describe("shared bulk change-state modal", () => {
     );
   });
 
+  // One row on a line of its own (a ⋯ action), a selection as a list.
   test("names the records it is about above the fields", () => {
     expect(source).toContain(
-      "beforeFormElement={ props.itemNames && props.itemNames.length > 0 ? ( <DeleteItemNames names={props.itemNames} totalCount={props.itemNames.length} /> ) : undefined }",
+      'props.itemNames && props.itemNames.length === 1 ? ( <p data-testid="state-change-item-name"',
+    );
+    expect(source).toContain("{props.itemNames[0]}");
+    expect(source).toContain(
+      ") : props.itemNames && props.itemNames.length > 1 ? ( <DeleteItemNames names={props.itemNames} totalCount={props.itemNames.length} /> ) : undefined }",
     );
   });
 });

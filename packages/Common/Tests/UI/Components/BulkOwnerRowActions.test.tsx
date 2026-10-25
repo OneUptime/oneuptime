@@ -498,11 +498,9 @@ describe("Assign to Me in Bulk Actions", () => {
       }),
     ).toEqual([INCIDENT_ONE_ID]);
     expect(
-      (last.unchanged || []).map(
-        (entry: BulkActionUnchanged<Incident>) => {
-          return [entry.item._id, entry.reason];
-        },
-      ),
+      (last.unchanged || []).map((entry: BulkActionUnchanged<Incident>) => {
+        return [entry.item._id, entry.reason];
+      }),
     ).toEqual([[INCIDENT_TWO_ID, ALREADY_OWNED_BY_YOU]]);
     expect(last.failed).toEqual([]);
   });
