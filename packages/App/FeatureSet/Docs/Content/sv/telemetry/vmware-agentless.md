@@ -56,7 +56,7 @@ Klicka på **Testa anslutningen** i nästa steg. Sonden loggar in, läser det ko
 vCenter använder som standard ett certifikat från sin egen utfärdare, som sonden inte litar på. Testet visar då certifikatet: jämför dess fingeravtryck med vCenters eget och klicka sedan på **Lita på det här certifikatet**.
 
 ### Namnge och anslut
-Namnet är som standard vCenters värdnamn. Klicka på **Anslut vCenter** för att spara.
+Namnet är som standard vCenters värdnamn. Klicka på **Anslut vCenter** för att spara, så öppnas vCenterns sida.
 :::
 
 vCenterns **Översikt** visar ett kort **Datainsamling**. Det visar **Kontrollerar** fram till den första insamlingen, som börjar inom en minut, sedan **Samlar in**, och inventariet fylls i.

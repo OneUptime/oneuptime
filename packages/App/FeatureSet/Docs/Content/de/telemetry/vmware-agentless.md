@@ -56,7 +56,7 @@ Klicken Sie im nächsten Schritt auf **Verbindung testen**. Die Sonde meldet sic
 vCenter verwendet standardmäßig ein Zertifikat seiner eigenen Zertifizierungsstelle, dem die Sonde nicht vertraut. Der Test zeigt dann das Zertifikat: Gleichen Sie seinen Fingerabdruck mit dem von vCenter ab und klicken Sie dann auf **Diesem Zertifikat vertrauen**.
 
 ### Benennen und verbinden
-Der Name ist standardmäßig der Hostname von vCenter. Klicken Sie auf **vCenter verbinden**, um zu speichern.
+Der Name ist standardmäßig der Hostname von vCenter. Klicken Sie auf **vCenter verbinden**, um zu speichern; danach öffnet sich die Seite des vCenters.
 :::
 
 Die **Übersicht** des vCenter zeigt eine Karte **Datenerfassung**. Sie zeigt **Wird geprüft** bis zur ersten Erfassung, die innerhalb einer Minute beginnt, dann **Wird erfasst**, und das Inventar füllt sich.

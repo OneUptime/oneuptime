@@ -56,7 +56,7 @@ Klik in de volgende stap op **Verbinding testen**. De sonde meldt zich aan, lees
 vCenter gebruikt standaard een certificaat van zijn eigen autoriteit, dat de sonde niet vertrouwt. De test toont dan het certificaat: vergelijk de vingerafdruk met die van vCenter zelf en klik dan op **Dit certificaat vertrouwen**.
 
 ### Een naam geven en koppelen
-De naam is standaard de hostnaam van vCenter. Klik op **vCenter koppelen** om op te slaan.
+De naam is standaard de hostnaam van vCenter. Klik op **vCenter koppelen** om op te slaan, en de pagina van de vCenter gaat open.
 :::
 
 Het **Overzicht** van de vCenter toont een kaart **Gegevensverzameling**. Die toont **Bezig met controleren** tot de eerste verzameling, die binnen een minuut begint, daarna **Wordt verzameld**, en de inventaris vult zich.

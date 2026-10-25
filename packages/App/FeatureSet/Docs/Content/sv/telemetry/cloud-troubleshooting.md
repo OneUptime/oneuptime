@@ -112,7 +112,7 @@ Miljönyckeln är `cloud.platform|cloud.account.id|cloud.region`, jämförd teck
 
 ## En miljö som skapats för hand matchar aldrig
 
-Intaget matchar en miljö enbart på dess nyckel, och nyckeln måste vara exakt `platform|account|region`, till exempel `aws_ecs|123456789012|us-east-1`: samma plattformsvärde, konto-ID och region som telemetrin bär. Formuläret för att skapa (**Skapa Molnresurs** under **Moln → All Environments**) bygger nyckeln från fälten **Molnplattform**, **Moln-konto-ID** och **Molnregion**, så de tre måste stämma med telemetrin tecken för tecken. Gör de inte det skapar intaget en andra miljö med den nyckel som det räknade fram, och din förblir tom. Arkivera miljön som skapades för hand och låt intaget skapa den rätta, eller skapa den igen med de rättade värdena.
+Intaget matchar en miljö enbart på dess nyckel, och nyckeln måste vara exakt `platform|account|region`, till exempel `aws_ecs|123456789012|us-east-1`: samma plattformsvärde, konto-ID och region som telemetrin bär. En miljö som skapats via API:et, eller för hand innan **Lägg till molnmiljö** ersatte instrumentpanelens formulär, matchas bara när dess **Molnplattform**, **Moln-konto-ID** och **Molnregion** stämmer med telemetrins tecken för tecken. Gör de inte det skapar intaget en andra miljö med den nyckel som det räknade fram, och din förblir tom. Arkivera miljön som skapades för hand och låt intaget skapa den rätta.
 
 ## Fortfarande problem
 

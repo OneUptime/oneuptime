@@ -53,7 +53,7 @@ Gå til **Produkter → Ressurser → Tjenester**. **Alle tjenester** viser hver
 - Velg flere tjenester for å gi alle etiketter eller eiere på én gang, eller for å arkivere dem.
 - Klikk på en tjeneste for å åpne sidene dens.
 
-For å legge til en tjeneste før telemetrien dens kommer, for eksempel for å angi eierne først, klikker du på **Opprett Tjeneste** og skriver inn **Navn** nøyaktig slik `service.name` blir. Etikett- og eierregler kjører på den som på en oppdaget tjeneste.
+For å legge til en tjeneste før telemetrien dens kommer, for eksempel for å angi eierne først, klikker du på **Opprett Tjeneste** og skriver inn **Navn** nøyaktig slik `service.name` blir. Etikett- og eierregler kjører på den som på en oppdaget tjeneste. Når den er lagret, åpnes oppsettveiledningen for OpenTelemetry med det navnet i hvert kodeutdrag, og det siste trinnet, **Vent på tilkobling**, sier fra når de første dataene fra tjenesten kommer inn.
 
 ## Sidene til en tjeneste
 

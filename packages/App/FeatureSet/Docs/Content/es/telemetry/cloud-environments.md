@@ -89,9 +89,9 @@ Dentro de un entorno, cada tarea, instancia o réplica en ejecución obtiene una
 
 La identidad propia de la plataforma va primero a propósito. Un colector sidecar y el SDK de la aplicación la ven ambos, y sobrevive a los reinicios. Un SDK suele inventarse un `service.instance.id` nuevo para cada proceso (el SDK de Node.js lo hace por defecto), así que usarlo como clave dividiría una tarea de ECS en dos filas. `service.instance.id` se usa cuando la plataforma no define una identidad propia. La columna **Identidad de instancia** de [Plataformas compatibles](#plataformas-compatibles) indica el atributo que usa una configuración típica en cada plataforma.
 
-### Entornos que crea a mano
+### Añadir un entorno
 
-Rara vez hace falta: la ingesta crea los entornos por usted. Para crear uno antes de su telemetría, abra **Nube → Todos los entornos** y haga clic en **Crear Recurso en la nube**. Elija la **Plataforma en la nube** y escriba el **ID de cuenta en la nube** y la **Región en la nube** exactamente como los informa su telemetría. OneUptime construye la clave `platform|account|region` a partir de estos tres valores, y la ingesta asocia un entorno solo por su clave. Lo nombra como lo haría la ingesta; para mostrar otro nombre, abra **Más campos** y escríbalo en **Nombre para mostrar**.
+La ingesta crea los entornos por usted, así que no hay nada que escribir. Abra **Nube → Todos los entornos** y haga clic en **Añadir entorno en la nube**: elija dónde se ejecuta su aplicación, y la guía muestra los ajustes de OpenTelemetry de esa plataforma, con su URL de OneUptime y su clave de ingesta ya incluidas. Su último paso, **Esperar a que se conecte**, indica cuándo han llegado los primeros datos del entorno y enlaza con él. Para mostrar otro nombre, elija **Editar detalles** en la tarjeta **Detalles del recurso** de la página **Ajustes** del entorno y escríbalo en **Nombre para mostrar**.
 
 ## Qué no es un entorno en la nube
 

@@ -54,6 +54,12 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/resource-onboarding-ui",
 );
 
+// The Dashboard's German strings, keyed by their English text.
+const GERMAN_LOCALE: string = path.resolve(
+  __dirname,
+  "../../App/FeatureSet/Dashboard/src/Locales/de.json",
+);
+
 interface FixtureState {
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   unhandled: Array<Record<string, unknown>>;
@@ -357,31 +363,46 @@ test("the Add dialog on a phone, in the dark theme: one column, nothing to scrol
 });
 
 test("the Add dialog in German", async ({ page }: { page: Page }) => {
+  const german: Record<string, string> = JSON.parse(
+    await fs.readFile(GERMAN_LOCALE, "utf8"),
+  ) as Record<string, string>;
+  const inGerman: (english: string) => string = (english: string): string => {
+    const text: string | undefined = german[english];
+    // A string left in English would let every check below pass vacuously.
+    expect(text, english).toBeTruthy();
+    expect(text, english).not.toBe(english);
+    return text!;
+  };
+
   await open(page, KUBERNETES, "clusters=1&lang=de");
 
   await tableCard(page)
     .getByTestId("card-header-actions")
     .getByRole("button")
-    .filter({ hasText: "Kubernetes" })
-    .first()
+    .filter({ hasText: inGerman("Add Kubernetes Cluster") })
     .click();
   const dialog: Locator = page.getByTestId("add-resource-modal");
   await expect(nameInput(dialog)).toHaveValue("my-cluster-2");
 
-  // The guide's own words are German: the field's hint and the last step.
-  const hint: string = await dialog
-    .getByTestId("resource-name-field")
-    .innerText();
-  expect(hint).not.toContain(
-    "How it shows up in OneUptime. The commands below use this name.",
+  // The dialog's title, the name field and the last step are German.
+  const modal: Locator = page.getByTestId("modal").filter({ has: dialog });
+  await expect(modal.getByTestId("modal-title")).toHaveText(
+    inGerman("Add Kubernetes Cluster"),
   );
-  await expect(
-    dialog.getByTestId("resource-connection-waiting"),
-  ).not.toHaveText(
-    "Waiting for my-cluster-2 to connect. This step updates by itself.",
+  await expect(modal.getByTestId("modal-description")).toHaveText(
+    inGerman(
+      "Install the OneUptime agent with Helm. The cluster shows up here as soon as the agent connects.",
+    ),
   );
-  await expect(dialog.getByTestId("resource-connection-waiting")).toContainText(
-    "my-cluster-2",
+  const field: Locator = dialog.getByTestId("resource-name-field");
+  await expect(field.locator("label")).toHaveText(inGerman("Cluster name"));
+  await expect(field).toContainText(
+    inGerman("How it shows up in OneUptime. The commands below use this name."),
+  );
+  await expect(dialog.getByTestId("resource-connection-waiting")).toHaveText(
+    inGerman(
+      "Waiting for {{name}} to connect. This step updates by itself.",
+    ).replace("{{name}}", "my-cluster-2"),
   );
 
   await nameInput(dialog).scrollIntoViewIfNeeded();

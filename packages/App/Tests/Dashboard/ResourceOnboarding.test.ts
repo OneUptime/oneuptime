@@ -12,6 +12,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import { getTemplatePlaceholders } from "Common/UI/Utils/TranslateTemplate";
 import {
   RESOURCE_CONNECTION_CLOCK_MARGIN_MS,
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
@@ -686,5 +687,161 @@ describe("the shared setup guide card", () => {
         "isBare={props.isBare} inputs={props.inputs} lastStep={props.lastStep}",
       );
     }
+  });
+});
+
+/*
+ * The Add dialogs, the name field, the watch and the guides that open after
+ * Create speak in translation keys, each looked up in the Dashboard locale
+ * files by its English text. A key with no entry silently stays English,
+ * and a translation that lost its {{name}} shows no name.
+ */
+const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
+
+// Where i18n:apply records a translation that reads the same as English.
+const I18N_TRACKING_DIR: string = path.join(DASHBOARD_SRC, "..", "i18n");
+
+const COPY_SOURCES: Array<string> = [
+  "Components/ResourceOnboarding/ResourceOnboarding.ts",
+  ...ADDED_BY_GUIDE.map((resource: AddedByGuide): string => {
+    return resource.config;
+  }),
+  "Components/DatabaseServer/DatabaseAddedModal.tsx",
+  "Pages/MessageQueue/Utils/MessageQueueAddedModal.tsx",
+  "Components/Rum/RumApplicationAddedModal.tsx",
+  "Components/Service/ServiceAddedModal.tsx",
+];
+
+/*
+ * Keys shared with pages that had them before - each empty list's first-run
+ * title, and the host's name field and link - only have to be in every
+ * locale. Every other key is new, so every locale has to translate it.
+ */
+const REUSED_KEY: RegExp = /^(Getting Started with .+|Host name|View host)$/;
+
+function readJson<T>(file: string): T {
+  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+}
+
+function translationKeysIn(relative: string): Array<string> {
+  const keys: Array<string> = [];
+
+  for (const match of read(relative).matchAll(
+    /translationKey\(\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g,
+  )) {
+    keys.push(JSON.parse(`"${match[1]}"`) as string);
+  }
+
+  return keys;
+}
+
+describe("the onboarding copy in every language", () => {
+  const keys: Array<string> = Array.from(
+    new Set<string>(COPY_SOURCES.flatMap(translationKeysIn)),
+  ).sort();
+
+  const newKeys: Array<string> = keys.filter((key: string): boolean => {
+    return !REUSED_KEY.test(key);
+  });
+
+  const english: Record<string, unknown> = readJson(
+    path.join(LOCALES_DIR, "en.json"),
+  );
+
+  const locales: Array<string> = fs
+    .readdirSync(LOCALES_DIR)
+    .filter((file: string): boolean => {
+      return file.endsWith(".json") && file !== "en.json";
+    })
+    .map((file: string): string => {
+      return file.replace(/\.json$/, "");
+    })
+    .sort();
+
+  const globalSameAsEnglish: Array<string> = readJson(
+    path.join(I18N_TRACKING_DIR, "SameAsEnglish.json"),
+  );
+
+  function readsTheSameIn(locale: string, key: string): boolean {
+    const progressFile: string = path.join(
+      I18N_TRACKING_DIR,
+      "Progress",
+      `${locale}.json`,
+    );
+    const recorded: Array<string> = fs.existsSync(progressFile)
+      ? readJson<{ sameAsEnglish?: Array<string> }>(progressFile)
+          .sameAsEnglish || []
+      : [];
+
+    return globalSameAsEnglish.includes(key) || recorded.includes(key);
+  }
+
+  test("every source says its copy in translation keys", () => {
+    // Without them every check below would pass on nothing.
+    for (const source of COPY_SOURCES) {
+      expect({ source, keys: translationKeysIn(source).length > 0 }).toEqual({
+        source,
+        keys: true,
+      });
+    }
+
+    expect(newKeys.length).toBeGreaterThanOrEqual(43);
+    expect(locales).toHaveLength(16);
+  });
+
+  test("English maps each to itself", () => {
+    const missing: Array<string> = keys.filter((key: string): boolean => {
+      return english[key] !== key;
+    });
+
+    expect(missing).toEqual([]);
+  });
+
+  test("every language has each one, with the same placeholders", () => {
+    const problems: Array<string> = [];
+
+    for (const locale of locales) {
+      const translations: Record<string, unknown> = readJson(
+        path.join(LOCALES_DIR, `${locale}.json`),
+      );
+
+      for (const key of keys) {
+        const value: unknown = translations[key];
+
+        if (typeof value !== "string" || !value.trim()) {
+          problems.push(`${locale}: no translation of "${key}"`);
+          continue;
+        }
+
+        const expected: Array<string> = getTemplatePlaceholders(key).sort();
+        const actual: Array<string> = getTemplatePlaceholders(value).sort();
+
+        if (expected.join(",") !== actual.join(",")) {
+          problems.push(
+            `${locale}: "${value}" has {{${actual.join("}}, {{")}}} where "${key}" has {{${expected.join("}}, {{")}}}`,
+          );
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+
+  test("every language translates the new ones", () => {
+    const untranslated: Array<string> = [];
+
+    for (const locale of locales) {
+      const translations: Record<string, unknown> = readJson(
+        path.join(LOCALES_DIR, `${locale}.json`),
+      );
+
+      for (const key of newKeys) {
+        if (translations[key] === key && !readsTheSameIn(locale, key)) {
+          untranslated.push(`${locale}: "${key}"`);
+        }
+      }
+    }
+
+    expect(untranslated).toEqual([]);
   });
 });
