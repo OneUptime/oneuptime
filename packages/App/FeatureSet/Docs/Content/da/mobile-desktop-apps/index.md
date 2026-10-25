@@ -16,7 +16,7 @@ OneUptime har en app til din telefon og en til din computer. **OneUptime On-Call
 | Hvad den er | OneUptime On-Call, en native app til iPhone, iPad og Android | OneUptime-dashboardet, installeret fra din browser |
 | Hvor du får den | App Store, Google Play eller en APK fra GitHub | Dit eget OneUptime: der er intet at downloade |
 | Vagtalarmer | Push-notifikationer, der kan ringe igennem lydløs og Forstyr ikke | Browsernotifikationer, når du har registreret browseren |
-| Hvad du kan | Hændelser, advarsler, monitorer og hvem der har vagt; kvittere, løse og tilføje noter | Alt, hvad dashboardet kan |
+| Hvad du kan | Hændelser, advarsler, sikkerhedssager, monitorer og hvem der har vagt; kvittere, løse, godkende playbook-trin og tilføje noter | Alt, hvad dashboardet kan |
 | Opdateringer | Fra butikken, eller ved at installere en nyere APK | Hver gang den åbner, henter den dashboardet fra dit OneUptime |
 | Kører på | iOS 16.4 eller nyere, Android 7.0 eller nyere | Windows, macOS og Linux, med Edge eller Chrome, eller Safari på macOS Sonoma 14 eller nyere |
 

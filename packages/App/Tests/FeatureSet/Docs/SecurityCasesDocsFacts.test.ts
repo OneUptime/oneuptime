@@ -1134,6 +1134,40 @@ describe("Security Cases and Playbooks docs", () => {
     ).toBe(priorityNameOf(SecurityCasePriorityLevel.High));
   });
 
+  it("says a push opens the case in the On-Call app, where a waiting step is approved or rejected and the case taken on and closed", () => {
+    const handlers: string = flat(
+      source("MobileApp/src/notifications/handlers.ts"),
+    );
+    const caseScreen: string = source(
+      "MobileApp/src/screens/SecurityCaseDetailScreen.tsx",
+    );
+    const approval: string = source(
+      "MobileApp/src/components/security/PlaybookApproval.tsx",
+    );
+
+    // The push names its case and project, and carries the case's link.
+    expect(flat(source("Common/Server/Utils/PushNotificationUtil.ts"))).toMatch(
+      /public static createSecurityCaseNotification\(.{0,900}?clickAction: params\.caseViewLink,.{0,400}?entityType: "security-case", entityId: params\.securityCaseId, projectId: params\.projectId,/,
+    );
+    // The app opens the case's own screen from them.
+    expect(handlers).toMatch(
+      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
+    );
+    // Where the waiting step is decided, the case taken on and closed.
+    expect(approval).toContain('label="Approve"');
+    expect(approval).toContain('label="Reject"');
+    expect(caseScreen).toContain('label: "Assign to me",');
+    expect(caseScreen).toContain('label: "Close case",');
+
+    /*
+     * 1.7.0 is the store release the case screen ships in: 1.6.0 and
+     * earlier open on their last screen.
+     */
+    expect(englishPage()).toContain(
+      "WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.",
+    );
+  });
+
   it("lists a new project's priority choices as the setting offers them, the default marked", () => {
     const choiceRows: Array<Array<string>> = rowsOf("Choose what you are told");
     const priorities: Array<SecurityCasePriority> =

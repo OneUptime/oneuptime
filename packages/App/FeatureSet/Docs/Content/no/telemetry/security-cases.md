@@ -183,7 +183,7 @@ Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger →
 
 Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valgene i et nytt prosjekt.
 
-Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner OneUptime-appen, og lenken i det åpner saken i nettleseren.
+Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
 
 ### Legg ut i Slack- og Microsoft Teams-kanaler
 

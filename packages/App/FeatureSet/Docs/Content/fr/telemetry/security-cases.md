@@ -183,7 +183,7 @@ Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Para
 
 Les choix suivent les priorités de dossier du projet, sous leurs propres noms : voici ceux d'un nouveau projet.
 
-Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre l'application OneUptime, et son lien ouvre le dossier dans le navigateur.
+Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre le dossier dans l'application OneUptime On-Call (1.7.0 ou ultérieure), où vous pouvez approuver ou rejeter une étape de playbook en attente, prendre le dossier en charge et le fermer. Son lien ouvre le dossier dans le navigateur.
 
 ### Publier dans des canaux Slack et Microsoft Teams
 

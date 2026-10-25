@@ -183,7 +183,7 @@ Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillin
 
 Valgene følger projektets sagsprioriteter under deres egne navne: dette er et nyt projekts valg.
 
-Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner OneUptime-appen, og dens link åbner sagen i browseren.
+Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner sagen i OneUptime On-Call-appen (1.7.0 eller nyere), hvor du kan godkende eller afvise et playbook-trin, der venter, tage sagen og lukke den. Dens link åbner sagen i browseren.
 
 ### Slå op i Slack- og Microsoft Teams-kanaler
 

@@ -183,7 +183,7 @@ Each person chooses for themselves, under **User Settings → Notification Setti
 
 The choices follow the project's case priorities, under their own names: these are a new project's.
 
-WhatsApp messages are not sent for security cases. A push notification opens the OneUptime app, and its link opens the case in the browser.
+WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.
 
 ### Post to Slack and Microsoft Teams channels
 

@@ -3,6 +3,7 @@ import { Pressable, Text, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { elevation, radius, spacing, typography } from "../theme/tokens";
+import StatusPill, { type StatusTone } from "./StatusPill";
 
 interface ResponseRowProps {
   title: string;
@@ -14,6 +15,13 @@ interface ResponseRowProps {
   severity?: string;
   context?: string;
   contextLabel?: string;
+  /** The icon beside the context line; a monitor's pulse unless a row says otherwise. */
+  contextIcon?: keyof typeof Ionicons.glyphMap;
+  /**
+   * One short word or two that this row needs a decision ("Approval needed"),
+   * drawn as a pill under the title. The words carry the meaning.
+   */
+  badge?: { label: string; tone: StatusTone };
   projectName?: string;
   muted?: boolean;
   /**
@@ -46,6 +54,8 @@ export default function ResponseRow({
   severity,
   context,
   contextLabel,
+  contextIcon = "pulse-outline",
+  badge,
   projectName,
   muted,
   selected = false,
@@ -189,6 +199,16 @@ export default function ResponseRow({
         ) : null}
       </View>
 
+      {badge ? (
+        <StatusPill
+          testID="response-row-badge"
+          label={badge.label}
+          tone={badge.tone}
+          size="sm"
+          style={{ marginTop: spacing.sm }}
+        />
+      ) : null}
+
       <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
         <Text
           numberOfLines={1}
@@ -205,7 +225,7 @@ export default function ResponseRow({
             }}
           >
             <Ionicons
-              name="pulse-outline"
+              name={contextIcon}
               size={14}
               color={theme.colors.textTertiary}
               style={{ marginTop: 2 }}

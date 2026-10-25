@@ -9,7 +9,7 @@
       "isolatedModules": true
     }
   },
-  "modulePathIgnorePatterns": ["<rootDir>/build/dist/"],
+  "modulePathIgnorePatterns": ["<rootDir>/build/dist/", "<rootDir>/build/npm/"],
   "moduleNameMapper": {
     "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "Common/(.*)": "<rootDir>/$1",

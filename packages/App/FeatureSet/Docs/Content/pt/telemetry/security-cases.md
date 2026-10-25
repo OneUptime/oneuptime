@@ -183,7 +183,7 @@ Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configura
 
 As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: estas são as de um projeto novo.
 
-Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o app do OneUptime, e o link dela abre o caso no navegador.
+Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador.
 
 ### Publique em canais do Slack e do Microsoft Teams
 

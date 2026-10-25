@@ -168,6 +168,9 @@ jest.mock("../screens/IncidentDetailScreen", () => {
   return mockScreenStub("screen-incident-detail");
 });
 
+jest.mock("../screens/SecurityCaseDetailScreen", () => {
+  return mockScreenStub("screen-security-case-detail");
+});
 jest.mock("../screens/IncidentEpisodeDetailScreen", () => {
   return mockScreenStub("screen-incident-episode-detail");
 });
@@ -337,6 +340,13 @@ const INBOX_ROUTES: Record<keyof InboxStackParamList, TitledRoute> = {
   AlertEpisodeDetail: {
     ...ALERTS_ROUTES.AlertEpisodeDetail,
     title: "Alert group",
+  },
+  // Where a security-case push lands, and what the Security list opens.
+  SecurityCaseDetail: {
+    testID: "screen-security-case-detail",
+    params: { caseId: "case-1", projectId: "project-1" },
+    title: "Security case",
+    keepsIosLargeTitle: false,
   },
 };
 

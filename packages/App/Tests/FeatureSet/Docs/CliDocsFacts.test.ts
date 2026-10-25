@@ -55,6 +55,31 @@ import { describe, expect, it } from "@jest/globals";
 
 const CLI: string = "CLI";
 
+/*
+ * The first release whose CLI starts once npm has installed it (#4872,
+ * fixed by #4900: the CLI is published as one bundled file). Every CLI npm
+ * has from before it - 1.0.0, then 10.0.5 to 14.0.63 - dies at start with
+ * "Cannot find module 'Common/...'": tsc left the CLI's imports of Common as
+ * bare require("Common/...") calls that no installed package could answer.
+ */
+const FIRST_CLI_THAT_STARTS: string = "14.0.64";
+
+// a < b: negative; a = b: 0; a > b: positive. Versions as VERSION writes them.
+function compareVersions(a: string, b: string): number {
+  const left: Array<number> = a.split(".").map(Number);
+  const right: Array<number> = b.split(".").map(Number);
+
+  for (let index: number = 0; index < 3; index++) {
+    const difference: number = (left[index] || 0) - (right[index] || 0);
+
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+
+  return 0;
+}
+
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const SINGULAR_NAME: RegExp = /singularName: "([^"]+)"/;
 // toKebabCase's two steps, as ResourceCommands.ts writes them.
@@ -1260,6 +1285,58 @@ describe("the overview", () => {
     expect(page).toContain(
       "The CLI is released with OneUptime and has the same version number.",
     );
+  });
+
+  it("warns that the CLI versions before the bundled one stop at start, with the error they print, and says how to upgrade", () => {
+    const manifest: {
+      dependencies?: Record<string, string>;
+      files: Array<string>;
+      scripts: Record<string, string>;
+    } = JSON.parse(readRepoFile("CLI/package.json")) as {
+      dependencies?: Record<string, string>;
+      files: Array<string>;
+      scripts: Record<string, string>;
+    };
+
+    // What made the CLI start: npm publishes one bundle, needing nothing beside it.
+    expect(manifest.dependencies).toBeUndefined();
+    expect(manifest.files).toEqual([
+      "build/dist/Index.js",
+      "build/dist/THIRD-PARTY-LICENSES.txt",
+    ]);
+    expect(manifest.scripts["prepack"]).toBe("npm run build");
+    expect(manifest.scripts["build"]).toBe("node esbuild.config.js");
+
+    // The module the error names is the one the CLI's resource commands import.
+    expect(cliSource("Commands/ResourceCommands.ts")).toContain(
+      'import DatabaseModels from "Common/Models/DatabaseModels/Index";',
+    );
+
+    // That release is out, so @latest is it or a later one.
+    expect(
+      compareVersions(readRepoFile("../VERSION").trim(), FIRST_CLI_THAT_STARTS),
+    ).toBeGreaterThanOrEqual(0);
+
+    expect(englishSection(CLI_OVERVIEW, "## Install the CLI")).toContain(
+      [
+        "> [!WARNING]",
+        `> CLI versions before ${FIRST_CLI_THAT_STARTS} stop as soon as they start, with an error such as \`Cannot find module 'Common/Models/DatabaseModels/Index'\`. Install ${FIRST_CLI_THAT_STARTS} or later with \`npm install -g @oneuptime/cli@latest\`. On a self-hosted OneUptime older than ${FIRST_CLI_THAT_STARTS}, [upgrade OneUptime](/docs/installation/upgrading#how-to-upgrade) first, then install the CLI of the version you upgraded to.`,
+      ].join("\n"),
+    );
+
+    // It comes right after the advice it qualifies: the CLI of your OneUptime's version.
+    const section: string = englishSection(CLI_OVERVIEW, "## Install the CLI");
+
+    expect(section.indexOf("> [!WARNING]")).toBeGreaterThan(
+      section.indexOf("npm install -g @oneuptime/cli@<your-oneuptime-version>"),
+    );
+
+    // The upgrade guide has the heading it links to.
+    expect(
+      readRepoFile(
+        "App/FeatureSet/Docs/Content/en/installation/upgrading.md",
+      ).split("\n"),
+    ).toContain("## How to upgrade");
   });
 
   it("lists every command at a glance, and no other", () => {

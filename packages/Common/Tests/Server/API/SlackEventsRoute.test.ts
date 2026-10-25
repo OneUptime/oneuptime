@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import http from "http";
 import { AddressInfo } from "net";
 import express from "express";
@@ -755,6 +756,12 @@ beforeEach(() => {
     return aiEnabled;
   });
   jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(null);
+  /*
+   * The project's AI credits, asked before every answer: none used up,
+   * unless a test says so. With billing on, as CI runs Common, the real
+   * check reads the project's LLM provider and balance from Postgres.
+   */
+  jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
   jest
     .spyOn(ObservabilityAssistant, "answerQuestion")
     .mockImplementation((async (data: {
@@ -2050,10 +2057,8 @@ describe("the placeholder an answer stands behind", () => {
       .mockResolvedValue(
         "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.",
       );
-    const answer: jest.SpyInstance = jest.spyOn(
-      ObservabilityAssistant,
-      "answerQuestion",
-    );
+    const answer: SpyInstance<typeof ObservabilityAssistant.answerQuestion> =
+      jest.spyOn(ObservabilityAssistant, "answerQuestion");
 
     const asked: Said = await say({
       user: ALICE,

@@ -7,6 +7,7 @@ import IncidentCard from "./IncidentCard";
 import AlertCard from "./AlertCard";
 import EpisodeCard from "./EpisodeCard";
 import MonitorCard from "./MonitorCard";
+import SecurityCaseCard from "./SecurityCaseCard";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { spacing } from "../theme/tokens";
 import {
@@ -14,6 +15,7 @@ import {
   makeIncident,
   makeIncidentEpisode,
   makeMonitor,
+  makeSecurityCase,
 } from "../__tests__/testSupport";
 
 /*
@@ -177,10 +179,56 @@ describe("Every kind of row passes the selection through", () => {
         );
       },
     ],
+    [
+      "a security case",
+      (): React.JSX.Element => {
+        return (
+          <SecurityCaseCard
+            securityCase={makeSecurityCase()}
+            onPress={jest.fn()}
+            selected
+            showChevron={false}
+          />
+        );
+      },
+    ],
   ])("%s", async (_label: string, element: () => React.JSX.Element) => {
     await render(element());
 
     expect(surface()).toBeSelected();
     expect(screen.queryByTestId("response-row-chevron")).toBeNull();
+  });
+});
+
+describe("A row's context icon and badge", () => {
+  test("a row that names none keeps the monitor pulse and no badge", async () => {
+    await render(row({ context: "api.example.com" }));
+
+    expect(screen.queryByTestId("response-row-badge")).toBeNull();
+    expect(screen.getByText("api.example.com")).toBeTruthy();
+  });
+
+  test("a badge is words in a pill under the title, read as part of the row", async () => {
+    await render(row({ badge: { label: "Approval needed", tone: "warning" } }));
+
+    const badge: RenderedElement = screen.getByTestId("response-row-badge");
+    expect(badge).toHaveStyle({ backgroundColor: lightColors.statusWarningBg });
+    expect(screen.getByText("Approval needed")).toHaveStyle({
+      color: lightColors.statusWarning,
+    });
+  });
+
+  test("the badge follows dark mode", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        {row({ badge: { label: "Approval needed", tone: "warning" } })}
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("response-row-badge")).toHaveStyle({
+      backgroundColor: darkColors.statusWarningBg,
+    });
   });
 });

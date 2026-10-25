@@ -183,7 +183,7 @@ Var och en väljer själv, under **Användarinställningar → Aviseringsinstäl
 
 Valen följer projektets ärendeprioriteter, under deras egna namn: det här är ett nytt projekts val.
 
-WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar OneUptime-appen, och dess länk öppnar ärendet i webbläsaren.
+WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren.
 
 ### Posta i kanaler i Slack och Microsoft Teams
 

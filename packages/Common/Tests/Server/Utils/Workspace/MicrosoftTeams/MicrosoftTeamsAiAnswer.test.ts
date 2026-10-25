@@ -58,7 +58,7 @@ import ProjectService from "../../../../../Server/Services/ProjectService";
 import logger from "../../../../../Server/Utils/Logger";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import { JSONObject } from "../../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -81,13 +81,15 @@ function feedbackInvoke(data?: {
     value: {
       actionName: data?.actionName || "feedback",
       actionValue: {
-        reaction: data && "reaction" in data ? data.reaction : "dislike",
-        feedback:
-          data && "feedback" in data
-            ? data.feedback
-            : JSON.stringify({
-                feedbackText: "It named a monitor we do not have.",
-              }),
+        // What Teams sends may be anything: a test hands over what it likes.
+        reaction: (data && "reaction" in data
+          ? data.reaction
+          : "dislike") as JSONValue,
+        feedback: (data && "feedback" in data
+          ? data.feedback
+          : JSON.stringify({
+              feedbackText: "It named a monitor we do not have.",
+            })) as JSONValue,
       },
     },
     from: { id: "29:alice", name: "Alice Doe", aadObjectId: "aad-alice" },

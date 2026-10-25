@@ -183,7 +183,7 @@ Ognuno sceglie per sé, in **Impostazioni utente → Impostazioni notifiche → 
 
 Le scelte seguono le priorità dei casi del progetto, con i loro nomi: queste sono quelle di un nuovo progetto.
 
-Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre l'app OneUptime, e il suo link apre il caso nel browser.
+Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre il caso nell'app OneUptime On-Call (1.7.0 o successiva), dove puoi approvare o rifiutare un passo di playbook in attesa, prendere in carico il caso e chiuderlo. Il suo link apre il caso nel browser.
 
 ### Pubblicare nei canali di Slack e Microsoft Teams
 
