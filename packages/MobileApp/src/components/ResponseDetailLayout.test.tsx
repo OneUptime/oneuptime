@@ -313,6 +313,45 @@ describe("Response actions", () => {
     expect(resolve).toHaveBeenCalledTimes(1);
   });
 
+  test("the actions stack on a cover screen, and a label is never shrunk into two lines", async () => {
+    /*
+     * Each action takes half the card's inner width (the window less 74
+     * points) less half the 12-point gap, and stacks once that is under the
+     * minimum: on a 344-point cover screen and a 360-point phone, not on a
+     * 390-point iPhone.
+     */
+    const besideEachOther: (windowWidth: number) => boolean = (
+      windowWidth: number,
+    ): boolean => {
+      return (windowWidth - 74 - 12) / 2 >= RESPONSE_ACTION_MIN_WIDTH;
+    };
+    expect(besideEachOther(344)).toBe(false);
+    expect(besideEachOther(360)).toBe(false);
+    expect(besideEachOther(390)).toBe(true);
+    expect(besideEachOther(412)).toBe(true);
+
+    await render(
+      <ResponseActions
+        actions={[
+          {
+            label: "Acknowledge",
+            accessibilityLabel: "Acknowledge incident",
+            onPress: jest.fn<() => void>(),
+            primary: true,
+            icon: "eye-outline",
+          },
+        ]}
+        busy={false}
+      />,
+    );
+    /*
+     * Yoga shrinks a label that may shrink, and iOS and Android then break a
+     * one-word label across lines. Browsers never shrink a word below its own
+     * width, so only this test can see it.
+     */
+    expect(flat(screen.getByText("Acknowledge")).flexShrink ?? 0).toBe(0);
+  });
+
   test("a caller can drop the bottom margin when actions sit inside a card", async () => {
     await render(
       <ResponseActions
