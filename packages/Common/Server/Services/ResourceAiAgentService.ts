@@ -62,6 +62,7 @@ import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
+  RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   ResourceAiAgentConnectionStatus,
   ResourceAiAgentPosture,
@@ -130,6 +131,15 @@ export interface ResourceAiAgentPresenceRow {
   lastAliveAt?: Date | string | null | undefined;
 }
 
+/*
+ * The subset of a row getUnansweredRefusalSince reads: the presence, and
+ * the last registration refused this row's place.
+ */
+export interface ResourceAiAgentRefusalRow extends ResourceAiAgentPresenceRow {
+  lastRefusedRegistrationAt?: Date | string | null | undefined;
+  lastRefusedRegistrationReason?: string | null | undefined;
+}
+
 type DateLike = Date | string | null | undefined;
 
 function toDate(value: DateLike): Date | null {
@@ -175,11 +185,14 @@ export const MAX_NEW_RESOURCE_AI_AGENTS_PER_PROJECT_PER_HOUR: number = 30;
 export const RESOURCE_AI_AGENT_RECLAIM_AFTER_DAYS: number = 7;
 
 /*
- * When a transient refusal (previous_instance_online) tells the agent to
- * try again. It clears within seconds when a container is replaced, and an
- * agent that is refused for longer just keeps asking at this pace.
+ * How long an agent that still counts as online may leave a refused
+ * registration unanswered before the next registration takes its place
+ * (see RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS). The refusal tells
+ * the refused agent to try again when that time is up, not sooner: until
+ * then the answer cannot change.
  */
-export const RESOURCE_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS: number = 20;
+export const RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_MS: number =
+  RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS * 1000;
 
 /*
  * The longest identity registration accepts for a resource found by its
@@ -244,17 +257,22 @@ export class ResourceAiAgentRegistrationRefusedException extends ForbiddenExcept
  * signed_off:  the previous instance signed off (/disconnect), as a
  *              container does on a clean shutdown.
  * offline:     the previous instance stopped heartbeating.
+ * unresponsive: the previous instance still counted as online, but it sent
+ *              nothing for RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS
+ *              after another registration was refused its place: a
+ *              container removed with rm -f, killed or crashed.
  *
  * Only "continuity" is proof. The rest are what a restarted container looks
  * like — and also what anyone holding the ingestion key looks like, which
- * is why none of them can take a row whose agent is online.
+ * is why none of them can take a row whose agent is online and answering.
  */
 export type ResourceAiAgentRegistrationAdmission =
   | "created"
   | "continuity"
   | "reset"
   | "signed_off"
-  | "offline";
+  | "offline"
+  | "unresponsive";
 
 export interface ResourceAiAgentRegistrationResult {
   agentId: ObjectID;
@@ -737,6 +755,81 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * When another agent was refused this row's place
+   * (previous_instance_online) without the row's agent having been heard
+   * from since — null when there is no such refusal, or the agent has
+   * answered it. Every request the agent authenticates after a refusal
+   * answers it (authenticate stamps lastAliveAt), so a live agent answers
+   * within seconds; one that stopped without signing off never does.
+   */
+  public getUnansweredRefusalSince(
+    row: ResourceAiAgentRefusalRow,
+  ): Date | null {
+    if (
+      row.lastRefusedRegistrationReason &&
+      row.lastRefusedRegistrationReason !== "previous_instance_online"
+    ) {
+      return null;
+    }
+
+    const refusedAt: Date | null = toDate(row.lastRefusedRegistrationAt);
+
+    if (!refusedAt) {
+      return null;
+    }
+
+    const lastAliveAt: Date | null = toDate(row.lastAliveAt);
+
+    if (lastAliveAt && lastAliveAt.getTime() >= refusedAt.getTime()) {
+      return null;
+    }
+
+    return refusedAt;
+  }
+
+  /*
+   * Has the row's agent left a refusal unanswered for
+   * RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS? Then it stopped
+   * without signing off, however recent its last heartbeat, and the next
+   * registration takes its place.
+   */
+  public isUnresponsive(row: ResourceAiAgentRefusalRow, now?: Date): boolean {
+    const refusedAt: Date | null = this.getUnansweredRefusalSince(row);
+
+    if (!refusedAt) {
+      return false;
+    }
+
+    const nowTime: number = (now || OneUptimeDate.getCurrentDate()).getTime();
+
+    return (
+      nowTime - refusedAt.getTime() >= RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_MS
+    );
+  }
+
+  /*
+   * When a registration refused as previous_instance_online should try
+   * again: as soon as the row's agent has had its full time to answer the
+   * refusal it has not answered yet (unansweredSince), plus a second, so
+   * the retry finds the wait over. Never under a second, and never longer
+   * than a whole wait, whatever another server's clock stamped.
+   */
+  public static getTakeoverRetryAfterSeconds(data: {
+    unansweredSince: Date;
+    now: Date;
+  }): number {
+    const remainingMs: number =
+      data.unansweredSince.getTime() +
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_MS -
+      data.now.getTime();
+
+    return Math.min(
+      Math.max(1, Math.ceil(remainingMs / 1000) + 1),
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1,
+    );
+  }
+
+  /*
    * The row as the dashboard and the access status see it. Never carries
    * the key hash; the posture is re-validated on the way out, so a stored
    * value of the wrong shape is dropped (null) rather than trusted. Values
@@ -937,13 +1030,15 @@ export class Service extends DatabaseService<Model> {
    *    DATABASE_SERVER_ID that is not this project's, or a database
    *    endpoint no row owns and none may be created for;
    *  - the resource's agent is online and the request did not present its
-   *    current key (previous_instance_online) — recorded on the row so the
-   *    AI agent page can say another agent tried;
+   *    current key (previous_instance_online) — recorded on the row, which
+   *    the agent then has RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS to
+   *    answer, and which the AI agent page warns about once it has;
    *  - a new row would pass the project's caps (agent_cap_reached).
    *
    * An existing row is re-keyed when the request proves continuity (its
    * current key as previousAgentKey), or when the row was reset, or its
-   * agent signed off or went quiet: what a restarted container looks like.
+   * agent signed off, went quiet or left a refusal unanswered: what a
+   * restarted, upgraded or reinstalled container looks like.
    *
    * On a resource nobody configured it applies the first-connection
    * defaults (applyFirstConnectionDefaults). It never deletes, unbinds or
@@ -1127,15 +1222,15 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * How a registration for a resource that already has an agent row is
-   * admitted, or null when it must be refused (the row's agent is online
-   * and the request did not prove it is that agent). A reset row admits
-   * anyone: no key is valid for it, and the admin reset is exactly the
-   * "let the real agent back in" action.
+   * admitted, or null when it must be refused (the row's agent is online,
+   * answers, and the request did not prove it is that agent). A reset row
+   * admits anyone: no key is valid for it, and the admin reset is exactly
+   * the "let the real agent back in" action.
    */
   public getReRegistrationAdmission(data: {
     agent: {
       keyHash?: string | null | undefined;
-    } & ResourceAiAgentPresenceRow;
+    } & ResourceAiAgentRefusalRow;
     previousAgentKey?: string | undefined;
     now?: Date | undefined;
   }): ResourceAiAgentRegistrationAdmission | null {
@@ -1153,6 +1248,10 @@ export class Service extends DatabaseService<Model> {
 
     if (!this.isOnline(data.agent, data.now)) {
       return "offline";
+    }
+
+    if (this.isUnresponsive(data.agent, data.now)) {
+      return "unresponsive";
     }
 
     return null;
@@ -1939,8 +2038,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * An existing row: admitted per getReRegistrationAdmission, or refused
    * with previous_instance_online — which is recorded on the row (when, and
-   * why) so the AI agent page can warn that another agent tried to register
-   * while this one was online. Nothing about the current key is disclosed.
+   * why). The row's agent answers it with its next request; one that stays
+   * silent for RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS is taken over
+   * by the next registration, and one that answers is a second live agent,
+   * which the AI agent page warns about. Nothing about the current key is
+   * disclosed.
    */
   private async admitReRegistration(data: {
     agent: Model;
@@ -1949,45 +2051,71 @@ export class Service extends DatabaseService<Model> {
     identifier: string;
     projectId: ObjectID;
   }): Promise<ResourceAiAgentRegistrationAdmission> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const displayName: string =
+      AI_RESOURCE_TYPE_INFO[data.resourceType].displayName;
+
     const admission: ResourceAiAgentRegistrationAdmission | null =
       this.getReRegistrationAdmission({
         agent: data.agent,
         previousAgentKey: data.previousAgentKey,
+        now,
       });
+
+    if (admission === "unresponsive") {
+      logger.info(
+        `ResourceAiAgent: the agent (${data.agent.id?.toString()}) of ${displayName} "${data.identifier}" in project ${data.projectId.toString()} sent nothing for ${RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds after another agent was refused its place; that agent takes it now.`,
+      );
+    }
 
     if (admission) {
       return admission;
     }
 
-    logger.warn(
-      `ResourceAiAgent: refused a registration for ${
-        AI_RESOURCE_TYPE_INFO[data.resourceType].displayName
-      } "${data.identifier}" in project ${data.projectId.toString()}: its agent (${data.agent.id?.toString()}) is online and the request did not present its current key.`,
+    /*
+     * The refusal the agent has not answered yet, if any, is when its time
+     * to answer started: a later attempt while it is still unanswered leaves
+     * the record alone, so retries cannot keep pushing the takeover back.
+     */
+    const unansweredSince: Date | null = this.getUnansweredRefusalSince(
+      data.agent,
     );
 
-    await this.recordRefusedRegistration({
-      agentId: data.agent.id!,
-      reason: "previous_instance_online",
-    });
+    logger.warn(
+      `ResourceAiAgent: refused a registration for ${displayName} "${data.identifier}" in project ${data.projectId.toString()}: its agent (${data.agent.id?.toString()}) is online and the request did not present its current key.`,
+    );
+
+    if (!unansweredSince) {
+      await this.recordRefusedRegistration({
+        agentId: data.agent.id!,
+        reason: "previous_instance_online",
+        refusedAt: now,
+      });
+    }
 
     throw this.getPreviousInstanceOnlineRefusal({
       resourceType: data.resourceType,
       identifier: data.identifier,
+      retryAfterSeconds: Service.getTakeoverRetryAfterSeconds({
+        unansweredSince: unansweredSince || now,
+        now,
+      }),
     });
   }
 
   private getPreviousInstanceOnlineRefusal(data: {
     resourceType: AiResourceType;
     identifier: string;
+    retryAfterSeconds: number;
   }): ResourceAiAgentRegistrationRefusedException {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
 
     return new ResourceAiAgentRegistrationRefusedException({
       reason: "previous_instance_online",
-      retryAfterSeconds: RESOURCE_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS,
+      retryAfterSeconds: data.retryAfterSeconds,
       message: `Another ${info.agentDisplayName} for ${describeResourceInSentence(
         data.resourceType,
-      )} "${data.identifier}" is online. This is normal for a moment while its container restarts, and the agent retries on its own. If it lasts, make sure only one ${info.agentDisplayName} is installed for "${data.identifier}".`,
+      )} "${data.identifier}" is online. If it is the one this agent replaces, this agent takes its place as soon as it signs off, or once it has sent nothing for ${RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds (a container that was removed with rm -f, killed or crashed); the agent retries on its own. If it lasts, make sure only one ${info.agentDisplayName} is installed for "${data.identifier}".`,
     });
   }
 
@@ -1995,12 +2123,13 @@ export class Service extends DatabaseService<Model> {
   private async recordRefusedRegistration(data: {
     agentId: ObjectID;
     reason: ResourceAiAgentRegistrationRefusalReason;
+    refusedAt: Date;
   }): Promise<void> {
     try {
       await this.updateColumnsByIdWithoutHooks({
         id: data.agentId,
         data: {
-          lastRefusedRegistrationAt: OneUptimeDate.getCurrentDate(),
+          lastRefusedRegistrationAt: data.refusedAt,
           lastRefusedRegistrationReason: data.reason,
         },
       });
@@ -2147,9 +2276,15 @@ export class Service extends DatabaseService<Model> {
         } "${data.identifier}" at once; the other one was admitted.`,
       );
 
+      const now: Date = OneUptimeDate.getCurrentDate();
+
       throw this.getPreviousInstanceOnlineRefusal({
         resourceType: data.resourceType,
         identifier: data.identifier,
+        retryAfterSeconds: Service.getTakeoverRetryAfterSeconds({
+          unansweredSince: now,
+          now,
+        }),
       });
     }
   }
@@ -2166,6 +2301,10 @@ export class Service extends DatabaseService<Model> {
    * the row's hash (timing-safe). A reset row (null hash) matches nothing,
    * and an unknown id costs the same comparison as a wrong key. The row is
    * returned without its key hash.
+   *
+   * A request authenticated here also answers a refusal the agent has not
+   * answered yet (answerRefusedRegistration): it is running, so the agent
+   * refused its place does not take it.
    */
   @CaptureSpan()
   public async authenticate(data: {
@@ -2203,7 +2342,43 @@ export class Service extends DatabaseService<Model> {
 
     delete agent.keyHash;
 
+    await this.answerRefusedRegistration(agent);
+
     return agent;
+  }
+
+  /*
+   * The agent was heard from after another agent was refused its place
+   * (getUnansweredRefusalSince): lastAliveAt is stamped now, which answers
+   * the refusal. One hook-free write, and only while a refusal is
+   * unanswered — an ordinary request writes nothing. The stamp is never
+   * earlier than the refusal it answers: the refusal was read before it,
+   * so another server's clock running behind cannot leave it unanswered.
+   * Best-effort: a failed write never fails the agent's request.
+   */
+  private async answerRefusedRegistration(agent: Model): Promise<void> {
+    const refusedAt: Date | null = this.getUnansweredRefusalSince(agent);
+
+    if (!refusedAt || !agent.id) {
+      return;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const answeredAt: Date =
+      now.getTime() > refusedAt.getTime() ? now : refusedAt;
+
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: agent.id,
+        data: { lastAliveAt: answeredAt },
+      });
+
+      agent.lastAliveAt = answeredAt;
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not record that agent ${agent.id.toString()} answered a refused registration: ${error}`,
+      );
+    }
   }
 
   /*
