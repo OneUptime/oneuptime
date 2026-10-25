@@ -160,7 +160,10 @@ describe("zod's compiled parsers", () => {
         args: Array<string>,
       ): Record<string, unknown> => {
         evaluated.push(args.join(", "));
-        return Reflect.construct(target, args) as Record<string, unknown>;
+        return Reflect.construct(target, args) as unknown as Record<
+          string,
+          unknown
+        >;
       },
     });
 
