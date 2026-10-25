@@ -32,7 +32,19 @@ export interface SecurityEntityChipProps {
   // A count shown after the value, e.g. events seen in the last day.
   trailing?: ReactElement | string | undefined;
   isLink?: boolean | undefined;
+  /*
+   * Let a long value run onto a second line rather than cut it short or
+   * widen what holds it: a table column on a phone that has to leave room
+   * for the columns beside it (a case's Entities page).
+   */
+  isValueWrapped?: boolean | undefined;
 }
+
+// A value cut short to its line, or, wrapped, broken where it must be.
+export const SECURITY_ENTITY_CHIP_VALUE_CLASS_NAME: string =
+  "truncate font-mono";
+export const SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME: string =
+  "min-w-0 font-mono [overflow-wrap:anywhere]";
 
 export const SecurityEntityChip: FunctionComponent<SecurityEntityChipProps> = (
   props: SecurityEntityChipProps,
@@ -56,7 +68,14 @@ export const SecurityEntityChip: FunctionComponent<SecurityEntityChipProps> = (
         icon={getSecurityEntityIcon(props.entity.type)}
         className="h-3.5 w-3.5 flex-shrink-0 text-gray-400 group-hover:text-indigo-500"
       />
-      <span className="truncate font-mono" title={title}>
+      <span
+        className={
+          props.isValueWrapped
+            ? SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME
+            : SECURITY_ENTITY_CHIP_VALUE_CLASS_NAME
+        }
+        title={title}
+      >
         {props.entity.value}
       </span>
       {props.trailing !== undefined ? (

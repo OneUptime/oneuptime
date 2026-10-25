@@ -2,27 +2,28 @@
 
 An offline harness for the Security Events SOC pages, on a month of synthetic security work:
 
-| Page                 | Route (from `RouteMap`)                                                                   | Production components                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Overview             | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`               | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                             |
-| Open Cases           | `SECURITY_CASES` `.../security-events/cases`                                              | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                     |
-| Assigned to Me       | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`                | the same, with the list `SecurityCaseQueueViews` gives the page                            |
-| Unassigned           | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                        | the same                                                                                   |
-| Closed Cases         | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                                | the same                                                                                   |
-| All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                   |
-| A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`                                      | `Pages/SecurityEvents/CaseView`, `SecurityCase/*`, `EventNotes`, `SecurityPlaybookRunCard` |
-| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`                                                            |
-| Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                              |
-| Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                         |
-| Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                          |
-| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`                                                      |
-| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`                                                           |
-| A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                         |
-| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it     |
-| Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                   |
-| AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`   |
-| Case Priorities      | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`     |
-| Case Statuses        | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                     |
+| Page                 | Route (from `RouteMap`)                                                                   | Production components                                                                        |
+| -------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Overview             | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`               | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                               |
+| Open Cases           | `SECURITY_CASES` `.../security-events/cases`                                              | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                       |
+| Assigned to Me       | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`                | the same, with the list `SecurityCaseQueueViews` gives the page                              |
+| Unassigned           | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                        | the same                                                                                     |
+| Closed Cases         | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                                | the same                                                                                     |
+| All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                     |
+| A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`, its Overview                        | `Pages/SecurityEvents/CaseView/{Layout,SideMenu,Index}`, `SecurityCase/*`                    |
+| A case's pages       | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
+| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`                                                              |
+| Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
+| Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
+| Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                            |
+| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`                                                        |
+| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`                                                             |
+| A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                           |
+| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
+| Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                     |
+| AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
+| Case Priorities      | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
+| Case Statuses        | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -136,9 +137,17 @@ that list is not empty.
   1280 each list's title, search and buttons share one line with the description under them; at
   1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
   and the header's search stays inside the card.
-- **A case**: header, status steps, detections, the held run with Approve and Reject, timeline,
-  entities, ATT&CK and notes; approving the held step posts the decision with its comment and the
-  run finishes; a Security Viewer cannot decide it; dark theme and a phone.
+- **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
+  Entities, Playbook Runs; Notes: Private Notes; Advanced, folded: Audit Logs, Delete Case), each
+  part of the case a page of its own at an address under the case's, its entry lit and its trail
+  named for the case; the Overview has the header in full (status steps, who has it), the
+  figures, the AI card and ATT&CK, and every other page the header compact, with every action,
+  the case read once for them all; a link straight to any page opens it; the held run with
+  Approve and Reject, counted beside Playbook Runs until approving it runs the rest; Delete Case
+  asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
+  that is not there says so; the header at a laptop's width (actions on the title's line) and on
+  a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both
+  themes.
 - **Playbooks**: the list (steps, status, trigger and minimum priority) fits its card; a template
   becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases, and one
   that cannot be added says why in the amber box; a playbook's
@@ -226,8 +235,11 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 `overview-turn-on-failed`, `rule-library-add-failed`, `rule-library-add-all-failed`,
 `playbook-template-failed`, `cases-desktop`, `cases-tablet`,
 `cases-mobile`, each case page at 1280 in both themes and at 390 (`cases-open-1280-light`,
-`cases-unassigned-1280-dark`, `cases-closed-390-light` and the rest), `case-desktop`, `case-dark`,
-`case-mobile`, `playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,
+`cases-unassigned-1280-dark`, `cases-closed-390-light` and the rest), `case-desktop`, each page
+of a case at 1280 in both themes and at 390 (`case-overview-1280-light`,
+`case-playbook-runs-1280-dark`, `case-entities-390-light`, `case-entities-390-dark` and the rest),
+`case-header-390-light`, `case-header-390-dark`, `case-side-menu-mobile`, `case-not-found`,
+`playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,
 `playbook-runs-desktop`, `playbook-runs-empty`, `attack-coverage-desktop`, `rule-library-desktop`,
 `rule-library-category-*`, `entities-desktop`, `detection-rules-desktop`,
 `detection-rule-correlation-form-desktop`, `detection-rules-dark`, `detection-rules-phone`,

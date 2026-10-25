@@ -82,6 +82,14 @@ export interface EventNoteKind<TNote extends BaseModel> {
   visibility: NoteVisibility;
   // How the page refers to the parent: "incident", "alert", "episode"...
   eventNoun: string;
+  /*
+   * What the notes are for, in place of the sentence the kind of note says
+   * on its own - an English key, looked up where it is shown. A security
+   * case's private notes: an incident's sentence promises they are never
+   * shown on a status page or sent to subscribers, which a case has neither
+   * of.
+   */
+  description?: string | undefined;
   // The note column holding the parent's id, e.g. "incidentId".
   parentIdField: string;
   parentId: ObjectID;

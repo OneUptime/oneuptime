@@ -13,6 +13,12 @@ import {
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import {
+  SECURITY_CASE_MENU,
+  SecurityCaseMenuItem,
+  SecurityCaseMenuSection,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityCaseNavigation";
+import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -399,6 +405,131 @@ describe("Security Cases and Playbooks docs", () => {
       // The dialog's own description, without its full stop.
       expect(`${row[1]}.`).toBe(SECURITY_CASE_VERDICTS[index]!.description);
     });
+  });
+
+  it("lists a case's pages as its side menu has them, in its order, Advanced folded", () => {
+    const sectionState: string = source(
+      "Common/UI/Components/SideMenu/SideMenuSectionState.ts",
+    );
+    const foldedTitlesStart: number = sectionState.indexOf(
+      "export const SECTION_TITLES_COLLAPSED_BY_DEFAULT",
+    );
+    const foldedTitles: string = sectionState.slice(
+      foldedTitlesStart,
+      sectionState.indexOf("];", foldedTitlesStart),
+    );
+
+    expect(foldedTitlesStart).toBeGreaterThan(0);
+    expect(section(page, "Work a case")).toContain(
+      "A case has a side menu of its own, as an incident has, and each part of the case is a page of its own:",
+    );
+    expect(page).toContain("| Side menu section | Pages |");
+    expect(rowsOf("Work a case", 1)).toEqual(
+      SECURITY_CASE_MENU.map(
+        (menuSection: SecurityCaseMenuSection): Array<string> => {
+          const pages: string = menuSection.items
+            .map((item: SecurityCaseMenuItem): string => {
+              return `**${item.title}**`;
+            })
+            .join(", ");
+
+          // A section titled to fold (SideMenuSectionState) starts folded.
+          return [
+            `**${menuSection.title}**`,
+            foldedTitles.includes(`"${menuSection.title}",`)
+              ? `${pages}, folded until you click **${menuSection.title}**`
+              : pages,
+          ];
+        },
+      ),
+    );
+
+    // Each page is described, in the menu's order.
+    const described: Array<string> = flat(section(page, "Work a case"))
+      .split(" - **")
+      .slice(1)
+      .map((item: string): string => {
+        return item.slice(0, item.indexOf("**"));
+      })
+      .filter((title: string): boolean => {
+        return title !== "OneUptime AI" && title !== "MITRE ATT&CK";
+      });
+
+    expect(described).toEqual(
+      SECURITY_CASE_MENU.flatMap(
+        (menuSection: SecurityCaseMenuSection): Array<string> => {
+          return menuSection.items.map((item: SecurityCaseMenuItem): string => {
+            return item.title;
+          });
+        },
+      ),
+    );
+  });
+
+  it("says what the case's header keeps on every page, and where a link to the case lands", () => {
+    const header: string = flat(
+      source(`${DASHBOARD}/Components/SecurityCase/SecurityCaseHeader.tsx`),
+    );
+
+    for (const action of [
+      "Assign to Me",
+      "Run Playbook",
+      "Declare Incident",
+      "Close Case",
+    ]) {
+      expect(header).toContain(`title: "${action}",`);
+    }
+    expect(header).toContain(
+      '<MoreMenuSection key="priority" title="Set priority">',
+    );
+    expect(header).toContain('text="Edit Case"');
+    expect(header).toContain('text="Delete Case"');
+    expect(flat(section(page, "Work a case"))).toContain(
+      "Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**.",
+    );
+
+    // The case's own address is its Overview, the first entry of its menu.
+    expect(SECURITY_CASE_MENU[0]?.items[0]).toEqual(
+      expect.objectContaining({
+        page: PageMap.SECURITY_CASE_VIEW,
+        title: "Overview",
+      }),
+    );
+    expect(source(`${DASHBOARD}/Utils/RouteMap.ts`)).toContain(
+      "[PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,",
+    );
+  });
+
+  it("says the menu counts the runs waiting for an approval, and what deleting a case takes with it", () => {
+    const playbookRuns: SecurityCaseMenuItem | undefined =
+      SECURITY_CASE_MENU.flatMap(
+        (menuSection: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
+          return menuSection.items;
+        },
+      ).find((item: SecurityCaseMenuItem): boolean => {
+        return item.title === "Playbook Runs";
+      });
+
+    expect(playbookRuns?.badge).toBe("runsWaitingForApproval");
+    expect(
+      flat(
+        source(
+          `${DASHBOARD}/Components/SecurityCase/SecurityCaseMenuBadgeCount.ts`,
+        ),
+      ),
+    ).toContain('getSecurityPlaybookRunView("waiting").query');
+    expect(page).toContain(
+      "While runs wait, the menu shows how many beside **Playbook Runs**.",
+    );
+
+    expect(
+      flat(source(`${DASHBOARD}/Pages/SecurityEvents/CaseView/Delete.tsx`)),
+    ).toContain(
+      "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
+    );
+    expect(page).toContain(
+      "- **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.",
+    );
   });
 
   it("opens the case priorities and statuses where the menu puts them, folded under Settings", () => {
