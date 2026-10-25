@@ -9,6 +9,8 @@ import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitors
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import {
   DEVICE_NAME_SOURCE_FIELD_DESCRIPTION,
   DEVICE_NAME_SOURCE_FIELD_TITLE,
@@ -394,6 +396,15 @@ const NetworkDeviceView: FunctionComponent<
         error={monitorsError}
         networkDeviceId={modelId.toString()}
         isMonitorBacked={isMonitorBacked}
+      />
+      {/*
+       * What Security Events found about it this week - firewall and
+       * syslog events name a device by its name or its addresses - for
+       * whoever may read it (Components/SecurityConnections).
+       */}
+      <ResourceSecurityCard
+        kind={SecurityConnectionKind.NetworkDevice}
+        modelId={modelId}
       />
     </Fragment>
   );

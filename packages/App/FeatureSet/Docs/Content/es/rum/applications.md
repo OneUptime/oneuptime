@@ -48,6 +48,8 @@ Rellena **Nombre de la aplicación (service.name)** con el `service.name` que tu
 La aplicación lleva el nombre de su aplicación, igual que una descubierta. Para mostrar otro nombre, abre **Más campos** y escribe un **Nombre para mostrar**; la descripción y las etiquetas también están ahí. Después guarda el formulario.
 :::
 
+A continuación, su guía de configuración se abre sola, con el nombre de la aplicación como `service.name` del fragmento de código. Su último paso, **Esperar a que se conecte**, indica cuándo llegan los primeros datos.
+
 Si el proyecto ya tiene una aplicación con ese `service.name`, descubierta, añadida antes o archivada, el formulario lo indica en lugar de crear una segunda.
 
 ## Estado de la conexión

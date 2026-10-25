@@ -106,6 +106,8 @@ const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const deleteItemMock: MockFunction = getJestMockFunction();
 const getEntityActivityMock: MockFunction = getJestMockFunction();
+// Where OneUptime knows the entity: its page's Connected Signals card.
+const getConnectionsMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -135,6 +137,9 @@ jest.mock(
       default: {
         getEntityActivity: (...args: Array<unknown>): unknown => {
           return getEntityActivityMock(...args);
+        },
+        getConnections: (...args: Array<unknown>): unknown => {
+          return getConnectionsMock(...args);
         },
       },
     };
@@ -371,6 +376,20 @@ beforeEach(() => {
         lastSeen: new Date(minutesAgo(9)),
       },
     ];
+  });
+  getConnectionsMock.mockReset();
+  getConnectionsMock.mockImplementation(async () => {
+    return {
+      windowStart: "",
+      windowEnd: "",
+      resources: [],
+      hasMoreResources: false,
+      unmatched: [
+        { type: SecurityEntityType.IpAddress, value: "203.0.113.47" },
+      ],
+      unreadableKinds: [],
+      failedKinds: [],
+    };
   });
 });
 
@@ -1002,6 +1021,23 @@ describe("an entity's page", () => {
       values: ["203.0.113.47"],
       hours: 7 * 24,
     });
+  });
+
+  test("says where OneUptime knows it, around its last event, once its activity is in", async () => {
+    drawEntity("?value=203.0.113.47&type=IP+Address");
+
+    await waitFor(() => {
+      expect(getConnectionsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(getConnectionsMock.mock.calls[0]![0]).toEqual({
+      entities: [{ type: SecurityEntityType.IpAddress, value: "203.0.113.47" }],
+      time: new Date(minutesAgo(9)),
+      // An entity's page also reads the logs behind its events.
+      readLogResources: true,
+    });
+    expect(
+      await screen.findByTestId("security-connected-not-found"),
+    ).toHaveTextContent("203.0.113.47");
   });
 
   test("says how risky it is and why: the score, the sources, when it counts from and falls, the case it opened", async () => {

@@ -184,6 +184,64 @@ export default class QueryHelper {
     );
   }
 
+  /*
+   * Case-insensitive "starts with any of these" - the prefix twin of
+   * findWithSameTextAnyOf: the hosts whose name is one of these bare names
+   * and a domain (web-1 for web-1.acme.internal). Each prefix is bound as a
+   * parameter with LIKE's own characters escaped, so a prefix holding "_" or
+   * "%" matches only itself. Callers must not pass an empty list.
+   */
+  @CaptureSpan()
+  public static startsWithAnyOf(
+    prefixes: Array<string>,
+  ): FindWhereProperty<any> {
+    const parameters: Dictionary<string> = {};
+    const names: Array<string> = [];
+
+    for (const prefix of prefixes) {
+      const rid: string = Text.generateRandomText(10);
+      parameters[rid] = `${escapeLikePattern(prefix.toLowerCase().trim())}%`;
+      names.push(rid);
+    }
+
+    return Raw((alias: string) => {
+      return `(${names
+        .map((rid: string): string => {
+          return `LOWER(${alias}) LIKE :${rid}`;
+        })
+        .join(" OR ")})`;
+    }, parameters);
+  }
+
+  /*
+   * A jsonb array of objects holding an object whose `key` is one of these
+   * texts, compared without case: the security cases whose entities name
+   * "web-1", however an event spelled it ("WEB-1"). The key and the texts
+   * are bound parameters; anything that is not an array of objects matches
+   * nothing rather than aborting the query. Callers must not pass an empty
+   * list.
+   */
+  @CaptureSpan()
+  public static jsonArrayObjectsHaveTextAnyOf(data: {
+    key: string;
+    texts: Array<string>;
+  }): FindWhereProperty<any> {
+    const keyParameter: string = Text.generateRandomText(10);
+    const textsParameter: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string): string => {
+        return `(EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(${alias}) = 'array' THEN ${alias} ELSE '[]'::jsonb END) AS json_array_item(item) WHERE jsonb_typeof(json_array_item.item) = 'object' AND LOWER(json_array_item.item ->> :${keyParameter}) = ANY(CAST(:${textsParameter} AS text[]))))`;
+      },
+      {
+        [keyParameter]: data.key,
+        [textsParameter]: data.texts.map((text: string): string => {
+          return text.toLowerCase().trim();
+        }),
+      },
+    );
+  }
+
   @CaptureSpan()
   public static isNull(): any {
     return Raw((alias: string) => {

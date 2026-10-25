@@ -272,6 +272,37 @@ jest.mock(
 );
 
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseConnectedSignals"] =
+            (counts["CaseConnectedSignals"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseConnectedSignals",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities",
   () => {
     const ReactModule: typeof import("react") = jest.requireActual(
@@ -912,6 +943,7 @@ const ADDRESSES: Array<[string, string, string, boolean]> = [
   [`/cases/${CASE_ID}/timeline`, "CaseTimeline", "", false],
   [`/cases/${CASE_ID}/detections`, "CaseDetections", "", false],
   [`/cases/${CASE_ID}/entities`, "CaseEntities", "", false],
+  [`/cases/${CASE_ID}/connected-signals`, "CaseConnectedSignals", "", false],
   [`/cases/${CASE_ID}/playbook-runs`, "CasePlaybookRuns", "", false],
   [`/cases/${CASE_ID}/notes`, "CaseNotes", "", false],
   [`/cases/${CASE_ID}/audit-logs`, "CaseAuditLogs", "", false],
@@ -1024,6 +1056,7 @@ describe("every Security Events address", () => {
     for (const [segment, page] of [
       ["detections", "CaseDetections"],
       ["entities", "CaseEntities"],
+      ["connected-signals", "CaseConnectedSignals"],
       ["playbook-runs", "CasePlaybookRuns"],
       ["timeline", "CaseTimeline"],
       ["notes", "CaseNotes"],
@@ -1107,6 +1140,9 @@ describe("every Security Events address", () => {
     );
     expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/entities`)).toBe(
       PageMap.SECURITY_CASE_VIEW_ENTITIES,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/connected-signals`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
     );
     expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/playbook-runs`)).toBe(
       PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,

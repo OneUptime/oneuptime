@@ -48,6 +48,8 @@ Tragen Sie unter **App-Name (service.name)** den `service.name` ein, den Ihre Ap
 Die Anwendung wird nach ihrem App-Namen benannt, wie eine entdeckte Anwendung. Um einen anderen Namen anzuzeigen, öffnen Sie **Weitere Felder** und geben einen **Anzeigename** ein; Beschreibung und Beschriftungen finden Sie dort ebenfalls. Speichern Sie dann das Formular.
 :::
 
+Danach öffnet sich die Einrichtungsanleitung der Anwendung von selbst, mit dem App-Namen als `service.name` des Snippets. Der letzte Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten eintreffen.
+
 Hat das Projekt bereits eine Anwendung mit diesem `service.name`, ob entdeckt, früher hinzugefügt oder archiviert, sagt das Formular das, statt eine zweite anzulegen.
 
 ## Verbindungsstatus

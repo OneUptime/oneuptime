@@ -13,14 +13,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -32,7 +35,10 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import StorageArrayDocumentationCard from "../../Components/StorageArray/DocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import STORAGE_ARRAY_ONBOARDING from "../../Components/StorageArray/StorageArrayOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import StorageArrayHealthPill from "../../Components/StorageArray/StorageArrayHealthPill";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -86,6 +92,9 @@ const StorageArrays: FunctionComponent<
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<StorageArray>({
     modelType: StorageArray,
   });
+  const [isAddArrayOpen, setIsAddArrayOpen] = useState<boolean>(false);
+  // Arrays connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<StorageArray>({ modelType: StorageArray });
@@ -172,13 +181,20 @@ const StorageArrays: FunctionComponent<
     );
   }
 
+  /*
+   * An array is added by pointing the agent at it (Add Storage Array): the
+   * guide asks for the array's name, writes it into the commands, and the
+   * array registers itself under it when the agent connects. There is no
+   * form: an array typed in by hand would only wait for telemetry that
+   * nothing sends.
+   */
   return (
     <Fragment>
       <ModelTable<StorageArray>
         modelType={StorageArray}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="storage-arrays-table"
         userPreferencesKey="storage-arrays-table"
         topContent={getFirstRunTopContent({
@@ -195,14 +211,10 @@ const StorageArrays: FunctionComponent<
         onFetchSuccess={(data: Array<StorageArray>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: StorageArray): Promise<StorageArray> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -219,32 +231,19 @@ const StorageArrays: FunctionComponent<
           title: "Storage Arrays",
           description:
             "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array.",
+          buttons: [
+            {
+              title: STORAGE_ARRAY_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddArrayOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "pure-prod-01",
-            description:
-              "Must match the storage.array.name the Storage Array Agent reports (its STORAGE_ARRAY_NAME).",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Production FlashArray backing block storage in US East",
-          },
-          getLabelsFormField<StorageArray>(),
-        ]}
+        formFields={[]}
         selectMoreFields={{
           storageSystem: true,
           volumeCount: true,
@@ -528,9 +527,30 @@ const StorageArrays: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <StorageArrayDocumentationCard
-          title="Getting Started with Storage Array Monitoring"
+        <AddResourceGuide
+          onboarding={STORAGE_ARRAY_ONBOARDING}
+          title={STORAGE_ARRAY_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new array.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddArrayOpen && (
+        <AddResourceModal
+          onboarding={STORAGE_ARRAY_ONBOARDING}
+          onClose={() => {
+            setIsAddArrayOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

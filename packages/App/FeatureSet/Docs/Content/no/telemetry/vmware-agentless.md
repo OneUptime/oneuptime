@@ -56,7 +56,7 @@ Klikk på **Test tilkoblingen** i neste trinn. Sonden logger på, leser det kont
 vCenter bruker som standard et sertifikat fra sin egen utsteder, som sonden ikke stoler på. Testen viser da sertifikatet: sammenlign fingeravtrykket med vCenters eget, og klikk deretter på **Stol på dette sertifikatet**.
 
 ### Gi navn og koble til
-Navnet er som standard vCenters vertsnavn. Klikk på **Koble til vCenter** for å lagre.
+Navnet er som standard vCenters vertsnavn. Klikk på **Koble til vCenter** for å lagre, og siden til vCenter-en åpnes.
 :::
 
 **Oversikt** for vCenter-en viser et kort **Datainnsamling**. Det viser **Kontrollerer** fram til den første innsamlingen, som starter innen ett minutt, deretter **Samler inn**, og inventaret fylles ut.

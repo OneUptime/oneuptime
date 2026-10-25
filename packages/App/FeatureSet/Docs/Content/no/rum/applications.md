@@ -48,6 +48,8 @@ Fyll ut **App-navn (service.name)** med det `service.name` appen din kommer til 
 Applikasjonen får navnet på appen sin, akkurat som en oppdaget applikasjon. For å vise et annet navn åpner du **Flere felt** og skriver inn et **Visningsnavn**; beskrivelsen og etikettene finnes også der. Lagre deretter skjemaet.
 :::
 
+Deretter åpnes oppsettveiledningen for applikasjonen av seg selv, med app-navnet som `service.name` i kodeutdraget. Det siste trinnet, **Vent på tilkobling**, sier fra når de første dataene kommer inn.
+
 Hvis prosjektet allerede har en applikasjon med det `service.name`, oppdaget, lagt til tidligere eller arkivert, sier skjemaet fra i stedet for å opprette en til.
 
 ## Tilkoblingsstatus

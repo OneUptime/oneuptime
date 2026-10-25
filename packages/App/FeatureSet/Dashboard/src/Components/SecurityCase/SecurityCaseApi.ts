@@ -24,6 +24,19 @@ import {
   SecurityCaseTriageStatusView,
   parseSecurityCaseTriageStatus,
 } from "./SecurityCaseAiTriage";
+import {
+  parseIncidentSecurity,
+  parseResourceSecurity,
+  parseSecurityConnections,
+} from "../SecurityConnections/SecurityConnectionsModel";
+import {
+  IncidentSecurityJson,
+  ResourceSecurityJson,
+  SecurityConnectionKind,
+  SecurityConnectionsJson,
+} from "Common/Types/SecurityCase/SecurityConnection";
+import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
+import { SecurityLogResource } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -34,6 +47,20 @@ export type {
   EntityFindingSummary,
   SecurityOverview,
 };
+
+/*
+ * What Connected Signals is asked about: a case, by its id; or an event's
+ * or an entity's values around a time, with the records its log lines were
+ * sent under, when known - or, for an entity, read from its events.
+ */
+export type SecurityConnectionsRequest =
+  | { caseId: ObjectID }
+  | {
+      entities: Array<SecurityEntity>;
+      time?: Date | undefined;
+      logResources?: Array<SecurityLogResource> | undefined;
+      readLogResources?: boolean | undefined;
+    };
 
 /*
  * The Security product's own routes, beside the CRUD the model tables use
@@ -129,6 +156,65 @@ export default class SecurityCaseApi {
       incidentId: String(body["incidentId"] || ""),
       incidentNumber: String(body["incidentNumber"] || ""),
     };
+  }
+
+  /*
+   * Connected Signals: what a case names in the rest of OneUptime - or an
+   * event's or an entity's values, around a time - and what is happening on
+   * each record (Common/Server/Utils/SecurityEvent/Connections).
+   */
+  public static async getConnections(
+    request: SecurityConnectionsRequest,
+  ): Promise<SecurityConnectionsJson> {
+    return parseSecurityConnections(
+      await post(
+        "/security-case/connections",
+        "caseId" in request
+          ? { caseId: request.caseId.toString() }
+          : {
+              entities: request.entities.map(
+                (entity: SecurityEntity): JSONObject => {
+                  return { type: entity.type, value: entity.value };
+                },
+              ),
+              ...(request.time ? { time: request.time.toISOString() } : {}),
+              ...(request.logResources && request.logResources.length > 0
+                ? {
+                    logResources: request.logResources.map(
+                      (resource: SecurityLogResource): JSONObject => {
+                        return { type: resource.type, id: resource.id };
+                      },
+                    ),
+                  }
+                : {}),
+              ...(request.readLogResources ? { readLogResources: true } : {}),
+            },
+      ),
+    );
+  }
+
+  // What Security Events says about one of the project's records: its page's Security card.
+  public static async getResourceSecurity(data: {
+    kind: SecurityConnectionKind;
+    id: ObjectID;
+  }): Promise<ResourceSecurityJson> {
+    return parseResourceSecurity(
+      await post("/security-case/resource-security", {
+        kind: data.kind,
+        id: data.id.toString(),
+      }),
+    );
+  }
+
+  // The cases behind an incident, and the open cases naming what it affects.
+  public static async getIncidentSecurity(
+    incidentId: ObjectID,
+  ): Promise<IncidentSecurityJson> {
+    return parseIncidentSecurity(
+      await post("/security-case/incident-security", {
+        incidentId: incidentId.toString(),
+      }),
+    );
   }
 
   // How Security is set up: the Overview's pipeline and Get started.

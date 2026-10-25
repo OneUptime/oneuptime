@@ -1387,6 +1387,40 @@ async function handleApi(method, options) {
     return ok({ gaps: [] });
   }
 
+  /*
+   * The Overview's Security card asks what Security Events found about the
+   * cluster this week. This project uses no Security Events - no event
+   * arrived this week - so the server says so and the card draws nothing.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/security-case/resource-security")
+  ) {
+    const body = options.data || {};
+    if (body.kind !== "KubernetesCluster" || body.id !== CLUSTER_ID) {
+      return new HTTPErrorResponse(
+        404,
+        { message: "This record could not be found." },
+        {},
+      );
+    }
+    return ok({
+      kind: "KubernetesCluster",
+      id: CLUSTER_ID,
+      name: CLUSTER_IDENTIFIER,
+      isInUse: false,
+      windowDays: 7,
+      values: [CLUSTER_IDENTIFIER],
+      entity: { type: "Host", value: CLUSTER_IDENTIFIER },
+      eventCount: 0,
+      findingCount: 0,
+      maxSeverityId: 0,
+      lastSeen: null,
+      openCases: null,
+      risk: null,
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });
   return new HTTPErrorResponse(404, { message: "Not modelled." }, {});
 }

@@ -694,12 +694,12 @@ describe("the helpers, on these pages' shapes", () => {
     );
   });
 
-  it("draw the environments table's create button from the Create template", () => {
-    expect(drawnLabel("en", CLOUD_ENVIRONMENTS, "Create Cloud Resource")).toBe(
-      "Create Cloud Resource",
+  it("draw the environments list's Add button in the words the Dashboard draws it with", () => {
+    expect(drawnLabel("en", CLOUD_ENVIRONMENTS, "Add Cloud Environment")).toBe(
+      "Add Cloud Environment",
     );
-    expect(drawnLabel("de", CLOUD_ENVIRONMENTS, "Create Cloud Resource")).toBe(
-      drawnCreateButton("de", "Create Cloud Resource"),
+    expect(drawnLabel("de", CLOUD_ENVIRONMENTS, "Add Cloud Environment")).toBe(
+      dashboardLocale("de")["Add Cloud Environment"],
     );
   });
 

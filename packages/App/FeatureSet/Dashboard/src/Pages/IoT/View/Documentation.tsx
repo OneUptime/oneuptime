@@ -66,6 +66,7 @@ const IoTFleetDocumentation: FunctionComponent<
   return (
     <Fragment>
       <IoTDocumentationCard
+        fleetName={fleet.name || ""}
         title="Connect Your IoT Fleet"
         description={translator.translateTemplate(
           "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",

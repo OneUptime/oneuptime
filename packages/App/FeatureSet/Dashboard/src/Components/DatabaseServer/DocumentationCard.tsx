@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Route from "Common/Types/API/Route";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -35,7 +36,7 @@ import {
  *     the engine catalog.
  */
 
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   database?: DatabaseDocumentationTarget | undefined;
@@ -109,6 +110,9 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
       initialOption={props.database ? undefined : DEFAULT_DATABASE_AGENT_SYSTEM}
       keyStepDescription="The agent sends the database's engine metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
       getContent={getContent}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };
