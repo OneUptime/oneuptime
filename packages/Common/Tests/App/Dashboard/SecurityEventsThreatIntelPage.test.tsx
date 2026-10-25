@@ -35,12 +35,17 @@ type CapturedTableProps = {
   }>;
   actionButtons?: Array<{
     title: string;
+    placement?: string | undefined;
     onClick: (
       item: Record<string, unknown>,
       onCompleteAction: () => void,
       onError: (error: Error) => void,
     ) => void;
   }>;
+  // The page hears how many feeds the table read (the how-it-works card).
+  onFetchSuccess?:
+    | ((data: Array<unknown>, totalCount: number) => void)
+    | undefined;
   createInitialValues?: Record<string, unknown>;
   helpContent?:
     | {
@@ -151,6 +156,13 @@ function fieldTitled(title: string): CapturedFormField {
   return field!;
 }
 
+// The feeds table answers with this many feeds, as its first read would.
+function feedsRead(count: number): void {
+  act(() => {
+    capturedFeedTableProps!.onFetchSuccess!([], count);
+  });
+}
+
 function isBefore(first: HTMLElement, second: HTMLElement): boolean {
   return Boolean(
     first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -196,11 +208,41 @@ describe("Threat Intel page", () => {
 
   test("the card shows the threat levels, one chip per confidence band plus unscored", () => {
     renderPage();
+    // A project with no feed: the card opens.
+    feedsRead(0);
 
     expect(screen.getAllByTestId("how-it-works-level")).toHaveLength(
       ThreatIntelGuide.levels.items.length,
     );
     expect(screen.getByText("Threat levels")).toBeInTheDocument();
+  });
+
+  test("the card waits folded while the feeds are read, and stays folded over a project's feeds", () => {
+    renderPage();
+
+    const toggle: HTMLElement = screen.getByTestId("how-it-works-toggle");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryAllByTestId("how-it-works-step")).toHaveLength(0);
+
+    feedsRead(2);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // A search narrowing the table later does not open it either.
+    feedsRead(0);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("Create Monitor and Update Credentials wait in a feed's menu: Edit is its button", () => {
+    renderPage();
+
+    const placements: Record<string, string | undefined> = {};
+    for (const button of capturedFeedTableProps?.actionButtons || []) {
+      placements[button.title] = button.placement;
+    }
+
+    expect(placements["Create Monitor"]).toBe("MoreMenu");
+    expect(placements["Update Credentials"]).toBe("MoreMenu");
+    // View Error still leads a row with something to read.
+    expect(placements["View Error"]).toBe("Primary");
   });
 
   test("the feeds table's help (?) modal shows the same guide as the card", () => {

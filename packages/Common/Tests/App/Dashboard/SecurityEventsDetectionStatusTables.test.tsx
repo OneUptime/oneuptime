@@ -285,18 +285,36 @@ function statusOf(name: string): string {
   return within(rowOf(name)).getByTestId("pill").textContent || "";
 }
 
-// The row's one button, beside its ⋯ menu.
-function rowButtonOf(name: string): string {
+// The buttons the page's own actions put on a row, beside its ⋯ menu.
+function rowButtonsOf(name: string): Array<string> {
   const actions: HTMLElement = within(rowOf(name)).getByTestId("row-actions");
-  const buttons: Array<HTMLElement> = within(actions)
-    .getAllByRole("button")
+
+  return within(actions)
+    .queryAllByRole("button")
     .filter((button: HTMLElement): boolean => {
       return button.getAttribute("data-testid") !== "row-actions-more-button";
+    })
+    .map((button: HTMLElement): string => {
+      return button.textContent || "";
     });
+}
+
+// The row's one button, beside its ⋯ menu.
+function rowButtonOf(name: string): string {
+  const buttons: Array<string> = rowButtonsOf(name);
 
   expect(buttons).toHaveLength(1);
 
-  return buttons[0]!.textContent || "";
+  return buttons[0]!;
+}
+
+// What the row's ⋯ menu holds, opened.
+function rowMenuOf(name: string): Array<string> {
+  fireEvent.click(within(rowOf(name)).getByTestId("row-actions-more-button"));
+
+  return screen.getAllByRole("menuitem").map((item: HTMLElement): string => {
+    return (item.textContent || "").trim();
+  });
 }
 
 function table(name: string): CapturedTable {
@@ -386,7 +404,7 @@ describe("the threat intel feeds table says whether each feed works", () => {
     expect(statusOf("Commercial feed (trial)")).toBe("Disabled");
   });
 
-  test("a feed with something to read leads its row with View Error; the rest keep Create Monitor", () => {
+  test("a feed with something to read leads its row with View Error; Create Monitor waits in every row's menu", () => {
     renderPage("threat-intel");
 
     for (const name of [
@@ -400,11 +418,17 @@ describe("the threat intel feeds table says whether each feed works", () => {
     }
 
     for (const name of ["Partner ISAC", "Botnet C2 list"]) {
-      expect(rowButtonOf(name)).toBe("Create Monitor");
+      /*
+       * Nothing of the page's own leads the row: the table's Edit does (it
+       * stands aside in this suite, as the table does).
+       */
+      expect(rowButtonsOf(name)).toEqual([]);
       expect(
         within(rowOf(name)).queryByRole("button", { name: "View Error" }),
       ).toBeNull();
     }
+
+    expect(rowMenuOf("Partner ISAC")).toContain("Create Monitor");
   });
 
   test("View Error shows the poll's and the check's messages in full, each under its column's name, each to copy", () => {
@@ -583,7 +607,8 @@ describe("the detection rules table says whether each rule works", () => {
     renderPage("detection-rules");
 
     expect(rowButtonOf("Password spraying")).toBe("View Error");
-    expect(rowButtonOf("Account locked out")).toBe("Create Monitor");
+    // Create Monitor is set up once: it waits in the row's menu, Edit leads.
+    expect(rowButtonsOf("Account locked out")).toEqual([]);
 
     fireEvent.click(
       within(rowOf("Brute force from one IP address")).getByRole("button", {
