@@ -567,9 +567,7 @@ function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
    * The Global Runner: picking it picks no Runner of the project's own
    * (GLOBAL_RUNNER_CHOICE_VALUE, which the rule's form saves as none).
    */
-  const globalOption: RunnerPickerOption | undefined = offersGlobalRunner(
-    facts,
-  )
+  const globalOption: RunnerPickerOption | undefined = offersGlobalRunner(facts)
     ? {
         value: GLOBAL_RUNNER_CHOICE_VALUE,
         kind: RunnerPickerOptionKind.Global,

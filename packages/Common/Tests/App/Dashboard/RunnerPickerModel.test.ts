@@ -981,9 +981,9 @@ describe("an AI rule's Runner", () => {
     }
 
     expect(offersGlobalRunner(ruleFacts())).toBe(true);
-    expect(offersGlobalRunner(ruleFacts({ projectUsesGlobalRunners: false }))).toBe(
-      false,
-    );
+    expect(
+      offersGlobalRunner(ruleFacts({ projectUsesGlobalRunners: false })),
+    ).toBe(false);
     expect(offersGlobalRunner(ruleFacts({ globalRunners: [] }))).toBe(false);
   });
 
@@ -1343,9 +1343,9 @@ describe("an AI rule's Runner", () => {
       ).options[0]!.kind,
     ).toBe(RunnerPickerOptionKind.Global);
     // A Bash step still cannot pick it.
-    expect(
-      offersGlobalRunner(facts({ stepType: RunbookStepType.Bash })),
-    ).toBe(false);
+    expect(offersGlobalRunner(facts({ stepType: RunbookStepType.Bash }))).toBe(
+      false,
+    );
   });
 });
 
@@ -1371,7 +1371,10 @@ describe("where a record picked no Runner, every picker's default", () => {
   }
 
   const PICKERS: Array<Kind> = [
-    { label: "a JavaScript step", facts: { stepType: RunbookStepType.JavaScript } },
+    {
+      label: "a JavaScript step",
+      facts: { stepType: RunbookStepType.JavaScript },
+    },
     { label: "a Bash step", facts: { stepType: RunbookStepType.Bash } },
     { label: "an SSH step", facts: { stepType: RunbookStepType.SSH } },
     {
@@ -1400,7 +1403,10 @@ describe("where a record picked no Runner, every picker's default", () => {
     },
     {
       label: "that turned global Runners off",
-      facts: { projectRunners: [BASTION, STAGING], projectUsesGlobalRunners: false },
+      facts: {
+        projectRunners: [BASTION, STAGING],
+        projectUsesGlobalRunners: false,
+      },
     },
     {
       label: "on a server with no global Runner",

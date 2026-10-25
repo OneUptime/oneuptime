@@ -249,6 +249,19 @@ function noStepWarnings(): void {
 
 let loadSpy: ReturnType<typeof jest.spyOn>;
 
+/*
+ * The choices the next render reads, and what the field handed back so far:
+ * read through functions, so tests built in a loop never close over the
+ * module's state.
+ */
+function willLoad(loaded: RunnerChoices): void {
+  loadSpy.mockResolvedValue(loaded as never);
+}
+
+function handedBack(): Array<string | null> {
+  return changes;
+}
+
 beforeEach(() => {
   changes = [];
   jest
@@ -533,7 +546,7 @@ describe("a rule that picked no Runner, with no Global Runner to show", () => {
     ["on a server that runs none", { globalRunners: [] }],
   ] as Array<[string, Partial<RunnerChoices>]>) {
     test(`${label}, reads No Runner, offers the project's own Runners only, and says nothing more`, async () => {
-      loadSpy.mockResolvedValue(choices(overrides) as never);
+      willLoad(choices(overrides));
 
       await renderRunnerField(null);
 
@@ -552,7 +565,7 @@ describe("a rule that picked no Runner, with no Global Runner to show", () => {
     });
 
     test(`${label}, a pick can be cleared back to No Runner`, async () => {
-      loadSpy.mockResolvedValue(choices(overrides) as never);
+      willLoad(choices(overrides));
 
       await renderRunnerField(OFFICE_ID);
 
@@ -560,15 +573,13 @@ describe("a rule that picked no Runner, with no Global Runner to show", () => {
 
       clearPick();
 
-      expect(changes).toEqual([null]);
+      expect(handedBack()).toEqual([null]);
       expect(shown()).toBe("");
       expect(placeholder()).toBe(REMEDIATION_NO_RUNNER_PLACEHOLDER);
     });
 
     test(`${label}, with no Runner of its own, the empty picker says where to add one, in a new tab`, async () => {
-      loadSpy.mockResolvedValue(
-        choices({ ...overrides, projectRunners: [] }) as never,
-      );
+      willLoad(choices({ ...overrides, projectRunners: [] }));
 
       await renderRunnerField(null);
 

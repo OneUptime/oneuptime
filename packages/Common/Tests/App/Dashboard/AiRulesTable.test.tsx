@@ -1597,9 +1597,7 @@ describe.each([
       // The Global Runner is no Runner of the project's own: none.
       (element.props["onChange"] as (value: string | null) => void)(null);
       expect(onChange).toHaveBeenCalledWith(null);
-      (element.props["onChange"] as (value: string | null) => void)(
-        RUNNER_ID,
-      );
+      (element.props["onChange"] as (value: string | null) => void)(RUNNER_ID);
       expect(onChange).toHaveBeenLastCalledWith(RUNNER_ID);
 
       for (const [rule, isShown] of [

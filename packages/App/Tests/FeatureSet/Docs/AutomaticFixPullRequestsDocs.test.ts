@@ -178,7 +178,9 @@ describe("the upgrade note", () => {
       `A rule that picked none reads **${GLOBAL_RUNNER_CHOICE_LABEL}** and fixes as before: OneUptime AI runs no Bash commands on a global Runner.`,
     );
     // No longer what a rule that picked none reads where there is a Global Runner.
-    expect(note).not.toContain(`reads **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**`);
+    expect(note).not.toContain(
+      `reads **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**`,
+    );
     expect(note).not.toContain("lists your own Runners only");
   });
 

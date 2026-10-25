@@ -148,6 +148,11 @@ function recordedChanges(): Array<string> {
   return changes;
 }
 
+// Keeps what the picker hands back (handed to pickers built in a loop).
+function recordChange(next: string): void {
+  changes.push(next);
+}
+
 function Harness(props: {
   stepType: string;
   initialValue: string;
@@ -974,9 +979,7 @@ describe("in a project with no Runner of its own, every Runner field", () => {
         work={data.work}
         stepType={data.stepType}
         value=""
-        onChange={(next: string) => {
-          changes.push(next);
-        }}
+        onChange={recordChange}
         choices={NO_OWN_RUNNERS}
         isFormField={data.work !== undefined}
         dataTestId={PICKER_TEST_ID}
@@ -1015,7 +1018,7 @@ describe("in a project with no Runner of its own, every Runner field", () => {
       `Runs in a sandbox that reaches the internet only, for up to ${GLOBAL_RUNNER_MAX_MINUTES} minutes. To reach your network, pick one of your Runners.`,
     );
     expect(fieldMenu()[0]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_DESCRIPTION);
-    expect(changes).toEqual([]);
+    expect(recordedChanges()).toEqual([]);
   });
 
   for (const [stepType, stepTypeName, article] of [
@@ -1029,9 +1032,7 @@ describe("in a project with no Runner of its own, every Runner field", () => {
           stepType={stepType}
           stepTypeName={stepTypeName}
           value=""
-          onChange={(next: string) => {
-            changes.push(next);
-          }}
+          onChange={recordChange}
           choices={NO_OWN_RUNNERS}
           dataTestId={PICKER_TEST_ID}
         />,
@@ -1044,7 +1045,9 @@ describe("in a project with no Runner of its own, every Runner field", () => {
         `${stepTypeName} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under Runbooks › Runners, then pick it here.`,
       );
       // No menu to put the Global Runner in front of it.
-      expect(within(screen.getByTestId(PICKER_TEST_ID)).queryByRole("combobox")).toBeNull();
+      expect(
+        within(screen.getByTestId(PICKER_TEST_ID)).queryByRole("combobox"),
+      ).toBeNull();
     });
   }
 
@@ -1076,6 +1079,6 @@ describe("in a project with no Runner of its own, every Runner field", () => {
     );
     // Never said to wait on it, as a step on it is: nothing of the rule's runs there.
     expect(screen.queryByTestId(`${PICKER_TEST_ID}-global-waiting`)).toBeNull();
-    expect(changes).toEqual([]);
+    expect(recordedChanges()).toEqual([]);
   });
 });

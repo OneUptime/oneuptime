@@ -500,7 +500,9 @@ describe("OneUptime AI's commands never run on a global Runner, whatever a rule 
     expect(ruleModel).toContain("value: GLOBAL_RUNNER_CHOICE_VALUE,");
     expect(ruleModel).not.toContain("GLOBAL_RUNNER_PICK_VALUE");
     expect(ruleModel).not.toContain("GLOBAL_RUNNER_CHOICE_ID");
-    expect(model).toContain('export const GLOBAL_RUNNER_CHOICE_VALUE: string = "";');
+    expect(model).toContain(
+      'export const GLOBAL_RUNNER_CHOICE_VALUE: string = "";',
+    );
     // A rule that picked none runs no command: NoRunner, on no Runner.
     expect(ruleModel).toContain("outcome: RunnerPickerOutcome.NoRunner,");
 
@@ -562,7 +564,7 @@ describe("OneUptime AI's commands never run on a global Runner, whatever a rule 
 
     const heartbeat: string = between(
       ingress,
-      "if (agent.isGlobalRunner) {\n      return {\n        status: \"ok\",",
+      'if (agent.isGlobalRunner) {\n      return {\n        status: "ok",',
       "};\n    }",
     );
     expect(heartbeat).toContain("canRunAiCommands: false,");
@@ -590,8 +592,6 @@ describe("OneUptime AI's commands never run on a global Runner, whatever a rule 
     expect(mode).toContain(
       "if ((job.origin || RunnerJobOrigin.Runbook) !== RunnerJobOrigin.Runbook) {",
     );
-    expect(mode).toContain(
-      "never commands composed by OneUptime AI.",
-    );
+    expect(mode).toContain("never commands composed by OneUptime AI.");
   });
 });
