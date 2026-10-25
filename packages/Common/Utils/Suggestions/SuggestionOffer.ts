@@ -34,6 +34,11 @@ enum SuggestionOffer {
    * links to that work instead of offering it a second time.
    */
   InProgress = "InProgress",
+  /*
+   * Somebody already acted on it and the work is done: the page says how
+   * it came out and links to it, instead of offering it a second time.
+   */
+  Done = "Done",
 }
 
 export default SuggestionOffer;

@@ -34762,5 +34762,8 @@
   "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI åtgärdar varje nytt larm via AI-agenten på det berörda klustret eller den berörda värden, med en av dina runbooks eller MCP-servrar eller med en pull request.",
   "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI åtgärdar varje ny incident via AI-agenten på det berörda klustret eller den berörda värden, med en av dina runbooks eller MCP-servrar eller med en pull request.",
   "Review the AI rules": "Granska AI-reglerna",
-  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "Om OneUptime AI ska använda verktygen i andra MCP-servrar, till exempel AWS:s eller GitHubs, lägger du till dem under {{externalServersLink}}."
+  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "Om OneUptime AI ska använda verktygen i andra MCP-servrar, till exempel AWS:s eller GitHubs, lägger du till dem under {{externalServersLink}}.",
+  "OneUptime AI already looked at this and found nothing to change.": "OneUptime AI har redan tittat på detta och hittade inget att ändra.",
+  "OneUptime AI already opened a pull request that fixes this.": "OneUptime AI har redan öppnat en pull request som åtgärdar detta.",
+  "OneUptime AI has a question about its fix for this.": "OneUptime AI har en fråga om sin åtgärd för detta."
 }

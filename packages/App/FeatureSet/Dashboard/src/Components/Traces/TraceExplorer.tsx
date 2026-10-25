@@ -456,10 +456,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
    * performance-fix pull request.
    *
    * A refusal asks the server again what it offers now. A fix someone else
-   * started meanwhile, or a repository disconnected since the page loaded,
-   * is then said in the strip's own words - a link to that fix, or to
-   * connect GitHub - rather than as the server's refusal. Anything else
-   * keeps the button and shows the reason beside the finding.
+   * started meanwhile (or that finished), a repository disconnected since
+   * the page loaded, or something Code's gate now says (a Runner gone,
+   * the credits used up) is then said in the strip's own words - a link to
+   * that fix, or the step that clears it - rather than as the server's
+   * refusal. Anything else keeps the button and shows the reason beside
+   * the finding.
    */
   const createPerformanceFixTask: () => Promise<void> =
     async (): Promise<void> => {
@@ -503,7 +505,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           generation === loadGenerationRef.current &&
           latest &&
           (latest.offer === SuggestionOffer.InProgress ||
-            latest.offer === SuggestionOffer.SetUp)
+            latest.offer === SuggestionOffer.SetUp ||
+            latest.offer === SuggestionOffer.Done)
         ) {
           setPerfFixSuggestion(latest);
         } else {
@@ -803,11 +806,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   /*
    * The fix to link to: the one started here, or the one the server says
-   * is already on its way for this trace.
+   * is already on its way for this trace, or already did its work.
    */
   const perfFixLinkedRunId: string | null =
     perfFixRunId ||
-    (perfFixSuggestion.offer === SuggestionOffer.InProgress
+    (perfFixSuggestion.offer === SuggestionOffer.InProgress ||
+    perfFixSuggestion.offer === SuggestionOffer.Done
       ? perfFixSuggestion.aiRunId
       : null);
 

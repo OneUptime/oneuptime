@@ -34762,5 +34762,8 @@
   "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI 通过受影响集群或主机上的 AI 代理、使用您的某个运行手册或 MCP 服务器，或通过拉取请求，修复每个新警报。",
   "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI 通过受影响集群或主机上的 AI 代理、使用您的某个运行手册或 MCP 服务器，或通过拉取请求，修复每个新事件。",
   "Review the AI rules": "查看 AI 规则",
-  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "要让 OneUptime AI 使用其他 MCP 服务器（例如 AWS 或 GitHub 的）的工具，请在{{externalServersLink}}中添加它们。"
+  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "要让 OneUptime AI 使用其他 MCP 服务器（例如 AWS 或 GitHub 的）的工具，请在{{externalServersLink}}中添加它们。",
+  "OneUptime AI already looked at this and found nothing to change.": "OneUptime AI 已经查看过此问题，没有发现需要更改的地方。",
+  "OneUptime AI already opened a pull request that fixes this.": "OneUptime AI 已经打开了一个修复此问题的拉取请求。",
+  "OneUptime AI has a question about its fix for this.": "OneUptime AI 对此修复有一个问题。"
 }

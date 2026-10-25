@@ -273,6 +273,14 @@ describe("the suggestion route's answer", () => {
       { ...profileFixSuggestionToJSON(act), offer: SuggestionOffer.InProgress },
     ],
     [
+      "a finished fix, which this suggestion never says, even with somewhere to ask it",
+      {
+        ...profileFixSuggestionToJSON(act),
+        offer: SuggestionOffer.Done,
+        taskId: "70000000-0000-4000-8000-0000000000f2",
+      },
+    ],
+    [
       "evidence that does not hold together",
       { ...profileFixSuggestionToJSON(act), evidence: { category: "cpu" } },
     ],

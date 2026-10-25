@@ -888,8 +888,10 @@ test.describe("Logs → AI → a finding", () => {
       },
     )!;
 
-    // In a laptop's 280px rail the value goes under its long label; a
-    // phone's rail is the page's width, and it sits beside it.
+    /*
+     * In a laptop's 280px rail the value goes under its long label; a
+     * phone's rail is the page's width, and it sits beside it.
+     */
     expect(lastSeen.isUnderLabel).toBe(!isPhone(testInfo));
 
     // The cards say what they hold, in plain words.

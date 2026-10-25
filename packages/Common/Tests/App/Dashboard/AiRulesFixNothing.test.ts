@@ -6,8 +6,11 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesFixNothing";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import { getTelemetryAiFixOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
-import { doesAiRuleFix, getFixingAiRules } from "../../../Types/AI/AiRule";
-import { AiRuleFix } from "../../../Types/AI/AiRule";
+import {
+  AiRuleFix,
+  doesAiRuleFix,
+  getFixingAiRules,
+} from "../../../Types/AI/AiRule";
 import {
   TELEMETRY_AI_LANE_LIST,
   TelemetryAiLane,

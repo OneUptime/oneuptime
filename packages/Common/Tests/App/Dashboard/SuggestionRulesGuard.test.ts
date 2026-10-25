@@ -90,12 +90,18 @@ describe("the suggestion helpers", () => {
       return name.endsWith(".ts");
     });
 
-  test("are one per kind of suggestion, plus the shared offer", () => {
+  /*
+   * The shared pieces are the offer (SuggestionOffer) and the set-up step
+   * every suggestion with one carries (SuggestionBlocker: Code's gate on
+   * the wire).
+   */
+  test("are one per kind of suggestion, plus the shared offer and set-up step", () => {
     expect(helpers.sort()).toEqual(
       [
         "AiSuggestion.ts",
         "CodeFixSuggestion.ts",
         "ProfileFixSuggestion.ts",
+        "SuggestionBlocker.ts",
         "SuggestionOffer.ts",
         "TelemetryAiFixSuggestion.ts",
         "TelemetryImprovementSuggestion.ts",

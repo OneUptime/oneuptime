@@ -227,8 +227,10 @@ describe("scrolling the lit tab into view", () => {
         isRightToLeft: false,
       }),
     ).toBe((297 + 354) / 2 - (32 + 358) / 2);
-    // Settings, the last, well past the edge: to the middle (the browser
-    // stops at the end).
+    /*
+     * Settings, the last, well past the edge: to the middle (the browser
+     * stops at the end).
+     */
     expect(
       getTabBarScrollDelta({
         tab: { left: 470, right: 572 },
@@ -236,8 +238,10 @@ describe("scrolling the lit tab into view", () => {
         isRightToLeft: false,
       }),
     ).toBe((470 + 572) / 2 - 195);
-    // Viewer, the first, before the middle: a negative scroll the browser
-    // stops at the start.
+    /*
+     * Viewer, the first, before the middle: a negative scroll the browser
+     * stops at the start.
+     */
     expect(
       getTabBarScrollDelta({
         tab: { left: 37, right: 130 },

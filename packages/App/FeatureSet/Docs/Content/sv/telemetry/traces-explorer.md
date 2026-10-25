@@ -91,7 +91,7 @@ Klicka på ett span i valfri vy för att öppna dess panel, med flikar för attr
 Ett stort spår läser in 500 spans åt gången. Klicka på knappen längst ned i spåret för att läsa in fler, eller alla.
 
 > [!TIP]
-> **Åtgärda prestandan med AI** visas bara på ett spår som är värt att åtgärda: ett med en N+1-fråga, anrop efter varandra som kunde köras parallellt, eller ett anrop som tar största delen av begäran, när det kostar verklig tid (100 ms eller mer för anropen tillsammans, 500 ms eller mer för ett enskilt anrop och minst en tiondel av begäran). Den talar om vad den hittade, till exempel "Samma databasfråga kördes 40 gånger i ReportService.build", och startar en AI-uppgift som öppnar en pull request som åtgärdar det. Se [Kod](/docs/ai/ai-agent).
+> **Åtgärda prestandan med AI** visas bara på ett spår som är värt att åtgärda: ett med en N+1-fråga, anrop efter varandra som kunde köras parallellt, eller ett anrop som tar största delen av begäran, när det kostar verklig tid (100 ms eller mer för anropen tillsammans, 500 ms eller mer för ett enskilt anrop och minst en tiondel av begäran). Den talar om vad den hittade, till exempel "Samma databasfråga kördes 40 gånger i ReportService.build", och startar en AI-uppgift som öppnar en pull request som åtgärdar det. När en åtgärd för spåret redan har gjort sitt arbete länkar spåret till dess uppgift i stället för att erbjuda en till. När något annat hindrar AI från att arbeta, som abonnemanget, slut på AI-krediter eller ingen Runner online, säger spåret vad, med länken som löser det. Se [Kod](/docs/ai/ai-agent).
 
 ## Visa dina spans i diagram
 

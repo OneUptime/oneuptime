@@ -34762,5 +34762,8 @@
   "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI हर नए अलर्ट को प्रभावित क्लस्टर या होस्ट के AI एजेंट से, आपकी किसी रनबुक या MCP सर्वर से, या पुल रिक्वेस्ट से ठीक करता है।",
   "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI हर नई घटना को प्रभावित क्लस्टर या होस्ट के AI एजेंट से, आपकी किसी रनबुक या MCP सर्वर से, या पुल रिक्वेस्ट से ठीक करता है।",
   "Review the AI rules": "AI नियम देखें",
-  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "OneUptime AI से दूसरे MCP सर्वरों के टूल इस्तेमाल करवाने के लिए, जैसे AWS या GitHub के, उन्हें {{externalServersLink}} में जोड़ें।"
+  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "OneUptime AI से दूसरे MCP सर्वरों के टूल इस्तेमाल करवाने के लिए, जैसे AWS या GitHub के, उन्हें {{externalServersLink}} में जोड़ें।",
+  "OneUptime AI already looked at this and found nothing to change.": "OneUptime AI इसे पहले ही देख चुका है और उसे बदलने को कुछ नहीं मिला।",
+  "OneUptime AI already opened a pull request that fixes this.": "OneUptime AI इसे ठीक करने वाला एक पुल रिक्वेस्ट पहले ही खोल चुका है।",
+  "OneUptime AI has a question about its fix for this.": "OneUptime AI के पास इसके सुधार के बारे में एक प्रश्न है।"
 }

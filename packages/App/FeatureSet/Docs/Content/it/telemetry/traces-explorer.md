@@ -91,7 +91,7 @@ Fate clic su uno span in qualsiasi vista per aprirne il pannello, con schede per
 Una traccia grande carica 500 span alla volta. Fate clic sul pulsante in fondo alla traccia per caricarne altri, o tutti.
 
 > [!TIP]
-> **Velocizza con l'IA** compare solo su una traccia che vale la pena correggere: una con una query N+1, chiamate fatte una dopo l'altra che potrebbero procedere in parallelo, o una chiamata che occupa la maggior parte della richiesta, quando questo costa tempo reale (100 ms o più per le chiamate insieme, 500 ms o più per una singola chiamata, e almeno un decimo della richiesta). Indica cosa ha trovato, per esempio «La stessa query al database è stata eseguita 40 volte in ReportService.build», e avvia un'attività di IA che apre una pull request per correggerlo. Vedere [Codice](/docs/ai/ai-agent).
+> **Velocizza con l'IA** compare solo su una traccia che vale la pena correggere: una con una query N+1, chiamate fatte una dopo l'altra che potrebbero procedere in parallelo, o una chiamata che occupa la maggior parte della richiesta, quando questo costa tempo reale (100 ms o più per le chiamate insieme, 500 ms o più per una singola chiamata, e almeno un decimo della richiesta). Indica cosa ha trovato, per esempio «La stessa query al database è stata eseguita 40 volte in ReportService.build», e avvia un'attività di IA che apre una pull request per correggerlo. Quando una correzione della traccia ha già fatto il suo lavoro, la traccia rimanda alla sua attività invece di proporne una seconda. Quando qualcos'altro impedisce all'IA di lavorare, come il piano, i crediti IA esauriti o nessun Runner online, la traccia dice cosa, con il link che lo risolve. Vedere [Codice](/docs/ai/ai-agent).
 
 ## Rappresentare gli span in grafici
 

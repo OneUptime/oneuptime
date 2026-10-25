@@ -18,7 +18,6 @@ import {
   getTelemetryAiLogVerdict,
   getTelemetryAiLogVerdictRunIds,
   getTelemetryAiRulesTableId,
-  getTelemetryAiVerdictWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import { InvestigationRuleTiming } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
@@ -29,7 +28,6 @@ import {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { AiRuleFix } from "../../../Types/AI/AiRule";
-import AIInsightType from "../../../Types/AI/AIInsightType";
 import {
   TELEMETRY_AI_LANES,
   TELEMETRY_AI_LANE_LIST,

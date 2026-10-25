@@ -2,6 +2,8 @@ import {
   PerformanceFinding,
   PerformanceFindingType,
 } from "Common/Types/AI/CodeFixTaskContext";
+import IconProp from "Common/Types/Icon/IconProp";
+import { FinishedFixOutcome } from "Common/Utils/Suggestions/CodeFixSuggestion";
 import {
   getFindingOperationName,
   isDatabaseFinding,
@@ -228,3 +230,56 @@ export const SHOW_IT: string = translationKey("Show it");
 export const COULD_NOT_START_THE_FIX: string = translationKey(
   "Could not start the fix: {{reason}}",
 );
+
+/*
+ * A fix for this trace that already did its work, by how it came out
+ * (FinishedFixOutcome): the trace links to its task instead of offering a
+ * second fix - which would only open a second pull request for the same
+ * evidence. "View the task" is the link, as on a telemetry finding.
+ */
+export const FINISHED_FIX_SENTENCES: Readonly<
+  Record<FinishedFixOutcome, string>
+> = {
+  [FinishedFixOutcome.Fixed]: translationKey(
+    "OneUptime AI already opened a pull request that fixes this.",
+  ),
+  [FinishedFixOutcome.NothingToChange]: translationKey(
+    "OneUptime AI already looked at this and found nothing to change.",
+  ),
+  [FinishedFixOutcome.WaitingForYou]: translationKey(
+    "OneUptime AI has a question about its fix for this.",
+  ),
+};
+
+export const VIEW_THE_TASK: string = translationKey("View the task");
+
+/*
+ * Each outcome's mark, as Code marks its task: a check for one that is
+ * done (green for a pull request, grey for nothing to change) and a
+ * speech bubble for one that waits for an answer.
+ */
+export const FINISHED_FIX_MARKS: Readonly<
+  Record<FinishedFixOutcome, { icon: IconProp; className: string }>
+> = {
+  [FinishedFixOutcome.Fixed]: {
+    icon: IconProp.CheckCircle,
+    className: "text-emerald-600",
+  },
+  [FinishedFixOutcome.NothingToChange]: {
+    icon: IconProp.CheckCircle,
+    className: "text-gray-400",
+  },
+  [FinishedFixOutcome.WaitingForYou]: {
+    icon: IconProp.ChatBubbleLeft,
+    className: "text-amber-600",
+  },
+};
+
+// The data-testids of the strip's parts that say what a finished fix did.
+export const TRACE_FIX_PERFORMANCE_DONE_TEST_IDS: {
+  done: string;
+  link: string;
+} = {
+  done: "trace-fix-performance-done",
+  link: "trace-fix-performance-done-link",
+};

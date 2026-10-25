@@ -34762,5 +34762,8 @@
   "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI가 영향을 받은 클러스터나 호스트의 AI 에이전트를 통해, 런북이나 MCP 서버 중 하나로, 또는 풀 리퀘스트로 새 경고를 하나씩 수정합니다.",
   "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI가 영향을 받은 클러스터나 호스트의 AI 에이전트를 통해, 런북이나 MCP 서버 중 하나로, 또는 풀 리퀘스트로 새 인시던트를 하나씩 수정합니다.",
   "Review the AI rules": "AI 규칙 검토",
-  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "AWS나 GitHub 같은 다른 MCP 서버의 도구를 OneUptime AI가 쓰게 하려면 {{externalServersLink}}에서 추가하세요."
+  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "AWS나 GitHub 같은 다른 MCP 서버의 도구를 OneUptime AI가 쓰게 하려면 {{externalServersLink}}에서 추가하세요.",
+  "OneUptime AI already looked at this and found nothing to change.": "OneUptime AI가 이미 이를 살펴보았고 변경할 내용을 찾지 못했습니다.",
+  "OneUptime AI already opened a pull request that fixes this.": "OneUptime AI가 이미 이를 수정하는 풀 리퀘스트를 열었습니다.",
+  "OneUptime AI has a question about its fix for this.": "OneUptime AI가 이 수정에 대해 질문이 있습니다."
 }

@@ -34762,5 +34762,8 @@
   "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI behebt jede neue Warnung über den KI-Agenten auf dem betroffenen Cluster oder Host, mit einem Ihrer Runbooks oder MCP-Server oder mit einem Pull Request.",
   "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.": "OneUptime AI behebt jeden neuen Vorfall über den KI-Agenten auf dem betroffenen Cluster oder Host, mit einem Ihrer Runbooks oder MCP-Server oder mit einem Pull Request.",
   "Review the AI rules": "KI-Regeln prüfen",
-  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "Damit OneUptime AI die Werkzeuge anderer MCP-Server nutzen kann, etwa die von AWS oder GitHub, fügen Sie diese unter {{externalServersLink}} hinzu."
+  "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.": "Damit OneUptime AI die Werkzeuge anderer MCP-Server nutzen kann, etwa die von AWS oder GitHub, fügen Sie diese unter {{externalServersLink}} hinzu.",
+  "OneUptime AI already looked at this and found nothing to change.": "OneUptime AI hat sich das bereits angesehen und nichts zu ändern gefunden.",
+  "OneUptime AI already opened a pull request that fixes this.": "OneUptime AI hat bereits einen Pull Request mit der Korrektur geöffnet.",
+  "OneUptime AI has a question about its fix for this.": "OneUptime AI hat eine Frage zu seiner Korrektur dafür."
 }
