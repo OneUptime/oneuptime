@@ -16,7 +16,7 @@ OneUptime에는 휴대폰용 앱과 컴퓨터용 앱이 있습니다. iPhone, iP
 | 무엇인가 | OneUptime On-Call, iPhone, iPad, Android용 네이티브 앱 | 브라우저에서 설치한 OneUptime 대시보드 |
 | 받는 곳 | App Store, Google Play 또는 GitHub의 APK | 사용 중인 OneUptime. 다운로드할 것이 없음 |
 | 온콜 호출 | 무음 모드와 방해 금지 모드에서도 울릴 수 있는 푸시 알림 | 브라우저를 등록한 후의 브라우저 알림 |
-| 할 수 있는 일 | 인시던트, 알림, 모니터, 현재 온콜 담당자 보기. 확인, 해결, 메모 추가 | 대시보드가 하는 모든 일 |
+| 할 수 있는 일 | 인시던트, 알림, 보안 케이스, 모니터, 현재 온콜 담당자 보기. 확인, 해결, 플레이북 단계 승인, 메모 추가 | 대시보드가 하는 모든 일 |
 | 업데이트 | 스토어에서, 또는 더 새로운 APK를 설치해서 | 열 때마다 사용 중인 OneUptime에서 대시보드를 불러옴 |
 | 지원 환경 | iOS 16.4 이상, Android 7.0 이상 | Windows, macOS, Linux의 Edge 또는 Chrome, 또는 macOS Sonoma 14 이상의 Safari |
 

@@ -43,6 +43,7 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
           IncidentEpisodeDetail: "incident-episode/:projectId/:episodeId",
           AlertDetail: "alert/:projectId/:alertId",
           AlertEpisodeDetail: "alert-episode/:projectId/:episodeId",
+          SecurityCaseDetail: "security-case/:projectId/:caseId",
         },
       },
       OnCall: {

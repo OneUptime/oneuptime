@@ -32,6 +32,11 @@ fi
 
 publish_to_npm() {
     local directory_name="$1"
+    # What npm publishes, inside the package's directory: the package itself,
+    # or the directory the package's `build-npm-package` script writes, for a
+    # package whose own manifest cannot be the one npm publishes. Common is
+    # that package (see "Publish Common first" below).
+    local built_package_directory="${2:-}"
     # Read the npm package name from the directory's package.json
     local npm_package_name
     npm_package_name=$(node -p "require('./$directory_name/package.json').name")
@@ -68,14 +73,34 @@ publish_to_npm() {
         # swapped in a registry copy with freshly resolved dependencies and
         # published a CLI that needed @oneuptime/common to run.
         npm install
-        npm run compile
-        npm publish --access public
+        if [ -z "$built_package_directory" ]; then
+            npm run compile
+            npm publish --access public
+        else
+            # The build compiles everything it publishes, so it type-checks
+            # it too, and refuses to write a package that names a file or a
+            # package it does not have.
+            npm run build-npm-package
+            npm publish "./$built_package_directory" --access public
+        fi
     )
 }
 
 
 # Publish Common first, in the order the release has always published.
-publish_to_npm "packages/Common"
+#
+# packages/Common/package.json is the manifest every package of this
+# repository links as node_modules/Common, so it cannot also be the manifest
+# of what npm publishes as @oneuptime/common: an exports map there would
+# redirect every require("Common/...") in the repository. And publishing the
+# directory as it is shipped a package Node.js could not load at all (its
+# main, index.js, did not exist; its paths held TypeScript). So `npm run
+# build-npm-package` (packages/Common/Scripts/NpmPackage/BuildNpmPackage.js)
+# writes the npm package into build/npm/package - the modules of Types/,
+# Utils/ and Models/ that run in plain Node.js, as CommonJS and ES modules
+# with their types, under an exports map, at the version `npm version` set
+# above - and npm publishes that directory.
+publish_to_npm "packages/Common" "build/npm/package"
 
 # The packages below are published as soon as Common's publish has returned,
 # without waiting for @oneuptime/common@$package_version to become readable on

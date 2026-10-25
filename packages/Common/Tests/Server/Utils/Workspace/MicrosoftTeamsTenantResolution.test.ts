@@ -101,6 +101,8 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../../../Types/ObjectID";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
+import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   MessageFactory,
@@ -287,6 +289,21 @@ function invokeActivity(data?: {
     channelData: channelData,
     serviceUrl: TURN_CONTEXT_SERVICE_URL,
   };
+}
+
+/*
+ * Where the help's buttons lead, on this installation: its docs, and its
+ * sign-up page while it takes sign-ups (read from GlobalConfig, which these
+ * tests have no database for).
+ */
+function stubHelpLinkAddresses(): void {
+  jest
+    .spyOn(DatabaseConfig, "getHomeUrl")
+    .mockResolvedValue(URL.fromString("https://acme.test"));
+  jest
+    .spyOn(DatabaseConfig, "getAccountsUrl")
+    .mockResolvedValue(URL.fromString("https://acme.test/accounts"));
+  jest.spyOn(DatabaseConfig, "shouldDisableSignup").mockResolvedValue(false);
 }
 
 function sentTexts(sendActivity: jest.Mock): Array<string> {
@@ -811,10 +828,13 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
 
   test("a tenant with no rows replies with the not-found message and does not answer the command", async () => {
     mockFindBy([]);
+    const onCallSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsCommands, "handleOnCallCommand")
+      .mockResolvedValue(undefined);
     const context: FakeTurnContext = buildTurnContext();
 
     await MicrosoftTeamsUtil.handleBotMessageActivity({
-      activity: messageActivity(),
+      activity: messageActivity({ text: "oncall" }),
       turnContext: context.turnContext,
     });
 
@@ -822,6 +842,84 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
     const sent: string = joinedSentText(context.sendActivity);
     expect(sent).toContain(NOT_FOUND_FRAGMENT);
     expect(sent).not.toContain(HELP_FRAGMENT);
+    expect(onCallSpy).not.toHaveBeenCalled();
+  });
+
+  test("the not-found message leads somewhere: to the help, which says how to get started", () => {
+    expect(
+      MicrosoftTeamsUtil.getTenantResolutionFailureMessage({
+        projectAuth: null,
+        isAmbiguous: false,
+        candidateProjectIds: [],
+      }),
+    ).toMatch(/Type help to see what I can do and how to get started\.$/);
+  });
+
+  /*
+   * Microsoft's store refused the app (policy 1140.4.3.4) while "help", sent
+   * from an organization not connected to OneUptime yet, was answered with
+   * the not-found refusal: the help must say what the app does, list its
+   * commands and lead somewhere, connected or not. It reads nothing in any
+   * project, so it is answered - with how to get started.
+   */
+  test("help, in a tenant connected to no project: the help, with how to get started - not the not-found refusal", async () => {
+    mockFindBy([]);
+    stubHelpLinkAddresses();
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "help" }),
+      turnContext: context.turnContext,
+    });
+
+    expect(context.sendActivity).toHaveBeenCalledTimes(1);
+    const sent: string = joinedSentText(context.sendActivity);
+    expect(sent).toContain(HELP_FRAGMENT);
+    expect(sent).toContain(
+      "is an observability and incident management platform",
+    );
+    expect(sent).toContain(
+      "**To get started,** a project admin connects your organization",
+    );
+    expect(sent).not.toContain(NOT_FOUND_FRAGMENT);
+    expect(sent).not.toContain(AMBIGUOUS_FRAGMENT);
+
+    const card: JSONObject = (
+      (context.sendActivity.mock.calls[0]![0] as JSONObject)[
+        "attachments"
+      ] as Array<JSONObject>
+    )[0]!["content"] as JSONObject;
+
+    expect(card["actions"]).toEqual([
+      {
+        type: "Action.OpenUrl",
+        title: "Get started",
+        url: "https://acme.test/docs/workspace-connections/microsoft-teams#connect-microsoft-teams",
+      },
+      {
+        type: "Action.OpenUrl",
+        title: "Sign up",
+        url: "https://acme.test/accounts/register",
+      },
+    ]);
+  });
+
+  test("a misspelt command, in a tenant connected to no project: answered with the command it looks like, not refused", async () => {
+    mockFindBy([]);
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "incidnet Checkout is down" }),
+      turnContext: context.turnContext,
+    });
+
+    const sent: string = joinedSentText(context.sendActivity);
+    expect(sent).toContain("is not a command. Did you mean");
+    expect(sent).not.toContain(NOT_FOUND_FRAGMENT);
+    expect(answerSpy).not.toHaveBeenCalled();
   });
 
   test("a tenant connected to two projects replies with the AMBIGUOUS message and serves nothing", async () => {
@@ -888,7 +986,7 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
     const context: FakeTurnContext = buildTurnContext();
 
     await MicrosoftTeamsUtil.handleBotMessageActivity({
-      activity: messageActivity(),
+      activity: messageActivity({ text: "oncall" }),
       turnContext: context.turnContext,
     });
 
@@ -1539,9 +1637,10 @@ describe("MicrosoftTeamsUtil bot entry points - both go through resolveProjectBy
     mockFindBy([]);
     stubChatCapture();
 
+    // A command, not the help: the help is answered before any project.
     const messageContext: FakeTurnContext = buildTurnContext();
     await MicrosoftTeamsUtil.handleBotMessageActivity({
-      activity: messageActivity(),
+      activity: messageActivity({ text: "oncall" }),
       turnContext: messageContext.turnContext,
     });
 
