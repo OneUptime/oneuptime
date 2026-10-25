@@ -443,45 +443,45 @@ const INCIDENTS = isEmpty
 // Alice owns the first and third; the Database Team the first; SRE the fifth.
 const OWNER_USERS =
   isEmpty || isOwnedByNobody
-  ? []
-  : [
-      record(IncidentOwnerUser, {
-        _id: "c0000000-0000-4000-8000-000000000001",
-        incidentId: new ObjectID(INCIDENTS[0]._id),
-        userId: new ObjectID(USERS[0]._id),
-        user: USERS[0],
-      }),
-      record(IncidentOwnerUser, {
-        _id: "c0000000-0000-4000-8000-000000000002",
-        incidentId: new ObjectID(INCIDENTS[1]._id),
-        userId: new ObjectID(USERS[1]._id),
-        user: USERS[1],
-      }),
-      record(IncidentOwnerUser, {
-        _id: "c0000000-0000-4000-8000-000000000003",
-        incidentId: new ObjectID(INCIDENTS[2]._id),
-        userId: new ObjectID(USERS[0]._id),
-        user: USERS[0],
-      }),
-    ];
+    ? []
+    : [
+        record(IncidentOwnerUser, {
+          _id: "c0000000-0000-4000-8000-000000000001",
+          incidentId: new ObjectID(INCIDENTS[0]._id),
+          userId: new ObjectID(USERS[0]._id),
+          user: USERS[0],
+        }),
+        record(IncidentOwnerUser, {
+          _id: "c0000000-0000-4000-8000-000000000002",
+          incidentId: new ObjectID(INCIDENTS[1]._id),
+          userId: new ObjectID(USERS[1]._id),
+          user: USERS[1],
+        }),
+        record(IncidentOwnerUser, {
+          _id: "c0000000-0000-4000-8000-000000000003",
+          incidentId: new ObjectID(INCIDENTS[2]._id),
+          userId: new ObjectID(USERS[0]._id),
+          user: USERS[0],
+        }),
+      ];
 
 const OWNER_TEAMS =
   isEmpty || isOwnedByNobody
-  ? []
-  : [
-      record(IncidentOwnerTeam, {
-        _id: "c1000000-0000-4000-8000-000000000001",
-        incidentId: new ObjectID(INCIDENTS[0]._id),
-        teamId: new ObjectID(TEAMS[1]._id),
-        team: TEAMS[1],
-      }),
-      record(IncidentOwnerTeam, {
-        _id: "c1000000-0000-4000-8000-000000000002",
-        incidentId: new ObjectID(INCIDENTS[4]._id),
-        teamId: new ObjectID(TEAMS[0]._id),
-        team: TEAMS[0],
-      }),
-    ];
+    ? []
+    : [
+        record(IncidentOwnerTeam, {
+          _id: "c1000000-0000-4000-8000-000000000001",
+          incidentId: new ObjectID(INCIDENTS[0]._id),
+          teamId: new ObjectID(TEAMS[1]._id),
+          team: TEAMS[1],
+        }),
+        record(IncidentOwnerTeam, {
+          _id: "c1000000-0000-4000-8000-000000000002",
+          incidentId: new ObjectID(INCIDENTS[4]._id),
+          teamId: new ObjectID(TEAMS[0]._id),
+          team: TEAMS[0],
+        }),
+      ];
 
 const TEMPLATES = [
   record(IncidentPostmortemTemplate, {
