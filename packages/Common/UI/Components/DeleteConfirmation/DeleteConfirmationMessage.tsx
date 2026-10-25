@@ -1,4 +1,5 @@
 import DeleteConsequenceParagraph from "./DeleteConsequenceParagraph";
+import { getSentenceSeparator, joinSentences } from "./DeleteConsequences";
 import NamedSentence from "./NamedSentence";
 import {
   getGlobalTranslator,
@@ -133,17 +134,14 @@ const getTrailingSentences: GetSentencesFunction = (
   return sentences;
 };
 
-/*
- * The same sentences as plain text, for places that only take a string - an
- * aria-label, a test's expectation.
- */
-export const getDeleteConfirmationText: (
+// The first sentence, the one that names the record, in the reader's language.
+const getFirstSentenceText: (options: DeleteConfirmationTextOptions) => string = (
   options: DeleteConfirmationTextOptions,
-) => string = (options: DeleteConfirmationTextOptions): string => {
+): string => {
   const kind: DeleteConfirmationKind = options.kind || "question";
   const name: string = options.name.trim();
 
-  const firstSentence: string = name
+  return name
     ? translateTemplate(
         kind === "statement"
           ? DELETE_STATEMENT_TEMPLATE
@@ -154,12 +152,20 @@ export const getDeleteConfirmationText: (
         typeLabel: options.typeLabel,
         kind: kind,
       });
+};
 
-  return [firstSentence, ...getTrailingSentences(options)]
-    .filter((sentence: string) => {
-      return sentence.length > 0;
-    })
-    .join(" ");
+/*
+ * The same sentences as plain text, for places that only take a string - an
+ * aria-label, a test's expectation. Run together as the reader's script
+ * writes them: no space after a full-width stop (joinSentences).
+ */
+export const getDeleteConfirmationText: (
+  options: DeleteConfirmationTextOptions,
+) => string = (options: DeleteConfirmationTextOptions): string => {
+  return joinSentences([
+    getFirstSentenceText(options),
+    ...getTrailingSentences(options),
+  ]);
 };
 
 export interface ComponentProps extends DeleteConfirmationTextOptions {
@@ -197,6 +203,20 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * Each sentence after the first follows the one before it the way the
+   * reader's script writes them: a space, or nothing after a full-width
+   * stop - "test01 を削除してもよろしいですか？この操作は元に戻せません。",
+   * where a space after the "？" read as a stray gap in Japanese and
+   * Chinese. The first sentence is drawn with its name in bold, so its end
+   * is read from its text.
+   */
+  const firstSentenceText: string = getFirstSentenceText({
+    name: name,
+    typeLabel: props.typeLabel,
+    kind: kind,
+  });
+
+  /*
    * What goes with it is a paragraph of its own under the question: read
    * together, four sentences were one dense block, and the records that go
    * with this one - the thing most worth noticing - sat in the middle of it.
@@ -207,12 +227,13 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
     <span data-testid={props.dataTestId || "delete-confirmation-message"}>
       {firstSentence}
       {trailingSentences.map((sentence: string, index: number) => {
-        // A space between sentences, but none before the first thing drawn.
-        const isFirst: boolean = index === 0 && firstSentence === "";
+        // Nothing before the first thing drawn.
+        const previous: string =
+          index === 0 ? firstSentenceText : trailingSentences[index - 1] || "";
 
         return (
           <React.Fragment key={index}>
-            {isFirst ? "" : " "}
+            {previous ? getSentenceSeparator(previous) : ""}
             {sentence}
           </React.Fragment>
         );
