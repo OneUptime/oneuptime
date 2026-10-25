@@ -211,6 +211,7 @@ import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import { getEntityRiskLevel } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
@@ -1212,6 +1213,24 @@ describe("Settings > Risk Scoring", () => {
       ["Criticality", true],
       ["Type", false],
       ["Description", false],
+    ]);
+    // The optional kind and description wait under More fields.
+    expect(
+      (
+        table["formFields"] as Array<{
+          title: string;
+          collapsibleSection?: { title: string };
+        }>
+      ).map(
+        (each: { title: string; collapsibleSection?: { title: string } }) => {
+          return [each.title, each.collapsibleSection?.title || null];
+        },
+      ),
+    ).toEqual([
+      ["Value", null],
+      ["Criticality", null],
+      ["Type", MORE_FIELDS_SECTION_TITLE],
+      ["Description", MORE_FIELDS_SECTION_TITLE],
     ]);
     expect(fields[1]!.dropdownOptions).toEqual([
       { label: "Extreme (×2)", value: "Extreme" },

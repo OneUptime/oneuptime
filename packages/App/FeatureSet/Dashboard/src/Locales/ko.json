@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "Rule Library에 있음",
   "In the Rule Library": "Rule Library의 규칙",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "설정하면 탐지가 이 규칙 중 하나에서 온 케이스에서만 플레이북이 실행됩니다."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "설정하면 탐지가 이 규칙 중 하나에서 온 케이스에서만 플레이북이 실행됩니다.",
+  "Any kind": "모든 종류"
 }

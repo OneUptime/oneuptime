@@ -46,7 +46,9 @@ import {
 } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import { getRiskCaseThresholdError } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -57,6 +59,13 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * An entry's kind and why it matters: optional, so they wait under More
+ * fields, and the form is its value and how much it matters.
+ */
+const criticalityMoreFields: FormFieldCollapsibleSection<SecurityEntityCriticality> =
+  getAdvancedFormSection<SecurityEntityCriticality>();
 
 function entityTypeOptions(): Array<DropdownOption> {
   return RISK_ENTITY_TYPES.map((type: SecurityEntityType): DropdownOption => {
@@ -221,6 +230,7 @@ const SecurityRiskScoringPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: entityTypeOptions(),
             required: false,
+            collapsibleSection: criticalityMoreFields,
           },
           {
             field: { description: true },
@@ -228,6 +238,7 @@ const SecurityRiskScoringPage: FunctionComponent<
             description: CRITICALITY_DESCRIPTION_DESCRIPTION,
             fieldType: FormFieldSchemaType.LongText,
             required: false,
+            collapsibleSection: criticalityMoreFields,
           },
         ]}
         showRefreshButton={true}

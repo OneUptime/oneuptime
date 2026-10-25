@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{count}} में से {{done}} चरण पूरा",
   "Available in the Rule Library": "Rule Library में उपलब्ध",
   "In the Rule Library": "Rule Library में",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "सेट होने पर, प्लेबुक केवल उन केस पर चलती है जिनका डिटेक्शन इनमें से किसी नियम से आया हो।"
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "सेट होने पर, प्लेबुक केवल उन केस पर चलती है जिनका डिटेक्शन इनमें से किसी नियम से आया हो।",
+  "Any kind": "कोई भी प्रकार"
 }

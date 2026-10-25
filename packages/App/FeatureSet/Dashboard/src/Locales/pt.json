@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} de {{count}} etapa concluída",
   "Available in the Rule Library": "Disponível na Rule Library",
   "In the Rule Library": "Na Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Quando definido, o playbook só é executado em casos cuja detecção veio de uma destas regras."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Quando definido, o playbook só é executado em casos cuja detecção veio de uma destas regras.",
+  "Any kind": "Qualquer tipo"
 }

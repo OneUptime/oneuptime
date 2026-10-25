@@ -235,7 +235,8 @@ export const CRITICALITY_DESCRIPTION_DESCRIPTION: string = translationKey(
   "Optional. Why it matters this much.",
 );
 
-export const ANY_ENTITY_TYPE: string = translationKey("Any");
+// The Type column of an entry for any kind of entity.
+export const ANY_ENTITY_TYPE: string = translationKey("Any kind");
 
 // The words beside each criticality, in the table and the form's choices.
 export const CRITICALITY_WEIGHT_LABELS: {

@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} av {{count}} trinn fullført",
   "Available in the Rule Library": "Tilgjengelig i Rule Library",
   "In the Rule Library": "I Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Når de er valgt, kjører playbooken bare på saker der deteksjonen kom fra en av disse reglene."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Når de er valgt, kjører playbooken bare på saker der deteksjonen kom fra en av disse reglene.",
+  "Any kind": "Enhver type"
 }

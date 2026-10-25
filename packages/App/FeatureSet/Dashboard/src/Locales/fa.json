@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} از {{count}} گام انجام شد",
   "Available in the Rule Library": "در Rule Library موجود است",
   "In the Rule Library": "در Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "اگر تعیین شود، پلی‌بوک فقط روی پرونده‌هایی اجرا می‌شود که تشخیصشان از یکی از این قاعده‌ها آمده باشد."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "اگر تعیین شود، پلی‌بوک فقط روی پرونده‌هایی اجرا می‌شود که تشخیصشان از یکی از این قاعده‌ها آمده باشد.",
+  "Any kind": "هر نوع"
 }

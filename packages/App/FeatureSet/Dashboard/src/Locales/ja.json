@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "Rule Library で利用可能",
   "In the Rule Library": "Rule Library 内",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "設定すると、検出がこれらのルールのいずれかから来たケースでのみプレイブックが実行されます。"
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "設定すると、検出がこれらのルールのいずれかから来たケースでのみプレイブックが実行されます。",
+  "Any kind": "任意の種類"
 }

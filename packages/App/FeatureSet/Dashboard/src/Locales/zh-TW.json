@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "可在 Rule Library 中找到",
   "In the Rule Library": "Rule Library 中",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "設定後，劇本只會在偵測來自這些規則之一的案例上執行。"
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "設定後，劇本只會在偵測來自這些規則之一的案例上執行。",
+  "Any kind": "任意類型"
 }

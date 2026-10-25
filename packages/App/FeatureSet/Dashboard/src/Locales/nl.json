@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "{{done}} van {{count}} stap klaar",
   "Available in the Rule Library": "Beschikbaar in de Rule Library",
   "In the Rule Library": "In de Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Indien ingesteld, draait het playbook alleen op cases waarvan de detectie uit een van deze regels kwam."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Indien ingesteld, draait het playbook alleen op cases waarvan de detectie uit een van deze regels kwam.",
+  "Any kind": "Elk type"
 }

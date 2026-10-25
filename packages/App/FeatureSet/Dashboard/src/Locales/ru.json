@@ -34656,5 +34656,6 @@
   "{{done}} of {{count}} steps done_one": "Выполнено шагов: {{done}} из {{count}}",
   "Available in the Rule Library": "Есть в Rule Library",
   "In the Rule Library": "В Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Если задано, плейбук запускается только для кейсов, обнаружение которых пришло от одного из этих правил."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Если задано, плейбук запускается только для кейсов, обнаружение которых пришло от одного из этих правил.",
+  "Any kind": "Любой тип"
 }
