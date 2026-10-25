@@ -50,8 +50,9 @@ const easJson: {
   build: Record<string, { ios?: { image?: string } }>;
 } = require("../../eas.json");
 
-const packageJson: { dependencies: Record<string, string> } =
-  require("../../package.json");
+const packageJson: {
+  dependencies: Record<string, string>;
+} = require("../../package.json");
 
 // Expo's SDK 57 template, as `expo prebuild` writes it before any plugin runs.
 const TEMPLATE_CONFIG_CHANGES: string =
@@ -140,7 +141,11 @@ describe("The Android activity handles a fold in place", () => {
 
     expect(mainActivity(twice)["android:configChanges"]).toBe(firstPass);
     expect(new Set(changes).size).toBe(changes.length);
-    expect(changes.slice(0, 3)).toEqual(["orientation", "density", "screenSize"]);
+    expect(changes.slice(0, 3)).toEqual([
+      "orientation",
+      "density",
+      "screenSize",
+    ]);
   });
 
   test("the activity says outright that it can be resized, and keeps everything else", () => {
@@ -201,9 +206,7 @@ describe("The configuration the release builds from", () => {
       "expo-build-properties",
       { ios: { enableSceneSupport: true } },
     ]);
-    expect(packageJson.dependencies["expo-build-properties"]).toMatch(
-      /^~57\./,
-    );
+    expect(packageJson.dependencies["expo-build-properties"]).toMatch(/^~57\./);
   });
 
   test("store builds compile with Xcode 27.1, the first SDK that fills the iPhone Duo's inner screen", () => {

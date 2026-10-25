@@ -116,9 +116,9 @@ describe("usePaneScrollRestoration", () => {
     return <Text>list</Text>;
   }
 
-  function scrollEvent(offsetY: number): Parameters<
-    PaneScrollRestoration["onScroll"]
-  >[0] {
+  function scrollEvent(
+    offsetY: number,
+  ): Parameters<PaneScrollRestoration["onScroll"]>[0] {
     return {
       nativeEvent: { contentOffset: { x: 0, y: offsetY } },
     } as unknown as Parameters<PaneScrollRestoration["onScroll"]>[0];
@@ -227,10 +227,16 @@ describe("useListPane", () => {
     );
 
     expect(
-      probe.current?.isOpen("IncidentDetail", { incidentId: "1", projectId: "p" }),
+      probe.current?.isOpen("IncidentDetail", {
+        incidentId: "1",
+        projectId: "p",
+      }),
     ).toBe(true);
     expect(
-      probe.current?.isOpen("IncidentDetail", { incidentId: "2", projectId: "p" }),
+      probe.current?.isOpen("IncidentDetail", {
+        incidentId: "2",
+        projectId: "p",
+      }),
     ).toBe(false);
     expect(probe.current?.isOpen("AlertDetail", { incidentId: "1" })).toBe(
       false,

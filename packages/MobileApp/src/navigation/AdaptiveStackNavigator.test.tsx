@@ -67,7 +67,9 @@ const mounts: { list: number; detail: Record<string, number> } = {
 function InsetsReport({ testID }: { testID: string }): React.JSX.Element {
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
   return (
-    <Text testID={testID}>{`${insets?.left ?? "-"},${insets?.right ?? "-"}`}</Text>
+    <Text
+      testID={testID}
+    >{`${insets?.left ?? "-"},${insets?.right ?? "-"}`}</Text>
   );
 }
 
@@ -248,9 +250,7 @@ describe("On a phone it is the native stack it replaced", () => {
 
     expect(screen.queryByTestId("list-pane")).toBeNull();
     expect(screen.getByTestId("list-pane-kind")).toHaveTextContent("full");
-    expect(screen.getByTestId("list-beside-detail")).toHaveTextContent(
-      "false",
-    );
+    expect(screen.getByTestId("list-beside-detail")).toHaveTextContent("false");
 
     await fireEvent.press(screen.getByTestId("open-a"));
 
@@ -505,7 +505,10 @@ describe("Re-tapping the tab", () => {
               <Tabs.Screen
                 name="Inbox"
                 component={TestStack}
-                options={{ headerShown: false, tabBarAccessibilityLabel: "Inbox" }}
+                options={{
+                  headerShown: false,
+                  tabBarAccessibilityLabel: "Inbox",
+                }}
               />
             </Tabs.Navigator>
           </NavigationContainer>
@@ -553,7 +556,11 @@ describe("What the detail pane draws from", () => {
   }
 
   function state(
-    routes: Array<{ key: string; name: string; params?: object }>,
+    routes: Array<{
+      key: string;
+      name: string;
+      params?: Record<string, unknown>;
+    }>,
   ): StackNavigationState<ParamListBase> {
     return {
       stale: false,
@@ -576,12 +583,22 @@ describe("What the detail pane draws from", () => {
   const descriptors: Descriptors = {
     "List-key": descriptor(
       "List",
-      { title: "Inbox", headerTitle: () => null },
+      {
+        title: "Inbox",
+        headerTitle: () => {
+          return null;
+        },
+      },
       LIST_RENDER,
     ),
     "Detail-key": descriptor(
       "Detail",
-      { title: "Incident", headerTitle: () => null },
+      {
+        title: "Incident",
+        headerTitle: () => {
+          return null;
+        },
+      },
       DETAIL_RENDER,
     ),
     "Deeper-key": descriptor("Deeper", { title: "Deeper" }, DETAIL_RENDER),
@@ -612,7 +629,7 @@ describe("What the detail pane draws from", () => {
     expect(element.props.children.type).toBe(EmptyDetail);
   });
 
-  test("the record opened from the list is titled, has no Back button or back swipe, and appears without a push", () => {
+  test("the record opened from the list has an empty bar - no title, no Back, no back swipe - and appears without a push", () => {
     const result: Descriptors = getSplitDescriptors(
       descriptors,
       state([
@@ -625,7 +642,8 @@ describe("What the detail pane draws from", () => {
     const options: Record<string, unknown> = result["Detail-key"]
       ?.options as Record<string, unknown>;
 
-    expect(options["headerTitle"]).toBe("Incident");
+    // The screen opens on its own title; the bar only keeps the panes level.
+    expect(options["headerTitle"]).toBe("");
     expect(options["headerBackVisible"]).toBe(false);
     expect((options["headerLeft"] as () => unknown)()).toBeNull();
     expect(options["gestureEnabled"]).toBe(false);

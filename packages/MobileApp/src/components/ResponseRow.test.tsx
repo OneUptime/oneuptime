@@ -53,7 +53,9 @@ function surfaceStyle(): Record<string, unknown> {
   >;
 }
 
-function row(props: Partial<React.ComponentProps<typeof ResponseRow>> = {}): React.JSX.Element {
+function row(
+  props: Partial<React.ComponentProps<typeof ResponseRow>> = {},
+): React.JSX.Element {
   return (
     <ResponseRow
       title="Checkout is down"

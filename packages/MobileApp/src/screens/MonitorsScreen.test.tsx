@@ -230,7 +230,9 @@ describe("Beside a detail pane, on a wide window", () => {
 
   test("a monitor in another project with the same id is not the open one", async () => {
     mockMonitors.current = stateWith({
-      items: [wrap(offlineMonitor("monitor-a", "api.example.com"), "project-2")],
+      items: [
+        wrap(offlineMonitor("monitor-a", "api.example.com"), "project-2"),
+      ],
     });
     await render(
       <ListPaneProvider

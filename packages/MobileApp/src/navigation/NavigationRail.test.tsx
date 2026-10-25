@@ -154,7 +154,10 @@ afterEach(() => {
 describe("A wide window puts the destinations on a rail", () => {
   test.each([
     ["an unfolded Galaxy Z Fold", TEST_WINDOWS.innerScreen],
-    ["an unfolded Galaxy Z Fold on its side", TEST_WINDOWS.innerScreenOnItsSide],
+    [
+      "an unfolded Galaxy Z Fold on its side",
+      TEST_WINDOWS.innerScreenOnItsSide,
+    ],
     ["the iPhone Duo held open", TEST_WINDOWS.iPhoneDuoOpen],
     ["a phone on its side", TEST_WINDOWS.phoneOnItsSide],
   ])("%s", async (_label: string, size: { width: number; height: number }) => {

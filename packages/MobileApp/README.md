@@ -139,6 +139,39 @@ episodes. Pick a project in any workspace header; the selection is remembered
 for this account and server across restarts. Switching returns to Home and
 clears open forms and details so projects never share an editing context.
 
+## Foldables, tablets and wide windows
+
+The app follows the window it is drawn in, so it looks after itself on a
+foldable's narrow cover screen, its near-square inner screen, a tablet, a
+phone on its side, Split View, Slide Over and Android desktop windows - and
+when the window changes while somebody is using it.
+
+- **One pane** below 840 points (every phone held upright, a cover screen, a
+  narrow split): the app as it always was, with the five destinations in a
+  bar along the bottom.
+- **A list beside its detail** from 840 points (an unfolded Galaxy Z Fold or
+  Pixel Fold, the iPhone Duo held open, a tablet on its side): the Inbox,
+  Monitors and On-Call lists stay on the left, and what is opened from them
+  appears on the right, with the open row marked. The panes meet on the fold
+  where there is one, so nothing crosses the crease when the phone is half
+  open. The destinations move to a rail down the left, as they do on a phone
+  on its side.
+- **Readable width.** Text and cards stop at 720 points and centre; Home sets
+  its sections in two columns from 960 points; sheets stop at 640 points.
+- **Nothing is lost when the phone folds.** One navigation state serves both
+  layouts, so the open incident, its scroll position, a half-written note and
+  an open sheet come through a fold or an unfold; lists keep their search,
+  filter and scroll position. On Android the activity handles the change in
+  place (`plugins/withFoldableContinuity.js` adds the `density` change folding
+  makes to Expo's `configChanges`), so it is never restarted.
+- **iPhone Duo.** iOS builds adopt the UIKit scene life cycle
+  (`expo-build-properties`, `ios.enableSceneSupport`) and the store build
+  compiles with Xcode 27.1 (`eas.json`), the first SDK whose apps fill the
+  iPhone Duo's inner screen instead of being letterboxed in it.
+
+The rules are in `src/layout/windowLayout.ts`; how to build a screen that
+follows them is in the [design system](docs/DESIGN_SYSTEM.md).
+
 ## On-Call
 
 The On-Call tab answers the three questions a responder actually has on a

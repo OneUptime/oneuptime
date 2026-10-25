@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   SectionList,
@@ -146,9 +152,8 @@ export default function AlertsScreen({
   const episodeListRef: React.RefObject<SectionList<
     ProjectAlertEpisodeItem,
     EpisodeSection
-  > | null> = useRef<SectionList<ProjectAlertEpisodeItem, EpisodeSection>>(
-    null,
-  );
+  > | null> =
+    useRef<SectionList<ProjectAlertEpisodeItem, EpisodeSection>>(null);
   const alertScroll: PaneScrollRestoration = usePaneScrollRestoration(
     "alerts.scroll.alerts",
     (offsetY: number): void => {

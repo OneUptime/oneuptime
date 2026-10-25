@@ -1952,7 +1952,7 @@ describe("The acknowledge swipe reads the order of the project's states (utils/a
 
 describe("Beside a detail pane, on a wide window", () => {
   function besideDetail(
-    selection: { name: string; params?: object } | null,
+    selection: { name: string; params?: Record<string, unknown> } | null,
   ): React.JSX.Element {
     return (
       <ListPaneProvider selection={selection}>
@@ -2014,23 +2014,27 @@ describe("Beside a detail pane, on a wide window", () => {
     );
     await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
 
-    expect(screen.getAllByRole("button").some(
-      (button: ReturnType<typeof screen.getByRole>): boolean => {
-        return (
-          button.props.accessibilityState?.selected === true &&
-          String(button.props.accessibilityLabel).startsWith("Incident episode")
-        );
-      },
-    )).toBe(true);
+    expect(
+      screen
+        .getAllByRole("button")
+        .some((button: ReturnType<typeof screen.getByRole>): boolean => {
+          return (
+            button.props.accessibilityState?.selected === true &&
+            String(button.props.accessibilityLabel).startsWith(
+              "Incident episode",
+            )
+          );
+        }),
+    ).toBe(true);
   });
 
   test("on a phone the rows keep their chevrons and nothing is marked", async () => {
     mockIncidents.current = incidentsWith({ items: [activeIncident()] });
     await renderIncidentsScreen();
 
-    expect(screen.getAllByTestId("response-row-chevron").length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByTestId("response-row-chevron").length,
+    ).toBeGreaterThan(0);
     expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).not.toBeSelected();
   });
 });
@@ -2112,11 +2116,16 @@ describe("Drawn afresh in another pane after a fold", () => {
       "checkout",
     );
 
-    mockRoute.params = { initialSegment: "incidents", initialFilter: "resolved" };
+    mockRoute.params = {
+      initialSegment: "incidents",
+      initialFilter: "resolved",
+    };
     await view.rerender(scoped(false));
     await view.rerender(scoped(true));
 
-    expect(screen.getByRole("button", { name: "Resolved only" })).toBeSelected();
+    expect(
+      screen.getByRole("button", { name: "Resolved only" }),
+    ).toBeSelected();
     expect(screen.getByLabelText("Search incidents and episodes")).toHaveProp(
       "value",
       "",

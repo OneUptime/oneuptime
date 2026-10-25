@@ -760,8 +760,16 @@ describe("On a window wide enough for two panes", () => {
 
   test.each([
     ["Inbox", <InboxStackNavigator key="inbox" />, "screen-inbox-list"],
-    ["Monitors", <MonitorsStackNavigator key="monitors" />, "screen-monitors-list"],
-    ["On-Call", <OnCallStackNavigator key="oncall" />, "screen-on-call-overview"],
+    [
+      "Monitors",
+      <MonitorsStackNavigator key="monitors" />,
+      "screen-monitors-list",
+    ],
+    [
+      "On-Call",
+      <OnCallStackNavigator key="oncall" />,
+      "screen-on-call-overview",
+    ],
   ])(
     "the %s list sits beside its detail pane",
     async (_name: string, element: React.JSX.Element, listTestID: string) => {

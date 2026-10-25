@@ -14,7 +14,14 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { UseQueryResult } from "@tanstack/react-query";
 import InboxStackNavigator from "./InboxStackNavigator";
 import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
@@ -383,7 +390,9 @@ describe("Nothing is lost when the phone folds and unfolds", () => {
       "search",
     );
     expect(screen.getByRole("button", { name: "Active only" })).toBeSelected();
-    expect(screen.getByRole("button", { name: "All states" })).not.toBeSelected();
+    expect(
+      screen.getByRole("button", { name: "All states" }),
+    ).not.toBeSelected();
   });
 
   test("unfolding with an incident open on the phone puts it beside the list", async () => {

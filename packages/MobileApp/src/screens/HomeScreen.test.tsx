@@ -1135,8 +1135,9 @@ describe("Home on a wide window", () => {
   });
 
   function columns(): Record<string, unknown> {
-    return (StyleSheet.flatten(screen.getByTestId("home-columns").props.style) ??
-      {}) as Record<string, unknown>;
+    return (StyleSheet.flatten(
+      screen.getByTestId("home-columns").props.style,
+    ) ?? {}) as Record<string, unknown>;
   }
 
   test("an unfolded foldable on its side puts the two halves of Home side by side", async () => {

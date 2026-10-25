@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   SectionList,
@@ -158,9 +164,8 @@ export default function IncidentsScreen({
   const episodeListRef: React.RefObject<SectionList<
     ProjectIncidentEpisodeItem,
     EpisodeSection
-  > | null> = useRef<SectionList<ProjectIncidentEpisodeItem, EpisodeSection>>(
-    null,
-  );
+  > | null> =
+    useRef<SectionList<ProjectIncidentEpisodeItem, EpisodeSection>>(null);
   const incidentScroll: PaneScrollRestoration = usePaneScrollRestoration(
     "incidents.scroll.incidents",
     (offsetY: number): void => {

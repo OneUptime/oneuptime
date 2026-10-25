@@ -54,7 +54,9 @@ describe("Beside the Inbox", () => {
   test("it asks for an incident while the Incidents tab is showing", async () => {
     await render(<InboxEmptyDetail />);
 
-    expect(screen.getByRole("header", { name: "Choose an incident" })).toBeTruthy();
+    expect(
+      screen.getByRole("header", { name: "Choose an incident" }),
+    ).toBeTruthy();
     expect(
       screen.getByText(
         "Open an incident or an episode from the list to respond to it here.",
@@ -66,7 +68,9 @@ describe("Beside the Inbox", () => {
     mockRoute.params = { initialView: "alerts" };
     await render(<InboxEmptyDetail />);
 
-    expect(screen.getByRole("header", { name: "Choose an alert" })).toBeTruthy();
+    expect(
+      screen.getByRole("header", { name: "Choose an alert" }),
+    ).toBeTruthy();
     expect(
       screen.getByText(
         "Open an alert or an episode from the list to respond to it here.",
@@ -79,7 +83,9 @@ describe("Beside the monitors", () => {
   test("it asks for a monitor", async () => {
     await render(<MonitorsEmptyDetail />);
 
-    expect(screen.getByRole("header", { name: "Choose a monitor" })).toBeTruthy();
+    expect(
+      screen.getByRole("header", { name: "Choose a monitor" }),
+    ).toBeTruthy();
     expect(
       screen.getByText(
         "Open a monitor from the list to see its status and history here.",
@@ -93,24 +99,23 @@ describe("Beside the on-call overview", () => {
     ["Who's on call", "WhoIsOnCall"],
     ["Pages sent to me", "MyOnCallPages"],
     ["Coverage & overrides", "OnCallOverrides"],
-  ])(
-    "%s opens on the right",
-    async (label: string, routeName: string) => {
-      await render(<OnCallEmptyDetail />);
+  ])("%s opens on the right", async (label: string, routeName: string) => {
+    await render(<OnCallEmptyDetail />);
 
-      await fireEvent.press(screen.getByRole("button", { name: label }));
+    await fireEvent.press(screen.getByRole("button", { name: label }));
 
-      expect(mockNavigate).toHaveBeenCalledWith(routeName);
-    },
-  );
+    expect(mockNavigate).toHaveBeenCalledWith(routeName);
+  });
 
   test("it names the three places in the order people need them", async () => {
     await render(<OnCallEmptyDetail />);
 
     expect(
-      screen.getAllByRole("button").map((button: ReturnType<typeof screen.getByRole>) => {
-        return button.props.accessibilityLabel;
-      }),
+      screen
+        .getAllByRole("button")
+        .map((button: ReturnType<typeof screen.getByRole>) => {
+          return button.props.accessibilityLabel;
+        }),
     ).toEqual(["Who's on call", "Pages sent to me", "Coverage & overrides"]);
   });
 });
@@ -136,7 +141,9 @@ describe("The pane itself", () => {
   });
 
   test("sits on the canvas in both themes", async () => {
-    await render(<EmptyDetailPane icon="pulse-outline" title="T" message="M" />);
+    await render(
+      <EmptyDetailPane icon="pulse-outline" title="T" message="M" />,
+    );
     expect(screen.getByTestId("detail-pane-empty")).toHaveStyle({
       backgroundColor: lightColors.backgroundPrimary,
     });
@@ -153,7 +160,9 @@ describe("The pane itself", () => {
   });
 
   test("offers no buttons when it has nothing to offer", async () => {
-    await render(<EmptyDetailPane icon="pulse-outline" title="T" message="M" />);
+    await render(
+      <EmptyDetailPane icon="pulse-outline" title="T" message="M" />,
+    );
 
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });

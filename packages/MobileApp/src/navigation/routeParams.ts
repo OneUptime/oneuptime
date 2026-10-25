@@ -42,10 +42,7 @@ export function areParamsEqual(left: unknown, right: unknown): boolean {
     );
   }
   const leftRecord: Record<string, unknown> = left as Record<string, unknown>;
-  const rightRecord: Record<string, unknown> = right as Record<
-    string,
-    unknown
-  >;
+  const rightRecord: Record<string, unknown> = right as Record<string, unknown>;
   const keys: Set<string> = new Set([
     ...Object.keys(leftRecord),
     ...Object.keys(rightRecord),
@@ -63,12 +60,15 @@ export function areParamsEqual(left: unknown, right: unknown): boolean {
  * data. A list row names the record it opens; the open screen may carry
  * more than that.
  */
-export function paramsInclude(params: unknown, expected: object): boolean {
+export function paramsInclude(
+  params: unknown,
+  expected: Record<string, unknown>,
+): boolean {
   const actual: Record<string, unknown> =
     typeof params === "object" && params !== null
       ? (params as Record<string, unknown>)
       : {};
-  return Object.entries(expected as Record<string, unknown>).every(
+  return Object.entries(expected).every(
     ([key, value]: [string, unknown]): boolean => {
       return areParamsEqual(actual[key], value);
     },

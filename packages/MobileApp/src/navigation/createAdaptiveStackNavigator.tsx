@@ -93,16 +93,21 @@ export function getDetailSelection(
   if (!open || overlayRouteNames.includes(open.name)) {
     return null;
   }
-  return { name: open.name, params: open.params };
+  return {
+    name: open.name,
+    params: open.params as Record<string, unknown> | undefined,
+  };
 }
 
 /**
  * The descriptors the stack on the right draws from while there are two
  * panes. Its first screen is the list, which is on the left now, so in its
- * place it shows the empty detail; the screen opened from the list carries
- * no Back button (the list beside it is the way back) and appears without a
- * push animation, as switching rows should feel. Every detail is titled with
- * its own name, because the project switcher now heads the list.
+ * place it shows the empty detail. The screen opened from the list appears
+ * without a push animation, as switching rows should feel, and its header is
+ * an empty bar level with the list's: no Back button (the list beside it is
+ * the way back) and no title, since every such screen opens on a title of
+ * its own ("INCIDENT · INC-7, Checkout is down"). The project switcher now
+ * heads the list, so screens opened further in are titled with their names.
  */
 export function getSplitDescriptors(
   descriptors: StackDescriptorMap,
@@ -158,6 +163,7 @@ export function getSplitDescriptors(
         options: opensThePane
           ? {
               ...options,
+              headerTitle: "",
               headerBackVisible: false,
               headerLeft: (): null => {
                 return null;
@@ -248,12 +254,9 @@ function AdaptiveStackNavigator({
    */
   const splitRef: React.MutableRefObject<boolean> = useRef<boolean>(split);
   splitRef.current = split;
-  const overlays: ReadonlyArray<string> = useMemo(
-    (): ReadonlyArray<string> => {
-      return overlayRouteNames ?? [];
-    },
-    [overlayRouteNames],
-  );
+  const overlays: ReadonlyArray<string> = useMemo((): ReadonlyArray<string> => {
+    return overlayRouteNames ?? [];
+  }, [overlayRouteNames]);
   const isSplit: () => boolean = useRef((): boolean => {
     return splitRef.current;
   }).current;
@@ -312,11 +315,7 @@ function AdaptiveStackNavigator({
       handle = requestAnimationFrame((): void => {
         const currentState: StackState = navigation.getState() as StackState;
 
-        if (
-          isFocused &&
-          currentState.index > 0 &&
-          !event.defaultPrevented
-        ) {
+        if (isFocused && currentState.index > 0 && !event.defaultPrevented) {
           navigation.dispatch({
             ...StackActions.popToTop(),
             target: currentState.key,
@@ -340,14 +339,12 @@ function AdaptiveStackNavigator({
     ? getDetailSelection(state, overlays)
     : null;
 
-  const stackDescriptors: StackDescriptorMap = useMemo(
-    (): StackDescriptorMap => {
+  const stackDescriptors: StackDescriptorMap =
+    useMemo((): StackDescriptorMap => {
       return split
         ? getSplitDescriptors(descriptors, state, emptyDetail, overlays)
         : descriptors;
-    },
-    [split, descriptors, state, emptyDetail, overlays],
-  );
+    }, [split, descriptors, state, emptyDetail, overlays]);
 
   const stackPane: PaneLayout = useMemo((): PaneLayout => {
     return split
@@ -389,7 +386,10 @@ function AdaptiveStackNavigator({
               />
             ) : null}
             <PaneProvider pane={stackPane}>
-              <View testID={split ? "detail-pane" : undefined} style={styles.fill}>
+              <View
+                testID={split ? "detail-pane" : undefined}
+                style={styles.fill}
+              >
                 <NativeStackView
                   state={state}
                   navigation={navigation}
@@ -405,11 +405,13 @@ function AdaptiveStackNavigator({
   );
 }
 
-const styles: { row: { flex: number; flexDirection: "row" }; fill: { flex: number } } =
-  StyleSheet.create({
-    row: { flex: 1, flexDirection: "row" },
-    fill: { flex: 1 },
-  });
+const styles: {
+  row: { flex: number; flexDirection: "row" };
+  fill: { flex: number };
+} = StyleSheet.create({
+  row: { flex: 1, flexDirection: "row" },
+  fill: { flex: 1 },
+});
 
 export type AdaptiveStackTypeBag<ParamList extends ParamListBase> = {
   ParamList: ParamList;

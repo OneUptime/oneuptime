@@ -48,10 +48,17 @@ export interface AdaptiveStackRouterOptions extends StackRouterOptions {
 interface OpenAction {
   type: "NAVIGATE" | "PUSH";
   source?: string;
-  payload: { name: string; params?: object; pop?: boolean; merge?: boolean };
+  payload: {
+    name: string;
+    params?: Record<string, unknown>;
+    pop?: boolean;
+    merge?: boolean;
+  };
 }
 
-function isOpenAction(action: AdaptiveStackAction): action is OpenAction & AdaptiveStackAction {
+function isOpenAction(
+  action: AdaptiveStackAction,
+): action is OpenAction & AdaptiveStackAction {
   return (
     (action.type === "NAVIGATE" || action.type === "PUSH") &&
     typeof (action as { payload?: { name?: unknown } }).payload?.name ===

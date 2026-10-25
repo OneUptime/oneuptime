@@ -1918,7 +1918,9 @@ describe("The acknowledge swipe reads the order of the project's states (utils/a
 
 describe("Beside a detail pane, on a wide window", () => {
   test("the alert open on the right is marked, and rows lose their chevron", async () => {
-    mockAlerts.current = alertsWith({ items: [activeAlert(), resolvedAlert()] });
+    mockAlerts.current = alertsWith({
+      items: [activeAlert(), resolvedAlert()],
+    });
     await render(
       <ListPaneProvider
         selection={{
@@ -1969,7 +1971,9 @@ describe("Drawn afresh in another pane after a fold", () => {
 
   test("the search and the filter come back, and applied params are not applied again", async () => {
     mockRoute.params = { initialSegment: "alerts", initialFilter: "active" };
-    mockAlerts.current = alertsWith({ items: [activeAlert(), resolvedAlert()] });
+    mockAlerts.current = alertsWith({
+      items: [activeAlert(), resolvedAlert()],
+    });
     const view: Awaited<ReturnType<typeof render>> = await render(
       scoped(true),
       { wrapper: createQueryWrapper(createTestQueryClient()) },

@@ -40,9 +40,9 @@ const CONFIG: RouterConfigOptions = {
   routeGetIdList: {},
 };
 
-function makeRouter(split: { current: boolean }): ReturnType<
-  typeof AdaptiveStackRouter
-> {
+function makeRouter(split: {
+  current: boolean;
+}): ReturnType<typeof AdaptiveStackRouter> {
   const options: AdaptiveStackRouterOptions = {
     isSplit: (): boolean => {
       return split.current;
@@ -65,7 +65,11 @@ function listOnlyState(): State {
 }
 
 function withRoutes(
-  routes: Array<{ key: string; name: string; params?: object }>,
+  routes: Array<{
+    key: string;
+    name: string;
+    params?: Record<string, unknown>;
+  }>,
 ): State {
   return {
     ...listOnlyState(),
@@ -77,7 +81,9 @@ function withRoutes(
 function apply(
   router: ReturnType<typeof AdaptiveStackRouter>,
   state: State,
-  action: Parameters<ReturnType<typeof AdaptiveStackRouter>["getStateForAction"]>[1],
+  action: Parameters<
+    ReturnType<typeof AdaptiveStackRouter>["getStateForAction"]
+  >[1],
 ): State {
   const next: State | PartialState<State> | null = router.getStateForAction(
     state,
@@ -412,9 +418,7 @@ describe("Comparing params", () => {
         { incidentId: "i", projectId: "p" },
       ),
     ).toBe(true);
-    expect(paramsInclude({ incidentId: "i" }, { incidentId: "j" })).toBe(
-      false,
-    );
+    expect(paramsInclude({ incidentId: "i" }, { incidentId: "j" })).toBe(false);
     expect(paramsInclude(undefined, { incidentId: "i" })).toBe(false);
     expect(paramsInclude(undefined, {})).toBe(true);
   });

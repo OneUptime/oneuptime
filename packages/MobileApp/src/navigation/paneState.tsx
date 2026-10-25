@@ -27,7 +27,7 @@ import { paramsInclude } from "./routeParams";
 /** The screen open in the detail pane beside a list. */
 export interface DetailSelection {
   name: string;
-  params?: object;
+  params?: Record<string, unknown>;
 }
 
 interface ListPaneValue {
@@ -50,7 +50,9 @@ export function ListPaneProvider({
     return { selection };
   }, [selection]);
   return (
-    <ListPaneContext.Provider value={value}>{children}</ListPaneContext.Provider>
+    <ListPaneContext.Provider value={value}>
+      {children}
+    </ListPaneContext.Provider>
   );
 }
 
@@ -58,7 +60,7 @@ export interface ListPaneState {
   /** Whether this list is drawn beside a detail pane right now. */
   besideDetail: boolean;
   /** Whether this screen, opened with these params, is the one on the right. */
-  isOpen: (name: string, params?: object) => boolean;
+  isOpen: (name: string, params?: Record<string, unknown>) => boolean;
 }
 
 /**
@@ -72,7 +74,7 @@ export function useListPane(): ListPaneState {
     const selection: DetailSelection | null = value?.selection ?? null;
     return {
       besideDetail: value !== null,
-      isOpen: (name: string, params?: object): boolean => {
+      isOpen: (name: string, params?: Record<string, unknown>): boolean => {
         if (!selection || selection.name !== name) {
           return false;
         }

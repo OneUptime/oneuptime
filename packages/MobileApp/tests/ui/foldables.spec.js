@@ -137,12 +137,18 @@ test("unfolded, the inbox sits beside the incident, split on the fold, with the 
 
   await page.getByRole("tab", { name: "Inbox", exact: true }).click();
   const listPane = page.getByTestId("list-pane");
-  await expect(listPane.getByText(INCIDENT_TITLE, { exact: true })).toBeVisible();
-  await expect(page.getByText("Choose an incident", { exact: true })).toBeVisible();
+  await expect(
+    listPane.getByText(INCIDENT_TITLE, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Choose an incident", { exact: true }),
+  ).toBeVisible();
 
   // The divider lies on the window's centre line, where the fold runs.
   const pane = await listPane.boundingBox();
-  expect(Math.abs(pane.x + pane.width - WINDOWS.inner.width / 2)).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(pane.x + pane.width - WINDOWS.inner.width / 2),
+  ).toBeLessThanOrEqual(1);
   await capture(page, "inner-inbox", testInfo);
 
   await listPane.getByText(INCIDENT_TITLE, { exact: true }).click();
@@ -155,14 +161,18 @@ test("unfolded, the inbox sits beside the incident, split on the fold, with the 
   await expect(listPane.getByTestId("response-row-chevron")).toHaveCount(0);
 
   // The next incident replaces the open one; there is still no Back button.
-  await listPane.getByText("Background jobs processing slowly", { exact: true }).click();
+  await listPane
+    .getByText("Background jobs processing slowly", { exact: true })
+    .click();
   await expect(
     listPane.getByRole("button", { name: /^Incident INC-1041/ }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(
     listPane.getByRole("button", { name: /^Incident INC-1042/ }),
   ).toHaveAttribute("aria-selected", "false");
-  await expect(detailPane.getByRole("button", { name: /back/i })).toHaveCount(0);
+  await expect(detailPane.getByRole("button", { name: /back/i })).toHaveCount(
+    0,
+  );
   await capture(page, "inner-incident", testInfo);
 });
 
@@ -183,44 +193,68 @@ test("folding and unfolding keep the open incident, a half-written note and the 
   await fold(page, WINDOWS.cover);
   await expect(page.getByTestId("list-pane")).toHaveCount(0);
   await expect(page.getByTestId("add-note-sheet")).toBeVisible();
-  await expect(note).toHaveValue("Rolled back the deploy; error rate is falling");
+  await expect(note).toHaveValue(
+    "Rolled back the deploy; error rate is falling",
+  );
   await capture(page, "fold-note-cover", testInfo);
 
   // Unfold again: beside the list, which still has its search.
   await fold(page, WINDOWS.inner);
-  await expect(note).toHaveValue("Rolled back the deploy; error rate is falling");
-  await expect(page.getByTestId("list-pane").getByPlaceholder("Search title or ID")).toHaveValue("checkout");
+  await expect(note).toHaveValue(
+    "Rolled back the deploy; error rate is falling",
+  );
   await expect(
-    page.getByTestId("list-pane").getByText("Background jobs processing slowly", { exact: true }),
+    page.getByTestId("list-pane").getByPlaceholder("Search title or ID"),
+  ).toHaveValue("checkout");
+  await expect(
+    page
+      .getByTestId("list-pane")
+      .getByText("Background jobs processing slowly", { exact: true }),
   ).toHaveCount(0);
   await capture(page, "fold-note-inner", testInfo);
 
   // Nothing was filed while folding: the note is still only a draft.
-  expect(mutations.filter((mutation) => {
-    return mutation.path.includes("note");
-  })).toEqual([]);
+  expect(
+    mutations.filter((mutation) => {
+      return mutation.path.includes("note");
+    }),
+  ).toEqual([]);
   await page.getByTestId("add-note-cancel").click();
-  await expect(page.getByTestId("detail-pane").getByText("Impact", { exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId("detail-pane").getByText("Impact", { exact: true }),
+  ).toBeVisible();
 });
 
 test("the project sheet stays open, mid-search, through an unfold", async ({
   page,
 }, testInfo) => {
   await openApp(page, WINDOWS.cover);
-  await page.getByRole("button", { name: /^Switch project, current project/ }).click();
-  await expect(page.getByRole("heading", { name: "Switch project", exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: /^Switch project, current project/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Switch project", exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Search projects to switch").fill("Atlas");
 
   await fold(page, WINDOWS.inner);
 
-  await expect(page.getByRole("heading", { name: "Switch project", exact: true })).toBeVisible();
-  await expect(page.getByLabel("Search projects to switch")).toHaveValue("Atlas");
+  await expect(
+    page.getByRole("heading", { name: "Switch project", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Search projects to switch")).toHaveValue(
+    "Atlas",
+  );
   const sheet = await page.getByTestId("project-switcher-sheet").boundingBox();
   expect(sheet.width).toBeLessThanOrEqual(640);
   await capture(page, "project-sheet-inner", testInfo);
 
-  await page.getByRole("radio", { name: projects[1].name, exact: true }).click();
-  await expect(page.getByRole("button", { name: /^Switch project, current project/ })).toContainText(projects[1].name);
+  await page
+    .getByRole("radio", { name: projects[1].name, exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: /^Switch project, current project/ }),
+  ).toContainText(projects[1].name);
 });
 
 test("the iPhone Duo held open: the on-call overview beside the roster it opens", async ({
@@ -228,24 +262,42 @@ test("the iPhone Duo held open: the on-call overview beside the roster it opens"
 }, testInfo) => {
   await openApp(page, WINDOWS.duoOpen);
   await page.getByRole("tab", { name: "On-Call", exact: true }).click();
-  await expect(page.getByText("Your team's on-call", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Your team's on-call", { exact: true }),
+  ).toBeVisible();
   await capture(page, "duo-oncall", testInfo);
 
   await page.getByTestId("detail-pane-shortcut-roster").click();
   await expect(
-    page.getByTestId("detail-pane").getByText(/Engineering primary/).first(),
+    page
+      .getByTestId("detail-pane")
+      .getByText(/Engineering primary/)
+      .first(),
   ).toBeVisible();
-  await expect(page.getByTestId("quick-action-roster")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await capture(page, "duo-oncall-roster", testInfo);
 
   // The cover form opens over the pane; Back returns to the roster beneath it.
   await page.getByTestId("quick-action-cover").click();
   await expect(page.getByText("New Override", { exact: true })).toBeVisible();
-  await page.getByTestId("detail-pane").getByRole("button", { name: /back/i }).first().click();
+  await page
+    .getByTestId("detail-pane")
+    .getByRole("button", { name: /back/i })
+    .first()
+    .click();
   await expect(
-    page.getByTestId("detail-pane").getByText(/Engineering primary/).first(),
+    page
+      .getByTestId("detail-pane")
+      .getByText(/Engineering primary/)
+      .first(),
   ).toBeVisible();
-  await expect(page.getByTestId("quick-action-roster")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("on its side the unfolded phone sets Home in two columns and Settings in one readable column", async ({
@@ -259,8 +311,12 @@ test("on its side the unfolded phone sets Home in two columns and Settings in on
   await capture(page, "inner-landscape-home", testInfo);
 
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
-  await expect(page.getByText("Manage Projects", { exact: true })).toBeVisible();
-  const row = await page.getByRole("button", { name: /Manage Projects/ }).boundingBox();
+  await expect(
+    page.getByText("Manage Projects", { exact: true }),
+  ).toBeVisible();
+  const row = await page
+    .getByRole("button", { name: /Manage Projects/ })
+    .boundingBox();
   expect(row.width).toBeLessThanOrEqual(720);
   await capture(page, "inner-landscape-settings", testInfo);
 });
@@ -274,13 +330,19 @@ test("a phone on its side: the rail, and the inbox gives its title's height to t
   expect(rail.height).toBeGreaterThan(rail.width);
   // All five destinations fit the short window.
   for (const name of ["Home", "Monitors", "Inbox", "On-Call", "Settings"]) {
-    const tab = await page.getByRole("tab", { name, exact: true }).boundingBox();
-    expect(tab.y + tab.height).toBeLessThanOrEqual(WINDOWS.phoneLandscape.height);
+    const tab = await page
+      .getByRole("tab", { name, exact: true })
+      .boundingBox();
+    expect(tab.y + tab.height).toBeLessThanOrEqual(
+      WINDOWS.phoneLandscape.height,
+    );
   }
 
   await page.getByRole("tab", { name: "Inbox", exact: true }).click();
   await expect(page.getByTestId("inbox-category-incidents")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Inbox", exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Inbox", exact: true }),
+  ).toHaveCount(0);
   await capture(page, "phone-landscape-inbox", testInfo);
 });
 
@@ -298,7 +360,9 @@ test.describe("in dark mode", () => {
 
     await fold(page, WINDOWS.inner);
     await expect(page.getByTestId("list-pane")).toBeVisible();
-    await expect(page.getByTestId("detail-pane").getByText("Impact", { exact: true })).toBeVisible();
+    await expect(
+      page.getByTestId("detail-pane").getByText("Impact", { exact: true }),
+    ).toBeVisible();
     const canvas = await page.getByTestId("list-pane").evaluate((element) => {
       return getComputedStyle(element).backgroundColor;
     });
@@ -308,7 +372,9 @@ test.describe("in dark mode", () => {
 
     await fold(page, WINDOWS.duoOpen);
     await page.getByRole("tab", { name: "On-Call", exact: true }).click();
-    await expect(page.getByText("Your team's on-call", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Your team's on-call", { exact: true }),
+    ).toBeVisible();
     await capture(page, "duo-oncall-dark", testInfo);
   });
 });

@@ -40,43 +40,89 @@ hand. Every screen follows the same few rules so that it reads as one product.
 
 ## Colour tokens
 
-| Purpose | Tokens |
-| --- | --- |
-| Canvas / surfaces | `backgroundPrimary` (canvas), `backgroundElevated` (cards), `backgroundSecondary` (sheets, tab bar), `backgroundTertiary` (muted fills, pressed rows) |
-| Text | `textPrimary`, `textSecondary`, `textTertiary`, `textInverse` |
-| Borders | `borderDefault` (inputs, outlined buttons), `borderSubtle` (cards, separators) |
-| Actions | `actionPrimary`, `actionPrimaryPressed`, `actionDestructive`, `cardAccent` (soft accent fill) |
-| Status text / tint | `statusError`/`statusErrorBg`, `statusWarning`/`statusWarningBg`, `statusSuccess`/`statusSuccessBg`, `statusInfo`/`statusInfoBg` |
-| Domain | `severity*`, `state*`, `oncallActive*`, `oncallInactive*` |
-| Scrim | `overlay` |
+| Purpose            | Tokens                                                                                                                                                |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Canvas / surfaces  | `backgroundPrimary` (canvas), `backgroundElevated` (cards), `backgroundSecondary` (sheets, tab bar), `backgroundTertiary` (muted fills, pressed rows) |
+| Text               | `textPrimary`, `textSecondary`, `textTertiary`, `textInverse`                                                                                         |
+| Borders            | `borderDefault` (inputs, outlined buttons), `borderSubtle` (cards, separators)                                                                        |
+| Actions            | `actionPrimary`, `actionPrimaryPressed`, `actionDestructive`, `cardAccent` (soft accent fill)                                                         |
+| Status text / tint | `statusError`/`statusErrorBg`, `statusWarning`/`statusWarningBg`, `statusSuccess`/`statusSuccessBg`, `statusInfo`/`statusInfoBg`                      |
+| Domain             | `severity*`, `state*`, `oncallActive*`, `oncallInactive*`                                                                                             |
+| Scrim              | `overlay`                                                                                                                                             |
 
 Every foreground/background pairing above is checked for 4.5:1 contrast in
 both palettes by `src/theme/colors.test.ts`.
 
 ## Components
 
-| Component | Use it for |
-| --- | --- |
-| `AppText` | Any text: `variant` from the type scale, `tone` for colour. |
-| `Card` | A rounded surface; pass `onPress` for a tappable card. Variants: `elevated`, `outlined`, `tinted`. |
-| `ListGroup` + `ListItem` | Settings-style grouped rows with icon, title, subtitle, value and chevron or trailing control. |
-| `IconBadge` | An icon on a soft tinted tile. |
-| `StatusPill` | A compact status label with an optional coloured dot. Tones: `neutral`, `danger`, `warning`, `success`, `info`, `accent`. |
-| `Banner` | Inline info, warning, error or success messages, optionally tappable or with an action. |
-| `GradientButton` | Buttons. Variants: `primary`, `secondary`, `tonal`, `destructive`, `ghost`; sizes `md`, `sm`. |
-| `ScreenIntro` | A screen's large title and one-line description. |
-| `SectionHeader` | A section title with optional icon, count and action link. |
-| `EmptyState` | Empty, error and success placeholders with an optional action. |
-| `SearchField`, `ListFilters`, `SegmentedControl` | List search, filter chips and view switching. |
-| `ResponseRow` | Incident, alert, episode and monitor list cards. |
-| `ResponseDetailHeader`, `ResponseActions`, `ResponseSection`, `ResponseInfoRow` | Detail page structure. |
-| `QueryErrorNotice` | A failed background read with a retry. |
+| Component                                                                       | Use it for                                                                                                                |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `AppText`                                                                       | Any text: `variant` from the type scale, `tone` for colour.                                                               |
+| `Card`                                                                          | A rounded surface; pass `onPress` for a tappable card. Variants: `elevated`, `outlined`, `tinted`.                        |
+| `ListGroup` + `ListItem`                                                        | Settings-style grouped rows with icon, title, subtitle, value and chevron or trailing control.                            |
+| `IconBadge`                                                                     | An icon on a soft tinted tile.                                                                                            |
+| `StatusPill`                                                                    | A compact status label with an optional coloured dot. Tones: `neutral`, `danger`, `warning`, `success`, `info`, `accent`. |
+| `Banner`                                                                        | Inline info, warning, error or success messages, optionally tappable or with an action.                                   |
+| `GradientButton`                                                                | Buttons. Variants: `primary`, `secondary`, `tonal`, `destructive`, `ghost`; sizes `md`, `sm`.                             |
+| `ScreenIntro`                                                                   | A screen's large title and one-line description.                                                                          |
+| `SectionHeader`                                                                 | A section title with optional icon, count and action link.                                                                |
+| `EmptyState`                                                                    | Empty, error and success placeholders with an optional action.                                                            |
+| `SearchField`, `ListFilters`, `SegmentedControl`                                | List search, filter chips and view switching.                                                                             |
+| `ResponseRow`                                                                   | Incident, alert, episode and monitor list cards.                                                                          |
+| `ResponseDetailHeader`, `ResponseActions`, `ResponseSection`, `ResponseInfoRow` | Detail page structure.                                                                                                    |
+| `QueryErrorNotice`                                                              | A failed background read with a retry.                                                                                    |
+| `EmptyDetailPane`                                                               | The detail pane beside a list before anything is opened in it.                                                            |
 
 ## Layout
 
 - Scrollable pages use `useScreenPadding()` for bottom clearance above the
-  floating tab bar, and `padding: spacing.xl` for gutters.
+  floating tab bar, and `padding: spacing.xl` followed by
+  `...useContentGutters()` for gutters (see below).
 - Headers are provided by `useStackScreenOptions()`: the project switcher on
   the canvas colour with no hairline.
 - Keep failed and SSO-locked reads distinct from empty success, and keep
   confirmations on destructive actions.
+
+## Windows, panes and foldables
+
+The app lays itself out by the size of the window it is drawn in, never by
+the kind of device. A foldable is a phone and a tablet in one hand and turns
+from one into the other mid-task; Split View, Slide Over, iPhone Mirroring and
+Android desktop windows make any size possible anywhere. The rules live in
+`src/layout/windowLayout.ts` (pure, unit-tested) and are read through
+`useWindowLayout()`, `usePane()` and `useContentGutters()` in
+`src/layout/WindowLayout.tsx`. Never branch on `Platform.isPad`, a device
+model, a list of known screen sizes or the orientation.
+
+| Window                                                        | Navigation           | Panes                        |
+| ------------------------------------------------------------- | -------------------- | ---------------------------- |
+| Under 600 points wide (phones, cover screens, splits)         | Bar along the bottom | One                          |
+| 600 points or wider and wider than tall (phone on its side)   | Rail down the left   | One                          |
+| 840 points or wider, with two 360-point panes beside the rail | Rail down the left   | List and detail side by side |
+
+- **Two panes.** The Inbox, Monitors and On-Call stacks use
+  `createAdaptiveStackNavigator` (`src/navigation`): one navigation state,
+  drawn as the native stack on a narrow window and as a list pane beside a
+  detail pane on a wide one. The divider sits on the window's centre line when
+  the list fits there (320 to 440 points) - the fold of a book-style foldable,
+  so nothing crosses the crease when it is half open - and otherwise the list
+  takes 38% of the space, between 360 and 420 points. Settings stays one
+  column: it is a page of switches, not a list of records.
+- **Opening from the list replaces the detail.** A row tapped beside an open
+  record opens in the pane; it does not stack. Screens opened from inside the
+  pane still push. Sheets (`overlayRouteNames`) open over the pane.
+- **Rows beside a detail** read `useListPane()`: pass `selected` (the open
+  record, drawn with an accent border on `cardAccent`, like the project
+  sheet's current project) and drop the forward chevron (`showChevron`).
+- **Readable width.** Content stops at 720 points (`READABLE_CONTENT_WIDTH`)
+  and the gutters grow; Home splits into two columns from 960 points.
+  Bottom sheets stop at 640 points (`SHEET_MAX_WIDTH`) and are centred.
+- **Safe areas are per edge.** A pane is handed only the insets of the window
+  edges it touches, and the rail covers the left inset. Use the gutters hook
+  rather than adding `insets.left` yourself; foldable cameras sit off-centre.
+- **Nothing is lost when the window changes.** Screens opened from a list
+  never move between layouts, so their own state survives a fold. A list is
+  drawn afresh in its new pane, so keep its view state (search, filter,
+  segment) in `usePaneState()` and restore its scroll with
+  `usePaneScrollRestoration()`. Do not apply route params again on remount
+  (see the `appliedParams` pattern in `IncidentsScreen`).
