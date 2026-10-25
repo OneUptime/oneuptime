@@ -16,9 +16,12 @@ import {
   DEFAULT_ENTITY_WINDOW_IN_DAYS,
   ENTITIES_EMPTY_DESCRIPTION,
   ENTITIES_EMPTY_TITLE,
+  ENTITIES_PER_PAGE,
   ENTITY_WINDOW_LABEL,
+  EntityPage,
   OPEN_IN_CORRELATE,
   RISKIEST_ENTITIES_DESCRIPTION,
+  getEntityPage,
   getEntityWindowOptionValue,
   readEntityWindowOption,
 } from "../../Components/SecurityEvents/SecurityEntitiesCopy";
@@ -136,6 +139,14 @@ const SecurityEntitiesPage: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
+  /*
+   * The ranking is read whole and paged here, ten a page as every list
+   * starts: a busy week's hundred entities were one table five screens
+   * long, with no count and no foot.
+   */
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [entitiesPerPage, setEntitiesPerPage] =
+    useState<number>(ENTITIES_PER_PAGE);
   const [lookupValue, setLookupValue] = useState<string>("");
   const [lookup, setLookup] = useState<EntityActivity | null>(null);
   const [lookupError, setLookupError] = useState<string>("");
@@ -220,6 +231,13 @@ const SecurityEntitiesPage: FunctionComponent<
         };
       },
     );
+
+  // The page on show; a read that came back shorter keeps the reader on its last page.
+  const entityPage: EntityPage<EntityFindingSummary> = getEntityPage({
+    rows: entities,
+    pageNumber,
+    perPage: entitiesPerPage,
+  });
 
   const columns: Columns<EntityFindingSummary> = [
     {
@@ -317,13 +335,15 @@ const SecurityEntitiesPage: FunctionComponent<
             testId="security-entities-window"
             onChange={(value: string) => {
               setDays(readEntityWindowOption(value, ENTITY_WINDOWS_IN_DAYS));
+              // Another window is another ranking: it starts at its top.
+              setPageNumber(1);
             }}
           />
         }
       >
         <Table<EntityFindingSummary>
           id={RISKIEST_ENTITIES_TABLE_ID}
-          data={isLoading ? [] : entities}
+          data={isLoading ? [] : entityPage.rows}
           columns={columns}
           singularLabel="Entity"
           pluralLabel="Entities"
@@ -342,12 +362,13 @@ const SecurityEntitiesPage: FunctionComponent<
             isCompact: true,
             dataTestId: "security-entities-empty",
           }}
-          disablePagination={true}
-          currentPageNumber={1}
+          // "Showing 1-10 of 36 entities", and the card's foot, as every list has.
+          currentPageNumber={entityPage.pageNumber}
           totalItemsCount={entities.length}
-          itemsOnPage={Math.max(entities.length, 10)}
-          onNavigateToPage={() => {
-            // The ranking is one page: the most named first.
+          itemsOnPage={entitiesPerPage}
+          onNavigateToPage={(nextPage: number, perPage: number) => {
+            setPageNumber(nextPage);
+            setEntitiesPerPage(perPage);
           }}
           // Ranked by the findings that name each, as the server sends them.
           sortBy={null}
@@ -397,10 +418,21 @@ const SecurityEntitiesPage: FunctionComponent<
         description="Any user, host, IP address, domain or file hash: how often it appears in your security events over the last 30 days, and in how many findings."
       >
         <div className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row">
+          {/*
+           * The box and Look Up on one line, the same height: the input's
+           * own top and bottom margins stretched the button 12px taller
+           * than the box beside it.
+           */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="flex-1">
               <Input
                 placeholder="e.g. alice@example.com, web-01 or 203.0.113.7"
+                outerDivClassName="relative w-full rounded-md shadow-sm"
+                // Named for a screen reader as the card is: a placeholder is no name.
+                ariaLabel={
+                  translator.translateText("Look Up an Entity") ||
+                  "Look Up an Entity"
+                }
                 value={lookupValue}
                 dataTestId="security-entity-lookup-input"
                 onChange={(value: string) => {

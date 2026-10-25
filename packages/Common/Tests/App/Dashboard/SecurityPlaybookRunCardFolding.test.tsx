@@ -343,3 +343,154 @@ describe("a case's own runs", () => {
     );
   });
 });
+
+/*
+ * The header of a run: its words take the row and wrap inside it, and its
+ * buttons keep the row's top right. A long case title used to push Approve
+ * and Reject onto a row of their own under an empty band (Playbook Runs,
+ * Waiting for Approval at 1280), and in German Cancel Run fell to the
+ * left. jsdom lays nothing out, so these hold the classes that do it; the
+ * offline browser suite measures the real page.
+ */
+describe("a run's header", () => {
+  function words(): HTMLElement {
+    return within(card())
+      .getByText("Enrich New Cases")
+      .closest(".basis-64") as HTMLElement;
+  }
+
+  test("its words grow to fill the row from a 16rem start, so the buttons stay beside them", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.WaitingForApproval,
+        stepStatuses: [
+          SecurityPlaybookStepStatus.Succeeded,
+          SecurityPlaybookStepStatus.WaitingForApproval,
+        ],
+      }),
+      true,
+    );
+
+    expect(words()).not.toBeNull();
+    expect(words().className.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "grow", "basis-64"]),
+    );
+    // The row still wraps: on a phone the buttons drop under the words.
+    expect(words().parentElement!.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "flex-wrap", "justify-between"]),
+    );
+  });
+
+  test("Approve and Reject sit together at the row's right, never squeezed", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.WaitingForApproval,
+        stepStatuses: [
+          SecurityPlaybookStepStatus.Succeeded,
+          SecurityPlaybookStepStatus.WaitingForApproval,
+        ],
+      }),
+      true,
+    );
+
+    const approve: HTMLElement = within(card()).getByRole("button", {
+      name: "Approve",
+    });
+    const reject: HTMLElement = within(card()).getByRole("button", {
+      name: "Reject",
+    });
+    const buttons: HTMLElement = approve.closest(".ml-auto") as HTMLElement;
+
+    expect(buttons).not.toBeNull();
+    expect(buttons).toContainElement(reject);
+    expect(buttons.className.split(" ")).toEqual(
+      expect.arrayContaining(["ml-auto", "flex", "flex-shrink-0"]),
+    );
+    // A sibling of the words, in the header's own row.
+    expect(buttons.parentElement).toBe(words().parentElement);
+  });
+
+  test("Cancel Run sits where Approve and Reject do, at the row's right", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Running,
+        stepStatuses: [SecurityPlaybookStepStatus.Succeeded],
+      }),
+      true,
+    );
+
+    const cancel: HTMLElement = within(card()).getByRole("button", {
+      name: "Cancel Run",
+    });
+    const place: HTMLElement = cancel.closest(".ml-auto") as HTMLElement;
+
+    expect(place).not.toBeNull();
+    expect(place.className.split(" ")).toEqual(
+      expect.arrayContaining(["ml-auto", "flex", "flex-shrink-0"]),
+    );
+    expect(place.parentElement).toBe(words().parentElement);
+  });
+
+  test("a finished run has no buttons, and its words take the whole row", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepStatuses: SUCCEEDED,
+      }),
+      true,
+    );
+
+    expect(words().parentElement!.children).toHaveLength(1);
+    expect(
+      within(card()).queryByRole("button", { name: "Cancel Run" }),
+    ).toBeNull();
+  });
+});
+
+/*
+ * On a playbook's own page every run is that playbook's: the page names
+ * each run by its case instead (heading), and the playbook's name is not
+ * repeated on every card.
+ */
+describe("a run named by its heading", () => {
+  test("the heading takes the playbook name's place, before the status", async () => {
+    await act(async () => {
+      render(
+        <SecurityPlaybookRunCard
+          run={run({
+            status: SecurityPlaybookRunStatus.Succeeded,
+            stepStatuses: SUCCEEDED,
+          })}
+          onChanged={(): void => {
+            // Nothing to read again here.
+          }}
+          isCollapsible={true}
+          heading={<a href="/case-142">CASE-142 Password spray</a>}
+        />,
+      );
+    });
+
+    const heading: HTMLElement = within(card()).getByRole("link", {
+      name: "CASE-142 Password spray",
+    });
+
+    expect(card()).not.toHaveTextContent("Enrich New Cases");
+    // First in the header's line, as the playbook's name was.
+    expect(heading.parentElement!.firstElementChild).toBe(heading);
+    expect(
+      within(card()).getByTestId(RUN_CARD_SUMMARY_TEST_ID),
+    ).toHaveTextContent("3 of 3 steps done");
+  });
+
+  test("without a heading the card names its playbook, as on Playbook Runs", async () => {
+    await renderCard(
+      run({
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepStatuses: SUCCEEDED,
+      }),
+      true,
+    );
+
+    expect(card()).toHaveTextContent("Enrich New Cases");
+  });
+});

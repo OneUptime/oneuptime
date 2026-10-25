@@ -30,6 +30,7 @@ import {
 } from "../../Components/SecurityEvents/AttackCoverageCopy";
 import AttackCoverageMatrix from "../../Components/SecurityEvents/AttackCoverageMatrix";
 import AttackCoverageTactics from "../../Components/SecurityEvents/AttackCoverageTactics";
+import { OPEN_RULE_LIBRARY } from "../../Components/SecurityEvents/SecurityDetectionsCopy";
 import {
   LibraryStatusFilter,
   RULE_LIBRARY_QUERY_KEYS,
@@ -351,7 +352,15 @@ const AttackCoveragePage: FunctionComponent<
             />
           )}
 
-          <AttackCoverageLegend />
+          {/*
+           * The matrix's cells need their key under them. A tactic's tiles
+           * are named by the headings they sit under, right above them.
+           */}
+          {!isLoading && view === AttackCoverageView.Matrix ? (
+            <AttackCoverageLegend />
+          ) : (
+            <></>
+          )}
         </div>
       </Card>
 
@@ -397,7 +406,7 @@ const AttackCoveragePage: FunctionComponent<
             {selectedLibrary.length > 0 ? (
               <div>
                 <h4 className="text-sm font-semibold text-gray-900">
-                  {translator.translateText("In the rule library")}
+                  {translator.translateText("In the Rule Library")}
                 </h4>
                 <ul className="mt-1 space-y-1">
                   {selectedLibrary.map((rule: CoveringRule): ReactElement => {
@@ -416,7 +425,8 @@ const AttackCoveragePage: FunctionComponent<
                   to={getRuleLibraryRoute({ search: selected.id })}
                   className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("Open the rule library") || ""}
+                  {translator.translateText(OPEN_RULE_LIBRARY) ||
+                    OPEN_RULE_LIBRARY}
                 </AppLink>
               </div>
             ) : (

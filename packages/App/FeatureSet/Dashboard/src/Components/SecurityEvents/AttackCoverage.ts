@@ -414,3 +414,34 @@ export function getCoveredPercent(view: {
     ? Math.round((view.coveredCount / view.techniqueCount) * 100)
     : 0;
 }
+
+/*
+ * An open tactic's techniques under a heading per state - covered, covered
+ * only by rules that are off, in the Rule Library, not covered - in that
+ * order, leaving out the states none of them is in. The headings say what
+ * each tile's look means right above it: a legend at the card's foot sat a
+ * screen below a tactic opened near the top.
+ */
+export interface TechniqueCoverageGroup {
+  coverage: TechniqueCoverage;
+  techniques: Array<TechniqueCoverageView>;
+}
+
+export function groupTechniquesByCoverage(
+  techniques: ReadonlyArray<TechniqueCoverageView>,
+): Array<TechniqueCoverageGroup> {
+  return TECHNIQUE_COVERAGE_ORDER.map(
+    (coverage: TechniqueCoverage): TechniqueCoverageGroup => {
+      return {
+        coverage,
+        techniques: techniques.filter(
+          (technique: TechniqueCoverageView): boolean => {
+            return technique.coverage === coverage;
+          },
+        ),
+      };
+    },
+  ).filter((group: TechniqueCoverageGroup): boolean => {
+    return group.techniques.length > 0;
+  });
+}

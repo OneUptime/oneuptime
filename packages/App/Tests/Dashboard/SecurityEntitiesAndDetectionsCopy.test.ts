@@ -5,9 +5,12 @@ import {
   DEFAULT_ENTITY_WINDOW_IN_DAYS,
   ENTITIES_EMPTY_DESCRIPTION,
   ENTITIES_EMPTY_TITLE,
+  ENTITIES_PER_PAGE,
   ENTITY_WINDOW_LABEL,
+  EntityPage,
   OPEN_IN_CORRELATE,
   RISKIEST_ENTITIES_DESCRIPTION,
+  getEntityPage,
   getEntityWindowOptionValue,
   readEntityWindowOption,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEntitiesCopy";
@@ -113,6 +116,138 @@ describe("the words", () => {
           sentence,
           isSaidInLocale(locale, sentence, entries[sentence]),
         ]).toEqual([locale, sentence, true]);
+      }
+    }
+  });
+});
+
+/*
+ * Riskiest Entities reads the ranking whole (the server's top 100) and
+ * pages it here, ten a page as every list starts.
+ */
+describe("a page of the ranking", () => {
+  const RANKING: Array<number> = Array.from(
+    { length: 23 },
+    (_value: unknown, index: number): number => {
+      return index + 1;
+    },
+  );
+
+  test("ten a page, as every list of the product starts", () => {
+    expect(ENTITIES_PER_PAGE).toBe(10);
+  });
+
+  test("the first, a middle and the last page hold their slice of the ranking", () => {
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 1, perPage: 10 }),
+    ).toEqual({ rows: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], pageNumber: 1 });
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 2, perPage: 10 }).rows,
+    ).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 3, perPage: 10 }),
+    ).toEqual({ rows: [21, 22, 23], pageNumber: 3 });
+  });
+
+  test("a page past the end - a read that came back shorter - shows the last page, never an empty one", () => {
+    const page: EntityPage<number> = getEntityPage({
+      rows: RANKING.slice(0, 12),
+      pageNumber: 5,
+      perPage: 10,
+    });
+
+    expect(page).toEqual({ rows: [11, 12], pageNumber: 2 });
+  });
+
+  test("rows per page the reader picks page the same ranking", () => {
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 1, perPage: 25 }),
+    ).toEqual({ rows: RANKING, pageNumber: 1 });
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 2, perPage: 5 }).rows,
+    ).toEqual([6, 7, 8, 9, 10]);
+  });
+
+  test("an empty ranking is one empty page", () => {
+    expect(getEntityPage({ rows: [], pageNumber: 3, perPage: 10 })).toEqual({
+      rows: [],
+      pageNumber: 1,
+    });
+  });
+
+  test("a page or a size that is not a whole positive number reads as the first page of one at least", () => {
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 0, perPage: 10 }).pageNumber,
+    ).toBe(1);
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: -2, perPage: 10 }).pageNumber,
+    ).toBe(1);
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: Number.NaN, perPage: 10 })
+        .pageNumber,
+    ).toBe(1);
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 1, perPage: 0 }).rows,
+    ).toEqual([1]);
+    expect(
+      getEntityPage({ rows: RANKING, pageNumber: 2.7, perPage: 10 }).rows,
+    ).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+  });
+
+  test("the page reads the ranking through it, and starts a new window at the top", () => {
+    const page: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(page).toContain("data={isLoading ? [] : entityPage.rows}");
+    expect(page).toContain("currentPageNumber={entityPage.pageNumber}");
+    expect(page).not.toContain("disablePagination");
+    expect(page).toContain("setPageNumber(1);");
+  });
+});
+
+describe("the lookup's words", () => {
+  const LOOKUP_WORDS: Array<string> = [
+    "Any user, host, IP address, domain or file hash: how often it appears in your security events over the last 30 days, and in how many findings.",
+    "e.g. alice@example.com, web-01 or 203.0.113.7",
+  ];
+
+  test("are the page's own", () => {
+    const page: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities.tsx",
+      ),
+      "utf8",
+    );
+
+    for (const words of LOOKUP_WORDS) {
+      expect(page).toContain(`"${words}"`);
+    }
+  });
+
+  test("are said in every Dashboard locale, the example's values as written", () => {
+    for (const locale of TRANSLATED_LOCALES) {
+      const entries: Record<string, unknown> = readDashboardLocale(locale);
+
+      for (const words of LOOKUP_WORDS) {
+        expect([
+          locale,
+          words,
+          isSaidInLocale(locale, words, entries[words]),
+        ]).toEqual([locale, words, true]);
+      }
+
+      // The example's values are values: the same in every language.
+      for (const value of ["alice@example.com", "web-01", "203.0.113.7"]) {
+        expect([locale, String(entries[LOOKUP_WORDS[1]!])]).toEqual([
+          locale,
+          expect.stringContaining(value),
+        ]);
       }
     }
   });

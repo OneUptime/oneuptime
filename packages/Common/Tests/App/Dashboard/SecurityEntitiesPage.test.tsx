@@ -359,3 +359,142 @@ describe("Look Up an Entity", () => {
     expect(document.body).not.toHaveTextContent("socket hang up");
   });
 });
+
+/*
+ * A busy week names a hundred entities: the ranking (read whole, the
+ * server's top 100) is paged ten at a time with the foot every list has -
+ * "Showing 1-10 of 23 entities", rows per page, the pages. It used to be
+ * one table five screens long, with no count and no foot, and with no
+ * foot the last row ran over the card's rounded corners.
+ */
+describe("Riskiest Entities, a page at a time", () => {
+  const MANY: Array<EntityFindingSummary> = Array.from(
+    { length: 23 },
+    (_value: unknown, index: number): EntityFindingSummary => {
+      return entity(`host-${index + 1}`, 100 - index, 1, 3);
+    },
+  );
+
+  function shownValues(): Array<string> {
+    return screen
+      .getAllByTestId(/^security-entity-row-/)
+      .map((row: HTMLElement): string => {
+        return (row.getAttribute("data-testid") || "").replace(
+          "security-entity-row-",
+          "",
+        );
+      });
+  }
+
+  test("shows the first ten, and says how many there are in the foot", async () => {
+    topEntities = MANY;
+
+    await renderPage();
+
+    expect(shownValues()).toEqual(
+      MANY.slice(0, 10).map((item: EntityFindingSummary): string => {
+        return item.value;
+      }),
+    );
+    expect(screen.getByTestId("pagination-summary").textContent).toMatch(
+      /^Showing 1.10 of 23 entities$/,
+    );
+  });
+
+  test("the next page carries on down the ranking", async () => {
+    topEntities = MANY;
+
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("pagination-next-button"));
+    });
+
+    expect(shownValues()).toEqual(
+      MANY.slice(10, 20).map((item: EntityFindingSummary): string => {
+        return item.value;
+      }),
+    );
+    expect(screen.getByTestId("pagination-summary").textContent).toMatch(
+      /^Showing 11.20 of 23 entities$/,
+    );
+  });
+
+  test("another window starts at the top of its ranking", async () => {
+    topEntities = MANY;
+
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("pagination-next-button"));
+    });
+    expect(shownValues()[0]).toBe("host-11");
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId("security-entities-window")).getByRole(
+          "radio",
+          { name: "1 day" },
+        ),
+      );
+    });
+
+    expect(daysAsked).toEqual([7, 1]);
+    expect(shownValues()[0]).toBe("host-1");
+  });
+
+  test("a short ranking still has its foot, and nothing more to page to", async () => {
+    await renderPage();
+
+    expect(shownValues()).toHaveLength(RANKED.length);
+    expect(screen.getByTestId("pagination-summary").textContent).toMatch(
+      /^Showing 1.3 of 3 entities$/,
+    );
+    expect(screen.getByTestId("pagination-next-button")).toBeDisabled();
+  });
+
+  test("an empty window has no foot under its empty state", async () => {
+    topEntities = [];
+
+    await renderPage();
+
+    expect(screen.getByTestId("security-entities-empty")).toBeInTheDocument();
+    expect(screen.queryByTestId("pagination-summary")).toBeNull();
+  });
+});
+
+describe("Look Up an Entity's box and button", () => {
+  test("the box is named for a screen reader, not only by its example", async () => {
+    await renderPage();
+
+    expect(screen.getByRole("textbox", { name: "Look Up an Entity" })).toBe(
+      screen.getByTestId("security-entity-lookup-input"),
+    );
+  });
+
+  /*
+   * The input's own margins (mt-2 mb-1) stretched Look Up 12px taller than
+   * the box beside it, the box sitting high. jsdom lays nothing out: the
+   * offline browser suite measures the two; this holds the classes.
+   */
+  test("the box keeps no margins of its own, and the two share a line", async () => {
+    await renderPage();
+
+    const box: HTMLElement = screen.getByTestId("security-entity-lookup-input");
+    const boxWrapper: HTMLElement = box.parentElement as HTMLElement;
+
+    expect(boxWrapper.className.split(" ")).not.toEqual(
+      expect.arrayContaining(["mt-2"]),
+    );
+    expect(boxWrapper.className.split(" ")).not.toEqual(
+      expect.arrayContaining(["mb-1"]),
+    );
+    expect(
+      (
+        screen
+          .getByRole("button", { name: "Look Up" })
+          .closest(".sm\\:flex-row") as HTMLElement
+      ).className.split(" "),
+    ).toEqual(expect.arrayContaining(["sm:flex-row", "sm:items-center"]));
+  });
+});

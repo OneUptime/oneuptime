@@ -34524,5 +34524,8 @@
   "The users, hosts, addresses and files your findings name most: from detection rules, threat intel and your connected products' alerts. Select one to see everything it touched in Correlate.": "The users, hosts, addresses and files your findings name most: from detection rules, threat intel and your connected products' alerts. Select one to see everything it touched in Correlate.",
   "Why it is protected.": "Why it is protected.",
   "{{done}} of {{count}} steps done": "{{done}} of {{count}} steps done",
-  "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done"
+  "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
+  "Available in the Rule Library": "Available in the Rule Library",
+  "In the Rule Library": "In the Rule Library",
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "When set, the playbook runs only on cases whose detection came from one of these rules."
 }

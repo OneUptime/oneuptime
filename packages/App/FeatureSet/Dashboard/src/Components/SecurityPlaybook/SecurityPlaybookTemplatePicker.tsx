@@ -216,7 +216,13 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      className="mx-auto max-w-4xl text-left"
+      /*
+       * Centred at a readable width where it stands in for the empty list;
+       * in Create from Template's dialog the tiles fill the dialog, rather
+       * than sitting in its middle with a hand's width of nothing either
+       * side.
+       */
+      className={`text-left ${props.showIntro ? "mx-auto max-w-4xl" : ""}`}
       aria-labelledby={props.showIntro ? headingId : undefined}
       data-testid={PLAYBOOK_TEMPLATE_PICKER_TEST_ID}
     >

@@ -630,7 +630,12 @@ describe("the detection rules table says whether each rule works", () => {
     ).toBeInTheDocument();
   });
 
-  test("when it last fired comes first; the interval and Last Error wait in Customize Columns", () => {
+  /*
+   * Two columns of full dates (Last Match and Last Evaluated, some 210px
+   * each) ran the table past its card at 1280, Last Evaluated under the
+   * row's buttons. Whether a rule runs, its Status says.
+   */
+  test("when it last fired comes first; Last Evaluated, the interval and Last Error wait in Customize Columns", () => {
     renderPage("detection-rules");
 
     expect(columnTitles("DetectionRule", "shown")).toEqual([
@@ -638,12 +643,46 @@ describe("the detection rules table says whether each rule works", () => {
       "Type",
       "Status",
       "Last Match",
-      "Last Evaluated",
     ]);
     expect(columnTitles("DetectionRule", "hidden")).toEqual([
+      "Last Evaluated",
       "Interval (Minutes)",
       "Last Error",
     ]);
+  });
+
+  test("Last Match says how long ago, with the date and time under the pointer, or Never in grey", () => {
+    const matchedAt: Date = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    mockRows.set("DetectionRule", [
+      rule({ name: "Spray, then a success", lastMatchAt: matchedAt }),
+      rule({ name: "Account locked out", lastEvaluatedAt: POLLED_AT }),
+    ]);
+
+    renderPage("detection-rules");
+
+    const matched: HTMLElement = within(
+      screen.getByTestId("Spray, then a success"),
+    ).getByTestId("relative-time-cell");
+    expect(matched).toHaveTextContent("4 hours ago");
+    expect(matched.getAttribute("title")).toBeTruthy();
+    expect(matched.getAttribute("title")).not.toBe("4 hours ago");
+
+    const never: HTMLElement = within(
+      screen.getByTestId("Account locked out"),
+    ).getByTestId("relative-time-cell");
+    expect(never).toHaveTextContent("Never");
+    expect(never.className).toContain("text-gray-400");
+
+    // Sortable still: the column is the rule's lastMatchAt.
+    const lastMatch: CapturedColumn | undefined = table(
+      "DetectionRule",
+    ).columns.find((column: CapturedColumn): boolean => {
+      return column.title === "Last Match";
+    });
+    expect(lastMatch?.field).toEqual({ lastMatchAt: true });
+    expect(
+      (lastMatch as { disableSort?: boolean } | undefined)?.disableSort,
+    ).toBeFalsy();
   });
 });
 

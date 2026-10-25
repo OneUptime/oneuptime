@@ -624,6 +624,54 @@ describe("the Playbooks page", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The picker is centred at a reading width (max-w-4xl) where it stands in
+   * for the empty list. In the dialog - as wide as a large dialog is - that
+   * left a hand's width of nothing either side of the tiles: there they
+   * fill the dialog. A tile acts at once, so the dialog closes with Close,
+   * not Cancel: nothing waits in it to be cancelled.
+   */
+  test("in the dialog the tiles fill it, and it closes with Close", async () => {
+    givePlaybooks([TEMPLATE.name]);
+    await renderPage();
+
+    await act(async () => {
+      capturedTable!
+        .cardProps!.buttons!.find((candidate: { title: string }): boolean => {
+          return candidate.title === CREATE_FROM_TEMPLATE;
+        })!
+        .onClick();
+    });
+
+    const dialog: HTMLElement = screen.getByTestId("modal");
+    const picker: HTMLElement = within(dialog).getByTestId(
+      PLAYBOOK_TEMPLATE_PICKER_TEST_ID,
+    );
+
+    expect(picker.className.split(" ")).not.toContain("max-w-4xl");
+    expect(picker.className.split(" ")).not.toContain("mx-auto");
+    expect(
+      within(dialog).getByTestId("modal-footer-close-button"),
+    ).toHaveTextContent(/^Close$/);
+    expect(within(dialog).queryByRole("button", { name: "Cancel" })).toBeNull();
+  });
+
+  test("in place of an empty list the picker stays centred at a reading width", async () => {
+    await renderPage();
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          {capturedTable!.noItemsMessage as React.ReactElement}
+        </MemoryRouter>,
+      );
+    });
+
+    expect(
+      screen.getByTestId(PLAYBOOK_TEMPLATE_PICKER_TEST_ID).className.split(" "),
+    ).toEqual(expect.arrayContaining(["mx-auto", "max-w-4xl"]));
+  });
+
   test("a reader who cannot create playbooks is not offered Create from Template", async () => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: false,

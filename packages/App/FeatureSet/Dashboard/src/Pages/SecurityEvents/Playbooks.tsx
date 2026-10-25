@@ -343,6 +343,8 @@ const SecurityPlaybooksPage: FunctionComponent<
           title={CREATE_FROM_TEMPLATE}
           description={PLAYBOOK_TEMPLATES_DESCRIPTION}
           modalWidth={ModalWidth.Large}
+          // A tile acts at once: nothing waits here to be cancelled.
+          closeButtonText="Close"
           onClose={(): void => {
             setShowTemplates(false);
           }}

@@ -42,8 +42,9 @@ export const TECHNIQUE_COVERAGE_LABELS: Record<TechniqueCoverage, string> = {
   [TechniqueCoverage.DisabledOnly]: translationKey(
     "Covered by disabled rules only",
   ),
+  // The Rule Library by the name its page has, as "+2 in the Rule Library" beside it says.
   [TechniqueCoverage.InLibrary]: translationKey(
-    "Available in the rule library",
+    "Available in the Rule Library",
   ),
   [TechniqueCoverage.NotCovered]: translationKey("Not covered"),
 };

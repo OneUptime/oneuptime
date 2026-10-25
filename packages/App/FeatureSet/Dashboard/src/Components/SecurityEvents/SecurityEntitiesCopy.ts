@@ -30,6 +30,42 @@ export const ENTITIES_EMPTY_DESCRIPTION: string = translationKey(
 
 export const OPEN_IN_CORRELATE: string = translationKey("Open in Correlate");
 
+/*
+ * Riskiest Entities reads the ranking whole (the server's top 100) and
+ * pages it here, ten a page as every list of the product starts.
+ */
+export const ENTITIES_PER_PAGE: number = 10;
+
+export interface EntityPage<T> {
+  rows: Array<T>;
+  // The page shown: the one asked for, or the last there is.
+  pageNumber: number;
+}
+
+/*
+ * One page of the ranking. A page past the end - a read that came back
+ * shorter than the page the reader was on - shows the last page, never an
+ * empty one under a footer that says there is more.
+ */
+export function getEntityPage<T>(data: {
+  rows: ReadonlyArray<T>;
+  pageNumber: number;
+  perPage: number;
+}): EntityPage<T> {
+  const perPage: number = Math.max(1, Math.floor(data.perPage) || 1);
+  const lastPage: number = Math.max(1, Math.ceil(data.rows.length / perPage));
+  const pageNumber: number = Math.min(
+    Math.max(1, Math.floor(data.pageNumber) || 1),
+    lastPage,
+  );
+  const start: number = (pageNumber - 1) * perPage;
+
+  return {
+    rows: data.rows.slice(start, start + perPage),
+    pageNumber,
+  };
+}
+
 // A window as the switch's value ("7"), and back; one not offered reads as a week.
 export function getEntityWindowOptionValue(windowInDays: number): string {
   return String(windowInDays);

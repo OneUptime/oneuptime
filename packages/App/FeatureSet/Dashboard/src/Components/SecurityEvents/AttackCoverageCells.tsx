@@ -41,6 +41,10 @@ export const TechniqueCell: FunctionComponent<TechniqueCellProps> = (
   const label: string =
     translator.translateText(TECHNIQUE_COVERAGE_LABELS[technique.coverage]) ||
     TECHNIQUE_COVERAGE_LABELS[technique.coverage];
+  const ruleCountText: string = translator.translatePlural(
+    { one: "{{count}} rule", other: "{{count}} rules" },
+    technique.ruleCount,
+  );
 
   return (
     <button
@@ -72,14 +76,21 @@ export const TechniqueCell: FunctionComponent<TechniqueCellProps> = (
         </span>
       </span>
       {technique.ruleCount > 0 ? (
+        /*
+         * How many of the project's rules name it: a bare number in a
+         * matrix cell, too narrow for more; "4 rules" on a tactic's tile,
+         * where a lone "4" said nothing about what it counted.
+         */
         <span
-          className="flex-shrink-0 rounded bg-white/80 px-1 text-[10px] font-semibold tabular-nums"
-          title={translator.translatePlural(
-            { one: "{{count}} rule", other: "{{count}} rules" },
-            technique.ruleCount,
-          )}
+          className={`flex-shrink-0 rounded bg-white/80 px-1 font-semibold tabular-nums ${
+            props.isCompact ? "text-[10px]" : "text-xs"
+          }`}
+          title={ruleCountText}
+          data-testid="attack-technique-rule-count"
         >
-          {translator.formatNumber(technique.ruleCount)}
+          {props.isCompact
+            ? translator.formatNumber(technique.ruleCount)
+            : ruleCountText}
         </span>
       ) : (
         <></>

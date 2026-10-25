@@ -361,4 +361,76 @@ describe("a playbook's page", () => {
       }),
     ).toBeInTheDocument();
   });
+
+  /*
+   * Every run on a playbook's page is that playbook's: each card repeated
+   * its name, and the case - what tells the runs apart - was the small
+   * link beside it. The case is the run's title now.
+   */
+  test("each latest run is named by its case, as its title, and not by the playbook again", async () => {
+    await renderPage();
+
+    const runCard: HTMLElement = await screen.findByTestId(
+      "security-playbook-run-card",
+    );
+    const caseLink: HTMLElement = within(runCard).getByRole("link", {
+      name: "CASE-140 CrowdStrike: credential dumping on fin-ws-112",
+    });
+
+    expect(runCard).not.toHaveTextContent(NAME);
+    // First on the header's line, in the title's type, cut short when long.
+    expect(caseLink.parentElement!.firstElementChild).toBe(caseLink);
+    expect(caseLink.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "text-sm",
+        "font-semibold",
+        "text-gray-900",
+        "truncate",
+        "min-w-0",
+      ]),
+    );
+    expect(caseLink).toHaveAttribute(
+      "href",
+      RouteUtil.getRouteString(PageMap.SECURITY_CASE_VIEW)
+        .replace(":projectId", PROJECT_ID)
+        .replace(":id", CASE_ID),
+    );
+  });
+
+  test("a run with no case keeps the playbook's name as its title", async () => {
+    const noCase: SecurityPlaybookRun = finishedRun();
+    delete (noCase as { securityCaseId?: unknown }).securityCaseId;
+    delete (noCase as { securityCase?: unknown }).securityCase;
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (options: {
+      modelType: { new (): BaseModel };
+    }) => {
+      const data: Array<BaseModel> =
+        new options.modelType() instanceof SecurityPlaybookRun ? [noCase] : [];
+
+      return { data, count: data.length, skip: 0, limit: 10 };
+    }) as never);
+
+    await renderPage();
+
+    const runCard: HTMLElement = await screen.findByTestId(
+      "security-playbook-run-card",
+    );
+
+    expect(runCard).toHaveTextContent(NAME);
+    expect(within(runCard).queryByRole("link")).toBeNull();
+  });
+
+  test("the rules card says what the filter does, with no Optional. in front", async () => {
+    await renderPage();
+
+    const rulesCard: HTMLElement = screen
+      .getByText("Only For These Detection Rules")
+      .closest('[data-testid="card"]') as HTMLElement;
+
+    expect(rulesCard).toHaveTextContent(
+      "When set, the playbook runs only on cases whose detection came from one of these rules.",
+    );
+    expect(rulesCard).not.toHaveTextContent("Optional.");
+    expect(rulesCard).toHaveTextContent("Any detection rule.");
+  });
 });

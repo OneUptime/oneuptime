@@ -307,10 +307,12 @@ describe("the tactics", () => {
     const details: HTMLElement = screen.getByTestId("attack-technique-details");
 
     expect(details).toHaveTextContent("Our brute force rule");
-    expect(details).toHaveTextContent("In the rule library");
+    // The Rule Library by its page's name, as the rows and the side menu say it.
+    expect(details).toHaveTextContent("In the Rule Library");
+    expect(details).not.toHaveTextContent("In the rule library");
 
     const link: HTMLElement = within(details).getByRole("link", {
-      name: "Open the rule library",
+      name: "Open the Rule Library",
     });
     expect(link.getAttribute("href")).toContain("rule-library?search=T1110");
   });
@@ -433,8 +435,8 @@ describe("the matrix", () => {
 });
 
 describe("the legend", () => {
-  test("names each look of a technique, in the order the rows list them", async () => {
-    await renderPage();
+  test("names each look of a matrix cell, in the order a tactic lists them", async () => {
+    await renderPage("?view=matrix");
 
     const legend: HTMLElement = screen.getByTestId("attack-coverage-legend");
 
@@ -447,9 +449,139 @@ describe("the legend", () => {
     ).toEqual([
       "Covered by an enabled rule",
       "Covered by disabled rules only",
-      "Available in the rule library",
+      "Available in the Rule Library",
       "Not covered",
     ]);
+  });
+
+  /*
+   * By tactic, the key sat at the card's foot, a screen below a tactic
+   * opened near the top, explaining tiles that closed rows do not show.
+   * An open tactic names its tiles' looks in the headings over them.
+   */
+  test("is the matrix's only: by tactic, the open tactic's headings say it", async () => {
+    await renderPage();
+
+    expect(screen.queryByTestId("attack-coverage-legend")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(tacticToggle("TA0006"));
+    });
+
+    expect(screen.queryByTestId("attack-coverage-legend")).toBeNull();
+    expect(
+      within(tacticRow("TA0006")).getByRole("group", {
+        name: /Covered by an enabled rule/,
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("an open tactic", () => {
+  function groupsOf(tacticId: string): Array<HTMLElement> {
+    return within(
+      within(tacticRow(tacticId)).getByTestId("attack-tactic-techniques"),
+    ).getAllByRole("group");
+  }
+
+  function nameOf(group: HTMLElement): string {
+    const labelId: string = group.getAttribute("aria-labelledby") || "";
+
+    return (document.getElementById(labelId)?.textContent || "").trim();
+  }
+
+  test("puts its techniques under a heading per state, with how many, leaving out the empty states", async () => {
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(tacticToggle("TA0006"));
+    });
+
+    const groups: Array<HTMLElement> = groupsOf("TA0006");
+
+    // Credential Access: covered, in the library, not covered - none only by a rule that is off.
+    expect(
+      groups.map((group: HTMLElement): string | null => {
+        return group.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "attack-coverage-group-covered",
+      "attack-coverage-group-in-library",
+      "attack-coverage-group-not-covered",
+    ]);
+    expect(nameOf(groups[0]!).startsWith("Covered by an enabled rule")).toBe(
+      true,
+    );
+    expect(nameOf(groups[1]!).startsWith("Available in the Rule Library")).toBe(
+      true,
+    );
+    expect(nameOf(groups[2]!).startsWith("Not covered")).toBe(true);
+
+    // Each heading counts the tiles under it, and every tile is in its state's group.
+    let tiles: number = 0;
+    for (const group of groups) {
+      const state: string = (group.getAttribute("data-testid") || "").replace(
+        "attack-coverage-group-",
+        "",
+      );
+      const cells: Array<HTMLElement> = within(group).getAllByRole("button");
+
+      expect(nameOf(group).endsWith(String(cells.length))).toBe(true);
+      for (const cell of cells) {
+        expect(cell).toHaveAttribute("data-coverage", state);
+      }
+      tiles += cells.length;
+    }
+    expect(tiles).toBe((MITRE_TACTIC_TECHNIQUES["TA0006"] || []).length);
+  });
+
+  test("a tactic with a rule that is off has its own heading for it", async () => {
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(tacticToggle("TA0003"));
+    });
+
+    const disabledOnly: HTMLElement = within(tacticRow("TA0003")).getByTestId(
+      "attack-coverage-group-disabled-only",
+    );
+
+    expect(
+      nameOf(disabledOnly).startsWith("Covered by disabled rules only"),
+    ).toBe(true);
+    expect(
+      within(disabledOnly).getByTestId("attack-technique-T1098"),
+    ).toBeInTheDocument();
+  });
+
+  test("a tile says how many rules name its technique, in words; a matrix cell only the number", async () => {
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(tacticToggle("TA0006"));
+    });
+
+    const tileCount: HTMLElement = within(
+      within(tacticRow("TA0006")).getByTestId("attack-technique-T1110"),
+    ).getByTestId("attack-technique-rule-count");
+    const count: number = Number.parseInt(tileCount.textContent || "", 10);
+
+    expect(count).toBeGreaterThan(0);
+    expect(tileCount.textContent).toBe(
+      count === 1 ? "1 rule" : `${count} rules`,
+    );
+
+    cleanup();
+    await renderPage("?view=matrix");
+
+    const cellCount: HTMLElement = within(
+      within(screen.getByTestId("attack-coverage-matrix")).getAllByTestId(
+        "attack-technique-T1110",
+      )[0]!,
+    ).getByTestId("attack-technique-rule-count");
+
+    expect(cellCount.textContent).toBe(String(count));
+    expect(cellCount).toHaveAttribute("title", tileCount.textContent || "");
   });
 });
 

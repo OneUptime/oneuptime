@@ -490,7 +490,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
 
         <Card
           title="Only For These Detection Rules"
-          description="Optional. When set, the playbook runs only on cases whose detection came from one of these rules."
+          description="When set, the playbook runs only on cases whose detection came from one of these rules."
           buttons={[
             {
               title: "Edit",
@@ -575,7 +575,12 @@ const SecurityPlaybookViewPage: FunctionComponent<
                     run={run}
                     onChanged={runs.refresh}
                     isCollapsible={true}
-                    caseLink={
+                    /*
+                     * Each run is named by its case, number and title: the
+                     * playbook's own name, on every run of its own page,
+                     * told them apart by nothing.
+                     */
+                    heading={
                       run.securityCaseId ? (
                         <AppLink
                           to={RouteUtil.populateRouteParams(
@@ -586,9 +591,8 @@ const SecurityPlaybookViewPage: FunctionComponent<
                               ),
                             },
                           )}
-                          className="truncate text-xs font-medium text-indigo-600 hover:underline"
+                          className="min-w-0 truncate text-sm font-semibold text-gray-900 hover:text-indigo-600 hover:underline"
                         >
-                          {/* The case by its number and title, as Playbook Runs names it. */}
                           {`${run.securityCase?.caseNumberWithPrefix || ""} ${
                             run.securityCase?.title || ""
                           }`.trim() ||

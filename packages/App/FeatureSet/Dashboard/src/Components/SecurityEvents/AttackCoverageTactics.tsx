@@ -1,13 +1,19 @@
 import {
   TacticCoverageView,
+  TechniqueCoverageGroup,
   TechniqueCoverageView,
   getCoveredPercent,
+  groupTechniquesByCoverage,
 } from "./AttackCoverage";
-import { TechniqueCell } from "./AttackCoverageCells";
+import {
+  TECHNIQUE_CELL_CLASS_NAMES,
+  TechniqueCell,
+} from "./AttackCoverageCells";
 import {
   TACTIC_COVERED_COUNT,
   TACTIC_GOALS,
   TACTIC_LIBRARY_COUNT,
+  TECHNIQUE_COVERAGE_LABELS,
 } from "./AttackCoverageCopy";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -32,6 +38,10 @@ export interface ComponentProps {
 }
 
 export const ATTACK_TACTIC_ROW_TEST_ID_PREFIX: string = "attack-tactic-";
+
+// An open tactic's techniques of one state, under their heading.
+export const ATTACK_TACTIC_GROUP_TEST_ID_PREFIX: string =
+  "attack-coverage-group-";
 
 /*
  * ATT&CK Coverage by tactic: one row per tactic, in the order an attack
@@ -132,22 +142,57 @@ const AttackCoverageTactics: FunctionComponent<ComponentProps> = (
             {isOpen ? (
               <div
                 id={panelId}
-                className="px-5 pb-4 md:pe-6 md:ps-[3.25rem]"
+                className="space-y-4 px-5 pb-4 md:pe-6 md:ps-[3.25rem]"
                 data-testid="attack-tactic-techniques"
               >
-                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-                  {view.techniques.map(
-                    (technique: TechniqueCoverageView): ReactElement => {
-                      return (
-                        <TechniqueCell
-                          key={technique.id}
-                          technique={technique}
-                          onSelect={props.onSelectTechnique}
-                        />
-                      );
-                    },
-                  )}
-                </div>
+                {groupTechniquesByCoverage(view.techniques).map(
+                  (group: TechniqueCoverageGroup): ReactElement => {
+                    const labelId: string = `${panelId}-${group.coverage}`;
+                    const label: string =
+                      translator.translateText(
+                        TECHNIQUE_COVERAGE_LABELS[group.coverage],
+                      ) || TECHNIQUE_COVERAGE_LABELS[group.coverage];
+
+                    return (
+                      <div
+                        key={group.coverage}
+                        role="group"
+                        aria-labelledby={labelId}
+                        data-testid={`${ATTACK_TACTIC_GROUP_TEST_ID_PREFIX}${group.coverage}`}
+                      >
+                        {/* The tiles' look, named right above them: the legend for this tactic. */}
+                        <p
+                          id={labelId}
+                          className="mb-1.5 flex items-center gap-2 text-xs font-medium text-gray-600"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`h-3 w-3 flex-shrink-0 rounded border ${TECHNIQUE_CELL_CLASS_NAMES[group.coverage]}`}
+                          />
+                          <span>{label}</span>
+                          <span className="tabular-nums text-gray-400">
+                            {translator.formatNumber(group.techniques.length)}
+                          </span>
+                        </p>
+                        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+                          {group.techniques.map(
+                            (
+                              technique: TechniqueCoverageView,
+                            ): ReactElement => {
+                              return (
+                                <TechniqueCell
+                                  key={technique.id}
+                                  technique={technique}
+                                  onSelect={props.onSelectTechnique}
+                                />
+                              );
+                            },
+                          )}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
               </div>
             ) : (
               <></>

@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryEntry,
@@ -15,6 +17,7 @@ import {
   TECHNIQUE_COVERAGE_ORDER,
   TacticCoverageView,
   TechniqueCoverage,
+  TechniqueCoverageGroup,
   TechniqueCoverageView,
   buildAttackCoverage,
   buildLibraryCoverage,
@@ -24,6 +27,7 @@ import {
   getLibraryRulesNotAdded,
   getTacticCoverageViews,
   getTechniqueCoverage,
+  groupTechniquesByCoverage,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/AttackCoverage";
 import {
   ATTACK_COVERAGE_DESCRIPTIONS,
@@ -490,6 +494,161 @@ describe("the page's words", () => {
       expect(typeof entries[`${LIBRARY_GAP_SENTENCE.other}_one`]).toBe(
         "string",
       );
+    }
+  });
+});
+
+/*
+ * An open tactic draws its techniques under a heading per state, the
+ * headings standing in for the legend right above the tiles they explain.
+ */
+describe("an open tactic's groups", () => {
+  const libraryOfAll: AttackCoverage = buildLibraryCoverage([]);
+  const coverage: AttackCoverage = buildAttackCoverage([
+    rule("26000000-0000-4000-8000-000000000001", [
+      "attack.credential_access",
+      "attack.t1110",
+    ]),
+    rule(
+      "26000000-0000-4000-8000-000000000002",
+      ["attack.persistence", "attack.t1098"],
+      false,
+    ),
+  ]);
+  const views: Array<TacticCoverageView> = getTacticCoverageViews(
+    coverage,
+    libraryOfAll,
+  );
+
+  test("are the states in the order a tactic lists them, leaving out the empty ones", () => {
+    const credentialAccess: Array<TechniqueCoverageGroup> =
+      groupTechniquesByCoverage(tacticView(views, "TA0006").techniques);
+
+    expect(
+      credentialAccess.map((group: TechniqueCoverageGroup): string => {
+        return group.coverage;
+      }),
+    ).toEqual([
+      TechniqueCoverage.Covered,
+      TechniqueCoverage.InLibrary,
+      TechniqueCoverage.NotCovered,
+    ]);
+    expect(
+      credentialAccess[0]!.techniques.map(
+        (technique: TechniqueCoverageView): string => {
+          return technique.id;
+        },
+      ),
+    ).toEqual(["T1110"]);
+
+    const persistence: Array<TechniqueCoverageGroup> =
+      groupTechniquesByCoverage(tacticView(views, "TA0003").techniques);
+
+    expect(
+      persistence.map((group: TechniqueCoverageGroup): string => {
+        return group.coverage;
+      }),
+    ).toContain(TechniqueCoverage.DisabledOnly);
+  });
+
+  test("hold every technique of the tactic once, each in its state's group, in the tactic's order", () => {
+    for (const view of views) {
+      const groups: Array<TechniqueCoverageGroup> = groupTechniquesByCoverage(
+        view.techniques,
+      );
+
+      expect(
+        groups
+          .map((group: TechniqueCoverageGroup): Array<string> => {
+            for (const technique of group.techniques) {
+              expect(technique.coverage).toBe(group.coverage);
+            }
+
+            return group.techniques.map(
+              (technique: TechniqueCoverageView): string => {
+                return technique.id;
+              },
+            );
+          })
+          .flat(),
+      ).toEqual(
+        view.techniques.map((technique: TechniqueCoverageView): string => {
+          return technique.id;
+        }),
+      );
+
+      for (const group of groups) {
+        expect(group.techniques.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("a project with nothing covered and no library has one group, Not covered", () => {
+    const bare: Array<TacticCoverageView> = getTacticCoverageViews(
+      NO_COVERAGE,
+      NO_COVERAGE,
+    );
+
+    for (const view of bare) {
+      expect(
+        groupTechniquesByCoverage(view.techniques).map(
+          (group: TechniqueCoverageGroup): string => {
+            return group.coverage;
+          },
+        ),
+      ).toEqual([TechniqueCoverage.NotCovered]);
+    }
+  });
+
+  test("no techniques, no groups", () => {
+    expect(groupTechniquesByCoverage([])).toEqual([]);
+  });
+});
+
+describe("the Rule Library's name on the page", () => {
+  const PAGE: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/AttackCoverage.tsx",
+    ),
+    "utf8",
+  );
+
+  test("is the page's own name, capitalised, wherever the page says it", () => {
+    expect(TECHNIQUE_COVERAGE_LABELS[TechniqueCoverage.InLibrary]).toBe(
+      "Available in the Rule Library",
+    );
+    expect(TACTIC_LIBRARY_COUNT).toContain("Rule Library");
+    expect(PAGE).toContain('translator.translateText("In the Rule Library")');
+    expect(PAGE).toContain("translator.translateText(OPEN_RULE_LIBRARY)");
+    expect(PAGE).not.toContain("rule library");
+  });
+
+  test("the technique's dialog and the matrix's switch are said in every Dashboard locale", () => {
+    const sentences: Array<string> = [
+      "In the Rule Library",
+      "Your rules",
+      "No detection rule covers this technique.",
+      "Read about it on attack.mitre.org",
+      "Only covered techniques",
+    ];
+
+    for (const locale of TRANSLATED_LOCALES) {
+      const entries: Record<string, unknown> = readDashboardLocale(locale);
+
+      for (const sentence of sentences) {
+        expect([
+          locale,
+          sentence,
+          isSaidInLocale(locale, sentence, entries[sentence]),
+        ]).toEqual([locale, sentence, true]);
+      }
+
+      // The address is a value: the same in every language.
+      expect([
+        locale,
+        String(entries["Read about it on attack.mitre.org"]),
+      ]).toEqual([locale, expect.stringContaining("attack.mitre.org")]);
     }
   });
 });

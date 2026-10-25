@@ -53,6 +53,12 @@ export interface ComponentProps {
   // The case's number, when the card is shown away from its case.
   caseLink?: ReactElement | undefined;
   /*
+   * What the card is called, in place of the playbook's name: on a
+   * playbook's own page every run is that playbook's, and the case each ran
+   * on is what tells them apart.
+   */
+  heading?: ReactElement | undefined;
+  /*
    * In a list of runs - every run of the project, a playbook's latest - a
    * run is its header and a line of how far it got, its steps a click away:
    * fifty runs drawn whole, every step of each, made a page nobody could
@@ -171,11 +177,20 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
           isExpanded ? "border-b border-gray-100" : ""
         }`}
       >
-        <div className="min-w-0">
+        {/*
+         * The run's words take the row and wrap inside it, and the buttons
+         * keep the row's top right: a long case title used to push Approve
+         * and Reject onto a row of their own, under an empty band. Only
+         * where the words cannot keep 16rem beside them (a phone) do the
+         * buttons drop under them, still on the right.
+         */}
+        <div className="min-w-0 grow basis-64">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold text-gray-900">
-              {run.playbookName || translator.translateText("Playbook")}
-            </span>
+            {props.heading || (
+              <span className="truncate text-sm font-semibold text-gray-900">
+                {run.playbookName || translator.translateText("Playbook")}
+              </span>
+            )}
             <SecurityPlaybookRunStatusPill value={run.status} />
             {props.caseLink || <></>}
           </div>
@@ -274,18 +289,21 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
             />
           </div>
         ) : !isFinished ? (
-          <Button
-            title="Cancel Run"
-            icon={IconProp.Stop}
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            disabled={!gate.isAllowed || isWorking}
-            tooltip={gate.isAllowed ? undefined : gate.disabledReason}
-            onClick={() => {
-              setError("");
-              setShowCancel(true);
-            }}
-          />
+          // In the same place as Approve and Reject: the row's right, a phone's too.
+          <div className="ml-auto flex flex-shrink-0 items-center">
+            <Button
+              title="Cancel Run"
+              icon={IconProp.Stop}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              disabled={!gate.isAllowed || isWorking}
+              tooltip={gate.isAllowed ? undefined : gate.disabledReason}
+              onClick={() => {
+                setError("");
+                setShowCancel(true);
+              }}
+            />
+          </div>
         ) : (
           <></>
         )}

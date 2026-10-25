@@ -62,6 +62,7 @@ import {
   readDetectionRuleShape,
 } from "../../Components/SecurityEvents/DetectionRuleShape";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
+import RelativeTimeCell from "../../Components/SecurityEvents/RelativeTimeCell";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import {
   DETECTION_RULES_EMPTY_DESCRIPTION,
@@ -569,28 +570,39 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               );
             },
           },
-          // When it last fired comes first; that it runs, the Status says.
+          /*
+           * When it last fired, as how long ago ("5 minutes ago", the date
+           * under the pointer): two columns of full dates ran the table
+           * past its card at 1280, Last Evaluated under the row's buttons.
+           */
           {
             field: {
               lastMatchAt: true,
             },
             title: "Last Match",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
+            type: FieldType.Element,
+            getElement: (item: DetectionRule): ReactElement => {
+              return <RelativeTimeCell date={item.lastMatchAt} />;
+            },
           },
+          /*
+           * Hidden at first (Customize Columns brings them back): that a
+           * rule runs, its Status says ("Waiting for first run", red when a
+           * run fails); the interval is the rule's setting; and Last Error,
+           * empty while the rule works, shows through the Status and View
+           * Error.
+           */
           {
             field: {
               lastEvaluatedAt: true,
             },
             title: "Last Evaluated",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
+            type: FieldType.Element,
+            isHiddenByDefault: true,
+            getElement: (item: DetectionRule): ReactElement => {
+              return <RelativeTimeCell date={item.lastEvaluatedAt} />;
+            },
           },
-          /*
-           * Hidden at first (Customize Columns brings them back): the
-           * interval is the rule's setting, and Last Error, empty while the
-           * rule works, shows through the Status and View Error.
-           */
           {
             field: {
               evaluationIntervalInMinutes: true,
