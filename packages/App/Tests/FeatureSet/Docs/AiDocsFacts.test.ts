@@ -449,8 +449,36 @@ describe("Ask AI", () => {
       "It runs only the read-only commands an AI investigation may run on that kind of resource",
     );
     expect(section).toContain(
-      "A change, such as restarting a service, never runs from Ask AI: it gives you the exact command instead.",
+      "A change through the agent, such as restarting a service, never runs from Ask AI: it gives you the exact command instead",
     );
+
+    // At most so many for one answer, through each kind of agent's toolkit.
+    const perAnswer: number = numberConstant(
+      readRepoFile("Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts"),
+      "MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER",
+    );
+    expect(access).toContain(
+      "maxCommands: MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,",
+    );
+    expect(access.split("maxCommands: data.maxCommands,").length - 1).toBe(2);
+    expect(section).toContain(
+      `at most ${perAnswer} for one answer through each kind of agent`,
+    );
+
+    /*
+     * The commands only read; Ask AI's own actions - a runbook among them -
+     * are the permission mode's, which the next section describes.
+     */
+    expect(
+      readRepoFile("Common/Server/Utils/AI/Toolbox/Index.ts"),
+    ).toContain("    RunRunbookTool,");
+    expect(section).toContain(
+      "Ask AI's own actions, such as running a runbook, follow the conversation's permission mode, as below.",
+    );
+
+    // When it cannot: why, and what would change it.
+    expect(access).toContain("this.buildWithoutAccessSection(tools.viewable),");
+    expect(section).toContain("it says so, with what to change");
 
     // Only what the person asking may view.
     expect(access).toContain(
