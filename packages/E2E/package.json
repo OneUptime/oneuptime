@@ -86,6 +86,7 @@
     "test-traces-ai-ui": "playwright test --config playwright.traces-ai-ui.config.ts",
     "test-exceptions-ai-ui": "playwright test --config playwright.exceptions-ai-ui.config.ts",
     "test-logs-ai-ui": "playwright test --config playwright.logs-ai-ui.config.ts",
+    "test-new-version-ui": "playwright test --config playwright.new-version-ui.config.ts",
     "test-metrics-ai-ui": "playwright test --config playwright.metrics-ai-ui.config.ts",
     "test-dashboard-templates-ui": "playwright test --config playwright.dashboard-templates-ui.config.ts",
     "test-dashboard-time-range-ui": "playwright test --config playwright.dashboard-time-range-ui.config.ts",

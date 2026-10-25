@@ -1064,11 +1064,13 @@ test("the immutable location repeats every security header of the block it pre-e
    * the immutable block or it is simply not sent.
    *
    * This is not a static-asset-only concern. A request for a hashed chunk that
-   * does not exist falls through ExpressStatic into the SPA catch-all
-   * (App/FeatureSet/Frontend/Index.ts), which renders the authenticated
-   * Dashboard document as text/html with a 200. A crafted
-   * /dashboard/dist/a-AAAAAAAA.js therefore reaches real HTML through this
-   * location, and must carry the same framing protection it would have had.
+   * does not exist used to fall through ExpressStatic into the SPA catch-all
+   * (App/FeatureSet/Frontend/Index.ts), which rendered the authenticated
+   * Dashboard document as text/html with a 200, so a crafted
+   * /dashboard/dist/a-AAAAAAAA.js reached real HTML through this location.
+   * The App answers a missing bundle file 404 now (RouteReservations'
+   * getFrontendStaticFileRoutes); whatever answers through this location
+   * still carries the same framing protection it would have had.
    *
    * The expected set is derived from the /dashboard block rather than hardcoded,
    * so adding a security header there without adding it here fails loudly.

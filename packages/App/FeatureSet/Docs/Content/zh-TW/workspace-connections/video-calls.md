@@ -31,7 +31,7 @@ flowchart TB
 
 ### 一鍵加入
 
-規則觸發時，OneUptime 會為事件開始一次通話，並附上 **Join call** 按鈕將其發布到事件更新所發往的頻道以及事件的動態中。事件頁面會在其 **Video Call** 卡片中顯示該通話，並在頁首顯示 **Join call** 按鈕。
+規則觸發時，OneUptime 會為事件開始一次通話，並附上 **Join call** 按鈕將其發布到事件更新所發往的頻道以及事件的動態中。事件頁面會在其 **Video Call** 卡片中顯示該通話，並在頁首顯示 **加入通話** 按鈕。
 :::
 
 規則的條件決定哪些事件會獲得通話。若只想為 Sev1 事件開啟電話會議，請為規則設定 **嚴重程度** 條件。通話會為宣告為進行中的事件和警示開始。建立時即已解決的事件不會獲得通話。
@@ -234,7 +234,7 @@ Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organ
 
 Slack 規則可以改為開始事件 Slack 頻道的 huddle。沒有需要連接的東西：在規則的 **Video Call** 步驟中選擇 **Slack huddle** 即可。
 
-huddle 在規則為事件建立的頻道中進行；如果規則改為發布到現有頻道，則在其中第一個頻道中進行。因此，規則必須建立頻道或發布到現有頻道。 **Join huddle** 按鈕會在 Slack 中開啟頻道的 huddle。第一個開啟它的應變人員開始 huddle，之後的每個人都加入其中。Slack 沒有提供讓應用程式開始 huddle 的方式，因此在有人開啟之前，huddle 中沒有任何人。
+huddle 在規則為事件建立的頻道中進行；如果規則改為發布到現有頻道，則在其中第一個頻道中進行。因此，規則必須建立頻道或發布到現有頻道。 **加入 Huddle** 按鈕會在 Slack 中開啟頻道的 huddle。第一個開啟它的應變人員開始 huddle，之後的每個人都加入其中。Slack 沒有提供讓應用程式開始 huddle 的方式，因此在有人開啟之前，huddle 中沒有任何人。
 
 Slack huddle 僅適用於 Slack 規則。Microsoft Teams 規則使用專案的某個視訊通話連線開始其通話。
 

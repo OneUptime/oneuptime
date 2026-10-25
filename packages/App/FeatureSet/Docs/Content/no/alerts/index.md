@@ -116,11 +116,11 @@ Reglene, eierne, feeden og den første tilstanden skjer likevel i begge tilfelle
 
 ## Svar på et varsel
 
-Åpne varselet. Toppen viser tilstanden, alvorlighetsgraden, når det ble opprettet, og monitoren og episoden det hører til, med knappene neste steg trenger:
+Åpne varselet. Toppen viser tilstanden, alvorlighetsgraden, hvor lenge det har vart, eierne og monitoren og episoden det hører til, med knappene neste steg trenger:
 
 - **Bekreft** sier at noen tar seg av det. Det hindrer varselets vaktpolicyer i å tilkalle neste nivå.
 - **Løs** lukker det. Varselet forlater **Aktive varsler**, og påminnelsene stopper.
-- **Change state to**, i menyen **⋯** ved siden av, flytter det til en egen tilstand, som "Under undersøkelse".
+- **Endre tilstand til**, i menyen **⋯** ved siden av, flytter det til en egen tilstand, som "Under undersøkelse".
 - **Erklær hendelse** åpner en ny hendelse, forhåndsutfylt fra varselet, når det viser seg at problemet rammer brukerne. Se [Koblede varsler](/docs/incidents/linked-alerts).
 
 Et bytte til en annen tilstand ber deg bekrefte, med et valgfritt privat notat sammenfoldet under **Legg til et privat notat**. Hva hver tilstand gjør, står på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities).
@@ -141,7 +141,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 
 **Oversikt**, **Undersøkelse**, **Team** og **Notater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
 
-- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står ved tilstanden. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **AI Investigation** med **Ask OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
+- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står først i toppen. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **AI Investigation** med **Ask OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
 - **Tilstandstidslinje** — hver tilstand varselet har vært i, når og hvor lenge. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hendelser** — hendelsene varselet er en del av, med **Knytt til hendelsen** og **Erklær hendelse**.
 - **Innstillinger** — **Hvem kan se dette varselet** med bryteren **Privat varsel**, og **Påminnelser** med **Send påminnelser**. Hver bryter lagrer i det øyeblikket du slår den om.

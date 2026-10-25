@@ -116,7 +116,7 @@ Ihre Regeln, ihre Eigentümer, ihr Feed und ihr erster Status passieren in beide
 
 ## Auf eine Warnung reagieren
 
-Öffnen Sie die Warnung. Ihr Kopfbereich zeigt ihren Status, ihren Schweregrad, wann sie erstellt wurde und zu welchem Monitor und welcher Episode sie gehört, mit den Schaltflächen für Ihren nächsten Schritt:
+Öffnen Sie die Warnung. Ihr Kopfbereich zeigt ihren Status, ihren Schweregrad, wie lange sie schon dauert, ihre Eigentümer und zu welchem Monitor und welcher Episode sie gehört, mit den Schaltflächen für Ihren nächsten Schritt:
 
 - **Bestätigen** sagt, dass sich jemand darum kümmert. Es hält die Bereitschaftsrichtlinien der Warnung davon ab, die nächste Stufe zu alarmieren.
 - **Beheben** schließt sie. Die Warnung verlässt **Aktive Warnungen**, und ihre Erinnerungen enden.
@@ -141,7 +141,7 @@ Während Sie daran arbeiten, halten Sie Erkenntnisse als **Private Notizen** fes
 
 **Übersicht**, **Untersuchung**, **Team** und **Notizen** sind geöffnet; die anderen Bereiche sind eingeklappt, bis Sie sie anklicken.
 
-- **Übersicht** — die Kopfzeile nennt die **Eigentümer** der Warnung, Teams zuerst, neben ihrem Monitor und ihrer Episode. Die Kachel **Erstellt** zeigt, wann und wodurch sie entstand, zwei weitere, wie lange es bis zur Bestätigung und zur Behebung dauerte; wie lange sie schon dauert, steht neben ihrem Status. Die Karte **Hergang** steht oben auf der Seite – die Beschreibung der Warnung und ihre **Grundursache** –, dann die Karte **KI-Untersuchung**, mit **Ask OneUptime AI** an ihrem Ende, und der **Warnungs-Feed** hält alles fest, was mit der Warnung geschah. Daneben stehen die Karte **Betroffene Ressourcen**, die Karte **Warnungsdetails** und die Messungen der Warnung.
+- **Übersicht** — die Kopfzeile nennt die **Eigentümer** der Warnung, Teams zuerst, neben ihrem Monitor und ihrer Episode. Die Kachel **Erstellt** zeigt, wann und wodurch sie entstand, zwei weitere, wie lange es bis zur Bestätigung und zur Behebung dauerte; wie lange sie schon dauert, steht als Erstes in der Kopfzeile. Die Karte **Hergang** steht oben auf der Seite – die Beschreibung der Warnung und ihre **Grundursache** –, dann die Karte **KI-Untersuchung**, mit **Ask OneUptime AI** an ihrem Ende, und der **Warnungs-Feed** hält alles fest, was mit der Warnung geschah. Daneben stehen die Karte **Betroffene Ressourcen**, die Karte **Warnungsdetails** und die Messungen der Warnung.
 - **Zustands-Zeitachse** — jeder Status, in dem die Warnung war, wann und wie lange. Siehe [Die Statuszeitachse](/docs/alerts/states-and-severities#die-statuszeitachse).
 - **Verknüpfte Vorfälle** — die Vorfälle, zu denen diese Warnung gehört, mit **Vorfall verknüpfen** und **Vorfall melden**.
 - **Einstellungen** — **Wer diese Warnung sehen kann**, mit dem Schalter **Private Warnung**, und **Erinnerungen**, mit **Erinnerungen senden**. Jeder Schalter speichert, sobald Sie ihn umlegen.

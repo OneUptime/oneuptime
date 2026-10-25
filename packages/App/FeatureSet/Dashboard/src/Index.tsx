@@ -5,6 +5,11 @@ import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
+import NewVersionNotice from "Common/UI/Components/NewVersion/NewVersionNotice";
+import NewVersion, {
+  NewVersionAudience,
+} from "Common/UI/Utils/NewVersion/NewVersion";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil from "Common/UI/Utils/Theme";
@@ -46,6 +51,14 @@ enablePrivateImageSessionRefresh((): Promise<boolean> => {
 Telemetry.init({
   serviceName: "dashboard",
 });
+
+/*
+ * Notice a new version of OneUptime deployed while this tab is open, and
+ * move the reader onto it: the next page they open loads it, the notice
+ * says it is ready, and a page whose code is gone loads it instead of
+ * failing (Common/UI/Utils/NewVersion/NewVersion.ts).
+ */
+NewVersion.start({ audience: NewVersionAudience.Members });
 
 /*
  * Tell OneUptime's service worker, in a browser registered for push
@@ -116,8 +129,10 @@ i18nReady
          * Suspense boundary show its loading state.
          */}
         <BrowserRouter useTransitions={false}>
+          <NewVersionNavigation />
           <App />
         </BrowserRouter>
+        <NewVersionNotice />
       </ErrorBoundary>,
     );
   });

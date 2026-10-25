@@ -100,7 +100,7 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Configurações do coletor | `Collector Config` |
 | vCenters | `vCenter` |
 | Capturas de pacotes, e os downloads delas | `Packet Capture` |
-| Casos de segurança e as suas prioridades e status, playbooks e as suas execuções, e entidades protegidas | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Casos de segurança e as suas prioridades e status, playbooks e as suas execuções, entidades protegidas, criticidade de entidades, e o risco de uma entidade quando alguém o redefine | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Exportações do registro de auditoria | `Audit Log Export` |
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.

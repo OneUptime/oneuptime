@@ -45,6 +45,7 @@ Una clasificación lee:
 - el caso: su título, prioridad, estado, entidades y correspondencia con ATT&CK;
 - sus detecciones, la más reciente primero, con un evento de ejemplo de cada una;
 - los eventos de seguridad y la inteligencia de amenazas sobre sus usuarios, hosts y direcciones;
+- el riesgo de sus usuarios, hosts y direcciones, y lo que lo sumó esta semana;
 - los hosts de OneUptime con los que coinciden sus hosts y direcciones, y quién es su responsable;
 - el incidente que declaró, sus notas, sus entidades protegidas y los playbooks activados.
 

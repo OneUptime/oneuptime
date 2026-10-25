@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34423,
-    "untranslated": 16561
+    "keys": 34621,
+    "untranslated": 16534
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -43,6 +43,7 @@
     "Pull request",
     "Pull requests",
     "Revision",
+    "Risk",
     "Runbook: {{name}}",
     "Runner",
     "Status",

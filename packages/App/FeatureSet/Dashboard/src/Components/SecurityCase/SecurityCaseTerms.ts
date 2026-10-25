@@ -55,6 +55,7 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("Threat Intel"),
   translationKey("Connected Product"),
   translationKey("Manual"),
+  translationKey("Entity Risk"),
   // SecurityEntityType
   translationKey("User"),
   translationKey("Host"),

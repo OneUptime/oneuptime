@@ -56,7 +56,7 @@ Angi et **Navn** — og en **Beskrivelse** under **Flere felt**, om du vil — o
 ### I dashbordet
 
 :::steps
-1. Åpne monitoren. Klikk på **More actions** (⋯) øverst til høyre i oversikten, ved siden av **Oppdater**.
+1. Åpne monitoren. Klikk på **Flere handlinger** (⋯) øverst til høyre i oversikten, ved siden av **Oppdater**.
 2. Velg den nye statusen under **Endre status til**.
 3. Klikk på **Endre status**. Den nye statusen begynner nå og vises med en gang på monitoren og på hver statusside som viser den.
 :::

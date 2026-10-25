@@ -55,6 +55,11 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import PermissionGate, {
+  ModelAction,
+  PermissionCheckableModel,
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const INCIDENT_ID: string = "20000000-0000-4000-8000-000000001042";
@@ -400,5 +405,142 @@ describe("useEventOwners", () => {
 
     expect(getListMock).not.toHaveBeenCalled();
     expect(hook.result.current.owners).toBeUndefined();
+  });
+});
+
+/*
+ * The header offers Add owners only to a reader the Owners page would let
+ * add one: someone who may create an owner row - a person or a team - for
+ * the record. Read from the permission snapshot (PermissionGate), so it is
+ * false before the snapshot lands.
+ */
+describe("whether the reader may add owners", () => {
+  function allowCreating(
+    allowed: Array<{ new (): PermissionCheckableModel }>,
+  ): Array<{ model: string; action: ModelAction }> {
+    const asked: Array<{ model: string; action: ModelAction }> = [];
+
+    jest
+      .spyOn(PermissionGate, "check")
+      .mockImplementation(
+        (
+          model: PermissionCheckableModel,
+          action: ModelAction,
+        ): PermissionGateResult => {
+          asked.push({ model: model.constructor.name, action: action });
+          return {
+            isAllowed:
+              action === ModelAction.Create &&
+              allowed.some(
+                (type: { new (): PermissionCheckableModel }): boolean => {
+                  return model instanceof type;
+                },
+              ),
+          };
+        },
+      );
+
+    return asked;
+  }
+
+  test.each([
+    ["owner people and owner teams", [IncidentOwnerUser, IncidentOwnerTeam]],
+    ["owner people only", [IncidentOwnerUser]],
+    ["owner teams only", [IncidentOwnerTeam]],
+  ])(
+    "may, when the reader may create %s for it",
+    (
+      _name: string,
+      allowed: Array<{ new (): PermissionCheckableModel }>,
+    ): void => {
+      getListMock.mockImplementation(() => {
+        return new Promise(() => {});
+      });
+      const asked: Array<{ model: string; action: ModelAction }> =
+        allowCreating(allowed);
+
+      const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+        renderHook(useEventOwners, {
+          initialProps: incidentOptions(INCIDENT_ID),
+        });
+
+      // Known before the owners are read.
+      expect(hook.result.current.owners).toBeUndefined();
+      expect(hook.result.current.canAddOwners).toBe(true);
+      // Asked of the record's own owner tables, to create a row.
+      expect(asked[0]).toEqual({
+        model: "IncidentOwnerUser",
+        action: ModelAction.Create,
+      });
+    },
+  );
+
+  test("may not before the permission snapshot has landed: nothing is offered on a guess", () => {
+    getListMock.mockImplementation(() => {
+      return new Promise(() => {});
+    });
+
+    // The real gate, with no snapshot stored and no master admin.
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    expect(hook.result.current.canAddOwners).toBe(false);
+  });
+
+  test("may not, when the reader may create neither", async () => {
+    getListMock.mockImplementation(() => {
+      return Promise.resolve(listOf([]));
+    });
+    const asked: Array<{ model: string; action: ModelAction }> = allowCreating(
+      [],
+    );
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(hook.result.current.owners).toEqual([]);
+    });
+
+    expect(hook.result.current.canAddOwners).toBe(false);
+    expect(
+      asked.map((question: { model: string; action: ModelAction }) => {
+        return question.model;
+      }),
+    ).toEqual(
+      expect.arrayContaining(["IncidentOwnerUser", "IncidentOwnerTeam"]),
+    );
+  });
+
+  test("an alert's are its own owner tables'", () => {
+    getListMock.mockImplementation(() => {
+      return new Promise(() => {});
+    });
+    allowCreating([AlertOwnerTeam]);
+
+    const alertOptions: UseEventOwnersOptions = {
+      ownerUserModelType: AlertOwnerUser,
+      ownerTeamModelType: AlertOwnerTeam,
+      resourceIdField: "alertId",
+      resourceId: new ObjectID(INCIDENT_ID),
+    };
+    const alert: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: alertOptions,
+      });
+
+    expect(alert.result.current.canAddOwners).toBe(true);
+    alert.unmount();
+
+    const incident: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    expect(incident.result.current.canAddOwners).toBe(false);
   });
 });

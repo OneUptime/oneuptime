@@ -31,7 +31,7 @@ Apri una regola di notifica di Slack o Microsoft Teams per incidenti o avvisi (*
 
 ### Unirsi con un clic
 
-Quando la regola scatta, OneUptime avvia una chiamata per l'incidente e la pubblica con un pulsante **Join call** nei canali in cui vanno gli aggiornamenti dell'incidente e nel feed dell'incidente. La pagina dell'incidente mostra la chiamata nella sua scheda **Video Call** e un pulsante **Join call** nella sua intestazione.
+Quando la regola scatta, OneUptime avvia una chiamata per l'incidente e la pubblica con un pulsante **Join call** nei canali in cui vanno gli aggiornamenti dell'incidente e nel feed dell'incidente. La pagina dell'incidente mostra la chiamata nella sua scheda **Video Call** e un pulsante **Partecipa alla chiamata** nella sua intestazione.
 :::
 
 Le condizioni della regola decidono quali incidenti ricevono una chiamata. Per un bridge solo sugli incidenti Sev1, dai alla regola una condizione **Gravità**. Le chiamate partono per gli incidenti e gli avvisi dichiarati in corso. Un incidente creato già risolto non riceve chiamate.
@@ -234,7 +234,7 @@ Ogni incidente e ogni avviso avviati con questa connessione condividono la stanz
 
 Una regola Slack può invece avviare l'huddle del canale Slack dell'incidente. Non c'è nulla da collegare: scegli **Slack huddle** nel passaggio **Video Call** della regola.
 
-L'huddle si tiene nel canale che la regola crea per l'incidente oppure, quando la regola pubblica invece in canali esistenti, nel primo di essi. Quindi la regola deve creare un canale o pubblicare in uno esistente. Il pulsante **Join huddle** apre l'huddle del canale in Slack. Il primo responder che lo apre avvia l'huddle, e tutti quelli dopo vi si uniscono. Slack non offre a un'app alcun modo di avviare un huddle, quindi nell'huddle non c'è nessuno finché qualcuno non lo apre.
+L'huddle si tiene nel canale che la regola crea per l'incidente oppure, quando la regola pubblica invece in canali esistenti, nel primo di essi. Quindi la regola deve creare un canale o pubblicare in uno esistente. Il pulsante **Partecipa all'huddle** apre l'huddle del canale in Slack. Il primo responder che lo apre avvia l'huddle, e tutti quelli dopo vi si uniscono. Slack non offre a un'app alcun modo di avviare un huddle, quindi nell'huddle non c'è nessuno finché qualcuno non lo apre.
 
 Un huddle di Slack è solo per le regole Slack. Una regola di Microsoft Teams avvia le sue chiamate con una delle connessioni di videochiamata del progetto.
 

@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import DashboardToolbar from "./Toolbar/DashboardToolbar";
+import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import DashboardCanvas from "./Canvas/Index";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
@@ -456,6 +457,12 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    */
   const isEditMode: boolean =
     dashboardMode === DashboardMode.Edit && canEditDashboard;
+
+  /*
+   * A dashboard being edited holds its changes until Save: nothing reloads
+   * the page under them, a new version of OneUptime included.
+   */
+  useUnsavedChanges(isEditMode);
 
   useEffect(() => {
     handleResize();

@@ -135,6 +135,7 @@ import {
   getTimeToStateText,
 } from "../../../Utils/EventOverview";
 import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
+import EventFactLinks from "../../../Components/EventView/EventFactLinks";
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
 import useEventOwners, {
@@ -851,7 +852,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   /*
    * Who owns the alert, teams first, beside its state and severity. Add
-   * owners is offered only while the alert is open.
+   * owners is offered only while the alert is open, to a reader who may
+   * add one.
    */
   const headerFacts: Array<EventStatusFact> = [];
 
@@ -861,18 +863,38 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !durationEndDate,
+    canAddOwners: !durationEndDate && owners.canAddOwners,
   });
 
   if (ownersFact) {
     headerFacts.push(ownersFact);
   }
 
+  /*
+   * The monitor it was raised on and the episode it belongs to, each a link
+   * to its page, drawn as an incident's header draws its monitors.
+   */
   if (alertMonitor?.name) {
     headerFacts.push({
       label: "Monitor",
       icon: IconProp.AltGlobe,
-      value: <MonitorElement monitor={alertMonitor} />,
+      value: (
+        <EventFactLinks
+          dataTestId="event-monitor-links"
+          items={[
+            {
+              key: alertMonitor._id?.toString() || "monitor",
+              name: alertMonitor.name,
+              route: alertMonitor._id
+                ? RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITOR_VIEW] as Route,
+                    { modelId: new ObjectID(alertMonitor._id.toString()) },
+                  )
+                : undefined,
+            },
+          ]}
+        />
+      ),
     });
   }
 
@@ -880,7 +902,23 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     headerFacts.push({
       label: "Episode",
       icon: IconProp.SquareStack,
-      value: <AlertEpisodeElement alertEpisode={alertEpisode} />,
+      value: (
+        <EventFactLinks
+          dataTestId="event-episode-links"
+          items={[
+            {
+              key: alertEpisode._id?.toString() || "episode",
+              name: alertEpisode.title,
+              route: alertEpisode._id
+                ? RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.ALERT_EPISODE_VIEW] as Route,
+                    { modelId: new ObjectID(alertEpisode._id.toString()) },
+                  )
+                : undefined,
+            },
+          ]}
+        />
+      ),
     });
   }
 

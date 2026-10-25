@@ -8,7 +8,8 @@ import ErrorBoundary, {
 } from "../../../UI/Components/ErrorBoundary";
 import downloadFile from "../../../UI/Utils/DownloadFile";
 import { ErrorSupportBundle } from "../../../UI/Utils/ErrorSupportBundle";
-import { fireEvent, render, screen } from "@testing-library/react";
+import NewVersion from "../../../UI/Utils/NewVersion/NewVersion";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 jest.mock("../../../UI/Utils/DownloadFile", () => {
@@ -624,12 +625,14 @@ describe("isChunkLoadError", () => {
 describe("chunk load reload throttling", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.name = "";
     mockReload();
   });
 
   afterEach(() => {
     restoreLocation();
     jest.restoreAllMocks();
+    window.name = "";
   });
 
   test("has not reloaded when storage is empty", () => {
@@ -668,7 +671,7 @@ describe("chunk load reload throttling", () => {
     expect(hasRecentlyReloadedForChunkLoadError(Date.now())).toBe(false);
   });
 
-  test("survives sessionStorage being unavailable", () => {
+  test("survives sessionStorage being unavailable, and still remembers the reload", () => {
     jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("SecurityError");
     });
@@ -676,21 +679,29 @@ describe("chunk load reload throttling", () => {
       throw new Error("SecurityError");
     });
 
+    expect(hasRecentlyReloadedForChunkLoadError(Date.now())).toBe(false);
     expect(() => {
       markChunkLoadErrorReload(Date.now());
     }).not.toThrow();
-    expect(hasRecentlyReloadedForChunkLoadError(Date.now())).toBe(false);
+
+    /*
+     * NO RELOAD LOOP with site data blocked: a tab that could not remember
+     * the reload reloaded again on every load. window.name keeps it.
+     */
+    expect(hasRecentlyReloadedForChunkLoadError(Date.now())).toBe(true);
   });
 });
 
 describe("handleChunkLoadError", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    NewVersion.reset();
     mockReload();
   });
 
   afterEach(() => {
     restoreLocation();
+    NewVersion.reset();
   });
 
   test("reloads once for a stale bundle", () => {
@@ -776,27 +787,38 @@ describe("handleChunkLoadError", () => {
 });
 
 describe("ErrorBoundary chunk load recovery", () => {
+  /*
+   * The full set of screens - updating, offline, the server not answering,
+   * unsaved changes, visitors' words - is in
+   * Tests/UI/Components/NewVersion/ChunkLoadRecovery.test.tsx. These pin the
+   * boundary's side of it: a chunk error never gets "Something went wrong".
+   */
   const consoleErrorSpy: jest.SpyInstance = jest.spyOn(console, "error");
+  const consoleWarnSpy: jest.SpyInstance = jest.spyOn(console, "warn");
 
   beforeAll(() => {
     consoleErrorSpy.mockImplementation(() => {});
+    consoleWarnSpy.mockImplementation(() => {});
   });
 
   beforeEach(() => {
     window.sessionStorage.clear();
+    NewVersion.reset();
     mockReload();
   });
 
   afterEach(() => {
     window.dispatchEvent(new Event("pageshow"));
     restoreLocation();
+    NewVersion.reset();
   });
 
   afterAll(() => {
     consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
-  test("lets the navigation proceed when leaving the page cuts off a lazy route", () => {
+  test("lets the navigation proceed when leaving the page cuts off a lazy route", async () => {
     window.dispatchEvent(new Event("beforeunload"));
 
     const ThrowAbortedChunkError: FunctionComponent = (): ReactElement => {
@@ -811,11 +833,19 @@ describe("ErrorBoundary chunk load recovery", () => {
       </ErrorBoundary>,
     );
 
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("chunk-load-recovery").getAttribute("data-step"),
+      ).toBe("checking");
+    });
+
+    // The page's own loader while the next page arrives, never an error.
     expect(reloadMock).not.toHaveBeenCalled();
-    expect(screen.queryByText(FALLBACK_TEXT)).not.toBeNull();
+    expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
+    expect(screen.queryByText("Something went wrong")).toBeNull();
   });
 
-  test("auto-reloads when a lazy route fails to load", () => {
+  test("auto-reloads when a lazy route fails to load", async () => {
     const ThrowChunkError: FunctionComponent = (): ReactElement => {
       throw new Error(
         "Failed to fetch dynamically imported module: /assets/AllRoutes.js",
@@ -828,12 +858,17 @@ describe("ErrorBoundary chunk load recovery", () => {
       </ErrorBoundary>,
     );
 
-    expect(reloadMock).toHaveBeenCalledTimes(1);
-    // The fallback still renders so the user is never looking at a blank page.
-    expect(screen.queryByText(FALLBACK_TEXT)).not.toBeNull();
+    await waitFor(() => {
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The user is never looking at a blank page, nor at an error.
+    expect(screen.getByTestId("chunk-load-recovery")).toBeTruthy();
+    expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
+    expect(screen.queryByText("Something went wrong")).toBeNull();
   });
 
-  test("shows the fallback without reloading when a reload already happened", () => {
+  test("says the page could not be loaded, without reloading, when a reload already happened", async () => {
     markChunkLoadErrorReload(Date.now());
 
     const ThrowChunkError: FunctionComponent = (): ReactElement => {
@@ -846,7 +881,12 @@ describe("ErrorBoundary chunk load recovery", () => {
       </ErrorBoundary>,
     );
 
+    await waitFor(() => {
+      expect(screen.queryByText("This page couldn't be loaded")).not.toBeNull();
+    });
+
     expect(reloadMock).not.toHaveBeenCalled();
-    expect(screen.queryByText(FALLBACK_TEXT)).not.toBeNull();
+    expect(screen.queryByTestId("error-boundary-fallback")).not.toBeNull();
+    expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
   });
 });

@@ -1,6 +1,27 @@
 import SecurityEventSeverityPill from "../SecurityEvents/SecurityEventSeverityPill";
+import AppLink from "../AppLink/AppLink";
+import {
+  CASE_ENTITY_RISK_COLUMN_TITLE,
+  CASE_ENTITY_RISK_TOOLTIP,
+  ENTITY_RISK_TEST_IDS,
+} from "../SecurityEvents/EntityRisk/EntityRiskCopy";
+import { getEntityRiskRoute } from "../SecurityEvents/EntityRisk/EntityRiskModel";
+import { EntityRiskLevelPill } from "../SecurityEvents/EntityRisk/EntityRiskScore";
+import useEntityRiskSettings, {
+  EntityRiskSettings,
+} from "../SecurityEvents/EntityRisk/useEntityRiskSettings";
 import SecurityCaseApi, { EntityActivity } from "./SecurityCaseApi";
 import { SecurityEntityChip } from "./SecurityEntityChips";
+import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import {
+  getEntityRiskKey,
+  getEntityRiskLevel,
+  getRiskEntities,
+} from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import OcsfSeverity, {
@@ -40,6 +61,16 @@ export const ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME: string =
   "[@container(max-width:39.99rem)]:hidden";
 export const ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME: string =
   "[@container(min-width:40rem)]:hidden";
+/*
+ * The entity's risk (Security Events > Entity Risk) takes a column of its
+ * own only from 52rem up, where the five beside it keep their one line
+ * (a laptop beside the case's side menu is narrower); below that it goes
+ * under the value, with the type.
+ */
+export const ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME: string =
+  "[@container(max-width:51.99rem)]:hidden";
+export const ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME: string =
+  "[@container(min-width:52rem)]:hidden";
 
 export const SECURITY_CASE_ENTITIES_TEST_IDS: {
   table: string;
@@ -74,6 +105,54 @@ const SkeletonCell: FunctionComponent = (): ReactElement => {
 };
 
 /*
+ * An entity's risk on the case: its score and level, a link to its page,
+ * where what added to it is listed. Nothing for an entity with no risk.
+ */
+const EntityRiskLink: FunctionComponent<{
+  entityValue: string;
+  entityType: string;
+  score: number;
+  threshold: number;
+  // Named "Risk" where no column header says what the number is.
+  isLabelled?: boolean | undefined;
+}> = (props: {
+  entityValue: string;
+  entityType: string;
+  score: number;
+  threshold: number;
+  isLabelled?: boolean | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <AppLink
+      to={getEntityRiskRoute(props.entityValue, props.entityType)}
+      className="inline-flex items-center gap-1.5 rounded-md hover:underline"
+    >
+      <span
+        className="inline-flex items-center gap-1.5"
+        title={translator.translateText(CASE_ENTITY_RISK_TOOLTIP)}
+        data-testid={ENTITY_RISK_TEST_IDS.caseEntityRisk}
+      >
+        {props.isLabelled ? (
+          <span className="text-xs font-medium text-gray-500">
+            {translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE)}
+          </span>
+        ) : (
+          <></>
+        )}
+        <span className="text-sm font-semibold tabular-nums text-gray-900">
+          {translator.formatNumber(props.score)}
+        </span>
+        <EntityRiskLevelPill
+          level={getEntityRiskLevel(props.score, props.threshold)}
+        />
+      </span>
+    </AppLink>
+  );
+};
+
+/*
  * Who and what the case is about, and how busy each has been across all the
  * project's security events this past week: a user with thousands of events
  * and findings from other rules is a different case from one seen twice.
@@ -89,6 +168,9 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  // Each entity's risk score, by its risk key: only the entities that have one.
+  const [riskScores, setRiskScores] = useState<Map<string, number>>(new Map());
+  const riskSettings: EntityRiskSettings = useEntityRiskSettings();
 
   const valuesKey: string = props.entities
     .map((entity: SecurityEntity): string => {
@@ -140,6 +222,61 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
     };
 
     void load();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [valuesKey]);
+
+  /*
+   * The risk of the case's users, hosts and addresses (Security Events >
+   * Entity Risk). A read that fails leaves the column empty: the activity
+   * above is the card's, and says so on its own.
+   */
+  useEffect(() => {
+    let isCurrent: boolean = true;
+    const keys: Array<string> = getRiskEntities(props.entities).map(
+      (entity: SecurityEntity): string => {
+        return getEntityRiskKey(entity.value);
+      },
+    );
+
+    if (keys.length === 0) {
+      setRiskScores(new Map());
+      return () => {};
+    }
+
+    ModelAPI.getList<SecurityEntityRisk>({
+      modelType: SecurityEntityRisk,
+      query: {
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        entityKey: new Includes(keys),
+      },
+      limit: keys.length,
+      skip: 0,
+      select: { entityKey: true, riskScore: true },
+      sort: {},
+    })
+      .then((result: ListResult<SecurityEntityRisk>) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        const scores: Map<string, number> = new Map();
+
+        for (const row of result.data) {
+          if (row.entityKey && (row.riskScore || 0) > 0) {
+            scores.set(row.entityKey, row.riskScore || 0);
+          }
+        }
+
+        setRiskScores(scores);
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setRiskScores(new Map());
+        }
+      });
 
     return () => {
       isCurrent = false;
@@ -219,6 +356,12 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                   >
                     {translator.translateText("Last Seen")}
                   </th>
+                  <th
+                    scope="col"
+                    className={`${headerCellClassName} ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
+                  >
+                    {translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE)}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -237,6 +380,24 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     const lastSeen: string | undefined = row?.lastSeen
                       ? OneUptimeDate.fromNow(row.lastSeen)
                       : undefined;
+                    const riskScore: number | undefined = riskScores.get(
+                      getEntityRiskKey(entity.value),
+                    );
+                    const getRiskLink: (
+                      isLabelled: boolean,
+                    ) => ReactElement | null = (
+                      isLabelled: boolean,
+                    ): ReactElement | null => {
+                      return riskScore !== undefined ? (
+                        <EntityRiskLink
+                          entityValue={entity.value}
+                          entityType={entity.type}
+                          score={riskScore}
+                          threshold={riskSettings.threshold}
+                          isLabelled={isLabelled}
+                        />
+                      ) : null;
+                    };
                     // Drawn in its column, or under the count on a narrow table.
                     const severityPill: ReactElement | null = severity ? (
                       <span
@@ -291,6 +452,19 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                               <></>
                             )}
                           </div>
+                          {/* Its risk, under the value while its column is left out. */}
+                          {riskScore !== undefined ? (
+                            <div
+                              className={`mt-1 ${ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME}`}
+                              data-testid={
+                                ENTITY_RISK_TEST_IDS.caseEntityRiskUnderValue
+                              }
+                            >
+                              {getRiskLink(true)}
+                            </div>
+                          ) : (
+                            <></>
+                          )}
                         </td>
                         <td
                           className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top text-gray-700 ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
@@ -348,6 +522,16 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                           data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.lastSeen}
                         >
                           {isRowLoading ? <SkeletonCell /> : lastSeen || "-"}
+                        </td>
+                        <td
+                          className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
+                          data-testid={
+                            ENTITY_RISK_TEST_IDS.caseEntityRiskColumn
+                          }
+                        >
+                          {getRiskLink(false) || (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                       </tr>
                     );
