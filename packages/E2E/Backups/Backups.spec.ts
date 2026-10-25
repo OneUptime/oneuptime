@@ -143,6 +143,29 @@ async function expectNoHorizontalScroll(page: Page): Promise<void> {
     .toBeLessThanOrEqual(0);
 }
 
+/*
+ * In View steps, the line joining a step to the next runs under the step's
+ * mark - on its left in English, on its right in a right-to-left language.
+ */
+async function expectStepLineUnderMark(page: Page, key: string): Promise<void> {
+  const item: Locator = page
+    .getByTestId("modal")
+    .getByTestId(`backup-run-step-${key}`);
+  const line: { x: number; width: number } | null = await item
+    .locator(":scope > [aria-hidden=true]")
+    .boundingBox();
+  const mark: { x: number; width: number } | null = await item
+    .locator(":scope > div.relative.flex-none")
+    .boundingBox();
+
+  expect(line && mark).toBeTruthy();
+
+  const middle: number = line!.x + line!.width / 2;
+
+  expect(middle).toBeGreaterThan(mark!.x);
+  expect(middle).toBeLessThan(mark!.x + mark!.width);
+}
+
 // The page, once its data is drawn: the status card, or the first run's hero.
 async function openPage(page: Page, search: string = ""): Promise<void> {
   await page.goto(`${PAGE}${search}`);
@@ -581,6 +604,7 @@ test.describe("the Enterprise Edition's Backups page", () => {
       await expect(
         dialog(page).getByTestId("backup-run-step-message-back-up-postgres"),
       ).toContainText(STORAGE_REFUSED);
+      await expectStepLineUnderMark(page, "check-destination");
       await expect(
         dialog(page).getByTestId("backup-run-step-back-up-clickhouse"),
       ).toContainText("Skipped");
@@ -951,6 +975,15 @@ test.describe("the Enterprise Edition's Backups page", () => {
     ).toBe("ltr");
     await expectNoHorizontalScroll(page);
     await screenshot(page, "failed-laptop-persian");
+
+    // Its steps read right to left too, each line under its mark.
+    await page.getByTestId("backups-failed-view-steps").click();
+    await expect(
+      dialog(page).getByTestId("backup-run-step-message-back-up-postgres"),
+    ).toContainText(STORAGE_REFUSED);
+    await expectStepLineUnderMark(page, "check-destination");
+    await expectStepLineUnderMark(page, "back-up-postgres");
+    await screenshot(page, "failed-steps-laptop-persian");
   });
 });
 

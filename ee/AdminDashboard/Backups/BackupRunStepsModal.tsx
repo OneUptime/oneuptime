@@ -352,8 +352,9 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
                 {isLast ? (
                   <></>
                 ) : (
+                  // At the marks' side in either reading direction.
                   <div
-                    className="absolute left-3 top-7 -ml-px h-[calc(100%-1.75rem)] w-0.5 bg-gray-200"
+                    className="absolute start-3 top-7 -ms-px h-[calc(100%-1.75rem)] w-0.5 bg-gray-200"
                     aria-hidden="true"
                   />
                 )}
