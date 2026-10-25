@@ -546,6 +546,32 @@ describe("README.md, the page npm shows", () => {
     expect(readme).toContain(`npm install ${PACKAGE_NAME}`);
   });
 
+  /*
+   * Common's modules change with every release (a data model gains the
+   * columns its release added), and a package of another version can name
+   * fields a self-hosted OneUptime does not have: the version is the
+   * release's, and the README says to install that one, exactly.
+   */
+  test("says it has OneUptime's version number, and to install the version of the OneUptime it calls, exactly", () => {
+    const common: { version: string } = JSON.parse(
+      read("packages/Common/package.json"),
+    ) as { version: string };
+
+    // The repository's packages all have VERSION's number, Common among them.
+    expect(common.version).toBe(read("VERSION").trim());
+    // The release sets it before the build reads it into the npm manifest.
+    expect(read("Scripts/NPM/PublishAllPackages.sh")).toContain(
+      'npm version --allow-same-version "$package_version"',
+    );
+
+    expect(readme).toContain(
+      "It is released with OneUptime, with the same version number,",
+    );
+    expect(readme).toContain(
+      `npm install --save-exact ${PACKAGE_NAME}@<your-oneuptime-version>`,
+    );
+  });
+
   test("names everything the package root exports", () => {
     for (const entry of ROOT_EXPORTS) {
       expect({

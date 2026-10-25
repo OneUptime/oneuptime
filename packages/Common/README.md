@@ -11,6 +11,15 @@ npm install @oneuptime/common
 
 It needs Node.js 22 or later, and works with `require` and with `import`.
 
+It is released with OneUptime, with the same version number, and its modules
+change from one release to the next, as OneUptime's records gain fields.
+Install the version of the OneUptime you call, and keep it exact so that a
+later install does not move it:
+
+```bash
+npm install --save-exact @oneuptime/common@<your-oneuptime-version>
+```
+
 ## Use it
 
 Import a module by its path, without an extension, the way OneUptime's own code
