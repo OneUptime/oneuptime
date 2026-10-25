@@ -397,7 +397,7 @@ If you set `DATABASE_BACKUP_PASSWORD` and `DATABASE_RESTORE_PASSWORD`, give them
 
 ## Back up and restore
 
-PostgreSQL holds everything you configure: monitors, incidents, status pages, users. `npm run backup` dumps it to a file in the `Backups` folder.
+PostgreSQL holds everything you configure: monitors, incidents, status pages, users. `npm run backup` dumps it to a file in the `Backups` folder. The Enterprise Edition can also back up PostgreSQL and ClickHouse on a schedule, to storage you own, from the Admin Dashboard: see [Backups](/docs/installation/backups).
 
 :::steps
 ### Give the backup script the database password

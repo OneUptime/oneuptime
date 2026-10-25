@@ -17,6 +17,8 @@ import SideMenu, {
 } from "../../../UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "../../../UI/Components/SideMenu/SideMenuSection";
+import Page from "../../../UI/Components/Page/Page";
+import PageTrailEndContext from "../../../UI/Components/Page/PageTrailEnd";
 import Navigation from "../../../UI/Utils/Navigation";
 
 /*
@@ -484,6 +486,114 @@ describe("on a phone", () => {
     expect(button).toContainElement(lines);
     // text-start, not text-left: the side the lines start on, in either direction.
     expect(lines).toHaveClass("text-start");
+  });
+
+  /*
+   * An entry the menu cannot read - an Enterprise plugin's own component,
+   * such as the Admin Dashboard's Backups or Audit Log Export - left the
+   * button saying only "Navigation" on its own page. The page's trail
+   * names where the reader is instead.
+   */
+  const PluginEntry: React.FunctionComponent = (): ReactElement => {
+    return item("Backups", "/admin/settings/backups");
+  };
+
+  function settingsMenu(): ReactElement {
+    return (
+      <SideMenu>
+        <SideMenuSection title="Basic">
+          {item("Authentication", "/admin/settings/authentication")}
+          <PluginEntry />
+        </SideMenuSection>
+      </SideMenu>
+    );
+  }
+
+  test("a page whose entry the menu cannot read is named by the page's trail", async () => {
+    await renderAt(
+      "/admin/settings/backups",
+      <PageTrailEndContext.Provider
+        value={{ title: "Backups", to: new Route("/admin/settings/backups") }}
+      >
+        {settingsMenu()}
+      </PageTrailEndContext.Provider>,
+    );
+
+    const button: HTMLElement = screen.getByTestId("mobile-sidemenu-toggle");
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Backups" }),
+    ).toBeInTheDocument();
+    expect(button.textContent).not.toContain("Navigation");
+  });
+
+  test("an entry the menu reads keeps its own name, section first, over the trail", async () => {
+    await renderAt(
+      "/admin/settings/authentication",
+      <PageTrailEndContext.Provider
+        value={{
+          title: "Some other title",
+          to: new Route("/admin/settings/authentication"),
+        }}
+      >
+        {settingsMenu()}
+      </PageTrailEndContext.Provider>,
+    );
+
+    expect(screen.getByTestId("mobile-sidemenu-toggle").textContent).toContain(
+      "Basic / Authentication",
+    );
+  });
+
+  test("a trail that ends in a record's name shows the name as written", async () => {
+    await renderAt(
+      "/admin/settings/backups",
+      <PageTrailEndContext.Provider
+        value={{
+          title: "View Monitor",
+          recordName: "checkout-api (eu-west)",
+          to: new Route("/admin/settings/backups"),
+        }}
+      >
+        {settingsMenu()}
+      </PageTrailEndContext.Provider>,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "checkout-api (eu-west)",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("outside a Page, a page no entry is for still says Navigation", async () => {
+    await renderAt("/admin/settings/backups", settingsMenu());
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Navigation" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a Page hands its last breadcrumb to the side menu it draws", async () => {
+    await renderAt(
+      "/admin/settings/backups",
+      <Page
+        title="Admin Settings"
+        breadcrumbLinks={[
+          { title: "Admin Dashboard", to: new Route("/admin") },
+          { title: "Settings", to: new Route("/admin/settings") },
+          { title: "Backups", to: new Route("/admin/settings/backups") },
+        ]}
+        sideMenu={settingsMenu()}
+      >
+        <div>The page</div>
+      </Page>,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Backups" }),
+    ).toBeInTheDocument();
   });
 
   /*

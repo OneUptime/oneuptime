@@ -50,6 +50,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | Dashboards unter **Health** im Admin-Dashboard: Instanzübersicht, Hintergrund-Warteschlangen, Instanz-Logs, PostgreSQL, Valkey, ClickHouse-Cluster, Diagnose-Logs und Telemetrie-Ingestion | Nein | Ja | Nicht zutreffend |
 | **Query Console** im Admin-Dashboard | Nein | Ja | Nicht verfügbar |
 | Health-Alarme für PostgreSQL und Valkey (Redis) | Nein | Ja | Nicht zutreffend |
+| [Backups](/docs/installation/backups) von PostgreSQL und ClickHouse in Ihren eigenen Speicher, nach Zeitplan, mit Wiederherstellung | Nein | Ja | Nicht zutreffend |
 | Kapazitätsansicht, Kapazitätsalarme und automatisches Bereinigen der Festplatte für ClickHouse | Ja | Ja | Nicht zutreffend |
 | Migrationsstatus, Support-Bundle und globale Probes im Admin-Dashboard | Ja | Ja | Nicht zutreffend |
 | Verwaltung von Enterprise-Lizenz, Plätzen und Instanzen | Nein | Ja | Nicht zutreffend |
@@ -192,6 +193,7 @@ Was endet, wenn eine Lizenz ausläuft:
 - **Die Audit-Protokollierung zeichnet nichts mehr auf.** Bisher aufgezeichnete Audit-Logs bleiben erhalten.
 - **Aufbewahrungs-Überschreibungen gelten nicht mehr.** Neue Telemetrie wird für die Standard-Aufbewahrung des Projekts behalten. Bereits gespeicherte Telemetrie behält die Aufbewahrung, mit der sie geschrieben wurde. Über die API können Sie eine Überschreibung weiterhin entfernen, aber keine setzen.
 - **Statusseiten zeigen wieder Powered by OneUptime.** Eine Seite, die die Zeile ausblendet, zeigt sie, bis eine Lizenz aktiviert ist. Die Einstellung bleibt erhalten.
+- **Geplante Backups enden.** Es wird kein neues Backup erstellt. Bereits erstellte Backups bleiben an ihrem Ziel, und Sie können sie weiterhin wiederherstellen und löschen.
 
 Was **nicht** endet:
 

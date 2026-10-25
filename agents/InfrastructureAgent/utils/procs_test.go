@@ -1,8 +1,12 @@
 package utils
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"math"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -57,16 +61,90 @@ func TestCpuPercentSince(t *testing.T) {
 }
 
 // ownProcess is this test binary's entry in a collection.
-func ownProcess(t *testing.T, processes []*model.ServerProcess) *model.ServerProcess {
+// listedProcess returns the process with pid from a collection.
+func listedProcess(t *testing.T, processes []*model.ServerProcess, pid int32) *model.ServerProcess {
 	t.Helper()
-	pid := int32(os.Getpid())
 	for _, p := range processes {
 		if p.Pid == pid {
 			return p
 		}
 	}
-	t.Fatalf("the collection does not list this process (pid %d)", pid)
+	t.Fatalf("the collection does not list process %d", pid)
 	return nil
+}
+
+func ownProcess(t *testing.T, processes []*model.ServerProcess) *model.ServerProcess {
+	t.Helper()
+	return listedProcess(t, processes, int32(os.Getpid()))
+}
+
+// spinThenIdleEnv marks the re-executed child process below, and
+// spinThenIdleSpun is the line it prints once its core is idle again.
+const (
+	spinThenIdleEnv  = "ONEUPTIME_AGENT_TEST_SPIN_THEN_IDLE"
+	spinThenIdleSpun = "spun, now idle"
+)
+
+// TestSpinThenIdleHelperProcess is not a standalone test: it is the child
+// process that startSpinThenIdle starts. It keeps a core busy, says so, and
+// then idles until its standard input is closed.
+func TestSpinThenIdleHelperProcess(t *testing.T) {
+	if os.Getenv(spinThenIdleEnv) != "1" {
+		t.Skip("helper process, only runs when re-executed by the parent test")
+	}
+
+	spin(800 * time.Millisecond)
+	fmt.Println(spinThenIdleSpun)
+	_, _ = io.Copy(io.Discard, os.Stdin)
+}
+
+// startSpinThenIdle starts TestSpinThenIdleHelperProcess, waits until it has
+// kept its core busy and is idle, and returns its PID. The process is killed
+// when the test ends.
+func startSpinThenIdle(t *testing.T) int32 {
+	t.Helper()
+
+	cmd := exec.Command(os.Args[0], "-test.run=^TestSpinThenIdleHelperProcess$")
+	cmd.Env = append(os.Environ(), spinThenIdleEnv+"=1")
+	// The helper idles reading its standard input, which closes if this
+	// process dies first.
+	if _, err := cmd.StdinPipe(); err != nil {
+		t.Fatalf("could not make the helper process's standard input: %v", err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatalf("could not read the helper process's output: %v", err)
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("could not start the helper process: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+	})
+
+	spun := make(chan bool, 1)
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			if scanner.Text() == spinThenIdleSpun {
+				spun <- true
+				return
+			}
+		}
+		spun <- false
+	}()
+
+	select {
+	case ok := <-spun:
+		if !ok {
+			t.Fatal("the helper process exited before it had kept a core busy")
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("the helper process had not kept a core busy within 30s")
+	}
+
+	return int32(cmd.Process.Pid)
 }
 
 // spin keeps one core busy for d.
@@ -105,21 +183,27 @@ func TestGetServerProcessesReportsCPUOnlyFromTheSecondCollection(t *testing.T) {
 // average (gopsutil's CPUPercent) still remembers the busy part; the CPU% the
 // agent reports is what the process used between the collections - next to
 // nothing.
+//
+// The process that is busy and then idle is a helper process, not this one.
+// The collections run in this process, and where there are many processes to
+// list a collection keeps it busy for seconds - on a Mac listing 500, a
+// quarter of a core for six seconds - so this process is never idle between
+// two of them.
 func TestGetServerProcessesFollowsTheLoadRatherThanTheLifetimeAverage(t *testing.T) {
 	resetProcessCPUReadings()
-	spin(800 * time.Millisecond)
+	pid := startSpinThenIdle(t)
 
-	ownProcess(t, GetServerProcesses())
+	listedProcess(t, GetServerProcesses(), pid)
 	time.Sleep(800 * time.Millisecond)
-	idle := ownProcess(t, GetServerProcesses())
+	idle := listedProcess(t, GetServerProcesses(), pid)
 
-	self, err := process.NewProcess(int32(os.Getpid()))
+	helper, err := process.NewProcess(pid)
 	if err != nil {
-		t.Fatalf("reading this process: %v", err)
+		t.Fatalf("reading the helper process: %v", err)
 	}
-	lifetime, err := self.CPUPercent()
+	lifetime, err := helper.CPUPercent()
 	if err != nil {
-		t.Fatalf("reading this process's lifetime CPU percent: %v", err)
+		t.Fatalf("reading the helper process's lifetime CPU percent: %v", err)
 	}
 
 	if lifetime <= 0 {

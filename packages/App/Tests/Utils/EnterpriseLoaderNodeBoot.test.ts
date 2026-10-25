@@ -124,8 +124,9 @@ describe("EnterpriseLoader under real node + ts-node", () => {
         "PaymentProvider:PopulatePlanNameInProject",
         "PaymentProvider:UpdateTeamMembersIfNull",
         "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
-        // Newer than the fixture module, which does not register it.
+        // Newer than the fixture module, which does not register them.
         "AuditLogExport:ExportAuditLogs",
+        "Backup:RunBackups",
       ],
     });
   }, 180000);
