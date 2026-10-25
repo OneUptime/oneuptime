@@ -109,6 +109,13 @@ export interface SecurityCaseQueueView {
    * yours already, nor Closed Cases, where nobody works a case any more.
    */
   canAssignToMe: boolean;
+  /*
+   * Whether Assign to Someone Else is among the actions on the cases
+   * selected: every list cases are worked from, Assigned to Me among them -
+   * handing your cases on is what it is for there. Not Closed Cases, where
+   * nobody works a case any more.
+   */
+  canAssignToSomeoneElse: boolean;
   columns: ReadonlyArray<SecurityCaseQueueColumn>;
   // Columns the list draws only once someone turns them on.
   hiddenColumns: ReadonlyArray<SecurityCaseQueueColumn>;
@@ -167,6 +174,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: true,
     canOpenCase: true,
     canAssignToMe: true,
+    canAssignToSomeoneElse: true,
     columns: OPEN_COLUMNS,
     hiddenColumns: ["labels"],
     filters: OPEN_FILTERS,
@@ -186,6 +194,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: false,
     canOpenCase: false,
     canAssignToMe: false,
+    canAssignToSomeoneElse: true,
     // Every case here is yours: no Assignee column saying so on each row.
     columns: withoutColumn(OPEN_COLUMNS, "assignee"),
     hiddenColumns: ["labels"],
@@ -206,6 +215,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canOpenCase: false,
     // Taking a case on is what this page is for.
     canAssignToMe: true,
+    canAssignToSomeoneElse: true,
     /*
      * No case here has a person on it, so an Assignee column would say
      * Unassigned on every row. A case handed to a team waits here too, and
@@ -235,6 +245,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: false,
     canOpenCase: false,
     canAssignToMe: false,
+    canAssignToSomeoneElse: false,
     columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
     hiddenColumns: ["labels"],
     filters: [
@@ -262,6 +273,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: false,
     canOpenCase: true,
     canAssignToMe: true,
+    canAssignToSomeoneElse: true,
     columns: [
       "case",
       "priority",

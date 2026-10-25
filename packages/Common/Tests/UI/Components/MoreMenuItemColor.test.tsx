@@ -103,7 +103,7 @@ describe("MoreMenuItem color", () => {
     const dot: HTMLElement = dotOf(screen.getByRole("menuitem"))!;
 
     // The same 16px box and 10px gap the item's icon has.
-    expect(dot).toHaveClass("h-4", "w-4", "mr-2.5", "shrink-0");
+    expect(dot).toHaveClass("h-4", "w-4", "me-2.5", "shrink-0");
     // The same dot the state dropdowns draw.
     expect(dot.querySelector("span")).toHaveClass(
       "h-2.5",
@@ -149,7 +149,7 @@ describe("MoreMenuItem color", () => {
     );
 
     expect(
-      container.querySelector('span.mr-2\\.5.h-4.w-4[aria-hidden="true"]'),
+      container.querySelector('span.me-2\\.5.h-4.w-4[aria-hidden="true"]'),
     ).not.toBeNull();
     expect(dotOf(screen.getByRole("menuitem"))).toBeNull();
   });
@@ -165,7 +165,7 @@ describe("MoreMenuItem color", () => {
     );
 
     expect(
-      container.querySelectorAll('span.mr-2\\.5.h-4.w-4[aria-hidden="true"]'),
+      container.querySelectorAll('span.me-2\\.5.h-4.w-4[aria-hidden="true"]'),
     ).toHaveLength(1);
   });
 

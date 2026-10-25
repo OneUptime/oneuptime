@@ -48,13 +48,21 @@ export function statusChangedMarkdown(data: {
   from: string;
   to: string;
   verdict?: string | undefined;
+  /*
+   * The case was closed and now is open (SecurityCaseStatuses'
+   * getStatusChange): read off where the statuses sit in the project's
+   * list, so leaving a closing status of the project's own ("Closed -
+   * Duplicate") reads as a reopen too. Left out, a move from a status named
+   * Closed is one.
+   */
+  reopens?: boolean | undefined;
   playbookName?: string | undefined;
 }): MarkdownText {
   if (data.verdict) {
     return mdText`✅ Closed as **${data.verdict}**${byPlaybook(data.playbookName)}.`;
   }
 
-  if (data.from === "Closed") {
+  if (data.reopens ?? data.from === "Closed") {
     return mdText`↩️ Reopened as **${data.to}**${byPlaybook(data.playbookName)}.`;
   }
 

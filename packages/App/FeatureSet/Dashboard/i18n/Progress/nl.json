@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34545,
-    "untranslated": 16646
+    "keys": 34620,
+    "untranslated": 16619
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -47,6 +47,7 @@
     "Label: {{name}}",
     "Locks",
     "Marketplace",
+    "Matrix",
     "Merge request !{{number}}",
     "Model",
     "Monitor",

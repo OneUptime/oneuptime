@@ -285,18 +285,36 @@ function statusOf(name: string): string {
   return within(rowOf(name)).getByTestId("pill").textContent || "";
 }
 
-// The row's one button, beside its ⋯ menu.
-function rowButtonOf(name: string): string {
+// The buttons the page's own actions put on a row, beside its ⋯ menu.
+function rowButtonsOf(name: string): Array<string> {
   const actions: HTMLElement = within(rowOf(name)).getByTestId("row-actions");
-  const buttons: Array<HTMLElement> = within(actions)
-    .getAllByRole("button")
+
+  return within(actions)
+    .queryAllByRole("button")
     .filter((button: HTMLElement): boolean => {
       return button.getAttribute("data-testid") !== "row-actions-more-button";
+    })
+    .map((button: HTMLElement): string => {
+      return button.textContent || "";
     });
+}
+
+// The row's one button, beside its ⋯ menu.
+function rowButtonOf(name: string): string {
+  const buttons: Array<string> = rowButtonsOf(name);
 
   expect(buttons).toHaveLength(1);
 
-  return buttons[0]!.textContent || "";
+  return buttons[0]!;
+}
+
+// What the row's ⋯ menu holds, opened.
+function rowMenuOf(name: string): Array<string> {
+  fireEvent.click(within(rowOf(name)).getByTestId("row-actions-more-button"));
+
+  return screen.getAllByRole("menuitem").map((item: HTMLElement): string => {
+    return (item.textContent || "").trim();
+  });
 }
 
 function table(name: string): CapturedTable {
@@ -386,7 +404,7 @@ describe("the threat intel feeds table says whether each feed works", () => {
     expect(statusOf("Commercial feed (trial)")).toBe("Disabled");
   });
 
-  test("a feed with something to read leads its row with View Error; the rest keep Create Monitor", () => {
+  test("a feed with something to read leads its row with View Error; Create Monitor waits in every row's menu", () => {
     renderPage("threat-intel");
 
     for (const name of [
@@ -400,11 +418,17 @@ describe("the threat intel feeds table says whether each feed works", () => {
     }
 
     for (const name of ["Partner ISAC", "Botnet C2 list"]) {
-      expect(rowButtonOf(name)).toBe("Create Monitor");
+      /*
+       * Nothing of the page's own leads the row: the table's Edit does (it
+       * stands aside in this suite, as the table does).
+       */
+      expect(rowButtonsOf(name)).toEqual([]);
       expect(
         within(rowOf(name)).queryByRole("button", { name: "View Error" }),
       ).toBeNull();
     }
+
+    expect(rowMenuOf("Partner ISAC")).toContain("Create Monitor");
   });
 
   test("View Error shows the poll's and the check's messages in full, each under its column's name, each to copy", () => {
@@ -583,7 +607,8 @@ describe("the detection rules table says whether each rule works", () => {
     renderPage("detection-rules");
 
     expect(rowButtonOf("Password spraying")).toBe("View Error");
-    expect(rowButtonOf("Account locked out")).toBe("Create Monitor");
+    // Create Monitor is set up once: it waits in the row's menu, Edit leads.
+    expect(rowButtonsOf("Account locked out")).toEqual([]);
 
     fireEvent.click(
       within(rowOf("Brute force from one IP address")).getByRole("button", {
@@ -605,7 +630,12 @@ describe("the detection rules table says whether each rule works", () => {
     ).toBeInTheDocument();
   });
 
-  test("when it last fired comes first; the interval and Last Error wait in Customize Columns", () => {
+  /*
+   * Two columns of full dates (Last Match and Last Evaluated, some 210px
+   * each) ran the table past its card at 1280, Last Evaluated under the
+   * row's buttons. Whether a rule runs, its Status says.
+   */
+  test("when it last fired comes first; Last Evaluated, the interval and Last Error wait in Customize Columns", () => {
     renderPage("detection-rules");
 
     expect(columnTitles("DetectionRule", "shown")).toEqual([
@@ -613,12 +643,46 @@ describe("the detection rules table says whether each rule works", () => {
       "Type",
       "Status",
       "Last Match",
-      "Last Evaluated",
     ]);
     expect(columnTitles("DetectionRule", "hidden")).toEqual([
+      "Last Evaluated",
       "Interval (Minutes)",
       "Last Error",
     ]);
+  });
+
+  test("Last Match says how long ago, with the date and time under the pointer, or Never in grey", () => {
+    const matchedAt: Date = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    mockRows.set("DetectionRule", [
+      rule({ name: "Spray, then a success", lastMatchAt: matchedAt }),
+      rule({ name: "Account locked out", lastEvaluatedAt: POLLED_AT }),
+    ]);
+
+    renderPage("detection-rules");
+
+    const matched: HTMLElement = within(
+      screen.getByTestId("Spray, then a success"),
+    ).getByTestId("relative-time-cell");
+    expect(matched).toHaveTextContent("4 hours ago");
+    expect(matched.getAttribute("title")).toBeTruthy();
+    expect(matched.getAttribute("title")).not.toBe("4 hours ago");
+
+    const never: HTMLElement = within(
+      screen.getByTestId("Account locked out"),
+    ).getByTestId("relative-time-cell");
+    expect(never).toHaveTextContent("Never");
+    expect(never.className).toContain("text-gray-400");
+
+    // Sortable still: the column is the rule's lastMatchAt.
+    const lastMatch: CapturedColumn | undefined = table(
+      "DetectionRule",
+    ).columns.find((column: CapturedColumn): boolean => {
+      return column.title === "Last Match";
+    });
+    expect(lastMatch?.field).toEqual({ lastMatchAt: true });
+    expect(
+      (lastMatch as { disableSort?: boolean } | undefined)?.disableSort,
+    ).toBeFalsy();
   });
 });
 

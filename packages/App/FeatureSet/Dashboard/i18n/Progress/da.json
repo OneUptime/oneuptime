@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34545,
-    "untranslated": 16587
+    "keys": 34620,
+    "untranslated": 16560
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -34,6 +34,7 @@
     "Interface",
     "Interfaces",
     "Link",
+    "Matrix",
     "Merge request !{{number}}",
     "Model",
     "Note",

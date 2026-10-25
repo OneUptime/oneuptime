@@ -7,6 +7,7 @@ import SecurityCaseApi, {
 } from "../../Components/SecurityCase/SecurityCaseApi";
 import { SecurityOverviewValue } from "../../Components/SecurityCase/SecurityCaseApiTypes";
 import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/SecurityEntityChips";
+import { ATTACK_COVERAGE_QUERY_KEYS } from "../../Components/SecurityEvents/AttackCoverageCopy";
 import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
@@ -383,7 +384,10 @@ const SecurityOverviewPage: FunctionComponent<
         label: describeMitreId(tactic.tacticId),
         count: tactic.count,
         color: "#e11d48",
-        to: route(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE),
+        // ATT&CK Coverage, opened on this tactic.
+        to: route(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE).addQueryParams({
+          [ATTACK_COVERAGE_QUERY_KEYS.tactic]: tactic.tacticId,
+        }),
       };
     },
   );
@@ -539,9 +543,15 @@ const SecurityOverviewPage: FunctionComponent<
             ]}
           </EventStatBar>
 
+          {/*
+           * Every card fills its row (fillHeight), so each row of cards ends
+           * on one line, as Home's do, rather than a short card leaving the
+           * page showing under it beside a tall one.
+           */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <Card
               title="Cases Opened"
+              fillHeight={true}
               description="New cases each day over the last 30 days, by priority."
             >
               <StackedDayBars
@@ -552,6 +562,7 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Detections"
+              fillHeight={true}
               description="New detections each day over the last 14 days, by what raised them."
             >
               <StackedDayBars
@@ -570,6 +581,7 @@ const SecurityOverviewPage: FunctionComponent<
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             <Card
               title="Open Cases"
+              fillHeight={true}
               description="The queue right now, by priority and by where each case stands."
             >
               <div className="space-y-5">
@@ -589,6 +601,7 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Verdicts"
+              fillHeight={true}
               description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
             >
               <RankedBars
@@ -600,6 +613,7 @@ const SecurityOverviewPage: FunctionComponent<
             <div className="md:col-span-2 xl:col-span-1">
               <Card
                 title="MITRE ATT&CK Tactics"
+                fillHeight={true}
                 description="The attacker goals behind the cases of the last 30 days."
               >
                 <RankedBars
@@ -613,6 +627,7 @@ const SecurityOverviewPage: FunctionComponent<
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card
               title="Top Detections"
+              fillHeight={true}
               description="The rules and sources that raised the most detections in the last 14 days."
             >
               <RankedBars
@@ -622,6 +637,7 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Riskiest Entities"
+              fillHeight={true}
               description="The users, hosts and addresses named by the most findings in the last 7 days. Open one to see everything it touched."
             >
               <RankedBars

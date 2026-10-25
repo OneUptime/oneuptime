@@ -868,12 +868,16 @@ describe("the real source roots", () => {
 
   /*
    * A skipped file that is renamed or moved would be extracted again under
-   * its new name, and the license server's enterprise-only column titles
-   * would reach every locale file, which a test in ee/ refuses.
+   * its new name: the license server's enterprise-only column titles would
+   * reach every locale file, which a test in ee/ refuses, and so would the
+   * instance's backups (#5241), which only the Enterprise Admin Dashboard
+   * shows, in words of its own (ee/AdminDashboard/Backups).
    */
-  test("skip only the license server's own table, by a path that exists", () => {
+  test("skip only the license server's own table and the instance's backups, by paths that exist", () => {
     expect([...SKIPPED_SOURCE_FILES]).toEqual([
       "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
+      "packages/Common/Models/DatabaseModels/BackupSetting.ts",
+      "packages/Common/Models/DatabaseModels/BackupRun.ts",
     ]);
 
     for (const file of SKIPPED_SOURCE_FILES) {

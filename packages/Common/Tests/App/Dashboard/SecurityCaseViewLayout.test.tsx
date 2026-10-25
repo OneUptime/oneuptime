@@ -39,7 +39,8 @@ import {
  * pages and handed to the page below; what the actions do from any page
  * (Assign to Me, Close Case asking for the verdict first, Run Playbook -
  * also on the playbook OneUptime AI suggested -, Declare Incident, Edit
- * Case, the priority from the ⋯, Delete Case from the ⋯ or its own page);
+ * Case, the priority from the ⋯, Assign to Someone Else and Change Status
+ * from the ⋯, Delete Case from the ⋯ or its own page);
  * a save that fails; a colleague's change reading the case again; a case
  * that is not there, that the reader may not read, or that cannot be read;
  * and moving from one case to another.
@@ -167,6 +168,105 @@ jest.mock(
       CloseSecurityCaseModal: stub("close-case-dialog"),
       RunSecurityPlaybookModal: stub("run-playbook-dialog"),
       DeclareIncidentFromCaseModal: stub("declare-incident-dialog"),
+    };
+  },
+);
+
+/*
+ * Assign to Someone Else and Change Status (SecurityCaseChangeModals, drawn
+ * for real in SecurityCaseChangeModals.test.tsx): which cases each was
+ * opened on, buttons that hand a pick back as a person would, and the
+ * reason a save failed, as the real dialog shows it.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseChangeModals",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    type Pick = { label: string; value: unknown };
+
+    const stub: (
+      testId: string,
+      getPicks: (props: Record<string, unknown>) => Array<Pick>,
+    ) => (props: Record<string, unknown>) => React.ReactElement = (
+      testId: string,
+      getPicks: (props: Record<string, unknown>) => Array<Pick>,
+    ) => {
+      return (props: Record<string, unknown>): React.ReactElement => {
+        const [error, setError] = ReactModule.useState<string>("");
+        const cases: Array<{ caseNumberWithPrefix?: string }> = props[
+          "securityCases"
+        ] as Array<{ caseNumberWithPrefix?: string }>;
+
+        return ReactModule.createElement(
+          "div",
+          {
+            "data-testid": testId,
+            "data-cases": cases
+              .map((item: { caseNumberWithPrefix?: string }): string => {
+                return item.caseNumberWithPrefix || "";
+              })
+              .join(","),
+            "data-error": error,
+          },
+          ...getPicks(props).map((pick: Pick): React.ReactElement => {
+            return ReactModule.createElement(
+              "button",
+              {
+                key: pick.label,
+                type: "button",
+                onClick: async (): Promise<void> => {
+                  try {
+                    await (
+                      props["onSubmit"] as (value: unknown) => Promise<void>
+                    )(pick.value);
+                  } catch (err) {
+                    setError((err as Error).message);
+                  }
+                },
+              },
+              pick.label,
+            );
+          }),
+        );
+      };
+    };
+
+    return {
+      __esModule: true,
+      AssignSecurityCaseModal: stub("assign-dialog", () => {
+        return [
+          {
+            label: "pick-diego",
+            value: { userId: "80000000-0000-4000-8000-000000000002" },
+          },
+          {
+            label: "pick-soc-team",
+            value: { teamId: "81000000-0000-4000-8000-000000000001" },
+          },
+        ];
+      }),
+      ChangeSecurityCaseStatusModal: stub(
+        "status-dialog",
+        (props: Record<string, unknown>) => {
+          return (
+            props["values"] as {
+              statuses: Array<{ _id?: string; name?: string }>;
+            }
+          ).statuses.map((status: { _id?: string; name?: string }): Pick => {
+            return {
+              label: `status-${status.name}`,
+              value: {
+                statusId: status._id,
+                verdict: "False Positive",
+                closingNote: "Our own scanner.",
+              },
+            };
+          });
+        },
+      ),
     };
   },
 );
@@ -823,6 +923,175 @@ describe("the header's actions work from any page", () => {
     });
 
     expect(screen.queryByTestId("security-case-action-error")).toBeNull();
+  });
+});
+
+describe("assigning a case and moving its status from the ⋯", () => {
+  const DIEGO: string = "80000000-0000-4000-8000-000000000002";
+  const SOC_TEAM: string = "81000000-0000-4000-8000-000000000001";
+
+  async function openFromMore(testId: string): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-more"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(testId));
+    });
+  }
+
+  test("Assign to Someone Else opens on the case, saves the person picked and reads the case again", async () => {
+    await openCase("timeline");
+    const readsBefore: number = getItemCalls.length;
+
+    await openFromMore("security-case-assign-to-someone-else");
+
+    expect(screen.getByTestId("assign-dialog")).toHaveAttribute(
+      "data-cases",
+      "CASE-142",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("pick-diego"));
+    });
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        { id: CASE_ID, data: { assignedToUserId: DIEGO } },
+      ]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("assign-dialog")).toBeNull();
+    });
+    await waitFor(() => {
+      expect(getItemCalls.length).toBeGreaterThan(readsBefore);
+    });
+  });
+
+  test("handing the case to a team takes the person off it", async () => {
+    cases[CASE_ID] = buildCase({ assignedToUserId: new ObjectID(ME) });
+    await openCase("detections");
+
+    await openFromMore("security-case-assign-to-someone-else");
+    await act(async () => {
+      fireEvent.click(screen.getByText("pick-soc-team"));
+    });
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        {
+          id: CASE_ID,
+          data: { assignedToTeamId: SOC_TEAM, assignedToUserId: null },
+        },
+      ]);
+    });
+  });
+
+  test("Change Status, from a page with no status steps, closes the case with the verdict and the note", async () => {
+    await openCase("entities");
+
+    await openFromMore("security-case-change-status");
+
+    expect(screen.getByTestId("status-dialog")).toHaveAttribute(
+      "data-cases",
+      "CASE-142",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("status-Closed"));
+    });
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        {
+          id: CASE_ID,
+          data: {
+            securityCaseStatusId: testStatusId(
+              SecurityCaseStage.Closed,
+            ).toString(),
+            verdict: SecurityCaseVerdict.FalsePositive,
+            closingNote: "Our own scanner.",
+          },
+        },
+      ]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("status-dialog")).toBeNull();
+    });
+  });
+
+  test("Change Status to an open status moves the case there, with no verdict", async () => {
+    await openCase("notes");
+
+    await openFromMore("security-case-change-status");
+    await act(async () => {
+      fireEvent.click(screen.getByText("status-Contained"));
+    });
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        {
+          id: CASE_ID,
+          data: {
+            securityCaseStatusId: testStatusId(
+              SecurityCaseStage.Contained,
+            ).toString(),
+          },
+        },
+      ]);
+    });
+  });
+
+  test("a pick that leaves the case as it is saves nothing, and the dialog closes", async () => {
+    await openCase("timeline");
+
+    // The case is Investigating already.
+    await openFromMore("security-case-change-status");
+    await act(async () => {
+      fireEvent.click(screen.getByText("status-Investigating"));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("status-dialog")).toBeNull();
+    });
+    expect(updates).toEqual([]);
+  });
+
+  test("a save that fails stays in its dialog, saying why", async () => {
+    updateFailure = "You do not have permission to update this Security Case.";
+    await openCase("playbook-runs");
+
+    await openFromMore("security-case-assign-to-someone-else");
+    await act(async () => {
+      fireEvent.click(screen.getByText("pick-diego"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("assign-dialog")).toHaveAttribute(
+        "data-error",
+        updateFailure,
+      );
+    });
+    // Said in the dialog, not over the page.
+    expect(screen.queryByTestId("security-case-action-error")).toBeNull();
+  });
+
+  test("a closed case's ⋯ has no Assign to Someone Else", async () => {
+    cases[CASE_ID] = buildCase({
+      securityCaseStatusId: testStatusId(SecurityCaseStage.Closed),
+      verdict: SecurityCaseVerdict.TruePositive,
+    });
+    await openCase();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-more"));
+    });
+
+    expect(
+      screen.queryByTestId("security-case-assign-to-someone-else"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("security-case-change-status"),
+    ).toBeInTheDocument();
   });
 });
 

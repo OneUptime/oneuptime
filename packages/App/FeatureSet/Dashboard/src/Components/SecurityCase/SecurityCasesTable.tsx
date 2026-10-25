@@ -32,32 +32,25 @@ import {
   getSecurityCasePriorityOptions,
   getSecurityCaseStatusOptions,
 } from "./SecurityCaseValueOptions";
+import useSecurityCaseListActions, {
+  SecurityCaseListActions,
+} from "./useSecurityCaseListActions";
 import useSecurityCaseValues from "./useSecurityCaseValues";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
-import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Label from "Common/Models/DatabaseModels/Label";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriorityLevel from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
-import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
-import {
-  BulkActionButtonSchema,
-  BulkActionFailed,
-  BulkActionOnClickProps,
-} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -70,24 +63,21 @@ import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
-import API from "Common/UI/Utils/API/API";
+import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
-import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   // Which of the queue's pages this list is; the open cases when not given.
   view?: SecurityCaseQueueViewKey | undefined;
 }
-
-type BulkCaseChange = "status" | "priority";
 
 /*
  * Said after a Delete's question, in a row's dialog and a bulk one: closing
@@ -162,6 +152,12 @@ const CaseMoment: FunctionComponent<{ value: Date | undefined }> = (props: {
  * Which cases are open, and the priorities and statuses the lists filter
  * by and set, are the project's own (Security Events > Settings): the list
  * waits for them, and says so if they cannot be read.
+ *
+ * A case is worked from its row too: the row's ⋯ menu has Assign to Me,
+ * Assign to Someone Else, Change Status and Change Priority beside View,
+ * with Delete last, and Bulk Actions the same for the cases selected
+ * (useSecurityCaseListActions) - each by the rules the case's own page
+ * follows, and the list shows the change at once.
  */
 const SecurityCasesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -199,122 +195,43 @@ const SecurityCasesList: FunctionComponent<{
   const isAiOffered: boolean = useAiOffered();
   const view: SecurityCaseQueueView = props.view;
   const { priorities, statuses } = props.values;
-  // Where a case opened here starts, and what Change Status starts on.
+  // Where a case opened here starts.
   const defaultPriority: SecurityCasePriority | null =
     SecurityCasePriorities.getDefaultPriority(priorities);
-  const acknowledgedStatus: SecurityCaseStatus | null =
-    SecurityCaseStatuses.getStatusOfStage(
-      statuses,
-      SecurityCaseStage.Acknowledged,
-    );
-  const highPriority: SecurityCasePriority | null =
-    SecurityCasePriorities.getPriorityOfLevel(
-      priorities,
-      SecurityCasePriorityLevel.High,
-    );
-  const [refreshToggle, setRefreshToggle] = useState<string>("");
-  const [bulkChange, setBulkChange] = useState<BulkCaseChange | null>(null);
-  const [bulkActionProps, setBulkActionProps] =
-    useState<BulkActionOnClickProps<SecurityCase> | null>(null);
+  /*
+   * Read the list again: a count, never the time. Two changes in one
+   * millisecond - a bulk run ending as a row's change saves - or a page whose
+   * clock stands still would otherwise set the same value twice, and the
+   * second change would not be read back.
+   */
+  const [refreshCount, setRefreshCount] = useState<number>(0);
 
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-  // Write one change to every case selected, reporting each as it goes.
-  const applyToSelected: (
-    actionProps: BulkActionOnClickProps<SecurityCase>,
-    data: JSONObject,
-  ) => Promise<void> = async (
-    actionProps: BulkActionOnClickProps<SecurityCase>,
-    data: JSONObject,
-  ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      actionProps;
-
-    onBulkActionStart();
-
-    const inProgressItems: Array<SecurityCase> = [...items];
-    const successItems: Array<SecurityCase> = [];
-    const failed: Array<BulkActionFailed<SecurityCase>> = [];
-
-    for (const item of items) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
-        await ModelAPI.updateById<SecurityCase>({
-          modelType: SecurityCase,
-          id: new ObjectID(item._id!.toString()),
-          data: data,
-        });
-        successItems.push(item);
-      } catch (error) {
-        failed.push({ item, failedMessage: API.getFriendlyMessage(error) });
-      }
-
-      onProgressInfo({
-        totalItems: items,
-        failed,
-        successItems,
-        inProgressItems,
+  /*
+   * Each case's moves: in its row's ⋯ menu and, for the cases selected, in
+   * Bulk Actions. Assign to Me is a bulk action where cases are taken on -
+   * not on Assigned to Me, where every case is yours already, nor on Closed
+   * Cases - and Assign to Someone Else wherever cases are worked
+   * (SecurityCaseQueueViews.ts). Once a case changes, the list is read
+   * again - a case taken off Unassigned leaves it - and so are the side
+   * menu's counts.
+   */
+  const listActions: SecurityCaseListActions = useSecurityCaseListActions({
+    values: props.values,
+    canAssignToMeInBulk: view.canAssignToMe,
+    canAssignToSomeoneElseInBulk: view.canAssignToSomeoneElse,
+    onChanged: (): void => {
+      setRefreshCount((count: number): number => {
+        return count + 1;
       });
-    }
-
-    onBulkActionEnd();
-    setRefreshToggle(Date.now().toString());
-  };
+      GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
+    },
+  });
 
   const bulkActions: Array<
     BulkActionButtonSchema<SecurityCase> | ModalTableBulkDefaultActions
-  > = [
-    /*
-     * Not on Assigned to Me, where every case is already yours, nor on
-     * Closed Cases (SecurityCaseQueueViews.ts). On Unassigned it is the way
-     * to take cases on.
-     */
-    ...(!view.canAssignToMe
-      ? []
-      : [
-          {
-            title: "Assign to Me",
-            icon: IconProp.User,
-            buttonStyleType: ButtonStyleType.NORMAL,
-            onClick: async (
-              actionProps: BulkActionOnClickProps<SecurityCase>,
-            ): Promise<void> => {
-              await applyToSelected(actionProps, {
-                assignedToUserId: User.getUserId().toString(),
-              });
-            },
-          },
-        ]),
-    {
-      title: "Change Status",
-      icon: IconProp.ArrowCircleRight,
-      buttonStyleType: ButtonStyleType.NORMAL,
-      onClick: async (
-        actionProps: BulkActionOnClickProps<SecurityCase>,
-      ): Promise<void> => {
-        setBulkActionProps(actionProps);
-        setBulkChange("status");
-      },
-    },
-    {
-      title: "Change Priority",
-      icon: IconProp.Signal,
-      buttonStyleType: ButtonStyleType.NORMAL,
-      onClick: async (
-        actionProps: BulkActionOnClickProps<SecurityCase>,
-      ): Promise<void> => {
-        setBulkActionProps(actionProps);
-        setBulkChange("priority");
-      },
-    },
-    ModalTableBulkDefaultActions.Delete,
-  ];
-
-  const closeBulkModal: () => void = (): void => {
-    setBulkChange(null);
-    setBulkActionProps(null);
-  };
+  > = [...listActions.bulkActions, ModalTableBulkDefaultActions.Delete];
 
   // Every filter a case list may offer; each page offers the ones its cases answer.
   const filtersByKey: Record<SecurityCaseQueueFilter, Filter<SecurityCase>> = {
@@ -650,7 +567,7 @@ const SecurityCasesList: FunctionComponent<{
           projectId: projectId,
           ...getSecurityCaseQueueQuery(view.key, User.getUserId(), statuses),
         }}
-        refreshToggle={refreshToggle}
+        refreshToggle={refreshCount > 0 ? String(refreshCount) : ""}
         /*
          * Delete in each case's ⋯ menu and in Bulk Actions - one switch for
          * both. Its dialogs name the case as its page does, say what goes
@@ -668,6 +585,8 @@ const SecurityCasesList: FunctionComponent<{
         sortBy={view.sortBy}
         sortOrder={SortOrder.Descending}
         bulkActions={{ buttons: bulkActions }}
+        // Before the table's own Delete, which stays last.
+        actionButtons={listActions.rowActions}
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.SECURITY_CASES] as Route,
         )}
@@ -750,116 +669,30 @@ const SecurityCasesList: FunctionComponent<{
         ]}
         showRefreshButton={true}
         searchableFields={["title", "caseNumberWithPrefix"]}
+        /*
+         * What a row's moves read of its case: where it stands, how urgent,
+         * who has it and which team's queue it is in, and what Close Case
+         * starts its verdict on (the case's own, else OneUptime AI's read).
+         */
         selectMoreFields={{
           caseNumberWithPrefix: true,
           source: true,
           detectionCount: true,
           aiVerdict: true,
+          aiTriagePromptInjectionSuspected: true,
+          verdict: true,
+          securityCaseStatusId: true,
+          securityCasePriorityId: true,
+          assignedToUserId: true,
+          assignedToTeamId: true,
           assignedToTeam: { name: true, _id: true },
         }}
         filters={filters}
         columns={columns}
       />
 
-      {bulkChange && bulkActionProps ? (
-        <BasicFormModal<JSONObject>
-          title={
-            bulkChange === "status"
-              ? "Change Status of Selected Cases"
-              : "Change Priority of Selected Cases"
-          }
-          description={
-            bulkChange === "status"
-              ? "Every selected case moves to this status. Closing asks for a verdict, which is kept on each case."
-              : "Every selected case gets this priority."
-          }
-          submitButtonText={
-            bulkChange === "status" ? "Change Status" : "Change Priority"
-          }
-          onClose={closeBulkModal}
-          formProps={{
-            name: "security-case-bulk-change",
-            initialValues:
-              bulkChange === "status"
-                ? acknowledgedStatus?.id
-                  ? {
-                      securityCaseStatusId: acknowledgedStatus.id.toString(),
-                    }
-                  : {}
-                : highPriority?.id
-                  ? { securityCasePriorityId: highPriority.id.toString() }
-                  : {},
-            fields:
-              bulkChange === "status"
-                ? [
-                    {
-                      field: { securityCaseStatusId: true },
-                      title: "Status",
-                      fieldType: FormFieldSchemaType.Dropdown,
-                      required: true,
-                      dropdownOptions: getSecurityCaseStatusOptions(statuses),
-                    },
-                    {
-                      field: { verdict: true },
-                      title: "Verdict",
-                      fieldType: FormFieldSchemaType.Dropdown,
-                      required: true,
-                      description:
-                        "What the cases turned out to be. Kept for the overview's verdict counts.",
-                      dropdownOptions:
-                        DropdownUtil.getDropdownOptionsFromEnum(
-                          SecurityCaseVerdict,
-                        ),
-                      // A status that closes a case takes a verdict.
-                      showIf: (formValues: FormValues<JSONObject>): boolean => {
-                        return SecurityCaseStatuses.isClosed(
-                          statuses,
-                          formValues["securityCaseStatusId"] as string,
-                        );
-                      },
-                    },
-                  ]
-                : [
-                    {
-                      field: { securityCasePriorityId: true },
-                      title: "Priority",
-                      fieldType: FormFieldSchemaType.Dropdown,
-                      required: true,
-                      dropdownOptions:
-                        getSecurityCasePriorityOptions(priorities),
-                    },
-                  ],
-          }}
-          onSubmit={async (formValues: FormValues<JSONObject>) => {
-            const actionProps: BulkActionOnClickProps<SecurityCase> =
-              bulkActionProps;
-            const statusId: string =
-              (formValues["securityCaseStatusId"] as string) || "";
-            const data: JSONObject =
-              bulkChange === "status"
-                ? {
-                    securityCaseStatusId: statusId,
-                    ...(SecurityCaseStatuses.isClosed(statuses, statusId)
-                      ? {
-                          verdict:
-                            (formValues["verdict"] as string) ||
-                            SecurityCaseVerdict.Undetermined,
-                        }
-                      : {}),
-                  }
-                : {
-                    securityCasePriorityId: formValues[
-                      "securityCasePriorityId"
-                    ] as string,
-                  };
-
-            closeBulkModal();
-            await applyToSelected(actionProps, data);
-          }}
-        />
-      ) : (
-        <></>
-      )}
+      {/* Assign to Someone Else, Change Status and Change Priority. */}
+      {listActions.modals}
     </>
   );
 };
