@@ -19,6 +19,10 @@
  *                                                 values, long values, the
  *                                                 compact style and a card's
  *                                                 sections
+ *   /dashboard/<project>/card-rows               rows of cards of different
+ *                                                 heights (CardGrid) in the
+ *                                                 production Page beside a
+ *                                                 side menu
  *
  * Steered by the query string:
  *   - data=empty      every optional value is unset
@@ -54,6 +58,12 @@ import ProjectSettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Set
 import StatusPageOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Index";
 import TeamPage from "../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Index";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
+import Page from "Common/UI/Components/Page/Page";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import IconProp from "Common/Types/Icon/IconProp";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -893,9 +903,142 @@ function Gallery() {
   );
 }
 
+/*
+ * The card rows gallery (/dashboard/<project>/card-rows): rows of cards of
+ * different heights drawn with CardGrid, inside the production Page beside a
+ * side menu, so each grid has the room a product page's has at each window
+ * width. Two wide cards, three narrow ones, five (a last row of two), three
+ * wide ones (a last card alone), a card with nothing to list, and a detail
+ * card beside a long list.
+ */
+const CARD_ROWS_PATH = `/dashboard/${PROJECT_ID}/card-rows`;
+
+function rankedRows(count, label) {
+  return (
+    <ul className="space-y-2.5" data-testid="card-rows-list">
+      {Array.from({ length: count }, (_unused, index) => {
+        return (
+          <li key={index} className="flex items-baseline justify-between gap-3">
+            <span className="truncate text-sm text-gray-800">
+              {label} {index + 1}
+            </span>
+            <span className="text-sm font-semibold tabular-nums text-gray-900">
+              {(count - index) * 3}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function rowCard(title, count, label) {
+  return (
+    <Card
+      title={title}
+      description={`${count} ${count === 1 ? "row" : "rows"} of ${label}.`}
+    >
+      {rankedRows(count, label)}
+    </Card>
+  );
+}
+
+function CardRows() {
+  return (
+    <Page
+      title="Card rows"
+      breadcrumbLinks={[
+        { title: "Project", to: new Route(`/dashboard/${PROJECT_ID}`) },
+        { title: "Card rows", to: new Route(CARD_ROWS_PATH) },
+      ]}
+      sideMenu={
+        <SideMenu
+          items={[
+            {
+              link: { title: "Card rows", to: new Route(CARD_ROWS_PATH) },
+              icon: IconProp.Squares,
+            },
+            {
+              link: {
+                title: "Detail cards",
+                to: new Route(`/dashboard/${PROJECT_ID}/detail-cards`),
+              },
+              icon: IconProp.List,
+            },
+          ]}
+        />
+      }
+    >
+      <div className="space-y-5">
+        <CardGrid columns={2} dataTestId="rows-two-wide">
+          {rowCard("Riskiest hosts", 8, "host")}
+          {rowCard("Top rules", 2, "rule")}
+        </CardGrid>
+        <CardGrid columns={3} cardWidth="narrow" dataTestId="rows-three-narrow">
+          {rowCard("Two tactics", 2, "tactic")}
+          {rowCard("Eight priorities", 8, "priority")}
+          {rowCard("Four verdicts", 4, "verdict")}
+        </CardGrid>
+        <CardGrid columns={3} cardWidth="narrow" dataTestId="rows-five-narrow">
+          {rowCard("One", 1, "item")}
+          {rowCard("Two", 2, "item")}
+          {rowCard("Three", 3, "item")}
+          {rowCard("Four", 4, "item")}
+          {rowCard("Five", 5, "item")}
+        </CardGrid>
+        <CardGrid columns={2} dataTestId="rows-three-wide">
+          {rowCard("Producers", 6, "service")}
+          {rowCard("Consumers", 1, "service")}
+          {rowCard("Brokers", 3, "broker")}
+        </CardGrid>
+        <CardGrid columns={2} dataTestId="rows-nothing">
+          {rowCard("Riskiest entities", 6, "entity")}
+          <Card title="Top detections" description="The last 14 days.">
+            <p
+              data-testid="rows-nothing-sentence"
+              className={`${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`}
+            >
+              Nothing was detected in the last 14 days.
+            </p>
+          </Card>
+        </CardGrid>
+        <CardGrid columns={2} dataTestId="rows-detail">
+          {galleryCard({
+            testId: "rows-detail-card",
+            title: "A detail card",
+            description: "A CardModelDetail in a cell.",
+            modelId: GALLERY.two,
+            columns: 1,
+            fields: [
+              { field: { name: true }, title: "Name" },
+              { field: { pageTitle: true }, title: "Page title" },
+            ],
+          })}
+          {rowCard("Beside it", 9, "row")}
+        </CardGrid>
+      </div>
+    </Page>
+  );
+}
+
+function CardRowsShell(props) {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return props.children;
+}
+
 function Fixture() {
   return (
     <Routes>
+      <PageRoute
+        path="/dashboard/:projectId/card-rows"
+        element={
+          <CardRowsShell>
+            <CardRows />
+          </CardRowsShell>
+        }
+      />
       <PageRoute
         path="/dashboard/:projectId/user-settings/profile"
         element={

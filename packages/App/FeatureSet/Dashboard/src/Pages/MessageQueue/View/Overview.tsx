@@ -21,6 +21,7 @@ import React, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
@@ -673,7 +674,16 @@ const MessageQueueOverview: FunctionComponent<
         labels={q.labels}
       />
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+      {/*
+       * The services on each side of the queue, side by side where the
+       * page has the room: the shorter list's card runs to the row's
+       * bottom (CardGrid).
+       */}
+      <CardGrid
+        columns={2}
+        className="mt-6"
+        dataTestId="message-queue-services"
+      >
         <MessageQueueServicesCard
           side="producers"
           description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.producers}
@@ -692,7 +702,7 @@ const MessageQueueOverview: FunctionComponent<
           isLoading={telemetryLoading}
           queueHasSpans={hasSpans}
         />
-      </div>
+      </CardGrid>
 
       <div className="mt-6">
         <MessageQueueBrokerHealthSection

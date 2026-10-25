@@ -14,6 +14,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import { CARD_GRID_CELL_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -1000,10 +1001,15 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         </div>
       </div>
 
-      {/* Two-column: Errors + Slow Requests */}
+      {/*
+       * Two-column: Errors + Slow Requests. Each column is a cell of a
+       * card row (CARD_GRID_CELL_CLASS_NAME): its box runs to the row's
+       * bottom, so a short list beside a long one leaves no bare page
+       * under it.
+       */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Errors */}
-        <div>
+        <div className={CARD_GRID_CELL_CLASS_NAME}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500" />
@@ -1018,7 +1024,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             </div>
           </div>
           {recentErrorTraces.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
+            <div className="flex flex-col justify-center rounded-xl border border-gray-200 bg-white p-10 text-center">
               <div className="mx-auto w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mb-3">
                 <svg
                   className="h-5 w-5 text-green-500"
@@ -1085,7 +1091,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         </div>
 
         {/* Slowest Requests */}
-        <div>
+        <div className={CARD_GRID_CELL_CLASS_NAME}>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-amber-500" />
             <h3 className="text-base font-semibold text-gray-900">
@@ -1093,7 +1099,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             </h3>
           </div>
           {recentSlowTraces.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
+            <div className="flex flex-col justify-center rounded-xl border border-gray-200 bg-white p-10 text-center">
               <p className="text-sm text-gray-500">No traces in {rangeLabel}</p>
             </div>
           ) : (

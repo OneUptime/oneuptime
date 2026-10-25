@@ -58,6 +58,8 @@ import { InvestigationNotStartedCode } from "Common/Types/AI/InvestigationNotSta
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -1024,7 +1026,7 @@ function ResourceHotspotsCard(props: {
         </ul>
       ) : (
         <p
-          className="text-sm text-gray-500"
+          className={`${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`}
           data-testid={`${props.testId}-empty`}
         >
           {translator.translateText(props.emptyMessage)}
@@ -1041,7 +1043,11 @@ function MonitorsAndServicesCards(props: {
   const isIncident: boolean = props.subjectKind === "incident";
 
   return (
-    <div className="grid gap-x-5 lg:grid-cols-2">
+    /*
+     * Side by side where the page has the room, the shorter list's card
+     * as tall as the other (CardGrid).
+     */
+    <CardGrid columns={2} cardWidth="narrow" dataTestId="ai-insights-hotspots">
       <ResourceHotspotsCard
         title="Monitors that keep failing"
         description={
@@ -1068,7 +1074,7 @@ function MonitorsAndServicesCards(props: {
         testId="ai-insights-services"
         emptyMessage="No service came up more than once."
       />
-    </div>
+    </CardGrid>
   );
 }
 
