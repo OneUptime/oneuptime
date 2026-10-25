@@ -30,8 +30,11 @@ describe("a finding's title", () => {
 
     expect(title).toHaveTextContent(TITLE);
     expect(title.textContent).toBe(TITLE);
-    // http. server. request. and user. - not "12,000".
-    expect(title.querySelectorAll("wbr")).toHaveLength(4);
+    /*
+     * After http. server. and request. - the long name's dots; not inside
+     * "user.id", short enough for a line of its own, nor in "12,000".
+     */
+    expect(title.querySelectorAll("wbr")).toHaveLength(3);
     expect(screen.getByText(TITLE)).toBe(title);
   });
 

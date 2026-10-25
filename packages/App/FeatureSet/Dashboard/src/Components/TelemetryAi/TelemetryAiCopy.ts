@@ -460,6 +460,21 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     logsEmptyDescription: translationKey(
       "When OneUptime AI looks into a problem in your metrics or opens a pull request for it, it shows up here.",
     ),
+    /*
+     * What each investigation found, under it in Logs. No metric problem's
+     * pull request waits for the verdict, but it still says where the
+     * change belongs: the code, or a library, an agent or a collector
+     * outside it. A metric problem is never an expected error (the triage
+     * framings rule those verdicts out), so only these three are worded -
+     * in the words Exceptions' Logs use for them.
+     */
+    investigationVerdicts: {
+      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
+      [ErrorClass.Infrastructure]: translationKey(
+        "Found a cause outside the code",
+      ),
+      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
+    },
 
     switchesCardDescription: translationKey(
       "It works on problems in your metrics on its own. Turn it off if you do not want it to.",

@@ -634,6 +634,48 @@ describe("Exceptions' AI section", () => {
     ).toBeNull();
   });
 
+  test("Metrics' Logs say what each investigation found, in Exceptions' words, for the three verdicts a metric problem can reach", () => {
+    const verdicts: Readonly<Partial<Record<ErrorClass, string>>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].investigationVerdicts ||
+      {};
+    const exceptions: Readonly<Partial<Record<ErrorClass, string>>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception].investigationVerdicts ||
+      {};
+
+    expect(Object.keys(verdicts).sort()).toEqual(
+      [
+        ErrorClass.CodeFault,
+        ErrorClass.Infrastructure,
+        ErrorClass.Unknown,
+      ].sort(),
+    );
+
+    for (const verdict of [
+      ErrorClass.CodeFault,
+      ErrorClass.Infrastructure,
+      ErrorClass.Unknown,
+    ]) {
+      // One wording for one verdict, whichever lane's Logs say it.
+      expect(verdicts[verdict]).toBe(exceptions[verdict]);
+      expect(
+        getTelemetryAiLogVerdict(TelemetryAiLane.Metric, {
+          kind: TelemetryAiLogKind.Investigation,
+          classification: verdict,
+        }),
+      ).toBe(verdicts[verdict]);
+    }
+
+    // The expected errors are not a metric problem's: nothing is said.
+    for (const verdict of [ErrorClass.UserError, ErrorClass.ExpectedDenial]) {
+      expect(
+        getTelemetryAiLogVerdict(TelemetryAiLane.Metric, {
+          kind: TelemetryAiLogKind.Investigation,
+          classification: verdict,
+        }),
+      ).toBeNull();
+    }
+  });
+
   test("a lane opts in to saying verdicts: the Profiler's and Traces' Logs say none", () => {
     for (const lane of [TelemetryAiLane.Profile, TelemetryAiLane.Trace]) {
       expect(
