@@ -123,8 +123,21 @@ export function getSplitDescriptors(
         next[route.key] = {
           ...descriptor,
           options: { ...descriptor.options, headerShown: false },
+          /*
+           * In the list's place, with the list route's own navigation: what
+           * the empty pane opens is opened "from the list", so it fills the
+           * pane. (The web stack does not provide the route's context to a
+           * screen itself - only to its header - so it is provided here.)
+           */
           render: (): React.JSX.Element => {
-            return <EmptyDetail />;
+            return (
+              <NavigationProvider
+                route={descriptor.route}
+                navigation={descriptor.navigation}
+              >
+                <EmptyDetail />
+              </NavigationProvider>
+            );
           },
         };
         return;

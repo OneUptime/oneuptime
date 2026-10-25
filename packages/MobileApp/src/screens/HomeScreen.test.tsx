@@ -7,8 +7,14 @@ import {
   fireEvent,
   within,
 } from "@testing-library/react-native";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
 import HomeScreen from "./HomeScreen";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  resizeWindow,
+  setWindowSize,
+} from "../__tests__/windowSize";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { makeProject } from "../__tests__/testSupport";
@@ -1113,5 +1119,73 @@ describe("Home in light and dark appearance", () => {
     expect(
       screen.getByTestId("home-scroll").props.contentContainerStyle,
     ).toMatchObject({ padding: spacing.xl, gap: spacing.xxl });
+  });
+});
+
+describe("Home on a wide window", () => {
+  /*
+   * An unfolded foldable on its side, a tablet: the response queue (needs
+   * attention, on call) and service health (monitors, grouped events) stand
+   * side by side instead of one long column stretched across the screen.
+   * Held upright, a foldable gets one centred column. Either way the same
+   * cards are on the page, in the same order for a screen reader.
+   */
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  function columns(): Record<string, unknown> {
+    return (StyleSheet.flatten(screen.getByTestId("home-columns").props.style) ??
+      {}) as Record<string, unknown>;
+  }
+
+  test("an unfolded foldable on its side puts the two halves of Home side by side", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreenOnItsSide);
+    await render(<HomeScreen />);
+
+    expect(columns()).toMatchObject({ flexDirection: "row" });
+    expect(screen.getByTestId("home-column-response")).toHaveStyle({ flex: 1 });
+    expect(screen.getByTestId("home-column-health")).toHaveStyle({ flex: 1 });
+    expect(
+      within(screen.getByTestId("home-column-response")).getByTestId(
+        "home-oncall-card",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("home-column-health")).getByTestId(
+        "home-service-health",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("held upright, the same foldable gets one centred column of readable width", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await render(<HomeScreen />);
+
+    const gutter: number = (884 - 80 - 720) / 2;
+    expect(columns()).toMatchObject({ flexDirection: "column" });
+    expect(
+      screen.getByTestId("home-scroll").props.contentContainerStyle,
+    ).toMatchObject({ paddingLeft: gutter, paddingRight: gutter });
+  });
+
+  test("a phone keeps its one column and its 20-point gutters", async () => {
+    setWindowSize(TEST_WINDOWS.coverScreen);
+    await render(<HomeScreen />);
+
+    expect(columns()).toMatchObject({ flexDirection: "column" });
+    expect(
+      screen.getByTestId("home-scroll").props.contentContainerStyle,
+    ).toMatchObject({ paddingLeft: 20, paddingRight: 20 });
+  });
+
+  test("rotating the foldable moves the cards between layouts without losing them", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await render(<HomeScreen />);
+    await resizeWindow(TEST_WINDOWS.innerScreenOnItsSide);
+
+    expect(columns()).toMatchObject({ flexDirection: "row" });
+    expect(screen.getByTestId("home-tile-incidents")).toBeTruthy();
+    expect(screen.getByTestId("home-grouped-events")).toBeTruthy();
   });
 });

@@ -19,7 +19,7 @@ import {
 import { ProjectProvider, useActiveProject } from "../hooks/useProject";
 import { fetchProjects } from "../api/projects";
 import { makeListResponse, makeProject } from "../__tests__/testSupport";
-import ProjectSwitcher from "./ProjectSwitcher";
+import ProjectSwitcher, { ProjectSwitcherHost } from "./ProjectSwitcher";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors, type ColorTokens } from "../theme/colors";
 import { radius } from "../theme/tokens";
@@ -612,6 +612,106 @@ describe("In dark mode", () => {
     expect(sheet.width).toBe("100%");
     expect(flatStyle(screen.getByTestId("project-switcher")).maxWidth).toBe(
       192,
+    );
+  });
+});
+
+describe("One project sheet for the whole app", () => {
+  /*
+   * On a foldable the headers move: the list's header belongs to the stack
+   * on the cover screen and to the list pane when unfolded. The sheet lives
+   * in a host above the navigation, so it stays open - mid-search - while
+   * the header that opened it is taken away and drawn again elsewhere.
+   */
+  function hosted(headers: number): React.JSX.Element {
+    return (
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 59, bottom: 34, left: 0, right: 0 }}
+      >
+        <ProjectProvider>
+          <ProjectSwitcherHost>
+            <View>
+              {Array.from({ length: headers }, (_: unknown, index: number) => {
+                return (
+                  <View key={index} testID={`header-${index}`}>
+                    <ProjectSwitcher />
+                  </View>
+                );
+              })}
+              <ProjectConsumer />
+            </View>
+          </ProjectSwitcherHost>
+        </ProjectProvider>
+      </SafeAreaInsetsContext.Provider>
+    );
+  }
+
+  test("however many headers show the switcher, they open one and the same sheet", async () => {
+    await render(hosted(2));
+    await screen.findAllByLabelText(
+      `Switch project, current project ${first.name}`,
+    );
+
+    await fireEvent.press(
+      within(screen.getByTestId("header-1")).getByTestId("project-switcher"),
+    );
+
+    expect(
+      screen.getAllByRole("header", { name: "Switch project" }),
+    ).toHaveLength(1);
+    for (const button of screen.getAllByTestId("project-switcher")) {
+      expect(button.props.accessibilityState.expanded).toBe(true);
+    }
+  });
+
+  test("the sheet and its search outlive the header that opened it", async () => {
+    const view: Awaited<ReturnType<typeof render>> = await render(hosted(1));
+    await screen.findByLabelText(
+      `Switch project, current project ${first.name}`,
+    );
+    await fireEvent.press(screen.getByTestId("project-switcher"));
+    await fireEvent.changeText(
+      screen.getByLabelText("Search projects to switch"),
+      "Beta",
+    );
+
+    // The fold: the header that held the switcher goes away.
+    await view.rerender(hosted(0));
+
+    expect(screen.queryByTestId("project-switcher")).toBeNull();
+    expect(screen.getByRole("header", { name: "Switch project" })).toBeTruthy();
+    expect(screen.getByLabelText("Search projects to switch").props.value).toBe(
+      "Beta",
+    );
+
+    // Drawn again in its new place, the switcher reports the sheet as open.
+    await view.rerender(hosted(1));
+    expect(
+      screen.getByTestId("project-switcher").props.accessibilityState.expanded,
+    ).toBe(true);
+
+    await fireEvent.press(screen.getByRole("radio", { name: second.name }));
+    expect(screen.getByTestId("visible-projects").props.children).toBe(
+      second._id,
+    );
+    expect(screen.queryByRole("header", { name: "Switch project" })).toBeNull();
+  });
+
+  test("closing the sheet resets its search for next time", async () => {
+    await render(hosted(1));
+    await screen.findByLabelText(
+      `Switch project, current project ${first.name}`,
+    );
+    await fireEvent.press(screen.getByTestId("project-switcher"));
+    await fireEvent.changeText(
+      screen.getByLabelText("Search projects to switch"),
+      "Beta",
+    );
+    await fireEvent.press(screen.getByLabelText("Close project switcher"));
+    await fireEvent.press(screen.getByTestId("project-switcher"));
+
+    expect(screen.getByLabelText("Search projects to switch").props.value).toBe(
+      "",
     );
   });
 });

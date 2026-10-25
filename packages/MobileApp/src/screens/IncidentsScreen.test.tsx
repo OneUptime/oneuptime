@@ -7,8 +7,14 @@ import {
   waitFor,
   act,
 } from "@testing-library/react-native";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
 import IncidentsScreen from "./IncidentsScreen";
+import { ListPaneProvider, PaneStateScope } from "../navigation/paneState";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  setWindowSize,
+} from "../__tests__/windowSize";
 import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
 import { useAllProjectIncidentEpisodes } from "../hooks/useAllProjectIncidentEpisodes";
 import { useAllProjectIncidentStates } from "../hooks/useAllProjectIncidentStates";
@@ -1940,6 +1946,228 @@ describe("The acknowledge swipe reads the order of the project's states (utils/a
       PROJECT_ID,
       "incident-1",
       ACKNOWLEDGED_STATE_ID,
+    );
+  });
+});
+
+describe("Beside a detail pane, on a wide window", () => {
+  function besideDetail(
+    selection: { name: string; params?: object } | null,
+  ): React.JSX.Element {
+    return (
+      <ListPaneProvider selection={selection}>
+        <IncidentsScreen embedded />
+      </ListPaneProvider>
+    );
+  }
+
+  test("the incident open on the right is marked in the list, and only that one", async () => {
+    mockIncidents.current = incidentsWith({
+      items: [activeIncident(), resolvedIncident()],
+    });
+    await render(
+      besideDetail({
+        name: "IncidentDetail",
+        params: { incidentId: "incident-1", projectId: PROJECT_ID },
+      }),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeSelected();
+    expect(
+      screen.getByLabelText(
+        "Incident #8, Search latency spike. State: Closed out. Severity: Critical.",
+      ),
+    ).not.toBeSelected();
+  });
+
+  test("an alert open on the right marks no incident", async () => {
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    await render(
+      besideDetail({
+        name: "AlertDetail",
+        params: { alertId: "incident-1", projectId: PROJECT_ID },
+      }),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).not.toBeSelected();
+  });
+
+  test("rows open on the right, so they lose their forward chevron", async () => {
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    await render(besideDetail(null), {
+      wrapper: createQueryWrapper(createTestQueryClient()),
+    });
+
+    expect(screen.queryAllByTestId("response-row-chevron")).toHaveLength(0);
+  });
+
+  test("an open episode is marked in the episodes view", async () => {
+    mockEpisodes.current = episodesWith({ items: [activeEpisode()] });
+    await render(
+      besideDetail({
+        name: "IncidentEpisodeDetail",
+        params: { episodeId: activeEpisode().item._id, projectId: PROJECT_ID },
+      }),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
+
+    expect(screen.getAllByRole("button").some(
+      (button: ReturnType<typeof screen.getByRole>): boolean => {
+        return (
+          button.props.accessibilityState?.selected === true &&
+          String(button.props.accessibilityLabel).startsWith("Incident episode")
+        );
+      },
+    )).toBe(true);
+  });
+
+  test("on a phone the rows keep their chevrons and nothing is marked", async () => {
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    await renderIncidentsScreen();
+
+    expect(screen.getAllByTestId("response-row-chevron").length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).not.toBeSelected();
+  });
+});
+
+describe("Drawn afresh in another pane after a fold", () => {
+  /*
+   * A fold moves the list between the stack and the list pane, which draws it
+   * again from nothing. Its view state lives in the navigator's pane state,
+   * so it comes back as the reader left it - and the route params it had
+   * already applied are not applied a second time over the reader's changes.
+   */
+  function scoped(showList: boolean): React.JSX.Element {
+    return (
+      <PaneStateScope scope="inbox-list-route">
+        {showList ? <IncidentsScreen embedded /> : null}
+      </PaneStateScope>
+    );
+  }
+
+  test("the search, the filter and the segment come back", async () => {
+    mockIncidents.current = incidentsWith({
+      items: [activeIncident(), resolvedIncident()],
+    });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      scoped(true),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "checkout",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Active only" }));
+    await view.rerender(scoped(false));
+    await view.rerender(scoped(true));
+
+    expect(screen.getByLabelText("Search incidents and episodes")).toHaveProp(
+      "value",
+      "checkout",
+    );
+    expect(screen.getByRole("button", { name: "Active only" })).toBeSelected();
+    expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeTruthy();
+    expect(screen.queryByText("Search latency spike")).toBeNull();
+  });
+
+  test("params it already applied are not applied again over what the reader changed", async () => {
+    mockRoute.params = { initialSegment: "incidents", initialFilter: "active" };
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      scoped(true),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    expect(screen.getByRole("button", { name: "Active only" })).toBeSelected();
+
+    await fireEvent.press(screen.getByRole("button", { name: "All states" }));
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "checkout",
+    );
+    await view.rerender(scoped(false));
+    await view.rerender(scoped(true));
+
+    expect(screen.getByRole("button", { name: "All states" })).toBeSelected();
+    expect(screen.getByLabelText("Search incidents and episodes")).toHaveProp(
+      "value",
+      "checkout",
+    );
+  });
+
+  test("new params - a Home shortcut, another tab - still apply", async () => {
+    mockRoute.params = { initialSegment: "incidents", initialFilter: "active" };
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      scoped(true),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "checkout",
+    );
+
+    mockRoute.params = { initialSegment: "incidents", initialFilter: "resolved" };
+    await view.rerender(scoped(false));
+    await view.rerender(scoped(true));
+
+    expect(screen.getByRole("button", { name: "Resolved only" })).toBeSelected();
+    expect(screen.getByLabelText("Search incidents and episodes")).toHaveProp(
+      "value",
+      "",
+    );
+  });
+
+  test("a different list (after a reset) starts afresh", async () => {
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <PaneStateScope scope="first-list">
+        <IncidentsScreen embedded />
+      </PaneStateScope>,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "checkout",
+    );
+
+    await view.rerender(
+      <PaneStateScope scope="second-list">
+        <IncidentsScreen embedded key="second" />
+      </PaneStateScope>,
+    );
+
+    expect(screen.getByLabelText("Search incidents and episodes")).toHaveProp(
+      "value",
+      "",
+    );
+  });
+});
+
+describe("On a wide window", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test("the list's content keeps to a readable width, centred in the pane", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreenOnItsSide);
+    mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+    await renderIncidentsScreen();
+
+    const gutter: number = (1104 - 80 - 720) / 2;
+    expect(
+      screen.getByTestId("response-list").props.contentContainerStyle,
+    ).toEqual(
+      expect.objectContaining({
+        padding: spacing.xl,
+        paddingLeft: gutter,
+        paddingRight: gutter,
+      }),
     );
   });
 });

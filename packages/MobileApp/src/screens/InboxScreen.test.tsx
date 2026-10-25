@@ -1,8 +1,14 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import InboxScreen from "./InboxScreen";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  resizeWindow,
+  setWindowSize,
+} from "../__tests__/windowSize";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { withAlpha } from "../utils/color";
 
@@ -138,6 +144,41 @@ beforeEach(() => {
   mockColorScheme = "light";
   mockRoute.params = undefined;
   mockNavigationState.current = { index: 0, routes: [{ name: "InboxList" }] };
+});
+
+describe("On a short window - a phone on its side", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test("the page title gives its height to the list; the categories stay", async () => {
+    /*
+     * 393 points tall, less a header and the home indicator: the rail beside
+     * the Inbox already says where the reader is, so the title goes and the
+     * list starts higher.
+     */
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await renderInbox();
+
+    expect(screen.queryByRole("header", { name: "Inbox" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Incidents" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Alerts" })).toBeTruthy();
+  });
+
+  test("turning the phone upright brings the title back", async () => {
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await renderInbox();
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+
+    expect(screen.getByRole("header", { name: "Inbox" })).toBeTruthy();
+  });
+
+  test("an unfolded foldable keeps the title, and its gutters follow the pane", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await renderInbox();
+
+    expect(screen.getByRole("header", { name: "Inbox" })).toBeTruthy();
+  });
 });
 
 describe("What the Inbox shows", () => {

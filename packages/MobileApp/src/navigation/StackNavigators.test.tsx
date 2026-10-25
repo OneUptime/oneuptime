@@ -6,8 +6,13 @@ import {
   type NavigationContainerRefWithCurrent,
   type ParamListBase,
 } from "@react-navigation/native";
-import { act, render, screen } from "@testing-library/react-native";
+import { act, render, screen, within } from "@testing-library/react-native";
 import { afterEach, describe, expect, test, jest } from "@jest/globals";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  setWindowSize,
+} from "../__tests__/windowSize";
 import {
   ThemeProvider,
   darkColors,
@@ -740,6 +745,61 @@ for (const stack of CONTENT_STACKS) {
     });
   });
 }
+
+describe("On a window wide enough for two panes", () => {
+  /*
+   * An unfolded foldable, a tablet or phone on its side: the three stacks
+   * whose first screen is a list (Inbox, Monitors, On-Call) set it beside the
+   * screen it opens. Settings is a page of switches with three sub-pages, so
+   * it stays one centred column - a pane of switches beside an empty pane
+   * would waste the screen it was meant to use.
+   */
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test.each([
+    ["Inbox", <InboxStackNavigator key="inbox" />, "screen-inbox-list"],
+    ["Monitors", <MonitorsStackNavigator key="monitors" />, "screen-monitors-list"],
+    ["On-Call", <OnCallStackNavigator key="oncall" />, "screen-on-call-overview"],
+  ])(
+    "the %s list sits beside its detail pane",
+    async (_name: string, element: React.JSX.Element, listTestID: string) => {
+      setWindowSize(TEST_WINDOWS.innerScreen);
+      await renderStack(element);
+
+      expect(
+        within(screen.getByTestId("list-pane")).getByTestId(listTestID),
+      ).toBeTruthy();
+      expect(screen.getByTestId("detail-pane-empty")).toBeTruthy();
+    },
+  );
+
+  test("Settings stays one column", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await renderStack(<SettingsStackNavigator />);
+
+    expect(screen.queryByTestId("list-pane")).toBeNull();
+    expect(screen.getByTestId("screen-settings-list")).toBeTruthy();
+  });
+
+  test("the cover form opens over the On-Call detail pane, not in it", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderStack(<OnCallStackNavigator />);
+
+    await goTo(navigationRef, "WhoIsOnCall");
+    await goTo(navigationRef, "CreateOnCallOverride");
+
+    expect(
+      (navigationRef.getRootState()?.routes ?? []).map(
+        (route: { name: string }): string => {
+          return route.name;
+        },
+      ),
+    ).toEqual(["OnCallOverview", "WhoIsOnCall", "CreateOnCallOverride"]);
+  });
+});
 
 const AUTH_ROUTES: Record<keyof AuthStackParamList, DeclaredRoute> = {
   ServerUrl: { testID: "screen-server-url" },

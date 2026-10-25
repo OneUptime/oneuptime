@@ -8,12 +8,15 @@ import {
   NAVIGATION_RAIL_WIDTH,
   READABLE_CONTENT_WIDTH,
   SCREEN_GUTTER,
+  TWO_COLUMN_MIN_WIDTH,
+  TWO_COLUMN_READABLE_WIDTH,
   ZERO_INSETS,
   computeWindowLayout,
   getContentGutters,
   getHeightClass,
   getReadableGutter,
   getWidthClass,
+  hasRoomForTwoColumns,
   type LayoutInsets,
   type WindowLayout,
 } from "./windowLayout";
@@ -317,6 +320,58 @@ describe("Keeping text and controls at a readable width", () => {
     expect(
       getContentGutters({ width: 390, insetLeft: 0, insetRight: 0 }),
     ).toEqual({ paddingLeft: 20, paddingRight: 20 });
+  });
+
+  test("a page in two columns gets a wider readable width, centred the same way", () => {
+    expect(getReadableGutter(1100, TWO_COLUMN_READABLE_WIDTH)).toBe(
+      (1100 - TWO_COLUMN_READABLE_WIDTH) / 2,
+    );
+    expect(
+      getContentGutters(
+        { width: 1024, insetLeft: 0, insetRight: 0 },
+        TWO_COLUMN_READABLE_WIDTH,
+      ),
+    ).toEqual({ paddingLeft: 20, paddingRight: 20 });
+  });
+
+  test.each([
+    [959, false],
+    [960, true],
+    [1024, true],
+  ] as Array<[number, boolean]>)(
+    "a %dpt pane has room for two columns: %s",
+    (width: number, expected: boolean) => {
+      expect(
+        hasRoomForTwoColumns({ width, insetLeft: 0, insetRight: 0 }),
+      ).toBe(expected);
+    },
+  );
+
+  test("two columns count only the space inside the safe area", () => {
+    expect(
+      hasRoomForTwoColumns({ width: 1000, insetLeft: 0, insetRight: 59 }),
+    ).toBe(false);
+    expect(TWO_COLUMN_MIN_WIDTH).toBe(960);
+  });
+
+  test("an unfolded Galaxy Z Fold on its side sets Home in two columns, held as a book in one", () => {
+    const wide: WindowLayout = computeWindowLayout({ width: 1104, height: 884 });
+    const book: WindowLayout = computeWindowLayout({ width: 884, height: 1104 });
+
+    expect(
+      hasRoomForTwoColumns({
+        width: wide.contentWidth,
+        insetLeft: 0,
+        insetRight: 0,
+      }),
+    ).toBe(true);
+    expect(
+      hasRoomForTwoColumns({
+        width: book.contentWidth,
+        insetLeft: 0,
+        insetRight: 0,
+      }),
+    ).toBe(false);
   });
 
   test("a 13-inch iPad's detail pane keeps its content to 720 points", () => {

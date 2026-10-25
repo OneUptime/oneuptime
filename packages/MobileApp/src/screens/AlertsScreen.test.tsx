@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import AlertsScreen from "./AlertsScreen";
+import { ListPaneProvider, PaneStateScope } from "../navigation/paneState";
 import { useAllProjectAlerts } from "../hooks/useAllProjectAlerts";
 import { useAllProjectAlertEpisodes } from "../hooks/useAllProjectAlertEpisodes";
 import { useAllProjectAlertStates } from "../hooks/useAllProjectAlertStates";
@@ -1912,5 +1913,82 @@ describe("The acknowledge swipe reads the order of the project's states (utils/a
       "alert-1",
       ACKNOWLEDGED_STATE_ID,
     );
+  });
+});
+
+describe("Beside a detail pane, on a wide window", () => {
+  test("the alert open on the right is marked, and rows lose their chevron", async () => {
+    mockAlerts.current = alertsWith({ items: [activeAlert(), resolvedAlert()] });
+    await render(
+      <ListPaneProvider
+        selection={{
+          name: "AlertDetail",
+          params: { alertId: "alert-1", projectId: PROJECT_ID },
+        }}
+      >
+        <AlertsScreen embedded />
+      </ListPaneProvider>,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toBeSelected();
+    expect(
+      screen.getByLabelText(
+        "Alert #13, Certificate expiring. State: Closed out. Severity: Critical.",
+      ),
+    ).not.toBeSelected();
+    expect(screen.queryAllByTestId("response-row-chevron")).toHaveLength(0);
+  });
+
+  test("an incident with the same id open on the right marks no alert", async () => {
+    mockAlerts.current = alertsWith({ items: [activeAlert()] });
+    await render(
+      <ListPaneProvider
+        selection={{
+          name: "IncidentDetail",
+          params: { incidentId: "alert-1", projectId: PROJECT_ID },
+        }}
+      >
+        <AlertsScreen embedded />
+      </ListPaneProvider>,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).not.toBeSelected();
+  });
+});
+
+describe("Drawn afresh in another pane after a fold", () => {
+  function scoped(showList: boolean): React.JSX.Element {
+    return (
+      <PaneStateScope scope="inbox-list-route">
+        {showList ? <AlertsScreen embedded /> : null}
+      </PaneStateScope>
+    );
+  }
+
+  test("the search and the filter come back, and applied params are not applied again", async () => {
+    mockRoute.params = { initialSegment: "alerts", initialFilter: "active" };
+    mockAlerts.current = alertsWith({ items: [activeAlert(), resolvedAlert()] });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      scoped(true),
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+
+    await fireEvent.press(screen.getByRole("button", { name: "All states" }));
+    await fireEvent.changeText(
+      screen.getByLabelText("Search alerts and episodes"),
+      "disk",
+    );
+    await view.rerender(scoped(false));
+    await view.rerender(scoped(true));
+
+    expect(screen.getByLabelText("Search alerts and episodes")).toHaveProp(
+      "value",
+      "disk",
+    );
+    expect(screen.getByRole("button", { name: "All states" })).toBeSelected();
+    expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toBeTruthy();
+    expect(screen.queryByText("Certificate expiring")).toBeNull();
   });
 });
