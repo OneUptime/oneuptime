@@ -511,6 +511,11 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
      * line when a verdict badge wraps below it.
      */
     expect(viewReport).toHaveClass("self-start", "-my-1");
+    /*
+     * Beside the label, its words level with the label's: the label's line
+     * is the 24px mark's, 2px taller each way than the button's 20px words.
+     */
+    expect(viewReport).toHaveClass("[@container(min-width:36rem)]:-mt-0.5");
     // The paragraphs hold only text: Icon renders a <div>, never inside a <p>.
     expect(summary.querySelector("div")).toBeNull();
     expect(heading.querySelector("div")).toBeNull();

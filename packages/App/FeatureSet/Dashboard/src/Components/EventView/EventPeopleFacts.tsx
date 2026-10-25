@@ -305,6 +305,7 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
         <AppLink
           to={props.ownersRoute}
           className={EVENT_EMPTY_PLACE_ACTION_CLASS_NAME}
+          title={addOwnersText}
         >
           <EmptyPlace />
           {/*

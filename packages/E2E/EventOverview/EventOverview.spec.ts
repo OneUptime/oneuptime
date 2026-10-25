@@ -9123,6 +9123,31 @@ test.describe("the header, by its own width", () => {
       ).toEqual(["1px", "0px", "0px", "0px"]);
       expect((await headerColours(page)).unreadable).toEqual([]);
 
+      // View full report reads on the label's line, its words level with the label's.
+      const middles: Array<number> = await band.evaluate(
+        (element: Element): Array<number> => {
+          const textMiddle: (root: Element) => number = (
+            root: Element,
+          ): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(root);
+            const box: DOMRect = range.getBoundingClientRect();
+            return box.top + box.height / 2;
+          };
+          const label: Element = element.querySelector("h3")!;
+          const report: Element = Array.from(
+            element.querySelectorAll("button"),
+          ).find((button: Element): boolean => {
+            return (button.textContent || "").includes("View full report");
+          })!;
+          return [textMiddle(label), textMiddle(report)];
+        },
+      );
+      expect(
+        Math.abs(middles[0]! - middles[1]!),
+        "View full report is level with the label",
+      ).toBeLessThanOrEqual(0.5);
+
       await page.mouse.move(0, 0);
       await screenshotElement(hero(page), `event-header-ai-band-${theme}`);
     });

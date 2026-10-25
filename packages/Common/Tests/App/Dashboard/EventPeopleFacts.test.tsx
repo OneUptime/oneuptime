@@ -469,6 +469,8 @@ describe("the owners", () => {
     const add: HTMLElement = screen.getByRole("link", { name: "Add owners" });
 
     expect(add).toHaveAttribute("href", OWNERS_ROUTE.toString());
+    // Shown under the pointer as what it adds, as the Add after owners is.
+    expect(add).toHaveAttribute("title", "Add owners");
     expect(within(add).getByText("Add")).toHaveAttribute("aria-hidden", "true");
     expectEmptyPlace(add);
     expectEmptyPlaceControl(add);

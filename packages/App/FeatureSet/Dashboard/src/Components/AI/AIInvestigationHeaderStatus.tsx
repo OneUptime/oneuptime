@@ -48,11 +48,13 @@ export const AI_HEADER_SUMMARY_HEADING_ROW_CLASS_NAME: string = `flex w-full min
 /*
  * View full report: last, at the end of the bottom line, on a narrow header
  * - beside Show more, or on a line of its own under it - and at the end of
- * the top row on a wide one. Whole at every width.
+ * the top row on a wide one, its words level with the label's: the label's
+ * line is the 24px mark's, so the button sits 2px lower than a 20px line's
+ * (-mt-0.5 for -my-1's -mt-1). Whole at every width.
  */
 export const AI_HEADER_VIEW_REPORT_CLASS_NAME: string = `group order-last -my-1 ms-auto inline-flex shrink-0 items-center justify-center gap-1.5 self-start whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
   AI_HEADER_WIDE_WIDTH_REM,
-  "order-none",
+  "order-none -mt-0.5",
 )}`;
 
 /*
