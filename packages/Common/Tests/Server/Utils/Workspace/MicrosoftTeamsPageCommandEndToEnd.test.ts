@@ -35,12 +35,11 @@ import type { AddressInfo } from "net";
  */
 
 jest.mock("botbuilder", () => {
-  const nodeModuleBuiltin: typeof import("module") =
-    typeof process.getBuiltinModule === "function"
-      ? process.getBuiltinModule("module")
-      : Object.getPrototypeOf(jest.requireActual("module"));
-
-  return nodeModuleBuiltin.createRequire(__filename)("botbuilder");
+  return (
+    jest.requireActual("../../../Helpers/RealBotbuilder") as {
+      loadRealBotbuilder: (fromFile: string) => unknown;
+    }
+  ).loadRealBotbuilder(__filename);
 });
 
 jest.mock("../../../../Server/EnvironmentConfig", () => {

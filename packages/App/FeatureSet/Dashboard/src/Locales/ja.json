@@ -34744,5 +34744,11 @@
   "Any kind": "任意の種類",
   "Entity actions": "エンティティのアクション",
   "More entity actions": "エンティティのその他のアクション",
-  "Open Entity Risk": "エンティティリスクを開く"
+  "Open Entity Risk": "エンティティリスクを開く",
+  "No people available.": "利用できるユーザーがいません。",
+  "You do not have permission to add owners.": "所有者を追加する権限がありません。",
+  "You do not have permission to add people as owners.": "ユーザーを所有者として追加する権限がありません。",
+  "You do not have permission to add teams as owners.": "チームを所有者として追加する権限がありません。",
+  "Search people...": "ユーザーを検索...",
+  "No one else to add.": "追加できるユーザーやチームはもうありません。"
 }

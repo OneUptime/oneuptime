@@ -58,6 +58,14 @@ Infrastructure lists and resource pages offer questions for the kind of resource
 
 On a child page, the context also records the pod, container, VM, process or other child you selected. The infrastructure tools read the parent resource's telemetry; they cannot measure one child from its name alone. Ask AI says so, and does not guess a Kubernetes namespace the page does not give. A connection state is not the health of a workload, and missing telemetry does not mean a resource is healthy.
 
+## Commands on your infrastructure
+
+Opened on the page of a resource whose AI agent is connected (a host, a Docker or Podman host, a Docker Swarm cluster, a Proxmox cluster, a VMware vCenter, a Ceph cluster, a database server or a Kubernetes cluster), Ask AI runs commands on it through that agent when you ask: "run `uptime` on this host", or "show the last 100 lines of `journalctl -u nginx`". It answers with what came back, cited like any other evidence. Opened on an incident or an alert, it reaches the resources linked to it.
+
+- It runs only the read-only commands an AI investigation may run on that kind of resource (see [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents)), at most 30 for one answer through each kind of agent, checked by OneUptime and again by the agent, in every permission mode. A change through the agent, such as restarting a service, never runs from Ask AI: it gives you the exact command instead, and the agent makes changes only when OneUptime AI remediates an incident or alert, under the resource's own fix settings. Ask AI's own actions, such as running a runbook, follow the conversation's permission mode, as below.
+- It reaches only the resources you may view, and only while AI investigation is on for the resource.
+- When it cannot run a command there (no agent is connected, the agent is offline, or AI investigation is off for the resource), it says so, with what to change, and answers from your project's data instead.
+
 ## Actions and permission modes
 
 Every conversation has a permission mode, which you pick in the composer, beside the box you type in:

@@ -52,6 +52,7 @@ import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel"
 import { getEventStartedByText } from "../../../Utils/EventOverview";
 import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
+import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import EpisodeMembersCard from "../../../Components/EpisodeView/EpisodeMembersCard";
@@ -375,8 +376,9 @@ const AlertEpisodeView: FunctionComponent<
     typeof episode?.alertCount === "number" ? episode.alertCount : undefined;
 
   /*
-   * Who owns the episode, teams first, first in its header. Add owners is
-   * offered only while the episode is open, to a reader who may add one.
+   * Who owns the episode, teams first, first in its header. Add owners - the
+   * Add owners list, right there - is offered only while the episode is
+   * open, to a reader who may add one.
    */
   const peopleFacts: Array<EventStatusFact> = [];
   const ownersFact: EventStatusFact | null = getOwnersFact({
@@ -385,7 +387,21 @@ const AlertEpisodeView: FunctionComponent<
       RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !timing.isResolved && owners.canAddOwners,
+    addOwners:
+      !timing.isResolved && owners.canAddOwners
+        ? {
+            target: owners.target,
+            onOwnersChanged: async (change: OwnersChange): Promise<void> => {
+              // An owner added is recorded on the episode feed.
+              if (change.wasAdded) {
+                setContentRefreshToken((token: number): number => {
+                  return token + 1;
+                });
+              }
+              await owners.refresh();
+            },
+          }
+        : undefined,
   });
 
   if (ownersFact) {

@@ -48,6 +48,7 @@ const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 const refreshMock: MockFunction = getJestMockFunction();
+const refreshOwnersMock: MockFunction = getJestMockFunction();
 
 let overviewData: UseSloOverviewDataResult;
 let storedSlo: ServiceLevelObjective;
@@ -137,8 +138,24 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: { slo: ServiceLevelObjective }): React.ReactElement => {
-        return <h1>{props.slo.name}</h1>;
+      default: (props: {
+        slo: ServiceLevelObjective;
+        onOwnersChanged?: ((change: { wasAdded: boolean }) => void) | undefined;
+      }): React.ReactElement => {
+        /*
+         * The hero adds owners itself (its own suite): here it only tells
+         * the page an owner was added, as its Add owners list does.
+         */
+        return (
+          <h1
+            data-testid="hero"
+            onClick={() => {
+              props.onOwnersChanged?.({ wasAdded: true });
+            }}
+          >
+            {props.slo.name}
+          </h1>
+        );
       },
     };
   },
@@ -286,6 +303,7 @@ beforeEach(() => {
   getListMock.mockReset();
   createOrUpdateMock.mockReset();
   refreshMock.mockReset();
+  refreshOwnersMock.mockReset();
 
   const monitor: Monitor = new Monitor();
   monitor.id = new ObjectID("33333333-3333-4333-8333-333333333333");
@@ -313,6 +331,9 @@ beforeEach(() => {
     refreshCount: 1,
     refresh: (): void => {
       refreshMock();
+    },
+    refreshOwners: (): void => {
+      refreshOwnersMock();
     },
   };
 
@@ -595,6 +616,17 @@ describe("SLO overview details sidebar", () => {
     expect(
       within(getDetailsCard()).getByText("Checkout availability"),
     ).toBeInTheDocument();
+  });
+
+  test("an owner added from the hero has the page read the owners again, and nothing else", async () => {
+    renderPage();
+    await waitForDetails();
+
+    fireEvent.click(screen.getByTestId("hero"));
+
+    expect(refreshOwnersMock).toHaveBeenCalledTimes(1);
+    // The SLO itself is not read again for an owner.
+    expect(refreshMock).not.toHaveBeenCalled();
   });
 
   test("moving the card preserves the permission gate on editing", async () => {

@@ -288,7 +288,7 @@ Feeds respect incident privacy: for private incidents, feed reads are filtered t
 
 Owners are the people and teams responsible for an incident. They are the notification target for everything that happens to it — and they're the reason an incident doesn't go unnoticed while everyone assumes someone else is on it.
 
-Open **Team → Owners** in the incident side menu. The **Owners** card shows a count badge and describes owners as the people and teams responsible for this incident who are notified about changes, with a running count like "2 people · 1 team". Owners render as overlapping avatars; hovering one shows the person's email or marks the entry as a **Team**. The incident's **Overview** names its owners in its header too, teams first: up to three, then a link to the rest on this page. While the incident is open, **Add** under them opens this page to add more. While nobody owns an open incident, **Add** stands in their place and opens this page; a resolved one says **None**.
+Open **Team → Owners** in the incident side menu. The **Owners** card shows a count badge and describes owners as the people and teams responsible for this incident who are notified about changes, with a running count like "2 people · 1 team". Owners render as overlapping avatars; hovering one shows the person's email or marks the entry as a **Team**. The incident's **Overview** names its owners in its header too, teams first: up to three, then a link to the rest on this page. While the incident is open, **Add** under them opens the same list as **Add owner** on this page, right in the header: click a person or a team to make them an owner — the header names them at once, and the list stays open for the next. While nobody owns an open incident, **Add** stands in their place and opens that list; a resolved one says **None**.
 
 - Click **Add owner** to open a picker with a search box for people or teams.
 - Click the remove control on an avatar to open the **Remove owner** confirmation, then **Remove**.
@@ -306,7 +306,7 @@ There are five routes onto the owners list:
 - **From an incident template** — templates carry an **Owners** field: the people and teams who own the incident and will be notified when it is created or updated, picked from the same list as **Add owner**. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard, and a workflow's **Create One Incident** step with an **Incident Template** picked, add them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
 - **From Incident Owner Rules** — matching rules add owners automatically at creation time.
 - **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
-- **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident.
+- **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident, or **Add** under the owners in the **Overview**'s header while it is open.
 
 Adding the same person twice is safe; owners already assigned are not duplicated.
 

@@ -10,6 +10,10 @@ import AIConversation from "../../../Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "../../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIChatPageContextType from "../../../Types/AI/AIChatPageContext";
+import AIChatMessageStatus from "../../../Types/AI/AIChatMessageStatus";
+import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
+import { AIChatToolActionStatus } from "../../../Types/AI/AIChatTypes";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import {
   AIResourceSubresourceKind,
   AIResourceType,
@@ -1163,5 +1167,125 @@ describe("POST /ai-chat/send-message on a project with AI switched off", () => {
 
     expect(call.thrown).toBeUndefined();
     expect(ChatAgentRunner.runTurn).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * Issue #5259: Ask AI on a host's page could not run the commands the
+ * host's AI agent carries out. Every personal turn the chat API starts is
+ * marked to reach the infrastructure its page is about - and so is every
+ * turn it resumes after an approval, since a paused turn's tools are never
+ * persisted. What the turn may reach, for whom, is the runner's
+ * (ChatInfrastructureAccess); the route only asks for it.
+ */
+describe("Ask AI turns reach the infrastructure their page is about (issue #5259)", () => {
+  beforeEach(() => {
+    withProps(memberOfVictimProject());
+  });
+
+  test("send-message asks for the page's infrastructure, with the sanitized host page as the subject", async () => {
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue(new AIRun(ObjectID.generate()));
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(AIConversationService, "create")
+      .mockResolvedValue(new AIConversation(CONVERSATION_ID));
+    jest.spyOn(AIConversationService, "updateOneById").mockResolvedValue(1);
+    jest
+      .spyOn(AIConversationMessageService, "create")
+      .mockResolvedValue(new AIConversationMessage(MESSAGE_ID));
+    jest.spyOn(ChatAgentRunner, "runTurn").mockResolvedValue(undefined);
+
+    const call: RouteCall = await callRoute({
+      uri: "/ai-chat/send-message",
+      body: {
+        content: "Call 'uptime' command on remote host",
+        pageContext: {
+          type: AIChatPageContextType.Resource,
+          resourceType: AIResourceType.Host,
+          entityId: CONVERSATION_ID.toString(),
+          entityTitle: "test01",
+        },
+      },
+    });
+
+    expect(call.thrown).toBeUndefined();
+    expect(ChatAgentRunner.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        offersPageInfrastructure: true,
+        projectId: PROJECT_B_ID,
+        userId: ATTACKER_USER_ID,
+        pageContext: {
+          type: AIChatPageContextType.Resource,
+          resourceType: AIResourceType.Host,
+          entityId: CONVERSATION_ID.toString(),
+          entityTitle: "test01",
+        },
+      }),
+    );
+  });
+
+  test("respond-to-approval asks for it again, so the resumed turn gets its command tools back", async () => {
+    const runId: ObjectID = ObjectID.generate();
+
+    const conversation: AIConversation = new AIConversation(CONVERSATION_ID);
+    conversation.permissionMode = AIChatPermissionMode.AskForApproval;
+    jest
+      .spyOn(AIConversationService, "findOneById")
+      .mockResolvedValue(conversation);
+
+    const message: AIConversationMessage = new AIConversationMessage(
+      MESSAGE_ID,
+    );
+    message.conversationId = CONVERSATION_ID;
+    message.status = AIChatMessageStatus.WaitingForApproval;
+    message.aiRunId = runId;
+    message.toolActions = [
+      {
+        id: "call-note",
+        toolName: "create_incident_note",
+        title: "Post an internal note",
+        arguments: {},
+        isMutation: true,
+        requiresApproval: true,
+        status: AIChatToolActionStatus.Pending,
+      },
+    ];
+    jest
+      .spyOn(AIConversationMessageService, "findOneById")
+      .mockResolvedValue(message);
+
+    const run: AIRun = new AIRun(runId);
+    run.status = AIRunStatus.WaitingForApproval;
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(run);
+    jest.spyOn(ChatAgentRunner, "resumeTurn").mockResolvedValue(undefined);
+
+    const call: RouteCall = await callRoute({
+      uri: "/ai-chat/respond-to-approval",
+      body: {
+        conversationId: CONVERSATION_ID.toString(),
+        assistantMessageId: MESSAGE_ID.toString(),
+        approved: true,
+      },
+    });
+
+    expect(call.thrown).toBeUndefined();
+    expect(ChatAgentRunner.resumeTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        offersPageInfrastructure: true,
+        projectId: PROJECT_B_ID,
+        aiRunId: runId,
+      }),
+      [{ toolCallId: "call-note", approved: true }],
+    );
+    // The subject the conversation kept decides, not the client.
+    const resumed: { pageContext?: unknown } = (
+      ChatAgentRunner.resumeTurn as unknown as jest.Mock
+    ).mock.calls[0]![0] as { pageContext?: unknown };
+    expect(resumed.pageContext).toBeUndefined();
   });
 });

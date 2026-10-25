@@ -128,6 +128,11 @@ export interface UseSloOverviewDataResult {
   // Bumped after every successful load, so cards can re-read what changes between polls.
   refreshCount: number;
   refresh: () => void;
+  /*
+   * Reads the owners again - once the hero's Add owners list added one -
+   * keeping the ones on screen until the answer is in.
+   */
+  refreshOwners: () => void;
 }
 
 interface BurnRateRulesResult {
@@ -173,6 +178,10 @@ const useSloOverviewData: (options: {
     undefined,
   );
   const [isLoadingOwners, setIsLoadingOwners] = useState<boolean>(true);
+  // Bumped to read the owners again (refreshOwners).
+  const [ownersRefreshCount, setOwnersRefreshCount] = useState<number>(0);
+  // The SLO the owners on screen belong to: a read again keeps them.
+  const ownersSloIdRef: MutableRefObject<string> = useRef<string>("");
 
   /*
    * Every load takes a generation number, and only the newest may write
@@ -377,8 +386,13 @@ const useSloOverviewData: (options: {
    */
   useEffect(() => {
     let cancelled: boolean = false;
-    setIsLoadingOwners(true);
-    setOwners(undefined);
+    const isAnotherSlo: boolean = ownersSloIdRef.current !== sloIdString;
+    ownersSloIdRef.current = sloIdString;
+
+    if (isAnotherSlo) {
+      setIsLoadingOwners(true);
+      setOwners(undefined);
+    }
 
     const loadOwners: () => Promise<void> = async (): Promise<void> => {
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -450,8 +464,11 @@ const useSloOverviewData: (options: {
 
         setOwners(entries);
       } catch {
-        // Supplementary: the hero shows the owners as unavailable.
-        if (!cancelled) {
+        /*
+         * Supplementary: the hero shows the owners as unavailable - unless
+         * this was a read again, which keeps the owners it already shows.
+         */
+        if (!cancelled && isAnotherSlo) {
           setOwners(undefined);
         }
       }
@@ -468,7 +485,7 @@ const useSloOverviewData: (options: {
     return () => {
       cancelled = true;
     };
-  }, [sloIdString]);
+  }, [sloIdString, ownersRefreshCount]);
 
   return {
     slo: loadedSloId === sloIdString ? slo : null,
@@ -486,6 +503,11 @@ const useSloOverviewData: (options: {
     refresh: (): void => {
       fetchData(true).catch(() => {
         // fetchData records its own errors.
+      });
+    },
+    refreshOwners: (): void => {
+      setOwnersRefreshCount((count: number): number => {
+        return count + 1;
       });
     },
   };

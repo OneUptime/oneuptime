@@ -3,7 +3,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
 import AlertEpisode from "../../../../../Models/DatabaseModels/AlertEpisode";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {

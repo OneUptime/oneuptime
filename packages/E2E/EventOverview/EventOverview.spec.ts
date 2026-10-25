@@ -9225,6 +9225,7 @@ test.describe("the header, by its own width", () => {
       "Sam Rivera",
     ]);
     await expect(ownersFact(page).getByRole("link")).toHaveCount(0);
+    await expect(ownersFact(page).getByRole("button")).toHaveCount(0);
   });
 
   /*
@@ -9327,9 +9328,11 @@ test.describe("the header, by its own width", () => {
         );
       }
 
-      const add: Locator = owners.getByRole("link", { name: "Add owners" });
-      await expect(add).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
+      const add: Locator = owners.getByRole("button", { name: "Add owners" });
+      await expect(add).toHaveAttribute("data-testid", "event-owners-add-more");
       await expect(add).toHaveAttribute("title", "Add owners");
+      await expect(add).toHaveAttribute("aria-haspopup", "dialog");
+      await expect(add).toHaveAttribute("aria-expanded", "false");
       // Visibly "Add", as on a record nobody owns; heard as "Add owners".
       await expect(
         add.locator(":scope > [aria-hidden='true']").last(),
@@ -9337,10 +9340,14 @@ test.describe("the header, by its own width", () => {
       await expectEmptyPlace(add);
       // The list's last line, its circle under the avatars.
       expect(
-        await owners.evaluate((element: Element): string | null => {
-          return element.lastElementChild?.getAttribute("data-testid") || null;
+        await owners.evaluate((element: Element): boolean => {
+          return Boolean(
+            element.lastElementChild?.querySelector(
+              ":scope > [data-testid='event-owners-add-more']",
+            ),
+          );
         }),
-      ).toBe("event-owners-add-more");
+      ).toBe(true);
       const avatar: Box = await documentBox(
         owners
           .getByTestId("event-owner")
@@ -9356,11 +9363,23 @@ test.describe("the header, by its own width", () => {
       await page.mouse.move(0, 0);
       await screenshotElement(hero(page), `event-header-owners-add-${width}`);
 
+      /*
+       * Add opens the Add owners list right there - nobody leaves the page
+       * to add an owner - with whoever owns it already left out: of the
+       * project's four people and four teams, Maya Chen and Payments.
+       */
       await add.click();
-      await expect(page.getByTestId("stub-page")).toHaveAttribute(
-        "data-page",
-        "INCIDENT_VIEW_OWNERS",
-      );
+      const list: Locator = addOwnersList(page);
+      await expect(list).toBeVisible();
+      await expect(add).toHaveAttribute("aria-expanded", "true");
+      await expect
+        .poll(async (): Promise<Array<string>> => {
+          return listedNames(list);
+        })
+        .toEqual(["Maya Chen", "Payments"]);
+      await expectListWhole(page, list);
+      expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+      await expect(page.getByTestId("stub-page")).toHaveCount(0);
     });
   }
 
@@ -15825,7 +15844,10 @@ test.describe("time to acknowledge after paging", () => {
 
 const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 
-// Where "+3 more" and Add lead: the record's Owners page.
+/*
+ * Where "+3 more" leads: the record's Owners page, which manages the whole
+ * list. Add and Assign lead nowhere - they add right there, in the header.
+ */
 const INCIDENT_OWNERS_PATH: string = `${INCIDENT_PATH}/owners`;
 
 // Who the roles card can give a role to: Jordan Patel (Fixture.js people).
@@ -15897,6 +15919,97 @@ function commanderFact(page: Page): Locator {
 
 function ownersFact(page: Page): Locator {
   return hero(page).getByTestId("event-owners");
+}
+
+// The project's teams (Fixture.js ownerTeams), as an owner row names them.
+const PAYMENTS_TEAM_ID: string = uuid("81000000", 2);
+const PLATFORM_TEAM_ID: string = uuid("81000000", 3);
+
+/*
+ * The Add owners list the header's Add opens - the Owners page's own list -
+ * drawn over the page, under the control that opened it.
+ */
+function addOwnersList(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Add owners" });
+}
+
+// The list the header's Assign opens: the project's people, for the role.
+function assignList(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Assign Incident Commander" });
+}
+
+// The names a people list offers, in order: people first, then teams.
+async function listedNames(list: Locator): Promise<Array<string>> {
+  return list
+    .getByTestId("people-search-option")
+    .evaluateAll((options: Array<Element>): Array<string> => {
+      return options.map((option: Element): string => {
+        return (
+          option.querySelector(":scope > .min-w-0 > div")?.textContent || ""
+        ).trim();
+      });
+    });
+}
+
+/*
+ * A list opened from the header is whole on screen - never cut off by the
+ * viewport's edge - and sits right under the control that opened it.
+ */
+async function expectListWhole(page: Page, list: Locator): Promise<void> {
+  const viewport: { width: number; height: number } = page.viewportSize()!;
+  await expect
+    .poll(async (): Promise<boolean> => {
+      const box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await list.boundingBox();
+      return Boolean(
+        box &&
+          box.x >= 0 &&
+          box.y >= 0 &&
+          box.x + box.width <= viewport.width + 0.5 &&
+          box.y + box.height <= viewport.height + 0.5,
+      );
+    }, "the list is whole on screen")
+    .toBe(true);
+}
+
+// The rows a page wrote to one table.
+async function rowsWritten(
+  page: Page,
+  modelName: string,
+): Promise<Array<RecordedWrite>> {
+  return (await fixture(page)).creates.filter(
+    (write: RecordedWrite): boolean => {
+      return write.modelName === modelName;
+    },
+  );
+}
+
+/*
+ * An owner row as the Owners page writes one: the record, the project and
+ * the person or the team - nothing else, so the server tells the new owner
+ * they were added (the row starts as an owner nobody has told yet).
+ */
+function expectOwnerRow(
+  write: RecordedWrite | undefined,
+  data: {
+    recordField: string;
+    recordId: string;
+    ownerField: string;
+    ownerId: string;
+  },
+): void {
+  expect(Object.keys(write?.data || {})).toEqual(
+    expect.arrayContaining([data.recordField, "projectId", data.ownerField]),
+  );
+  const row: string = JSON.stringify(write?.data);
+  expect(row).toContain(data.recordId);
+  expect(row).toContain(PROJECT_ID);
+  expect(row).toContain(data.ownerId);
+  expect(row).not.toContain("isOwnerNotified");
 }
 
 async function personKinds(fact: Locator): Promise<Array<string | null>> {
@@ -16034,7 +16147,7 @@ test.describe("at a glance: who is on it", () => {
     await expectNoErrorStates(page);
   });
 
-  test("?commander=none&state=ongoing: the empty place and Assign, which opens the commander's picker in the roles card", async ({
+  test("?commander=none&state=ongoing: the empty place and Assign, which opens the project's people right under it and gives the role there", async ({
     page,
   }: {
     page: Page;
@@ -16046,49 +16159,104 @@ test.describe("at a glance: who is on it", () => {
     await expect(commander).toHaveText("Assign");
     await expect(commander.getByTestId("event-person-name")).toHaveCount(0);
 
-    // Visibly "Assign"; heard as which role it gives.
+    // Visibly "Assign"; heard as which role it gives, and that it opens a list.
     const assign: Locator = commander.getByRole("button", {
       name: "Assign Incident Commander",
     });
     await expect(assign).toHaveText("Assign");
+    await expect(assign).toHaveAttribute(
+      "data-testid",
+      "event-commander-assign",
+    );
+    await expect(assign).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(assign).toHaveAttribute("aria-expanded", "false");
     await expectEmptyPlace(assign);
     await screenshotElement(hero(page), "incident-commander-not-assigned");
 
     await assign.click();
 
     /*
-     * The roles card, where a role is given: in view, with the commander's
-     * picker open and the cursor in it - one step from the header.
+     * The project's people, right under Assign, the cursor in its search
+     * box - the role is given here, not in the roles card further down.
      */
-    const roles: Locator = page.locator("#event-roles-card");
-    await expect(roles).toBeInViewport();
-    const picker: Locator = roles.getByRole("combobox", {
-      name: "Incident Commander",
-    });
-    await expect(picker).toBeFocused();
-    await expect(picker).toBeInViewport();
-    await screenshotElement(roles, "incident-commander-assign-picker");
+    const list: Locator = assignList(page);
+    await expect(list).toBeVisible();
+    await expect(assign).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      list.getByRole("combobox", { name: "Search people..." }),
+    ).toBeFocused();
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual(["Alex Kim", "Jordan Patel", "Maya Chen", "Sam Rivera"]);
+    const control: { x: number; y: number; width: number; height: number } =
+      (await assign.boundingBox())!;
+    const popup: { x: number; y: number; width: number; height: number } =
+      (await list.boundingBox())!;
+    expect(popup.y, "under Assign").toBeGreaterThanOrEqual(
+      control.y + control.height - 0.5,
+    );
+    expect(popup.y - (control.y + control.height)).toBeLessThanOrEqual(12);
+    await expectListWhole(page, list);
+    await expect(
+      card(page, "Incident Roles").getByRole("combobox", {
+        name: "Incident Commander",
+      }),
+    ).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await screenshotBetween(
+      page,
+      hero(page),
+      list,
+      "incident-commander-assign-list",
+    );
 
-    // Choosing somebody gives the role, and the header names them at once.
-    await page.keyboard.type("Jordan");
-    await page.keyboard.press("Enter");
-    await roles.getByRole("button", { name: "Save", exact: true }).click();
+    // One pick gives the role: the header names them at once, the list closes.
+    const rolesReadsBefore: number = await feedReads(page, "IncidentMember");
+    const feedReadsBefore: number = await feedReads(page, "IncidentFeed");
+    await list.getByRole("option", { name: /Jordan Patel/ }).click();
 
     await expect(commander.getByTestId("event-person-name")).toHaveText([
       "Jordan Patel",
     ]);
-    const given: Array<RecordedWrite> = (await fixture(page)).creates.filter(
-      (write: RecordedWrite): boolean => {
-        return write.modelName === "IncidentMember";
-      },
+    await expect(list).toHaveCount(0);
+    // The keyboard stays where it was: on the commander.
+    await expect(commander).toBeFocused();
+
+    const given: Array<RecordedWrite> = await rowsWritten(
+      page,
+      "IncidentMember",
     );
     expect(given).toHaveLength(1);
-    expect(JSON.stringify(given[0]?.data)).toContain(JORDAN_USER_ID);
-    expect(JSON.stringify(given[0]?.data)).toContain(COMMANDER_ROLE_ID);
+    const row: string = JSON.stringify(given[0]?.data);
+    expect(row).toContain(INCIDENT_ID);
+    expect(row).toContain(PROJECT_ID);
+    expect(row).toContain(JORDAN_USER_ID);
+    expect(row).toContain(COMMANDER_ROLE_ID);
+
+    // The roles card and the feed read again, and name them too.
+    await expect
+      .poll(async (): Promise<number> => {
+        return feedReads(page, "IncidentMember");
+      })
+      .toBeGreaterThan(rolesReadsBefore);
+    await expect
+      .poll(async (): Promise<number> => {
+        return feedReads(page, "IncidentFeed");
+      })
+      .toBeGreaterThan(feedReadsBefore);
+    await expect(
+      card(page, "Incident Roles").getByText("Jordan Patel").first(),
+    ).toBeVisible();
+    // Nobody left the page.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-commander-assigned");
     await expectNoErrorStates(page);
   });
 
-  test("?commander=none&state=ongoing: Assign works from the keyboard, and a second Assign reopens a picker the reader closed", async ({
+  test("?commander=none&state=ongoing: Assign works from the keyboard - Escape closes the list, a search and Enter give the role", async ({
     page,
   }: {
     page: Page;
@@ -16101,17 +16269,118 @@ test.describe("at a glance: who is on it", () => {
     await assign.focus();
     await page.keyboard.press("Enter");
 
-    const roles: Locator = page.locator("#event-roles-card");
-    const picker: Locator = roles.getByRole("combobox", {
-      name: "Incident Commander",
+    const list: Locator = assignList(page);
+    const search: Locator = list.getByRole("combobox", {
+      name: "Search people...",
     });
-    await expect(picker).toBeFocused();
+    await expect(search).toBeFocused();
 
-    await roles.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(picker).toHaveCount(0);
+    // Escape closes it, and the keyboard is back on Assign.
+    await page.keyboard.press("Escape");
+    await expect(list).toHaveCount(0);
+    await expect(assign).toBeFocused();
+    expect(await rowsWritten(page, "IncidentMember")).toEqual([]);
 
-    await assign.click();
-    await expect(picker).toBeFocused();
+    // Opened again, a search narrows it and Enter gives the role.
+    await page.keyboard.press("Enter");
+    await expect(search).toBeFocused();
+    await page.keyboard.type("Maya");
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual(["Maya Chen"]);
+    await page.keyboard.press("Enter");
+
+    await expect(
+      commanderFact(page).getByTestId("event-person-name"),
+    ).toHaveText(["Maya Chen"]);
+    await expect(list).toHaveCount(0);
+    await expect(commanderFact(page)).toBeFocused();
+    const given: Array<RecordedWrite> = await rowsWritten(
+      page,
+      "IncidentMember",
+    );
+    expect(given).toHaveLength(1);
+    expect(JSON.stringify(given[0]?.data)).toContain(MAYA_ID);
+  });
+
+  test("?commander=none&state=ongoing&fail=role-assign: a refused Assign says why in the list, and nobody is named", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "commander=none&state=ongoing&fail=role-assign",
+    );
+
+    const commander: Locator = commanderFact(page);
+    await commander
+      .getByRole("button", { name: "Assign Incident Commander" })
+      .click();
+    const list: Locator = assignList(page);
+    await list.getByRole("option", { name: /Jordan Patel/ }).click();
+
+    // The server's reason, in the list, which stays open for another pick.
+    await expect(list.getByRole("alert")).toHaveText(
+      "This user already has this role.",
+    );
+    await expect(list).toBeVisible();
+    await expect(commander.getByTestId("event-person-name")).toHaveCount(0);
+    await expect(
+      commander.getByRole("button", { name: "Assign Incident Commander" }),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotBetween(
+      page,
+      hero(page),
+      list,
+      "incident-commander-assign-refused",
+    );
+  });
+
+  test("Assign and Add are offered only to a reader who may give the role or add an owner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Allowed to add people as an incident's owners and nothing else
+     * (?role=owner-people): Add, but no Assign.
+     */
+    // Its cards that read what this role may not read wait on nothing.
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "commander=none&owners=none&state=ongoing&role=owner-people",
+      [],
+    );
+    await expect(commanderFact(page)).toHaveText("Not assigned");
+    await expect(commanderFact(page).getByRole("button")).toHaveCount(0);
+    await expect(
+      ownersFact(page).getByRole("button", { name: "Add owners" }),
+    ).toBeVisible();
+
+    /*
+     * Before the permissions have arrived (?role=loading), neither: nothing
+     * is offered that the server may refuse.
+     */
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "commander=none&owners=none&state=ongoing&role=loading",
+      [],
+    );
+    await expect(commanderFact(page)).toHaveText("Not assigned");
+    await expect(ownersFact(page)).toHaveText("None");
+    await expect(
+      hero(page).getByRole("button", { name: "Add owners" }),
+    ).toHaveCount(0);
+    await expect(
+      hero(page).getByRole("button", { name: "Assign Incident Commander" }),
+    ).toHaveCount(0);
   });
 
   test("a name sits where any fact's words do - under its label, level with the words beside it - and an avatar makes no fact taller", async ({
@@ -16173,7 +16442,7 @@ test.describe("at a glance: who is on it", () => {
     await expect(commanderFact(page).getByRole("button")).toHaveCount(0);
   });
 
-  test("?owners=none&state=ongoing: the empty place and Add, which opens the Owners page", async ({
+  test("?owners=none&state=ongoing: the empty place and Add, which opens the Add owners list right under it", async ({
     page,
   }: {
     page: Page;
@@ -16184,20 +16453,394 @@ test.describe("at a glance: who is on it", () => {
     // Said once: the place and its action, not "None" beside them.
     await expect(owners.getByText("None", { exact: true })).toHaveCount(0);
 
-    // Visibly "Add" after "Owners"; heard as what it adds.
-    const add: Locator = owners.getByRole("link", { name: "Add owners" });
-    await expect(add).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
+    // Visibly "Add" after "Owners"; heard as what it adds, and that it opens a list.
+    const add: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(add).toHaveAttribute("data-testid", "event-owners-add");
+    await expect(add).toHaveAttribute("aria-haspopup", "dialog");
     await expect(
-      add.locator("[data-testid='event-owners-add'] > [aria-hidden='true']"),
+      add.locator(":scope > [aria-hidden='true']").last(),
     ).toHaveText("Add");
     await expectEmptyPlace(add);
+    await expect(owners.getByRole("link")).toHaveCount(0);
     await screenshotElement(hero(page), "incident-owners-none");
 
     await add.click();
-    await expect(page.getByTestId("stub-page")).toHaveAttribute(
-      "data-page",
-      "INCIDENT_VIEW_OWNERS",
+
+    /*
+     * The Owners page's own list, right under Add, the cursor in its search
+     * box: the project's people, then its teams, each by name.
+     */
+    const list: Locator = addOwnersList(page);
+    await expect(list).toBeVisible();
+    await expect(
+      list.getByRole("combobox", { name: "Search people or teams..." }),
+    ).toBeFocused();
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual([
+        "Alex Kim",
+        "Jordan Patel",
+        "Maya Chen",
+        "Sam Rivera",
+        "Checkout SRE",
+        "Database Reliability",
+        "Payments",
+        "Platform",
+      ]);
+    const control: { x: number; y: number; width: number; height: number } =
+      (await add.boundingBox())!;
+    const popup: { x: number; y: number; width: number; height: number } =
+      (await list.boundingBox())!;
+    expect(popup.y, "under Add").toBeGreaterThanOrEqual(
+      control.y + control.height - 0.5,
     );
+    expect(popup.y - (control.y + control.height)).toBeLessThanOrEqual(12);
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await screenshotBetween(page, hero(page), list, "incident-owners-add-list");
+  });
+
+  test("?owners=none&state=ongoing: one click adds an owner, the header names them at once, and the list stays open for the next", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "owners=none&state=ongoing");
+
+    const owners: Locator = ownersFact(page);
+    const feedReadsBefore: number = await feedReads(page, "IncidentFeed");
+    await owners.getByRole("button", { name: "Add owners" }).click();
+    const list: Locator = addOwnersList(page);
+
+    // A team: named where Add was, the list still open, saying what it did.
+    await list.getByRole("option", { name: /Payments/ }).click();
+    await expect(owners.getByTestId("event-person-name")).toHaveText([
+      "Payments",
+    ]);
+    await expect(list.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Payments.",
+    );
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .not.toContain("Payments");
+    // The list followed Add down to the line after the new owner, and is lit with it.
+    const more: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(more).toHaveAttribute("data-testid", "event-owners-add-more");
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+
+    // Then a person: teams first, each by name.
+    await list.getByRole("option", { name: /Jordan Patel/ }).click();
+    await expect(owners.getByTestId("event-person-name")).toHaveText([
+      "Payments",
+      "Jordan Patel",
+    ]);
+    await expect(list.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Jordan Patel.",
+    );
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual([
+        "Alex Kim",
+        "Maya Chen",
+        "Sam Rivera",
+        "Checkout SRE",
+        "Database Reliability",
+        "Platform",
+      ]);
+    await page.mouse.move(0, 0);
+    await screenshotBetween(page, hero(page), list, "incident-owners-added");
+
+    // One row each, as the Owners page writes them; the server tells them.
+    const teams: Array<RecordedWrite> = await rowsWritten(
+      page,
+      "IncidentOwnerTeam",
+    );
+    const users: Array<RecordedWrite> = await rowsWritten(
+      page,
+      "IncidentOwnerUser",
+    );
+    expect(teams).toHaveLength(1);
+    expect(users).toHaveLength(1);
+    expectOwnerRow(teams[0], {
+      recordField: "incidentId",
+      recordId: INCIDENT_ID,
+      ownerField: "teamId",
+      ownerId: PAYMENTS_TEAM_ID,
+    });
+    expectOwnerRow(users[0], {
+      recordField: "incidentId",
+      recordId: INCIDENT_ID,
+      ownerField: "userId",
+      ownerId: JORDAN_USER_ID,
+    });
+    // The feed reads again: it says who added them.
+    await expect
+      .poll(async (): Promise<number> => {
+        return feedReads(page, "IncidentFeed");
+      })
+      .toBeGreaterThan(feedReadsBefore);
+
+    // Escape closes the list, and the keyboard is on Add, after the owners.
+    await page.keyboard.press("Escape");
+    await expect(list).toHaveCount(0);
+    await expect(more).toBeFocused();
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    await expectNoErrorStates(page);
+  });
+
+  test("?state=ongoing&fail=owner-add: a refused owner is said in the list, and the header reads the owners again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing&fail=owner-add");
+
+    const owners: Locator = ownersFact(page);
+    const readsBefore: number = await feedReads(page, "IncidentOwnerUser");
+    await owners.getByRole("button", { name: "Add owners" }).click();
+    const list: Locator = addOwnersList(page);
+    await list.getByRole("option", { name: /Jordan Patel/ }).click();
+
+    await expect(list.getByRole("alert")).toHaveText(
+      "This user is already an owner of this incident.",
+    );
+    await expect(list.getByTestId("people-search-notice-done")).toHaveCount(0);
+    // Still on offer, and the header shows the owners as they are.
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toContain("Jordan Patel");
+    await expect(owners.getByTestId("event-person-name")).toHaveText([
+      "Checkout SRE",
+      "Sam Rivera",
+    ]);
+    await expect
+      .poll(async (): Promise<number> => {
+        return feedReads(page, "IncidentOwnerUser");
+      })
+      .toBeGreaterThan(readsBefore);
+    await page.mouse.move(0, 0);
+    await screenshotBetween(
+      page,
+      hero(page),
+      list,
+      "incident-owners-add-refused",
+    );
+  });
+
+  test("?role=owner-people: the list offers the people a reader may add, and names Teams locked, with why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "owners=none&state=ongoing&role=owner-people",
+      [],
+    );
+
+    await ownersFact(page).getByRole("button", { name: "Add owners" }).click();
+    const list: Locator = addOwnersList(page);
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual(["Alex Kim", "Jordan Patel", "Maya Chen", "Sam Rivera"]);
+
+    // No team on offer: Teams is named under the people, locked, with why.
+    await expect(
+      list.locator("[data-testid='people-search-option'][data-kind='team']"),
+    ).toHaveCount(0);
+    const locked: Locator = list.getByTestId("people-search-locked-kind");
+    await expect(locked).toHaveCount(1);
+    await expect(locked).toHaveAttribute("data-kind", "team");
+    await expect(list.getByRole("group", { name: "Teams" })).toHaveAttribute(
+      "data-testid",
+      "people-search-locked-kind",
+    );
+    await expect(
+      locked.getByTestId("people-search-locked-reason"),
+    ).toContainText("You do not have permission to add teams as owners.");
+    await page.mouse.move(0, 0);
+    await screenshotBetween(
+      page,
+      hero(page),
+      list,
+      "incident-owners-add-teams-locked",
+    );
+
+    // A person is added all the same.
+    await list.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(ownersFact(page).getByTestId("event-person-name")).toHaveText([
+      "Alex Kim",
+    ]);
+    expectOwnerRow((await rowsWritten(page, "IncidentOwnerUser"))[0], {
+      recordField: "incidentId",
+      recordId: INCIDENT_ID,
+      ownerField: "userId",
+      ownerId: ALEX_ID,
+    });
+  });
+
+  /*
+   * The list opened from the header is whole wherever the header is: at a
+   * desk, on a phone - where it opens low on the screen and the page makes
+   * room for it - and in the dark theme.
+   */
+  for (const [width, theme] of [
+    [1280, "light"],
+    [1280, "dark"],
+    [390, "light"],
+    [390, "dark"],
+  ] as Array<[number, string]>) {
+    test(`the Add owners and Assign lists open whole under their control (${width}px, ${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        `owners=none&commander=none&state=ongoing${
+          theme === "dark" ? "&theme=dark" : ""
+        }`,
+      );
+      await loadProductionFont(page);
+
+      for (const [control, list, name] of [
+        [
+          ownersFact(page).getByRole("button", { name: "Add owners" }),
+          addOwnersList(page),
+          "owners-add",
+        ],
+        [
+          commanderFact(page).getByRole("button", {
+            name: "Assign Incident Commander",
+          }),
+          assignList(page),
+          "commander-assign",
+        ],
+      ] as Array<[Locator, Locator, string]>) {
+        await control.click();
+        await expect(list).toBeVisible();
+        await expect
+          .poll(async (): Promise<number> => {
+            return (await listedNames(list)).length;
+          })
+          .toBeGreaterThan(0);
+        await expectListWhole(page, list);
+        const controlBox: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        } = (await control.boundingBox())!;
+        const listBox: { x: number; y: number; width: number; height: number } =
+          (await list.boundingBox())!;
+        expect(listBox.y, `${name}: under its control`).toBeGreaterThanOrEqual(
+          controlBox.y + controlBox.height - 0.5,
+        );
+        // Lit while its list is open.
+        await expect(control).toHaveAttribute("aria-expanded", "true");
+        const surface: string = await list.evaluate(
+          (element: Element): string => {
+            return getComputedStyle(element).backgroundColor;
+          },
+        );
+        if (theme === "dark") {
+          expect(surface, `${name}: a dark surface`).not.toBe(
+            "rgb(255, 255, 255)",
+          );
+        } else {
+          expect(surface).toBe("rgb(255, 255, 255)");
+        }
+        await page.mouse.move(0, 0);
+        await page.screenshot({
+          path: path.join(
+            SCREENSHOTS,
+            `incident-header-${name}-list-${width}-${theme}-synthetic.png`,
+          ),
+          animations: "disabled",
+        });
+        await page.keyboard.press("Escape");
+        await expect(list).toHaveCount(0);
+      }
+    });
+  }
+
+  /*
+   * Each list's search box holds its whole placeholder in the languages
+   * with the longest words (UI review): the Assign list's first words,
+   * "Search people by name or email", ran past the box in eight languages,
+   * German, French and Spanish among them, and the Add owners list's French
+   * one too. Measured as drawn, in the box's own font, against its room.
+   */
+  test("each list's search box holds its whole placeholder in German, French and Spanish", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["de", "fr", "es"]) {
+      await open(
+        page,
+        INCIDENT_PATH,
+        `owners=none&commander=none&state=ongoing&lang=${language}`,
+      );
+      const add: Locator = ownersFact(page).getByTestId("event-owners-add");
+      await expect(add).toBeVisible({ timeout: 30000 });
+      await loadProductionFont(page);
+
+      for (const control of [
+        add,
+        commanderFact(page).getByTestId("event-commander-assign"),
+      ]) {
+        await control.click();
+        const search: Locator = page
+          .getByTestId("people-search-popup")
+          .getByTestId("people-search-input");
+        await expect(search).toBeFocused();
+
+        const fit: { text: string; width: number; room: number } =
+          await search.evaluate(
+            (
+              input: HTMLInputElement,
+            ): { text: string; width: number; room: number } => {
+              const style: CSSStyleDeclaration = getComputedStyle(input);
+              const context: CanvasRenderingContext2D = document
+                .createElement("canvas")
+                .getContext("2d")!;
+              context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+              return {
+                text: input.placeholder,
+                width: context.measureText(input.placeholder).width,
+                room:
+                  input.clientWidth -
+                  parseFloat(style.paddingLeft) -
+                  parseFloat(style.paddingRight),
+              };
+            },
+          );
+
+        // Translated, not the English words.
+        expect(fit.text).not.toMatch(/^Search people/);
+        expect(fit.width, `${language}: "${fit.text}"`).toBeLessThanOrEqual(
+          fit.room,
+        );
+        await page.keyboard.press("Escape");
+        await expect(page.getByTestId("people-search-popup")).toHaveCount(0);
+      }
+    }
   });
 
   test("?owners=none: a resolved incident says only None", async ({
@@ -16306,7 +16949,7 @@ test.describe("at a glance: who is on it", () => {
     });
   }
 
-  test("an incident episode nobody commands: Assign opens the commander's picker in the episode's roles card", async ({
+  test("an incident episode nobody commands: Assign gives the episode's commander right there", async ({
     page,
   }: {
     page: Page;
@@ -16323,15 +16966,130 @@ test.describe("at a glance: who is on it", () => {
     await expectEmptyPlace(assign);
     await assign.click();
 
-    const roles: Locator = page.locator("#event-roles-card");
+    const list: Locator = assignList(page);
     await expect(
-      roles.getByRole("heading", { level: 2, name: "Episode Roles" }),
-    ).toBeVisible();
-    await expect(
-      roles.getByRole("combobox", { name: "Incident Commander" }),
+      list.getByRole("combobox", { name: "Search people..." }),
     ).toBeFocused();
+    await list.getByRole("option", { name: /Jordan Patel/ }).click();
+
+    await expect(
+      commanderFact(page).getByTestId("event-person-name"),
+    ).toHaveText(["Jordan Patel"]);
+    await expect(list).toHaveCount(0);
+
+    // The episode's own role row, not the incident's.
+    expect(await rowsWritten(page, "IncidentMember")).toEqual([]);
+    const given: Array<RecordedWrite> = await rowsWritten(
+      page,
+      "IncidentEpisodeRoleMember",
+    );
+    expect(given).toHaveLength(1);
+    const row: string = JSON.stringify(given[0]?.data);
+    expect(row).toContain(INCIDENT_EPISODE_ID);
+    expect(row).toContain(JORDAN_USER_ID);
+    expect(row).toContain(COMMANDER_ROLE_ID);
+    // The episode's roles card names them too.
+    await expect(
+      card(page, "Episode Roles").getByText("Jordan Patel").first(),
+    ).toBeVisible();
     await expectNoErrorStates(page);
   });
+
+  /*
+   * Every overview that names its owners adds one right there: an alert,
+   * both episodes and a scheduled maintenance event, each to its own owner
+   * table, its feed read again.
+   */
+  for (const [
+    eventPage,
+    query,
+    ownerModel,
+    recordField,
+    recordId,
+    feedModel,
+    named,
+  ] of [
+    [
+      ALERT_PAGE,
+      "state=ongoing",
+      "AlertOwnerTeam",
+      "alertId",
+      ALERT_ID,
+      "AlertFeed",
+      ["Payments", "Platform"],
+    ],
+    [
+      INCIDENT_EPISODE_PAGE,
+      "state=ongoing",
+      "IncidentEpisodeOwnerTeam",
+      "incidentEpisodeId",
+      INCIDENT_EPISODE_ID,
+      "IncidentEpisodeFeed",
+      ["Checkout SRE", "Platform", "Sam Rivera"],
+    ],
+    [
+      ALERT_EPISODE_PAGE,
+      "state=ongoing",
+      "AlertEpisodeOwnerTeam",
+      "alertEpisodeId",
+      ALERT_EPISODE_ID,
+      "AlertEpisodeFeed",
+      ["Payments", "Platform"],
+    ],
+    [
+      SCHEDULED_MAINTENANCE_PAGE,
+      "",
+      "ScheduledMaintenanceOwnerTeam",
+      "scheduledMaintenanceId",
+      SCHEDULED_MAINTENANCE_ID,
+      "ScheduledMaintenanceFeed",
+      ["Database Reliability", "Platform", "Jordan Patel"],
+    ],
+  ] as Array<
+    [EventPage, string, string, string, string, string, Array<string>]
+  >) {
+    test(`${eventPage.name}: Add adds an owner right there, and the header names them at once`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, eventPage, query);
+
+      const owners: Locator = ownersFact(page);
+      const feedReadsBefore: number = await feedReads(page, feedModel);
+      await owners.getByRole("button", { name: "Add owners" }).click();
+      const list: Locator = addOwnersList(page);
+      await expect(list).toBeVisible();
+      await list.getByRole("option", { name: /Platform/ }).click();
+
+      await expect(list.getByTestId("people-search-notice-done")).toHaveText(
+        "Added Platform.",
+      );
+      await expect(owners.getByTestId("event-person-name")).toHaveText(named);
+      const written: Array<RecordedWrite> = await rowsWritten(page, ownerModel);
+      expect(written).toHaveLength(1);
+      expectOwnerRow(written[0], {
+        recordField,
+        recordId,
+        ownerField: "teamId",
+        ownerId: PLATFORM_TEAM_ID,
+      });
+      await expect
+        .poll(async (): Promise<number> => {
+          return feedReads(page, feedModel);
+        })
+        .toBeGreaterThan(feedReadsBefore);
+      expect(new URL(page.url()).pathname).toBe(eventPage.path);
+      await page.mouse.move(0, 0);
+      await screenshotBetween(
+        page,
+        hero(page),
+        list,
+        `${eventPage.name}-owners-added`,
+      );
+      await expectNoErrorStates(page);
+    });
+  }
 });
 
 test.describe("at a glance: what happened", () => {

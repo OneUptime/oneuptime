@@ -172,7 +172,7 @@ Wenn etwas ein SLO am Messen hindert, sagt ein Banner oben auf jeder seiner Seit
 
 Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 
-- **Die Zusammenfassung**: der Status, ein Satz dazu, was er bedeutet, und die Beschreibung. Daneben stehen **Aktualisieren** und wann das SLO zuletzt ausgewertet wurde. Darunter stehen das Ziel, das **Compliance-Zeitfenster** (mit einem Füllstand-Chip, solange sich ein junges rollierendes Fenster füllt: siehe [Junge SLOs und die Füllstandsanzeige des Zeitfensters](#junge-slos-und-die-füllstandsanzeige-des-zeitfensters)), die Zahl der Monitore und die Eigentümer.
+- **Die Zusammenfassung**: der Status, ein Satz dazu, was er bedeutet, und die Beschreibung. Daneben stehen **Aktualisieren** und wann das SLO zuletzt ausgewertet wurde. Darunter stehen das Ziel, das **Compliance-Zeitfenster** (mit einem Füllstand-Chip, solange sich ein junges rollierendes Fenster füllt: siehe [Junge SLOs und die Füllstandsanzeige des Zeitfensters](#junge-slos-und-die-füllstandsanzeige-des-zeitfensters)), die Zahl der Monitore und die Eigentümer, mit **Eigentümer hinzufügen**, um direkt dort einen hinzuzufügen.
 - **Die wichtigsten Kennzahlen**:
   - **SLI**: der Anteil guter Zeit im Zeitfenster und wie weit er über oder unter dem Ziel liegt.
   - **Verbleibendes Fehlerbudget**: ein Prozentsatz, eine Dauer wie "12m 30s left of 43m 12s" und ein Balken mit einer Markierung an der Risikoschwelle. Ist das Budget überzogen, zeigt die Kachel **Budget exceeded** und um wie viel.

@@ -33,6 +33,10 @@ const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
+// The header's Assign gives the commander with a create.
+const createMock: MockFunction = getJestMockFunction();
+// The owners hook's own read again, which the header's Add owners asks for.
+const refreshOwnersMock: MockFunction = getJestMockFunction();
 
 const recordedProps: Record<string, Array<Record<string, unknown>>> = {};
 const mountCounts: Record<string, number> = {};
@@ -54,12 +58,24 @@ function recordProps(key: string, props: Record<string, unknown>): void {
  * What the owners hook answers: nothing read yet unless a test hands it
  * owners. Read at render time, after the module has set it.
  */
-function currentOwnersState(): {
+function currentOwnersState(options: Record<string, unknown>): {
   owners: Array<ResourceOwnerEntry> | undefined;
   error: string;
   canAddOwners: boolean;
+  target: Record<string, unknown>;
+  refresh: () => Promise<void>;
 } {
-  return { owners: ownersAnswer, error: "", canAddOwners: mayAddOwners };
+  return {
+    owners: ownersAnswer,
+    error: "",
+    canAddOwners: mayAddOwners,
+    // The record's owner tables, as the hook hands them on.
+    target: options,
+    refresh: (): Promise<void> => {
+      refreshOwnersMock();
+      return Promise.resolve();
+    },
+  };
 }
 
 function stubModule(key: string): {
@@ -107,6 +123,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       createOrUpdate: (...args: Array<unknown>) => {
         return createOrUpdateMock(...args);
+      },
+      create: (...args: Array<unknown>) => {
+        return createMock(...args);
       },
     },
   };
@@ -327,7 +346,7 @@ jest.mock(
       __esModule: true,
       default: (options: Record<string, unknown>): unknown => {
         recordProps("useEventOwners", options);
-        return currentOwnersState();
+        return currentOwnersState(options);
       },
     };
   },
@@ -362,7 +381,16 @@ import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Compon
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
 import { EventRolesSnapshot } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
 import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
-import { EVENT_ROLES_CARD_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
+import { EventAddOwners } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
+import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
+import ProjectUtil from "../../../UI/Utils/Project";
+
+// The project a role is given in: the header's Assign writes it on the row.
+const ASSIGN_PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+import {
+  PeoplePickerKind,
+  PeoplePickerOption,
+} from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
@@ -932,13 +960,14 @@ type RolesCardProps = {
   id?: string;
   onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void;
   assignRequest?: { roleId: string; requestId: number } | undefined;
+  refreshToken?: number | undefined;
 };
 
 type FactValueProps = {
   members?: Array<{ name: string }>;
-  onAssign?: () => void;
+  onAssign?: (person: PeoplePickerOption) => Promise<void>;
   owners?: Array<ResourceOwnerEntry>;
-  canAddOwners?: boolean;
+  addOwners?: EventAddOwners;
   ownersRoute?: Route;
 };
 
@@ -960,6 +989,9 @@ beforeEach(() => {
   currentPermissions = [Permission.ProjectMember];
   ownersAnswer = undefined;
   mayAddOwners = true;
+  createMock.mockReset();
+  createMock.mockResolvedValue({});
+  refreshOwnersMock.mockReset();
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
@@ -1181,8 +1213,51 @@ describe.each([
 
       expect(owners).toBeDefined();
       expect(factValueProps(owners).owners).toEqual([]);
-      // Open (reopened), so Add owners is offered.
-      expect(factValueProps(owners).canAddOwners).toBe(true);
+      // Open (reopened), so Add owners is offered: to the record's own tables.
+      const addOwners: EventAddOwners | undefined =
+        factValueProps(owners).addOwners;
+      const target: Record<string, unknown> = addOwners!
+        .target as unknown as Record<string, unknown>;
+
+      expect(target["ownerUserModelType"]).toBe(pageCase.ownerUserModel);
+      expect(target["ownerTeamModelType"]).toBe(pageCase.ownerTeamModel);
+      expect(target["resourceIdField"]).toBe(pageCase.ownerResourceIdField);
+    });
+
+    test("an owner added from the header reads the owners and the feed again; a refused one only the owners", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+      ownersAnswer = [];
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+        "Feed",
+      ).refreshToken;
+      const addOwners: EventAddOwners = factValueProps(
+        factNamed(pageCase, "Owners"),
+      ).addOwners!;
+
+      await act(async () => {
+        await addOwners.onOwnersChanged({ wasAdded: false });
+      });
+
+      expect(refreshOwnersMock).toHaveBeenCalledTimes(1);
+      expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+        feedTokenBefore,
+      );
+
+      await act(async () => {
+        await factValueProps(
+          factNamed(pageCase, "Owners"),
+        ).addOwners!.onOwnersChanged({ wasAdded: true });
+      });
+
+      expect(refreshOwnersMock).toHaveBeenCalledTimes(2);
+      // The feed says who was added, and by whom.
+      expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+        feedTokenBefore + 1,
+      );
     });
 
     test("offers Add owners only to a reader who may add one, open or not", async () => {
@@ -1199,7 +1274,7 @@ describe.each([
 
       // Still named, open as the record is - but nothing to add them with.
       expect(factValueProps(owners).owners).toHaveLength(1);
-      expect(factValueProps(owners).canAddOwners).toBe(false);
+      expect(factValueProps(owners).addOwners).toBeUndefined();
 
       const rendered: RenderResult = render(<>{owners!.value}</>);
 
@@ -1207,6 +1282,7 @@ describe.each([
         within(rendered.container).queryByTestId("event-owners-add-more"),
       ).toBeNull();
       expect(within(rendered.container).queryByRole("link")).toBeNull();
+      expect(within(rendered.container).queryByRole("button")).toBeNull();
     });
 
     test("lifts the investigation status, summary and verdict into the header", async () => {
@@ -1800,9 +1876,9 @@ describe.each([
        * Resolved now: Add owners is no longer offered beside "None", and
        * the stat bar still opens on when it started.
        */
-      expect(factValueProps(factNamed(pageCase, "Owners")).canAddOwners).toBe(
-        false,
-      );
+      expect(
+        factValueProps(factNamed(pageCase, "Owners")).addOwners,
+      ).toBeUndefined();
       expect(
         screen.getByRole("group", { name: pageCase.statBarName }).children[0],
       ).toHaveTextContent(pageCase.startTileLabel);
@@ -2627,8 +2703,10 @@ describe("incident-only behaviour", () => {
 
     const roles: RolesCardProps = latestProps<RolesCardProps>("Roles");
 
-    // The card is where Assign scrolls to.
-    expect(roles.id).toBe(EVENT_ROLES_CARD_ID);
+    // Nothing takes the reader to the card: the header gives the role itself.
+    expect(roles.id).toBeUndefined();
+    expect(roles.assignRequest).toBeUndefined();
+    expect(roles.refreshToken).toBe(0);
 
     act(() => {
       roles.onRolesLoaded(EVENT_ID, rolesReport("Maya Chen"));
@@ -2684,26 +2762,69 @@ describe("incident-only behaviour", () => {
 
     expect(factValueProps(commander).members).toEqual([]);
     expect(typeof factValueProps(commander).onAssign).toBe("function");
-    expect(latestProps<RolesCardProps>("Roles").assignRequest).toBeUndefined();
 
-    // Assign asks the roles card for the primary role's picker.
-    act(() => {
-      factValueProps(commander).onAssign!();
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(ASSIGN_PROJECT_ID));
+    const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+      "Feed",
+    ).refreshToken;
+
+    // Assign gives the primary role to the person picked, right there.
+    await act(async () => {
+      await factValueProps(commander).onAssign!({
+        kind: PeoplePickerKind.User,
+        id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+        name: "Jordan Patel",
+        description: "jordan.patel@acme-commerce.example",
+      });
     });
 
-    expect(latestProps<RolesCardProps>("Roles").assignRequest).toEqual({
-      roleId: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
-      requestId: 1,
-    });
+    expect(createMock).toHaveBeenCalledTimes(1);
 
-    // Asked again after the reader closed it: a new request, so it reopens.
-    act(() => {
-      factValueProps(factsOf(INCIDENT_CASE)[0]).onAssign!();
-    });
+    const request: { model: Record<string, unknown>; modelType: unknown } =
+      createMock.mock.calls[0]![0] as {
+        model: Record<string, unknown>;
+        modelType: unknown;
+      };
 
-    expect(latestProps<RolesCardProps>("Roles").assignRequest?.requestId).toBe(
-      2,
+    expect(request.modelType).toBe(IncidentMember);
+    expect(String(request.model["incidentId"])).toBe(EVENT_ID);
+    expect(String(request.model["projectId"])).toBe(ASSIGN_PROJECT_ID);
+    expect(String(request.model["userId"])).toBe(
+      "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
     );
+    expect(String(request.model["incidentRoleId"])).toBe(
+      "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+    );
+    // The header names them at once...
+    expect(
+      factValueProps(factsOf(INCIDENT_CASE)[0]).members?.map(
+        (member: { name: string }) => {
+          return member.name;
+        },
+      ),
+    ).toEqual(["Jordan Patel"]);
+    // ...the roles card reads again, and so does the feed.
+    expect(latestProps<RolesCardProps>("Roles").refreshToken).toBe(1);
+    expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+      feedTokenBefore + 1,
+    );
+
+    // The card's own read confirms who holds it.
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        EVENT_ID,
+        rolesReport("Jordan Patel"),
+      );
+    });
+    expect(
+      factValueProps(factsOf(INCIDENT_CASE)[0]).members?.map(
+        (member: { name: string }) => {
+          return member.name;
+        },
+      ),
+    ).toEqual(["Jordan Patel"]);
 
     serve(INCIDENT_CASE, {
       timeline: [...REOPENED_TIMELINE, [RESOLVED_STATE_ID, 100]],
@@ -2746,6 +2867,67 @@ describe("incident-only behaviour", () => {
     });
 
     expect(factLabelsOf(INCIDENT_CASE)).toEqual([]);
+  });
+
+  test("a refused Assign names nobody, and the roles card and the feed are not read again", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    createMock.mockRejectedValue(new Error("This user already has this role."));
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(ASSIGN_PROJECT_ID));
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        EVENT_ID,
+        rolesReport(null),
+      );
+    });
+
+    const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+      "Feed",
+    ).refreshToken;
+
+    await act(async () => {
+      await expect(
+        factValueProps(factsOf(INCIDENT_CASE)[0]).onAssign!({
+          kind: PeoplePickerKind.User,
+          id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+          name: "Jordan Patel",
+        }),
+      ).rejects.toThrow("This user already has this role.");
+    });
+
+    expect(factValueProps(factsOf(INCIDENT_CASE)[0]).members).toEqual([]);
+    expect(latestProps<RolesCardProps>("Roles").refreshToken).toBe(0);
+    expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+      feedTokenBefore,
+    );
+  });
+
+  test("a reader who may not give a role is offered no Assign", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    currentPermissions = [Permission.IncidentViewer];
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        EVENT_ID,
+        rolesReport(null),
+      );
+    });
+
+    expect(factValueProps(factsOf(INCIDENT_CASE)[0]).onAssign).toBeUndefined();
   });
 
   test("the commander comes first, then the owners, then the monitors", async () => {
