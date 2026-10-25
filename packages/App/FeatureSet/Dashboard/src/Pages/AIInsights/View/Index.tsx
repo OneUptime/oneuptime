@@ -14,6 +14,7 @@ import InsightFactsList, {
   InsightFact,
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
+import InsightTitleText from "../../../Components/AIInsights/InsightTitleText";
 import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import ProfileFixStrip from "../../../Components/Profiles/ProfileFixStrip";
 import {
@@ -791,13 +792,20 @@ const AIInsightViewPage: FunctionComponent<
     });
   }
 
+  /*
+   * In the reader's language: glued together from English ("5 times"), it
+   * read English on every translated page.
+   */
   facts.push({
     label: "Detections",
     icon: IconProp.Refresh,
     value:
       insight.occurrenceCount === 1
-        ? "Once"
-        : `${insight.occurrenceCount || 0} times`,
+        ? translator.translateText("Once")
+        : translator.translatePlural(
+            { one: "{{count}} time", other: "{{count}} times" },
+            insight.occurrenceCount || 0,
+          ),
   });
 
   if (insight.firstSeenAt) {
@@ -850,7 +858,7 @@ const AIInsightViewPage: FunctionComponent<
                   className="text-lg font-semibold leading-6 text-gray-900 [overflow-wrap:anywhere]"
                   data-testid="ai-insight-title"
                 >
-                  {insight.title}
+                  <InsightTitleText text={insight.title || ""} />
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {getInsightTypeElement(insight.insightType)}

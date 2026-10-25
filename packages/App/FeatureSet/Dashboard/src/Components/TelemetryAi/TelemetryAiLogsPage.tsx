@@ -40,6 +40,7 @@ import {
   getPullRequestCopy,
 } from "../Code/CodeHostCopy";
 import CodeHostMark from "../Code/CodeHostMark";
+import InsightTitleText from "../AIInsights/InsightTitleText";
 import { fetchTelemetryAiLogs } from "./TelemetryAiApi";
 import {
   TELEMETRY_AI_LANE_COPY,
@@ -198,10 +199,11 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
             to={getTelemetryAiInsightRoute(props.lane, entry.insight.id)}
             className={LINK_CLASS_NAME}
           >
-            {entry.insight.title ||
-              translator.translateText(
-                TELEMETRY_AI_LOG_KIND_LABELS[entry.kind],
-              )}
+            {entry.insight.title ? (
+              <InsightTitleText text={entry.insight.title} />
+            ) : (
+              translator.translateText(TELEMETRY_AI_LOG_KIND_LABELS[entry.kind])
+            )}
           </Link>
         </p>
 

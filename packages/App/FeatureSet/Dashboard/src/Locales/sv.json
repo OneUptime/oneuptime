@@ -34405,5 +34405,6 @@
   "Which services' metrics OneUptime AI works on, when, and whether it opens pull requests on its own.": "Vilka tjänsters mätvärden OneUptime AI arbetar med, när, och om den öppnar pull requests själv.",
   "With no rule, OneUptime AI looks into every problem in your metrics right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "Utan regler undersöker OneUptime AI direkt varje problem i dina mätvärden och öppnar en pull request för vart och ett den kan åtgärda. Lägg till regler för att välja vilka tjänster den arbetar med, när, och hur vart och ett åtgärdas.",
   "Wrong Histogram Buckets": "Fel histogram-buckets",
-  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI öppnar en pull request som tar bort ID:na ur de här mätvärdesnamnen, för dig att granska."
+  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI öppnar en pull request som tar bort ID:na ur de här mätvärdesnamnen, för dig att granska.",
+  "Once": "En gång"
 }

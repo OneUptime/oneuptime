@@ -34405,5 +34405,6 @@
   "Which services' metrics OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI가 어떤 서비스의 메트릭을 언제 다루고, 스스로 풀 리퀘스트를 여는지 여부.",
   "With no rule, OneUptime AI looks into every problem in your metrics right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "규칙이 없으면 OneUptime AI는 메트릭의 모든 문제를 즉시 살펴보고 수정할 수 있는 문제마다 풀 리퀘스트를 엽니다. 규칙을 추가해 어떤 서비스를, 언제, 어떻게 수정할지 선택하세요.",
   "Wrong Histogram Buckets": "잘못된 히스토그램 버킷",
-  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI가 이 메트릭 이름에서 ID를 없애는 풀 리퀘스트를 열고 검토를 요청합니다."
+  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI가 이 메트릭 이름에서 ID를 없애는 풀 리퀘스트를 열고 검토를 요청합니다.",
+  "Once": "1회"
 }

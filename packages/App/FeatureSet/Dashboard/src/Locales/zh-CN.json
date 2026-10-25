@@ -34405,5 +34405,6 @@
   "Which services' metrics OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI 处理哪些服务的指标、何时处理，以及是否自行打开拉取请求。",
   "With no rule, OneUptime AI looks into every problem in your metrics right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "没有规则时，OneUptime AI 会立即调查您指标中的每个问题，并为每个它能修复的问题打开拉取请求。添加规则可选择它处理哪些服务、何时处理，以及每一个如何修复。",
   "Wrong Histogram Buckets": "不合适的直方图桶",
-  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI 会创建一个从这些指标名称中去掉 ID 的拉取请求，供您审查。"
+  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI 会创建一个从这些指标名称中去掉 ID 的拉取请求，供您审查。",
+  "Once": "1 次"
 }

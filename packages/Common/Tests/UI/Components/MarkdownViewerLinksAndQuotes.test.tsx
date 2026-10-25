@@ -528,6 +528,16 @@ describe("a long name in inline code wraps inside the text it is in", () => {
     expect(code).toHaveClass("font-mono");
     expect(code).toHaveClass("[overflow-wrap:anywhere]");
 
+    /*
+     * It breaks after its own dots first ("...checkout." / "http..."), and
+     * reads - and copies - as written: a <wbr> adds no character.
+     */
+    expect(code.textContent).toBe(LONG_NAME);
+    expect(code.querySelectorAll("wbr")).toHaveLength(
+      LONG_NAME.split(".").length - 1,
+    );
+    expect(code.childNodes[0]?.textContent).toBe("com.");
+
     // A timestamp is read as one: localized, and never broken.
     const time: HTMLElement | null = document.querySelector("time");
 

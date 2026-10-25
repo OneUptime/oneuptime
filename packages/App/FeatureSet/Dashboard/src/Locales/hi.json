@@ -34405,5 +34405,6 @@
   "Which services' metrics OneUptime AI works on, when, and whether it opens pull requests on its own.": "OneUptime AI किन सेवाओं के मेट्रिक्स पर, कब काम करता है, और क्या वह खुद पुल रिक्वेस्ट खोलता है।",
   "With no rule, OneUptime AI looks into every problem in your metrics right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "कोई नियम न होने पर OneUptime AI आपके मेट्रिक्स की हर समस्या की तुरंत जाँच करता है और जिसे वह ठीक कर सकता है उसके लिए पुल रिक्वेस्ट खोलता है। यह चुनने के लिए नियम जोड़ें कि वह किन सेवाओं पर, कब, और हर एक को कैसे ठीक करे।",
   "Wrong Histogram Buckets": "गलत हिस्टोग्राम बकेट",
-  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI एक पुल रिक्वेस्ट खोलता है जो इन मेट्रिक नामों से ID हटाता है, आपकी समीक्षा के लिए।"
+  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI एक पुल रिक्वेस्ट खोलता है जो इन मेट्रिक नामों से ID हटाता है, आपकी समीक्षा के लिए।",
+  "Once": "एक बार"
 }
