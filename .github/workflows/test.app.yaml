@@ -501,7 +501,14 @@ jobs:
           # the new version, a page whose code is gone updating into the same
           # address, unsaved changes, offline, a server restarting, a part gone
           # for good - at 1280 and 390 pixels, dark, German and Persian) joined
-          # them the same day, the lightest group: about 16.
+          # them the same day, the lightest group: about 16. Shared UI (about
+          # 2 minutes locally with its bundle, Chromium only: every button
+          # style pressable, locked and busy, a menu's own ⋯, a dialog's first
+          # focus once its form draws, the Duplicate, Reset and Delete cards on
+          # a phone and beside a side menu, open sections at their full
+          # height, the pills, stat tiles and chips, and a team's avatar on a
+          # dark card - at 1280 and 390 pixels, dark, German, Persian,
+          # Japanese and Chinese) joined them later that day: about 19.
           - group: 8
             browsers: chromium
             suites: >-
@@ -514,6 +521,7 @@ jobs:
               test-security-events-empty-states-ui
               test-meraki-traffic-ui
               test-new-version-ui
+              test-shared-ui-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -784,6 +792,8 @@ jobs:
             output/playwright/logs-ai-ui/test-results
             output/playwright/new-version-ui/*.png
             output/playwright/new-version-ui/test-results
+            output/playwright/shared-ui/*.png
+            output/playwright/shared-ui/test-results
             output/playwright/metrics-ai-ui/*.png
             output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
