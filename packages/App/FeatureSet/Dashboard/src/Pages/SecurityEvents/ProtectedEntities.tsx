@@ -80,7 +80,8 @@ const SecurityProtectedEntitiesPage: FunctionComponent<
         {
           field: { description: true },
           title: "Description",
-          description: "Optional. Why it is protected.",
+          // The field says (Optional) itself.
+          description: "Why it is protected.",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
         },

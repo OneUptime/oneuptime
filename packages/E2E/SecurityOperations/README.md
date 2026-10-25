@@ -12,12 +12,13 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                     |
 | A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`, its Overview                        | `Pages/SecurityEvents/CaseView/{Layout,SideMenu,Index}`, `SecurityCase/*`                    |
 | A case's pages       | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
-| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`                                                              |
+| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`, the shared `Table`                                          |
+| Protected Entities   | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
 | Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
 | Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
 | Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                            |
-| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`                                                        |
-| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`                                                             |
+| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
+| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`, `SecurityPlaybookTemplatePicker`                           |
 | A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                           |
 | Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
 | Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                     |
@@ -97,6 +98,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?fail=`    | `status` or `overview`: the Overview's set-up figures, or its overview, cannot be read the first time (a 500); Try again reads them again and they answer                                                                                                                                                                                                                                                                          |
 | `?values=`  | `custom`: the project made its case statuses and priorities its own - Triage after New, a retired (archived) Escalated after Investigating, Eradicating after Contained, Closed - Duplicate after Closed, and Emergency above Critical; CASE-142 sits in Eradicating, CASE-138 in Triage and CASE-139 in Escalated                                                                                                                 |
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
+| `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
 ## What the fixture records
@@ -137,6 +139,22 @@ that list is not empty.
   1280 each list's title, search and buttons share one line with the description under them; at
   1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
   and the header's search stays inside the card.
+- **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
+  Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
+  of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
+  Else", longer than the 14rem menu, wraps balanced ("Assign to" over "Someone Else"), and in a
+  right-to-left page each item's icon keeps its gap to the label. Assign to Me takes a
+  case off Unassigned and the menu counts it at once; Assign to Someone Else picks one person
+  or one team in one picker (a team takes the case into its queue and the person comes off it);
+  Change Status into a closing status asks what Close Case asks (OneUptime AI's read over the
+  verdict, the closing note) and the case leaves the open list - the case's own status, first
+  in the list and marked Current, takes the menu's first focus as a quiet grey row, not the
+  indigo of a pick; Change Priority shows the case's own as Current; Bulk Actions' Assign to
+  Someone Else names the case the server refused (`?refuse=138`) with why; a row's Assign to Me
+  the server refuses says "Could not assign CASE-138" in a dialog whose backdrop covers every
+  row's action cells; a Security Viewer sees every move locked with what it takes; the
+  case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
+  assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
 - **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
   Entities, Playbook Runs; Notes: Private Notes; Advanced, folded: Audit Logs, Delete Case), each
   part of the case a page of its own at an address under the case's, its entry lit and its trail
@@ -148,22 +166,38 @@ that list is not empty.
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
   a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both
   themes.
-- **Playbooks**: the list (steps, status, trigger and minimum priority) fits its card; a template
-  becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases, and one
-  that cannot be added says why in the amber box; a playbook's
-  settings read in full; its steps and latest runs; Waiting for Approval, at the runs page's old
-  address, lists the run held for a decision, and Playbook Runs every run; an empty runs page says
-  what it is for in its empty state only.
-- **Detections**: ATT&CK coverage counts what the enabled rules cover and its matrix scrolls inside
-  its card; the rule library marks the rules the project has (a renamed one by its Sigma id) and
-  the recommended ones, filters to them and adds the missing ones in one click, its description
+- **Playbooks**: the list leads the page (steps, status, trigger and minimum priority) and fits
+  its card, no card of templates above it; Create from Template, in the card's ⋯, lists the
+  templates across the dialog (it closes with Close), each one the project has marked Added with
+  View to open its playbook; a project with
+  no playbook (`?empty=1`) has the templates as its empty list, with Create a blank playbook; a
+  template becomes a working playbook in one click, built as Turn on recommended builds Enrich New
+  Cases, and one that cannot be added says why in the amber box; a playbook's page is named for it
+  in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
+  its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
+  Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
+  phone; Waiting for Approval, at the runs page's old
+  address, lists the run held for a decision, and Playbook Runs every run, each a line of how far
+  it got - the failed one Stopped at step 2 in red, its reason under Show steps; an empty runs
+  page says what it is for in its empty state only.
+- **Detections**: ATT&CK Coverage counts what the enabled rules cover and opens on the tactics, a
+  row each with how many of its techniques the rules cover and how many more the Rule Library
+  would, opening on its techniques under a heading per state, each tile counting its rules (the
+  legend is the matrix's); an Overview tactic bar opens its tactic there
+  (`?tactic=`); the matrix, behind the By tactic / Matrix switch (`?view=matrix`), scrolls inside
+  its card; a box says how many techniques the Rule Library covers that the rules do not and opens
+  the rules not added; on a phone and in dark; the rule library marks the rules the project has
+  (a renamed one by its Sigma id) and the recommended ones, filters to them and adds the missing ones in one click, its description
   running under its two buttons the card's whole width, and narrows by one select beside its search;
   an Add Rule that cannot add its rule says why on its card; an Add All or Add Recommended Rules that
   cannot add one names it with why in a box it brings into view, adds the rest, and adding again
   adds only it; Detections is a section of
   pages, each its own address and entry; the side menu is nine sections of pages, the ones set up
   once folded (Settings among them), its Workspace section listing only the connected Slack, and on
-  a phone it names the section and the page; entities ranks what the findings name.
+  a phone it names the section and the page; Entities ranks what the findings name in the
+  product's table over 1, 7 or 30 days, ten a page with the foot every list has, each row opening
+  the entity in Correlate and, on a phone, a card of its figures, with the lookup under it, its box
+  and Look Up one height on one line.
 - **Case priorities and statuses** (`?values=custom`): Settings → Case Statuses lists the
   project's statuses in order, what a case in each counts as, the four built-in ones tagged and the
   retired one folded under the table; Case Priorities lists Emergency above the five a detection
@@ -173,7 +207,11 @@ that list is not empty.
   themes; a case still in a retired status keeps it in its place; moving a case into the project's
   own closing status asks for the verdict first and saves that status; the queue and the overview
   name the statuses as the project does.
-- **Detection rules and threat intel**: Detection Rules names each rule's kind (Single event,
+- **Detection rules and threat intel**: both lead with their lists - their How it works card
+  folds once the list has rows - and each row's one button is Edit, with Create Monitor (and a
+  feed's Update Credentials) in its ⋯. Detection Rules fits 1280 without scrolling sideways, its
+  Last Match how long ago (the date under the pointer) and Last Evaluated in Customize Columns, and
+  names each rule's kind (Single event,
   Sequence, First seen) and says what it means on hover; a single rule pasted into the form counts
   by Group By Field, Distinct Count Field and Match Count Threshold, while a correlation is said in
   a sentence under its YAML - the rules it reads by their titles, its fields as code - named after
@@ -239,9 +277,14 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 of a case at 1280 in both themes and at 390 (`case-overview-1280-light`,
 `case-playbook-runs-1280-dark`, `case-entities-390-light`, `case-entities-390-dark` and the rest),
 `case-header-390-light`, `case-header-390-dark`, `case-side-menu-mobile`, `case-not-found`,
-`playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,
-`playbook-runs-desktop`, `playbook-runs-empty`, `attack-coverage-desktop`, `rule-library-desktop`,
-`rule-library-category-*`, `entities-desktop`, `detection-rules-desktop`,
+the queue's moves at 1280 and 390 in both themes (`cases-row-menu-1280-light`,
+`cases-assign-dialog-390-dark`, `cases-assign-picker-1280-dark`, `cases-bulk-actions-390-light`
+and the rest) and `cases-bulk-assign-result`,
+`playbooks-desktop`, `playbooks-empty`, `playbooks-templates-dialog`, `playbook-desktop`,
+`playbook-runs-waiting-desktop`, `playbook-runs-desktop`, `playbook-runs-empty`,
+`attack-coverage-desktop`, `attack-coverage-tactic-open`, `attack-coverage-matrix`,
+`attack-coverage-phone`, `attack-coverage-dark`, `rule-library-desktop`,
+`rule-library-category-*`, `entities-desktop`, `entities-phone`, `detection-rules-desktop`,
 `detection-rule-correlation-form-desktop`, `detection-rules-dark`, `detection-rules-phone`,
 `threat-intel-desktop`, `threat-intel-feed-source-desktop`, `threat-intel-dark`,
 `threat-intel-phone`, and OneUptime AI's: `case-ai-desktop`, `case-ai-evidence-desktop`,

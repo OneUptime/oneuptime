@@ -119,6 +119,37 @@ describe("feed sentences", () => {
     ).toContain("(playbook **Escalate**)");
   });
 
+  test("a reopen is read off where the statuses sit, so leaving a project's own closing status reads as one", () => {
+    expect(
+      statusChangedMarkdown({
+        from: "Closed - Duplicate",
+        to: "Investigating",
+        reopens: true,
+      }).toString(),
+    ).toContain("Reopened as **Investigating**");
+    // Told it is no reopen, a status named Closed is not one either.
+    expect(
+      statusChangedMarkdown({
+        from: "Closed",
+        to: "Closed - Duplicate",
+        reopens: false,
+      }).toString(),
+    ).toContain("**Closed** to **Closed - Duplicate**");
+    // A renamed closing status the caller says nothing about reads as a move.
+    expect(
+      statusChangedMarkdown({ from: "Done", to: "Investigating" }).toString(),
+    ).toContain("**Done** to **Investigating**");
+    // The playbook that reopened it is named, as on every other sentence.
+    expect(
+      statusChangedMarkdown({
+        from: "Done",
+        to: "New",
+        reopens: true,
+        playbookName: "Reopen on new activity",
+      }).toString(),
+    ).toContain("Reopened as **New** (playbook **Reopen on new activity**)");
+  });
+
   test("name who a case went to, or that it went to nobody", () => {
     expect(assigneeChangedMarkdown({ userName: "Maya" }).toString()).toContain(
       "Assigned to **Maya**",
