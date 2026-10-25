@@ -795,7 +795,22 @@ describe("pages arriving on the phone", () => {
     expect(
       detailsBlock(FAQ, "Can I acknowledge a page from the notification?"),
     ).toContain(
-      "No. Tap the notification: the app opens the incident, alert or episode it is about, in the right project, and you acknowledge it there.",
+      "No. Tap the notification: the app opens the incident, alert, episode or security case it is about, in the right project, and you acknowledge it there.",
+    );
+  });
+
+  it("open the security case they are about: the server names the case and its project, and the app opens its screen", () => {
+    const handlers: string = flat(mobile("src/notifications/handlers.ts"));
+
+    expect(flat(common("Server/Utils/PushNotificationUtil.ts"))).toMatch(
+      /public static createSecurityCaseNotification\(.{0,900}?entityType: "security-case", entityId: params\.securityCaseId, projectId: params\.projectId,/,
+    );
+    // Parked like any other page until the app is unlocked and signed in.
+    expect(handlers).toMatch(
+      /function tabRouteForEntityType\(entityType: string\): string \| null \{ switch \(entityType\) \{[^}]*?case "security-case": return "Inbox";/,
+    );
+    expect(handlers).toMatch(
+      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
     );
   });
 });
@@ -984,6 +999,54 @@ describe("what the mobile app keeps and shows", () => {
       "Open one to **Acknowledge**, **Resolve** or **Add Note**.",
     );
     expect(answer).toContain("and **Cover for me**, which hands your pages");
+  });
+
+  it("names the Security category and a case's actions as the app draws them, for the people who can see the project's cases", () => {
+    const inbox: string = flat(mobile("src/screens/InboxScreen.tsx"));
+    const home: string = flat(mobile("src/screens/HomeScreen.tsx"));
+    const availability: string = flat(mobile("src/hooks/useSecurityCases.ts"));
+    const caseScreen: string = mobile(
+      "src/screens/SecurityCaseDetailScreen.tsx",
+    );
+    const approval: string = mobile(
+      "src/components/security/PlaybookApproval.tsx",
+    );
+
+    /*
+     * The Inbox's category and Home's row show only when the project's
+     * cases can be counted: a role without them is refused the count.
+     */
+    expect(inbox).toContain('{ key: "security", label: "Security",');
+    expect(inbox).toContain(
+      'category.key !== "security" || security.isAvailable ||',
+    );
+    expect(home).toContain(
+      '{securityCounts.isAvailable ? ( <ListGroup testID="home-security"',
+    );
+    expect(home).toContain('label="Open security cases"');
+    expect(availability).toContain(
+      "isAvailable: Boolean(projectId) && (query.data ?? 0) > 0,",
+    );
+    expect(mobile("src/api/securityCases.ts")).toContain(
+      '"/api/security-case/count",',
+    );
+
+    expect(approval).toContain('label="Approve"');
+    expect(approval).toContain('label="Reject"');
+    expect(caseScreen).toContain('label: "Assign to me",');
+    expect(caseScreen).toContain('label: "Close case",');
+
+    const answer: string = detailsBlock(FAQ, "What can I do in the app?");
+
+    expect(answer).toContain(
+      "active incidents and alerts, open security cases if your role lets you see them, monitors with issues, and grouped events.",
+    );
+    expect(answer).toContain(
+      "If your role lets you see the project's security cases, **Security** lists the open ones: open one to **Approve** or **Reject** a playbook step waiting for approval, take it on with **Assign to me**, or **Close case**.",
+    );
+    expect(englishPage(APPS_OVERVIEW)).toContain(
+      "| What you can do | Incidents, alerts, security cases, monitors and who is on call; acknowledge, resolve, approve playbook steps and add notes | Everything the dashboard does |",
+    );
   });
 
   it("says No internet connection while it is offline", () => {

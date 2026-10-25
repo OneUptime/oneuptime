@@ -32,9 +32,9 @@ Sì. Ogni telefono o tablet è un dispositivo push a sé, con le sue regole di r
 :::
 
 :::details Cosa posso fare nell'app?
-- **Home**: ciò che richiede attenzione nel progetto: incidenti e avvisi attivi, monitor con problemi ed eventi raggruppati.
+- **Home**: ciò che richiede attenzione nel progetto: incidenti e avvisi attivi, casi di sicurezza aperti se il tuo ruolo ti permette di vederli, monitor con problemi ed eventi raggruppati.
 - **Monitors**: tutti i monitor, filtrati per stato, con i loro dettagli.
-- **Inbox**: incidenti e avvisi, e gli episodi che li raggruppano. Aprine uno per usare **Acknowledge**, **Resolve** o **Add Note**.
+- **Inbox**: incidenti e avvisi, e gli episodi che li raggruppano. Aprine uno per usare **Acknowledge**, **Resolve** o **Add Note**. Se il tuo ruolo ti permette di vedere i casi di sicurezza del progetto, **Security** elenca quelli aperti: aprine uno per usare **Approve** o **Reject** su un passo di playbook in attesa di approvazione, prendere in carico il caso con **Assign to me** o usare **Close case**.
 - **On-Call**: se sei reperibile e fino a quando, chi altro lo è, gli avvisi inviati a te, e **Cover for me**, che passa i tuoi avvisi a un collega per un po'.
 - **Settings**: i tuoi progetti e il single sign-on, l'aspetto, gli avvisi critici e il suono di allarme, **Biometrics Login**, il tuo feed di calendario della reperibilità, e **Log Out**.
 
@@ -42,7 +42,7 @@ Tutto il resto è nella dashboard.
 :::
 
 :::details Posso confermare un avviso dalla notifica?
-No. Tocca la notifica: l'app apre l'incidente, l'avviso o l'episodio a cui si riferisce, nel progetto giusto, e lo confermi lì. Se l'app è bloccata o non hai effettuato l'accesso, apre l'avviso appena entri.
+No. Tocca la notifica: l'app apre l'incidente, l'avviso, l'episodio o il caso di sicurezza a cui si riferisce, nel progetto giusto, e lo confermi lì. Se l'app è bloccata o non hai effettuato l'accesso, apre l'avviso appena entri.
 :::
 
 :::details Il mio accesso è al sicuro sul telefono?

@@ -68,10 +68,11 @@ both palettes by `src/theme/colors.test.ts`.
 | `SectionHeader`                                                                 | A section title with optional icon, count and action link.                                                                |
 | `EmptyState`                                                                    | Empty, error and success placeholders with an optional action.                                                            |
 | `SearchField`, `ListFilters`, `SegmentedControl`                                | List search, filter chips and view switching.                                                                             |
-| `ResponseRow`                                                                   | Incident, alert, episode and monitor list cards.                                                                          |
+| `ResponseRow`                                                                   | Incident, alert, episode, monitor and security case list cards; `badge` for a word that needs a decision.                 |
 | `ResponseDetailHeader`, `ResponseActions`, `ResponseSection`, `ResponseInfoRow` | Detail page structure.                                                                                                    |
 | `QueryErrorNotice`                                                              | A failed background read with a retry.                                                                                    |
 | `EmptyDetailPane`                                                               | The detail pane beside a list before anything is opened in it: "No incident selected" and how to fill it.                 |
+| `CaseSheet`, `CaseSheetOption`                                                  | A security case's decision sheets (status, priority, close, approval): the question, radio choices, the buttons last.     |
 
 ## Layout
 

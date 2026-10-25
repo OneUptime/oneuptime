@@ -32,9 +32,9 @@ Oui. Chaque téléphone ou tablette est un appareil push à part entière, avec 
 :::
 
 :::details Que puis-je faire dans l'application ?
-- **Home** : ce qui demande votre attention dans le projet : incidents et alertes actifs, moniteurs en difficulté et événements groupés.
+- **Home** : ce qui demande votre attention dans le projet : incidents et alertes actifs, dossiers de sécurité ouverts si votre rôle vous permet de les voir, moniteurs en difficulté et événements groupés.
 - **Monitors** : tous les moniteurs, filtrés par état, avec leurs détails.
-- **Inbox** : incidents et alertes, et les épisodes qui les regroupent. Ouvrez-en un pour choisir **Acknowledge**, **Resolve** ou **Add Note**.
+- **Inbox** : incidents et alertes, et les épisodes qui les regroupent. Ouvrez-en un pour choisir **Acknowledge**, **Resolve** ou **Add Note**. Si votre rôle vous permet de voir les dossiers de sécurité du projet, **Security** liste ceux qui sont ouverts : ouvrez-en un pour choisir **Approve** ou **Reject** sur une étape de playbook en attente d'approbation, prendre le dossier en charge avec **Assign to me** ou choisir **Close case**.
 - **On-Call** : si vous êtes d'astreinte et jusqu'à quand, qui l'est aussi, les alertes qui vous ont été envoyées, et **Cover for me**, qui confie vos alertes à un collègue pour un temps.
 - **Settings** : vos projets et l'authentification unique, l'apparence, les alertes critiques et le son d'alarme, **Biometrics Login**, votre flux de calendrier d'astreinte, et **Log Out**.
 
@@ -42,7 +42,7 @@ Tout le reste se trouve dans le tableau de bord.
 :::
 
 :::details Puis-je accuser réception d'une alerte depuis la notification ?
-Non. Touchez la notification : l'application ouvre l'incident, l'alerte ou l'épisode concerné, dans le bon projet, et vous en accusez réception là. Si l'application est verrouillée ou si vous êtes déconnecté, elle ouvre l'alerte dès que vous êtes connecté.
+Non. Touchez la notification : l'application ouvre l'incident, l'alerte, l'épisode ou le dossier de sécurité concerné, dans le bon projet, et vous en accusez réception là. Si l'application est verrouillée ou si vous êtes déconnecté, elle ouvre l'alerte dès que vous êtes connecté.
 :::
 
 :::details Ma connexion est-elle sûre sur le téléphone ?

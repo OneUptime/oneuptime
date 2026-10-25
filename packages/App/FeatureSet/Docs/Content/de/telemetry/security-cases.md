@@ -182,7 +182,7 @@ Jede Person wählt selbst, unter **Benutzereinstellungen → Benachrichtigungsei
 
 Die Auswahl folgt den Fallprioritäten des Projekts, unter ihren eigenen Namen: Dies sind die eines neuen Projekts.
 
-Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet die OneUptime-App, und ihr Link öffnet den Fall im Browser.
+Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet den Fall in der App OneUptime On-Call (1.7.0 oder neuer), wo Sie einen wartenden Playbook-Schritt genehmigen oder ablehnen, den Fall übernehmen und schließen können. Ihr Link öffnet den Fall im Browser.
 
 ### In Kanäle von Slack und Microsoft Teams posten
 
