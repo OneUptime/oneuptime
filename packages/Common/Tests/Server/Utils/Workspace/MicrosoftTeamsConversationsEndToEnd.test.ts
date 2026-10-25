@@ -43,6 +43,22 @@ jest.mock("botbuilder", () => {
   ).loadRealBotbuilder(__filename);
 });
 
+/*
+ * The Bot Connector's mappers, from where that botbuilder loads them: what
+ * MicrosoftTeamsAiAnswer lets keep an entity's properties is the model the
+ * real serializer writes the answer's AI label with.
+ */
+jest.mock("botframework-connector/lib/connectorApi/models/mappers", () => {
+  const nodeModuleBuiltin: typeof import("module") =
+    typeof process.getBuiltinModule === "function"
+      ? process.getBuiltinModule("module")
+      : Object.getPrototypeOf(jest.requireActual("module"));
+
+  return nodeModuleBuiltin.createRequire(__filename)(
+    "botframework-connector/lib/connectorApi/models/mappers",
+  );
+});
+
 jest.mock("../../../../Server/EnvironmentConfig", () => {
   return {
     ...(jest.requireActual("../../../../Server/EnvironmentConfig") as Record<
@@ -82,6 +98,9 @@ import WorkspaceConnectRequest, {
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import AIService from "../../../../Server/Services/AIService";
 import ObservabilityAssistant from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import MicrosoftTeamsAiAnswer from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsAiAnswer";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../../Utils/Project/ProjectBalance";
 import logger from "../../../../Server/Utils/Logger";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import URL from "../../../../Types/API/URL";
@@ -284,6 +303,28 @@ const DASHBOARD_URL: string = "https://oneuptime.example.com/dashboard";
 const ONEUPTIME_USER_ID: ObjectID = ObjectID.generate();
 const ASK_PROMPT: string =
   "🔗 **Connect your Microsoft Teams account to ask OneUptime AI.** It takes one click. Then ask your question again.";
+// The line under every answer from OneUptime AI (MicrosoftTeamsAiAnswer).
+const AI_NOTICE: string =
+  "_Written by OneUptime AI, which can make mistakes: check important details before you act on them. Use 👎 to report an answer that is wrong or inappropriate._";
+const ANSWER: string = `Two monitors are down: **API** and **Checkout**.\n\n${AI_NOTICE}`;
+
+/*
+ * What makes an answer OneUptime AI's in Teams: Teams' "AI generated" label,
+ * and its 👍 and 👎 buttons.
+ */
+function expectAiAnswerMetadata(activity: JSONObject): void {
+  expect(activity["entities"]).toEqual([
+    {
+      type: "https://schema.org/Message",
+      "@type": "Message",
+      "@context": "https://schema.org",
+      additionalType: ["AIGeneratedContent"],
+    },
+  ]);
+  expect((activity["channelData"] as JSONObject)["feedbackLoop"]).toEqual({
+    type: "default",
+  });
+}
 
 let connector: FakeBotConnector;
 let projectId: ObjectID;
@@ -587,6 +628,7 @@ beforeEach(() => {
 
   jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
   jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(null);
+  jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
   askAssistant = jest
     .spyOn(ObservabilityAssistant, "answerQuestion")
     .mockResolvedValue({
@@ -738,9 +780,8 @@ describe("@mentions, and personal chats, are answered", () => {
       expect(updates[0]!.conversationId).toBe(
         `${OPS_CHANNEL};messageid=${NOTIFICATION_POST_ID}`,
       );
-      expect(updates[0]!.activity["text"]).toBe(
-        "Two monitors are down: **API** and **Checkout**.",
-      );
+      expect(updates[0]!.activity["text"]).toBe(ANSWER);
+      expectAiAnswerMetadata(updates[0]!.activity);
     }
 
     expect(askAssistant).toHaveBeenCalledTimes(2);
@@ -765,8 +806,9 @@ describe("@mentions, and personal chats, are answered", () => {
       }),
     ).toEqual([
       ["typing", undefined],
-      ["message", "Two monitors are down: **API** and **Checkout**."],
+      ["message", ANSWER],
     ]);
+    expectAiAnswerMetadata(delivery.posts[1]!.activity);
     expect(connector.updates).toEqual([]);
     expect(askAssistant).toHaveBeenCalledTimes(1);
   });
@@ -787,10 +829,10 @@ describe("@mentions, and personal chats, are answered", () => {
       delivery.posts.map((post: ConnectorPost): string => {
         return String(post.activity["text"]);
       }),
-    ).toEqual([
-      "Looking into it…",
-      "Two monitors are down: **API** and **Checkout**.",
-    ]);
+    ).toEqual(["Looking into it…", ANSWER]);
+    // The placeholder is no answer of AI's; the reply in its place is.
+    expect(delivery.posts[0]!.activity["entities"]).toBeUndefined();
+    expectAiAnswerMetadata(delivery.posts[1]!.activity);
   });
 
   test("the answer could not be written: said in place of the placeholder", async () => {
@@ -809,6 +851,65 @@ describe("@mentions, and personal chats, are answered", () => {
     expect(connector.updates[0]!.activity["text"]).toBe(
       "Sorry, I ran into a problem answering that question. Please try again later.",
     );
+    // No answer was written, so nothing is labelled AI's.
+    expect(connector.updates[0]!.activity["entities"]).toBeUndefined();
+    expect(connector.updates[0]!.activity["channelData"]).toBeUndefined();
+  });
+
+  /*
+   * Microsoft's reviewers asked in a project they had just created, whose AI
+   * credits - like every new project's - were used up: AIService refused
+   * each call, and the bot said "Please try again later", which no retry
+   * answers. Checked before the acknowledgement, as the AI switch and the
+   * daily limits are: the refusal says who can add credits, and where.
+   */
+  test("the project's AI credits are used up: said so, with who can add them and where - no placeholder, and AI is not asked", async () => {
+    jest
+      .spyOn(AIService, "getAiBalanceBlocker")
+      .mockResolvedValue(
+        "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.",
+      );
+
+    const delivery: Delivery = await deliver(
+      message({
+        from: BOB,
+        text: "ask how many incidents are still in progress?",
+        where: { in: "thread", postId: NOTIFICATION_POST_ID },
+        mentions: [BOT],
+      }),
+    );
+
+    expect(
+      delivery.posts.map((post: ConnectorPost): string => {
+        return String(post.activity["text"]);
+      }),
+    ).toEqual([
+      `${PROJECT_AI_CREDITS_USED_UP_MESSAGE} Type **help** to see the other commands.`,
+    ]);
+    expect(connector.updates).toEqual([]);
+    expect(askAssistant).not.toHaveBeenCalled();
+  });
+
+  test("the credits run out while the answer is written: the refusal, in place of the placeholder - not 'try again later'", async () => {
+    askAssistant.mockRejectedValue(
+      new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE),
+    );
+
+    const delivery: Delivery = await deliver(
+      message({
+        from: BOB,
+        text: "what changed before this started?",
+        where: { in: "thread", postId: NOTIFICATION_POST_ID },
+        mentions: [BOT],
+      }),
+    );
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(connector.updates[0]!.activity["text"]).toBe(
+      `${PROJECT_AI_CREDITS_USED_UP_MESSAGE} Type **help** to see the other commands.`,
+    );
+    // A setting somebody chose is no error in the log.
+    expect(loggedErrors).toEqual([]);
   });
 
   /*
@@ -856,8 +957,59 @@ describe("@mentions, and personal chats, are answered", () => {
           return String(post.activity["text"]);
         }),
     ).toEqual([
-      "Two monitors are down: **API** and **Checkout**.\n\n**Sources**\n• Monitor statuses (2 rows)\n• Deployments (1 row)",
+      `Two monitors are down: **API** and **Checkout**.\n\n**Sources**\n• Monitor statuses (2 rows)\n• Deployments (1 row)\n\n${AI_NOTICE}`,
     ]);
+  });
+
+  /*
+   * 👍 or 👎 under an answer reaches the bot as an invoke: Teams needs its
+   * 200, and shows its own thanks; nobody is answered in the conversation,
+   * and nobody needs to be connected for it.
+   */
+  test("👍 or 👎 under an answer: Teams gets its 200, nothing is posted, and the report is handled", async () => {
+    const handleFeedback: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MicrosoftTeamsAiAnswer, "handleFeedback")
+      .mockResolvedValue(undefined);
+
+    const feedback: JSONObject = {
+      type: "invoke",
+      name: "message/submitAction",
+      id: nextActivityId(),
+      replyToId: "msg-1",
+      timestamp: "2026-10-13T10:00:00.000Z",
+      serviceUrl: connector.serviceUrl,
+      channelId: "msteams",
+      from: CAROL,
+      recipient: BOT,
+      conversation: {
+        conversationType: "channel",
+        tenantId: TENANT_ID,
+        id: `${OPS_CHANNEL};messageid=${NOTIFICATION_POST_ID}`,
+        isGroup: true,
+      },
+      channelData: { tenant: { id: TENANT_ID } },
+      value: {
+        actionName: "feedback",
+        actionValue: {
+          reaction: "dislike",
+          feedback: JSON.stringify({ feedbackText: "Wrong monitor" }),
+        },
+      },
+    };
+
+    const delivery: Delivery = await deliver(feedback);
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toEqual([]);
+    expect(handleFeedback).toHaveBeenCalledTimes(1);
+    expect(
+      (handleFeedback.mock.calls[0]![0] as { activity: JSONObject }).activity[
+        "value"
+      ],
+    ).toEqual(feedback["value"]);
+    // Carol is not connected, and is not asked to be: a report needs nobody.
+    expect(lookUpAccount).not.toHaveBeenCalled();
+    expect(resolveTenant).not.toHaveBeenCalled();
   });
 });
 

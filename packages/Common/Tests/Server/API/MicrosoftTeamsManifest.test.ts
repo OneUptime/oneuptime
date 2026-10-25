@@ -553,6 +553,85 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
    * Left behind, an admin re-uploading the manifest to pick up a change
    * would have the upload refused.
    */
+  /*
+   * What the store shows before anybody installs the app. Microsoft refused
+   * 14.0.59 because the "ask" command named OneUptime AI and the description
+   * said nothing of it (policy 1140.4.1.24): an app whose content AI writes
+   * must say so here, how to report an answer that is wrong, harmful or
+   * offensive - a mail address is one of the ways the store accepts - and
+   * that the reports are acted on; and an app that needs an admin's setup
+   * first must say that too.
+   */
+  describe("description", () => {
+    function fullDescription(): string {
+      return (getManifest()["description"] as JSONObject)["full"] as string;
+    }
+
+    test("the full description is within the 4,000 characters Teams takes, and the short one within 80", () => {
+      const description: JSONObject = getManifest()[
+        "description"
+      ] as JSONObject;
+
+      expect(fullDescription().length).toBeLessThanOrEqual(4000);
+      expect((description["short"] as string).length).toBeLessThanOrEqual(80);
+    });
+
+    test("says that OneUptime AI answers the bot's questions, that it is generative AI, and what it reads - only reading", () => {
+      const full: string = fullDescription();
+
+      expect(full).toContain("<strong>OneUptime AI:</strong>");
+      expect(full).toContain('"ask", and any other question you send the bot');
+      expect(full).toContain("generative AI assistant");
+      expect(full).toContain(
+        "logs, traces, metrics, incidents and monitors with your own permissions",
+      );
+      expect(full).toContain("never changes anything");
+    });
+
+    test("asks the reader to check an answer, which is marked as AI generated", () => {
+      expect(fullDescription()).toContain(
+        "Answers are marked as AI generated and can be wrong, so check important details before you act on them.",
+      );
+    });
+
+    test("says how to report an answer - the thumbs-down button, or a mail address - and that reports are acted on", () => {
+      const full: string = fullDescription();
+
+      expect(full).toContain(
+        "To report an AI answer that is wrong, harmful or offensive, use the thumbs-down button under it, or email",
+      );
+      expect(full).toContain(
+        '<a href="mailto:support@oneuptime.com">support@oneuptime.com</a>',
+      );
+      expect(full).toContain("reviews every report and acts on it promptly");
+    });
+
+    test("names the admin's one-time setup, and that each person connects their own account", () => {
+      expect(fullDescription()).toContain(
+        "A OneUptime project admin connects your Microsoft 365 organization once",
+      );
+      expect(fullDescription()).toContain(
+        "everyone connects their own Microsoft Teams account the first time they use a command",
+      );
+    });
+
+    test("names the bot's commands as they are typed", () => {
+      const full: string = fullDescription();
+
+      for (const command of [
+        "incident",
+        "maintenance",
+        "oncall",
+        "page",
+        "help",
+        "show active incidents",
+        "show active alerts",
+      ]) {
+        expect(full).toContain(`"${command}"`);
+      }
+    });
+  });
+
   describe("manifest version", () => {
     test("a build without APP_VERSION has AppVersion 'unknown' — which is what gets the fallback", () => {
       const savedAppVersion: string | undefined = process.env["APP_VERSION"];
@@ -578,16 +657,16 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(unsetAppVersion).toBe("unknown");
 
       mockEnvironmentState.appVersion = unsetAppVersion as string;
-      expect(getManifest()["version"]).toBe("1.10.0");
+      expect(getManifest()["version"]).toBe("1.11.0");
     });
 
     // The check lowercases AppVersion first, so its case does not matter.
     test.each(["unknown", "Unknown", "UNKNOWN"])(
-      "AppVersion %p gets the fallback version 1.10.0",
+      "AppVersion %p gets the fallback version 1.11.0",
       (appVersion: string) => {
         mockEnvironmentState.appVersion = appVersion;
 
-        expect(getManifest()["version"]).toBe("1.10.0");
+        expect(getManifest()["version"]).toBe("1.11.0");
       },
     );
 
