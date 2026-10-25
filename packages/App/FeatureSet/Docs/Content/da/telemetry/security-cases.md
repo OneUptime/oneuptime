@@ -320,7 +320,7 @@ En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart,
 - De åbne sager, der er tildelt dig, de åbne sager, som ingen har taget, og de playbook-trin, der venter på godkendelse; hvert tal åbner siden, der viser dem.
 - **Gennemsnitlig tid til kvittering**, **Gennemsnitlig tid til inddæmning** og **Gennemsnitlig tid til lukning** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den til en status, der tæller som kvitteret), til en status, der tæller som inddæmmet, og til en, der tæller som lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
 - De sager, der er åbnet hver dag i 30 dage, efter prioritet, og de detektioner, der er rejst hver dag i 14 dage, efter kilde.
-- De åbne sager efter prioritet og efter status, konklusionerne fra de seneste 30 dage, ATT&CK-taktikkerne bag sagerne, de detektioner, der blev udløst oftest, og de entiteter, som flest fund nævner.
+- De åbne sager efter prioritet og efter status, de entiteter, som flest fund nævner, de detektioner, der blev udløst oftest, ATT&CK-taktikkerne bag sagerne og konklusionerne fra de seneste 30 dage.
 
 Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, sager og playbooks, hver med sine tal. Et projekt, der endnu ikke har sat det op, ser **Slå anbefalet til** og **Send et testangreb** der; se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started). Når intet kræver nogen, siger siden **Alt er roligt**, og diagrammerne vises, så snart der er noget at vise.
 

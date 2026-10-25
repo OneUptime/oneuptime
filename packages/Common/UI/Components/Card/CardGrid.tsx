@@ -41,7 +41,7 @@ export interface ComponentProps {
   // The most cards side by side.
   columns: CardGridColumns;
   /*
-   * How narrow a card may get before fewer share a row: "wide" (25rem, the
+   * How narrow a card may get before fewer share a row: "wide" (24rem, the
    * default) for lists that name things and for charts, "narrow" (16rem)
    * for short ranked lists of counts.
    */

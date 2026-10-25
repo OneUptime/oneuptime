@@ -46,7 +46,19 @@ import {
   TurnOnRecommendedPart,
   TurnOnRecommendedReason,
 } from "../../../Types/SecurityEvent/TurnOnRecommended";
-import SecurityOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
+import SecurityOverviewPage, {
+  SECURITY_OVERVIEW_CHARTS_ID,
+  SECURITY_OVERVIEW_LATELY_ID,
+  SECURITY_OVERVIEW_NOW_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
+import { RANKED_BARS_EMPTY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/RankedBars";
+import { CARD_GRID_CELL_TEST_ID } from "../../../UI/Components/Card/CardGrid";
+import {
+  CARD_GRID_CENTERED_STATE_CLASS_NAME,
+  CARD_GRID_CONTAINER_CLASS_NAME,
+  CARD_GRID_GAP_IN_PX,
+} from "../../../UI/Components/Card/CardGridLayout";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -83,6 +95,10 @@ import PermissionGate, {
 import ProjectUtil from "../../../UI/Utils/Project";
 import type { SpyInstance } from "jest-mock";
 import { resolveSpacing } from "../../ResponsiveSpacing";
+import {
+  describeHeightFill,
+  describeHeightFillChain,
+} from "../../ResponsiveHeightFill";
 import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 
 /*
@@ -1574,6 +1590,40 @@ describe("the charts below the card", () => {
     }
   });
 
+  test("a list with nothing to rank says so in the middle of the room its card has, at every width", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview({
+        openCases: 3,
+        casesOpenedInWindow: 5,
+        detectionsInWindow: 9,
+      }),
+    );
+    await renderPage();
+
+    for (const sentence of [
+      "Nothing was detected in the last 14 days.",
+      "No case in the last 30 days is mapped to an ATT&CK tactic.",
+      "No findings named an entity in the last 7 days.",
+    ]) {
+      const element: HTMLElement = screen.getByText(sentence);
+
+      expect([sentence, element.getAttribute("class")]).toEqual([
+        sentence,
+        RANKED_BARS_EMPTY_CLASS_NAME,
+      ]);
+      // It takes the card's room: the body is a column it grows in.
+      for (const width of WIDTHS_IN_PX) {
+        expect([sentence, width, describeHeightFill(element, width)]).toEqual(
+          [sentence, width, null],
+        );
+      }
+    }
+    expect(RANKED_BARS_EMPTY_CLASS_NAME).toBe(
+      `${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`,
+    );
+  });
+
   test("a tactic behind the cases opens ATT&CK Coverage on that tactic", async () => {
     answerStatus(status({ ...SET_UP, openCases: 3 }));
     answerOverview(
@@ -1593,6 +1643,169 @@ describe("the charts below the card", () => {
     expect(tactic.getAttribute("href")).toContain(
       "/security-events/attack-coverage?tactic=TA0006",
     );
+  });
+});
+
+/*
+ * "Gap between cards dont look nice. Please fix it." - the maintainer, of a
+ * row of three cards (the whole queue beside four verdicts and two tactics)
+ * and a row of two (two rules beside seven entities), with bare page under
+ * every shorter card. The rows are CardGrids now - every card fills its
+ * cell, and how many share a row follows the room beside the side menu -
+ * and the ranked lists share rows with lists of their size, the most
+ * urgent first. The browser half, real boxes at 390 to 1440 pixels with
+ * short and long lists, is in E2E/SecurityOperations.
+ */
+describe("the rows of cards under the figures", () => {
+  const ROWS: Array<[string, number, string, Array<string>]> = [
+    // row, cards across, card width, the cards in reading order
+    [SECURITY_OVERVIEW_CHARTS_ID, 2, "wide", ["Cases Opened", "Detections"]],
+    [SECURITY_OVERVIEW_NOW_ID, 2, "wide", ["Open Cases", "Riskiest Entities"]],
+    [
+      SECURITY_OVERVIEW_LATELY_ID,
+      3,
+      "narrow",
+      ["Top Detections", "MITRE ATT&CK Tactics", "Verdicts"],
+    ],
+  ];
+
+  async function renderBusyMonth(): Promise<void> {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview({
+        openCases: 3,
+        casesOpenedInWindow: 5,
+        detectionsInWindow: 9,
+        topTactics: [{ tacticId: "TA0006", count: 4 }],
+        topRules: [
+          { ruleName: "Encoded PowerShell", detectionRuleId: null, count: 3 },
+        ],
+      }),
+    );
+    jest.spyOn(SecurityCaseApi, "getTopEntities").mockResolvedValue([
+      {
+        value: "203.0.113.47",
+        findingCount: 3,
+        ruleCount: 1,
+        maxSeverityId: 4,
+        lastSeen: null,
+      },
+    ]);
+    await renderPage();
+    await screen.findByText("203.0.113.47");
+  }
+
+  function cardTitlesOf(row: HTMLElement): Array<string> {
+    return within(row)
+      .getAllByTestId(CARD_GRID_CELL_TEST_ID)
+      .map((cell: HTMLElement): string => {
+        return (
+          within(cell).getByTestId("card-details-heading").textContent || ""
+        );
+      });
+  }
+
+  test("three rows, in reading order: the day-by-day charts, then what is open now and who it touches, then what raised the detections, the attacker goals and how the closed cases turned out", async () => {
+    await renderBusyMonth();
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      new RegExp(
+        `^(${[
+          SECURITY_OVERVIEW_CHARTS_ID,
+          SECURITY_OVERVIEW_NOW_ID,
+          SECURITY_OVERVIEW_LATELY_ID,
+        ]
+          .map(escapeRegExp)
+          .join("|")})$`,
+      ),
+    );
+
+    expect(
+      rows.map((row: HTMLElement): string => {
+        return row.getAttribute("data-testid") || "";
+      }),
+    ).toEqual(
+      ROWS.map((row: [string, number, string, Array<string>]): string => {
+        return row[0];
+      }),
+    );
+
+    for (const [testId, , , titles] of ROWS) {
+      expect([testId, cardTitlesOf(screen.getByTestId(testId))]).toEqual([
+        testId,
+        titles,
+      ]);
+    }
+  });
+
+  test.each(ROWS)(
+    "%s is a CardGrid of %i %s cards across, at most",
+    async (
+      testId: string,
+      columns: number,
+      cardWidth: string,
+      titles: Array<string>,
+    ) => {
+      await renderBusyMonth();
+
+      const row: HTMLElement = screen.getByTestId(testId);
+
+      expect(row).toHaveAttribute("data-columns", String(columns));
+      expect(row).toHaveAttribute("data-card-width", cardWidth);
+      expect(row.getAttribute("class")).toBe(CARD_GRID_CONTAINER_CLASS_NAME);
+      expect(within(row).getAllByTestId(CARD_GRID_CELL_TEST_ID)).toHaveLength(
+        titles.length,
+      );
+    },
+  );
+
+  test("each card is the only card of its cell and fills it, so every row ends on one line", async () => {
+    await renderBusyMonth();
+
+    for (const [testId] of ROWS) {
+      for (const cell of within(screen.getByTestId(testId)).getAllByTestId(
+        CARD_GRID_CELL_TEST_ID,
+      )) {
+        const cards: Array<HTMLElement> = within(cell).getAllByTestId("card");
+
+        expect(cards).toHaveLength(1);
+        expect(cell.firstElementChild).toBe(cards[0]);
+        expect(cards[0]).toHaveAttribute("data-fill-height", "true");
+        for (const width of WIDTHS_IN_PX) {
+          expect(
+            describeHeightFillChain(
+              cards[0]!.querySelector(
+                '[data-testid="card"] > div > div > div:last-child',
+              ) as HTMLElement,
+              cell.parentElement as HTMLElement,
+              width,
+            ),
+          ).toEqual([]);
+        }
+      }
+    }
+  });
+
+  test("the page stands its cards a card's gap apart, as the cards of a row are", async () => {
+    await renderBusyMonth();
+
+    const page: HTMLElement = screen.getByTestId(SECURITY_OVERVIEW_CHARTS_ID)
+      .parentElement as HTMLElement;
+
+    expect(page).toHaveClass("space-y-5");
+    expect(page).not.toHaveClass("space-y-6");
+    // space-y-5's 20px, the grid's own gap.
+    expect(CARD_GRID_GAP_IN_PX).toBe(20);
+  });
+
+  test("a month with nothing to chart draws no rows at all", async () => {
+    answerStatus(status({ ...SET_UP }));
+    answerOverview(overview());
+    await renderPage();
+
+    for (const [testId] of ROWS) {
+      expect(screen.queryByTestId(testId)).toBeNull();
+    }
   });
 });
 

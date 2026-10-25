@@ -69,6 +69,33 @@ export interface CardSectionsChild {
   isCard: boolean;
 }
 
+/*
+ * A row of cards built by hand: an element whose classes make it a grid of
+ * two or more columns (grid-cols-2 and up, at any width), whose cells are
+ * whole cards - a card element, a component or render helper of the same
+ * module that draws one, a wrapper holding just one, or a list of them
+ * (.map). Read by the card-rows guard (Tests/UI/Components/
+ * CardRowsGuard.test.ts): such a row is drawn with CardGrid, whose cards
+ * fill their cells. A grid of columns that each stack several cards (an
+ * incident's page) is not a row of cards.
+ */
+export interface CardRowCell {
+  // What the cell draws: Card, renderTopList, div>Card, ...
+  name: string;
+  // Whether the cell is one whole card.
+  isCard: boolean;
+  // Whether it stands for a list of cells (.map).
+  isRepeated: boolean;
+}
+
+export interface CardRow {
+  file: string;
+  line: number;
+  // The grid's class attribute, as written.
+  className: string;
+  cells: Array<CardRowCell>;
+}
+
 const BASE_CARDS: ReadonlyArray<string> = [
   "Card",
   "CardModelDetail",
@@ -114,6 +141,10 @@ const CHILDREN_EXPRESSION: RegExp = /^(?:props\.)?children$/;
 const INTRINSIC_NAME: RegExp = /^[a-z]/;
 // A tag's type arguments, as getText() may give them: ModelTable<Rule>.
 const TYPE_ARGUMENTS: RegExp = /<.*$/;
+// Between the class names of a class attribute.
+const CLASS_SEPARATOR: RegExp = /\s+/;
+// A grid of two columns or more, at any width: grid-cols-2 ... grid-cols-12.
+const MULTI_COLUMN_UTILITY: RegExp = /^grid-cols-(?:[2-9]|1[0-2])$/;
 
 type JsxLike = ts.JsxElement | ts.JsxSelfClosingElement;
 
@@ -186,6 +217,116 @@ function isHandBuiltFrame(element: JsxLike): boolean {
   return (
     ROUNDED_FRAME.test(text) && BORDER_ALL_ROUND.test(text) && SHADOW.test(text)
   );
+}
+
+/*
+ * The utilities of a class attribute as written - a string, or the text of
+ * the expression that builds one - each without its variants (md:, the
+ * container queries' [@container(...)]:). The utility is what follows the
+ * last colon: no utility has one of its own.
+ */
+function classUtilitiesOf(element: JsxLike): Array<string> {
+  const className: ts.JsxAttribute | undefined = attributeOf(
+    element,
+    "className",
+  );
+
+  if (!className || !className.initializer) {
+    return [];
+  }
+
+  return className.initializer
+    .getText()
+    .replace(ATTRIBUTE_WRAPPING, " ")
+    .split(CLASS_SEPARATOR)
+    .filter(Boolean)
+    .map((token: string): string => {
+      return token.split(":").pop() || "";
+    });
+}
+
+// An element drawn as a grid of two columns or more, at some width.
+function isMultiColumnGrid(element: JsxLike): boolean {
+  const utilities: Array<string> = classUtilitiesOf(element);
+
+  return (
+    utilities.includes("grid") &&
+    utilities.some((utility: string): boolean => {
+      return MULTI_COLUMN_UTILITY.test(utility);
+    })
+  );
+}
+
+// The expression a function gives back last: its body, or its last return.
+function lastReturnOf(
+  declaration: ts.FunctionLikeDeclaration,
+): ts.Expression | null {
+  if (!declaration.body) {
+    return null;
+  }
+
+  if (!ts.isBlock(declaration.body)) {
+    return declaration.body;
+  }
+
+  const returns: Array<ts.ReturnStatement> = declaration.body.statements.filter(
+    (statement: ts.Statement): statement is ts.ReturnStatement => {
+      return ts.isReturnStatement(statement);
+    },
+  );
+
+  return returns.length > 0
+    ? returns[returns.length - 1]!.expression || null
+    : null;
+}
+
+/*
+ * Every named function of a module, at any depth - its components and the
+ * render helpers inside them (const renderTopList = (...) => ...) - with
+ * what each gives back last.
+ */
+function namedFunctionsOf(
+  source: ts.SourceFile,
+): Map<string, ts.Expression | null> {
+  const found: Map<string, ts.Expression | null> = new Map<
+    string,
+    ts.Expression | null
+  >();
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isFunctionDeclaration(node) && node.name) {
+      found.set(node.name.text, lastReturnOf(node));
+    } else if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      (ts.isArrowFunction(node.initializer) ||
+        ts.isFunctionExpression(node.initializer))
+    ) {
+      found.set(node.name.text, lastReturnOf(node.initializer));
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
+}
+
+// What a cell of a grid holds that counts: elements and expressions, not blank text or comments.
+function meaningfulChildrenOf(element: ts.JsxElement): Array<ts.JsxChild> {
+  return element.children.filter((child: ts.JsxChild): boolean => {
+    if (ts.isJsxText(child)) {
+      return child.text.trim().length > 0;
+    }
+
+    if (ts.isJsxExpression(child)) {
+      return Boolean(child.expression);
+    }
+
+    return true;
+  });
 }
 
 function parseModules(
@@ -380,6 +521,11 @@ class CardNestingScanner {
   private readonly modules: Array<ParsedModule>;
   private readonly cardModules: Set<string> = new Set<string>();
   private readonly childrenInCardModules: Set<string> = new Set<string>();
+  // Per module: its own functions that draw a whole card (localCardDrawers).
+  private readonly localCardDrawersByFile: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
+  >();
 
   public constructor(
     sources: Array<CardNestingSource>,
@@ -456,6 +602,257 @@ class CardNestingScanner {
     }
 
     return found;
+  }
+
+  public cardRows(): Array<CardRow> {
+    const found: Array<CardRow> = [];
+
+    for (const module of this.modules) {
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (
+          ts.isJsxElement(node) &&
+          INTRINSIC_NAME.test(nameOf(node)) &&
+          isMultiColumnGrid(node)
+        ) {
+          const cells: Array<CardRowCell> = node.children.flatMap(
+            (child: ts.JsxChild): Array<CardRowCell> => {
+              return this.cellsOfChild(module, child);
+            },
+          );
+
+          const isRowOfCards: boolean =
+            cells.some((cell: CardRowCell): boolean => {
+              return cell.isCard;
+            }) &&
+            (cells.length > 1 ||
+              cells.some((cell: CardRowCell): boolean => {
+                return cell.isRepeated;
+              }));
+
+          if (isRowOfCards) {
+            found.push({
+              file: module.file,
+              line: lineOf(module.source, node),
+              className:
+                attributeOf(node, "className")?.initializer?.getText() || "",
+              cells,
+            });
+          }
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(module.source);
+    }
+
+    return found;
+  }
+
+  /*
+   * The names of a module's own functions - components and render helpers
+   * - that draw a whole card at their root, worked out until nothing
+   * changes (one may draw another).
+   */
+  private localCardDrawers(module: ParsedModule): Set<string> {
+    const cached: Set<string> | undefined = this.localCardDrawersByFile.get(
+      module.file,
+    );
+
+    if (cached) {
+      return cached;
+    }
+
+    const drawers: Set<string> = new Set<string>();
+    const functions: Map<string, ts.Expression | null> = namedFunctionsOf(
+      module.source,
+    );
+    let changed: boolean = true;
+
+    while (changed) {
+      changed = false;
+
+      for (const [name, returned] of functions) {
+        if (drawers.has(name)) {
+          continue;
+        }
+
+        const draws: boolean = rootElementsOf(returned).some(
+          (element: JsxLike): boolean => {
+            return (
+              this.isCardElement(module, element) ||
+              drawers.has(nameOf(element).replace(TYPE_ARGUMENTS, ""))
+            );
+          },
+        );
+
+        if (draws) {
+          drawers.add(name);
+          changed = true;
+        }
+      }
+    }
+
+    this.localCardDrawersByFile.set(module.file, drawers);
+
+    return drawers;
+  }
+
+  private drawsCard(module: ParsedModule, element: JsxLike): boolean {
+    return (
+      this.isCardElement(module, element) ||
+      this.localCardDrawers(module).has(
+        nameOf(element).replace(TYPE_ARGUMENTS, ""),
+      )
+    );
+  }
+
+  // The cells one child of a grid stands for: none, one, or a fragment's or a list's.
+  private cellsOfChild(
+    module: ParsedModule,
+    child: ts.JsxChild,
+  ): Array<CardRowCell> {
+    if (ts.isJsxText(child)) {
+      return [];
+    }
+
+    if (ts.isJsxExpression(child)) {
+      return child.expression
+        ? this.cellsOfExpression(module, child.expression)
+        : [];
+    }
+
+    return this.cellsOfExpression(module, child as ts.Expression);
+  }
+
+  private cellsOfExpression(
+    module: ParsedModule,
+    expression: ts.Expression,
+  ): Array<CardRowCell> {
+    if (ts.isParenthesizedExpression(expression)) {
+      return this.cellsOfExpression(module, expression.expression);
+    }
+
+    if (ts.isJsxFragment(expression)) {
+      return expression.children.flatMap(
+        (child: ts.JsxChild): Array<CardRowCell> => {
+          return this.cellsOfChild(module, child);
+        },
+      );
+    }
+
+    if (ts.isJsxElement(expression) || ts.isJsxSelfClosingElement(expression)) {
+      const name: string = nameOf(expression).replace(TYPE_ARGUMENTS, "");
+
+      if (
+        ts.isJsxElement(expression) &&
+        (name === "Fragment" || name === "React.Fragment")
+      ) {
+        return expression.children.flatMap(
+          (child: ts.JsxChild): Array<CardRowCell> => {
+            return this.cellsOfChild(module, child);
+          },
+        );
+      }
+
+      return [this.cellOfElement(module, expression)];
+    }
+
+    // One of two at a time: as many cells as the longer, a card if either is.
+    if (ts.isConditionalExpression(expression)) {
+      const whenTrue: Array<CardRowCell> = this.cellsOfExpression(
+        module,
+        expression.whenTrue,
+      );
+      const whenFalse: Array<CardRowCell> = this.cellsOfExpression(
+        module,
+        expression.whenFalse,
+      );
+      const longer: Array<CardRowCell> =
+        whenTrue.length >= whenFalse.length ? whenTrue : whenFalse;
+      const isCard: boolean = [...whenTrue, ...whenFalse].some(
+        (cell: CardRowCell): boolean => {
+          return cell.isCard;
+        },
+      );
+
+      return longer.map((cell: CardRowCell): CardRowCell => {
+        return { ...cell, isCard: cell.isCard || isCard };
+      });
+    }
+
+    if (
+      ts.isBinaryExpression(expression) &&
+      expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+    ) {
+      return this.cellsOfExpression(module, expression.right);
+    }
+
+    if (ts.isCallExpression(expression)) {
+      const callee: ts.Expression = expression.expression;
+
+      // A list: what each item gives back is a cell, as many as there are items.
+      if (
+        ts.isPropertyAccessExpression(callee) &&
+        callee.name.text === "map" &&
+        expression.arguments[0] &&
+        (ts.isArrowFunction(expression.arguments[0]) ||
+          ts.isFunctionExpression(expression.arguments[0]))
+      ) {
+        const returned: ts.Expression | null = lastReturnOf(
+          expression.arguments[0],
+        );
+
+        return (returned ? this.cellsOfExpression(module, returned) : []).map(
+          (cell: CardRowCell): CardRowCell => {
+            return { ...cell, isRepeated: true };
+          },
+        );
+      }
+
+      // A render helper of the module: renderTopList(...).
+      if (ts.isIdentifier(callee)) {
+        return [
+          {
+            name: callee.text,
+            isCard: this.localCardDrawers(module).has(callee.text),
+            isRepeated: false,
+          },
+        ];
+      }
+    }
+
+    return [{ name: "{...}", isCard: false, isRepeated: false }];
+  }
+
+  /*
+   * One element's cell: a card if it draws one, or if it is a plain wrapper
+   * (a div holding a span's classes) around nothing but one card.
+   */
+  private cellOfElement(module: ParsedModule, element: JsxLike): CardRowCell {
+    const name: string = nameOf(element).replace(TYPE_ARGUMENTS, "");
+
+    if (this.drawsCard(module, element)) {
+      return { name, isCard: true, isRepeated: false };
+    }
+
+    if (ts.isJsxElement(element) && INTRINSIC_NAME.test(name)) {
+      const children: Array<ts.JsxChild> = meaningfulChildrenOf(element);
+      const inner: Array<CardRowCell> =
+        children.length === 1
+          ? this.cellsOfChild(module, children[0]!)
+          : [];
+
+      if (inner.length === 1 && inner[0]!.isCard) {
+        return {
+          name: `${name}>${inner[0]!.name}`,
+          isCard: true,
+          isRepeated: inner[0]!.isRepeated,
+        };
+      }
+    }
+
+    return { name, isCard: false, isRepeated: false };
   }
 
   private findCardModules(): void {
@@ -616,6 +1013,13 @@ export function listCardDrawingModules(
   resolveImport: ImportResolver,
 ): Array<string> {
   return new CardNestingScanner(sources, resolveImport).cardModuleFiles();
+}
+
+export function scanCardRows(
+  sources: Array<CardNestingSource>,
+  resolveImport: ImportResolver,
+): Array<CardRow> {
+  return new CardNestingScanner(sources, resolveImport).cardRows();
 }
 
 /*

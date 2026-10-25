@@ -21,7 +21,7 @@
  *
  * - "narrow" cards (16rem) - short ranked lists, counts by a short name -
  *   go two across from 34rem and three across from 51rem.
- * - "wide" cards (25rem) - lists that name things (hosts, entities, devices,
+ * - "wide" cards (24rem) - lists that name things (hosts, entities, devices,
  *   pools) and charts of thirty days - go two across from 51rem and three
  *   across from 78rem.
  *
@@ -72,7 +72,7 @@ export const CARD_GRID_MIN_CARD_WIDTH_IN_REM: Record<
   number
 > = {
   narrow: 16,
-  wide: 25,
+  wide: 24,
 };
 
 // Where a layout puts more cards side by side.
