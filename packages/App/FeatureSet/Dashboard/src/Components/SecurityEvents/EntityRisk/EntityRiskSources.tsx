@@ -76,6 +76,8 @@ const EntityRiskSources: FunctionComponent<ComponentProps> = (
                 title: SOURCE_COLUMN_TITLE,
                 type: FieldType.Element,
                 disableSort: true,
+                wrapContent: true,
+                wrapMaxWidthClassName: "max-w-xs",
                 getElement: (row: SourceRow): ReactElement => {
                   return (
                     <div className="flex min-w-0 items-start gap-2">
@@ -160,6 +162,8 @@ const EntityRiskSources: FunctionComponent<ComponentProps> = (
                 type: FieldType.Element,
                 disableSort: true,
                 hideOnMobile: true,
+                wrapContent: true,
+                wrapMaxWidthClassName: "max-w-[15rem]",
                 getElement: (row: SourceRow): ReactElement => {
                   return (
                     <MitreAttackChips

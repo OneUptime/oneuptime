@@ -61,6 +61,16 @@ export const ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME: string =
   "[@container(max-width:39.99rem)]:hidden";
 export const ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME: string =
   "[@container(min-width:40rem)]:hidden";
+/*
+ * The entity's risk (Security Events > Entity Risk) takes a column of its
+ * own only from 52rem up, where the five beside it keep their one line
+ * (a laptop beside the case's side menu is narrower); below that it goes
+ * under the value, with the type.
+ */
+export const ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME: string =
+  "[@container(max-width:51.99rem)]:hidden";
+export const ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME: string =
+  "[@container(min-width:52rem)]:hidden";
 
 export const SECURITY_CASE_ENTITIES_TEST_IDS: {
   table: string;
@@ -100,18 +110,23 @@ const SkeletonCell: FunctionComponent = (): ReactElement => {
  */
 const EntityRiskLink: FunctionComponent<{
   entityValue: string;
+  entityType: string;
   score: number;
   threshold: number;
+  // Named "Risk" where no column header says what the number is.
+  isLabelled?: boolean | undefined;
 }> = (props: {
   entityValue: string;
+  entityType: string;
   score: number;
   threshold: number;
+  isLabelled?: boolean | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
     <AppLink
-      to={getEntityRiskRoute(props.entityValue)}
+      to={getEntityRiskRoute(props.entityValue, props.entityType)}
       className="inline-flex items-center gap-1.5 rounded-md hover:underline"
     >
       <span
@@ -119,6 +134,13 @@ const EntityRiskLink: FunctionComponent<{
         title={translator.translateText(CASE_ENTITY_RISK_TOOLTIP)}
         data-testid={ENTITY_RISK_TEST_IDS.caseEntityRisk}
       >
+        {props.isLabelled ? (
+          <span className="text-xs font-medium text-gray-500">
+            {translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE)}
+          </span>
+        ) : (
+          <></>
+        )}
         <span className="text-sm font-semibold tabular-nums text-gray-900">
           {translator.formatNumber(props.score)}
         </span>
@@ -147,9 +169,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   // Each entity's risk score, by its risk key: only the entities that have one.
-  const [riskScores, setRiskScores] = useState<Map<string, number>>(
-    new Map(),
-  );
+  const [riskScores, setRiskScores] = useState<Map<string, number>>(new Map());
   const riskSettings: EntityRiskSettings = useEntityRiskSettings();
 
   const valuesKey: string = props.entities
@@ -338,7 +358,7 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                   </th>
                   <th
                     scope="col"
-                    className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                    className={`${headerCellClassName} ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
                   >
                     {translator.translateText(CASE_ENTITY_RISK_COLUMN_TITLE)}
                   </th>
@@ -363,14 +383,21 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     const riskScore: number | undefined = riskScores.get(
                       getEntityRiskKey(entity.value),
                     );
-                    const riskLink: ReactElement | null =
-                      riskScore !== undefined ? (
+                    const getRiskLink: (
+                      isLabelled: boolean,
+                    ) => ReactElement | null = (
+                      isLabelled: boolean,
+                    ): ReactElement | null => {
+                      return riskScore !== undefined ? (
                         <EntityRiskLink
                           entityValue={entity.value}
+                          entityType={entity.type}
                           score={riskScore}
                           threshold={riskSettings.threshold}
+                          isLabelled={isLabelled}
                         />
                       ) : null;
+                    };
                     // Drawn in its column, or under the count on a narrow table.
                     const severityPill: ReactElement | null = severity ? (
                       <span
@@ -426,11 +453,14 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                             )}
                           </div>
                           {/* Its risk, under the value while its column is left out. */}
-                          {riskLink ? (
+                          {riskScore !== undefined ? (
                             <div
-                              className={`mt-1 ${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}`}
+                              className={`mt-1 ${ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME}`}
+                              data-testid={
+                                ENTITY_RISK_TEST_IDS.caseEntityRiskUnderValue
+                              }
                             >
-                              {riskLink}
+                              {getRiskLink(true)}
                             </div>
                           ) : (
                             <></>
@@ -494,9 +524,14 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                           {isRowLoading ? <SkeletonCell /> : lastSeen || "-"}
                         </td>
                         <td
-                          className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                          className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top ${ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME}`}
+                          data-testid={
+                            ENTITY_RISK_TEST_IDS.caseEntityRiskColumn
+                          }
                         >
-                          {riskLink || <span className="text-gray-400">-</span>}
+                          {getRiskLink(false) || (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                       </tr>
                     );

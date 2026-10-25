@@ -13,6 +13,7 @@ import {
 import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import SideMenu, {
   SideMenuItemProps,
   SideMenuSectionProps,
@@ -34,6 +35,22 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The case counts wait for the project's case statuses: which cases are
  * open is what those count as.
  */
+/*
+ * The page an entry is lit for besides its own: one of its detail pages
+ * (an entity's page, for Entity Risk), when that is the page you are on.
+ */
+function getActiveDetailRoute(item: SecurityEventsMenuItem): Route | undefined {
+  for (const page of item.detailPages || []) {
+    const route: Route = RouteUtil.populateRouteParams(RouteMap[page] as Route);
+
+    if (Navigation.isOnThisPage(route)) {
+      return route;
+    }
+  }
+
+  return undefined;
+}
+
 const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
   const { values } = useSecurityCaseValues();
 
@@ -57,12 +74,14 @@ const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
                 item.badge,
                 values ? values.statuses : null,
               );
+            const activeRoute: Route | undefined = getActiveDetailRoute(item);
 
             return {
               link: {
                 title: item.title,
                 to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
               },
+              ...(activeRoute ? { activeRoute } : {}),
               icon: item.icon,
               ...(count
                 ? {

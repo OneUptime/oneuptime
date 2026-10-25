@@ -3,8 +3,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Color from "Common/Types/Color";
 import { Blue, Gray500, Orange, Red, Yellow } from "Common/Types/BrandColors";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
-  SECURITY_ENTITY_CRITICALITY_WEIGHTS,
   SecurityEntityCriticality,
   SecurityEntityRiskContribution,
   SecurityEntityRiskHistoryPoint,
@@ -30,6 +30,12 @@ import { DayCount } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 
 // The query parameter an entity's page reads its value from.
 export const ENTITY_VALUE_QUERY_PARAM: string = "value";
+
+/*
+ * And its kind, when the page that links to it knows it (a case's entity,
+ * a risk row): a host's name alone reads as no kind in particular.
+ */
+export const ENTITY_TYPE_QUERY_PARAM: string = "type";
 
 // How many days of history an entity's page draws.
 export const ENTITY_RISK_HISTORY_DAYS: number = 30;
@@ -60,14 +66,33 @@ export const ENTITY_RISK_HISTORY_LEVELS: ReadonlyArray<SecurityEntityRiskLevel> 
   ];
 
 // An entity's page, for any value: a user, a host or an address.
-export function getEntityRiskRoute(value: string): Route {
+export function getEntityRiskRoute(
+  value: string,
+  type?: string | null | undefined,
+): Route {
+  const knownType: SecurityEntityType | null = readEntityTypeFromQuery(type);
+
   return (
     RouteUtil.populateRouteParams(
       RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW] as Route,
     ) as Route
   ).addQueryParams({
     [ENTITY_VALUE_QUERY_PARAM]: encodeURIComponent(value.trim()),
+    ...(knownType
+      ? { [ENTITY_TYPE_QUERY_PARAM]: encodeURIComponent(knownType) }
+      : {}),
   });
+}
+
+// A kind from the page's query: one of the kinds there are, or none.
+export function readEntityTypeFromQuery(
+  raw: string | null | undefined,
+): SecurityEntityType | null {
+  const value: string = (raw || "").trim();
+
+  return (Object.values(SecurityEntityType) as Array<string>).includes(value)
+    ? (value as SecurityEntityType)
+    : null;
 }
 
 /*
@@ -113,8 +138,6 @@ export interface EntityRiskBreakdown {
   criticality: SecurityEntityCriticality | null;
   weight: number;
   sources: Array<SecurityEntityRiskContribution>;
-  // How many points more it takes to reach the threshold; 0 at or past it.
-  toThreshold: number;
 }
 
 /*
@@ -164,15 +187,7 @@ export function getEntityRiskBreakdown(data: {
     criticality,
     weight: getCriticalityWeight(criticality),
     sources,
-    toThreshold: Math.max(0, threshold - score),
   };
-}
-
-// The weight of a criticality, as its label says it: "×1.5".
-export function formatCriticalityWeight(
-  criticality: SecurityEntityCriticality,
-): string {
-  return `×${SECURITY_ENTITY_CRITICALITY_WEIGHTS[criticality]}`;
 }
 
 /*

@@ -23,6 +23,7 @@ import * as React from "react";
 import SecurityEventsHowItWorksCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
 import DetectionRulesGuide from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import ThreatIntelGuide from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
+import { getEntityRiskGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide";
 import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
@@ -90,6 +91,8 @@ function readLocale(language: string): Record<string, string> {
 const GUIDES: Array<[string, SecurityEventsGuide]> = [
   ["Detection Rules", DetectionRulesGuide],
   ["Threat Intel", ThreatIntelGuide],
+  // Worked out for a project's threshold: a new project's here.
+  ["Entity Risk", getEntityRiskGuide(100)],
 ];
 
 beforeAll(async () => {

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 34423,
+    "keys": 34545,
     "untranslated": 16561
   },
   "sameAsEnglish": [
@@ -43,6 +43,7 @@
     "Pull request",
     "Pull requests",
     "Revision",
+    "Risk",
     "Runbook: {{name}}",
     "Runner",
     "Status",

@@ -1,4 +1,7 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words of entity risk in the Dashboard: Security Events > Entity Risk,
@@ -25,8 +28,9 @@ export const ENTITY_RISK_EMPTY_DESCRIPTION: string = translationKey(
   "Risk builds up as your detection rules, threat intel and connected products find things about the users, hosts and addresses they are about.",
 );
 
-export const ENTITY_RISK_EMPTY_ACTION: string =
-  translationKey("Open the Rule Library");
+export const ENTITY_RISK_EMPTY_ACTION: string = translationKey(
+  "Open the Rule Library",
+);
 
 // Said above the list while the project opens no case from risk.
 export const RISK_CASES_OFF_TITLE: string = translationKey(
@@ -37,7 +41,8 @@ export const RISK_CASES_OFF_DESCRIPTION: string = translationKey(
   "Risk is scored either way. Turn on risk cases in Risk Scoring, and an entity at High risk opens a case of its own.",
 );
 
-export const RISK_CASES_OFF_ACTION: string = translationKey("Open Risk Scoring");
+export const RISK_CASES_OFF_ACTION: string =
+  translationKey("Open Risk Scoring");
 
 export const RISK_CASES_OFF_TEST_ID: string = "entity-risk-cases-off";
 
@@ -50,17 +55,20 @@ export const TACTICS_COLUMN_TITLE: string = translationKey("ATT&CK Tactics");
 export const LAST_RISK_COLUMN_TITLE: string = translationKey("Last Risk");
 
 // "Brute force and 2 more": the sources column, under its count.
-export const SOURCES_AND_MORE: {
-  one: string;
-  other: string;
-} = {
-  one: translationKey("{{name}} and {{count}} more"),
-  other: translationKey("{{name}} and {{count}} more"),
+export const SOURCES_AND_MORE: PluralTemplate = {
+  one: "{{name}} and {{count}} more",
+  other: "{{name}} and {{count}} more",
 };
 
-export const SOURCE_COUNT: { one: string; other: string } = {
-  one: translationKey("{{count}} source"),
-  other: translationKey("{{count}} sources"),
+export const SOURCE_COUNT: PluralTemplate = {
+  one: "{{count}} source",
+  other: "{{count}} sources",
+};
+
+// "+2 more": the ATT&CK tactics a row leaves out.
+export const MORE_TACTICS: PluralTemplate = {
+  one: "+{{count}} more",
+  other: "+{{count}} more",
 };
 
 // ---------- An entity's page ----------
@@ -73,12 +81,6 @@ export const ENTITY_PAGE_NOT_NAMED_DESCRIPTION: string = translationKey(
   "Open one from Entity Risk, or from the entities of a case.",
 );
 
-export const ENTITY_RISK_CARD_TITLE: string = translationKey("Risk");
-
-export const ENTITY_RISK_CARD_DESCRIPTION: string = translationKey(
-  "What the findings about it in the last 7 days add up to, weighted by how much it matters.",
-);
-
 export const ENTITY_NO_RISK: string = translationKey(
   "Nothing found about it counts toward risk in the last 7 days.",
 );
@@ -86,10 +88,6 @@ export const ENTITY_NO_RISK: string = translationKey(
 // "Risk 125 · High · a case opens at 100"
 export const RISK_AGAINST_THRESHOLD: string = translationKey(
   "A case opens at {{threshold}}",
-);
-
-export const RISK_CRITICALITY_WEIGHT: string = translationKey(
-  "{{criticality}} criticality: its findings count {{weight}} times",
 );
 
 export const RISK_BREAKDOWN: string = translationKey(
@@ -149,11 +147,11 @@ export const CASES_EMPTY: string = translationKey(
   "No case has been opened about it.",
 );
 
-export const ACTIVITY_CARD_TITLE: string = translationKey("Activity");
-
-export const ACTIVITY_CARD_DESCRIPTION: string = translationKey(
-  "The security events that name it in the last 7 days.",
+export const CASES_EMPTY_DESCRIPTION: string = translationKey(
+  "A case a detection opens about it, or its risk opens at the threshold, shows here.",
 );
+
+export const ACTIVITY_CARD_TITLE: string = translationKey("Activity");
 
 export const ACTIVITY_EVENTS: string = translationKey("Events");
 export const ACTIVITY_FINDINGS: string = translationKey("Findings");
@@ -169,7 +167,7 @@ export const RESET_RISK_CONFIRM_TITLE: string = translationKey(
 );
 
 export const RESET_RISK_CONFIRM_DESCRIPTION: string = translationKey(
-  "Its score and its sources are cleared, and the findings that come next count from nothing. Use it when you are sure it is fine, such as after a planned test. Its cases are not changed.",
+  "Its score and its sources are cleared, and what is found next counts from zero. Use it after a planned test, say. Its cases are not changed.",
 );
 
 // ---------- Settings > Risk Scoring ----------
@@ -217,8 +215,9 @@ export const CRITICALITY_TABLE_EMPTY: string = translationKey(
   "Every entity counts the same. Add the ones that matter more, such as domain controllers and executives, or less, such as test machines.",
 );
 
-export const CRITICALITY_SINGULAR: string = translationKey("Entry");
-export const CRITICALITY_PLURAL: string = translationKey("Entries");
+// What one row of Entity Criticality is: a value, or a pattern of them.
+export const CRITICALITY_SINGULAR: string = translationKey("Entity");
+export const CRITICALITY_PLURAL: string = translationKey("Entities");
 
 export const CRITICALITY_VALUE_DESCRIPTION: string = translationKey(
   "The user's sign-in name, the host's name or the address, whatever its case. Use * for any run of characters: dc-* names every domain controller.",
@@ -254,7 +253,7 @@ export const CRITICALITY_WEIGHT_LABELS: {
 export const RISK_POINTS_FIELD_TITLE: string = translationKey("Risk Points");
 
 export const RISK_POINTS_FIELD_DESCRIPTION: string = translationKey(
-  "What a match adds to the risk of the user, host or address it is about, from 0 to 100. Empty: by the rule's level - Low 10, Medium 25, High 50, Critical 75.",
+  "Added to the risk of the user, host or address a match is about, from 0 to 100. Empty: by its level - Low 10, Medium 25, High 50, Critical 75.",
 );
 
 // ---------- A case's Entities ----------
@@ -284,6 +283,8 @@ export const ENTITY_RISK_TEST_IDS: {
   thresholdCard: string;
   criticalityTable: string;
   caseEntityRisk: string;
+  caseEntityRiskColumn: string;
+  caseEntityRiskUnderValue: string;
 } = {
   table: "entity-risk-table",
   score: "entity-risk-score",
@@ -301,4 +302,6 @@ export const ENTITY_RISK_TEST_IDS: {
   thresholdCard: "security-risk-threshold",
   criticalityTable: "security-entity-criticality-table",
   caseEntityRisk: "security-case-entity-risk",
+  caseEntityRiskColumn: "security-case-entity-risk-column",
+  caseEntityRiskUnderValue: "security-case-entity-risk-under-value",
 };

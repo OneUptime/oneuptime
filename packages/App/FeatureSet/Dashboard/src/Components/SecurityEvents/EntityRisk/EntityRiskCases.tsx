@@ -9,6 +9,7 @@ import {
   CASES_CARD_DESCRIPTION,
   CASES_CARD_TITLE,
   CASES_EMPTY,
+  CASES_EMPTY_DESCRIPTION,
   ENTITY_RISK_TEST_IDS,
 } from "./EntityRiskCopy";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
@@ -63,6 +64,7 @@ const EntityRiskCases: FunctionComponent<ComponentProps> = (
         }}
         emptyState={{
           title: CASES_EMPTY,
+          description: CASES_EMPTY_DESCRIPTION,
           icon: IconProp.ShieldExclamation,
           hideCreateButton: true,
         }}
@@ -77,6 +79,8 @@ const EntityRiskCases: FunctionComponent<ComponentProps> = (
             field: { title: true },
             title: "Case",
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xl",
             getElement: (item: SecurityCase): ReactElement => {
               return (
                 <div className="flex min-w-0 items-start gap-2">

@@ -7,6 +7,7 @@ import SecurityCaseApi, {
 import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/SecurityEntityChips";
 import EntityCriticalityPill from "../../Components/SecurityEvents/EntityRisk/EntityCriticalityPill";
 import {
+  ACTIVITY_CARD_TITLE,
   ACTIVITY_EVENTS,
   ACTIVITY_FINDINGS,
   ACTIVITY_FIRST_SEEN,
@@ -29,9 +30,11 @@ import {
 import EntityRiskCases from "../../Components/SecurityEvents/EntityRisk/EntityRiskCases";
 import EntityRiskHistory from "../../Components/SecurityEvents/EntityRisk/EntityRiskHistory";
 import {
+  ENTITY_TYPE_QUERY_PARAM,
   ENTITY_VALUE_QUERY_PARAM,
   EntityRiskBreakdown,
   getEntityRiskBreakdown,
+  readEntityTypeFromQuery,
   readEntityValueFromQuery,
 } from "../../Components/SecurityEvents/EntityRisk/EntityRiskModel";
 import EntityRiskScore from "../../Components/SecurityEvents/EntityRisk/EntityRiskScore";
@@ -52,9 +55,15 @@ import {
   getSecurityEntityIcon,
   inferSecurityEntityType,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import { ENTITY_RISK_WINDOW_IN_DAYS } from "Common/Types/SecurityCase/SecurityEntityRisk";
+import {
+  ENTITY_RISK_WINDOW_IN_DAYS,
+  SecurityEntityRiskHistoryPoint,
+} from "Common/Types/SecurityCase/SecurityEntityRisk";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
-import { getEntityRiskKey } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
+import {
+  getEntityRiskKey,
+  readRiskHistory,
+} from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -218,6 +227,9 @@ const SecurityEntityRiskViewPage: FunctionComponent<
 
   const type: SecurityEntityType =
     (risk?.entityType as SecurityEntityType | undefined) ||
+    readEntityTypeFromQuery(
+      Navigation.getQueryStringByName(ENTITY_TYPE_QUERY_PARAM),
+    ) ||
     inferSecurityEntityType(value);
   const breakdown: EntityRiskBreakdown | null = risk
     ? getEntityRiskBreakdown({
@@ -232,6 +244,14 @@ const SecurityEntityRiskViewPage: FunctionComponent<
     ModelAction.Delete,
   );
   const hasScore: boolean = Boolean(breakdown && breakdown.score > 0);
+  // Any risk in the month the history covers, now or before.
+  const hasRiskHistory: boolean =
+    hasScore ||
+    readRiskHistory(risk?.riskHistory).some(
+      (point: SecurityEntityRiskHistoryPoint): boolean => {
+        return point.score > 0;
+      },
+    );
 
   const resetRisk: () => Promise<void> = async (): Promise<void> => {
     if (!risk?.id) {
@@ -263,7 +283,7 @@ const SecurityEntityRiskViewPage: FunctionComponent<
         className="rounded-xl border border-gray-200 bg-white shadow-sm"
         data-testid={ENTITY_RISK_TEST_IDS.entityHeader}
       >
-        <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 [@container(min-width:48rem)]:flex-row [@container(min-width:48rem)]:items-start [@container(min-width:48rem)]:justify-between">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 [@container(min-width:64rem)]:flex-row [@container(min-width:64rem)]:items-start [@container(min-width:64rem)]:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
               <Icon
@@ -287,11 +307,12 @@ const SecurityEntityRiskViewPage: FunctionComponent<
               </h1>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 [@container(min-width:48rem)]:flex-shrink-0 [@container(min-width:48rem)]:justify-end">
+          <div className="flex flex-wrap items-center gap-2 [@container(min-width:64rem)]:flex-shrink-0 [@container(min-width:64rem)]:justify-end">
             <Button
               title={OPEN_IN_CORRELATE}
               icon={IconProp.Share}
               buttonStyle={ButtonStyleType.NORMAL}
+              className="!ml-0"
               onClick={() => {
                 Navigation.navigate(getCorrelateRouteForEntity(value));
               }}
@@ -300,18 +321,28 @@ const SecurityEntityRiskViewPage: FunctionComponent<
               title={SEARCH_ITS_EVENTS}
               icon={IconProp.Search}
               buttonStyle={ButtonStyleType.NORMAL}
+              className="!ml-0"
               onClick={() => {
                 Navigation.navigate(
                   getEntityEventsRoute(value, OneUptimeDate.getCurrentDate()),
                 );
               }}
             />
-            {hasScore && resetGate.isAllowed ? (
+            {/*
+             * Locked, with why, for whoever may not delete security data;
+             * left out while the permissions are still loading.
+             */}
+            {hasScore && (resetGate.isAllowed || resetGate.disabledReason) ? (
               <Button
                 title={RESET_RISK}
                 icon={IconProp.Refresh}
                 buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                className={resetGate.isAllowed ? "!ml-0" : "!ml-0 opacity-60"}
                 dataTestId={ENTITY_RISK_TEST_IDS.reset}
+                disabled={!resetGate.isAllowed}
+                tooltip={
+                  resetGate.isAllowed ? undefined : resetGate.disabledReason
+                }
                 onClick={() => {
                   setResetError("");
                   setIsConfirmingReset(true);
@@ -402,14 +433,14 @@ const SecurityEntityRiskViewPage: FunctionComponent<
 
       <div data-testid={ENTITY_RISK_TEST_IDS.activity}>
         {activityError ? (
-          <Card title="Activity">
+          <Card title={ACTIVITY_CARD_TITLE}>
             <ErrorMessage message={activityError} />
           </Card>
         ) : (
           <EventStatBar
             columns={4}
             isLaidOutByOwnWidth={true}
-            ariaLabel="Activity"
+            ariaLabel={translator.translateText(ACTIVITY_CARD_TITLE)}
           >
             <EventStatTile
               variant="segment"
@@ -455,13 +486,16 @@ const SecurityEntityRiskViewPage: FunctionComponent<
       </div>
 
       {breakdown && hasScore ? (
-        <>
-          <EntityRiskSources sources={breakdown.sources} />
-          <EntityRiskHistory
-            history={risk?.riskHistory}
-            threshold={breakdown.threshold}
-          />
-        </>
+        <EntityRiskSources sources={breakdown.sources} />
+      ) : (
+        <></>
+      )}
+
+      {breakdown && hasRiskHistory ? (
+        <EntityRiskHistory
+          history={risk?.riskHistory}
+          threshold={breakdown.threshold}
+        />
       ) : (
         <></>
       )}

@@ -9,6 +9,7 @@ import {
   SECURITY_EVENTS_WORKSPACE_SECTION_TITLE,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
+  getSecurityEventsMenuDetailPages,
   getSecurityEventsMenuItemFor,
   getSecurityEventsMenuItems,
   getSecurityEventsMenuSectionFor,
@@ -165,7 +166,8 @@ describe("the Security Events menu", () => {
           "All Cases",
         ],
       ],
-      ["Events", ["Events", "Entities", "Correlate"]],
+      // Who is riskiest, from everything found about each, beside who is named.
+      ["Events", ["Events", "Entities", "Entity Risk", "Correlate"]],
       [
         "Detections",
         ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
@@ -183,7 +185,7 @@ describe("the Security Events menu", () => {
       ["AI", ["Settings"]],
       ["Connections", ["Connections", "Setup Guide"]],
       // The project's own scales, as Incidents and Alerts keep theirs.
-      ["Settings", ["Case Priorities", "Case Statuses"]],
+      ["Settings", ["Case Priorities", "Case Statuses", "Risk Scoring"]],
     ]);
   });
 
@@ -203,6 +205,7 @@ describe("the Security Events menu", () => {
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
       ["Entities", "SECURITY_EVENTS_ENTITIES"],
+      ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
       ["Rule Library", "SECURITY_EVENTS_RULE_LIBRARY"],
@@ -217,7 +220,27 @@ describe("the Security Events menu", () => {
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
       ["Case Priorities", "SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
       ["Case Statuses", "SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
+      ["Risk Scoring", "SECURITY_EVENTS_SETTINGS_RISK_SCORING"],
     ]);
+  });
+
+  test("lights Entity Risk on an entity's page, the one page in its layout no entry names", () => {
+    expect(getSecurityEventsMenuDetailPages()).toEqual([
+      "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+    ]);
+    expect(
+      getSecurityEventsMenuItems()
+        .filter((item: SecurityEventsMenuItem): boolean => {
+          return Boolean(item.detailPages && item.detailPages.length > 0);
+        })
+        .map((item: SecurityEventsMenuItem): string => {
+          return item.title;
+        }),
+    ).toEqual(["Entity Risk"]);
+    // Not one of the pages that open on their own, outside the menu.
+    expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
+      "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+    );
   });
 
   test("reaches every routed page from exactly one entry or the Workspace section, except the pages that open on their own and the old addresses", () => {
@@ -232,6 +255,7 @@ describe("the Security Events menu", () => {
       [
         ...reachable,
         ...getSecurityEventsWorkspacePages(),
+        ...getSecurityEventsMenuDetailPages(),
         ...SECURITY_EVENTS_DETAIL_PAGES,
         ...SECURITY_EVENTS_REDIRECTED_PAGES,
       ].sort(),
@@ -554,6 +578,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
       ["Security Events", "Events", "Entities"],
+      ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],
       ["Security Events", "Detections", "Rule Library"],
@@ -568,6 +593,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Connections", "Setup Guide"],
       ["Security Events", "Settings", "Case Priorities"],
       ["Security Events", "Settings", "Case Statuses"],
+      ["Security Events", "Settings", "Risk Scoring"],
     ]);
   });
 

@@ -177,6 +177,7 @@ const SecurityRiskScoringPage: FunctionComponent<
         userPreferencesKey="security-entity-criticality-table"
         singularName={CRITICALITY_SINGULAR}
         pluralName={CRITICALITY_PLURAL}
+        createVerb="Add"
         query={{ projectId: projectId }}
         isDeleteable={true}
         isEditable={true}

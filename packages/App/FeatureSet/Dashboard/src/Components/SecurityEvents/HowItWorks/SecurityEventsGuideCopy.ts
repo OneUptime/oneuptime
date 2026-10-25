@@ -66,7 +66,7 @@ export const ENTITY_RISK_GUIDE_WORDS: Array<string> = [
   ),
   translationKey("{{from}} to {{to}}"),
   translationKey("{{from}} or more"),
-  translationKey("Points"),
+  translationKey("Risk Points"),
   translationKey("Levels and Cases"),
   translationKey("Criticality"),
 ];

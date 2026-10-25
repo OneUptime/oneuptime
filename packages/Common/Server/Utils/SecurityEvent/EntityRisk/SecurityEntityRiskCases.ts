@@ -18,8 +18,12 @@ import {
   getRiskDetectionSeverity,
 } from "../../../../Utils/SecurityCase/SecurityEntityRiskScore";
 
-// The detection rule name every risk detection is written under.
-export const ENTITY_RISK_DETECTION_NAME: string = "Entity Risk";
+/*
+ * The rule every risk detection is written under: the project's risk
+ * threshold. Not "Entity Risk" - that is its source, and a case's
+ * detections name both side by side.
+ */
+export const ENTITY_RISK_DETECTION_NAME: string = "Risk threshold";
 
 // Stable for one entity: its risk is one detection on the case about it.
 export function getEntityRiskFingerprint(entityValue: string): string {

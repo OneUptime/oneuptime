@@ -137,17 +137,17 @@ function levelsMarkdown(threshold: number): string {
   return `${markdownTable(
     ["Risk score", "Reads as", "What happens"],
     [
-      [`1 to ${Math.ceil(threshold / 2) - 1}`, "Low", "Listed under Entity Risk"],
+      [
+        `1 to ${Math.ceil(threshold / 2) - 1}`,
+        "Low",
+        "Listed under Entity Risk",
+      ],
       [
         `${Math.ceil(threshold / 2)} to ${threshold - 1}`,
         "Medium",
         "Listed under Entity Risk",
       ],
-      [
-        `${threshold} to ${threshold * 2 - 1}`,
-        "High",
-        "A case opens, at High",
-      ],
+      [`${threshold} to ${threshold * 2 - 1}`, "High", "A case opens, at High"],
       [`${threshold * 2} or more`, "Critical", "A case opens, at Critical"],
     ],
   )}
@@ -180,7 +180,9 @@ List the entities that matter more - domain controllers, executives, payment ser
  * The Entity Risk guide for a project's threshold: its levels and its case
  * sentence say the project's own number.
  */
-export function getEntityRiskGuide(thresholdValue: number): SecurityEventsGuide {
+export function getEntityRiskGuide(
+  thresholdValue: number,
+): SecurityEventsGuide {
   const threshold: number = readRiskCaseThreshold(thresholdValue);
   const reached: SecurityEventsGuideTemplate = thresholdReached(threshold);
 
@@ -233,9 +235,17 @@ export function getEntityRiskGuide(thresholdValue: number): SecurityEventsGuide 
         title: "Overview",
         markdown: overviewMarkdown(threshold),
       },
-      { id: "points", title: "Points", markdown: pointsMarkdown },
-      { id: "levels", title: "Levels and Cases", markdown: levelsMarkdown(threshold) },
-      { id: "criticality", title: "Criticality", markdown: criticalityMarkdown },
+      { id: "points", title: "Risk Points", markdown: pointsMarkdown },
+      {
+        id: "levels",
+        title: "Levels and Cases",
+        markdown: levelsMarkdown(threshold),
+      },
+      {
+        id: "criticality",
+        title: "Criticality",
+        markdown: criticalityMarkdown,
+      },
     ],
     documentationPath: "/telemetry/security-entity-risk",
   };

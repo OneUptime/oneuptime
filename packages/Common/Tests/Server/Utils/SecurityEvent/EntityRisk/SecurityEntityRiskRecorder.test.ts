@@ -152,9 +152,9 @@ function matchesQuery(row: StoredRow, query: Record<string, unknown>): boolean {
         (raw["_objectLiteralParameters"] as Record<string, unknown>) || {};
       const bound: unknown = Object.values(parameters)[0];
       const sql: string = raw._getSql("x");
-      const time: number =
-        value instanceof Date ? value.getTime() : Number.NaN;
-      const limit: number = bound instanceof Date ? bound.getTime() : Number.NaN;
+      const time: number = value instanceof Date ? value.getTime() : Number.NaN;
+      const limit: number =
+        bound instanceof Date ? bound.getTime() : Number.NaN;
 
       if (Number.isNaN(time)) {
         return false;
@@ -236,59 +236,61 @@ function install(
           order.push("release");
         },
       ),
-      findBy: getJestSpyOn(SecurityEntityRiskService, "findBy").mockImplementation(
-        async (findBy: unknown) => {
-          const query: Record<string, unknown> = (
-            findBy as { query: Record<string, unknown> }
-          ).query;
-          order.push("find");
-          return rows
-            .filter((row: StoredRow): boolean => {
-              return matchesQuery(row, query);
-            })
-            .map(toModel) as never;
-        },
-      ),
-      create: getJestSpyOn(SecurityEntityRiskService, "create").mockImplementation(
-        async (createBy: unknown) => {
-          const model: SecurityEntityRisk = (
-            createBy as { data: SecurityEntityRisk }
-          ).data;
-          const stored: StoredRow = {
-            _id: ObjectID.generate().toString(),
-            projectId: model.projectId!.toString(),
-          };
+      findBy: getJestSpyOn(
+        SecurityEntityRiskService,
+        "findBy",
+      ).mockImplementation(async (findBy: unknown) => {
+        const query: Record<string, unknown> = (
+          findBy as { query: Record<string, unknown> }
+        ).query;
+        order.push("find");
+        return rows
+          .filter((row: StoredRow): boolean => {
+            return matchesQuery(row, query);
+          })
+          .map(toModel) as never;
+      }),
+      create: getJestSpyOn(
+        SecurityEntityRiskService,
+        "create",
+      ).mockImplementation(async (createBy: unknown) => {
+        const model: SecurityEntityRisk = (
+          createBy as { data: SecurityEntityRisk }
+        ).data;
+        const stored: StoredRow = {
+          _id: ObjectID.generate().toString(),
+          projectId: model.projectId!.toString(),
+        };
 
-          for (const column of [
-            "entityType",
-            "entityValue",
-            "entityKey",
-            "riskScore",
-            "criticality",
-            "contributorCount",
-            "contributions",
-            "mitreTactics",
-            "mitreTechniques",
-            "firstRiskAt",
-            "lastRiskAt",
-            "riskExpiresAt",
-            "riskCaseAt",
-            "riskHistory",
-          ]) {
-            const value: unknown = (model as unknown as Record<string, unknown>)[
-              column
-            ];
+        for (const column of [
+          "entityType",
+          "entityValue",
+          "entityKey",
+          "riskScore",
+          "criticality",
+          "contributorCount",
+          "contributions",
+          "mitreTactics",
+          "mitreTechniques",
+          "firstRiskAt",
+          "lastRiskAt",
+          "riskExpiresAt",
+          "riskCaseAt",
+          "riskHistory",
+        ]) {
+          const value: unknown = (model as unknown as Record<string, unknown>)[
+            column
+          ];
 
-            if (value !== undefined) {
-              stored[column] = value;
-            }
+          if (value !== undefined) {
+            stored[column] = value;
           }
+        }
 
-          rows.push(stored);
-          order.push(`create:${String(stored["entityKey"])}`);
-          return model as never;
-        },
-      ),
+        rows.push(stored);
+        order.push(`create:${String(stored["entityKey"])}`);
+        return model as never;
+      }),
       update: getJestSpyOn(
         SecurityEntityRiskService,
         "updateColumnsByIdWithoutHooks",
@@ -469,7 +471,10 @@ describe("recording what was found", () => {
           { type: SecurityEntityType.User, value: "alice" },
           { type: SecurityEntityType.Host, value: "web-01" },
           { type: SecurityEntityType.User, value: "ALICE" },
-          { type: SecurityEntityType.FileHash, value: "d41d8cd98f00b204e9800998ecf8427e" },
+          {
+            type: SecurityEntityType.FileHash,
+            value: "d41d8cd98f00b204e9800998ecf8427e",
+          },
         ],
       }),
     ]);
@@ -486,7 +491,9 @@ describe("recording what was found", () => {
       await SecurityEntityRiskRecorder.record([
         finding({ points: 0 }),
         finding({
-          entities: [{ type: SecurityEntityType.Domain, value: "evil.example" }],
+          entities: [
+            { type: SecurityEntityType.Domain, value: "evil.example" },
+          ],
         }),
       ]);
 
@@ -503,15 +510,19 @@ describe("recording what was found", () => {
       finding({ projectId: OTHER_PROJECT_ID }),
     ]);
 
-    expect(world.order.filter((step: string) => {
-      return step.startsWith("lock:");
-    })).toEqual([
+    expect(
+      world.order.filter((step: string) => {
+        return step.startsWith("lock:");
+      }),
+    ).toEqual([
       `lock:${PROJECT_ID.toString()}`,
       `lock:${OTHER_PROJECT_ID.toString()}`,
     ]);
-    expect(world.rows.map((row: StoredRow) => {
-      return row.projectId;
-    })).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()]);
+    expect(
+      world.rows.map((row: StoredRow) => {
+        return row.projectId;
+      }),
+    ).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()]);
   });
 
   test("a finding from the future counts from now", async () => {
@@ -525,8 +536,15 @@ describe("recording what was found", () => {
   test("takes in at most ENTITY_RISK_ENTITIES_PER_CALL entities a call", async () => {
     const entities: Array<{ type: SecurityEntityType; value: string }> = [];
 
-    for (let index: number = 0; index < ENTITY_RISK_ENTITIES_PER_CALL + 25; index++) {
-      entities.push({ type: SecurityEntityType.IpAddress, value: `198.51.100.${index}` });
+    for (
+      let index: number = 0;
+      index < ENTITY_RISK_ENTITIES_PER_CALL + 25;
+      index++
+    ) {
+      entities.push({
+        type: SecurityEntityType.IpAddress,
+        value: `198.51.100.${index}`,
+      });
     }
 
     const result: SecurityEntityRiskRecordResult =
@@ -596,8 +614,10 @@ describe("risk that opens a case", () => {
       severity: OcsfSeverity.High,
       eventCount: 2,
       groupValue: "Alice@Corp.Example",
-      entities: [{ type: SecurityEntityType.User, value: "Alice@Corp.Example" }],
-      ruleName: "Entity Risk",
+      entities: [
+        { type: SecurityEntityType.User, value: "Alice@Corp.Example" },
+      ],
+      ruleName: "Risk threshold",
       seenAt: NOW,
     });
     expect(signal.mitreTactics.sort()).toEqual(["TA0001", "TA0006"]);
@@ -688,9 +708,7 @@ describe("risk that opens a case", () => {
 
     expect(world.spies.ingest).not.toHaveBeenCalled();
 
-    await SecurityEntityRiskRecorder.record([
-      finding({ sourceKey: "rule:c" }),
-    ]);
+    await SecurityEntityRiskRecorder.record([finding({ sourceKey: "rule:c" })]);
 
     expect(world.signals).toHaveLength(1);
   });
@@ -771,7 +789,9 @@ describe("the refresh", () => {
     expect(rowOf("web-01")!["riskScore"]).toBe(50);
     expect(world.spies.ingest).not.toHaveBeenCalled();
     expect(
-      (rowOf("alice@corp.example")!["riskHistory"] as Array<SecurityEntityRiskHistoryPoint>),
+      rowOf("alice@corp.example")![
+        "riskHistory"
+      ] as Array<SecurityEntityRiskHistoryPoint>,
     ).toEqual([
       { day: "2026-10-14", score: 75 },
       { day: "2026-10-16", score: 25 },
@@ -834,9 +854,7 @@ describe("the refresh", () => {
       contributorCount: 0,
     });
     expect(rowOf("alice@corp.example")!["riskExpiresAt"]).toBeNull();
-    expect(rowOf("alice@corp.example")!["lastRiskAt"]).toEqual(
-      ago(HOUR_IN_MS),
-    );
+    expect(rowOf("alice@corp.example")!["lastRiskAt"]).toEqual(ago(HOUR_IN_MS));
     expect(rowOf("web-01")).toBeUndefined();
 
     jest.setSystemTime(new Date(NOW.getTime() + 40 * DAY_IN_MS));

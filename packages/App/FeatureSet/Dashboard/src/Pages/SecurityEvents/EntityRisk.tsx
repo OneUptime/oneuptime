@@ -2,7 +2,10 @@ import PageComponentProps from "../PageComponentProps";
 import MitreAttackChips from "../../Components/SecurityCase/MitreAttackChips";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
 import { getEntityRiskGuide } from "../../Components/SecurityEvents/HowItWorks/EntityRiskGuide";
-import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
+import {
+  SecurityEventsGuide,
+  guideToMarkdown,
+} from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import {
   CRITICALITY_COLUMN_TITLE,
   CRITICALITY_WEIGHT_LABELS,
@@ -13,6 +16,7 @@ import {
   ENTITY_RISK_TABLE_DESCRIPTION,
   ENTITY_RISK_TABLE_TITLE,
   LAST_RISK_COLUMN_TITLE,
+  MORE_TACTICS,
   RISK_CASES_OFF_ACTION,
   RISK_CASES_OFF_DESCRIPTION,
   RISK_CASES_OFF_TEST_ID,
@@ -88,12 +92,18 @@ function routeTo(page: PageMap): Route {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route);
 }
 
-// Who the row is about: the value, with its kind under it.
+/*
+ * Who the row is about: the value, with its kind under it and, when the
+ * project said how much it matters, its criticality beside that.
+ */
 const EntityCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
   item: SecurityEntityRisk;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const type: string = props.item.entityType || SecurityEntityType.Other;
+  const criticality: SecurityEntityCriticality | null = readEntityCriticality(
+    props.item.criticality,
+  );
 
   return (
     <div className="flex min-w-0 items-start gap-2">
@@ -105,8 +115,13 @@ const EntityCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
         <div className="font-mono text-sm text-gray-900 [overflow-wrap:anywhere]">
           {props.item.entityValue || ""}
         </div>
-        <div className="text-xs text-gray-500">
-          {translator.translateText(type) || type}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+          <span>{translator.translateText(type) || type}</span>
+          {criticality ? (
+            <EntityCriticalityPill criticality={criticality} />
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     </div>
@@ -171,13 +186,13 @@ const SecurityEntityRiskPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const settings: EntityRiskSettings = useEntityRiskSettings();
+  // Worked out for the project's threshold: the card and the table's help say the same.
+  const guide: SecurityEventsGuide = getEntityRiskGuide(settings.threshold);
 
   return (
     <div className="space-y-6">
       {settings.isLoaded ? (
-        <SecurityEventsHowItWorksCard
-          guide={getEntityRiskGuide(settings.threshold)}
-        />
+        <SecurityEventsHowItWorksCard guide={guide} />
       ) : (
         <></>
       )}
@@ -205,6 +220,7 @@ const SecurityEntityRiskPage: FunctionComponent<
             <Button
               title={RISK_CASES_OFF_ACTION}
               buttonStyle={ButtonStyleType.NORMAL}
+              className="!ml-0"
               onClick={() => {
                 Navigation.navigate(
                   routeTo(PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING),
@@ -231,8 +247,9 @@ const SecurityEntityRiskPage: FunctionComponent<
         isEditable={false}
         isCreateable={false}
         isViewable={true}
+        viewButtonText="View"
         onViewPage={async (item: SecurityEntityRisk): Promise<Route> => {
-          return getEntityRiskRoute(item.entityValue || "");
+          return getEntityRiskRoute(item.entityValue || "", item.entityType);
         }}
         sortBy="riskScore"
         sortOrder={SortOrder.Descending}
@@ -257,9 +274,9 @@ const SecurityEntityRiskPage: FunctionComponent<
           ],
         }}
         helpContent={{
-          title: getEntityRiskGuide(settings.threshold).guideTitle,
-          description: getEntityRiskGuide(settings.threshold).guideDescription,
-          markdown: guideToMarkdown(getEntityRiskGuide(settings.threshold)),
+          title: guide.guideTitle,
+          description: guide.guideDescription,
+          markdown: guideToMarkdown(guide),
         }}
         showRefreshButton={true}
         searchableFields={["entityValue"]}
@@ -289,6 +306,7 @@ const SecurityEntityRiskPage: FunctionComponent<
         ]}
         selectMoreFields={{
           entityType: true,
+          criticality: true,
           contributions: true,
         }}
         columns={[
@@ -296,6 +314,8 @@ const SecurityEntityRiskPage: FunctionComponent<
             field: { entityValue: true },
             title: ENTITY_COLUMN_TITLE,
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-[20rem]",
             getElement: (item: SecurityEntityRisk): ReactElement => {
               return <EntityCell item={item} />;
             },
@@ -314,26 +334,12 @@ const SecurityEntityRiskPage: FunctionComponent<
             },
           },
           {
-            field: { criticality: true },
-            title: CRITICALITY_COLUMN_TITLE,
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: SecurityEntityRisk): ReactElement => {
-              const criticality: SecurityEntityCriticality | null =
-                readEntityCriticality(item.criticality);
-
-              return criticality ? (
-                <EntityCriticalityPill criticality={criticality} />
-              ) : (
-                <span className="text-sm text-gray-400">-</span>
-              );
-            },
-          },
-          {
             field: { contributorCount: true },
             title: SOURCES_COLUMN_TITLE,
             type: FieldType.Element,
             hideOnMobile: true,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-[16rem]",
             getElement: (item: SecurityEntityRisk): ReactElement => {
               return <SourcesCell item={item} />;
             },
@@ -343,6 +349,10 @@ const SecurityEntityRiskPage: FunctionComponent<
             title: TACTICS_COLUMN_TITLE,
             type: FieldType.Element,
             hideOnMobile: true,
+            // On the entity's page in full; here one click away (Customize Columns).
+            isHiddenByDefault: true,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: SecurityEntityRisk): ReactElement => {
               const tactics: Array<string> = item.mitreTactics || [];
 
@@ -356,7 +366,7 @@ const SecurityEntityRiskPage: FunctionComponent<
                   {tactics.length > ENTITY_RISK_ROW_TACTICS ? (
                     <span className="text-xs font-medium text-gray-500">
                       {translator.translatePlural(
-                        { one: "+{{count}} more", other: "+{{count}} more" },
+                        MORE_TACTICS,
                         tactics.length - ENTITY_RISK_ROW_TACTICS,
                       )}
                     </span>

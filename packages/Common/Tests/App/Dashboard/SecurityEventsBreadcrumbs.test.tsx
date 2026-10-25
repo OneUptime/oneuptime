@@ -202,6 +202,15 @@ describe("each trail names the page as the menu does", () => {
       ["Security Events", "Events", "Entities"],
     ],
     [
+      PageMap.SECURITY_EVENTS_ENTITY_RISK,
+      ["Security Events", "Events", "Entity Risk"],
+    ],
+    // An entity's page, under the list it opens from.
+    [
+      PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+      ["Security Events", "Events", "Entity Risk", "Entity"],
+    ],
+    [
       PageMap.SECURITY_EVENTS_CORRELATE,
       ["Security Events", "Events", "Correlate"],
     ],
@@ -256,6 +265,10 @@ describe("each trail names the page as the menu does", () => {
       PageMap.SECURITY_EVENTS_DOCUMENTATION,
       ["Security Events", "Connections", "Setup Guide"],
     ],
+    [
+      PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
+      ["Security Events", "Settings", "Risk Scoring"],
+    ],
   ])("%s: Project > %s", (page: string, titles: Array<string>) => {
     expect(
       trailOf(page).map(([title]: [string, string]): string => {
@@ -309,6 +322,32 @@ describe("each crumb opens what its name says", () => {
     expect(trailOf(PageMap.SECURITY_EVENTS_DOCUMENTATION)[2]).toEqual([
       "Connections",
       routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
+    ]);
+  });
+
+  /*
+   * An entity's page sits under Entity Risk, which is not a part of its
+   * address the trail can find by walking up it (Events, the section, is no
+   * part of the address): the crumb opens the list all the same.
+   */
+  test("on an entity's page, Entity Risk opens the list, and Events the section's first page", () => {
+    const trail: Array<[string, string]> = trailOf(
+      PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+    );
+
+    expect(trail.slice(1, 4)).toEqual([
+      ["Security Events", routeFor(PageMap.SECURITY_EVENTS_OVERVIEW)],
+      ["Events", routeFor(PageMap.SECURITY_EVENTS)],
+      ["Entity Risk", routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK)],
+    ]);
+    expect(trail[4]).toEqual([
+      "Entity",
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW),
+    ]);
+    // On the list itself, its crumb is the page it is on.
+    expect(trailOf(PageMap.SECURITY_EVENTS_ENTITY_RISK)[3]).toEqual([
+      "Entity Risk",
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
     ]);
   });
 

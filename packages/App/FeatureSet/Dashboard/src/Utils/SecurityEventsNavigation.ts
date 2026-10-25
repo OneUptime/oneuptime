@@ -62,6 +62,11 @@ export interface SecurityEventsMenuItem {
   title: string;
   icon: IconProp;
   badge?: SecurityEventsMenuBadge | undefined;
+  /*
+   * The pages opened from this entry's page, inside the menu's layout, that
+   * light it: an entity's page lights Entity Risk.
+   */
+  detailPages?: Array<PageMap> | undefined;
 }
 
 export interface SecurityEventsMenuSection {
@@ -140,6 +145,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
         title: "Entity Risk",
         icon: IconProp.Fire,
+        detailPages: [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW],
       },
       {
         page: PageMap.SECURITY_EVENTS_CORRELATE,
@@ -367,6 +373,18 @@ export function getSecurityEventsMenuItems(): Array<SecurityEventsMenuItem> {
   return SECURITY_EVENTS_MENU.flatMap(
     (section: SecurityEventsMenuSection): Array<SecurityEventsMenuItem> => {
       return section.items;
+    },
+  );
+}
+
+/*
+ * The pages inside the menu's layout that no entry names, each opened from
+ * an entry's page and lit as it: an entity's page, under Entity Risk.
+ */
+export function getSecurityEventsMenuDetailPages(): Array<PageMap> {
+  return getSecurityEventsMenuItems().flatMap(
+    (item: SecurityEventsMenuItem): Array<PageMap> => {
+      return item.detailPages || [];
     },
   );
 }
