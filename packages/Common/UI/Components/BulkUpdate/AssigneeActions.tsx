@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useRef, useState } from "react";
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -207,6 +207,10 @@ function useAssigneeActions<T extends BaseModel>(
 
   const [dialog, setDialog] = useState<OpenDialog<T> | null>(null);
   const [dialogError, setDialogError] = useState<string>("");
+  // One row being assigned: its dialog's button is busy, pressed once.
+  const [isAssigning, setIsAssigning] = useState<boolean>(false);
+  const isAssigningRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const nounValues: (
     inSentence: boolean,
@@ -432,11 +436,21 @@ function useAssigneeActions<T extends BaseModel>(
         return;
       }
 
+      if (isAssigningRef.current) {
+        return;
+      }
+
+      isAssigningRef.current = true;
+      setIsAssigning(true);
+
       try {
         await write(item, picked);
       } catch (err) {
         setDialogError(API.getFriendlyMessage(err));
         return;
+      } finally {
+        isAssigningRef.current = false;
+        setIsAssigning(false);
       }
 
       const context: RowActionContext | undefined = dialog.context;
@@ -506,6 +520,7 @@ function useAssigneeActions<T extends BaseModel>(
       title={ASSIGN_TO_SOMEONE_ELSE_TITLE}
       description={description}
       error={dialogError || undefined}
+      isSubmitting={dialog.kind === "row" && isAssigning}
       onClose={close}
       submitButtonText={translationKey("Assign")}
       onSubmit={submit}

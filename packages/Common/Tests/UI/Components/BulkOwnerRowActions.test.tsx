@@ -81,6 +81,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { withRowActionContext } from "../../../UI/Components/ActionButton/RowActionContext";
+import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import User from "../../../UI/Utils/User";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -257,6 +258,29 @@ describe("the row's owner actions", () => {
     ]);
   });
 
+  test("sit in their menus' run of a record's people, in the row and in bulk", () => {
+    const { result } = renderHook(() => {
+      return useBulkOwnerActions<Incident>({
+        ...INCIDENT_OWNERS,
+        offerAssignToMeInBulk: true,
+      });
+    });
+
+    expect(
+      [...result.current.rowActions, ...result.current.bulkActions].map(
+        (action: { title: string; menuGroup?: string | undefined }) => {
+          return [action.title, action.menuGroup];
+        },
+      ),
+    ).toEqual([
+      [ASSIGN_TO_ME_TITLE, ActionMenuGroup.People],
+      ["Add Owner", ActionMenuGroup.People],
+      [ASSIGN_TO_ME_TITLE, ActionMenuGroup.People],
+      ["Add Owner", ActionMenuGroup.People],
+      ["Remove Owner", ActionMenuGroup.People],
+    ]);
+  });
+
   test("Assign to Me makes the viewer an owner of that row, at once, and the list is read again", async () => {
     render(
       <RowHarness
@@ -385,6 +409,13 @@ describe("the row's owner actions", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(
       ADD_OWNER_TO_ROW_DESCRIPTION.replace("{{name}}", "Checkout API down"),
     );
+    /*
+     * Said once: the field draws no line of its own saying again whose
+     * owners these become.
+     */
+    expect(screen.getByRole("dialog")).not.toHaveTextContent(
+      "are added as owners of",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Add owner" }));
 
@@ -403,6 +434,88 @@ describe("the row's owner actions", () => {
 
     fireEvent.click(alice!);
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(
+      () => {
+        expect(screen.queryByRole("dialog")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(createdOwners()).toEqual([
+      { userId: ALICE_ID, incidentId: INCIDENT_ONE_ID },
+    ]);
+    expect(refreshCount).toBe(1);
+  });
+});
+
+describe("a row's Add Owner, on a slow connection", () => {
+  test("keeps the dialog as filled in, its button busy, while the owner is added, and a second press adds nothing more", async () => {
+    let release: () => void = (): void => {};
+    createMock.mockImplementation(async (): Promise<any> => {
+      await new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      return {};
+    });
+
+    render(
+      <RowHarness
+        item={incident(INCIDENT_ONE_ID, "Checkout API down")}
+        config={INCIDENT_OWNERS}
+      />,
+    );
+
+    fireEvent.click(
+      within(openMenu()).getByRole("menuitem", { name: "Add Owner" }),
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          "Add Owner",
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add owner" }));
+
+    const list: HTMLElement = await screen.findByTestId(
+      "people-search-popup",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    const alice: HTMLElement | undefined = (
+      await within(list).findAllByRole("option", {}, { timeout: WAIT_TIMEOUT })
+    ).find((option: HTMLElement): boolean => {
+      return (
+        option.querySelector(".text-sm.font-medium")?.textContent === "Alice"
+      );
+    });
+
+    fireEvent.click(alice!);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    // Who was picked stays in view while they are added.
+    expect(screen.getByTestId("modal")).toHaveTextContent("Alice");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await act(async () => {
+      release();
+    });
 
     await waitFor(
       () => {

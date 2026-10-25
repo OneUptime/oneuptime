@@ -4,6 +4,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
   within,
@@ -87,6 +88,8 @@ interface Created {
 }
 
 const created: Array<Created> = [];
+// When set, a create waits for it: a write still in flight.
+let createGate: Promise<void> | null = null;
 // What the server holds for each record now: its state and privacy.
 let freshForTest: Record<string, Record<string, unknown>> = {};
 
@@ -106,6 +109,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         model: { tableName?: string | null } & Record<string, unknown>;
         miscDataProps?: Record<string, unknown>;
       }): Promise<unknown> => {
+        if (createGate) {
+          await createGate;
+        }
+
         const row: Record<string, unknown> = {};
 
         for (const key of [
@@ -134,8 +141,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import useEventStateActions, {
+  CHANGE_STATE_ICON,
   EventStateActionsResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/useEventStateActions";
+import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import {
   ALREADY_ACKNOWLEDGED,
   EventStateKind,
@@ -339,6 +348,7 @@ beforeEach(() => {
   PermissionGate.clearPermissionPropsCache();
   window.history.replaceState({}, "", `/dashboard/${PROJECT_ID}/incidents`);
   created.length = 0;
+  createGate = null;
   freshForTest = {};
   refreshCount = 0;
   sidebarRefreshes = 0;
@@ -439,6 +449,56 @@ describe("Acknowledge from an incident's row", () => {
     expect(sidebarRefreshes).toBe(1);
   });
 
+  test("while the move is written its button is busy, the dialog stays as filled in, and a second press moves nothing more", async () => {
+    freshForTest[INCIDENT_ID] = {
+      currentIncidentState: stateLink(IDENTIFIED, "Identified", 1),
+      isPrivate: false,
+    };
+
+    let release: () => void = (): void => {};
+    let isWriting: boolean = true;
+    createGate = new Promise<void>((resolve: () => void) => {
+      release = (): void => {
+        isWriting = false;
+        resolve();
+      };
+    });
+
+    renderIncident(incident({ stateId: IDENTIFIED }));
+
+    const modal: HTMLElement = await clickMenuItem("Acknowledge");
+    const submitButton: () => HTMLElement = (): HTMLElement => {
+      return within(modal).getByTestId("modal-footer-submit-button");
+    };
+
+    await act(async () => {
+      fireEvent.click(submitButton());
+    });
+
+    await waitFor(() => {
+      expect(submitButton()).toBeDisabled();
+    });
+    // The form as it was filled in, not a loader in its place.
+    expect(within(modal).getByTestId("state-change-item-name")).toBeVisible();
+    expect(modal).toHaveTextContent("Notify Status Page Subscribers");
+    expect(isWriting).toBe(true);
+
+    // Pressed again while it runs: nothing more is written.
+    await act(async () => {
+      fireEvent.click(submitButton());
+    });
+
+    await act(async () => {
+      release();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    expect(created).toHaveLength(1);
+    expect(refreshCount).toBe(1);
+  });
+
   test("an incident acknowledged meanwhile is left alone, and the dialog says why", async () => {
     // The list still shows it new; the server has it resolved.
     freshForTest[INCIDENT_ID] = {
@@ -503,6 +563,13 @@ describe("Change State from an incident's row", () => {
     expect(modal).toHaveTextContent(
       "Pick the next state for Checkout API down.",
     );
+    /*
+     * Named once: its sentence names the row, so no line of its own
+     * names it again under the sentence.
+     */
+    expect(within(modal).queryByTestId("state-change-item-name")).toBeNull();
+    expect(within(modal).queryByTestId("delete-confirmation-items")).toBeNull();
+    expect(modal.textContent?.split("Checkout API down").length).toBe(2);
 
     fireEvent.keyDown(await within(modal).findByRole("combobox"), {
       key: "ArrowDown",
@@ -516,6 +583,48 @@ describe("Change State from an incident's row", () => {
         },
       ),
     ).toEqual(["Resolved", "Postmortem"]);
+  });
+});
+
+describe("how the moves sit in their menus", () => {
+  test("every move, in the row and in bulk, sits in the run of a record's own state and values", () => {
+    const { result } = renderHook(() => {
+      return useEventStateActions<Incident>({
+        kind: EventStateKind.Incident,
+        states: INCIDENT_STATES,
+      });
+    });
+
+    const actions: Array<{ title: string; menuGroup?: string | undefined }> =
+      [...result.current.rowActions, ...result.current.bulkActions];
+
+    expect(actions.length).toBe(6);
+    for (const action of actions) {
+      expect({ title: action.title, group: action.menuGroup }).toEqual({
+        title: action.title,
+        group: ActionMenuGroup.Change,
+      });
+    }
+  });
+
+  test("Change State wears the flag of the lists' own State filter, in the row and in bulk", () => {
+    const { result } = renderHook(() => {
+      return useEventStateActions<Incident>({
+        kind: EventStateKind.Incident,
+        states: INCIDENT_STATES,
+      });
+    });
+
+    expect(CHANGE_STATE_ICON).toBe(IconProp.Flag);
+    expect(
+      [...result.current.rowActions, ...result.current.bulkActions]
+        .filter((action: { title: string }): boolean => {
+          return action.title === "Change State";
+        })
+        .map((action: { icon: IconProp }): IconProp => {
+          return action.icon;
+        }),
+    ).toEqual([IconProp.Flag, IconProp.Flag]);
   });
 });
 

@@ -160,6 +160,8 @@ function useEventStateActions<T extends BaseModel>(
   // A row's move in flight: a second press of the dialog's button waits.
   const isRowMoveRunning: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  // The same, drawn: the dialog's button is busy while the move is written.
+  const [isRowMoving, setIsRowMoving] = useState<boolean>(false);
 
   /*
    * A move is a new row of the kind's state timeline: someone who may not
@@ -371,6 +373,7 @@ function useEventStateActions<T extends BaseModel>(
       }
 
       isRowMoveRunning.current = true;
+      setIsRowMoving(true);
 
       try {
         const outcome: BulkItemOutcome = await moveOne({
@@ -391,6 +394,7 @@ function useEventStateActions<T extends BaseModel>(
         return;
       } finally {
         isRowMoveRunning.current = false;
+        setIsRowMoving(false);
       }
 
       const context: RowActionContext | undefined = dialog.context;
@@ -717,6 +721,7 @@ function useEventStateActions<T extends BaseModel>(
           definition.notifiesSubscribers && !isPrivate
         }
         error={dialogError || undefined}
+        isSubmitting={isRow && isRowMoving}
         onClose={close}
         onSubmit={submit}
       />

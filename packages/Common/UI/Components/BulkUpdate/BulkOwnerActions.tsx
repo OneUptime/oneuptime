@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useRef, useState } from "react";
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -174,6 +174,10 @@ function useBulkOwnerActions<T extends BaseModel>(
     context?: RowActionContext | undefined;
   } | null>(null);
   const [rowAddError, setRowAddError] = useState<string>("");
+  // The row's owners being added: its dialog's button is busy, pressed once.
+  const [isRowAdding, setIsRowAdding] = useState<boolean>(false);
+  const isRowAddingRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   /*
    * The people and teams added as owners of one record, leaving out the
@@ -622,6 +626,7 @@ function useBulkOwnerActions<T extends BaseModel>(
             { name: rowTargetName },
           )}
           error={rowAddError || undefined}
+          isSubmitting={isRowAdding}
           onClose={() => {
             setRowTarget(null);
             setRowAddError("");
@@ -633,11 +638,21 @@ function useBulkOwnerActions<T extends BaseModel>(
               context?: RowActionContext | undefined;
             } = rowTarget;
 
+            if (isRowAddingRef.current) {
+              return;
+            }
+
+            isRowAddingRef.current = true;
+            setIsRowAdding(true);
+
             try {
               await addOwnersToItem(target.item, readPickedOwners(formData));
             } catch (err) {
               setRowAddError(API.getFriendlyMessage(err));
               return;
+            } finally {
+              isRowAddingRef.current = false;
+              setIsRowAdding(false);
             }
 
             setRowTarget(null);

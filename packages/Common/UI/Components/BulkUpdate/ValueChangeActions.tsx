@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useRef, useState } from "react";
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -216,11 +216,18 @@ export const getValueChoiceOptions: (data: {
 };
 
 interface OpenDialog<T extends BaseModel> {
+  // Which opening this is: a read that comes back late fills only its own.
+  openId: number;
   // One row (from its ⋯ menu), or the selection (Bulk Actions).
   kind: "row" | "bulk";
   items: Array<T>;
   bulkActionProps?: BulkActionOnClickProps<T> | undefined;
   context?: RowActionContext | undefined;
+  /*
+   * The project's values, read as the dialog opens: the dialog shows at
+   * once, waiting for them, rather than after them.
+   */
+  isReadingValues: boolean;
   values: Array<ValueChoice>;
   error: string;
 }
@@ -235,6 +242,10 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
 
   const [dialog, setDialog] = useState<OpenDialog<T> | null>(null);
   const [dialogError, setDialogError] = useState<string>("");
+  // One row's value being written: its dialog's button is busy, pressed once.
+  const [isWriting, setIsWriting] = useState<boolean>(false);
+  const isWritingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const openCount: React.MutableRefObject<number> = useRef<number>(0);
 
   const nounValues: (
     inSentence: boolean,
@@ -320,6 +331,22 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
     bulkActionProps?: BulkActionOnClickProps<T> | undefined;
     context?: RowActionContext | undefined;
   }): Promise<void> => {
+    openCount.current += 1;
+    const openId: number = openCount.current;
+
+    // The dialog opens at once, waiting for the values it offers.
+    setDialogError("");
+    setDialog({
+      openId: openId,
+      kind: data.kind,
+      items: data.items,
+      bulkActionProps: data.bulkActionProps,
+      context: data.context,
+      isReadingValues: true,
+      values: [],
+      error: "",
+    });
+
     let values: Array<ValueChoice> = [];
     let error: string = "";
 
@@ -329,14 +356,18 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
       error = API.getFriendlyMessage(err);
     }
 
-    setDialogError("");
-    setDialog({
-      kind: data.kind,
-      items: data.items,
-      bulkActionProps: data.bulkActionProps,
-      context: data.context,
-      values: values,
-      error: error,
+    // Closed, or opened again, meanwhile: this read is no one's now.
+    setDialog((current: OpenDialog<T> | null): OpenDialog<T> | null => {
+      if (!current || current.openId !== openId) {
+        return current;
+      }
+
+      return {
+        ...current,
+        isReadingValues: false,
+        values: values,
+        error: error,
+      };
     });
   };
 
@@ -380,6 +411,11 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
     if (dialog.kind === "row") {
       const item: T | undefined = dialog.items[0];
 
+      // A write in flight: a second press waits for it.
+      if (isWritingRef.current) {
+        return;
+      }
+
       // Nothing to change: the row has that value already.
       if (
         !item ||
@@ -389,11 +425,17 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
         return;
       }
 
+      isWritingRef.current = true;
+      setIsWriting(true);
+
       try {
         await write(item, valueId);
       } catch (err) {
         setDialogError(API.getFriendlyMessage(err));
         return;
+      } finally {
+        isWritingRef.current = false;
+        setIsWriting(false);
       }
 
       const context: RowActionContext | undefined = dialog.context;
@@ -503,6 +545,8 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
       title={config.title}
       description={description}
       error={dialogError || dialog.error || undefined}
+      isLoading={dialog.isReadingValues}
+      isSubmitting={dialog.kind === "row" && isWriting}
       onClose={close}
       submitButtonText={config.title}
       onSubmit={async (formData: JSONObject) => {

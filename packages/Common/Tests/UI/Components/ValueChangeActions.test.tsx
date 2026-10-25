@@ -97,6 +97,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { withRowActionContext } from "../../../UI/Components/ActionButton/RowActionContext";
+import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -366,6 +367,19 @@ describe("the actions", () => {
     );
   });
 
+  test("sit in the menus' run of a record's own state and values, beside Change State", () => {
+    const { result } = renderHook(() => {
+      return useValueChangeActions<Incident, IncidentSeverity>(SEVERITY_CHANGE);
+    });
+
+    expect(result.current.rowActions[0]!.menuGroup).toBe(
+      ActionMenuGroup.Change,
+    );
+    expect(result.current.bulkActions[0]!.menuGroup).toBe(
+      ActionMenuGroup.Change,
+    );
+  });
+
   test("read nothing until the dialog opens", () => {
     render(
       <RowHarness
@@ -409,6 +423,10 @@ describe("a row's Change Severity", () => {
     expect(modal).toHaveTextContent(
       "Pick the new severity for Checkout API down.",
     );
+    // Its sentence names the row: no list of names under it.
+    expect(
+      within(modal).queryByTestId("delete-confirmation-items"),
+    ).not.toBeInTheDocument();
 
     const read: any = (getListMock.mock.calls[0] as Array<any>)[0];
 
@@ -425,6 +443,134 @@ describe("a row's Change Severity", () => {
         return (option.textContent || "").trim();
       }),
     ).toEqual(["Critical", `Major${VALUE_CHANGE_CURRENT}`, "Minor"]);
+  });
+
+  test("opens at once, waiting for the project's severities, and offers them once they are read", async () => {
+    let release: () => void = (): void => {};
+    getListMock.mockImplementation(async (): Promise<any> => {
+      await new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      return {
+        data: SEVERITIES,
+        count: SEVERITIES.length,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      };
+    });
+
+    render(
+      <RowHarness
+        item={incident(INCIDENT_ONE_ID, "Checkout API down", MAJOR_ID)}
+      />,
+    );
+
+    // Chosen from the menu, the dialog is there before the read is done.
+    const modal: HTMLElement = await openRowDialog();
+
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      "Change Severity",
+    );
+    expect(within(modal).queryByRole("combobox")).toBeNull();
+    expect(
+      within(modal).getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
+
+    await act(async () => {
+      release();
+    });
+
+    expect(await within(modal).findByRole("combobox")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        within(modal).getByTestId("modal-footer-submit-button"),
+      ).not.toBeDisabled();
+    });
+  });
+
+  test("closed before the severities are read, it stays closed when they come", async () => {
+    let release: () => void = (): void => {};
+    getListMock.mockImplementation(async (): Promise<any> => {
+      await new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      return {
+        data: SEVERITIES,
+        count: SEVERITIES.length,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      };
+    });
+
+    render(
+      <RowHarness
+        item={incident(INCIDENT_ONE_ID, "Checkout API down", MAJOR_ID)}
+      />,
+    );
+
+    const modal: HTMLElement = await openRowDialog();
+
+    fireEvent.click(within(modal).getByTestId("modal-footer-close-button"));
+
+    await act(async () => {
+      release();
+    });
+
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("while the pick is written its button is busy, and a second press writes nothing more", async () => {
+    let release: () => void = (): void => {};
+    updateByIdMock.mockImplementation(async (): Promise<any> => {
+      await new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      return {};
+    });
+
+    render(
+      <RowHarness
+        item={incident(INCIDENT_ONE_ID, "Checkout API down", MAJOR_ID)}
+      />,
+    );
+
+    const modal: HTMLElement = await openRowDialog();
+
+    await pick(modal, "Critical");
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(
+        within(modal).getByTestId("modal-footer-submit-button"),
+      ).toBeDisabled();
+    });
+    // The pick stays in view while it is written.
+    expect(within(modal).getByRole("combobox")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await act(async () => {
+      release();
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("modal")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(writes()).toEqual([
+      { id: INCIDENT_ONE_ID, data: { incidentSeverityId: CRITICAL_ID } },
+    ]);
+    expect(refreshCount).toBe(1);
   });
 
   test("writes the picked severity to the row, and the list is read again", async () => {
@@ -529,6 +675,21 @@ describe("Change Severity in Bulk Actions", () => {
     expect(modal).toHaveTextContent(
       "Pick the severity for the 2 selected incidents.",
     );
+    /*
+     * The rows it changes are named above the field, as a selection's
+     * state moves name theirs.
+     */
+    expect(
+      (
+        await within(modal).findAllByTestId(
+          "delete-confirmation-item",
+          {},
+          { timeout: WAIT_TIMEOUT },
+        )
+      ).map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(["Checkout API down", "Payments slow"]);
 
     // No row's value is marked in a selection's dialog.
     const options: Array<HTMLElement> = await openValues(modal);

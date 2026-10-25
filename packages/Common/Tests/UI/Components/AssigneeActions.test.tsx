@@ -100,6 +100,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { withRowActionContext } from "../../../UI/Components/ActionButton/RowActionContext";
+import { ActionMenuGroup } from "../../../UI/Components/ActionButton/ActionMenuGroup";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
@@ -377,6 +378,25 @@ describe("a row's assignee actions", () => {
     ).toEqual([ASSIGN_TO_ME_TITLE, ASSIGN_TO_SOMEONE_ELSE_TITLE]);
   });
 
+  test("sit in their menus' run of a record's people, in the row and in bulk", () => {
+    const { result } = renderHook(() => {
+      return useAssigneeActions<SecurityCase>(CASE_ASSIGNEE);
+    });
+
+    expect(
+      [...result.current.rowActions, ...result.current.bulkActions].map(
+        (action: { menuGroup?: string | undefined }) => {
+          return action.menuGroup;
+        },
+      ),
+    ).toEqual([
+      ActionMenuGroup.People,
+      ActionMenuGroup.People,
+      ActionMenuGroup.People,
+      ActionMenuGroup.People,
+    ]);
+  });
+
   test("Assign to Me writes the viewer at once, and the list is read again", async () => {
     render(<RowHarness item={securityCase(CASE_ONE_ID, "Brute force")} />);
 
@@ -439,6 +459,68 @@ describe("a row's assignee actions", () => {
         id: CASE_ONE_ID,
         data: { assignedToUserId: ALICE_ID, assignedToTeamId: TEAM_ID },
       },
+    ]);
+    expect(refreshCount).toBe(1);
+  });
+
+  test("while the person is written the dialog's button is busy, and a second press writes nothing more", async () => {
+    let release: () => void = (): void => {};
+    updateByIdMock.mockImplementation(async (): Promise<any> => {
+      await new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      return {};
+    });
+
+    render(<RowHarness item={securityCase(CASE_ONE_ID, "Brute force")} />);
+
+    fireEvent.click(
+      within(openMenu()).getByRole("menuitem", {
+        name: ASSIGN_TO_SOMEONE_ELSE_TITLE,
+      }),
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          ASSIGN_TO_SOMEONE_ELSE_TITLE,
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await pickFromList("Choose someone", "Alice");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    // The pick stays in view while it is written.
+    expect(screen.getByRole("dialog")).toHaveTextContent("Alice");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await act(async () => {
+      release();
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.queryByRole("dialog")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(writes()).toEqual([
+      { id: CASE_ONE_ID, data: { assignedToUserId: ALICE_ID } },
     ]);
     expect(refreshCount).toBe(1);
   });

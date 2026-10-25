@@ -498,6 +498,10 @@ test.describe("an incident's row", () => {
         row(page, "incidents-table", INCIDENT_TITLE),
         "Change Severity",
       );
+
+      // It opens at once and offers the severities once they are read.
+      await expect(severity.getByRole("combobox")).toBeVisible();
+
       const severityBox: { x: number; width: number } | null =
         await severity.boundingBox();
 
@@ -506,6 +510,49 @@ test.describe("an incident's row", () => {
       await screenshot(severity, `change-severity-390-${theme}`);
     });
   }
+});
+
+test.describe("on a slow connection a row's dialog shows its work", () => {
+  test("Change Severity opens at once and waits for the severities; Acknowledge's button is busy while it is written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Every read and write of the fixture takes 1.5 seconds.
+    await open(page, `${INCIDENTS}?delay=1500`);
+
+    const incident: Locator = row(page, "incidents-table", INCIDENT_TITLE);
+    const severity: Locator = await choose(incident, "Change Severity");
+
+    // There at once, before the project's severities are read.
+    await expect(severity.getByTestId("modal-title")).toHaveText(
+      "Change Severity",
+      { timeout: 500 },
+    );
+    await expect(severity.getByRole("combobox")).toHaveCount(0);
+    await expect(
+      severity.getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
+    await expect(severity.getByRole("combobox")).toBeVisible();
+
+    await severity.getByTestId("modal-footer-close-button").click();
+    await expect(severity).toBeHidden();
+
+    const acknowledge: Locator = await choose(incident, "Acknowledge");
+    const submitButton: Locator = acknowledge.getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    await submitButton.click();
+
+    // The dialog stays as filled in, its button busy, until it is written.
+    await expect(submitButton).toBeDisabled({ timeout: 500 });
+    await expect(
+      acknowledge.getByTestId("form-modal-before-form"),
+    ).toContainText(INCIDENT_TITLE);
+    await expect(acknowledge).toBeHidden();
+    expect((await fixture(page)).creates).toHaveLength(1);
+  });
 });
 
 test.describe("an alert's row", () => {
@@ -670,6 +717,219 @@ test.describe("a monitor's row", () => {
       0,
     );
   });
+});
+
+/*
+ * What a menu holds, top to bottom: its items by name, and "—" for each gap
+ * between kinds of action (an empty role="none" element).
+ */
+async function menuSequence(menu: Locator): Promise<Array<string>> {
+  return await menu.evaluate((element: Element): Array<string> => {
+    return Array.from(
+      element.querySelectorAll('[role="menuitem"], [role="none"]'),
+    ).map((item: Element): string => {
+      return item.getAttribute("role") === "none"
+        ? "—"
+        : (item.textContent || "").trim();
+    });
+  });
+}
+
+// The space between two items of a menu, in pixels.
+async function spaceBetween(
+  menu: Locator,
+  above: string,
+  below: string,
+): Promise<number> {
+  const top: { y: number; height: number } | null = await menu
+    .getByRole("menuitem", { name: above, exact: true })
+    .boundingBox();
+  const bottom: { y: number } | null = await menu
+    .getByRole("menuitem", { name: below, exact: true })
+    .boundingBox();
+
+  return bottom!.y - (top!.y + top!.height);
+}
+
+test.describe("a long menu reads in runs", () => {
+  test("an incident's ⋯: its state and severity, its people, then Show ID, then Delete", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    const menu: Locator = await openMenu(
+      row(page, "incidents-table", INCIDENT_TITLE),
+    );
+
+    expect(await menuSequence(menu)).toEqual([
+      "Acknowledge",
+      "Resolve",
+      "Change State",
+      "Change Severity",
+      "—",
+      "Assign to Me",
+      "Add Owner",
+      "—",
+      "Show ID",
+      "—",
+      "Delete",
+    ]);
+
+    // A gap is seen: wider than the space between two items of one run.
+    const inRun: number = await spaceBetween(menu, "Acknowledge", "Resolve");
+    const betweenRuns: number = await spaceBetween(
+      menu,
+      "Change Severity",
+      "Assign to Me",
+    );
+
+    expect(betweenRuns).toBeGreaterThanOrEqual(inRun + 6);
+  });
+
+  test("an incidents list's Bulk Actions: state and severity, people, labels, episodes, export, then Delete", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    for (const title of [INCIDENT_TITLE, "sdfdsf"]) {
+      await row(page, "incidents-table", title)
+        .getByRole("checkbox")
+        .first()
+        .check();
+    }
+
+    await page.getByText("Bulk Actions", { exact: true }).click();
+
+    const menu: Locator = page.getByRole("menu");
+
+    await expect(menu).toBeVisible();
+    expect(await menuSequence(menu)).toEqual([
+      "Acknowledge",
+      "Resolve",
+      "Change State",
+      "Change Severity",
+      "—",
+      "Assign to Me",
+      "Add Owner",
+      "Remove Owner",
+      "—",
+      "Add Labels",
+      "Remove Labels",
+      "—",
+      "Add to Existing Episode",
+      "Add to New Episode",
+      "—",
+      "Export CSV",
+      "—",
+      "Delete",
+    ]);
+    await screenshot(menu, "incident-bulk-menu-1280-light");
+  });
+});
+
+test.describe("a row's question is drawn over the whole page", () => {
+  for (const theme of ["light", "dark"]) {
+    test(`Archive's sentence wraps inside it, the other rows stay under its backdrop, and a click on its text keeps it open (${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        `${MONITORS}?data=rich${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+
+      const dialog: Locator = await choose(
+        row(page, "Monitors-table", "Checkout API"),
+        "Archive",
+      );
+
+      await expect(dialog.getByTestId("row-archive-consequence")).toBeVisible();
+      // The dialog grows in over 150ms: read its boxes once it is at rest.
+      await page.waitForTimeout(400);
+
+      // Drawn in the page's body, not in the row's sticky Actions cell.
+      expect(
+        await dialog.evaluate((element: Element): boolean => {
+          return Boolean(element.closest("tr, td"));
+        }),
+      ).toBe(false);
+
+      // Its sentence wraps inside it: nothing runs off its right edge.
+      const consequence: Locator = dialog.getByTestId(
+        "row-archive-consequence",
+      );
+      const sentence: { scroll: number; client: number } =
+        await consequence.evaluate(
+          (element: Element): { scroll: number; client: number } => {
+            return {
+              scroll: element.scrollWidth,
+              client: element.clientWidth,
+            };
+          },
+        );
+
+      expect(sentence.scroll).toBeLessThanOrEqual(sentence.client);
+
+      const dialogBox: { x: number; width: number } | null =
+        await dialog.boundingBox();
+      const sentenceBox: { x: number; width: number } | null =
+        await consequence.boundingBox();
+
+      expect(sentenceBox!.x + sentenceBox!.width).toBeLessThanOrEqual(
+        dialogBox!.x + dialogBox!.width,
+      );
+
+      // The other rows' ⋯ are under the backdrop, out of reach.
+      for (const other of ["Marketing Website", "Primary Database Ping"]) {
+        const box: { x: number; y: number; width: number; height: number } | null =
+          await row(page, "Monitors-table", other)
+            .getByTestId("row-actions-more-button")
+            .boundingBox();
+        const isInRow: boolean = await page.evaluate(
+          (point: { x: number; y: number }): boolean => {
+            const top: Element | null = document.elementFromPoint(
+              point.x,
+              point.y,
+            );
+
+            return Boolean(top && top.closest("tr"));
+          },
+          { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 },
+        );
+
+        expect({ other, isInRow }).toEqual({ other, isInRow: false });
+      }
+
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS, `row-actions-archive-dialog-1280-${theme}.png`),
+        animations: "disabled",
+      });
+
+      // A click on its text is the dialog's, not the row's.
+      await dialog.getByTestId("confirm-modal-description").click();
+      await consequence.click();
+      await page.waitForTimeout(300);
+
+      await expect(dialog).toBeVisible();
+      expect(
+        await page.evaluate((): Array<string> => {
+          return (
+            window as unknown as { __fixture: { navigations: Array<string> } }
+          ).__fixture.navigations;
+        }),
+      ).toEqual([]);
+
+      await dialog.getByTestId("modal-footer-close-button").click();
+      await expect(dialog).toBeHidden();
+      expect((await fixture(page)).updates).toEqual([]);
+    });
+  }
 });
 
 test.describe("a runbook's row", () => {

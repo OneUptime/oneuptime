@@ -56,6 +56,11 @@ export interface ComponentProps {
   itemNames?: Array<string> | undefined;
   // Why the change could not be made, shown at the top of the dialog.
   error?: string | undefined;
+  /*
+   * Set while one row's change is written: the dialog stays as it was
+   * filled in, its button busy (BasicFormModal.isSubmitting).
+   */
+  isSubmitting?: boolean | undefined;
   onClose: () => void;
   onSubmit: (data: BulkChangeStateSubmitData) => Promise<void>;
 }
@@ -140,6 +145,7 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
       description={props.description}
       onClose={props.onClose}
       error={props.error}
+      isSubmitting={props.isSubmitting}
       submitButtonText={props.submitButtonText || "Change State"}
       /*
        * The records it lands on: one row's name, as a row's question names

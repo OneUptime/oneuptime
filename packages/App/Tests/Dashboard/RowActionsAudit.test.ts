@@ -618,6 +618,79 @@ describe("3. every incident, alert, episode and maintenance list offers its stat
     },
   );
 
+  test("Change State and Change Severity wear the icons the lists' own State and Severity filters wear", () => {
+    /*
+     * The icon named after `marker` in a source: the IconProp the first
+     * "icon: IconProp.X" after it names. Read with indexOf, not a pattern.
+     */
+    const iconAfter: (source: string, marker: string) => string = (
+      source: string,
+      marker: string,
+    ): string => {
+      const start: number = source.indexOf(marker);
+
+      if (start === -1) {
+        return "";
+      }
+
+      const iconStart: number = source.indexOf(
+        "icon: IconProp.",
+        start + marker.length,
+      );
+
+      if (iconStart === -1) {
+        return "";
+      }
+
+      const name: string = source.slice(iconStart + "icon: IconProp.".length);
+
+      return name.slice(0, name.indexOf(","));
+    };
+
+    const filterIcons: { state: Set<string>; severity: Set<string> } = {
+      state: new Set<string>(),
+      severity: new Set<string>(),
+    };
+
+    for (const table of EVENT_TABLES) {
+      const source: string = readSource(table.file);
+
+      for (const [label, icons] of [
+        ['label: "State",', filterIcons.state],
+        ['label: "Severity",', filterIcons.severity],
+      ] as Array<[string, Set<string>]>) {
+        const icon: string = iconAfter(source, label);
+
+        if (icon) {
+          icons.add(icon);
+        }
+      }
+    }
+
+    // Every list that filters by them draws each the same way.
+    expect([...filterIcons.state]).toHaveLength(1);
+    expect([...filterIcons.severity]).toHaveLength(1);
+
+    const engine: string = readSource(
+      "Dashboard/src/Components/EventView/useEventStateActions.tsx",
+    );
+
+    expect(engine).toContain(
+      `export const CHANGE_STATE_ICON: IconProp = IconProp.${[...filterIcons.state][0]};`,
+    );
+    // The row's Change State and the bulk one.
+    expect(engine.split("icon: CHANGE_STATE_ICON,").length - 1).toBe(2);
+
+    for (const table of EVENT_TABLES.filter((candidate: EventTable) => {
+      return Boolean(candidate.severity);
+    })) {
+      expect({
+        file: table.file,
+        icon: iconAfter(readSource(table.file), 'title: "Change Severity",'),
+      }).toEqual({ file: table.file, icon: [...filterIcons.severity][0] });
+    }
+  });
+
   test("the row's state moves come first, then severity, then owners", () => {
     for (const table of EVENT_TABLES) {
       const list: ListUse | undefined = uses.find((use: ListUse): boolean => {

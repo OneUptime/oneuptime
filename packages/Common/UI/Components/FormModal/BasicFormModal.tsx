@@ -43,6 +43,14 @@ export interface ComponentProps<T extends GenericObject> {
    * bulk one (DeleteItemNames).
    */
   beforeFormElement?: ReactElement | undefined;
+  /*
+   * Set while the dialog's action runs, for a dialog that stays open until
+   * it is done (a row's Acknowledge, Change Severity, Add Owner): the form
+   * stays as it was filled in and the button turns busy, so it is seen to
+   * work and is pressed once. isLoading is for a dialog still reading what
+   * it shows: its fields wait for it.
+   */
+  isSubmitting?: boolean | undefined;
 }
 
 const BasicFormModal: <T extends GenericObject>(
@@ -104,7 +112,7 @@ const BasicFormModal: <T extends GenericObject>(
         openSectionIds: openFormSections.openSectionIds,
       })}
       submitButtonType={ButtonType.Submit}
-      isLoading={isLoading}
+      isLoading={isLoading || Boolean(props.isSubmitting)}
       onSubmit={footer.onSubmit}
       secondaryButton={footer.secondaryButton}
     >
