@@ -13,7 +13,8 @@
  *   - the header is a size container, and below PHONE_WIDTH (a phone, or a
  *     narrow window beside the side menu) its buttons take a line of their
  *     own and each grows to fill its row, as an incident's header's buttons
- *     do there, so two share a row and none is cut short - and the ⋯ moves
+ *     do there, their icons left out so two share a row and none is cut
+ *     short - and the ⋯ moves
  *     to the header's top-right corner, where it is on a wide header too,
  *     instead of being left alone on a row of its own after them.
  *
@@ -52,6 +53,14 @@ export const SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME: string =
 
 export const SECURITY_CASE_HEADER_BUTTON_CLASS_NAME: string =
   "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [@container(min-width:36rem)]:max-w-64 [@container(min-width:36rem)]:flex-none";
+
+/*
+ * A button's icon, left out on a phone: the label says it, and without the
+ * icon two buttons share a row where with it each took a row of its own
+ * (a 360px phone drew three rows of one button each on every page).
+ */
+export const SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME: string =
+  "hidden [@container(min-width:36rem)]:inline-flex";
 
 // The wrapper a locked button's reason is reached through: laid out as the button is.
 export const SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME: string =

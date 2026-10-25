@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
   SECURITY_CASE_HEADER_BUTTON_CLASS_NAME,
+  SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME,
   SECURITY_CASE_HEADER_CHIPS_CLASS_NAME,
   SECURITY_CASE_HEADER_CLASS_NAME,
   SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME,
@@ -138,6 +139,13 @@ describe("the header is laid out by its own width", () => {
     }
   });
 
+  test("on a phone a button leaves its icon out, so two share a row; from the phone width it has it", () => {
+    expect(classesOf(SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME)).toEqual([
+      "hidden",
+      `${PHONE_WIDTH_VARIANT}inline-flex`,
+    ]);
+  });
+
   test("on a phone the ⋯ sits in the header's top-right corner, and the chips leave it room; from the phone width it ends the actions", () => {
     expect(classesOf(SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME)).toEqual(
       expect.arrayContaining([
@@ -218,6 +226,7 @@ describe("the header draws the layout's classes, not copies of them", () => {
     "SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME",
     "SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME",
     "SECURITY_CASE_HEADER_BUTTON_CLASS_NAME",
+    "SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME",
     "SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME",
     "SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME",
     "SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME",

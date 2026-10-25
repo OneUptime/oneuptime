@@ -34380,5 +34380,13 @@
   "How fast a case at this priority needs a person, in a sentence.": "How fast a case at this priority needs a person, in a sentence.",
   "What a case in this status is waiting for, in a sentence.": "What a case in this status is waiting for, in a sentence.",
   "What the priority is called, like High or P1.": "What the priority is called, like High or P1.",
-  "What the status is called, like Investigating or Triage.": "What the status is called, like Investigating or Triage."
+  "What the status is called, like Investigating or Triage.": "What the status is called, like Investigating or Triage.",
+  "All changes made to this case.": "All changes made to this case.",
+  "Case Audit Logs": "Case Audit Logs",
+  "Case actions": "Case actions",
+  "It may have been deleted, or the link may not be a case's. The open cases are in Security Cases.": "It may have been deleted, or the link may not be a case's. The open cases are in Security Cases.",
+  "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.",
+  "Something went wrong. Try again.": "Something went wrong. Try again.",
+  "This case could not be found.": "This case could not be found.",
+  "You cannot open this case.": "You cannot open this case."
 }

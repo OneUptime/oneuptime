@@ -13,6 +13,7 @@ import { SecurityCaseValueLists } from "./SecurityCaseValues";
 import {
   SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
   SECURITY_CASE_HEADER_BUTTON_CLASS_NAME,
+  SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME,
   SECURITY_CASE_HEADER_CHIPS_CLASS_NAME,
   SECURITY_CASE_HEADER_CLASS_NAME,
   SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME,
@@ -142,7 +143,9 @@ const HeaderActionButton: FunctionComponent<{
           : SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME
       }${hasReachableTooltip ? " pointer-events-none w-full" : ""}`}
     >
-      <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+      <span className={SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME}>
+        <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+      </span>
       <span className="truncate">{title}</span>
     </button>
   );
