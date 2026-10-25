@@ -44,11 +44,18 @@ import Link from "Common/Types/Link";
  * that through nameRecordInTrail, as an incident's ModelPage does.
  */
 
-// A playbook's page, which opens on its own, under the section its list is in.
+/*
+ * A playbook's page, which opens on its own, and an entity's page, under the
+ * section their lists are in.
+ */
 const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
   [
     PageMap.SECURITY_PLAYBOOK_VIEW,
     ["Security Events", "Playbooks", "View Playbook"],
+  ],
+  [
+    PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+    ["Security Events", "Events", "Entity Risk", "Entity"],
   ],
 ];
 
@@ -106,6 +113,10 @@ function getSectionOf(page: PageMap): SecurityEventsMenuSection | undefined {
   switch (page) {
     case PageMap.SECURITY_PLAYBOOK_VIEW:
       return getSecurityEventsMenuSectionFor(PageMap.SECURITY_PLAYBOOKS);
+    case PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW:
+      return getSecurityEventsMenuSectionFor(
+        PageMap.SECURITY_EVENTS_ENTITY_RISK,
+      );
     default:
       return getSecurityEventsMenuSectionFor(page);
   }

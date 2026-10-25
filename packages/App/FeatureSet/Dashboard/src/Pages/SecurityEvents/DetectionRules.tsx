@@ -62,6 +62,14 @@ import {
 } from "../../Components/SecurityEvents/DetectionRuleShape";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
+import {
+  RISK_POINTS_FIELD_DESCRIPTION,
+  RISK_POINTS_FIELD_TITLE,
+} from "../../Components/SecurityEvents/EntityRisk/EntityRiskCopy";
+import {
+  ENTITY_RISK_POINTS_MAX,
+  ENTITY_RISK_POINTS_MIN,
+} from "Common/Types/SecurityCase/SecurityEntityRisk";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -402,6 +410,27 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             validation: {
               minValue: DETECTION_MATCH_COUNT_THRESHOLD_MIN,
               maxValue: DETECTION_MATCH_COUNT_THRESHOLD_MAX,
+            },
+            collapsibleSection: advancedSection,
+          },
+          {
+            /*
+             * What a match adds to the risk of the entity it is about
+             * (Security Events > Entity Risk): empty for the level's points,
+             * which is what most rules want, so it waits under More fields.
+             */
+            field: {
+              riskScore: true,
+            },
+            title: RISK_POINTS_FIELD_TITLE,
+            stepId: "on-match",
+            description: RISK_POINTS_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "By the rule's level",
+            validation: {
+              minValue: ENTITY_RISK_POINTS_MIN,
+              maxValue: ENTITY_RISK_POINTS_MAX,
             },
             collapsibleSection: advancedSection,
           },

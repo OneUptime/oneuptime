@@ -48,6 +48,9 @@ import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConne
 import SecurityEventsAISettingsPage from "../Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../Pages/SecurityEvents/Settings/CaseStatuses";
+import SecurityEntityRiskPage from "../Pages/SecurityEvents/EntityRisk";
+import SecurityEntityRiskViewPage from "../Pages/SecurityEvents/EntityRiskView";
+import SecurityRiskScoringPage from "../Pages/SecurityEvents/Settings/RiskScoring";
 
 /*
  * Every page under the product's side menu renders inside its layout. A case
@@ -120,6 +123,32 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityEntitiesPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_EVENTS_ENTITIES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK] || ""
+          }
+          element={
+            <SecurityEntityRiskPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK] as Route}
+            />
+          }
+        />
+        {/* One entity's page: its value is in the query (?value=). */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW] ||
+            ""
+          }
+          element={
+            <SecurityEntityRiskViewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW] as Route
+              }
             />
           }
         />
@@ -344,6 +373,21 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES
                 ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING
+            ] || ""
+          }
+          element={
+            <SecurityRiskScoringPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING] as Route
               }
             />
           }

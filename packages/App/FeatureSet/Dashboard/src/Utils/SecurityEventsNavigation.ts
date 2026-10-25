@@ -13,7 +13,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Open Cases, Assigned to Me, Unassigned, Closed Cases
  *                    and All Cases
  *   Events           every security event, how they connect, and who or
- *                    what they name: Events, Entities, Correlate
+ *                    what they name: Events, Entities, Entity Risk (who is
+ *                    riskiest, from everything found about each) and
+ *                    Correlate
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the runs
@@ -28,7 +30,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Connections, and the Setup Guide
  *   Settings         how the project's cases are kept: its own Case
  *                    Priorities and Case Statuses, as the Incidents' and
- *                    Alerts' Settings keep their severities and states
+ *                    Alerts' Settings keep their severities and states, and
+ *                    Risk Scoring: when an entity's risk opens a case, and
+ *                    how much each entity matters
  *
  * Every page has its own entry, address and name. The maintainer asked
  * for this in place of the tabs a page used to carry across its top (and
@@ -126,6 +130,16 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_ENTITIES,
         title: "Entities",
         icon: IconProp.Fingerprint,
+      },
+      {
+        /*
+         * Who to look at first: every user, host and address scored by what
+         * the rules, threat intel and connected products found about it this
+         * week (Types/SecurityCase/SecurityEntityRisk).
+         */
+        page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
+        title: "Entity Risk",
+        icon: IconProp.Fire,
       },
       {
         page: PageMap.SECURITY_EVENTS_CORRELATE,
@@ -241,6 +255,12 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES,
         title: "Case Statuses",
         icon: IconProp.ArrowCircleRight,
+      },
+      {
+        // When an entity's risk opens a case, and how much each entity matters.
+        page: PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
+        title: "Risk Scoring",
+        icon: IconProp.Gauge,
       },
     ],
   },

@@ -110,6 +110,7 @@ import ProjectAiDailyLimits, {
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
+import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -634,6 +635,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * someone never wrote. A blank one is stored as null, as clearing the
    * field means.
    */
+  /*
+   * The risk threshold a project sets (Security Events > Settings > Risk
+   * Scoring): a whole number from 10 to 10000, written as a number. Anything
+   * else is refused with the reason, never stored and read as a bound later.
+   */
+  public applySecurityRiskRules(data: {
+    securityRiskCaseThreshold?: unknown;
+  }): void {
+    if (data.securityRiskCaseThreshold === undefined) {
+      return;
+    }
+
+    const value: unknown = coerceNumericColumnValue(
+      data.securityRiskCaseThreshold,
+    );
+    const error: string | null = getRiskCaseThresholdError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    data.securityRiskCaseThreshold = value;
+  }
+
   public applyAiContextRules(data: { aiContext?: unknown }): void {
     if (data.aiContext === undefined) {
       return;
@@ -668,6 +693,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
     this.applyAiContextRules(data.data as { aiContext?: unknown });
+    this.applySecurityRiskRules(
+      data.data as { securityRiskCaseThreshold?: unknown },
+    );
 
     if (data.props.userId) {
       RelationIdUtil.stamp(
@@ -1308,6 +1336,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
+    this.applySecurityRiskRules(
+      updateBy.data as { securityRiskCaseThreshold?: unknown },
+    );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,

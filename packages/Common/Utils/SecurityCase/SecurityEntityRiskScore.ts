@@ -520,6 +520,32 @@ export function readRiskCaseThreshold(value: unknown): number {
   );
 }
 
+// What the server and the form say when a threshold is not one.
+export const RISK_CASE_THRESHOLD_ERROR: string = `The risk threshold is a whole number from ${ENTITY_RISK_CASE_THRESHOLD_MIN} to ${ENTITY_RISK_CASE_THRESHOLD_MAX}.`;
+
+/*
+ * Why a threshold someone sets cannot be kept - not a whole number, or out
+ * of range - or null when it can.
+ */
+export function getRiskCaseThresholdError(value: unknown): string | null {
+  const number: number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+
+  if (
+    !Number.isInteger(number) ||
+    number < ENTITY_RISK_CASE_THRESHOLD_MIN ||
+    number > ENTITY_RISK_CASE_THRESHOLD_MAX
+  ) {
+    return RISK_CASE_THRESHOLD_ERROR;
+  }
+
+  return null;
+}
+
 // How risky a score is against the project's threshold (SecurityEntityRiskLevel).
 export function getEntityRiskLevel(
   score: number,

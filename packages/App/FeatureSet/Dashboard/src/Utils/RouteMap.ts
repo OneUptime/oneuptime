@@ -773,6 +773,12 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_DOCUMENTATION]: "documentation",
   [PageMap.SECURITY_EVENTS_OVERVIEW]: "overview",
   [PageMap.SECURITY_EVENTS_ENTITIES]: "entities",
+  /*
+   * An entity's page is one level under the list, its value in the query
+   * (?value=): any user, host or address, whatever it holds.
+   */
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK]: "entity-risk",
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]: "entity-risk/entity",
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY]: "rule-library",
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]: "attack-coverage",
   /*
@@ -819,6 +825,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]:
     "settings/case-priorities",
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
+  [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
 };
 
 // Metrics product routes
@@ -7000,6 +7007,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]
     }`,
   ),
 
