@@ -111,8 +111,7 @@ export function selectBackupsToDelete(data: {
       return candidate.id;
     }),
     keptNewestSucceededId:
-      newestSucceeded &&
-      newestSucceeded.startedAt.getTime() < cutoff.getTime()
+      newestSucceeded && newestSucceeded.startedAt.getTime() < cutoff.getTime()
         ? newestSucceeded.id
         : null,
   };

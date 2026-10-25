@@ -156,7 +156,10 @@ const DAY_IN_MS: number = 24 * HOUR_IN_MS;
  */
 export function getNextBackupAt(schedule: BackupSchedule, after: Date): Date {
   const time: TimeOfDay = parseBackupTimeOfDay(schedule.timeOfDay) ||
-    parseBackupTimeOfDay(DEFAULT_BACKUP_TIME_OF_DAY) || { hours: 2, minutes: 0 };
+    parseBackupTimeOfDay(DEFAULT_BACKUP_TIME_OF_DAY) || {
+      hours: 2,
+      minutes: 0,
+    };
 
   const afterMs: number = after.getTime();
   const dayStart: number = Date.UTC(

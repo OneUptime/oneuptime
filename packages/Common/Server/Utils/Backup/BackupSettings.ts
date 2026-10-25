@@ -70,7 +70,9 @@ function hasControlOrSpace(value: string): boolean {
 export const BACKUP_MAX_SECRET_LENGTH: number = 4096;
 
 export default class BackupSettingsUtil {
-  public static getDefinitionOrThrow(type: unknown): BackupDestinationDefinition {
+  public static getDefinitionOrThrow(
+    type: unknown,
+  ): BackupDestinationDefinition {
     const definition: BackupDestinationDefinition | undefined =
       isBackupDestinationType(type)
         ? getBackupDestinationDefinition(type)
@@ -380,7 +382,8 @@ export default class BackupSettingsUtil {
 
         try {
           const url: URL = new URL(endpoint);
-          endpoint = `${url.protocol}//${url.host}${url.pathname}`.toLowerCase();
+          endpoint =
+            `${url.protocol}//${url.host}${url.pathname}`.toLowerCase();
         } catch {
           endpoint = endpoint.toLowerCase();
         }

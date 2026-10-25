@@ -365,7 +365,8 @@ export const BackupProviderCatalog: Array<BackupProviderDefinition> = [
     provider: BackupProvider.OtherS3Compatible,
     type: BackupDestinationType.S3Compatible,
     title: "Other S3-compatible storage",
-    description: "Ceph, DigitalOcean Spaces, Hetzner and any storage with an S3 API.",
+    description:
+      "Ceph, DigitalOcean Spaces, Hetzner and any storage with an S3 API.",
     icon: IconProp.Database,
     docsPath: `${BACKUP_DOCS_PATH}#other-s3-compatible-storage`,
     endpointPlaceholder: "https://s3.example.com",

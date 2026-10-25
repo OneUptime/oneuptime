@@ -77,7 +77,9 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  private static assertMasterAdmin(props: DatabaseCommonInteractionProps): void {
+  private static assertMasterAdmin(
+    props: DatabaseCommonInteractionProps,
+  ): void {
     if (!props.isRoot && !props.isMasterAdmin) {
       throw new NotAuthorizedException(BACKUP_SETTING_REFUSED_MESSAGE);
     }
@@ -436,7 +438,9 @@ export class Service extends DatabaseService<Model> {
             storedType: current.destinationType,
             stored: current.secrets,
             provided:
-              incoming["secrets"] !== undefined ? incoming["secrets"] : undefined,
+              incoming["secrets"] !== undefined
+                ? incoming["secrets"]
+                : undefined,
           }),
         });
 
