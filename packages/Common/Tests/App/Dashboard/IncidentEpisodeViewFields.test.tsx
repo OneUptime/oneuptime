@@ -190,8 +190,10 @@ import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Compon
 import { EventRolesSnapshot } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
 import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
 import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
-import { PeoplePickerOption } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
-import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  PeoplePickerKind,
+  PeoplePickerOption,
+} from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/incidents"),
@@ -1384,8 +1386,9 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
     expect(
       (
         (
-          (changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>)[0]!
-            .value as React.ReactElement
+          (
+            changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
+          )[0]!.value as React.ReactElement
         ).props as { members: Array<unknown> }
       ).members,
     ).toEqual([]);

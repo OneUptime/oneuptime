@@ -33,8 +33,10 @@ import useAnchoredFieldPopup, {
 
 describe("getAnchoredPopupRevealScroll", () => {
   test.each([
-    // [anchor top, anchor height, max height, scroll]
-    // Room below: nothing to do.
+    /*
+     * [anchor top, anchor height, max height, scroll]
+     * Room below: nothing to do.
+     */
     [100, 24, 380, 0],
     [352, 24, 380, 0],
     // 198px below an anchor at 534..558: 182px more for 380.
@@ -100,7 +102,8 @@ const Harness: FunctionComponent<HarnessProps> = (
     popupMaxHeight: 380,
     revealRoomOnOpen: props.revealRoomOnOpen,
   });
-  const trigger: AnchoredPopupTriggerProps = getAnchoredPopupTriggerProps(popup);
+  const trigger: AnchoredPopupTriggerProps =
+    getAnchoredPopupTriggerProps(popup);
 
   return (
     <div>

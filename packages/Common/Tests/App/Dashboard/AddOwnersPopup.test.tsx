@@ -196,7 +196,9 @@ function owner(kind: "user" | "team", id: string): ResourceOwnerEntry {
 interface HarnessProps {
   target: OwnersTarget;
   owners: Array<ResourceOwnerEntry>;
-  onOwnersChanged?: ((change: OwnersChange) => void | Promise<void>) | undefined;
+  onOwnersChanged?:
+    | ((change: OwnersChange) => void | Promise<void>)
+    | undefined;
 }
 
 // A place that names a record's owners, with its Add and the shared list.
@@ -259,9 +261,7 @@ function created(): Array<{ model: BaseModel; modelType: unknown }> {
 }
 
 function holdPermissions(permissions: Array<Permission>): void {
-  jest
-    .spyOn(PermissionUtil, "getAllPermissions")
-    .mockReturnValue(permissions);
+  jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue(permissions);
   jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
 }
 
@@ -295,7 +295,11 @@ describe("the Add owners list", () => {
     expect(offered(dialog)).toEqual([`user:${BOB}`, `team:${DATABASE}`]);
     // People first, then teams: each under its own heading.
     const groups: Array<HTMLElement> = within(dialog).getAllByRole("group");
-    expect(groups.map((group: HTMLElement) => group.textContent)).toEqual([
+    expect(
+      groups.map((group: HTMLElement) => {
+        return group.textContent;
+      }),
+    ).toEqual([
       expect.stringContaining("People"),
       expect.stringContaining("Teams"),
     ]);
@@ -589,7 +593,9 @@ describe("who may add, in the list", () => {
       `team:${DATABASE}`,
       `team:${PLATFORM}`,
     ]);
-    expect(within(dialog).queryByTestId("people-search-locked-kinds")).toBeNull();
+    expect(
+      within(dialog).queryByTestId("people-search-locked-kinds"),
+    ).toBeNull();
   });
 
   test("a reader who may add people but not teams finds Teams locked, saying why, and never searched", async () => {
@@ -657,7 +663,11 @@ describe("the empty place after a row of owners (AddOwnersPlaceButton)", () => {
     return (
       <>
         <AddOwnersPlaceButton popup={popup} dataTestId="place" />
-        <AddOwnersPopup popup={popup} target={INCIDENT_TARGET} ownerKeys={new Set()} />
+        <AddOwnersPopup
+          popup={popup}
+          target={INCIDENT_TARGET}
+          ownerKeys={new Set()}
+        />
       </>
     );
   };
@@ -671,7 +681,9 @@ describe("the empty place after a row of owners (AddOwnersPlaceButton)", () => {
     expect(place).toHaveAttribute("aria-haspopup", "dialog");
     expect(place).toHaveAttribute("aria-expanded", "false");
     expect(place).toHaveClass("h-6", "w-6", "rounded-full", "border-dashed");
-    expect(place).not.toHaveClass(ADD_OWNERS_PLACE_OPEN_CLASS_NAME.split(" ")[0]!);
+    expect(place).not.toHaveClass(
+      ADD_OWNERS_PLACE_OPEN_CLASS_NAME.split(" ")[0]!,
+    );
 
     fireEvent.click(place);
 
@@ -747,10 +759,12 @@ describe("the rules (AddOwners)", () => {
     const locked: PermissionGateResult = getAddOwnersGate(INCIDENT_TARGET);
 
     expect(locked.isAllowed).toBe(false);
-    expect(
-      locked.disabledReason?.startsWith(ADD_OWNERS_REFUSED_SENTENCE),
-    ).toBe(true);
-    expect(locked.disabledReason).toContain("You need one of these permissions:");
+    expect(locked.disabledReason?.startsWith(ADD_OWNERS_REFUSED_SENTENCE)).toBe(
+      true,
+    );
+    expect(locked.disabledReason).toContain(
+      "You need one of these permissions:",
+    );
   });
 
   test("buildOwnerRow writes the record, the project and the pick, in the kind's table", () => {
@@ -771,7 +785,9 @@ describe("the rules (AddOwners)", () => {
       (person.model as unknown as Record<string, unknown>)["userId"],
     ).toBeInstanceOf(ObjectID);
     expect(
-      String((person.model as unknown as Record<string, unknown>)["incidentId"]),
+      String(
+        (person.model as unknown as Record<string, unknown>)["incidentId"],
+      ),
     ).toBe(INCIDENT_ID);
     expect(team.modelType).toBe(MonitorOwnerTeam);
     expect(

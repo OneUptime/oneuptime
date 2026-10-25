@@ -246,10 +246,7 @@ function serveLists(): void {
       payments.name = "Payments";
       const checkout: ResourceOwnerEntry = team("Checkout SRE", 1);
       return {
-        data: [
-          (checkout as { kind: "team"; team: Team }).team,
-          payments,
-        ],
+        data: [(checkout as { kind: "team"; team: Team }).team, payments],
         count: 2,
         skip: 0,
         limit: 25,
@@ -642,8 +639,9 @@ describe("getCommanderFact", () => {
   });
 
   test("hands Assign to the value only when it is offered", () => {
-    const onAssign: (person: PeoplePickerOption) => Promise<void> =
-      async (): Promise<void> => {};
+    const onAssign: (
+      person: PeoplePickerOption,
+    ) => Promise<void> = async (): Promise<void> => {};
     const open: EventStatusFact | null = getCommanderFact({
       holding: { ...holding, members: [] },
       onAssign: onAssign,
@@ -1076,7 +1074,9 @@ describe("in the reader's language", () => {
     const list: HTMLElement = await openedList("Vorfall-Kommandant zuweisen");
 
     expect(
-      within(list).getByPlaceholderText("Personen nach Name oder E-Mail suchen"),
+      within(list).getByPlaceholderText(
+        "Personen nach Name oder E-Mail suchen",
+      ),
     ).toBeVisible();
     open.unmount();
 

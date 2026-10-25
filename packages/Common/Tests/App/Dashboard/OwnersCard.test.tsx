@@ -544,9 +544,7 @@ describe("OwnersCard", () => {
     expect(optionNames(dialog)).toEqual([BOB]);
     expect(
       within(dialog).getByTestId("people-search-locked-kind"),
-    ).toHaveTextContent(
-      "You do not have permission to add teams as owners.",
-    );
+    ).toHaveTextContent("You do not have permission to add teams as owners.");
   });
 
   test("says what owning means where it is not 'notified about changes' - a template's owners", async () => {

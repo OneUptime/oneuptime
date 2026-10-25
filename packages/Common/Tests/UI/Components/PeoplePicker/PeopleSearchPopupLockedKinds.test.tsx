@@ -7,7 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
@@ -243,7 +249,9 @@ describe("a kind the reader may not pick", () => {
           return locked.getAttribute("data-kind");
         }),
     ).toEqual([PeoplePickerKind.User, PeoplePickerKind.Team]);
-    expect(within(dialog).queryByText("No people or teams available.")).toBeNull();
+    expect(
+      within(dialog).queryByText("No people or teams available."),
+    ).toBeNull();
     expect(within(dialog).queryAllByRole("option")).toHaveLength(0);
     expect(readKinds()).toEqual([]);
   });

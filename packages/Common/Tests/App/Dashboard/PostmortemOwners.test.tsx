@@ -272,9 +272,10 @@ describe("PostmortemOwners", () => {
 
     expect(screen.getByRole("dialog", { name: "Add owners" })).toBe(list);
     expect(within(list).getByText("Added Bob Jones.")).toBeVisible();
-    expect(
-      screen.getByTestId("postmortem-add-more-owners"),
-    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByTestId("postmortem-add-more-owners")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
   });
 
   test("a reader who may not add owners reads the owners alone", () => {
