@@ -1040,6 +1040,9 @@ describe("in the reader's language", () => {
       }
 
       sentences.push([action.alreadyReason, action.alreadyReason]);
+      // A row's question (BulkSwitchRowActions.test).
+      sentences.push([action.rowConfirmTitle, action.rowConfirmTitle]);
+      sentences.push([action.rowQuestion, action.rowQuestion]);
     }
 
     const locales: Record<string, Record<string, string>> = Object.fromEntries(

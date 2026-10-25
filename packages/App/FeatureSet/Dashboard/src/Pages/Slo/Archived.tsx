@@ -49,8 +49,11 @@ const SlosArchived: FunctionComponent<
    * offer; they are mounted anyway, so the page keeps the wiring every SLO
    * table has and adding one of those actions later cannot open nothing.
    */
-  const { unarchiveBulkActions, modals }: SloBulkActionsResult =
-    useSloBulkActions();
+  const {
+    unarchiveBulkActions,
+    unarchiveRowActions,
+    modals,
+  }: SloBulkActionsResult = useSloBulkActions();
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -79,6 +82,8 @@ const SlosArchived: FunctionComponent<
     <Fragment>
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id={SLOS_ARCHIVED_TABLE_ID}
         userPreferencesKey={SLOS_ARCHIVED_TABLE_ID}
         topContent={filterBar}

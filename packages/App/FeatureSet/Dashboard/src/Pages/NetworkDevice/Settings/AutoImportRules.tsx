@@ -217,6 +217,8 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
     <Fragment>
       <ModelTable<NetworkDeviceAutoImportRule>
         modelType={NetworkDeviceAutoImportRule}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         id="network-device-auto-import-rules-table"
         name="Settings > Network Device Auto Import Rules"
         userPreferencesKey="network-device-auto-import-rules-table"

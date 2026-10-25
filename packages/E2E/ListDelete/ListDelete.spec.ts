@@ -133,7 +133,12 @@ test.describe("a row's ⋯ menu", () => {
     await openList(page);
     const menu: Locator = await openRowMenu(page, "Demo Status");
 
-    await expect(menu.getByRole("menuitem")).toHaveText(["Show ID", "Delete"]);
+    // The list's own Archive first, then what every row carries.
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Archive",
+      "Show ID",
+      "Delete",
+    ]);
     // MoreMenuDivider: the gap between the everyday actions and Delete.
     await expect(menu.locator('[role="none"].py-1')).toHaveCount(1);
     await expect(
@@ -446,8 +451,8 @@ test.describe("on a phone", () => {
     // Rows are cards here: the second card is Demo Status.
     await page.getByTestId("row-actions-more-button").nth(1).click();
     const menu: Locator = page.getByRole("menu");
-    // Show ID is left off phones (hideOnMobile); Delete is not.
-    await expect(menu.getByRole("menuitem")).toHaveText(["Delete"]);
+    // Show ID is left off phones (hideOnMobile); Archive and Delete are not.
+    await expect(menu.getByRole("menuitem")).toHaveText(["Archive", "Delete"]);
     await menu.getByRole("menuitem", { name: "Delete" }).click();
 
     await expect(page.getByTestId("delete-confirmation-message")).toContainText(
@@ -900,7 +905,11 @@ test.describe("the Monitors list", () => {
     await expect(rowNames(page)).toHaveCount(3);
 
     const menu: Locator = await openRowMenu(page, "Checkout API");
-    await expect(menu.getByRole("menuitem")).toHaveText(["Show ID", "Delete"]);
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Archive",
+      "Show ID",
+      "Delete",
+    ]);
     await menu.getByRole("menuitem", { name: "Delete" }).click();
 
     await expect(

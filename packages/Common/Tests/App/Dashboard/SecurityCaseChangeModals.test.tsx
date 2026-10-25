@@ -448,6 +448,36 @@ describe("Assign to Someone Else", () => {
     });
   });
 
+  test("while the change is saved, the dialog stays as picked, its button busy, and a second press hands nothing more over", async () => {
+    let release: () => void = (): void => {};
+    const onSubmit: MockFunction = getJestMockFunction();
+    onSubmit.mockImplementation((async (): Promise<void> => {
+      await new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+    }) as never);
+    draw([buildCase(141)], onSubmit as never);
+
+    await pickAssignee("Priya Nair");
+    await submit();
+
+    // The person picked stays in view; the button is busy, as every row's is.
+    expect(within(dialog()).getByTestId("people-chip")).toHaveTextContent(
+      "Priya Nair",
+    );
+    expect(
+      within(dialog()).getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
+
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release();
+    });
+  });
+
   test("for several cases: counts them", () => {
     draw([buildCase(141), buildCase(138), buildCase(137)], async () => {});
 

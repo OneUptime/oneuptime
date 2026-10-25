@@ -178,6 +178,8 @@ const TraceScrubRules: FunctionComponent<
   return (
     <ModelTable<TraceScrubRule>
       modelType={TraceScrubRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

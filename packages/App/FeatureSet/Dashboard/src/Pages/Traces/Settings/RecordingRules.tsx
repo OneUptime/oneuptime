@@ -173,6 +173,8 @@ const TraceRecordingRules: FunctionComponent<
   return (
     <ModelTable<TraceRecordingRule>
       modelType={TraceRecordingRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       showCreateForm={Boolean(prefillDefinition)}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,

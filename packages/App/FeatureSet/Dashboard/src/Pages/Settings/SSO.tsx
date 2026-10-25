@@ -88,6 +88,8 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
       <>
         <ModelTable<ProjectSSO>
           modelType={ProjectSSO}
+          // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+          rowSwitch={{ column: "isEnabled" }}
           userPreferencesKey={"project-sso-table"}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,

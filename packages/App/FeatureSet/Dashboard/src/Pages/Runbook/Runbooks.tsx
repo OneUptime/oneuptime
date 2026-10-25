@@ -10,8 +10,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
@@ -45,11 +47,13 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useBulkLabelActions<Runbook>({ modelType: Runbook });
 
   // Enable and Disable: a disabled runbook does not run, whatever starts it.
-  const switchBulkActions: Array<BulkActionButtonSchema<Runbook>> =
-    useBulkSwitchActions<Runbook>({
-      modelType: Runbook,
-      column: "isEnabled",
-    });
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<Runbook> = useSwitchActions<Runbook>({
+    modelType: Runbook,
+    column: "isEnabled",
+  });
 
   const runbookExtraFacets: Array<ResourceFacet> = [
     {
@@ -101,6 +105,8 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<Runbook>
         modelType={Runbook}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        actionButtons={[...switchRowActions]}
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
         topContent={filterBar}

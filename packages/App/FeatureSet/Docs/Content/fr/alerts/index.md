@@ -64,7 +64,9 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. La liste
 
 **Alertes** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** commencent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. La configuration des alertes se trouve ici, pas dans les **Paramètres du projet**.
 
-La liste affiche **Numéro d'alerte**, **Titre**, **État**, **Gravité**, **Ressources affectées** (le moniteur de l'alerte en premier), **Créé**, **Durée**, **Étiquettes** et **Propriétaires**. Sélectionnez des alertes pour agir sur plusieurs à la fois : **Modifier l'état**, **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner**, **Lier à un incident**, **Déclarer un incident** ou les supprimer.
+La liste affiche **Numéro d'alerte**, **Titre**, **État**, **Gravité**, **Ressources affectées** (le moniteur de l'alerte en premier), **Créé**, **Durée**, **Étiquettes** et **Propriétaires**. Sélectionnez des alertes pour agir sur plusieurs à la fois : **Prendre en compte**, **Résoudre**, **Modifier l'état**, **Modifier la gravité**, **M'attribuer**, **Ajouter un propriétaire**, **Remove Owner**, **Ajouter des étiquettes**, **Remove Labels**, **Lier à un incident**, **Déclarer un incident** ou les supprimer.
+
+Le menu **⋯** au bout de la ligne de chaque alerte fait de même pour cette seule alerte : **Prendre en compte** et **Résoudre** tant que l'alerte peut franchir cette étape, **Modifier l'état**, **Modifier la gravité**, **M'attribuer** tant que vous n'en êtes pas propriétaire, et **Ajouter un propriétaire** pour la confier à quelqu'un d'autre.
 
 ## Créer une alerte à la main
 

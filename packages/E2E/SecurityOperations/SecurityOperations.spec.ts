@@ -2018,6 +2018,30 @@ async function menuItemTitles(menu: Locator): Promise<Array<string>> {
   );
 }
 
+/*
+ * A menu's runs, top to bottom: its items' titles, a new run after each gap
+ * between kinds of action (an empty role="none" element: ActionMenuGroup).
+ */
+async function menuRuns(menu: Locator): Promise<Array<Array<string>>> {
+  return await menu.evaluate((element: Element): Array<Array<string>> => {
+    const runs: Array<Array<string>> = [[]];
+
+    for (const item of Array.from(
+      element.querySelectorAll('[role="menuitem"], [role="none"]'),
+    )) {
+      if (item.getAttribute("role") === "none") {
+        runs.push([]);
+      } else {
+        runs[runs.length - 1]!.push(
+          (item.textContent || "").replace(/\s+/g, " ").trim(),
+        );
+      }
+    }
+
+    return runs;
+  });
+}
+
 async function selectCase(page: Page, caseNumber: string): Promise<void> {
   await page
     .getByText(caseNumber, { exact: true })
@@ -2116,6 +2140,17 @@ test.describe("working cases from the queue", () => {
       "Change Priority",
       "Delete",
     ]);
+    // In runs, as an incident's ⋯ reads: its people, its status and priority, Delete.
+    expect(await menuRuns(menu)).toEqual([
+      ["Assign to Me", "Assign to Someone Else"],
+      ["Change Status", "Change Priority"],
+      ["Delete"],
+    ]);
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await menu.screenshot({
+      path: path.join(SCREENSHOTS, "case-row-menu-1344-light.png"),
+      animations: "disabled",
+    });
     // The one label longer than the menu is wide wraps evenly, no word left alone.
     expect(
       await labelLines(

@@ -77,6 +77,8 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
     <Fragment>
       <ModelTable<ProjectOIDC>
         modelType={ProjectOIDC}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         userPreferencesKey={"project-oidc-table"}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

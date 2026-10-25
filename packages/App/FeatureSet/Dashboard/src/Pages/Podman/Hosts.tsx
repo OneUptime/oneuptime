@@ -61,9 +61,10 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "podmanHostId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<PodmanHost>({
-    modelType: PodmanHost,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<PodmanHost>({
+      modelType: PodmanHost,
+    });
 
   const podmanExtraFacets: Array<ResourceFacet> = [
     {
@@ -129,6 +130,8 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<PodmanHost>
         modelType={PodmanHost}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="podman-hosts-table"
         userPreferencesKey="podman-hosts-table"

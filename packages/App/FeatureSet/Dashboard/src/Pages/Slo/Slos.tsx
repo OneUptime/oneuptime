@@ -414,8 +414,13 @@ export const getSloViewRoute: GetSloViewRouteFunction = (
 type OnSummaryTileClickFunction = (tile: SloStatusSummaryTile) => void;
 
 const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const { bulkActions, archiveBulkActions, modals }: SloBulkActionsResult =
-    useSloBulkActions();
+  const {
+    bulkActions,
+    archiveBulkActions,
+    rowActions,
+    archiveRowActions,
+    modals,
+  }: SloBulkActionsResult = useSloBulkActions();
 
   /*
    * The owners cell, plus the facet bar: an Owner chip (the table shows the
@@ -467,6 +472,8 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
+        // Enable or Disable, and Archive, in each row's ⋯ menu.
+        actionButtons={[...rowActions, ...archiveRowActions]}
         id={SLOS_TABLE_ID}
         userPreferencesKey={SLOS_TABLE_ID}
         /*

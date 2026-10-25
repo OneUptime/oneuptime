@@ -134,6 +134,8 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
   return (
     <ModelTable<AIPostmortemRule>
       modelType={AIPostmortemRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       id={AI_POSTMORTEM_RULES_TABLE_ID}
       name="Settings > AI > Postmortem Rules"
       userPreferencesKey={AI_POSTMORTEM_RULES_TABLE_ID}
