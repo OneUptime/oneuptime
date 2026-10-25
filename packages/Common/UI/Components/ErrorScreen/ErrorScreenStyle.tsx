@@ -32,6 +32,8 @@ export const ERROR_SCREEN_CSS: string = `
   --oueb-shadow: var(--ou-card-shadow, 0 1px 3px rgb(15 23 42 / 8%));
   --oueb-accent-surface: var(--ou-accent-soft, #eef2ff);
   --oueb-accent-border: var(--ou-accent-muted, #e0e7ff);
+  --oueb-warning-surface: #fffbeb;
+  --oueb-warning-icon: #f59e0b;
   color: var(--oueb-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -59,6 +61,9 @@ html.dark .oueb-part {
   --oueb-danger-surface: rgb(153 27 27 / 22%);
   --oueb-danger-border: rgb(248 113 113 / 24%);
   --oueb-danger-icon: #fca5a5;
+  /* Theme.css's dark bg-amber-50 and text-amber-500. */
+  --oueb-warning-surface: rgb(120 53 15 / 32%);
+  --oueb-warning-icon: #fbbf24;
 }
 
 .oneuptime-error-boundary *,
@@ -133,69 +138,94 @@ html.dark .oueb-part {
   to { transform: rotate(360deg); }
 }
 
-/* The page's own loader, while the server is asked what happened. */
-.oueb-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 40vh;
-  color: var(--oueb-text-muted);
-}
-
-.oueb-note {
-  margin: 0.75rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
-  color: var(--oueb-text-muted);
-}
-
-/* One part of a page: a line in its place, the rest of the page stays. */
+/*
+ * One part of a page - a dashboard widget, a widget's settings - in its own
+ * place, the rest of the page staying. Drawn the way such a part draws its
+ * own states (the widget's DashboardWidgetFallback): an icon in a soft
+ * circle above one short line and a small button, in the middle of the
+ * part, on the part's own surface - not a box inside its box. The outer box
+ * scrolls and the inner one is centred with auto margins, so a part shorter
+ * than the words starts at its top and scrolls instead of cutting them off.
+ */
 .oueb-part {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--oueb-border);
-  border-radius: 0.75rem;
-  background-color: var(--oueb-surface);
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.oueb-part-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(100%, 20rem);
+  margin: auto;
+  padding: 0.25rem 0.5rem;
+  text-align: center;
 }
 
 .oueb-part-icon {
   display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background-color: var(--oueb-surface-muted);
   color: var(--oueb-text-muted);
 }
 
 .oueb-part-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* The new version loading, or waiting for a reload: the accent. */
+.oueb-part-icon-info {
+  background-color: var(--oueb-accent-surface);
+  color: var(--oueb-accent);
+}
+
+/* It could not be loaded: the amber of a widget that cannot be drawn. */
+.oueb-part-icon-warning {
+  background-color: var(--oueb-warning-surface);
+  color: var(--oueb-warning-icon);
+}
+
+.oueb-part-icon .oueb-spinner {
   width: 1.125rem;
   height: 1.125rem;
 }
 
-.oueb-part-icon-info {
-  color: var(--oueb-accent);
-}
-
-.oueb-part-icon .oueb-spinner {
-  width: 1rem;
-  height: 1rem;
-}
-
 .oueb-part-text {
-  flex: 1 1 12rem;
-  min-width: 0;
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--oueb-text-secondary);
+  text-wrap: pretty;
+}
+
+.oueb-part-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .oueb-button-small {
+  gap: 0.375rem;
   padding: 0.375rem 0.75rem;
   font-size: 0.8125rem;
   line-height: 1.125rem;
+}
+
+.oueb-button-small svg {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .oueb-title {

@@ -155,6 +155,12 @@ export interface ComponentProps {
    * same kind says the page could not be loaded.
    */
   renderFailed?: (() => ReactElement) | undefined;
+  /*
+   * The Part variant in a short part (a two-row dashboard tile): no icon,
+   * as the part's own fallback drops it there, so the words and the button
+   * fit inside it.
+   */
+  isCompact?: boolean | undefined;
 }
 
 const isBrowserOffline: () => boolean = (): boolean => {
@@ -340,6 +346,13 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
 
     let text: string = "";
     let iconPath: string = ALERT_ICON_PATH;
+    /*
+     * The circle's colour says which kind of moment it is: the accent while
+     * the new version loads or waits for a reload, the amber a widget that
+     * cannot be drawn shows (DashboardWidgetFallback) once it could not be
+     * loaded, and a quiet grey while the network is away.
+     */
+    let toneClassName: string = "oueb-part-icon-info";
 
     if (step === ChunkLoadRecoveryStep.Updating) {
       text = translate("Loading the latest version...");
@@ -350,17 +363,25 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
         "You're offline. This will load when you're back online.",
       );
       iconPath = OFFLINE_ICON_PATH;
+      toneClassName = "";
     } else if (step === ChunkLoadRecoveryStep.Unreachable) {
       text = translate("Can't reach the server. Trying again automatically.");
       iconPath = CLOUD_ICON_PATH;
+      toneClassName = "";
     } else if (step === ChunkLoadRecoveryStep.NeedsReload) {
       text = translate(
-        "This needs the latest version of the page. Save your changes, then reload the page.",
+        "This needs the latest version. Save your changes, then reload the page.",
       );
       iconPath = RELOAD_ICON_PATH;
     } else {
       text = translate("This couldn't be loaded.");
+      toneClassName = "oueb-part-icon-warning";
     }
+
+    /*
+     * Small plain buttons, as a widget's own Try again: one part of a page
+     * does not get the page's loudest button.
+     */
 
     return (
       <div
@@ -372,43 +393,58 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
         aria-live="polite"
       >
         <style>{ERROR_SCREEN_CSS}</style>
-        <span
-          className={`oueb-part-icon ${
-            isLoading || step === ChunkLoadRecoveryStep.NeedsReload
-              ? "oueb-part-icon-info"
-              : ""
-          }`}
-          aria-hidden="true"
-        >
-          {isLoading ? <span className="oueb-spinner" /> : getIcon(iconPath)}
-        </span>
-        <p className="oueb-part-text">{text}</p>
-        {hasRetry ? (
-          <button
-            type="button"
-            className="oueb-button oueb-button-secondary oueb-button-small"
-            data-testid="chunk-load-recovery-retry"
-            onClick={() => {
-              void run();
-            }}
-          >
-            {retryButtonText}
-          </button>
-        ) : (
-          <></>
-        )}
-        {hasReload ? (
-          <button
-            type="button"
-            className="oueb-button oueb-button-primary oueb-button-small"
-            data-testid="chunk-load-recovery-reload"
-            onClick={reloadNow}
-          >
-            {reloadButtonText}
-          </button>
-        ) : (
-          <></>
-        )}
+        <div className="oueb-part-body">
+          {props.isCompact ? (
+            <></>
+          ) : (
+            <span
+              className={`oueb-part-icon ${toneClassName}`.trim()}
+              data-testid="chunk-load-recovery-icon"
+              aria-hidden="true"
+            >
+              {isLoading ? (
+                <span className="oueb-spinner" />
+              ) : (
+                getIcon(iconPath)
+              )}
+            </span>
+          )}
+          <p className="oueb-part-text">{text}</p>
+          {hasRetry || hasReload ? (
+            <div className="oueb-part-actions">
+              {hasRetry ? (
+                <button
+                  type="button"
+                  className="oueb-button oueb-button-secondary oueb-button-small"
+                  data-testid="chunk-load-recovery-retry"
+                  onClick={() => {
+                    void run();
+                  }}
+                >
+                  {getIcon(RELOAD_ICON_PATH)}
+                  {retryButtonText}
+                </button>
+              ) : (
+                <></>
+              )}
+              {hasReload ? (
+                <button
+                  type="button"
+                  className="oueb-button oueb-button-secondary oueb-button-small"
+                  data-testid="chunk-load-recovery-reload"
+                  onClick={reloadNow}
+                >
+                  {getIcon(RELOAD_ICON_PATH)}
+                  {reloadButtonText}
+                </button>
+              ) : (
+                <></>
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     );
   }
@@ -450,7 +486,7 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
         ? {
             title: translate("Updating to the new version"),
             message: translate(
-              "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.",
+              "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
             ),
           }
         : {
@@ -485,7 +521,7 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
           ? translate("A new version of OneUptime is ready")
           : translate("A newer version of this page is ready"),
         message: translate(
-          "This page needs it to load. Reloading discards changes you haven't saved.",
+          "This page needs the new version to open. Reloading discards changes you haven't saved.",
         ),
       };
     }

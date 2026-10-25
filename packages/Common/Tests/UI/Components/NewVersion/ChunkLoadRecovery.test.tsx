@@ -335,7 +335,7 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
       "Updating to the new version",
     );
     expect(recovery()).toHaveTextContent(
-      "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.",
+      "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
     );
     expect(screen.queryByText("Something went wrong")).toBeNull();
     expect(screen.queryByTestId("error-boundary-fallback")).toBeNull();
@@ -605,7 +605,7 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
       "A new version of OneUptime is ready",
     );
     expect(recovery()).toHaveTextContent(
-      "This page needs it to load. Reloading discards changes you haven't saved.",
+      "This page needs the new version to open. Reloading discards changes you haven't saved.",
     );
     expect(reloadMock).not.toHaveBeenCalled();
 
@@ -747,7 +747,7 @@ describe("a part of a page whose code did not download (ContainedErrorBoundary)"
     });
 
     expect(recovery()).toHaveTextContent(
-      "This needs the latest version of the page. Save your changes, then reload the page.",
+      "This needs the latest version. Save your changes, then reload the page.",
     );
     expect(reloadMock).not.toHaveBeenCalled();
 
@@ -849,6 +849,225 @@ describe("a part of a page whose code did not download (ContainedErrorBoundary)"
       ChunkLoadRecoveryStep.Updating,
       ChunkLoadRecoveryStep.Updating,
     ]);
+  });
+
+  describe("drawn as the part draws its own states, never as a box of its own", () => {
+    const CSS_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+
+    const icon: () => HTMLElement | null = (): HTMLElement | null => {
+      return screen.queryByTestId("chunk-load-recovery-icon");
+    };
+
+    const buttonsOf: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+      return Array.from(recovery().querySelectorAll("button"));
+    };
+
+    test("an icon in a soft circle above its words, in the middle of the part", async () => {
+      start();
+      renderPart();
+
+      await waitFor(() => {
+        expect(stepOf()).toBe(ChunkLoadRecoveryStep.Updating);
+      });
+
+      // One centred column: the circle, then the words.
+      const body: Element | null = recovery().querySelector(".oueb-part-body");
+      expect(body).not.toBeNull();
+      expect(body!.firstElementChild).toBe(icon());
+      expect(icon()).toHaveClass("oueb-part-icon");
+      expect(icon()!.nextElementSibling).toHaveTextContent(
+        "Loading the latest version...",
+      );
+      // On the part's own surface: no border, no background of its own.
+      const css: string = (
+        recovery().querySelector("style")!.textContent || ""
+      ).replace(CSS_COMMENT, "");
+      const ruleFor: (selector: string) => string = (
+        selector: string,
+      ): string => {
+        for (const rule of css.split("}")) {
+          const [head, body] = rule.split("{");
+
+          if ((head || "").trim() === selector) {
+            return body || "";
+          }
+        }
+
+        return "";
+      };
+
+      expect(ruleFor(".oueb-part")).toContain("overflow: auto");
+      expect(ruleFor(".oueb-part")).not.toContain("border");
+      expect(ruleFor(".oueb-part")).not.toContain("background");
+      expect(ruleFor(".oueb-part-body")).toContain("margin: auto");
+      expect(ruleFor(".oueb-part-body")).toContain("text-align: center");
+      expect(ruleFor(".oueb-part-icon")).toContain("border-radius: 9999px");
+    });
+
+    test.each<[string, () => void, ChunkLoadRecoveryStep, string]>([
+      [
+        "loading the new version: the accent",
+        (): void => {},
+        ChunkLoadRecoveryStep.Updating,
+        "oueb-part-icon-info",
+      ],
+      [
+        "waiting for a reload the reader allows: the accent",
+        (): void => {
+          UnsavedChanges.hold();
+        },
+        ChunkLoadRecoveryStep.NeedsReload,
+        "oueb-part-icon-info",
+      ],
+      [
+        "could not be loaded: the amber of a widget that cannot be drawn",
+        (): void => {
+          markChunkLoadErrorReload(Date.now());
+        },
+        ChunkLoadRecoveryStep.Failed,
+        "oueb-part-icon-warning",
+      ],
+    ])(
+      "the circle's colour says which moment it is - %s",
+      async (
+        _name: string,
+        arrange: () => void,
+        step: ChunkLoadRecoveryStep,
+        toneClassName: string,
+      ) => {
+        arrange();
+        start();
+        renderPart();
+
+        await waitFor(() => {
+          expect(stepOf()).toBe(step);
+        });
+
+        expect(icon()).toHaveClass(toneClassName);
+      },
+    );
+
+    test.each<[string, () => void, ChunkLoadRecoveryStep]>([
+      [
+        "offline",
+        (): void => {
+          setOnline(false);
+        },
+        ChunkLoadRecoveryStep.Offline,
+      ],
+      [
+        "no answer from the server",
+        (): void => {
+          server.fail();
+        },
+        ChunkLoadRecoveryStep.Unreachable,
+      ],
+    ])(
+      "%s: a quiet grey circle - nothing is wrong with the part",
+      async (
+        _name: string,
+        arrange: () => void,
+        step: ChunkLoadRecoveryStep,
+      ) => {
+        arrange();
+        start();
+        renderPart();
+
+        await waitFor(() => {
+          expect(stepOf()).toBe(step);
+        });
+
+        expect(icon()).toHaveClass("oueb-part-icon");
+        expect(icon()).not.toHaveClass("oueb-part-icon-info");
+        expect(icon()).not.toHaveClass("oueb-part-icon-warning");
+      },
+    );
+
+    test.each<[string, () => void, ChunkLoadRecoveryStep, string]>([
+      [
+        "Reload page, unsaved changes elsewhere",
+        (): void => {
+          UnsavedChanges.hold();
+        },
+        ChunkLoadRecoveryStep.NeedsReload,
+        "Reload page",
+      ],
+      [
+        "Reload page, once it could not be loaded",
+        (): void => {
+          markChunkLoadErrorReload(Date.now());
+        },
+        ChunkLoadRecoveryStep.Failed,
+        "Reload page",
+      ],
+      [
+        "Try again, offline",
+        (): void => {
+          setOnline(false);
+        },
+        ChunkLoadRecoveryStep.Offline,
+        "Try again",
+      ],
+    ])(
+      "its one button is small and plain, as a widget's own Try again - %s",
+      async (
+        _name: string,
+        arrange: () => void,
+        step: ChunkLoadRecoveryStep,
+        label: string,
+      ) => {
+        arrange();
+        start();
+        renderPart();
+
+        await waitFor(() => {
+          expect(stepOf()).toBe(step);
+        });
+
+        const buttons: Array<HTMLElement> = buttonsOf();
+        expect(buttons).toHaveLength(1);
+        expect(buttons[0]).toHaveTextContent(label);
+        expect(buttons[0]).toHaveClass("oueb-button-small");
+        expect(buttons[0]).toHaveClass("oueb-button-secondary");
+        expect(buttons[0]).not.toHaveClass("oueb-button-primary");
+      },
+    );
+
+    test("a short part leaves the icon out, so its words and button fit", async () => {
+      markChunkLoadErrorReload(Date.now());
+      start();
+      render(
+        <ContainedErrorBoundary renderFallback={fallback} isCompact={true}>
+          <ChunkFailure />
+        </ContainedErrorBoundary>,
+      );
+
+      await waitFor(() => {
+        expect(stepOf()).toBe(ChunkLoadRecoveryStep.Failed);
+      });
+
+      expect(icon()).toBeNull();
+      expect(recovery()).toHaveTextContent("This couldn't be loaded.");
+      expect(
+        screen.getByTestId("chunk-load-recovery-reload"),
+      ).toHaveTextContent("Reload page");
+    });
+
+    test("a part that is not short keeps it", async () => {
+      markChunkLoadErrorReload(Date.now());
+      start();
+      render(
+        <ContainedErrorBoundary renderFallback={fallback} isCompact={false}>
+          <ChunkFailure />
+        </ContainedErrorBoundary>,
+      );
+
+      await waitFor(() => {
+        expect(stepOf()).toBe(ChunkLoadRecoveryStep.Failed);
+      });
+
+      expect(icon()).not.toBeNull();
+    });
   });
 
   test("an ordinary error still gets the caller's fallback", () => {

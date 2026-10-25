@@ -16,9 +16,9 @@ import React, {
 } from "react";
 
 /*
- * "A new version of OneUptime is available": a small card in the corner of
- * the Dashboard and the Admin Dashboard once the server serves a newer build
- * than the tab runs (NewVersion).
+ * "OneUptime has been updated": a small card in the corner of the Dashboard
+ * and the Admin Dashboard once the server serves a newer build than the tab
+ * runs (NewVersion).
  *
  * Quiet on purpose. The reader does not have to do anything: the next page
  * they open loads the new version by itself (NewVersionNavigation). Reload
@@ -87,9 +87,19 @@ const NewVersionNotice: FunctionComponent = (): ReactElement | null => {
     return null;
   }
 
-  const onReload: () => void = (): void => {
+  const onReload: (event: React.MouseEvent<HTMLButtonElement>) => void = (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ): void => {
     if (!isConfirmingReload && UnsavedChanges.hasUnsavedChanges()) {
       setIsConfirmingReload(true);
+      return;
+    }
+
+    /*
+     * The second click of a double click on Reload lands on Reload anyway,
+     * drawn in its place: only a click of its own (or Enter) confirms it.
+     */
+    if (isConfirmingReload && event.detail > 1) {
       return;
     }
 
@@ -102,7 +112,14 @@ const NewVersionNotice: FunctionComponent = (): ReactElement | null => {
       aria-live="polite"
       data-testid="new-version-notice"
       data-confirming={isConfirmingReload ? "true" : "false"}
-      className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 print:hidden sm:inset-x-auto sm:bottom-6 sm:start-6 sm:w-[24rem]"
+      /*
+       * z-[25]: over the page and its sticky headers and toolbars (z-10,
+       * z-20), under every panel and dialog a reader works in - a side
+       * panel (z-30), the AI chat (z-40), a dialog (z-50) - so it never
+       * covers one, a phone's full-width panel included. The bottom corner
+       * at the start, away from the side panels that open at the end.
+       */
+      className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[25] print:hidden sm:inset-x-auto sm:bottom-6 sm:start-6 sm:w-[24rem]"
     >
       <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
         <div
@@ -113,20 +130,20 @@ const NewVersionNotice: FunctionComponent = (): ReactElement | null => {
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
           <p
-            className="text-sm font-semibold text-gray-900"
+            className="text-sm font-semibold text-gray-900 text-pretty"
             data-testid="new-version-notice-title"
           >
-            {translate("A new version of OneUptime is available")}
+            {translate("OneUptime has been updated")}
           </p>
           <p
-            className="mt-1 text-sm text-gray-500"
+            className="mt-1 text-sm text-gray-500 text-pretty"
             data-testid="new-version-notice-message"
           >
             {isConfirmingReload
               ? translate(
                   "Reload now? Changes you haven't saved on this page will be lost.",
                 )
-              : translate("The next page you open will use it.")}
+              : translate("The next page you open loads the new version.")}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button

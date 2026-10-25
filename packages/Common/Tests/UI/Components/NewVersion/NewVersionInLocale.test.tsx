@@ -60,8 +60,8 @@ const LANGUAGES: Array<string> = [
 
 // The notice (Dashboard, Admin Dashboard).
 const NOTICE: Array<string> = [
-  "A new version of OneUptime is available",
-  "The next page you open will use it.",
+  "OneUptime has been updated",
+  "The next page you open loads the new version.",
   "Reload now? Changes you haven't saved on this page will be lost.",
   "Reload anyway",
   "Reload",
@@ -72,9 +72,9 @@ const NOTICE: Array<string> = [
 // A page moving onto the new version, worded for the people who use OneUptime.
 const PAGE_FOR_MEMBERS: Array<string> = [
   "Updating to the new version",
-  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.",
+  "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
   "A new version of OneUptime is ready",
-  "This page needs it to load. Reloading discards changes you haven't saved.",
+  "This page needs the new version to open. Reloading discards changes you haven't saved.",
   "You're offline",
   "This page needs an internet connection to load. It will load as soon as you're back online.",
   "Can't reach the server",
@@ -93,7 +93,7 @@ const PAGE_FOR_VISITORS: Array<string> = [
   "Loading the latest version",
   "A newer version of this page is available. It's loading now.",
   "A newer version of this page is ready",
-  "This page needs it to load. Reloading discards changes you haven't saved.",
+  "This page needs the new version to open. Reloading discards changes you haven't saved.",
   "You're offline",
   "This page needs an internet connection to load. It will load as soon as you're back online.",
   "Can't reach the server",
@@ -112,7 +112,7 @@ const PART: Array<string> = [
   "Loading the latest version...",
   "You're offline. This will load when you're back online.",
   "Can't reach the server. Trying again automatically.",
-  "This needs the latest version of the page. Save your changes, then reload the page.",
+  "This needs the latest version. Save your changes, then reload the page.",
   "This couldn't be loaded.",
 ];
 
@@ -358,10 +358,10 @@ describe("drawn in each language", () => {
     );
 
     expect(screen.getByTestId("new-version-notice-title")).toHaveTextContent(
-      word(language, "A new version of OneUptime is available"),
+      word(language, "OneUptime has been updated"),
     );
     expect(screen.getByTestId("new-version-notice-message")).toHaveTextContent(
-      word(language, "The next page you open will use it."),
+      word(language, "The next page you open loads the new version."),
     );
     expect(screen.getByTestId("new-version-notice-reload")).toHaveTextContent(
       word(language, "Reload"),
@@ -388,7 +388,7 @@ describe("drawn in each language", () => {
       expect(screen.getByTestId("chunk-load-recovery")).toHaveTextContent(
         word(
           language,
-          "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.",
+          "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
         ),
       );
     },

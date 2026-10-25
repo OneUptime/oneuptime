@@ -34,6 +34,12 @@ export interface ComponentProps {
   resetKeys?: Array<unknown> | undefined;
   // Notified for every caught error (tests, and callers that report).
   onError?: ((error: Error, errorInfo: ErrorInfo) => void) | undefined;
+  /*
+   * A short part (a two-row dashboard tile): what it says while its code
+   * will not download leaves its icon out, as the caller's own fallback
+   * does there, so the words and the button fit.
+   */
+  isCompact?: boolean | undefined;
 }
 
 /*
@@ -78,6 +84,7 @@ const ContainedErrorBoundary: FunctionComponent<ComponentProps> = (
             <ChunkLoadRecovery
               error={error}
               variant={ChunkLoadRecoveryVariant.Part}
+              isCompact={props.isCompact}
             />
           );
         }

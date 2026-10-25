@@ -266,10 +266,10 @@ test.describe("a deploy under the open tab", () => {
     await openThenDeploy(page, request);
 
     await expect(page.getByTestId("new-version-notice-title")).toHaveText(
-      "A new version of OneUptime is available",
+      "OneUptime has been updated",
     );
     await expect(page.getByTestId("new-version-notice-message")).toHaveText(
-      "The next page you open will use it.",
+      "The next page you open loads the new version.",
     );
     await expect(page.getByTestId("new-version-notice-reload")).toHaveText(
       "Reload",
@@ -519,7 +519,7 @@ test.describe("unsaved changes", () => {
       "A new version of OneUptime is ready",
     );
     await expect(recovery(page)).toContainText(
-      "This page needs it to load. Reloading discards changes you haven't saved.",
+      "This page needs the new version to open. Reloading discards changes you haven't saved.",
     );
     // Nothing reloaded: what was typed is still there.
     await expect(page.getByTestId("chat")).toHaveValue("Why is checkout slow?");
@@ -578,7 +578,7 @@ test.describe("a page whose code is gone after a deploy", () => {
     ).toEqual(["checking", "updating"]);
     expect(screens[1]!.title).toBe("Updating to the new version");
     expect(screens[1]!.text).toContain(
-      "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.",
+      "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
     );
     expect(JSON.stringify(screens)).not.toContain("Something went wrong");
   });
@@ -602,7 +602,7 @@ test.describe("a page whose code is gone after a deploy", () => {
       "Updating to the new version",
     );
     await expect(recovery(page)).toContainText(
-      "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.",
+      "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
     );
     // The menus outside the page stay where they were.
     await expect(page.getByTestId("nav-home")).toBeVisible();
@@ -872,7 +872,7 @@ test.describe("one part of a page whose code is gone after a deploy", () => {
 
     await expect(recovery(page)).toHaveAttribute("data-step", "needs-reload");
     await expect(recovery(page)).toContainText(
-      "This needs the latest version of the page. Save your changes, then reload the page.",
+      "This needs the latest version. Save your changes, then reload the page.",
     );
     await expect(page.getByTestId("chunk-load-recovery-reload")).toHaveText(
       "Reload page",

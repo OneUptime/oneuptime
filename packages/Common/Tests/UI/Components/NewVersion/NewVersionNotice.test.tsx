@@ -26,7 +26,7 @@ import TabMemory from "../../../../UI/Utils/NewVersion/TabMemory";
 import UnsavedChanges from "../../../../UI/Utils/NewVersion/UnsavedChanges";
 
 /*
- * "A new version of OneUptime is available": the quiet card the Dashboard and
+ * "OneUptime has been updated": the quiet card the Dashboard and
  * the Admin Dashboard show once the server serves a newer build. It never
  * shows before there is one, never to a status page's visitors, reloads to
  * the same place, asks first when something typed is unsaved, and once
@@ -135,10 +135,10 @@ describe("NewVersionNotice", () => {
 
     expect(notice()).toBeInTheDocument();
     expect(screen.getByTestId("new-version-notice-title")).toHaveTextContent(
-      "A new version of OneUptime is available",
+      "OneUptime has been updated",
     );
     expect(screen.getByTestId("new-version-notice-message")).toHaveTextContent(
-      "The next page you open will use it.",
+      "The next page you open loads the new version.",
     );
     expect(screen.getByTestId("new-version-notice-reload")).toHaveTextContent(
       "Reload",
@@ -224,6 +224,47 @@ describe("NewVersionNotice", () => {
       release();
     });
 
+    test("a double click on Reload stops at the question: its second click lands on Reload anyway and is not taken for a yes", async () => {
+      start();
+      render(<NewVersionNotice />);
+      await serve(NEWER);
+      const release: () => void = UnsavedChanges.hold();
+      const reload: () => HTMLElement = (): HTMLElement => {
+        return screen.getByTestId("new-version-notice-reload");
+      };
+
+      // A double click: the browser counts its clicks in event.detail.
+      fireEvent.click(reload(), { detail: 1 });
+      fireEvent.click(reload(), { detail: 2 });
+
+      expect(reloadMock).not.toHaveBeenCalled();
+      expect(notice()).toHaveAttribute("data-confirming", "true");
+      expect(reload()).toHaveTextContent("Reload anyway");
+
+      // A click of its own says yes.
+      fireEvent.click(reload(), { detail: 1 });
+
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+      release();
+    });
+
+    test("Enter on Reload anyway says yes: a keyboard press carries no click count", async () => {
+      start();
+      render(<NewVersionNotice />);
+      await serve(NEWER);
+      const release: () => void = UnsavedChanges.hold();
+
+      fireEvent.click(screen.getByTestId("new-version-notice-reload"), {
+        detail: 0,
+      });
+      fireEvent.click(screen.getByTestId("new-version-notice-reload"), {
+        detail: 0,
+      });
+
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+      release();
+    });
+
     test("Cancel keeps the page, and the notice goes back to how it was", async () => {
       start();
       render(<NewVersionNotice />);
@@ -237,7 +278,7 @@ describe("NewVersionNotice", () => {
       expect(notice()).toHaveAttribute("data-confirming", "false");
       expect(
         screen.getByTestId("new-version-notice-message"),
-      ).toHaveTextContent("The next page you open will use it.");
+      ).toHaveTextContent("The next page you open loads the new version.");
       release();
     });
 
@@ -347,5 +388,47 @@ describe("NewVersionNotice", () => {
     // The reading side in a right-to-left language too.
     expect(className).toContain("sm:start-6");
     expect(className).toContain("print:hidden");
+  });
+
+  test("sits over the page and its sticky bars, and under every panel and dialog", async () => {
+    start();
+    render(<NewVersionNotice />);
+    await serve(NEWER);
+
+    const classes: Array<string> = notice()!.className.split(/\s+/);
+    const zIndexClass: RegExp = /^z-/;
+
+    /*
+     * Over the page chrome at z-10 and z-20; under a SideOver (z-30), the
+     * AI chat (z-40) and a Modal (z-50). At z-40 it came after the AI chat
+     * in the document and so drew over it, and over a phone's full-width
+     * side panel (NewVersion.spec.ts measures both in a browser).
+     */
+    expect(classes).toContain("z-[25]");
+    expect(
+      classes.filter((name: string): boolean => {
+        return zIndexClass.test(name);
+      }),
+    ).toEqual(["z-[25]"]);
+  });
+
+  test("says what happened in a short title, and what happens next", async () => {
+    start();
+    render(<NewVersionNotice />);
+    await serve(NEWER);
+
+    expect(screen.getByTestId("new-version-notice-title")).toHaveTextContent(
+      "OneUptime has been updated",
+    );
+    expect(screen.getByTestId("new-version-notice-message")).toHaveTextContent(
+      "The next page you open loads the new version.",
+    );
+    expect(screen.getByTestId("new-version-notice-reload")).toHaveTextContent(
+      "Reload",
+    );
+    expect(screen.getByTestId("new-version-notice-dismiss")).toHaveAttribute(
+      "aria-label",
+      "Dismiss",
+    );
   });
 });
