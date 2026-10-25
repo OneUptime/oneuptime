@@ -400,3 +400,91 @@ describe("OcsfNormalizer: the process an event is about", () => {
     ]).toEqual(["", "", "", "", "", ""]);
   });
 });
+
+/*
+ * A Process Activity that gives only its activity_id is named by it, so
+ * the event says it was an open or an injection wherever it is read: the
+ * event's panel and the Activity facet, and the SIEM it is sent to.
+ */
+describe("a Process Activity's activity name", () => {
+  test.each<[number, string]>([
+    [0, "Unknown"],
+    [1, "Launch"],
+    [2, "Terminate"],
+    [3, "Open"],
+    [4, "Inject"],
+    [5, "Set User ID"],
+    [99, "Other"],
+  ])("activity_id %i alone is named %j", (activityId: number, name: string) => {
+    expect(
+      OcsfNormalizer.normalize({ class_uid: 1007, activity_id: activityId })
+        .activityName,
+    ).toBe(name);
+  });
+
+  test("an activity_id given as text is named too", () => {
+    expect(
+      OcsfNormalizer.normalize({ class_uid: 1007, activity_id: "4" })
+        .activityName,
+    ).toBe("Inject");
+  });
+
+  test("the payload's own activity_name is kept as it is written", () => {
+    expect(
+      OcsfNormalizer.normalize({
+        class_uid: 1007,
+        activity_id: 3,
+        activity_name: "Open (handle)",
+      }).activityName,
+    ).toBe("Open (handle)");
+  });
+
+  test("an id OCSF does not define leaves the name empty", () => {
+    expect(
+      OcsfNormalizer.normalize({ class_uid: 1007, activity_id: 42 })
+        .activityName,
+    ).toBe("");
+  });
+
+  test("an event that names no activity at all is left unnamed", () => {
+    expect(OcsfNormalizer.normalize({ class_uid: 1007 }).activityName).toBe(
+      "",
+    );
+  });
+
+  test("other classes are named only by their payload", () => {
+    expect(
+      OcsfNormalizer.normalize({ class_uid: 3002, activity_id: 1 })
+        .activityName,
+    ).toBe("");
+    expect(
+      OcsfNormalizer.normalize({ class_uid: 4001, activity_id: 3 })
+        .activityName,
+    ).toBe("");
+  });
+
+  test("an injection named by its id reads its processes as an injection, never as a launch", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 4,
+      actor: { process: { name: "loader.exe" } },
+      process: { name: "explorer.exe", parent_process: { name: "userinit.exe" } },
+    });
+
+    expect(result.activityName).toBe("Inject");
+    expect(result.parentProcessName).toBe("userinit.exe");
+    expect(result.principalProcess).toBe("loader.exe");
+  });
+
+  test("an activity named constructor is no launch: the actor is not taken for the parent", () => {
+    const result: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_name: "constructor",
+      actor: { process: { name: "loader.exe" } },
+      process: { name: "explorer.exe" },
+    });
+
+    expect(result.activityName).toBe("constructor");
+    expect(result.parentProcessName).toBe("");
+  });
+});
