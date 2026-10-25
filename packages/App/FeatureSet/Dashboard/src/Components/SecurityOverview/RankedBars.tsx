@@ -1,5 +1,6 @@
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -22,6 +23,9 @@ export interface ComponentProps {
   total?: number | undefined;
 }
 
+// Nothing to rank, as any card of a row says it (CardGrid).
+export const RANKED_BARS_EMPTY_CLASS_NAME: string = `${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`;
+
 /*
  * A short ranked list - the rules that fired most, the tactics seen most -
  * each row with a bar for its share, so the list reads at a glance.
@@ -31,9 +35,17 @@ const RankedBars: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * Nothing to rank: the sentence takes the room the card has and sits in
+   * its middle. Beside a taller card in its row the card is tall, and the
+   * sentence at its top would leave the rest of it blank under it.
+   */
   if (props.items.length === 0) {
     return (
-      <p className="py-2 text-sm text-gray-500">
+      <p
+        data-testid="ranked-bars-empty"
+        className={RANKED_BARS_EMPTY_CLASS_NAME}
+      >
         {translator.translateText(props.emptyText)}
       </p>
     );

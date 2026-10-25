@@ -990,7 +990,13 @@ describe("A security case rule's conditions", () => {
   test.each([
     [
       NotificationRuleConditionCheckOn.SecurityCaseSource,
-      ["Detection Rule", "Threat Intel", "Connected Product", "Manual"],
+      [
+        "Detection Rule",
+        "Threat Intel",
+        "Connected Product",
+        "Manual",
+        "Entity Risk",
+      ],
     ],
   ])(
     "%s offers its own fixed list",

@@ -89,10 +89,10 @@ export function getResourceAiAccessRequestBody(
 export const RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
 
 /*
- * How long a refused registration stays worth a warning. Another agent
- * presenting the same identity is either a second install (it keeps trying,
- * so the warning stays) or a container replaced without a clean shutdown
- * (it stops once the old one goes quiet, and the warning ages out).
+ * How long a refused registration stays worth a warning. Only a second
+ * install is warned about (getResourceAiRefusedRegistrationWarning): it
+ * keeps trying, so the warning stays while it does, and ages out a day
+ * after its last attempt.
  */
 export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
@@ -593,11 +593,24 @@ export function getResourceAiAgentMetaParts(
   return [...(meta.lastSeen ? [meta.lastSeen] : []), ...meta.rest];
 }
 
+// Whether an ISO time is at or after a moment; false when it is unreadable.
+function isAtOrAfter(value: string | null | undefined, moment: Date): boolean {
+  const time: number = value ? new Date(value).getTime() : NaN;
+
+  return !Number.isNaN(time) && time >= moment.getTime();
+}
+
 /*
  * The warning for a registration the server refused while this agent was
- * online: another agent presenting this resource's identity (a second
- * install, or a container replaced without a clean shutdown). Null when
- * there is nothing recent to say.
+ * online and kept running: two agents presenting this resource's identity
+ * at once (a second install). Null when there is nothing recent to say, and
+ * for what a replaced agent looks like — an upgrade, a reinstall or a
+ * restart without a clean shutdown (docker rm -f):
+ *  - this agent registered after the refusal: the agent that was refused
+ *    took the old one's place;
+ *  - this agent has not been heard from since the refusal: it stopped, and
+ *    the refused agent takes its place within
+ *    RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS.
  */
 export function getResourceAiRefusedRegistrationWarning(
   agent: ResourceAiAgentSummary | null,
@@ -625,6 +638,14 @@ export function getResourceAiRefusedRegistrationWarning(
     now.getTime() - refusedAt.getTime() >
     RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS
   ) {
+    return null;
+  }
+
+  if (isAtOrAfter(agent.lastRegisteredAt, refusedAt)) {
+    return null;
+  }
+
+  if (!isAtOrAfter(agent.lastAliveAt, refusedAt)) {
     return null;
   }
 

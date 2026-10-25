@@ -23,6 +23,7 @@ import { JSONObject } from "../../Types/JSON";
 import {
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
+  KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   KubernetesAgentPosture,
   KubernetesAiAgentConnectionStatus,
   KubernetesAiAgentRegistrationRefusalReason,
@@ -82,6 +83,16 @@ export interface KubernetesAiAgentPresenceRow {
   lastAliveAt?: Date | string | null | undefined;
 }
 
+/*
+ * The subset of a row getUnansweredRefusalSince reads: the presence, and
+ * the last registration refused this row's place.
+ */
+export interface KubernetesAiAgentRefusalRow
+  extends KubernetesAiAgentPresenceRow {
+  lastRefusedRegistrationAt?: Date | string | null | undefined;
+  lastRefusedRegistrationReason?: string | null | undefined;
+}
+
 type DateLike = Date | string | null | undefined;
 
 function toDate(value: DateLike): Date | null {
@@ -113,12 +124,23 @@ export const MAX_KUBERNETES_AI_AGENTS_PER_PROJECT: number = 250;
 export const MAX_NEW_KUBERNETES_AI_AGENTS_PER_PROJECT_PER_HOUR: number = 30;
 
 /*
- * When a transient refusal (previous_instance_online, legacy_runner_online)
- * tells the agent to try again. Both clear within seconds on a helm upgrade
- * or a pod restart, and an agent that is refused for longer just keeps
- * asking at this pace.
+ * When a refusal because the previous in-cluster Runner is online
+ * (legacy_runner_online) tells the agent to try again. It clears within
+ * seconds on a helm upgrade, and an agent that is refused for longer just
+ * keeps asking at this pace.
  */
 export const KUBERNETES_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS: number = 20;
+
+/*
+ * How long an agent that still counts as online may leave a refused
+ * registration unanswered before the next registration takes its place
+ * (see KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS). A refusal because
+ * the agent is online (previous_instance_online) tells the refused pod to
+ * try again when that time is up, not sooner: until then the answer cannot
+ * change.
+ */
+export const KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_MS: number =
+  KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS * 1000;
 
 /*
  * The longest cluster name registration accepts: KubernetesCluster's
@@ -161,17 +183,22 @@ export class KubernetesAiAgentRegistrationRefusedException extends ForbiddenExce
  * signed_off:  the previous instance signed off (/disconnect), as a pod
  *              does on a clean shutdown.
  * offline:     the previous instance stopped heartbeating.
+ * unresponsive: the previous instance still counted as online, but it sent
+ *              nothing for KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS
+ *              after another registration was refused its place: a pod
+ *              deleted with --force, OOM-killed or lost with its node.
  *
  * Only "continuity" is proof. The rest are what a restarted pod looks like —
  * and also what anyone holding the ingestion key looks like, which is why
- * none of them can take a row whose agent is online.
+ * none of them can take a row whose agent is online and answering.
  */
 export type KubernetesAiAgentRegistrationAdmission =
   | "created"
   | "continuity"
   | "reset"
   | "signed_off"
-  | "offline";
+  | "offline"
+  | "unresponsive";
 
 export interface KubernetesAiAgentRegistrationResult {
   agentId: ObjectID;
@@ -368,6 +395,82 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * When another pod was refused this row's place (previous_instance_online)
+   * without the row's agent having been heard from since — null when there
+   * is no such refusal, or the agent has answered it. Every request the
+   * agent authenticates after a refusal answers it (authenticate stamps
+   * lastAliveAt), so a live agent answers within seconds; one that stopped
+   * without signing off never does.
+   */
+  public getUnansweredRefusalSince(
+    row: KubernetesAiAgentRefusalRow,
+  ): Date | null {
+    if (
+      row.lastRefusedRegistrationReason &&
+      row.lastRefusedRegistrationReason !== "previous_instance_online"
+    ) {
+      return null;
+    }
+
+    const refusedAt: Date | null = toDate(row.lastRefusedRegistrationAt);
+
+    if (!refusedAt) {
+      return null;
+    }
+
+    const lastAliveAt: Date | null = toDate(row.lastAliveAt);
+
+    if (lastAliveAt && lastAliveAt.getTime() >= refusedAt.getTime()) {
+      return null;
+    }
+
+    return refusedAt;
+  }
+
+  /*
+   * Has the row's agent left a refusal unanswered for
+   * KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS? Then it stopped
+   * without signing off, however recent its last heartbeat, and the next
+   * registration takes its place.
+   */
+  public isUnresponsive(row: KubernetesAiAgentRefusalRow, now?: Date): boolean {
+    const refusedAt: Date | null = this.getUnansweredRefusalSince(row);
+
+    if (!refusedAt) {
+      return false;
+    }
+
+    const nowTime: number = (now || OneUptimeDate.getCurrentDate()).getTime();
+
+    return (
+      nowTime - refusedAt.getTime() >=
+      KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_MS
+    );
+  }
+
+  /*
+   * When a registration refused as previous_instance_online should try
+   * again: as soon as the row's agent has had its full time to answer the
+   * refusal it has not answered yet (unansweredSince), plus a second, so
+   * the retry finds the wait over. Never under a second, and never longer
+   * than a whole wait, whatever another server's clock stamped.
+   */
+  public static getTakeoverRetryAfterSeconds(data: {
+    unansweredSince: Date;
+    now: Date;
+  }): number {
+    const remainingMs: number =
+      data.unansweredSince.getTime() +
+      KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_MS -
+      data.now.getTime();
+
+    return Math.min(
+      Math.max(1, Math.ceil(remainingMs / 1000) + 1),
+      KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1,
+    );
+  }
+
+  /*
    * The row as the dashboard and the status builder see it. Never carries
    * the key hash; the posture is re-validated on the way out, so a stored
    * value of the wrong shape is dropped rather than trusted.
@@ -490,13 +593,15 @@ export class Service extends DatabaseService<Model> {
    *    an ingestion key alone must never take a cluster away from a live
    *    Runner;
    *  - the cluster's agent is online and the request did not present its
-   *    current key (previous_instance_online) — recorded on the row so the
-   *    AI agent page can say another agent tried;
+   *    current key (previous_instance_online) — recorded on the row, which
+   *    the agent then has KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS
+   *    to answer, and which the AI agent page warns about once it has;
    *  - a new row would pass the project's caps (agent_cap_reached).
    *
    * An existing row is re-keyed when the request proves continuity (its
    * current key as previousAgentKey), or when the row was reset, or its
-   * agent signed off or went quiet: what a restarted pod looks like.
+   * agent signed off, went quiet or left a refusal unanswered: what a
+   * restarted or replaced pod looks like.
    *
    * On a cluster nobody configured it applies the first-connection defaults
    * (applyFirstConnectionDefaults). It never deletes, unbinds or rebinds
@@ -666,15 +771,15 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * How a registration for a cluster that already has an agent row is
-   * admitted, or null when it must be refused (the row's agent is online
-   * and the request did not prove it is that agent). A reset row admits
-   * anyone: no key is valid for it, and the admin reset is exactly the
-   * "let the real pod back in" action.
+   * admitted, or null when it must be refused (the row's agent is online,
+   * answers, and the request did not prove it is that agent). A reset row
+   * admits anyone: no key is valid for it, and the admin reset is exactly
+   * the "let the real pod back in" action.
    */
   public getReRegistrationAdmission(data: {
     agent: {
       keyHash?: string | null | undefined;
-    } & KubernetesAiAgentPresenceRow;
+    } & KubernetesAiAgentRefusalRow;
     previousAgentKey?: string | undefined;
     now?: Date | undefined;
   }): KubernetesAiAgentRegistrationAdmission | null {
@@ -692,6 +797,10 @@ export class Service extends DatabaseService<Model> {
 
     if (!this.isOnline(data.agent, data.now)) {
       return "offline";
+    }
+
+    if (this.isUnresponsive(data.agent, data.now)) {
+      return "unresponsive";
     }
 
     return null;
@@ -1282,8 +1391,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * An existing row: admitted per getReRegistrationAdmission, or refused
    * with previous_instance_online — which is recorded on the row (when, and
-   * why) so the AI agent page can warn that another agent tried to register
-   * while this one was online. Nothing about the current key is disclosed.
+   * why). The row's agent answers it with its next request; one that stays
+   * silent for KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS is taken
+   * over by the next registration, and one that answers is a second live
+   * agent, which the AI agent page warns about. Nothing about the current
+   * key is disclosed.
    */
   private async admitReRegistration(data: {
     agent: Model;
@@ -1291,35 +1403,63 @@ export class Service extends DatabaseService<Model> {
     clusterIdentifier: string;
     projectId: ObjectID;
   }): Promise<KubernetesAiAgentRegistrationAdmission> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     const admission: KubernetesAiAgentRegistrationAdmission | null =
       this.getReRegistrationAdmission({
         agent: data.agent,
         previousAgentKey: data.previousAgentKey,
+        now,
       });
+
+    if (admission === "unresponsive") {
+      logger.info(
+        `KubernetesAiAgent: the agent (${data.agent.id?.toString()}) of cluster "${data.clusterIdentifier}" in project ${data.projectId.toString()} sent nothing for ${KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds after another pod was refused its place; that pod takes it now.`,
+      );
+    }
 
     if (admission) {
       return admission;
     }
 
+    /*
+     * The refusal the agent has not answered yet, if any, is when its time
+     * to answer started: a later attempt while it is still unanswered leaves
+     * the record alone, so retries cannot keep pushing the takeover back.
+     */
+    const unansweredSince: Date | null = this.getUnansweredRefusalSince(
+      data.agent,
+    );
+
     logger.warn(
       `KubernetesAiAgent: refused a registration for cluster "${data.clusterIdentifier}" in project ${data.projectId.toString()}: its agent (${data.agent.id?.toString()}) is online and the request did not present its current key.`,
     );
 
-    await this.recordRefusedRegistration({
-      agentId: data.agent.id!,
-      reason: "previous_instance_online",
-    });
+    if (!unansweredSince) {
+      await this.recordRefusedRegistration({
+        agentId: data.agent.id!,
+        reason: "previous_instance_online",
+        refusedAt: now,
+      });
+    }
 
-    throw this.getPreviousInstanceOnlineRefusal(data.clusterIdentifier);
+    throw this.getPreviousInstanceOnlineRefusal(
+      data.clusterIdentifier,
+      Service.getTakeoverRetryAfterSeconds({
+        unansweredSince: unansweredSince || now,
+        now,
+      }),
+    );
   }
 
   private getPreviousInstanceOnlineRefusal(
     clusterIdentifier: string,
+    retryAfterSeconds: number,
   ): KubernetesAiAgentRegistrationRefusedException {
     return new KubernetesAiAgentRegistrationRefusedException({
       reason: "previous_instance_online",
-      retryAfterSeconds: KUBERNETES_AI_AGENT_REGISTRATION_RETRY_AFTER_SECONDS,
-      message: `Another Kubernetes AI agent for cluster "${clusterIdentifier}" is online. This is normal for a moment while its pod restarts, and the agent retries on its own. If it lasts, make sure only one kubernetes-agent release uses clusterName "${clusterIdentifier}".`,
+      retryAfterSeconds,
+      message: `Another Kubernetes AI agent for cluster "${clusterIdentifier}" is online. If it is the pod this one replaces, this agent takes its place as soon as it signs off, or once it has sent nothing for ${KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds (a pod that was deleted with --force, OOM-killed or lost with its node); the agent retries on its own. If it lasts, make sure only one kubernetes-agent release uses clusterName "${clusterIdentifier}".`,
     });
   }
 
@@ -1327,12 +1467,13 @@ export class Service extends DatabaseService<Model> {
   private async recordRefusedRegistration(data: {
     agentId: ObjectID;
     reason: KubernetesAiAgentRegistrationRefusalReason;
+    refusedAt: Date;
   }): Promise<void> {
     try {
       await this.updateColumnsByIdWithoutHooks({
         id: data.agentId,
         data: {
-          lastRefusedRegistrationAt: OneUptimeDate.getCurrentDate(),
+          lastRefusedRegistrationAt: data.refusedAt,
           lastRefusedRegistrationReason: data.reason,
         },
       });
@@ -1423,7 +1564,15 @@ export class Service extends DatabaseService<Model> {
         `KubernetesAiAgent: two agents registered for cluster "${data.clusterIdentifier}" at once; the other one was admitted.`,
       );
 
-      throw this.getPreviousInstanceOnlineRefusal(data.clusterIdentifier);
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      throw this.getPreviousInstanceOnlineRefusal(
+        data.clusterIdentifier,
+        Service.getTakeoverRetryAfterSeconds({
+          unansweredSince: now,
+          now,
+        }),
+      );
     }
   }
 
@@ -1439,6 +1588,10 @@ export class Service extends DatabaseService<Model> {
    * the row's hash (timing-safe). A reset row (null hash) matches nothing,
    * and an unknown id costs the same comparison as a wrong key. The row is
    * returned without its key hash.
+   *
+   * A request authenticated here also answers a refusal the agent has not
+   * answered yet (answerRefusedRegistration): it is running, so the pod
+   * refused its place does not take it.
    */
   @CaptureSpan()
   public async authenticate(data: {
@@ -1476,7 +1629,43 @@ export class Service extends DatabaseService<Model> {
 
     delete agent.keyHash;
 
+    await this.answerRefusedRegistration(agent);
+
     return agent;
+  }
+
+  /*
+   * The agent was heard from after another pod was refused its place
+   * (getUnansweredRefusalSince): lastAliveAt is stamped now, which answers
+   * the refusal. One hook-free write, and only while a refusal is
+   * unanswered — an ordinary request writes nothing. The stamp is never
+   * earlier than the refusal it answers: the refusal was read before it,
+   * so another server's clock running behind cannot leave it unanswered.
+   * Best-effort: a failed write never fails the agent's request.
+   */
+  private async answerRefusedRegistration(agent: Model): Promise<void> {
+    const refusedAt: Date | null = this.getUnansweredRefusalSince(agent);
+
+    if (!refusedAt || !agent.id) {
+      return;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const answeredAt: Date =
+      now.getTime() > refusedAt.getTime() ? now : refusedAt;
+
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: agent.id,
+        data: { lastAliveAt: answeredAt },
+      });
+
+      agent.lastAliveAt = answeredAt;
+    } catch (error) {
+      logger.error(
+        `KubernetesAiAgent: could not record that agent ${agent.id.toString()} answered a refused registration: ${error}`,
+      );
+    }
   }
 
   /*

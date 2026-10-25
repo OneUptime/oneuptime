@@ -257,3 +257,126 @@ test("a browser without service workers loads the page and nothing else happens"
   }).not.toThrow();
   expect(windowListeners).not.toContain("load");
 });
+
+/*
+ * Once the Dashboard runs, a newer worker taking over no longer reloads the
+ * page out from under the reader - who may be typing. The page is told
+ * instead (window.oneuptimeOnNewServiceWorker, set by Common's NewVersion):
+ * it asks the server which build it serves, says a new version is ready,
+ * and loads it on the reader's next page.
+ */
+function loadRunningDashboard(data: {
+  controller: FakeWorker | null;
+}): Page & { hookCalls: () => number } {
+  let hookCalls: number = 0;
+  const listeners: Record<string, Array<Listener>> = {};
+  let reloads: number = 0;
+
+  const serviceWorker: Record<string, unknown> = {
+    controller: data.controller,
+    addEventListener: (type: string, listener: Listener): void => {
+      (listeners[type] = listeners[type] || []).push(listener);
+    },
+  };
+
+  const sandbox: Record<string, unknown> = {
+    navigator: { serviceWorker: serviceWorker },
+    location: {
+      reload: (): void => {
+        reloads++;
+      },
+    },
+    console: { log: (): void => {}, error: (): void => {} },
+    addEventListener: (): void => {},
+    oneuptimeOnNewServiceWorker: (): void => {
+      hookCalls++;
+    },
+  };
+
+  sandbox["window"] = sandbox;
+
+  vm.runInNewContext(readServiceWorkerScript(), sandbox);
+
+  return {
+    finishLoading: (): void => {},
+    setController: (worker: FakeWorker | null): void => {
+      serviceWorker["controller"] = worker;
+    },
+    controllerChanged: (): void => {
+      for (const listener of listeners["controllerchange"] || []) {
+        listener();
+      }
+    },
+    reloads: (): number => {
+      return reloads;
+    },
+    serviceWorkerCalls: [],
+    hookCalls: (): number => {
+      return hookCalls;
+    },
+  };
+}
+
+test("a running Dashboard is told of a newer worker instead of being reloaded", () => {
+  const page: Page & { hookCalls: () => number } = loadRunningDashboard({
+    controller: FIRST_WORKER,
+  });
+
+  page.setController(NEWER_WORKER);
+  page.controllerChanged();
+
+  expect(page.hookCalls()).toBe(1);
+  expect(page.reloads()).toBe(0);
+});
+
+test("every later takeover tells the running Dashboard again, and never reloads", () => {
+  const page: Page & { hookCalls: () => number } = loadRunningDashboard({
+    controller: FIRST_WORKER,
+  });
+
+  page.setController(NEWER_WORKER);
+  page.controllerChanged();
+  page.setController({
+    scriptURL: "https://oneuptime.example/dashboard/sw.js?deployed-again",
+  });
+  page.controllerChanged();
+
+  expect(page.hookCalls()).toBe(2);
+  expect(page.reloads()).toBe(0);
+});
+
+test("the first worker taking control tells the Dashboard nothing: nothing is stale", () => {
+  const page: Page & { hookCalls: () => number } = loadRunningDashboard({
+    controller: null,
+  });
+
+  page.setController(FIRST_WORKER);
+  page.controllerChanged();
+
+  expect(page.hookCalls()).toBe(0);
+  expect(page.reloads()).toBe(0);
+});
+
+test("the hook the page calls is the one Common's NewVersion sets", () => {
+  const newVersionSource: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "UI",
+      "Utils",
+      "NewVersion",
+      "NewVersion.ts",
+    ),
+    "utf8",
+  );
+
+  expect(newVersionSource).toContain(
+    'export const NEW_SERVICE_WORKER_HOOK: string = "oneuptimeOnNewServiceWorker";',
+  );
+  expect(readServiceWorkerScript()).toContain(
+    "window.oneuptimeOnNewServiceWorker()",
+  );
+});

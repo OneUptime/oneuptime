@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": false,
       "bundleIdentifier": "com.oneuptime.oncall",
       "buildNumber": "7",
       "infoPlist": {
@@ -67,7 +68,16 @@
       ],
       "expo-local-authentication",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      "./plugins/withFoldableContinuity"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

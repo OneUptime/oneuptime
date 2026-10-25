@@ -202,7 +202,8 @@ When the agent is older than your OneUptime, a warning sign appears beside **Age
 ```bash
 docker pull oneuptime/docker-agent:release
 docker pull oneuptime/resource-ai-agent:release
-docker rm -f oneuptime-docker-agent oneuptime-docker-ai-agent
+docker stop oneuptime-docker-agent oneuptime-docker-ai-agent
+docker rm oneuptime-docker-agent oneuptime-docker-ai-agent
 ```
 
 Then run both `docker run` commands from [Start the agent](#start-the-agent) again.

@@ -389,7 +389,7 @@ export default class ResourceAiAgent extends BaseModel {
     required: false,
     title: "Last Refused Registration At",
     description:
-      "When another agent last tried to register for this resource and was refused.",
+      "When another agent was refused this resource's place: the first refusal this agent has not answered yet, else the latest.",
   })
   @Column({
     type: ColumnType.Date,

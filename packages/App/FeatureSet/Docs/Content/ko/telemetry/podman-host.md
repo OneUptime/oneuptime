@@ -201,7 +201,8 @@ log_size_max = 104857600
 ```bash
 podman pull oneuptime/podman-agent:release
 podman pull oneuptime/resource-ai-agent:release
-podman rm -f oneuptime-podman-agent oneuptime-podman-ai-agent
+podman stop oneuptime-podman-agent oneuptime-podman-ai-agent
+podman rm oneuptime-podman-agent oneuptime-podman-ai-agent
 ```
 
 그런 다음 [에이전트 시작](#에이전트-시작)의 `podman run` 명령 두 개를 다시 실행하세요.

@@ -1,4 +1,7 @@
-import { handleChunkLoadError } from "../ErrorBoundary";
+import { isChunkLoadError } from "../../Utils/NewVersion/ChunkLoadError";
+import ChunkLoadRecovery, {
+  ChunkLoadRecoveryVariant,
+} from "../NewVersion/ChunkLoadRecovery";
 import React, {
   ErrorInfo,
   FunctionComponent,
@@ -31,6 +34,12 @@ export interface ComponentProps {
   resetKeys?: Array<unknown> | undefined;
   // Notified for every caught error (tests, and callers that report).
   onError?: ((error: Error, errorInfo: ErrorInfo) => void) | undefined;
+  /*
+   * A short part (a two-row dashboard tile): what it says while its code
+   * will not download leaves its icon out, as the caller's own fallback
+   * does there, so the words and the button fit.
+   */
+  isCompact?: boolean | undefined;
 }
 
 /*
@@ -40,9 +49,12 @@ export interface ComponentProps {
  * whose one widget threw used to go with it (issue #4571). Put this around
  * the part that may fail, and only that part is replaced.
  *
- * A stale bundle (a chunk that 404s after a deploy) still reloads the page
- * once, exactly as the app's boundary does: a widget's lazily loaded chunk
- * failing is the deploy's fault, not the widget's, and a reload fixes it.
+ * A part whose code will not download - the usual sign of a new version
+ * deployed while the tab was open - is not this part's fault, and the
+ * caller's fallback would blame it: the part says it is loading the latest
+ * version instead and the page reloads into it, unless the reader has
+ * unsaved changes elsewhere on the page, when it asks first
+ * (ChunkLoadRecovery's Part variant).
  */
 const ContainedErrorBoundary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -51,10 +63,13 @@ const ContainedErrorBoundary: FunctionComponent<ComponentProps> = (
     <NativeErrorBoundary
       resetKeys={props.resetKeys || []}
       onError={(error: Error, errorInfo: ErrorInfo): void => {
-        // eslint-disable-next-line no-console
-        console.error("Uncaught error rendering part of the page:", error);
-
-        handleChunkLoadError(error);
+        if (isChunkLoadError(error)) {
+          // eslint-disable-next-line no-console
+          console.warn("A part of this page did not download:", error);
+        } else {
+          // eslint-disable-next-line no-console
+          console.error("Uncaught error rendering part of the page:", error);
+        }
 
         props.onError?.(error, errorInfo);
       }}
@@ -63,6 +78,16 @@ const ContainedErrorBoundary: FunctionComponent<ComponentProps> = (
           fallbackProps.error instanceof Error
             ? fallbackProps.error
             : new Error(String(fallbackProps.error));
+
+        if (isChunkLoadError(error)) {
+          return (
+            <ChunkLoadRecovery
+              error={error}
+              variant={ChunkLoadRecoveryVariant.Part}
+              isCompact={props.isCompact}
+            />
+          );
+        }
 
         return props.renderFallback({
           error: error,

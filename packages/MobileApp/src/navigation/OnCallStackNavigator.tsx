@@ -1,6 +1,6 @@
 import React from "react";
 import { Platform } from "react-native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createAdaptiveStackNavigator } from "./createAdaptiveStackNavigator";
 import { useStackScreenOptions } from "./useStackScreenOptions";
 import OnCallOverviewScreen from "../screens/OnCallOverviewScreen";
 import MyOnCallPoliciesScreen from "../screens/MyOnCallPoliciesScreen";
@@ -11,16 +11,39 @@ import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import type { OnCallStackParamList } from "./types";
 
+/*
+ * Adaptive: on a wide window the overview stays on the left - am I on call,
+ * my shifts - and the roster, pages, cover and policies open beside it.
+ *
+ * Until one is opened, the pane shows the team's roster rather than a
+ * placeholder. The overview answers "am I on call?"; the next thing a
+ * responder asks is "who else is on?", and the overview is a menu as much
+ * as a list, so a pane asking them to choose would only repeat its tiles.
+ * The roster's tile is marked as the one showing.
+ */
 const Stack: ReturnType<
-  typeof createNativeStackNavigator<OnCallStackParamList>
-> = createNativeStackNavigator<OnCallStackParamList>();
+  typeof createAdaptiveStackNavigator<OnCallStackParamList>
+> = createAdaptiveStackNavigator<OnCallStackParamList>();
+
+/*
+ * The cover form is a sheet over whatever it was opened from, never the
+ * pane's content: opening it beside the roster keeps the roster beneath it.
+ */
+const OVERLAY_ROUTES: ReadonlyArray<keyof OnCallStackParamList> = [
+  "CreateOnCallOverride",
+];
 
 export default function OnCallStackNavigator(): React.JSX.Element {
   const screenOptions: ReturnType<typeof useStackScreenOptions> =
     useStackScreenOptions();
 
   return (
-    <Stack.Navigator screenOptions={screenOptions}>
+    <Stack.Navigator
+      screenOptions={screenOptions}
+      emptyDetail={WhoIsOnCallScreen}
+      emptyDetailRouteName="WhoIsOnCall"
+      overlayRouteNames={OVERLAY_ROUTES}
+    >
       <Stack.Screen
         name="OnCallOverview"
         component={OnCallOverviewScreen}

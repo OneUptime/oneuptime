@@ -201,7 +201,8 @@ log_size_max = 104857600
 ```bash
 podman pull oneuptime/podman-agent:release
 podman pull oneuptime/resource-ai-agent:release
-podman rm -f oneuptime-podman-agent oneuptime-podman-ai-agent
+podman stop oneuptime-podman-agent oneuptime-podman-ai-agent
+podman rm oneuptime-podman-agent oneuptime-podman-ai-agent
 ```
 
 然後再次執行 [啟動代理程式](#啟動代理程式) 中的兩個 `podman run` 指令。
