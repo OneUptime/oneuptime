@@ -172,7 +172,7 @@ Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna de
 
 La **Panoramica** risponde a «siamo dentro il budget?», dall'alto in basso:
 
-- **Il riepilogo**: lo stato, una frase su cosa significa e la descrizione. Accanto ci sono **Aggiorna** e quando lo SLO è stato valutato l'ultima volta. Sotto ci sono l'obiettivo, la **Compliance window** (con un indicatore di riempimento mentre una giovane finestra mobile si riempie: vedi [SLO giovani e l'indicatore di riempimento della finestra](#slo-giovani-e-lindicatore-di-riempimento-della-finestra)), il numero di monitor e i proprietari.
+- **Il riepilogo**: lo stato, una frase su cosa significa e la descrizione. Accanto ci sono **Aggiorna** e quando lo SLO è stato valutato l'ultima volta. Sotto ci sono l'obiettivo, la **Compliance window** (con un indicatore di riempimento mentre una giovane finestra mobile si riempie: vedi [SLO giovani e l'indicatore di riempimento della finestra](#slo-giovani-e-lindicatore-di-riempimento-della-finestra)), il numero di monitor e i proprietari, con **Aggiungi proprietari** per aggiungerne uno direttamente lì.
 - **I numeri principali**:
   - **SLI**: la quota di tempo buono nella finestra, e quanto è sopra o sotto l'obiettivo.
   - **Error budget left**: una percentuale, una durata come "12m 30s left of 43m 12s" e una barra con un segno alla soglia a rischio. Quando il budget è superato mostra **Budget exceeded** e di quanto.

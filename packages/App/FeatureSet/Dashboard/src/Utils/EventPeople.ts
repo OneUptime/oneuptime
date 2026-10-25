@@ -108,6 +108,67 @@ export const getPrimaryRoleHolding: (
   };
 };
 
+// A person picked from a people list, as the people picker hands them over.
+export interface PickedEventPerson {
+  id: string;
+  name: string;
+  // The line under a person's name in the list: their email.
+  description?: string | undefined;
+  hasProfilePicture?: boolean | undefined;
+}
+
+/*
+ * The roles as they are once the header's Assign gave one to `person`: the
+ * same, with them holding it - so the header names them the moment the
+ * role is given, before the roles card has read the record again and says
+ * the same. Another record's roles are left as they are.
+ */
+export const withRoleGiven: (data: {
+  snapshot: EventRolesSnapshot | undefined;
+  roleId: string;
+  person: PickedEventPerson;
+}) => EventRolesSnapshot | undefined = (data: {
+  snapshot: EventRolesSnapshot | undefined;
+  roleId: string;
+  person: PickedEventPerson;
+}): EventRolesSnapshot | undefined => {
+  if (!data.snapshot) {
+    return data.snapshot;
+  }
+
+  const alreadyHolds: boolean = data.snapshot.members.some(
+    (member: EventRoleMember): boolean => {
+      return (
+        member.roleId === data.roleId &&
+        member.userId.toLowerCase() === data.person.id.toLowerCase()
+      );
+    },
+  );
+
+  if (alreadyHolds) {
+    return data.snapshot;
+  }
+
+  const email: string | undefined =
+    data.person.description?.trim() || undefined;
+  const name: string = data.person.name.trim();
+
+  return {
+    roles: data.snapshot.roles,
+    members: [
+      ...data.snapshot.members,
+      {
+        roleId: data.roleId,
+        userId: data.person.id,
+        // A person without a name is listed by their email: named by it.
+        name: name && name !== email ? name : "",
+        email: email,
+        hasProfilePicture: Boolean(data.person.hasProfilePicture),
+      },
+    ],
+  };
+};
+
 /*
  * How many owners the header names before "+N more". Three keeps the people
  * row to one line beside the commander on a laptop, and a record with more

@@ -226,10 +226,13 @@ export default class AIToolbox {
     return this.tools;
   }
 
-  // LLM tool definitions cached per permission mode (ReadOnly hides mutations).
+  /*
+   * LLM tool definitions cached per permission mode (ReadOnly hides
+   * mutations). Frozen: every run of the process shares them.
+   */
   private static llmToolDefinitionsByMode: Map<
     AIChatPermissionMode,
-    Array<LLMToolDefinition>
+    ReadonlyArray<LLMToolDefinition>
   > = new Map();
 
   public static getToolByName(name: string): ObservabilityTool | undefined {
@@ -247,11 +250,17 @@ export default class AIToolbox {
    * The tool definitions offered to the model for a given permission mode. In
    * ReadOnly mode the mutating tools are withheld entirely, so the model never
    * even proposes an action it isn't allowed to take.
+   *
+   * The list is the process-wide cache itself, so it is read-only and frozen:
+   * a run that offers tools of its own copies it first. The chat runner used
+   * to push a turn's command tools onto it, and every later turn of every
+   * project then saw that turn's run_kubectl and run_infrastructure_command,
+   * described with that turn's clusters and resources.
    */
   public static getLlmToolDefinitions(
     mode: AIChatPermissionMode,
-  ): Array<LLMToolDefinition> {
-    const cached: Array<LLMToolDefinition> | undefined =
+  ): ReadonlyArray<LLMToolDefinition> {
+    const cached: ReadonlyArray<LLMToolDefinition> | undefined =
       this.llmToolDefinitionsByMode.get(mode);
     if (cached) {
       return cached;
@@ -259,17 +268,19 @@ export default class AIToolbox {
 
     const includeMutations: boolean = mode !== AIChatPermissionMode.ReadOnly;
 
-    const definitions: Array<LLMToolDefinition> = this.tools
-      .filter((tool: ObservabilityTool) => {
-        return includeMutations || !tool.isMutation;
-      })
-      .map((tool: ObservabilityTool) => {
-        return {
-          name: tool.name,
-          description: tool.description,
-          inputSchema: tool.inputSchema,
-        };
-      });
+    const definitions: ReadonlyArray<LLMToolDefinition> = Object.freeze(
+      this.tools
+        .filter((tool: ObservabilityTool) => {
+          return includeMutations || !tool.isMutation;
+        })
+        .map((tool: ObservabilityTool) => {
+          return {
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+          };
+        }),
+    );
 
     this.llmToolDefinitionsByMode.set(mode, definitions);
     return definitions;

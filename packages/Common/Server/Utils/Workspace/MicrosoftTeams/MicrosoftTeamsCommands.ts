@@ -1,5 +1,7 @@
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "./Botbuilder";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import URL from "../../../../Types/API/URL";
+import DatabaseConfig from "../../../DatabaseConfig";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -24,7 +26,9 @@ import WorkspaceOpenRecordKind from "../../../../Types/Workspace/WorkspaceOpenRe
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsAccountNotLinkedException,
 } from "./Actions/Auth";
-import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
+import MicrosoftTeamsActionAnswer, {
+  MicrosoftTeamsAnswerLink,
+} from "./MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 
@@ -128,6 +132,16 @@ export const MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP: ReadonlyArray<WorkspaceExtra
 // The longest description Teams takes in a manifest command (commandLists).
 export const MICROSOFT_TEAMS_MANIFEST_COMMAND_DESCRIPTION_MAX_LENGTH: number = 128;
 
+/*
+ * The Microsoft Teams guide in the installation's own docs, and the two
+ * sections of it the help links to: how to connect, and the commands.
+ */
+export const MICROSOFT_TEAMS_GUIDE_PATH: string =
+  "/docs/workspace-connections/microsoft-teams";
+const MICROSOFT_TEAMS_GUIDE_CONNECT_ANCHOR: string = "connect-microsoft-teams";
+const MICROSOFT_TEAMS_GUIDE_COMMANDS_ANCHOR: string =
+  "talking-to-the-oneuptime-bot";
+
 // What the bot is told a command needs: who sent it, connected and a member.
 export interface MicrosoftTeamsCommandSenderCheck {
   turnContext: TurnContext;
@@ -220,16 +234,32 @@ export default class MicrosoftTeamsCommands {
    * The commands, as a reply that mentions whoever asked. A channel's
    * readers reach the bot by @mentioning it, so the help names it as Teams
    * shows it: the name the message was sent to.
+   *
+   * The help works before the organization is connected to any project
+   * (`isConnected` false) - it reads nothing in one - and then says how to
+   * get started instead of where to learn more. Microsoft's store requires
+   * the help to say what the app is for and to lead somewhere, connected or
+   * not: it refused the app while "help" sent to an organization not
+   * connected yet was answered "Sorry, I couldn't find your project
+   * configuration".
    */
   @CaptureSpan()
   public static async replyHelp(data: {
     turnContext: TurnContext;
+    // The sender's organization is connected to a project, or to several.
+    isConnected?: boolean | undefined;
   }): Promise<void> {
+    const isConnected: boolean = data.isConnected !== false;
+
     await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
       answer: MicrosoftTeamsCommands.getHelpAnswer(
         MicrosoftTeamsCommands.getBotName(data.turnContext),
+        { isConnected: isConnected },
       ),
+      links: await MicrosoftTeamsCommands.getHelpLinks({
+        isConnected: isConnected,
+      }),
     });
   }
 
@@ -251,14 +281,77 @@ export default class MicrosoftTeamsCommands {
 
   /*
    * The help, as Microsoft Teams shows it (WorkspaceCommands.getHelpAnswer):
-   * `botName` is the name to @mention the bot by.
+   * what the app is for, the commands, and the way forward - how to get
+   * started in an organization not connected yet, or else that each person
+   * connects their own account. `botName` is the name to @mention the bot by.
    */
-  public static getHelpAnswer(botName?: string | undefined): WorkspaceAnswer {
+  public static getHelpAnswer(
+    botName?: string | undefined,
+    options?: { isConnected?: boolean | undefined } | undefined,
+  ): WorkspaceAnswer {
+    const productName: string = ProductBrandingText.getProductName();
+
     return WorkspaceCommands.getHelpAnswer({
       workspaceType: WorkspaceType.MicrosoftTeams,
       extraCommands: [...MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP],
       botName: botName,
+      before: [
+        mdText`**${productName}** is an observability and incident management platform. In Microsoft Teams, I post your project's incidents, alerts and scheduled maintenance to the channels and chats you pick, and your team acts on them right here.`,
+      ],
+      after: [
+        options?.isConnected === false
+          ? mdText`**To get started,** a project admin connects your organization in ${productName}, under **Project Settings → Workspace → Microsoft Teams**. Then everyone connects their own Microsoft Teams account the first time they use a command.`
+          : mdText`The first time you use a command, I ask you to connect your Microsoft Teams account to ${productName}, so that I act as you, with your permissions.`,
+      ],
     });
+  }
+
+  /*
+   * The help's buttons: where to go next, on this installation - never
+   * OneUptime Cloud's address. Before the organization is connected, the
+   * guide's "Connect Microsoft Teams" steps and the sign-up page (unless
+   * the installation takes no sign-ups); once it is, the guide's commands
+   * and the product. A link whose address cannot be read is left out.
+   */
+  public static async getHelpLinks(data: {
+    isConnected: boolean;
+  }): Promise<Array<MicrosoftTeamsAnswerLink>> {
+    const productName: string = ProductBrandingText.getProductName();
+    const links: Array<MicrosoftTeamsAnswerLink> = [];
+
+    try {
+      const guide: URL = (await DatabaseConfig.getHomeUrl()).addRoute(
+        MICROSOFT_TEAMS_GUIDE_PATH,
+      );
+
+      links.push({
+        title: data.isConnected ? "Learn more" : "Get started",
+        url: URL.fromString(
+          `${guide.toString()}#${
+            data.isConnected
+              ? MICROSOFT_TEAMS_GUIDE_COMMANDS_ANCHOR
+              : MICROSOFT_TEAMS_GUIDE_CONNECT_ANCHOR
+          }`,
+        ),
+      });
+
+      if (data.isConnected) {
+        links.push({
+          title: `Open ${productName}`,
+          url: await DatabaseConfig.getDashboardUrl(),
+        });
+      } else if (!(await DatabaseConfig.shouldDisableSignup())) {
+        links.push({
+          title: "Sign up",
+          url: (await DatabaseConfig.getAccountsUrl()).addRoute("/register"),
+        });
+      }
+    } catch (err) {
+      logger.debug("No address for a link of the Microsoft Teams help.");
+      logger.debug(err);
+    }
+
+    return links;
   }
 
   // A misspelt command's answer, as Microsoft Teams shows it.

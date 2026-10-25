@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Åpne etteranalysen
 
-Åpne hendelsen, og klikk på **Etteranalyse** under **Undersøkelse** i sidemenyen. Kortet **Etteranalyse** viser etteranalysens **Status** og **Eiere**, notatet, vedleggene og om etteranalysen vises på statussiden.
+Åpne hendelsen, og klikk på **Etteranalyse** under **Undersøkelse** i sidemenyen. Kortet **Etteranalyse** viser etteranalysens **Status** og **Eiere**, notatet, vedleggene og om etteranalysen vises på statussiden. **Legg til eiere** ved siden av eierne gjør en person eller et team i prosjektet til eier av hendelsen der og da.
 
 ### Klikk på Skriv etteranalyse
 

@@ -1,4 +1,4 @@
-import { Activity, TurnContext } from "botbuilder";
+import { Activity, TurnContext } from "./Botbuilder";
 import URL from "../../../../Types/API/URL";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";

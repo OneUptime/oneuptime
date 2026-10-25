@@ -208,10 +208,12 @@ export default class MicrosoftTeamsAPI {
        * build without it uses this fallback, so bump it whenever the manifest
        * changes (1.6.0: ChatSettings.Read.Chat added; 1.7.0: the commands
        * are the words Slack's /oneuptime takes; 1.8.0: page; 1.9.0: shared
-       * and private channels; 1.10.0: incident takes an incident's number).
+       * and private channels; 1.10.0: incident takes an incident's number;
+       * 1.11.0: the description says what OneUptime AI does, and how to
+       * report an answer).
        */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.10.0"
+        ? "1.11.0"
         : AppVersion,
       /*
        * The app works in shared and private channels as in standard ones: it
@@ -233,11 +235,22 @@ export default class MicrosoftTeamsAPI {
         short: "OneUptime",
         full: "OneUptime - Complete Observability Platform",
       },
+      /*
+       * Microsoft's store requires the description to say what the app's AI
+       * does before anyone installs it, and how to report AI content that
+       * is wrong, harmful or offensive (a mail address here is one of the
+       * ways it accepts), and to name any setup an admin must do first
+       * (MicrosoftTeamsManifest.test.ts holds these).
+       */
       description: {
         short: "Complete open-source monitoring and observability platform. ",
         full: `<p>OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors.</p>
 
-<p>In order to use the app, you need to have an active account with <a href="https://oneuptime.com" target="_blank">OneUptime</a>. Please send an email to <a href="mailto:support@oneuptime.com">support@oneuptime.com</a> if you need more details.</p>
+<p><strong>In Microsoft Teams:</strong> OneUptime posts your project's incidents, alerts and scheduled maintenance to the channels and chats you pick, with buttons to acknowledge, resolve and add notes. Message the bot, or @mention it in a channel or a group chat: "incident" declares an incident, "maintenance" schedules maintenance, "oncall" shows who is on call, "page" pages a person, a team or whoever is on call, "show active incidents" and "show active alerts" list what is open, and "help" lists every command.</p>
+
+<p><strong>OneUptime AI:</strong> "ask", and any other question you send the bot, is answered by OneUptime AI, a generative AI assistant. It reads your project's logs, traces, metrics, incidents and monitors with your own permissions, never changes anything, and answers in the conversation with the sources it used. Answers are marked as AI generated and can be wrong, so check important details before you act on them. A project admin can turn AI off for the project. To report an AI answer that is wrong, harmful or offensive, use the thumbs-down button under it, or email <a href="mailto:support@oneuptime.com">support@oneuptime.com</a>. The OneUptime team reviews every report and acts on it promptly.</p>
+
+<p>In order to use the app, you need to have an active account with <a href="https://oneuptime.com" target="_blank">OneUptime</a>. A OneUptime project admin connects your Microsoft 365 organization once, under Project Settings, Workspace, Microsoft Teams, with a Microsoft 365 administrator's consent; then everyone connects their own Microsoft Teams account the first time they use a command. Please send an email to <a href="mailto:support@oneuptime.com">support@oneuptime.com</a> if you need more details.</p>
 
 <p><strong>Create a new OneUptime Account:</strong> If you wish to sign up for a new account, you can do so by visiting <a href="https://oneuptime.com" target="_blank">OneUptime Sign Up</a>.</p>
 

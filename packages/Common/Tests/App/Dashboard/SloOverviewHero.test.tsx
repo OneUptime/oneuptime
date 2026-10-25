@@ -1,15 +1,43 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+
+const getListMock: MockFunction = getJestMockFunction();
+const createMock: MockFunction = getJestMockFunction();
+
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: (...args: Array<any>) => {
+        return getListMock(...args);
+      },
+      create: (...args: Array<any>) => {
+        return createMock(...args);
+      },
+    },
+  };
+});
+
+import { OwnersChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwners";
+import { ADD_OWNERS_TEXT_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
 import SloOverviewHero, {
   ComponentProps,
@@ -20,10 +48,17 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Label from "../../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveOwnerUser from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import { Green } from "../../../Types/BrandColors";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
@@ -36,9 +71,47 @@ import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 
 const SLO_ID: ObjectID = new ObjectID("5f8b7c1e2d3a4b5c6d7e8f90");
 const LAST_EVALUATED_AT: Date = new Date("2026-09-15T11:58:00.000Z");
+const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+const JANE_ID: string = "b0000000-0000-4000-8000-000000000001";
+
+// The project's people, as the Add owners list searches them.
+function serveProject(): void {
+  getListMock.mockImplementation(async (request: any): Promise<any> => {
+    if (request.modelType === TeamMember) {
+      const jane: User = new User();
+      jane._id = JANE_ID;
+      jane.name = new Name("Jane Doe");
+      jane.email = new Email("jane@example.com");
+      const member: TeamMember = new TeamMember();
+      member.user = jane;
+      return { data: [member], count: 1, skip: 0, limit: 25 };
+    }
+
+    return { data: [], count: 0, skip: 0, limit: 0 };
+  });
+}
+
+// A reader who may add owners (a project owner).
+function mayAddOwners(): void {
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue([Permission.ProjectOwner]);
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  window.history.replaceState({}, "", `/dashboard/${PROJECT_ID}/slos`);
+  serveProject();
+  createMock.mockResolvedValue({});
+  (
+    Element.prototype as unknown as { scrollIntoView: () => void }
+  ).scrollIntoView = (): void => {};
+});
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 /*
@@ -126,11 +199,12 @@ describe("SloOverviewHero", () => {
           return term.textContent;
         }),
     ).toEqual(["Target", "Compliance window", "Monitors", "Owners"]);
+    // A reader whose permissions are not known yet is offered nothing to add.
     expect(getFactValues()).toEqual([
       "99.9%",
       "Rolling 30 days",
       "3 monitors",
-      "Add owners",
+      "No owners",
     ]);
   });
 
@@ -347,35 +421,114 @@ describe("SloOverviewHero", () => {
   );
 
   describe("owners", () => {
-    const ownersHref: string = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.SLO_VIEW_OWNERS] as Route,
-      { modelId: SLO_ID },
-    ).toString();
-
-    test("no owners links to the Owners page", () => {
+    test("no owners: Add owners opens the Add owners list right there, not the Owners page", async () => {
+      mayAddOwners();
       renderHero({ owners: [] });
 
-      expect(screen.getByRole("link", { name: "Add owners" })).toHaveAttribute(
-        "href",
-        ownersHref,
+      const add: HTMLElement = screen.getByRole("button", {
+        name: "Add owners",
+      });
+
+      expect(add).toHaveAttribute("data-testid", "slo-overview-add-owners");
+      expect(add).toHaveAttribute("aria-haspopup", "dialog");
+      expect(screen.queryByRole("link", { name: "Add owners" })).toBeNull();
+      /*
+       * "No owners", then the shared "+ Add owners" - the monitor
+       * overview's words and control, so the two heroes read alike (UI
+       * review).
+       */
+      const owners: HTMLElement = screen.getByTestId("slo-overview-owners");
+      expect(within(owners).getByText("No owners")).toBeVisible();
+      expect(
+        within(owners).getByText("No owners").compareDocumentPosition(add) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      for (const className of ADD_OWNERS_TEXT_BUTTON_CLASS_NAME.split(" ")) {
+        expect(add).toHaveClass(className);
+      }
+      expect(add.querySelector("svg")).not.toBeNull();
+
+      fireEvent.click(add);
+
+      const list: HTMLElement = await screen.findByRole("dialog", {
+        name: "Add owners",
+      });
+
+      expect(await within(list).findByText("Jane Doe")).toBeVisible();
+      expect(add).toHaveAttribute("aria-expanded", "true");
+    });
+
+    test("a pick makes them an owner of the SLO, and the page is told to read its owners again", async () => {
+      mayAddOwners();
+      const changes: Array<OwnersChange> = [];
+
+      renderHero({
+        owners: [],
+        onOwnersChanged: (change: OwnersChange): void => {
+          changes.push(change);
+        },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Add owners" }));
+
+      const list: HTMLElement = await screen.findByRole("dialog", {
+        name: "Add owners",
+      });
+
+      fireEvent.click(await within(list).findByText("Jane Doe"));
+
+      await waitFor(() => {
+        expect(createMock).toHaveBeenCalledTimes(1);
+      });
+
+      const request: any = createMock.mock.calls[0]![0];
+
+      expect(request.modelType).toBe(ServiceLevelObjectiveOwnerUser);
+      expect(String(request.model.serviceLevelObjectiveId)).toBe(
+        SLO_ID.toString(),
       );
+      expect(String(request.model.userId)).toBe(JANE_ID);
+      await waitFor(() => {
+        expect(changes).toEqual([{ wasAdded: true }]);
+      });
+      expect(await within(list).findByText("Added Jane Doe.")).toBeVisible();
+    });
+
+    test("a reader who may not add owners reads No owners, and nothing offers to add", () => {
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.Viewer]);
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+
+      renderHero({ owners: [] });
+
+      expect(
+        within(screen.getByTestId("slo-overview-owners")).getByText(
+          "No owners",
+        ),
+      ).toBeVisible();
+      expect(screen.queryByRole("button", { name: "Add owners" })).toBeNull();
+      expect(screen.queryByRole("link", { name: "Add owners" })).toBeNull();
     });
 
     test("while loading it shows a placeholder, not an invitation", () => {
+      mayAddOwners();
       renderHero({ owners: undefined, isLoadingOwners: true });
 
-      expect(screen.queryByRole("link", { name: "Add owners" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Add owners" })).toBeNull();
       expect(screen.queryByText("Unavailable")).toBeNull();
     });
 
     test("a failed lookup says unavailable rather than inviting duplicate owners", () => {
+      mayAddOwners();
       renderHero({ owners: undefined, isLoadingOwners: false });
 
       expect(screen.getByText("Unavailable")).toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: "Add owners" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Add owners" })).toBeNull();
     });
 
-    test("owners render as the avatar stack", () => {
+    test("owners render as the avatar stack, then the place to add more", () => {
+      mayAddOwners();
       const team: Team = new Team();
       team._id = "5f8b7c1e2d3a4b5c6d7e8f91";
       team.name = "Payments";
@@ -384,9 +537,27 @@ describe("SloOverviewHero", () => {
 
       renderHero({ owners: owners });
 
-      expect(screen.queryByRole("link", { name: "Add owners" })).toBeNull();
+      const place: HTMLElement = screen.getByRole("button", {
+        name: "Add owners",
+      });
+
+      expect(place).toHaveAttribute(
+        "data-testid",
+        "slo-overview-add-more-owners",
+      );
+      expect(place).toHaveClass("h-6", "w-6", "rounded-full", "border-dashed");
       expect(screen.queryByText("Unavailable")).toBeNull();
       expect(screen.queryByText("No owners.")).toBeNull();
+    });
+
+    test("owners without the permission to add: the avatars alone", () => {
+      const team: Team = new Team();
+      team._id = "5f8b7c1e2d3a4b5c6d7e8f91";
+      team.name = "Payments";
+
+      renderHero({ owners: [{ kind: "team", team: team }] });
+
+      expect(screen.queryByRole("button", { name: "Add owners" })).toBeNull();
     });
   });
 
@@ -402,13 +573,14 @@ describe("SloOverviewHero", () => {
   });
 
   test("owners are labelled within the summary facts", () => {
+    mayAddOwners();
     renderHero({ owners: [] });
 
     const owners: HTMLElement = screen.getByTestId("slo-overview-owners");
     expect(screen.getByLabelText("SLO at a glance")).toContainElement(owners);
     expect(owners).toHaveTextContent("Owners");
     expect(
-      within(owners).getByRole("link", { name: "Add owners" }),
+      within(owners).getByRole("button", { name: "Add owners" }),
     ).toBeInTheDocument();
   });
 

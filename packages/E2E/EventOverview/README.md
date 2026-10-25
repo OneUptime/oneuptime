@@ -134,9 +134,16 @@ Query parameters, parsed once per page load:
 | `?lang=`            | the reader's language, one of the Dashboard's 17 (`de`, `ja`, ...): the fixture loads that locale's own strings from `App/FeatureSet/Dashboard/src/Locales`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?security=`        | what incident #1042's Security card says (`POST /security-case/incident-security`): `declared` (SEC-12 declared it), `naming` (two of the three open cases naming its host and cluster) or `both`. Left out, Security Events has nothing to say about any incident and no card is drawn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
+Adding owners and the commander from a header: `?fail=owner-add` refuses every owner a
+header's Add owners list adds ("This user is already an owner of this incident."),
+`?fail=role-assign` refuses the commander the header's Assign gives ("This user already has
+this role."), and `?role=owner-people` signs in someone who holds only Create Incident Owner
+User: they add people as an incident's owners but not teams, and give no role, so the Add
+owners list names Teams locked with why.
+
 ## What the spec covers
 
-`EventOverview.spec.ts` (441 tests):
+`EventOverview.spec.ts` (526 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -209,13 +216,19 @@ Query parameters, parsed once per page load:
   second read of who holds the roles) and the owners, teams first, each with an avatar, read
   once per list for the record, each name level with its label and no taller than a line
   of words; `?commander=none&state=ongoing` showing the empty place (a dashed circle where
-  the avatar would be) and Assign, which opens Incident Commander's picker in the roles card
-  with the cursor in it - by mouse and by keyboard, again after Cancel - and, once somebody
-  is chosen and saved, the header naming them; the same on incident episode #12; a resolved
-  incident saying Not assigned; `?owners=none&state=ongoing` showing the empty place and
-  Add, which opens the Owners page, and a resolved one saying None; `?owners=many` showing
-  three and "+3 more" to the Owners page; an alert with owners and no commander; both
-  episodes. What happened - the description and root cause from the page's one read of the
+  the avatar would be) and Assign, which opens the project's people right under it with the
+  cursor in its search box - one click (or a search and Enter) gives the role, the header
+  and the roles card name them at once and the feed reads again; Escape closing it;
+  `?fail=role-assign` saying why in the list; the same on incident episode #12, writing the
+  episode's own role row; a resolved incident saying Not assigned;
+  `?owners=none&state=ongoing` showing the empty place and Add, which opens the Add owners
+  list right under it (the project's people, then its teams); one click adding an owner as
+  the Owners page writes one, the header naming them at once and the list staying open for
+  the next; `?fail=owner-add` saying why in the list; `?role=owner-people` naming Teams
+  locked with why; `?role=loading` offering neither; Add on an alert, both episodes and a
+  scheduled maintenance event adding to their own owner tables; the lists whole at 1280 and
+  390px, light and dark; a resolved one saying None; `?owners=many` showing three and "+3
+  more" to the Owners page; an alert with owners and no commander; both episodes. What happened - the description and root cause from the page's one read of the
   record, before the AI card; `?what=empty`; `?what=long` folded at six lines and opened
   with Show more / Show less; Edit saving both in one dialog that says the description is
   public where it is (an incident, an incident episode) and nothing about status pages

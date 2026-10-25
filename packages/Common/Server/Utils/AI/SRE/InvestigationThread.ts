@@ -19,14 +19,12 @@ import IncidentService from "../../../Services/IncidentService";
 import AlertService from "../../../Services/AlertService";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
-import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
-import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
-import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
-import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
-import ToolOutputPager, {
-  READ_TOOL_OUTPUT_TOOL_NAME,
-} from "../Chat/ToolOutputPager";
+import { READ_TOOL_OUTPUT_TOOL_NAME } from "../Chat/ToolOutputPager";
 import { ChatExtraTool } from "../Chat/ChatAgentRunner";
+import ChatInfrastructureAccess, {
+  ChatInfrastructureTools,
+  INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+} from "../Chat/ChatInfrastructureAccess";
 import PostedRootCause from "./PostedRootCause";
 import logger from "../../Logger";
 import PromptText from "../../../../Utils/AI/PromptText";
@@ -71,12 +69,10 @@ export const MAX_THREAD_REPORT_CHARS: number = 24_000;
  * Told to the model when some of the subject's linked clusters or
  * resources are left out of a turn because the person asking may not view
  * them (InvestigationThread.buildTurnContext): it names none of them, and
- * lets the answer say why a command cannot run for this person.
+ * lets the answer say why a command cannot run for this person. A personal
+ * Ask AI conversation says the same (ChatInfrastructureAccess).
  */
-export const INFRASTRUCTURE_OUT_OF_VIEW_SECTION: string = [
-  "# Infrastructure out of view",
-  "Some of the infrastructure linked to this conversation is left out of it because the person asking may not view it in OneUptime, so you cannot run commands on it for them. If they ask about it, tell them so, and that someone who may view it can ask instead.",
-].join("\n");
+export { INFRASTRUCTURE_OUT_OF_VIEW_SECTION };
 
 export interface InvestigationThreadSubjectDetails {
   // "Incident #42" / "Alert #7" (or just the noun when unnumbered).
@@ -617,91 +613,31 @@ export default class InvestigationThread {
     }
 
     /*
-     * Only what the person asking may view: the commands below run for
-     * them. Each check fails closed (nothing offered) on its own.
+     * Only what the person asking may view: the commands run for them.
+     * Each check fails closed (nothing offered) on its own, and one pager
+     * serves the turn, so read_tool_output reads every toolkit's output.
      */
-    const linkedCount: number =
-      clusterStatuses.length + resourceStatuses.length;
-
-    clusterStatuses =
-      await KubernetesClusterAiAccessService.getStatusesViewableBy({
+    const infrastructure: ChatInfrastructureTools =
+      await ChatInfrastructureAccess.buildTools({
+        projectId: data.projectId,
+        aiRunId: data.aiRunId,
         props: data.props,
-        projectId: data.projectId,
-        statuses: clusterStatuses,
+        statuses: { clusters: clusterStatuses, resources: resourceStatuses },
+        offeredIn: `the ${subjectNoun} thread`,
       });
-
-    resourceStatuses = await ResourceAiAccessService.getStatusesViewableBy({
-      props: data.props,
-      projectId: data.projectId,
-      statuses: resourceStatuses,
-    });
-
-    const isAnyLinkedInfrastructureWithheld: boolean =
-      clusterStatuses.length + resourceStatuses.length < linkedCount;
-
-    // One pager for the turn, so read_tool_output reads every toolkit's output.
-    const outputPager: ToolOutputPager = new ToolOutputPager();
-    const extraTools: Array<ChatExtraTool> = [];
-
-    const kubectlToolkit: KubectlInvestigationToolkit =
-      new KubectlInvestigationToolkit({
-        projectId: data.projectId,
-        aiRunId: data.aiRunId,
-        clusters: clusterStatuses,
-        outputPager,
-      });
-    const kubectlTools: Array<ChatExtraTool> = kubectlToolkit.buildTools();
-    extraTools.push(...kubectlTools);
-
-    let infrastructureTools: Array<ChatExtraTool> = [];
-
-    try {
-      infrastructureTools = new InfrastructureInvestigationToolkit({
-        projectId: data.projectId,
-        aiRunId: data.aiRunId,
-        resources: resourceStatuses,
-        outputPager,
-      }).buildTools();
-      extraTools.push(...infrastructureTools);
-    } catch (error) {
-      logger.error(
-        `AI: could not offer infrastructure commands in the ${subjectNoun} thread: ${error}`,
-      );
-    }
-
-    if (extraTools.length > 0) {
-      extraTools.push(outputPager.buildReadTool());
-    }
 
     const sections: Array<string> = [
       this.buildThreadInstructions({
         subjectLabel: details.label,
         subjectTitle: details.title,
         subjectNoun,
-        hasClusterAccess: kubectlTools.length > 0,
-        hasInfrastructureAccess: infrastructureTools.length > 0,
+        hasClusterAccess: infrastructure.hasClusterAccess,
+        hasInfrastructureAccess: infrastructure.hasInfrastructureAccess,
       }),
       details.summary,
       this.buildInvestigationSection(latest, subjectNoun),
+      ...infrastructure.contextSections,
     ];
-
-    const clusterSection: string =
-      ClusterAccessContext.buildContextSection(clusterStatuses).trim();
-
-    if (clusterSection) {
-      sections.push(clusterSection);
-    }
-
-    const resourceSection: string =
-      ResourceAccessContext.buildContextSection(resourceStatuses).trim();
-
-    if (resourceSection) {
-      sections.push(resourceSection);
-    }
-
-    if (isAnyLinkedInfrastructureWithheld) {
-      sections.push(INFRASTRUCTURE_OUT_OF_VIEW_SECTION);
-    }
 
     // The matching AI rules' notes, as the investigation read them.
     const aiContextRules: Array<AiContextRule> =
@@ -717,7 +653,7 @@ export default class InvestigationThread {
 
     return {
       additionalSystemInstructions: sections.join("\n\n"),
-      extraTools,
+      extraTools: infrastructure.extraTools,
       pageContext: details.pageContext,
       title: `${details.label}: ${details.title}`,
       aiContextRules,

@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Route from "Common/Types/API/Route";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -56,14 +55,19 @@ import PostmortemMoreMenu, {
 } from "../../../Components/Postmortem/PostmortemMoreMenu";
 import PostmortemEmptyState from "../../../Components/Postmortem/PostmortemEmptyState";
 import PostmortemSummary from "../../../Components/Postmortem/PostmortemSummary";
-import { useIncidentOwners } from "../../../Components/Postmortem/PostmortemOwners";
+import {
+  PostmortemAddOwners,
+  useIncidentOwners,
+} from "../../../Components/Postmortem/PostmortemOwners";
+import {
+  canAddOwners,
+  OwnersTarget,
+} from "../../../Components/Owners/AddOwners";
 import usePostmortemStatuses, {
   PostmortemStatusesState,
 } from "../../../Components/Postmortem/usePostmortemStatuses";
 import useAiOffered from "../../../Utils/UseAiOffered";
 import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import PageMap from "../../../Utils/PageMap";
 
 // Whether the postmortem is on the status page, and so what it says there.
 const isPublished: (item: Incident) => boolean = (item: Incident): boolean => {
@@ -115,17 +119,27 @@ const IncidentPostmortem: FunctionComponent<
   const [showAIGenerateModal, setShowAIGenerateModal] =
     useState<boolean>(false);
 
-  // The incident's owners own its postmortem; re-read after every save.
+  // Bumped once an owner was added from the postmortem's own Add owners.
+  const [ownersChangeCount, setOwnersChangeCount] = useState<number>(0);
+
+  /*
+   * The incident's owners own its postmortem; re-read after every save, and
+   * once one was added here.
+   */
   const incidentOwners: ReturnType<typeof useIncidentOwners> =
     useIncidentOwners({
       incidentId: modelId,
-      refreshToken: refreshToggle,
+      refreshToken: `${refreshToggle}-${ownersChangeCount}`,
     });
 
-  const ownersRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
-    { modelId: modelId },
-  );
+  const ownersTarget: OwnersTarget = useMemo((): OwnersTarget => {
+    return {
+      ownerUserModelType: IncidentOwnerUser,
+      ownerTeamModelType: IncidentOwnerTeam,
+      resourceIdField: "incidentId",
+      resourceId: modelId,
+    };
+  }, [modelId.toString()]);
 
   const incidentModel: Incident = useMemo((): Incident => {
     return new Incident();
@@ -145,10 +159,16 @@ const IncidentPostmortem: FunctionComponent<
     ModelAction.Update,
   );
   // Adding a person or a team as an owner, as the Owners page does.
-  const canChangeOwners: boolean =
-    PermissionGate.check(new IncidentOwnerUser(), ModelAction.Create)
-      .isAllowed ||
-    PermissionGate.check(new IncidentOwnerTeam(), ModelAction.Create).isAllowed;
+  const addOwners: PostmortemAddOwners | undefined = canAddOwners(ownersTarget)
+    ? {
+        target: ownersTarget,
+        onOwnersChanged: (): void => {
+          setOwnersChangeCount((count: number): number => {
+            return count + 1;
+          });
+        },
+      }
+    : undefined;
 
   const refresh: () => void = (): void => {
     setRefreshToggle((previous: boolean) => {
@@ -332,8 +352,7 @@ const IncidentPostmortem: FunctionComponent<
                     }}
                     owners={incidentOwners.owners}
                     hasLoadedOwners={incidentOwners.hasLoaded}
-                    ownersRoute={ownersRoute}
-                    canChangeOwners={canChangeOwners}
+                    addOwners={addOwners}
                   />
                 );
               },

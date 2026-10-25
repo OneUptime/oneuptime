@@ -25,8 +25,11 @@ at desktop widths (1440 and 1280), the single-column tablet/mobile layout (1024
 and 390), empty optional fields, edit/save/cancel (the labels fold under Advanced,
 and a save keeps them while folded), hero refresh after saving, and documentation
 access. It verifies the edit action stays inside the narrow sidebar and captures
-desktop and mobile overview screenshots. The overview route is the same URL
-without `/burn-rate-rules`; add `?details=empty` for blank description and labels.
+desktop and mobile overview screenshots. The hero adds owners right there: Add owners
+(nobody owns the SLO) and the + after the avatars (`?owners=team`: the Checkout team owns
+it) open the Add owners list, and each pick is a row the hero's next read names. The
+overview route is the same URL without `/burn-rate-rules`; add `?details=empty` for blank
+description and labels.
 
 ## Run it
 

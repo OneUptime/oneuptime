@@ -1,12 +1,8 @@
-import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import DetailFieldLabel from "Common/UI/Components/Detail/DetailFieldLabel";
 import React, { FunctionComponent, ReactElement } from "react";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
-import PostmortemOwners, {
-  POSTMORTEM_ADD_OWNERS,
-  POSTMORTEM_CHANGE_OWNERS,
-} from "./PostmortemOwners";
+import PostmortemOwners, { PostmortemAddOwners } from "./PostmortemOwners";
 import { PostmortemStatusChoice } from "./PostmortemStatusChoices";
 import PostmortemStatusPicker from "./PostmortemStatusPicker";
 
@@ -19,22 +15,20 @@ export interface ComponentProps {
   onStatusChanged: () => void;
   owners: Array<ResourceOwnerEntry>;
   hasLoadedOwners: boolean;
-  // The incident's Owners page, where its owners are added and removed.
-  ownersRoute: Route;
   /*
-   * Whether the reader may add an owner to the incident. Without it there is
-   * no Change owners link: it would promise a change the Owners page then
-   * refuses them.
+   * Offered to a reader who may add an owner to the incident: owners are
+   * added right here (PostmortemOwners). Left out, nothing offers to add
+   * one - a promise the server would refuse.
    */
-  canChangeOwners: boolean;
+  addOwners?: PostmortemAddOwners | undefined;
 }
 
 /*
  * The top of an incident's postmortem: where it stands and who owns it, side
  * by side (one under the other on a phone), each named the way every detail
  * card names a field. The status is a pill that moves the postmortem; the
- * owners are the incident's, changed on its Owners page - the link beside
- * their name, for those who may change them.
+ * owners are the incident's, and a reader who may add one adds them right
+ * there, from the Add owners list.
  */
 const PostmortemSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -61,23 +55,11 @@ const PostmortemSummary: FunctionComponent<ComponentProps> = (
         />
       </div>
       <div className="min-w-0 space-y-1.5">
-        <DetailFieldLabel
-          title="Owners"
-          sideLink={
-            props.canChangeOwners
-              ? {
-                  text:
-                    props.hasLoadedOwners && props.owners.length === 0
-                      ? POSTMORTEM_ADD_OWNERS
-                      : POSTMORTEM_CHANGE_OWNERS,
-                  url: props.ownersRoute,
-                }
-              : undefined
-          }
-        />
+        <DetailFieldLabel title="Owners" />
         <PostmortemOwners
           owners={props.owners}
           hasLoaded={props.hasLoadedOwners}
+          addOwners={props.addOwners}
         />
       </div>
     </div>

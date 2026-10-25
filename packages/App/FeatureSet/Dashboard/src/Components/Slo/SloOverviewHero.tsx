@@ -1,9 +1,24 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  canAddOwners,
+  getOwnerKeys,
+  OwnersChange,
+  OwnersTarget,
+} from "../Owners/AddOwners";
+import AddOwnersPopup, {
+  AddOwnersPlaceButton,
+  AddOwnersTextButton,
+  useAddOwnersPopup,
+} from "../Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import SloOverviewActionLink from "./SloOverviewActionLink";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import { AnchoredFieldPopup } from "Common/UI/Types/UseAnchoredFieldPopup";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -29,7 +44,7 @@ import {
   SloRollingWindowFill,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -40,6 +55,11 @@ export interface ComponentProps {
   isRefreshing: boolean;
   refreshError: string;
   onRefresh: () => void;
+  /*
+   * Told after the owners' Add owners list added an owner (or the server
+   * refused one), so the page reads the owners again.
+   */
+  onOwnersChanged?: ((change: OwnersChange) => void) | undefined;
 }
 
 interface StatusPresentation {
@@ -84,7 +104,30 @@ const STATUS_PRESENTATIONS: Record<SloStatus, StatusPresentation> = {
 const SloOverviewHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const slo: ServiceLevelObjective = props.slo;
+
+  /*
+   * Owners are added right here: "Add owners" on an SLO nobody owns, the
+   * empty place after the avatars on one that has owners, each opening the
+   * Add owners list under it - offered to a reader who may add one.
+   */
+  const sloIdString: string = props.sloId.toString();
+  const ownersTarget: OwnersTarget = useMemo((): OwnersTarget => {
+    return {
+      ownerUserModelType: ServiceLevelObjectiveOwnerUser,
+      ownerTeamModelType: ServiceLevelObjectiveOwnerTeam,
+      resourceIdField: "serviceLevelObjectiveId",
+      resourceId: props.sloId,
+    };
+  }, [sloIdString]);
+  const ownersPopup: AnchoredFieldPopup = useAddOwnersPopup(
+    props.owners?.length || 0,
+  );
+  const ownerKeys: Set<string> = useMemo((): Set<string> => {
+    return getOwnerKeys(props.owners);
+  }, [props.owners]);
+  const mayAddOwners: boolean = canAddOwners(ownersTarget);
   const lastEvaluatedAt: Date | null = slo.lastEvaluatedAt
     ? OneUptimeDate.fromString(slo.lastEvaluatedAt)
     : null;
@@ -123,10 +166,6 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
     RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
     { modelId: props.sloId },
   );
-  const ownersRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.SLO_VIEW_OWNERS] as Route,
-    { modelId: props.sloId },
-  );
 
   type GetOwnersElementFunction = () => ReactElement;
 
@@ -144,17 +183,41 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
       return <span className="text-sm text-gray-400">Unavailable</span>;
     }
 
+    /*
+     * "No owners", and "+ Add owners" beside it for a reader who may add
+     * one - the monitor overview's words and control, so the two read alike.
+     */
     if (props.owners.length === 0) {
       return (
-        <SloOverviewActionLink
-          title="Add owners"
-          to={ownersRoute}
-          icon={IconProp.Add}
-        />
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span className="text-gray-500">
+            {translator.translateText("No owners")}
+          </span>
+          {mayAddOwners ? (
+            <AddOwnersTextButton
+              popup={ownersPopup}
+              dataTestId="slo-overview-add-owners"
+            />
+          ) : (
+            <></>
+          )}
+        </div>
       );
     }
 
-    return <OwnersCell owners={props.owners} maxVisible={5} />;
+    return (
+      <div className="flex items-center gap-1.5">
+        <OwnersCell owners={props.owners} maxVisible={5} />
+        {mayAddOwners ? (
+          <AddOwnersPlaceButton
+            popup={ownersPopup}
+            dataTestId="slo-overview-add-more-owners"
+          />
+        ) : (
+          <></>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -295,7 +358,19 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
         </div>
         <div className="min-w-0" data-testid="slo-overview-owners">
           <dt className="text-xs font-medium text-gray-500">Owners</dt>
-          <dd className="mt-1">{getOwnersElement()}</dd>
+          <dd className="mt-1">
+            {getOwnersElement()}
+            {mayAddOwners && props.owners ? (
+              <AddOwnersPopup
+                popup={ownersPopup}
+                target={ownersTarget}
+                ownerKeys={ownerKeys}
+                onOwnersChanged={props.onOwnersChanged}
+              />
+            ) : (
+              <></>
+            )}
+          </dd>
         </div>
       </dl>
     </section>

@@ -172,7 +172,7 @@ Når noget forhindrer et SLO i at måle, fortæller et banner øverst på hver a
 
 **Oversigt** svarer på "holder vi os inden for budgettet?", oppefra og ned:
 
-- **Opsummeringen**: status, en sætning om, hvad den betyder, og beskrivelsen. Ved siden af står **Opdater** og hvornår SLO'et sidst blev evalueret. Nedenunder står målet, **Compliance window** (med en fyldningsindikator, mens et ungt rullende vindue fyldes op: se [Unge SLO'er og vinduets fyldningsindikator](#unge-sloer-og-vinduets-fyldningsindikator)), antallet af monitorer og ejerne.
+- **Opsummeringen**: status, en sætning om, hvad den betyder, og beskrivelsen. Ved siden af står **Opdater** og hvornår SLO'et sidst blev evalueret. Nedenunder står målet, **Compliance window** (med en fyldningsindikator, mens et ungt rullende vindue fyldes op: se [Unge SLO'er og vinduets fyldningsindikator](#unge-sloer-og-vinduets-fyldningsindikator)), antallet af monitorer og ejerne, med **Tilføj ejere** til at tilføje en lige der.
 - **Nøgletallene**:
   - **SLI**: andelen af god tid i vinduet, og hvor meget den ligger over eller under målet.
   - **Error budget left**: en procentdel, en varighed som "12m 30s left of 43m 12s" og en bjælke med et mærke ved risikotærsklen. Når budgettet er overskredet, viser den **Budget exceeded** og med hvor meget.

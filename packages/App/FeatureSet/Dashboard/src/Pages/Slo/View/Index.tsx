@@ -172,6 +172,7 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isRefreshing={data.isRefreshing}
           refreshError={data.refreshError}
           onRefresh={data.refresh}
+          onOwnersChanged={data.refreshOwners}
         />
       </div>
 
