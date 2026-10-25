@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import {
@@ -38,6 +39,8 @@ jest.setTimeout(120000);
 
 let clockThrows: boolean = false;
 let clockRenders: number = 0;
+// What the Clock throws: a crash, or the code a deploy took away.
+let clockError: string = "Clock exploded";
 
 // The Clock widget, made to throw while it draws when the test says so.
 jest.mock(
@@ -53,7 +56,7 @@ jest.mock(
         clockRenders++;
 
         if (clockThrows) {
-          throw new Error("Clock exploded");
+          throw new Error(clockError);
         }
 
         return reactModule.createElement(
@@ -100,6 +103,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
+import { markChunkLoadErrorReload } from "../../../UI/Utils/NewVersion/ChunkLoadError";
 
 const CLOCK_ID: string = "550e8400-e29b-41d4-a716-446655440001";
 const UNKNOWN_ID: string = "550e8400-e29b-41d4-a716-446655440002";
@@ -207,6 +211,7 @@ let consoleErrorSpy: SpyInstance<typeof console.error>;
 beforeEach(() => {
   clockThrows = false;
   clockRenders = 0;
+  clockError = "Clock exploded";
   consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {
     return undefined;
   });
@@ -377,6 +382,89 @@ describe("the note on a short widget", () => {
       expect(
         Boolean(screen.queryByTestId("dashboard-widget-fallback-icon")),
       ).toBe(showsIcon);
+    },
+  );
+});
+
+describe("a short widget whose code will not download", () => {
+  const CONFIG: DashboardViewConfig = board([
+    widget(CLOCK_ID, DashboardComponentType.Clock, 0),
+  ]);
+
+  let consoleWarnSpy: SpyInstance<typeof console.warn>;
+
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    window.sessionStorage.clear();
+    consoleWarnSpy.mockRestore();
+  });
+
+  function card(heightInPx: number): ReactElement {
+    return (
+      <DashboardBaseComponentElement
+        componentId={new ObjectID(CLOCK_ID)}
+        isEditMode={false}
+        isSelected={false}
+        key="card"
+        onComponentUpdate={() => {}}
+        totalCurrentDashboardWidthInPx={1200}
+        dashboardCanvasTopInPx={0}
+        dashboardCanvasLeftInPx={0}
+        dashboardCanvasWidthInPx={1200}
+        dashboardCanvasHeightInPx={800}
+        dashboardComponentWidthInPx={300}
+        dashboardComponentHeightInPx={heightInPx}
+        dashboardViewConfig={CONFIG}
+        dashboardStartAndEndDate={PAST_HOUR}
+        metricTypes={[]}
+        onClick={() => {}}
+        dndActiveMode={null}
+        isAnyGestureActive={false}
+        onMovePointerDown={() => {}}
+        onResizePointerDown={() => {}}
+      />
+    );
+  }
+
+  test.each([
+    [190, false],
+    [COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX - 1, false],
+    [COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX, true],
+    [400, true],
+  ])(
+    "a widget %ipx tall says it in its place, and shows the icon: %p - as its own note does",
+    async (heightInPx: number, showsIcon: boolean) => {
+      // Reloaded for it a moment ago: it says it couldn't be loaded.
+      markChunkLoadErrorReload(Date.now());
+      clockThrows = true;
+      clockError =
+        "Failed to fetch dynamically imported module: https://oneuptime.example/dashboard/dist/Clock-ABCDEFGH.js";
+
+      render(card(heightInPx));
+
+      const recovery: HTMLElement = await screen.findByTestId(
+        "chunk-load-recovery",
+      );
+
+      await waitFor(() => {
+        expect(recovery).toHaveAttribute("data-step", "failed");
+      });
+
+      // Not the widget's own note: the widget did nothing wrong.
+      expect(fallbacks()).toHaveLength(0);
+      expect(recovery).toHaveAttribute("data-variant", "part");
+      expect(Boolean(screen.queryByTestId("chunk-load-recovery-icon"))).toBe(
+        showsIcon,
+      );
+      expect(
+        within(recovery).getByTestId("chunk-load-recovery-reload"),
+      ).toHaveTextContent("Reload page");
     },
   );
 });

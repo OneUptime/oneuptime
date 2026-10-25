@@ -310,10 +310,12 @@
     if ('serviceWorker' in navigator) {
       /*
        * A new version of the service worker taking over from the one that
-       * served this page: reload, so the page runs the code that version
-       * serves. The first worker to take control of a page that loaded
-       * without one is not that. Nothing on the page is stale, and a reload
-       * throws away whatever the user is doing: Register Device (Push
+       * served this page: the page may run code older than that version
+       * serves. The running Dashboard is told (it checks, says a new version
+       * is ready, and loads it on the next page); before it is running, the
+       * page reloads. The first worker to take control of a page that
+       * loaded without one is not that. Nothing on the page is stale, and a
+       * reload throws away whatever the user is doing: Register Device (Push
        * Notifications) is what installs the worker, so every first
        * registration was reloaded away before it was saved.
        *
@@ -329,6 +331,18 @@
 
         if (!previousController) {
           console.log('OneUptime PWA: Service worker now controls this page');
+          return;
+        }
+
+        /*
+         * The Dashboard looks for its new version itself: it says one is
+         * ready and loads it on the reader's next page, without throwing
+         * away what they are doing (Common/UI/Utils/NewVersion). A page
+         * still starting, or a build from before it could, reloads as before.
+         */
+        if (typeof window.oneuptimeOnNewServiceWorker === 'function') {
+          console.log('OneUptime PWA: New service worker took control');
+          window.oneuptimeOnNewServiceWorker();
           return;
         }
 
