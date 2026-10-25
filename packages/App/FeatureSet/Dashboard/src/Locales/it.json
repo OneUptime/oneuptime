@@ -13431,7 +13431,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "Nessun proprietario",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34744,5 +34744,11 @@
   "Any kind": "Qualsiasi tipo",
   "Entity actions": "Azioni dell'entità",
   "More entity actions": "Altre azioni dell'entità",
-  "Open Entity Risk": "Apri il rischio delle entità"
+  "Open Entity Risk": "Apri il rischio delle entità",
+  "No people available.": "Nessuna persona disponibile.",
+  "You do not have permission to add owners.": "Non hai l'autorizzazione per aggiungere proprietari.",
+  "You do not have permission to add people as owners.": "Non hai l'autorizzazione per aggiungere persone come proprietari.",
+  "You do not have permission to add teams as owners.": "Non hai l'autorizzazione per aggiungere team come proprietari.",
+  "Search people...": "Cerca persone...",
+  "No one else to add.": "Nessun altro da aggiungere."
 }

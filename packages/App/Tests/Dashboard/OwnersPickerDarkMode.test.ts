@@ -10,8 +10,9 @@ import path from "path";
  * variant: `.bg-gray-50` does not cover `hover:bg-gray-50`). A class it has
  * no rule for keeps its light colour in the dark theme - a white search list
  * over a slate dialog - and nothing fails. So this holds every colour class
- * the picker, its search list, its chips and avatars, the Owners card and
- * the owners table cell use to what Theme.css actually remaps.
+ * the picker, its search list, its chips and avatars, the Owners card, the
+ * shared Add owners list and its controls (Components/Owners, every file)
+ * and the owners table cell use to what Theme.css actually remaps.
  *
  * Rendering is covered in Common/Tests/UI/Components/PeoplePicker and
  * Common/Tests/App/Dashboard/OwnersCard.test.tsx.
@@ -38,7 +39,9 @@ const DASHBOARD_COMPONENTS: string = path.join(
 
 const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
 
-// Every file the picker and the card draw with.
+const OWNERS_DIR: string = path.join(DASHBOARD_COMPONENTS, "Owners");
+
+// Every file the picker, the card and the Add owners list draw with.
 const SOURCE_PATHS: Array<string> = [
   ...fs
     .readdirSync(PICKER_DIR)
@@ -49,7 +52,15 @@ const SOURCE_PATHS: Array<string> = [
     .map((name: string): string => {
       return path.join(PICKER_DIR, name);
     }),
-  path.join(DASHBOARD_COMPONENTS, "Owners", "OwnersCard.tsx"),
+  ...fs
+    .readdirSync(OWNERS_DIR)
+    .filter((name: string): boolean => {
+      return TYPESCRIPT_FILE.test(name);
+    })
+    .sort()
+    .map((name: string): string => {
+      return path.join(OWNERS_DIR, name);
+    }),
   path.join(DASHBOARD_COMPONENTS, "ResourceOwners", "OwnersCell.tsx"),
 ];
 

@@ -138,6 +138,7 @@ import EventStartTileValue from "../../../Components/EventView/EventStartTileVal
 import EventFactLinks from "../../../Components/EventView/EventFactLinks";
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
+import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import useEventOwners, {
   EventOwnersState,
 } from "../../../Components/EventView/useEventOwners";
@@ -852,8 +853,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   /*
    * Who owns the alert, teams first, beside its state and severity. Add
-   * owners is offered only while the alert is open, to a reader who may
-   * add one.
+   * owners - the Add owners list, right there - is offered only while the
+   * alert is open, to a reader who may add one.
    */
   const headerFacts: Array<EventStatusFact> = [];
 
@@ -863,7 +864,19 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !durationEndDate && owners.canAddOwners,
+    addOwners:
+      !durationEndDate && owners.canAddOwners
+        ? {
+            target: owners.target,
+            onOwnersChanged: async (change: OwnersChange): Promise<void> => {
+              // An owner added is a new feed entry too.
+              if (change.wasAdded) {
+                refreshFeed();
+              }
+              await owners.refresh();
+            },
+          }
+        : undefined,
   });
 
   if (ownersFact) {

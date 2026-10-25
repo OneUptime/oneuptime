@@ -172,7 +172,7 @@ When something stops an SLO from measuring, a banner at the top of each of its p
 
 The **Overview** answers "are we within budget?", from top to bottom:
 
-- **The summary**: the status, a sentence saying what it means, and the description. Beside it are **Refresh** and when the SLO was last evaluated. Under it are the target, the **Compliance window** (with a fill chip while a young rolling window fills: see [Young SLOs and the window-fill indicator](#young-slos-and-the-window-fill-indicator)), the number of monitors and the owners.
+- **The summary**: the status, a sentence saying what it means, and the description. Beside it are **Refresh** and when the SLO was last evaluated. Under it are the target, the **Compliance window** (with a fill chip while a young rolling window fills: see [Young SLOs and the window-fill indicator](#young-slos-and-the-window-fill-indicator)), the number of monitors and the owners, with **Add owners** to add one right there.
 - **The headline numbers**:
   - **SLI**: the share of good time in the window, and how far above or below the target it is.
   - **Error budget left**: a percentage, a duration such as "12m 30s left of 43m 12s", and a bar with a tick at the at-risk threshold. Once the budget is overspent it says **Budget exceeded** and how far over it is.

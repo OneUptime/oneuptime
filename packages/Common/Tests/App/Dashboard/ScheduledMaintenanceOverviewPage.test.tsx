@@ -56,6 +56,8 @@ const useEventOwnersMock: MockFunction = getJestMockFunction();
 let ownersForTest: Array<unknown> | undefined = undefined;
 // Whether the reader may add an owner, as useEventOwners reads the permissions.
 let mayAddOwnersForTest: boolean = true;
+// The hook's own read again, which the header's Add owners list asks for.
+const refreshOwnersMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -93,13 +95,25 @@ jest.mock(
     return {
       __esModule: true,
       default: (
-        options: unknown,
-      ): { owners: unknown; error: string; canAddOwners: boolean } => {
+        options: Record<string, unknown>,
+      ): {
+        owners: unknown;
+        error: string;
+        canAddOwners: boolean;
+        target: unknown;
+        refresh: () => Promise<void>;
+      } => {
         useEventOwnersMock(options);
         return {
           owners: ownersForTest,
           error: "",
           canAddOwners: mayAddOwnersForTest,
+          // The record's owner tables, as the hook hands them on.
+          target: options,
+          refresh: (): Promise<void> => {
+            refreshOwnersMock();
+            return Promise.resolve();
+          },
         };
       },
     };
@@ -656,6 +670,7 @@ describe("Scheduled maintenance overview page", () => {
     ownersForTest = undefined;
     mayAddOwnersForTest = true;
     useEventOwnersMock.mockReset();
+    refreshOwnersMock.mockReset();
     jest.spyOn(Navigation, "getLastParamAsObjectID").mockImplementation(() => {
       return new ObjectID(currentEventId);
     });
@@ -1242,7 +1257,7 @@ describe("Scheduled maintenance overview page", () => {
       ).toEqual(["Owners", "Status pages", "Created by"]);
     });
 
-    test("offers to add owners until the event is over, from its Owners page", async () => {
+    test("offers to add owners until the event is over, right there in the header - not on its Owners page", async () => {
       ownersForTest = [];
       getItemMock
         .mockResolvedValueOnce(makeEvent({ isEnded: false }) as never)
@@ -1250,19 +1265,76 @@ describe("Scheduled maintenance overview page", () => {
 
       await renderPage();
 
-      const add: HTMLElement = within(renderFact("Owners")).getByRole("link", {
+      const owners: HTMLElement = renderFact("Owners");
+      const add: HTMLElement = within(owners).getByRole("button", {
         name: "Add owners",
       });
 
-      expect(add.getAttribute("href")).toContain(
-        `/scheduled-maintenance-events/${EVENT_ID}/owners`,
-      );
+      expect(add).toHaveAttribute("data-testid", "event-owners-add");
+      expect(add).toHaveAttribute("aria-haspopup", "dialog");
+      expect(within(owners).queryByRole("link")).toBeNull();
       cleanupFact();
 
       fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
       await flush();
 
       expect(renderFact("Owners")).toHaveTextContent(/^None$/);
+    });
+
+    test("the header's Add owners adds to the event's own owner tables, and an owner added reads the owners and the feed again", async () => {
+      ownersForTest = [];
+      getItemMock.mockResolvedValue(makeEvent({ isEnded: false }) as never);
+
+      await renderPage();
+
+      const fact: EventStatusFact | undefined = (
+        lastProps<ChangeStateProps>(changeStateRenderMock).facts || []
+      ).find((candidate: EventStatusFact): boolean => {
+        return candidate.label === "Owners";
+      });
+      const addOwners: {
+        target: {
+          ownerUserModelType: { name: string };
+          ownerTeamModelType: { name: string };
+          resourceIdField: string;
+          resourceId: ObjectID;
+        };
+        onOwnersChanged: (change: { wasAdded: boolean }) => Promise<void>;
+      } = (
+        (fact!.value as React.ReactElement).props as {
+          addOwners: never;
+        }
+      ).addOwners;
+
+      expect(addOwners.target.ownerUserModelType.name).toBe(
+        "ScheduledMaintenanceOwnerUser",
+      );
+      expect(addOwners.target.ownerTeamModelType.name).toBe(
+        "ScheduledMaintenanceOwnerTeam",
+      );
+      expect(addOwners.target.resourceIdField).toBe("scheduledMaintenanceId");
+      expect(addOwners.target.resourceId.toString()).toBe(EVENT_ID);
+
+      const feedToken: number | undefined =
+        lastProps<FeedProps>(feedRenderMock).refreshToken;
+
+      // Refused: the owners are read again, the feed has nothing new.
+      await act(async () => {
+        await addOwners.onOwnersChanged({ wasAdded: false });
+      });
+
+      expect(refreshOwnersMock).toHaveBeenCalledTimes(1);
+      expect(lastProps<FeedProps>(feedRenderMock).refreshToken).toBe(feedToken);
+
+      // Added: the owners, and the feed, which says who added them.
+      await act(async () => {
+        await addOwners.onOwnersChanged({ wasAdded: true });
+      });
+
+      expect(refreshOwnersMock).toHaveBeenCalledTimes(2);
+      expect(lastProps<FeedProps>(feedRenderMock).refreshToken).toBe(
+        (feedToken || 0) + 1,
+      );
     });
 
     test("offers no Add owners to a reader who may not add one", async () => {
@@ -1275,6 +1347,7 @@ describe("Scheduled maintenance overview page", () => {
       const owners: HTMLElement = renderFact("Owners");
 
       expect(within(owners).queryByRole("link")).toBeNull();
+      expect(within(owners).queryByRole("button")).toBeNull();
       expect(owners).toHaveTextContent(/^None$/);
     });
   });

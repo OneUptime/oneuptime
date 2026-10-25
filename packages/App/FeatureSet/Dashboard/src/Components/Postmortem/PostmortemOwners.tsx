@@ -2,6 +2,7 @@ import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import { AnchoredFieldPopup } from "Common/UI/Types/UseAnchoredFieldPopup";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
@@ -14,14 +15,19 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
+import { getOwnerKeys, OwnersChange, OwnersTarget } from "../Owners/AddOwners";
+import AddOwnersPopup, {
+  AddOwnersPlaceButton,
+  AddOwnersTextButton,
+  useAddOwnersPopup,
+} from "../Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 
 export const POSTMORTEM_NO_OWNERS: string = translationKey("No owners yet.");
-export const POSTMORTEM_ADD_OWNERS: string = translationKey("Add owners");
-export const POSTMORTEM_CHANGE_OWNERS: string = translationKey("Change owners");
 
 // The owners named beside the avatars, and how many more there are.
 export const POSTMORTEM_MORE_OWNERS: PluralTemplate = {
@@ -151,21 +157,54 @@ export function useIncidentOwners(data: {
   return { owners, hasLoaded };
 }
 
+/*
+ * The owners' Add owners: the incident's owner tables, and what to do once
+ * an owner was added from its list.
+ */
+export interface PostmortemAddOwners {
+  target: OwnersTarget;
+  // After a pick: the page reads the incident's owners again.
+  onOwnersChanged: (change: OwnersChange) => void;
+}
+
 export interface ComponentProps {
   owners: Array<ResourceOwnerEntry>;
   hasLoaded: boolean;
+  /*
+   * Offered to a reader who may add an owner to the incident: "Add owners"
+   * beside "No owners yet.", or the empty place after the owners, each
+   * opening the Add owners list right there - the incident's Owners page
+   * stays where they are managed in full.
+   */
+  addOwners?: PostmortemAddOwners | undefined;
 }
 
 /*
  * Who owns the postmortem: the incident's owners, as avatars and by name.
- * With none, it says so. The way to change them - the incident's Owners
- * page, where they are picked as everywhere else - is the link beside the
- * field's name (PostmortemSummary).
+ * With none, it says so. A reader who may add an owner adds one right here,
+ * from the same list the incident's Owners page opens.
  */
 const PostmortemOwners: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  // One list for both places to add from; only one is ever drawn.
+  const popup: AnchoredFieldPopup = useAddOwnersPopup(props.owners.length);
+  const ownerKeys: Set<string> = useMemo((): Set<string> => {
+    return getOwnerKeys(props.owners);
+  }, [props.owners]);
+
+  const addList: ReactElement = props.addOwners ? (
+    <AddOwnersPopup
+      popup={popup}
+      target={props.addOwners.target}
+      ownerKeys={ownerKeys}
+      onOwnersChanged={props.addOwners.onOwnersChanged}
+    />
+  ) : (
+    <></>
+  );
 
   if (!props.hasLoaded) {
     return (
@@ -178,16 +217,32 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * The list is the fragment's second child whatever the line shows, so it
+   * stays open, with what it said, as the first owner takes "No owners
+   * yet."'s place.
+   */
   if (props.owners.length === 0) {
     return (
-      <span
-        className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-        data-testid="postmortem-owners"
-      >
-        <span className="text-gray-500">
-          {translator.translateText(POSTMORTEM_NO_OWNERS)}
-        </span>
-      </span>
+      <>
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+          data-testid="postmortem-owners"
+        >
+          <span className="text-gray-500">
+            {translator.translateText(POSTMORTEM_NO_OWNERS)}
+          </span>
+          {props.addOwners ? (
+            <AddOwnersTextButton
+              popup={popup}
+              dataTestId="postmortem-add-owners"
+            />
+          ) : (
+            <></>
+          )}
+        </div>
+        {addList}
+      </>
     );
   }
 
@@ -208,13 +263,24 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
       : named.join(", ");
 
   return (
-    <span
-      className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-      data-testid="postmortem-owners"
-    >
-      <OwnersCell owners={props.owners} maxVisible={NAMED_OWNERS} />
-      <span className="min-w-0 truncate text-gray-700">{namesText}</span>
-    </span>
+    <>
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+        data-testid="postmortem-owners"
+      >
+        <OwnersCell owners={props.owners} maxVisible={NAMED_OWNERS} />
+        <span className="min-w-0 truncate text-gray-700">{namesText}</span>
+        {props.addOwners ? (
+          <AddOwnersPlaceButton
+            popup={popup}
+            dataTestId="postmortem-add-more-owners"
+          />
+        ) : (
+          <></>
+        )}
+      </div>
+      {addList}
+    </>
   );
 };
 

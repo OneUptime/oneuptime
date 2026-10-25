@@ -13431,7 +13431,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "无所有者",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34744,5 +34744,11 @@
   "Any kind": "任意类型",
   "Entity actions": "实体操作",
   "More entity actions": "更多实体操作",
-  "Open Entity Risk": "打开实体风险"
+  "Open Entity Risk": "打开实体风险",
+  "No people available.": "没有可用的人员。",
+  "You do not have permission to add owners.": "您没有添加所有者的权限。",
+  "You do not have permission to add people as owners.": "您没有将人员添加为所有者的权限。",
+  "You do not have permission to add teams as owners.": "您没有将团队添加为所有者的权限。",
+  "Search people...": "搜索人员...",
+  "No one else to add.": "没有其他可添加的人员或团队。"
 }

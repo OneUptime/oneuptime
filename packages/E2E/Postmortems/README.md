@@ -27,9 +27,13 @@ move's reason wrapping inside its row. On the incident's page: the status and
 owners at the top of the card, **Write Postmortem** with **Start from
 Template** and **Generate with AI** beside it as white bordered buttons while
 nothing is written (stacked at full width on a phone; for a viewer, Write
-Postmortem alone, locked, with why under it, and no Change owners link),
+Postmortem alone, locked, with why under it, and no Add owners),
 **Edit Postmortem Note** with the two folded into the **⋯** once it is, and
-the status moved from the card. On the settings page: the statuses in order
+the status moved from the card. **Add owners**, beside the owners or beside
+"No owners yet." (`owners=none`), opens the Add owners list right there: a
+pick writes the incident's owner row, the card names it at once and the list
+stays open; `fail=owner-add` says why in the list; the list is whole on a
+phone. On the settings page: the statuses in order
 with what each counts as, the built-in ones marked on their name's line, a
 status of the project's own and an archived one.
 
@@ -37,7 +41,8 @@ Screenshots are saved under `output/playwright/postmortems-ui/` at the
 repository root: `list.png`, `list-not-started.png`, `row-status-menu.png`,
 `bulk-dialog.png`, `list-empty.png`, `list-phone.png`, `list-dark.png`,
 `list-german.png`, `tab-written.png`, `tab-empty.png`, `tab-empty-phone.png`,
-`tab-write-dialog.png`, `tab-phone.png`, `settings.png` and
+`tab-write-dialog.png`, `tab-phone.png`, `tab-owners-add-list.png`,
+`tab-owners-added.png`, `tab-owners-add-list-phone.png`, `settings.png` and
 `settings-custom.png`. The records in them
 are made up. These screenshots verify the production UI; they do not
 demonstrate database persistence or the moves the server makes on its own,

@@ -409,6 +409,183 @@ describe("useEventOwners", () => {
 });
 
 /*
+ * Once the header's Add owners list adds an owner, the header reads its
+ * owners again (refresh) and names the new one - settling only once it
+ * does, so the pick's row stays busy until then. A read again that fails
+ * keeps the owners on screen: the owner was added all the same.
+ */
+describe("reading the owners again (refresh)", () => {
+  test("names the owner just added, and settles once it does", async () => {
+    let rows: Array<IncidentOwnerUser> = [];
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      return Promise.resolve(
+        listOf(
+          (args[0] as ListRequest).modelType === IncidentOwnerUser
+            ? rows
+            : [teamRow("Checkout SRE", "81000000-0000-4000-8000-000000000001")],
+        ),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(names(hook.result.current)).toEqual(["team:Checkout SRE"]);
+    });
+
+    rows = [userRow("Jordan Patel", "80000000-0000-4000-8000-000000000003")];
+
+    await act(async () => {
+      await hook.result.current.refresh();
+    });
+
+    // Named by the time refresh settles: nothing else to wait for.
+    expect(names(hook.result.current)).toEqual([
+      "team:Checkout SRE",
+      "user:Jordan Patel",
+    ]);
+    // Read again for this record, from the same tables.
+    expect(getListMock).toHaveBeenCalledTimes(4);
+    for (const call of getListMock.mock.calls) {
+      expect(String((call[0] as ListRequest).query["incidentId"])).toBe(
+        INCIDENT_ID,
+      );
+    }
+  });
+
+  test("keeps the owners on screen while it reads, and when the read fails", async () => {
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      return Promise.resolve(
+        listOf(
+          (args[0] as ListRequest).modelType === IncidentOwnerUser
+            ? [userRow("Sam Rivera", "80000000-0000-4000-8000-000000000002")]
+            : [],
+        ),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(names(hook.result.current)).toEqual(["user:Sam Rivera"]);
+    });
+
+    const pending: Deferred<unknown> = createDeferred<unknown>();
+
+    getListMock.mockImplementation(() => {
+      return pending.promise;
+    });
+
+    let refreshed: Promise<void> = Promise.resolve();
+
+    act(() => {
+      refreshed = hook.result.current.refresh();
+    });
+
+    // While it reads: the same owners, never a blank or a placeholder.
+    expect(names(hook.result.current)).toEqual(["user:Sam Rivera"]);
+
+    await act(async () => {
+      pending.reject(new Error("The API is restarting."));
+      await refreshed;
+    });
+
+    expect(names(hook.result.current)).toEqual(["user:Sam Rivera"]);
+    expect(hook.result.current.error).toBe("");
+  });
+
+  test("a read again for a record the reader has left never stands in for the next", async () => {
+    const late: Deferred<unknown> = createDeferred<unknown>();
+    let isFirstRecordReadAgain: boolean = false;
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (
+        String(request.query["incidentId"]) === INCIDENT_ID &&
+        isFirstRecordReadAgain
+      ) {
+        return late.promise;
+      }
+
+      return Promise.resolve(
+        listOf(
+          String(request.query["incidentId"]) === INCIDENT_ID
+            ? []
+            : request.modelType === IncidentOwnerUser
+              ? []
+              : [teamRow("Payments", "81000000-0000-4000-8000-000000000002")],
+        ),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(hook.result.current.owners).toEqual([]);
+    });
+
+    isFirstRecordReadAgain = true;
+
+    let refreshed: Promise<void> = Promise.resolve();
+
+    act(() => {
+      refreshed = hook.result.current.refresh();
+    });
+
+    hook.rerender(incidentOptions(OTHER_INCIDENT_ID));
+
+    await waitFor(() => {
+      expect(names(hook.result.current)).toEqual(["team:Payments"]);
+    });
+
+    await act(async () => {
+      late.resolve(listOf([userRow("Sam Rivera", "u1")]));
+      await refreshed;
+    });
+
+    expect(names(hook.result.current)).toEqual(["team:Payments"]);
+  });
+
+  test("hands on the record's owner tables, for the header's Add owners list to add to", () => {
+    getListMock.mockImplementation(() => {
+      return new Promise(() => {});
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    const first: EventOwnersState["target"] = hook.result.current.target;
+
+    expect(first.ownerUserModelType).toBe(IncidentOwnerUser);
+    expect(first.ownerTeamModelType).toBe(IncidentOwnerTeam);
+    expect(first.resourceIdField).toBe("incidentId");
+    expect(first.resourceId.toString()).toBe(INCIDENT_ID);
+
+    // The same object while the record is the same: the list is not reset.
+    hook.rerender(incidentOptions(INCIDENT_ID));
+    expect(hook.result.current.target).toBe(first);
+
+    hook.rerender(incidentOptions(OTHER_INCIDENT_ID));
+    expect(hook.result.current.target.resourceId.toString()).toBe(
+      OTHER_INCIDENT_ID,
+    );
+  });
+});
+
+/*
  * The header offers Add owners only to a reader the Owners page would let
  * add one: someone who may create an owner row - a person or a team - for
  * the record. Read from the permission snapshot (PermissionGate), so it is

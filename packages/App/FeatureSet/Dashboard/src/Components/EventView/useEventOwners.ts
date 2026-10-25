@@ -6,9 +6,16 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { useEffect, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { canAddOwners, OwnersTarget } from "../Owners/AddOwners";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import { orderEventOwners } from "../../Utils/EventPeople";
 
@@ -48,6 +55,14 @@ export interface EventOwnersState {
    * the permissions are known.
    */
   canAddOwners: boolean;
+  // The record's owner tables: where the header's Add owners list adds.
+  target: OwnersTarget;
+  /*
+   * Reads the owners again - after one was added from the header - and
+   * settles once the header shows the answer. A read that fails keeps the
+   * owners that are on screen: the new one was added all the same.
+   */
+  refresh: () => Promise<void>;
 }
 
 interface LoadedOwners {
@@ -83,20 +98,28 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
   const resourceIdString: string = options.resourceId.toString();
   const [loaded, setLoaded] = useState<LoadedOwners | null>(null);
 
-  useEffect(() => {
-    let isCurrent: boolean = true;
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  /*
+   * Which read is the latest: an answer to an earlier one - for the record
+   * the reader left, or overtaken by a newer read - is dropped.
+   */
+  const latestReadRef: MutableRefObject<number> = useRef<number>(0);
 
-    if (!projectId) {
-      return undefined;
-    }
+  const read: (isRefresh: boolean) => Promise<void> = useCallback(
+    async (isRefresh: boolean): Promise<void> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-    const query: Record<string, unknown> = {
-      [options.resourceIdField]: new ObjectID(resourceIdString),
-      projectId: projectId,
-    };
+      if (!projectId) {
+        return;
+      }
 
-    const read: () => Promise<void> = async (): Promise<void> => {
+      latestReadRef.current += 1;
+      const readNumber: number = latestReadRef.current;
+
+      const query: Record<string, unknown> = {
+        [options.resourceIdField]: new ObjectID(resourceIdString),
+        projectId: projectId,
+      };
+
       try {
         const [userRows, teamRows]: [
           ListResult<BaseModel>,
@@ -134,7 +157,7 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
           }
         }
 
-        if (isCurrent) {
+        if (readNumber === latestReadRef.current) {
           setLoaded({
             resourceId: resourceIdString,
             owners: orderEventOwners(owners),
@@ -142,7 +165,8 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
           });
         }
       } catch (err) {
-        if (isCurrent) {
+        // A read again after an add keeps what the header shows.
+        if (readNumber === latestReadRef.current && !isRefresh) {
           setLoaded({
             resourceId: resourceIdString,
             owners: undefined,
@@ -150,12 +174,34 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
           });
         }
       }
-    };
+    },
+    [
+      resourceIdString,
+      options.resourceIdField,
+      options.ownerUserModelType,
+      options.ownerTeamModelType,
+    ],
+  );
 
-    void read();
+  useEffect(() => {
+    void read(false);
 
     return () => {
-      isCurrent = false;
+      // Whatever is still on its way was read for the record being left.
+      latestReadRef.current += 1;
+    };
+  }, [read]);
+
+  const refresh: () => Promise<void> = useCallback((): Promise<void> => {
+    return read(true);
+  }, [read]);
+
+  const target: OwnersTarget = useMemo((): OwnersTarget => {
+    return {
+      ownerUserModelType: options.ownerUserModelType,
+      ownerTeamModelType: options.ownerTeamModelType,
+      resourceIdField: options.resourceIdField,
+      resourceId: new ObjectID(resourceIdString),
     };
   }, [
     resourceIdString,
@@ -164,25 +210,29 @@ const useEventOwners: (options: UseEventOwnersOptions) => EventOwnersState = (
     options.ownerTeamModelType,
   ]);
 
+  const mayAddOwners: boolean = canAddOwners(target);
+
   /*
    * Read only while it is the record on screen: the page stays mounted when
    * the reader follows a link to another record, and the previous record's
    * owners must never stand in the next one's header.
    */
-  const canAddOwners: boolean =
-    PermissionGate.check(new options.ownerUserModelType(), ModelAction.Create)
-      .isAllowed ||
-    PermissionGate.check(new options.ownerTeamModelType(), ModelAction.Create)
-      .isAllowed;
-
   if (!loaded || loaded.resourceId !== resourceIdString) {
-    return { owners: undefined, error: "", canAddOwners: canAddOwners };
+    return {
+      owners: undefined,
+      error: "",
+      canAddOwners: mayAddOwners,
+      target: target,
+      refresh: refresh,
+    };
   }
 
   return {
     owners: loaded.owners,
     error: loaded.error,
-    canAddOwners: canAddOwners,
+    canAddOwners: mayAddOwners,
+    target: target,
+    refresh: refresh,
   };
 };
 

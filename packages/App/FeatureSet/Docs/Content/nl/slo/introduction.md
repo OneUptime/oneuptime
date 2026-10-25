@@ -172,7 +172,7 @@ Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagi
 
 Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar beneden:
 
-- **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Compliance window** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren.
+- **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Compliance window** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
   - **Error budget left**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget exceeded** en met hoeveel.
