@@ -590,7 +590,7 @@ integration("Metrics' AI reads against ClickHouse", () => {
     ).toEqual([[REQUEST_COUNT, CHECKOUT, "user.id", USER_COUNT]]);
 
     // A hundred of the hour's own users, read to tell what they look like.
-    const sample: Array<string> = reads.attributes[0]!.sampleValues;
+    const sample: ReadonlyArray<string> = reads.attributes[0]!.sampleValues;
     const users: Set<string> = new Set<string>(
       Array.from({ length: USER_COUNT }, (_value: unknown, index: number) => {
         return uuid(index);
