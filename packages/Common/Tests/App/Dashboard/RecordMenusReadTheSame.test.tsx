@@ -14,6 +14,7 @@ import AlertEpisodeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages
 import IncidentSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/View/SideMenu";
 import IncidentEpisodeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/SideMenu";
 import ScheduledMaintenanceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/SideMenu";
+import SecurityCaseSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -160,6 +161,17 @@ const RECORD_MENUS: ReadonlyArray<RecordMenu> = [
       "Advanced",
     ],
   },
+  {
+    /*
+     * A security case: its assignee and team are in its header, it notifies
+     * through its timeline, and it is opened by detections rather than set
+     * up as code - so no Team, Notifications or Developer section.
+     */
+    name: "security case",
+    menu: <SecurityCaseSideMenu modelId={MODEL_ID} />,
+    overviewPage: PageMap.SECURITY_CASE_VIEW,
+    sections: ["Overview", "Investigation", "Notes", "Advanced"],
+  },
 ];
 
 /*
@@ -170,6 +182,8 @@ const RECORD_MENUS: ReadonlyArray<RecordMenu> = [
 const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   Overview: "Overview",
   "State Timeline": "Overview",
+  // A security case's timeline: everything that happened to it.
+  Timeline: "Overview",
   SLA: "Overview",
   Description: "Investigation",
   "Root Cause": "Investigation",
@@ -179,6 +193,10 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   Postmortem: "Investigation",
   "Linked Alerts": "Investigation",
   "Linked Incidents": "Investigation",
+  // What a security case is made of, and what was done about it.
+  Detections: "Investigation",
+  Entities: "Investigation",
+  "Playbook Runs": "Investigation",
   Roles: "Team",
   "On-Call Executions": "Team",
   Owners: "Team",
@@ -195,6 +213,7 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   "Delete Alert": "Advanced",
   "Delete Episode": "Advanced",
   "Delete Event": "Advanced",
+  "Delete Case": "Advanced",
 };
 
 const MAINTENANCE_OVERVIEW_PAGES: ReadonlyArray<string> = [

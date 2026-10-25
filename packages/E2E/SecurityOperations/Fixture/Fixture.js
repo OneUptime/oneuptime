@@ -68,7 +68,15 @@ import ja from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
-import SecurityCaseViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView";
+import SecurityCaseViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Layout";
+import SecurityCaseOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index";
+import SecurityCaseTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
+import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
+import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
+import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/PlaybookRuns";
+import SecurityCaseNotesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes";
+import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs";
+import SecurityCaseDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Delete";
 import SecurityEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities";
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
@@ -3228,7 +3236,25 @@ const STUB_PAGES = [
   [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
 ];
 
-const CaseView = withParams(SecurityCaseViewPage, PageMap.SECURITY_CASE_VIEW);
+/*
+ * A case's pages, under the case's own layout and side menu, as
+ * Routes/SecurityEventsRoutes.tsx mounts them: its Overview at the case's
+ * address, each other page one level under it.
+ */
+function FixtureCaseLayout() {
+  useNavigationHooks();
+  return <SecurityCaseViewLayout {...pageProps(PageMap.SECURITY_CASE_VIEW)} />;
+}
+
+const CASE_PAGES = [
+  [PageMap.SECURITY_CASE_VIEW_TIMELINE, SecurityCaseTimelinePage],
+  [PageMap.SECURITY_CASE_VIEW_DETECTIONS, SecurityCaseDetectionsPage],
+  [PageMap.SECURITY_CASE_VIEW_ENTITIES, SecurityCaseEntitiesPage],
+  [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, SecurityCasePlaybookRunsPage],
+  [PageMap.SECURITY_CASE_VIEW_NOTES, SecurityCaseNotesPage],
+  [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, SecurityCaseAuditLogsPage],
+  [PageMap.SECURITY_CASE_VIEW_DELETE, SecurityCaseDeletePage],
+];
 const PlaybookView = withParams(
   SecurityPlaybookViewPage,
   PageMap.SECURITY_PLAYBOOK_VIEW,
@@ -3259,8 +3285,26 @@ function FixtureApp() {
             path={`${RouteMap[PageMap.SECURITY_EVENTS].toString()}/${
               SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW]
             }`}
-            element={<CaseView />}
-          />
+            element={<FixtureCaseLayout />}
+          >
+            <Route
+              index
+              element={
+                <SecurityCaseOverviewPage
+                  {...pageProps(PageMap.SECURITY_CASE_VIEW)}
+                />
+              }
+            />
+            {CASE_PAGES.map(([pageKey, Page]) => {
+              return (
+                <Route
+                  key={pageKey}
+                  path={SecurityEventsRoutePath[pageKey].split("/").pop()}
+                  element={<Page {...pageProps(pageKey)} />}
+                />
+              );
+            })}
+          </Route>
           <Route
             path={`${RouteMap[PageMap.SECURITY_EVENTS].toString()}/${
               SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_VIEW]

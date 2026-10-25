@@ -1,4 +1,5 @@
 import PageMap from "./PageMap";
+import { getSecurityCasePages } from "./SecurityCaseNavigation";
 import IconProp from "Common/Types/Icon/IconProp";
 
 /*
@@ -319,11 +320,12 @@ export function isSecurityEventsWorkspacePage(
 }
 
 /*
- * The pages that open on their own, outside the menu's layout: a case and a
- * playbook are each worked on a full-width page, reached from their lists.
+ * The pages that open on their own, outside the menu's layout, reached from
+ * their lists: a case's pages, under the case's own side menu
+ * (SecurityCaseNavigation.ts), and a playbook's full-width page.
  */
 export const SECURITY_EVENTS_DETAIL_PAGES: Array<PageMap> = [
-  PageMap.SECURITY_CASE_VIEW,
+  ...getSecurityCasePages(),
   PageMap.SECURITY_PLAYBOOK_VIEW,
 ];
 

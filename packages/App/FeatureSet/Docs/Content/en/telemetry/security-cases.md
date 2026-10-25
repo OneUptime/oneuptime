@@ -82,15 +82,27 @@ A new project's cases move through four statuses, which you can rename and add t
 | Contained | The threat can no longer do harm; the cleanup is still to do |
 | Closed | Done, with a verdict on what it was |
 
-The case's page has everything to work it:
+A case has a side menu of its own, as an incident has, and each part of the case is a page of its own:
 
-- At the top: **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, the status steps, and the priority under the menu beside them.
-- **OneUptime AI**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
+| Side menu section | Pages |
+| --- | --- |
+| **Overview** | **Overview**, **Timeline** |
+| **Investigation** | **Detections**, **Entities**, **Playbook Runs** |
+| **Notes** | **Private Notes** |
+| **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
+
+Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**.
+
+- **Overview**: the case's description, labels and status steps, who has it and what opened it, and its figures: how many detections it has, how long it has been open, and how long it took to acknowledge and to contain.
+- **OneUptime AI**, on the **Overview**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, on the **Overview**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
+- **Timeline**: everything that happened to the case, with who did it.
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
-- **MITRE ATT&CK**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
-- **Playbook Runs**: what each playbook did on the case, step by step, and the steps waiting for approval.
-- **Notes** and **Timeline**: what the team wrote, and everything that happened, with who did it.
+- **Playbook Runs**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbook Runs**.
+- **Private Notes**: what the team wrote about the case.
+- **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
+- **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.
 
 To work several cases at once, select them in the queue and use **Assign to Me**, **Change Status** or **Change Priority**.
 

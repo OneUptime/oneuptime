@@ -12,6 +12,7 @@ import {
   getOnCallDutyBreadcrumbs,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OnCallDutyBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
+import { getSecurityEventsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SecurityEventsBreadcrumbs";
 import { getStatusPagesBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/StatusPagesBreadcrumbs";
 import { getTeamsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/TeamsBreadcrumbs";
 import { getUsersBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/UsersBreadcrumbs";
@@ -113,6 +114,12 @@ const RECORD_KINDS: Array<RecordKind> = [
     viewKey: "ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW",
     viewTitle: "View Policy",
     builder: getIncomingCallPolicyBreadcrumbs,
+  },
+  // A security case's pages, under its side menu: named by its number.
+  {
+    viewKey: "SECURITY_CASE_VIEW",
+    viewTitle: "View Case",
+    builder: getSecurityEventsBreadcrumbs,
   },
 ];
 

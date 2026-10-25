@@ -63,16 +63,27 @@ afterEach(() => {
 });
 
 describe("which Security page Ask AI is on", () => {
-  test.each(["", "/overview", "/ai", "/notes", "/playbooks"])(
-    "a case's page (%s) is the case itself",
-    (suffix: string) => {
-      navigateTo(
-        `/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}${suffix}`,
-      );
+  test.each([
+    "",
+    // Each page under the case's own side menu.
+    "/timeline",
+    "/detections",
+    "/entities",
+    "/playbook-runs",
+    "/notes",
+    "/audit-logs",
+    "/delete",
+    // And any address under it.
+    "/overview",
+    "/ai",
+    "/playbooks",
+  ])("a case's page (%s) is the case itself", (suffix: string) => {
+    navigateTo(
+      `/dashboard/${PROJECT_ID}/security-events/cases/${CASE_ID}${suffix}`,
+    );
 
-      expect(PageContextUtil.detectPageContext()).toEqual(CASE_CONTEXT);
-    },
-  );
+    expect(PageContextUtil.detectPageContext()).toEqual(CASE_CONTEXT);
+  });
 
   test.each([
     "",
