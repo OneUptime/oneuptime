@@ -133,14 +133,14 @@ describe("a field's OpenAPI metadata", () => {
 
 describe("a field's documentation", () => {
   test("what .describe() and .openapi() said about the field itself wins over its type's", () => {
-    const idType: unknown = Zod.string().openapi({
-      type: "string",
-      description: "A unique identifier for an object, represented as a UUID.",
-    });
-
     expect(
       fieldOf(
-        (idType as ReturnType<typeof Zod.string>)
+        Zod.string()
+          .openapi({
+            type: "string",
+            description:
+              "A unique identifier for an object, represented as a UUID.",
+          })
           .optional()
           .describe("The project this belongs to.")
           .openapi({ description: "The project this belongs to." }),

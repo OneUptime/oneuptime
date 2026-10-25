@@ -131,13 +131,14 @@ describe("SchemaConverter", () => {
        * }) with the column's words, on top of a type (ObjectID's) that brings
        * a description of its own.
        */
-      const idType: unknown = Zod.string().openapi({
-        type: "string",
-        format: "uuid",
-        description: "A unique identifier for an object, represented as a UUID.",
-      });
       const schema: ModelSchemaType = objectSchema({
-        projectId: (idType as ReturnType<typeof Zod.string>)
+        projectId: Zod.string()
+          .openapi({
+            type: "string",
+            format: "uuid",
+            description:
+              "A unique identifier for an object, represented as a UUID.",
+          })
           .optional()
           .describe("The project this belongs to.")
           .openapi({ description: "The project this belongs to." }),
