@@ -14,6 +14,7 @@ import Button, {
   OUTLINE_BUTTON_HOVER_CLASS_NAMES,
 } from "../../../UI/Components/Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { StyleRule, THEME_RULES } from "../Styles/ThemeStylesheet";
 
 /*
@@ -227,9 +228,12 @@ describe("an outline button is the plain bordered button, sized to its label", (
         expect(classes).not.toContain(layoutClass);
       }
 
+      // A margin on any side, physical or logical (ms-, me-).
+      const margin: RegExp = /^(?:[a-z]+:)?-?m[lrxyse]?-/u;
+
       expect(
         classes.filter((token: string) => {
-          return /^(?:[a-z]+:)?-?m[lrxy]?-/u.test(token);
+          return margin.test(token);
         }),
       ).toEqual([]);
     },
@@ -438,7 +442,7 @@ describe("a disabled button looks it", () => {
   });
 
   test("a disabled button never fires its click", () => {
-    const onClick: jest.Mock = jest.fn();
+    const onClick: MockFunction = getJestMockFunction();
 
     render(
       <Button
@@ -591,6 +595,8 @@ const FRONTEND_SOURCE_DIRS: Array<string> = [
   "ee/AdminDashboard",
 ];
 
+const SOURCE_FILE: RegExp = /\.(?:tsx?|jsx?|css|ejs|html)$/u;
+
 const listSourceFiles: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
@@ -610,7 +616,7 @@ const listSourceFiles: (directory: string) => Array<string> = (
       continue;
     }
 
-    if (/\.(?:tsx?|jsx?|css|ejs|html)$/u.test(entry.name)) {
+    if (SOURCE_FILE.test(entry.name)) {
       files.push(entryPath);
     }
   }

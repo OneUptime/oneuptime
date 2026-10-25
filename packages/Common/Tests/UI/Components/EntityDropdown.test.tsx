@@ -337,6 +337,10 @@ describe("EntityDropdown", () => {
       const name: HTMLElement = screen.getByText(longName);
       const chip: HTMLElement = name.parentElement as HTMLElement;
 
+      // Named for tests that read a chip: its name is the whole label.
+      expect(chip).toHaveAttribute("data-testid", "entity-dropdown-chip");
+      expect(name).toHaveAttribute("data-testid", "entity-dropdown-chip-label");
+
       expect(name).not.toHaveClass("truncate");
       expect(name.className).not.toContain("max-w-[14rem]");
       expect(name).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");

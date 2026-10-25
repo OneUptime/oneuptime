@@ -32,7 +32,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
       },
-      createOrUpdate: async (): Promise<{ data: object }> => {
+      createOrUpdate: async (): Promise<{
+        data: Record<string, unknown>;
+      }> => {
         return { data: {} };
       },
       getList: async (): Promise<{
