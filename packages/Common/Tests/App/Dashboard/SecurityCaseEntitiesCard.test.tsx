@@ -25,9 +25,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * past week, how many findings, the worst of their severities and when it
  * was last seen. On a narrow page (a phone, a narrow window beside the side
  * menu) the type and when go under the value and their columns step out.
+ * Each user, host and address carries its risk (Security Events > Entity
+ * Risk), linked to its page: a column of its own where the table has room,
+ * under the value where it has not.
  */
 
 const getEntityActivityMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -55,12 +60,32 @@ jest.mock(
   },
 );
 
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: (...args: Array<unknown>) => {
+        return getListMock(...args);
+      },
+      getItem: (...args: Array<unknown>) => {
+        return getItemMock(...args);
+      },
+    },
+  };
+});
+
 import SecurityCaseEntitiesCard, {
   ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME,
+  ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME,
+  ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME,
   ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME,
   ENTITY_ACTIVITY_HOURS,
   SECURITY_CASE_ENTITIES_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseEntitiesCard";
+import { ENTITY_RISK_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import ProjectUtil from "../../../UI/Utils/Project";
+import ObjectID from "../../../Types/ObjectID";
 import { SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityEntityChips";
 import OneUptimeDate from "../../../Types/Date";
 import {
@@ -97,7 +122,9 @@ function cellsOf(row: HTMLElement): Array<string> {
       const copy: HTMLElement = cell.cloneNode(true) as HTMLElement;
 
       copy
-        .querySelectorAll(`[class*="${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}"]`)
+        .querySelectorAll(
+          `[class*="${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}"], [class*="${ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME}"]`,
+        )
         .forEach((narrowOnly: Element): void => {
           narrowOnly.remove();
         });
@@ -107,8 +134,35 @@ function cellsOf(row: HTMLElement): Array<string> {
   );
 }
 
+const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
+
+// The project's risk threshold, as Settings > Risk Scoring keeps it.
+let threshold: number = 100;
+
 beforeEach(() => {
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  threshold = 100;
+  getItemMock.mockReset();
+  getItemMock.mockImplementation(async () => {
+    return {
+      securityRiskCaseThreshold: threshold,
+      enableSecurityRiskCases: true,
+    };
+  });
+  // The risk of the address and the user; the domain carries none.
+  getListMock.mockReset();
+  getListMock.mockImplementation(async () => {
+    return {
+      data: [
+        { entityKey: "203.0.113.47", riskScore: 125 },
+        { entityKey: "k.morgan@acme-commerce.example", riskScore: 200 },
+      ],
+      count: 2,
+    };
+  });
   getEntityActivityMock.mockReset();
   getEntityActivityMock.mockImplementation(async () => {
     return [
@@ -175,6 +229,7 @@ describe("the case's entities", () => {
       "Findings",
       "Worst Severity",
       "Last Seen",
+      "Risk",
     ]);
     // What the count counts, on hover.
     expect(
@@ -189,6 +244,9 @@ describe("the case's entities", () => {
       expect(cellsOf(rows()[0]!)[2]).toBe("475");
     });
 
+    await waitFor(() => {
+      expect(cellsOf(rows()[0]!)[6]).toBe("125High");
+    });
     expect(cellsOf(rows()[0]!).slice(1)).toEqual([
       "IP Address",
       "475",
@@ -196,6 +254,8 @@ describe("the case's entities", () => {
       "High",
       // Said as every "last seen" in the product says it.
       OneUptimeDate.fromNow(IP_LAST_SEEN),
+      // Its risk, and the level it reads as against the threshold.
+      "125High",
     ]);
     // The user, whose activity came back with other casing.
     expect(cellsOf(rows()[1]!).slice(1)).toEqual([
@@ -205,6 +265,7 @@ describe("the case's entities", () => {
       "33",
       "Critical",
       OneUptimeDate.fromNow(USER_LAST_SEEN),
+      "200Critical",
     ]);
   });
 
@@ -220,6 +281,8 @@ describe("the case's entities", () => {
       "0",
       "0",
       "-",
+      "-",
+      // A domain carries no risk.
       "-",
     ]);
   });
@@ -285,6 +348,119 @@ describe("the case's entities", () => {
   });
 });
 
+describe("each entity's risk", () => {
+  test("is read once, for the users, hosts and addresses only, by their keys", async () => {
+    draw([
+      ...ENTITIES,
+      { type: SecurityEntityType.Host, value: " FIN-WS-112 " },
+      { type: SecurityEntityType.Process, value: "procdump64.exe" },
+    ]);
+
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      limit: number;
+    } = getListMock.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      limit: number;
+    };
+
+    expect(request.query["projectId"]).toEqual(new ObjectID(PROJECT_ID));
+    expect(request.query["entityKey"]).toBeInstanceOf(Includes);
+    // Case folded and trimmed, as the server keys them; no domain, no process.
+    expect((request.query["entityKey"] as Includes).values).toEqual([
+      "203.0.113.47",
+      "k.morgan@acme-commerce.example",
+      "fin-ws-112",
+    ]);
+    expect(request.select).toEqual({ entityKey: true, riskScore: true });
+    expect(request.limit).toBe(3);
+  });
+
+  test("opens the entity's page, with its kind", async () => {
+    draw();
+
+    await waitFor(() => {
+      expect(cellsOf(rows()[1]!)[6]).toBe("200Critical");
+    });
+    const column: HTMLElement = within(rows()[1]!).getByTestId(
+      ENTITY_RISK_TEST_IDS.caseEntityRiskColumn,
+    );
+    const href: string =
+      within(column).getByRole("link").getAttribute("href") || "";
+
+    expect(href).toContain(
+      `/dashboard/${PROJECT_ID}/security-events/entity-risk/entity?`,
+    );
+    const query: URLSearchParams = new URLSearchParams(href.split("?")[1]);
+    expect(query.get("value")).toBe("k.morgan@acme-commerce.example");
+    expect(query.get("type")).toBe("User");
+  });
+
+  test("reads its level against the project's own threshold", async () => {
+    threshold = 50;
+    draw();
+
+    await waitFor(() => {
+      expect(cellsOf(rows()[0]!)[6]).toBe("125Critical");
+    });
+    // At 50, 125 is past twice the threshold: Critical, not High.
+    expect(cellsOf(rows()[1]!)[6]).toBe("200Critical");
+  });
+
+  test("a score of 0 is no risk, and a read that fails leaves the column empty", async () => {
+    getListMock.mockImplementation(async () => {
+      return {
+        data: [
+          { entityKey: "203.0.113.47", riskScore: 0 },
+          { entityKey: "k.morgan@acme-commerce.example", riskScore: 200 },
+        ],
+        count: 2,
+      };
+    });
+    draw();
+
+    await waitFor(() => {
+      expect(cellsOf(rows()[1]!)[6]).toBe("200Critical");
+    });
+    expect(cellsOf(rows()[0]!)[6]).toBe("-");
+
+    cleanup();
+    getListMock.mockImplementation(async () => {
+      throw new Error("Postgres is not reachable.");
+    });
+    draw();
+
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(cellsOf(rows()[0]!)[2]).toBe("475");
+    });
+    expect(cellsOf(rows()[0]!)[6]).toBe("-");
+    expect(cellsOf(rows()[1]!)[6]).toBe("-");
+    // The activity is the card's: it still reads.
+    expect(
+      screen.queryByTestId(SECURITY_CASE_ENTITIES_TEST_IDS.activityError),
+    ).toBeNull();
+  });
+
+  test("a case about no user, host or address asks for no risk", async () => {
+    draw([{ type: SecurityEntityType.Domain, value: "acme-commerce.example" }]);
+
+    await waitFor(() => {
+      expect(getEntityActivityMock).toHaveBeenCalled();
+    });
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(cellsOf(rows()[0]!)[6]).toBe("-");
+  });
+});
+
 describe("on a narrow page", () => {
   test("two columns are left: the type and when go under the value, the worst severity under the count", async () => {
     draw();
@@ -316,8 +492,9 @@ describe("on a narrow page", () => {
     expect(
       headers
         .filter((header: HTMLElement): boolean => {
-          return !header.className.includes(
-            ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME,
+          return (
+            !header.className.includes(ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME) &&
+            !header.className.includes(ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME)
           );
         })
         .map((header: HTMLElement): string => {
@@ -375,6 +552,45 @@ describe("on a narrow page", () => {
 
     expect(value.className).toBe(SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME);
     expect(value.className).not.toContain("truncate");
+  });
+
+  test("the risk takes a column only where the table has room: below, it goes under the value, named", async () => {
+    draw();
+
+    await waitFor(() => {
+      expect(cellsOf(rows()[0]!)[6]).toBe("125High");
+    });
+    const column: HTMLElement = within(rows()[0]!).getByTestId(
+      ENTITY_RISK_TEST_IDS.caseEntityRiskColumn,
+    );
+    const under: HTMLElement = within(rows()[0]!).getByTestId(
+      ENTITY_RISK_TEST_IDS.caseEntityRiskUnderValue,
+    );
+
+    expect(column).toHaveClass(ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME);
+    expect(
+      within(
+        screen.getByTestId(SECURITY_CASE_ENTITIES_TEST_IDS.table),
+      ).getByRole("columnheader", { name: "Risk" }),
+    ).toHaveClass(ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME);
+    // Under the value, inside the entity's cell, named where no header names it.
+    expect(under).toHaveClass(ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME);
+    expect(under.closest("td")).toBe(rows()[0]!.querySelector("td"));
+    expect(under).toHaveTextContent("Risk125High");
+    expect(column).toHaveTextContent(/^125High$/);
+    // Wider than the type's and the severity's own breakpoint: five columns keep their line first.
+    expect(ENTITIES_TABLE_RISK_COLUMN_CLASS_NAME).toBe(
+      "[@container(max-width:51.99rem)]:hidden",
+    );
+    expect(ENTITIES_TABLE_RISK_UNDER_VALUE_CLASS_NAME).toBe(
+      "[@container(min-width:52rem)]:hidden",
+    );
+    // An entity with no risk has nothing under its value.
+    expect(
+      within(rows()[2]!).queryByTestId(
+        ENTITY_RISK_TEST_IDS.caseEntityRiskUnderValue,
+      ),
+    ).toBeNull();
   });
 
   test("the table is a size container keyed to its own width, not the window's", () => {

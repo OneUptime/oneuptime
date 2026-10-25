@@ -107,7 +107,7 @@ const MetaItem: FunctionComponent<{
   );
 };
 
-interface HeaderAction {
+export interface HeaderAction {
   title: string;
   icon: IconProp;
   isPrimary?: boolean | undefined;
@@ -122,9 +122,11 @@ interface HeaderAction {
  * One of the header's actions, drawn as an incident's header draws its own
  * (EventStatusPanel): the same height, border and weight, the main move in
  * indigo. A locked one says why on hover and on focus, from a wrapper that
- * can take both - a disabled button can take neither.
+ * can take both - a disabled button can take neither. An entity's page
+ * (Security Events > Entity Risk) draws its actions with it too, so the two
+ * record pages of Security Events read alike.
  */
-const HeaderActionButton: FunctionComponent<{
+export const HeaderActionButton: FunctionComponent<{
   action: HeaderAction;
 }> = (props: { action: HeaderAction }): ReactElement => {
   const translator: Translator = useTranslator();

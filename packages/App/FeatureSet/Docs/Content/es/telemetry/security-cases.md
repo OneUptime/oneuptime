@@ -3,7 +3,7 @@
 Eventos de seguridad convierte en casos lo que encuentran tus reglas de detección, tu inteligencia de amenazas y tus productos de seguridad conectados: un caso por cada asunto que merece una investigación, con todas las detecciones sobre el mismo usuario, host o dirección agrupadas en él. Los analistas gestionan los casos en una cola, y los playbooks responden a ellos, por sí solos o con un clic.
 
 :::cards
-- [De dónde vienen los casos](#de-dónde-vienen-los-casos): Reglas de detección, inteligencia de amenazas, productos conectados y personas.
+- [De dónde vienen los casos](#de-dónde-vienen-los-casos): Reglas de detección, inteligencia de amenazas, productos conectados, riesgo de entidades y personas.
 - [Gestionar un caso](#gestionar-un-caso): Asígnalo, investiga sus entidades y ciérralo con un veredicto.
 - [Prioridades y estados de los casos](#prioridades-y-estados-de-los-casos): Cámbiales el nombre, el color y el orden, y añade los tuyos.
 - [Notificaciones](#notificaciones): A quién se avisa de un caso nuevo, de una asignación y de un paso que espera aprobación.
@@ -49,9 +49,10 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 | Reglas de detección | Una regla coincide | **Open a Case on Match**, en el paso **Al coincidir** de la regla |
 | Inteligencia de amenazas | Un evento nombra un indicador conocido | **Open a Case on Match**, en el paso **Al coincidir** del feed |
 | Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Open Cases From** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
+| Riesgo de entidades | El riesgo de un usuario, host o dirección alcanza el umbral del proyecto | **Casos de riesgo**, en **Ajustes → Puntuación de riesgo** |
 | Personas | Alguien abre uno desde **Casos de seguridad**, o con **Open Case** en el panel de un evento | No se puede desactivar |
 
-Todos los orígenes están activados por defecto. Una conexión abre casos para **Alta y superior** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
+Todos los orígenes abren casos por defecto, salvo el riesgo de entidades en los proyectos creados antes de que existiera: en ellos, activa primero **Casos de riesgo** ([Riesgo de entidades](/docs/telemetry/security-entity-risk)). Una conexión abre casos para **Alta y superior** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
 
 ### Cómo se agrupan las detecciones
 
@@ -192,7 +193,7 @@ Para publicar en un canal, añade una regla en **Productos → Eventos de seguri
 | Prioridad del caso de seguridad | Una de las prioridades de caso del proyecto, como Crítico o Alta |
 | Título del caso de seguridad, Descripción del caso de seguridad | Un texto que el título o la descripción del caso contiene, por el que empieza o con el que termina |
 | Estado del caso de seguridad | Uno de los estados de caso del proyecto, como Nuevo o Cerrado |
-| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product o Manual |
+| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product, Riesgo de entidades o Manual |
 | Etiquetas del caso de seguridad | Las etiquetas del caso |
 
 Cada una de las tres notificaciones se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.

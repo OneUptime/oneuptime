@@ -87,6 +87,8 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../SecurityCase/SecurityCaseIngest";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
+import SecurityEntityRiskRecorder from "./EntityRisk/SecurityEntityRiskRecorder";
+import { riskFindingsForRuleMatches } from "./EntityRisk/SecurityEntityRiskFindings";
 import {
   SecurityEntity,
   SecurityEntityType,
@@ -160,6 +162,7 @@ const DETECTION_RULE_EVALUATION_SELECT: Select<DetectionRule> = {
   shouldWriteDetectionFinding: true,
   shouldCreateIncident: true,
   shouldCreateCase: true,
+  riskScore: true,
   alertSeverityId: true,
   incidentSeverityId: true,
   lastEvaluatedAt: true,
@@ -522,6 +525,24 @@ export default class DetectionRuleEvaluator {
           );
           logger.error(error);
         }
+      }
+
+      /*
+       * Each group the run opens adds to the risk of who it is about,
+       * whether the rule opens cases or not - after its cases, so a risk
+       * that reaches the threshold joins the case the match opened rather
+       * than opening one of its own first. A setup test adds no risk: it is
+       * a test, and nothing else is told of it either.
+       */
+      if (!setupTest) {
+        await SecurityEntityRiskRecorder.record(
+          riskFindingsForRuleMatches({
+            rule,
+            parsedRule,
+            matchedGroups: split.opened,
+            seenAt: endTime,
+          }),
+        );
       }
     }
 

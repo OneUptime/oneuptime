@@ -66,6 +66,8 @@ import SecurityProjectWork, {
   SecurityProjectWorkLease,
   UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
 } from "../SecurityProjectWork";
+import SecurityEntityRiskRecorder from "../EntityRisk/SecurityEntityRiskRecorder";
+import { riskFindingsForIndicatorMatches } from "../EntityRisk/SecurityEntityRiskFindings";
 import SecurityCaseIngest, {
   SecurityCaseIngestResult,
   SecurityDetectionSignal,
@@ -397,6 +399,15 @@ export default class ThreatIntelMatcher {
           logger.error(error);
         }
       }
+
+      // Each indicator the check opens adds to the risk of the address it names.
+      await SecurityEntityRiskRecorder.record(
+        riskFindingsForIndicatorMatches({
+          feed,
+          matchedGroups: split.opened,
+          seenAt: endTime,
+        }),
+      );
     }
 
     if (overflowNotice) {

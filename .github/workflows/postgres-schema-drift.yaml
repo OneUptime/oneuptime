@@ -2218,6 +2218,25 @@ jobs:
           Tests/Server/Utils/SecurityEvent/TurnOnRecommendedPostgres.test.ts
           --forceExit
 
+      # Entity risk on copies of the migrated User, Project,
+      # SecurityEntityRisk and SecurityEntityCriticality tables, through the
+      # real services: a finding writes one row and the next about the same
+      # entity (whatever its case) adds to it, its sources and history as
+      # jsonb; the unique (projectId, entityKey) index; criticality read from
+      # its table; the refresh's riskExpiresAt <= now and forgetting a month
+      # quiet; Reset Risk's delete. The lock and the case ingest stood in.
+      - name: Test entity risk on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_ENTITY_RISK_TESTS: "true"
+          SECURITY_ENTITY_RISK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_ENTITY_RISK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_ENTITY_RISK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskPostgres.test.ts
+          --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

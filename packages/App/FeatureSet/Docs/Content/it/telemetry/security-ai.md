@@ -45,6 +45,7 @@ Una classificazione legge:
 - il caso: titolo, priorità, stato, entità e mappatura ATT&CK;
 - i suoi rilevamenti, dal più recente, con un evento di esempio per ciascuno;
 - gli eventi di sicurezza e la threat intelligence sui suoi utenti, host e indirizzi;
+- il rischio dei suoi utenti, host e indirizzi, e ciò che lo ha aumentato questa settimana;
 - gli host di OneUptime a cui corrispondono i suoi host e indirizzi, e chi ne è responsabile;
 - l'incidente che ha dichiarato, le sue note, le sue entità protette e i playbook attivi.
 

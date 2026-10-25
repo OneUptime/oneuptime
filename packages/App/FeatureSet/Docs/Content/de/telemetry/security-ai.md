@@ -45,6 +45,7 @@ Eine Triage liest:
 - den Fall: Titel, Priorität, Status, Entitäten und ATT&CK-Zuordnung;
 - seine Erkennungen, die neueste zuerst, mit einem Beispielereignis zu jeder;
 - die Sicherheitsereignisse und die Threat Intelligence zu seinen Benutzern, Hosts und Adressen;
+- das Risiko seiner Benutzer, Hosts und Adressen, und was diese Woche dazu beitrug;
 - die Hosts in OneUptime, zu denen seine Hosts und Adressen passen, und wem sie gehören;
 - den Vorfall, den er ausgelöst hat, seine Notizen, seine geschützten Entitäten und die aktivierten Playbooks.
 
