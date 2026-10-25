@@ -610,12 +610,12 @@ describe("LogInsightFix - a person's Fix with AI", () => {
       .calls[0]![0] as unknown as JSONObject;
 
     expect(read["props"]).toBe(props);
-    expect(JSON.stringify((read["query"] as JSONObject)["insightType"])).toContain(
-      AIInsightType.LogErrorPattern,
-    );
-    expect(JSON.stringify((read["query"] as JSONObject)["insightType"])).toContain(
-      AIInsightType.LogNoisyPattern,
-    );
+    expect(
+      JSON.stringify((read["query"] as JSONObject)["insightType"]),
+    ).toContain(AIInsightType.LogErrorPattern);
+    expect(
+      JSON.stringify((read["query"] as JSONObject)["insightType"]),
+    ).toContain(AIInsightType.LogNoisyPattern);
     expect(
       JSON.stringify((read["query"] as JSONObject)["insightType"]),
     ).not.toContain(AIInsightType.TraceFailingOperation);

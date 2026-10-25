@@ -102,9 +102,15 @@ describe("TelemetryAiPersonFix", () => {
     expect(Object.keys(TELEMETRY_AI_PERSON_FIX_PLANNERS).sort()).toEqual(
       [...TELEMETRY_AI_LANE_LIST].sort(),
     );
-    expect(TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Profile]).toBeNull();
-    expect(TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Trace]).not.toBeNull();
-    expect(TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Log]).not.toBeNull();
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Profile],
+    ).toBeNull();
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Trace],
+    ).not.toBeNull();
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Log],
+    ).not.toBeNull();
   });
 
   test.each([

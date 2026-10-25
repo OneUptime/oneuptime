@@ -380,15 +380,15 @@ describe("the Log lane", () => {
    * do not wait.
    */
   test("only an error log's pull request waits for the investigation's verdict", () => {
-    expect(doesTelemetryAiFixWaitForVerdict(AIInsightType.LogErrorPattern)).toBe(
-      true,
-    );
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogErrorPattern),
+    ).toBe(true);
     expect(
       doesTelemetryAiFixWaitForVerdict(AIInsightType.LogMissingLogging),
     ).toBe(false);
-    expect(doesTelemetryAiFixWaitForVerdict(AIInsightType.LogNoisyPattern)).toBe(
-      false,
-    );
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogNoisyPattern),
+    ).toBe(false);
 
     expect(
       getTelemetryAiFixVerdict({

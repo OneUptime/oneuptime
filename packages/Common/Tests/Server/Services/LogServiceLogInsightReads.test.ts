@@ -149,7 +149,12 @@ describe("getServiceLogHealth: every service's logs over the hour, in one pass",
       });
 
     expect(rows).toEqual([
-      { primaryEntityId: b, logCount: 900, errorLogCount: 30, tracedLogCount: 0 },
+      {
+        primaryEntityId: b,
+        logCount: 900,
+        errorLogCount: 30,
+        tracedLogCount: 0,
+      },
       {
         primaryEntityId: a,
         logCount: 150,
@@ -187,7 +192,9 @@ describe("error messages without an exception", () => {
 
     const query: string = sql(captured[0]!);
 
-    expect(query).toMatch(/AND NOT hasAny\(attributeKeys, \{p\d+:Array\(String\)\}\)/u);
+    expect(query).toMatch(
+      /AND NOT hasAny\(attributeKeys, \{p\d+:Array\(String\)\}\)/u,
+    );
     expect(params(captured[0]!)).toContainEqual([
       ...LOG_EXCEPTION_ATTRIBUTE_KEYS,
     ]);
@@ -236,7 +243,9 @@ describe("getErrorPatternCodeLocations: where a message's lines were logged", ()
     expect(query).toContain(
       "if(attributes['code.lineno'] != '', attributes['code.lineno'], attributes['code.line.number']) AS lineNumber",
     );
-    expect(query).toMatch(/AND hasAny\(attributeKeys, \{p\d+:Array\(String\)\}\)/u);
+    expect(query).toMatch(
+      /AND hasAny\(attributeKeys, \{p\d+:Array\(String\)\}\)/u,
+    );
     expect(params(captured[0]!)).toContainEqual([
       ...LOG_CODE_FILE_ATTRIBUTE_KEYS,
     ]);
@@ -338,7 +347,9 @@ describe("getServiceLogPatterns: a sample of one service's lines, by message", (
     expect(query).toContain("sum(cnt) OVER () AS sampled");
     expect(query).toContain("groupUniqArray(");
     expect(query).toContain("(toString(severityText)) AS severities");
-    expect(query).toContain("WHERE pattern != '' ORDER BY cnt DESC, pattern ASC LIMIT");
+    expect(query).toContain(
+      "WHERE pattern != '' ORDER BY cnt DESC, pattern ASC LIMIT",
+    );
     expect(query).toContain("timeout_overflow_mode = 'throw'");
   });
 

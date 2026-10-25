@@ -4,7 +4,9 @@ import InBetween from "../../../../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../../../../Types/BaseDatabase/SortOrder";
 import { LogInsightEvidence } from "../../../../../../Types/AI/AIInsightEvidence";
 import { PerformanceCodeLocation } from "../../../../../../Types/AI/CodeFixTaskContext";
-import Span, { SpanStatus } from "../../../../../../Models/AnalyticsModels/Span";
+import Span, {
+  SpanStatus,
+} from "../../../../../../Models/AnalyticsModels/Span";
 import Service from "../../../../../../Models/DatabaseModels/Service";
 import LogAggregationService, {
   ErrorPatternCodeLocation,
@@ -651,9 +653,7 @@ export default class LogProblemDetector {
 
     const evidence: Array<LogInsightEvidence> = [];
 
-    for (const reading of pickErrorPatterns(
-      Array.from(rowsByReading.keys()),
-    )) {
+    for (const reading of pickErrorPatterns(Array.from(rowsByReading.keys()))) {
       const row: TopErrorPattern = rowsByReading.get(reading)!;
       let codeLocations: Array<PerformanceCodeLocation> = [];
 

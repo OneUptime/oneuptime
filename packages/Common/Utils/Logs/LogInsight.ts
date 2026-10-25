@@ -476,7 +476,10 @@ function isErrorSeverity(severity: string): boolean {
 }
 
 // Ties fall to the pattern: a total, deterministic order.
-function byCountThenPattern(a: LogPatternReading, b: LogPatternReading): number {
+function byCountThenPattern(
+  a: LogPatternReading,
+  b: LogPatternReading,
+): number {
   return b.count - a.count || a.pattern.localeCompare(b.pattern);
 }
 
@@ -931,7 +934,9 @@ export function buildLogInsightDetail(data: {
     }
 
     if (evidence.sampleTraceId) {
-      lines.push(mdText`- A failed request: trace \`${evidence.sampleTraceId}\``);
+      lines.push(
+        mdText`- A failed request: trace \`${evidence.sampleTraceId}\``,
+      );
     }
   }
 
@@ -1070,7 +1075,9 @@ export function buildLogFixEvidenceNote(evidence: LogInsightEvidence): string {
   lines.push(
     `Window: ${evidence.windowStartTime} to ${evidence.windowEndTime}`,
   );
-  lines.push(`Logs of the service in the window: ${formatCount(evidence.logCount)}`);
+  lines.push(
+    `Logs of the service in the window: ${formatCount(evidence.logCount)}`,
+  );
 
   if (isFiniteNumber(evidence.errorLogCount)) {
     lines.push(
@@ -1099,13 +1106,13 @@ export function buildLogFixEvidenceNote(evidence: LogInsightEvidence): string {
   }
 
   if (isFiniteNumber(evidence.tracedLogCount)) {
-    lines.push(
-      `Logs with a trace id: ${formatCount(evidence.tracedLogCount)}`,
-    );
+    lines.push(`Logs with a trace id: ${formatCount(evidence.tracedLogCount)}`);
   }
 
   if (isFiniteNumber(evidence.serviceSpanCount)) {
-    lines.push(`Spans of the service: ${formatCount(evidence.serviceSpanCount)}`);
+    lines.push(
+      `Spans of the service: ${formatCount(evidence.serviceSpanCount)}`,
+    );
   }
 
   if (isFiniteNumber(evidence.operationSpanCount)) {
@@ -1128,7 +1135,10 @@ export function buildLogFixEvidenceNote(evidence: LogInsightEvidence): string {
   }
 
   if (evidence.error) {
-    lines.push("", `What the failed spans recorded: ${describeTraceError(evidence.error)}`);
+    lines.push(
+      "",
+      `What the failed spans recorded: ${describeTraceError(evidence.error)}`,
+    );
 
     if (evidence.error.stackTrace) {
       lines.push("Stack trace:", evidence.error.stackTrace);

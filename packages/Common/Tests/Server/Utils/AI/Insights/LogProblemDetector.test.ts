@@ -103,7 +103,9 @@ function spanHealth(
   };
 }
 
-function errorPattern(overrides: Partial<TopErrorPattern> = {}): TopErrorPattern {
+function errorPattern(
+  overrides: Partial<TopErrorPattern> = {},
+): TopErrorPattern {
   return {
     pattern: "Payment provider returned <num>: card declined",
     sampleBody: "Payment provider returned 402: card declined",
@@ -442,7 +444,10 @@ describe("LogProblemDetector", () => {
         errorPattern({ pattern: "Order sync failed for <uuid>", count: 19 }),
         errorPattern({ pattern: "error", sampleBody: "error", count: 900 }),
         errorPattern({ pattern: "Cache write rejected by redis", count: 300 }),
-        errorPattern({ pattern: "Database connection reset by peer", count: 800 }),
+        errorPattern({
+          pattern: "Database connection reset by peer",
+          count: 800,
+        }),
         errorPattern({ pattern: "Queue publish timed out", count: 200 }),
       ]);
 
@@ -488,7 +493,9 @@ describe("LogProblemDetector", () => {
       );
       expect(found[0]!.evidence.log!.searchText).toBe("Login failed for token");
       // Only what the sanitizer leaves of the words is searched for.
-      expect(found[1]!.evidence.log!.pattern).toBe("cache miss for <SERVICE_ID>");
+      expect(found[1]!.evidence.log!.pattern).toBe(
+        "cache miss for <SERVICE_ID>",
+      );
       expect(found[1]!.evidence.log!.searchText).toBe("cache miss for");
 
       for (const candidate of found) {
@@ -625,9 +632,11 @@ describe("LogProblemDetector", () => {
 
       expect(readSpans).not.toHaveBeenCalled();
       // Its logs' missing trace context is the finding instead.
-      expect(found.map((c: InsightCandidate) => c.evidence.log!.gap)).toEqual(
-        [LogLoggingGap.NoTraceContext],
-      );
+      expect(
+        found.map((candidate: InsightCandidate): string | undefined => {
+          return candidate.evidence.log!.gap;
+        }),
+      ).toEqual([LogLoggingGap.NoTraceContext]);
     });
   });
 
@@ -678,7 +687,8 @@ describe("LogProblemDetector", () => {
         patterns: [
           {
             pattern: "cache hit for key <uuid>",
-            sampleBody: "cache hit for key 1f0e9a3c-0000-4000-8000-000000000000",
+            sampleBody:
+              "cache hit for key 1f0e9a3c-0000-4000-8000-000000000000",
             count: 29760,
             severities: [LogSeverity.Debug, LogSeverity.Information],
           },
@@ -821,8 +831,11 @@ describe("LogProblemDetector", () => {
 
       await LogProblemDetector.look(context());
 
-      const logRequest: { projectId: ObjectID; startTime: Date; endTime: Date } =
-        readLogHealth.mock.calls[0]![0];
+      const logRequest: {
+        projectId: ObjectID;
+        startTime: Date;
+        endTime: Date;
+      } = readLogHealth.mock.calls[0]![0];
       const spanRequest: { projectId: ObjectID } =
         readSpanHealth.mock.calls[0]![0];
 
@@ -942,11 +955,26 @@ describe("LogProblemDetector", () => {
     test("code locations: one each, with real line numbers, never an empty file", () => {
       expect(
         LogProblemDetector.toCodeLocations([
-          { filePath: "src/a.py", functionName: "f", lineNumber: "12", count: 4 },
-          { filePath: "src/a.py", functionName: "f", lineNumber: "12", count: 2 },
+          {
+            filePath: "src/a.py",
+            functionName: "f",
+            lineNumber: "12",
+            count: 4,
+          },
+          {
+            filePath: "src/a.py",
+            functionName: "f",
+            lineNumber: "12",
+            count: 2,
+          },
           { filePath: "src/b.py", functionName: "", lineNumber: "x", count: 1 },
           { filePath: " ", functionName: "g", lineNumber: "3", count: 1 },
-          { filePath: "src/c.py", functionName: "h", lineNumber: "0", count: 1 },
+          {
+            filePath: "src/c.py",
+            functionName: "h",
+            lineNumber: "0",
+            count: 1,
+          },
         ]),
       ).toEqual([
         { filePath: "src/a.py", functionName: "f", lineNumber: 12 },

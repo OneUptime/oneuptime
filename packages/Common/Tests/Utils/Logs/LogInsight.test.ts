@@ -114,7 +114,9 @@ function reading(
   };
 }
 
-function pattern(overrides: Partial<LogPatternReading> = {}): LogPatternReading {
+function pattern(
+  overrides: Partial<LogPatternReading> = {},
+): LogPatternReading {
   return {
     pattern: "Payment provider returned <num>",
     count: 100,
@@ -288,15 +290,11 @@ describe("the gates, as the docs state them", () => {
 describe("stage one: which services are read", () => {
   test("the share of logs with a trace id, never above all of them", () => {
     expect(getTracedLogPercent({ logCount: 0, tracedLogCount: 0 })).toBe(0);
-    expect(getTracedLogPercent({ logCount: 200, tracedLogCount: 50 })).toBe(
-      25,
-    );
+    expect(getTracedLogPercent({ logCount: 200, tracedLogCount: 50 })).toBe(25);
     expect(getTracedLogPercent({ logCount: 100, tracedLogCount: 500 })).toBe(
       100,
     );
-    expect(getTracedLogPercent({ logCount: 100, tracedLogCount: -4 })).toBe(
-      0,
-    );
+    expect(getTracedLogPercent({ logCount: 100, tracedLogCount: -4 })).toBe(0);
     expect(getTracedLogPercent({ logCount: NaN, tracedLogCount: 4 })).toBe(0);
   });
 
@@ -306,7 +304,10 @@ describe("stage one: which services are read", () => {
       reading({ serviceId: SERVICE_B, errorLogCount: 20, logCount: 100 }),
       reading({ serviceId: SERVICE_C, errorLogCount: 900, logCount: 1000 }),
       reading({ serviceId: SERVICE_D, errorLogCount: 300, logCount: 1000 }),
-      reading({ serviceId: "5a000000-0000-4000-8000-0000000000a5", errorLogCount: 25 }),
+      reading({
+        serviceId: "5a000000-0000-4000-8000-0000000000a5",
+        errorLogCount: 25,
+      }),
     ];
 
     expect(pickErrorLogServices(readings)).toEqual([
@@ -314,14 +315,16 @@ describe("stage one: which services are read", () => {
       SERVICE_D,
       "5a000000-0000-4000-8000-0000000000a5",
     ]);
-    expect(
-      pickErrorLogServices(readings).includes(SERVICE_A),
-    ).toBe(false);
+    expect(pickErrorLogServices(readings).includes(SERVICE_A)).toBe(false);
   });
 
   test("ties fall to volume, then to the id; ids are read lower-case", () => {
     const readings: Array<LogServiceReading> = [
-      reading({ serviceId: SERVICE_B.toUpperCase(), errorLogCount: 50, logCount: 10 }),
+      reading({
+        serviceId: SERVICE_B.toUpperCase(),
+        errorLogCount: 50,
+        logCount: 10,
+      }),
       reading({ serviceId: SERVICE_A, errorLogCount: 50, logCount: 10 }),
       reading({ serviceId: SERVICE_C, errorLogCount: 50, logCount: 20 }),
     ];
@@ -428,9 +431,7 @@ describe("stage one: which services are read", () => {
     ];
 
     expect(pickSilentFailureServices(readings)).toEqual([SERVICE_A]);
-    expect(pickNoTraceContextServices(readings)).toEqual([
-      SERVICE_D,
-    ]);
+    expect(pickNoTraceContextServices(readings)).toEqual([SERVICE_D]);
   });
 
   test("silent failure services: the most failures first, three at most", () => {
@@ -584,7 +585,10 @@ describe("stage two: a service's error logs", () => {
   test("an error with an exception is the Exceptions product's, not an error log", () => {
     expect(
       pickErrorPatterns([
-        pattern({ pattern: "TypeError: x is undefined at y", hasException: true }),
+        pattern({
+          pattern: "TypeError: x is undefined at y",
+          hasException: true,
+        }),
       ]),
     ).toEqual([]);
   });
@@ -615,8 +619,16 @@ describe("stage two: a busy service's noisy log", () => {
   test("the message with the most lines, at 25% or more and some 10,000 lines", () => {
     const finding: LogNoisyPatternFinding | null = pickNoisyPattern({
       readings: [
-        pattern({ pattern: "cache hit for key <uuid>", count: 30000, severities: debug }),
-        pattern({ pattern: "request served in <num> ms", count: 20000, severities: debug }),
+        pattern({
+          pattern: "cache hit for key <uuid>",
+          count: 30000,
+          severities: debug,
+        }),
+        pattern({
+          pattern: "request served in <num> ms",
+          count: 20000,
+          severities: debug,
+        }),
       ],
       sampledLogCount: 100000,
       logCount: 400000,
@@ -632,14 +644,26 @@ describe("stage two: a busy service's noisy log", () => {
   test("below 25% of the lines read, it is not noisy", () => {
     expect(
       pickNoisyPattern({
-        readings: [pattern({ pattern: "cache hit for key", count: 24999, severities: debug })],
+        readings: [
+          pattern({
+            pattern: "cache hit for key",
+            count: 24999,
+            severities: debug,
+          }),
+        ],
         sampledLogCount: 100000,
         logCount: 1000000,
       }),
     ).toBeNull();
     expect(
       pickNoisyPattern({
-        readings: [pattern({ pattern: "cache hit for key", count: 25000, severities: debug })],
+        readings: [
+          pattern({
+            pattern: "cache hit for key",
+            count: 25000,
+            severities: debug,
+          }),
+        ],
         sampledLogCount: 100000,
         logCount: 1000000,
       }),
@@ -649,14 +673,26 @@ describe("stage two: a busy service's noisy log", () => {
   test("under some 10,000 lines of the hour, it is not noisy, whatever its share", () => {
     expect(
       pickNoisyPattern({
-        readings: [pattern({ pattern: "cache hit for key", count: 9000, severities: debug })],
+        readings: [
+          pattern({
+            pattern: "cache hit for key",
+            count: 9000,
+            severities: debug,
+          }),
+        ],
         sampledLogCount: 10000,
         logCount: 10000,
       }),
     ).toBeNull();
     expect(
       pickNoisyPattern({
-        readings: [pattern({ pattern: "cache hit for key", count: 5000, severities: debug })],
+        readings: [
+          pattern({
+            pattern: "cache hit for key",
+            count: 5000,
+            severities: debug,
+          }),
+        ],
         sampledLogCount: 10000,
         logCount: 20000,
       })!.estimatedCount,
@@ -681,8 +717,16 @@ describe("stage two: a busy service's noisy log", () => {
     expect(
       pickNoisyPattern({
         readings: [
-          pattern({ pattern: "shutting down now", count: 60000, severities: [LogSeverity.Fatal] }),
-          pattern({ pattern: "heartbeat sent to peer", count: 30000, severities: [LogSeverity.Information] }),
+          pattern({
+            pattern: "shutting down now",
+            count: 60000,
+            severities: [LogSeverity.Fatal],
+          }),
+          pattern({
+            pattern: "heartbeat sent to peer",
+            count: 30000,
+            severities: [LogSeverity.Information],
+          }),
         ],
         sampledLogCount: 100000,
         logCount: 100000,
@@ -694,7 +738,11 @@ describe("stage two: a busy service's noisy log", () => {
     expect(
       pickNoisyPattern({
         readings: [
-          pattern({ pattern: "cache hit for key", count: 90000, severities: [] }),
+          pattern({
+            pattern: "cache hit for key",
+            count: 90000,
+            severities: [],
+          }),
           pattern({ pattern: "<num>", count: 90000, severities: debug }),
         ],
         sampledLogCount: 100000,
@@ -719,7 +767,13 @@ describe("stage two: a busy service's noisy log", () => {
   test("a count above the sample is read as all of it", () => {
     expect(
       pickNoisyPattern({
-        readings: [pattern({ pattern: "cache hit for key", count: 120, severities: debug })],
+        readings: [
+          pattern({
+            pattern: "cache hit for key",
+            count: 120,
+            severities: debug,
+          }),
+        ],
         sampledLogCount: 100,
         logCount: 20000,
       })!.percent,
@@ -780,7 +834,14 @@ describe("whether a failing operation's failed requests wrote a log line", () =>
     ).toBe(LogSilenceVerdict.Unread);
     expect(
       readFailedRequestLogs({
-        failedTraceIds: [traces[0]!, traces[0]!, traces[0]!, traces[0]!, traces[0]!, ""],
+        failedTraceIds: [
+          traces[0]!,
+          traces[0]!,
+          traces[0]!,
+          traces[0]!,
+          traces[0]!,
+          "",
+        ],
         logCountsByTraceId: new Map<string, number>(),
       }),
     ).toEqual({
@@ -877,9 +938,7 @@ describe("a finding's identity", () => {
       pattern: "cache hit",
     });
 
-    expect(isLogInsightFingerprintOfService(fingerprint, SERVICE_A)).toBe(
-      true,
-    );
+    expect(isLogInsightFingerprintOfService(fingerprint, SERVICE_A)).toBe(true);
     expect(
       isLogInsightFingerprintOfService(fingerprint, SERVICE_A.toUpperCase()),
     ).toBe(true);
@@ -920,9 +979,9 @@ describe("how a finding reads", () => {
 
   test("severities read lowest first, and only real ones", () => {
     expect(describeLogSeverities([LogSeverity.Error])).toBe("Error");
-    expect(
-      describeLogSeverities([LogSeverity.Fatal, LogSeverity.Error]),
-    ).toBe("Error and Fatal");
+    expect(describeLogSeverities([LogSeverity.Fatal, LogSeverity.Error])).toBe(
+      "Error and Fatal",
+    );
     expect(
       describeLogSeverities([
         LogSeverity.Warning,
@@ -937,7 +996,10 @@ describe("how a finding reads", () => {
 
   test("titles say what was found", () => {
     expect(
-      getLogInsightTitle({ evidence: errorEvidence(), serviceName: "checkout" }),
+      getLogInsightTitle({
+        evidence: errorEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe(
       'checkout logged "Payment provider returned <num>: card declined for order <uuid>" 1,240 times in an hour',
     );
@@ -948,7 +1010,10 @@ describe("how a finding reads", () => {
       }),
     ).toContain("1 time in an hour");
     expect(
-      getLogInsightTitle({ evidence: noisyEvidence(), serviceName: "checkout" }),
+      getLogInsightTitle({
+        evidence: noisyEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe('"cache hit for key <uuid>" is 62% of checkout\'s logs');
     expect(
       getLogInsightTitle({
@@ -1056,9 +1121,9 @@ describe("what the problem is, in sentences", () => {
     expect(describeLogProblem(silentEvidence())).toBe(
       "Over the last hour 312 of its 2,600 requests to POST /checkout failed (12%), and none of the 20 most recent failed requests wrote a log line, so nobody reading the logs can see them fail. The failed spans recorded: TimeoutError: payment provider did not answer.",
     );
-    expect(describeLogProblem(silentEvidence({ error: undefined }))).not.toContain(
-      "recorded",
-    );
+    expect(
+      describeLogProblem(silentEvidence({ error: undefined })),
+    ).not.toContain("recorded");
   });
 
   test("no trace context: the logs and spans, and how few logs were linked", () => {
@@ -1164,18 +1229,30 @@ describe("the evidence on the insight", () => {
 describe("what OneUptime asks the AI", () => {
   test("the request's first line: what to do, and where", () => {
     expect(
-      getLogFixRequestTitle({ evidence: errorEvidence(), serviceName: "checkout" }),
+      getLogFixRequestTitle({
+        evidence: errorEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe(
       'Fix why checkout logs "Payment provider returned <num>: card declined for order <uuid>"',
     );
     expect(
-      getLogFixRequestTitle({ evidence: noisyEvidence(), serviceName: "checkout" }),
+      getLogFixRequestTitle({
+        evidence: noisyEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe('Log "cache hit for key <uuid>" less in checkout');
     expect(
-      getLogFixRequestTitle({ evidence: silentEvidence(), serviceName: "checkout" }),
+      getLogFixRequestTitle({
+        evidence: silentEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe("Log why POST /checkout in checkout fails");
     expect(
-      getLogFixRequestTitle({ evidence: noTraceEvidence(), serviceName: "checkout" }),
+      getLogFixRequestTitle({
+        evidence: noTraceEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe("Add trace context to checkout's logs");
     expect(
       getLogFixRequestTitle({ evidence: noTraceEvidence(), serviceName: "" }),
@@ -1238,7 +1315,9 @@ describe("what OneUptime asks the AI", () => {
     expect(message).toContain("Make it log less");
     expect(message).toContain("log it at Debug");
     expect(message).toContain("Do not change what the code does otherwise.");
-    expect(message).toContain("written by a library, a framework or the platform");
+    expect(message).toContain(
+      "written by a library, a framework or the platform",
+    );
   });
 
   test("a silent failure: log the failure through the service's logger, with its trace context", () => {
@@ -1272,7 +1351,9 @@ describe("the evidence the task is given", () => {
     expect(note).toContain(
       "Message pattern: Payment provider returned <num>: card declined for order <uuid>",
     );
-    expect(note).toContain("Words to search the code for: Payment provider returned");
+    expect(note).toContain(
+      "Words to search the code for: Payment provider returned",
+    );
     expect(note).toContain("Lines of this message: 1,240");
     expect(note).toContain("Severities: Error");
     expect(note).toContain("Sample trace: 4bf92f3577b34da6a3ce929d0e0e4736");

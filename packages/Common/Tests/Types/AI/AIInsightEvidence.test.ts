@@ -372,7 +372,11 @@ describe("AIInsightEvidence", () => {
       failedSpanCount: 312,
       failedSampleSize: 20,
       sampleTraceId: "4bf92f3577b34da6a3ce929d0e0e4736",
-      error: { exceptionType: "TimeoutError", sampleMatches: 18, sampleSize: 20 },
+      error: {
+        exceptionType: "TimeoutError",
+        sampleMatches: 18,
+        sampleSize: 20,
+      },
     };
     const restored: AIInsightEvidence = roundTrip({ log: silent });
 
