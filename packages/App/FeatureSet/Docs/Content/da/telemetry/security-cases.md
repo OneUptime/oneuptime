@@ -3,7 +3,7 @@
 Security Events gør det, som dine detektionsregler, din trusselsintelligens og dine forbundne sikkerhedsprodukter finder, til sager: én sag for hver ting, der er værd at undersøge, med alle detektioner om den samme bruger, vært eller adresse samlet i den. Analytikere behandler sagerne i en kø, og playbooks reagerer på dem, af sig selv eller med et klik.
 
 :::cards
-- [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter og personer.
+- [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter, entitetsrisiko og personer.
 - [Behandl en sag](#behandl-en-sag): Tildel den, undersøg dens entiteter, og luk den med en konklusion.
 - [Sagsprioriteter og sagsstatusser](#sagsprioriteter-og-sagsstatusser): Omdøb dem, giv dem en anden farve og rækkefølge, og tilføj dine egne.
 - [Notifikationer](#notifikationer): Hvem der får besked om en ny sag, en tildeling og et trin, der venter på godkendelse.
@@ -49,6 +49,7 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 | Detektionsregler | En regel matcher | **Open a Case on Match** i regelens trin **Ved match** |
 | Trusselsintelligens | En begivenhed nævner en kendt indikator | **Open a Case on Match** i feedets trin **Ved match** |
 | Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Open Cases From** sat til **Aldrig** i forbindelsens trin **Polling** |
+| Entitetsrisiko | En brugers, værts eller adresses risiko når projektets tærskel | **Risikosager** under **Indstillinger → Risikoscoring** |
 | Personer | Nogen åbner en fra **Sikkerhedssager** eller med **Open Case** i en begivenheds panel | Ingen |
 
 Alle kilder er slået til som standard. En forbindelse åbner sager for **Høj og højere**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
@@ -186,7 +187,7 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Security E
 | Prioritet for sikkerhedssag | En af projektets sagsprioriteter, f.eks. Kritisk eller High |
 | Titel på sikkerhedssag, Beskrivelse af sikkerhedssag | Tekst, som sagens titel eller beskrivelse indeholder, starter med eller slutter med |
 | Status for sikkerhedssag | En af projektets sagsstatusser, f.eks. Ny eller Lukket |
-| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product eller Manual |
+| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko eller Manual |
 | Etiketter på sikkerhedssag | Sagens etiketter |
 
 De tre notifikationer slås hver op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **High**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.

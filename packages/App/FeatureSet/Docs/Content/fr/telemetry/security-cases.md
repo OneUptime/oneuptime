@@ -3,7 +3,7 @@
 Événements de sécurité transforme en dossiers ce que trouvent vos règles de détection, votre renseignement sur les menaces et vos produits de sécurité connectés : un dossier pour chaque élément qui mérite d'être examiné, dans lequel sont regroupées toutes les détections qui concernent le même utilisateur, le même hôte ou la même adresse. Les analystes traitent les dossiers dans une file d'attente, et les playbooks y répondent, d'eux-mêmes ou en un clic.
 
 :::cards
-- [Origine des dossiers](#origine-des-dossiers): Les règles de détection, le renseignement sur les menaces, les produits connectés et les personnes.
+- [Origine des dossiers](#origine-des-dossiers): Les règles de détection, le renseignement sur les menaces, les produits connectés, le risque des entités et les personnes.
 - [Traiter un dossier](#traiter-un-dossier): L'assigner, enquêter sur ses entités, le fermer avec un verdict.
 - [Priorités et statuts des dossiers](#priorités-et-statuts-des-dossiers): Renommez-les, changez leur couleur et leur ordre, et ajoutez les vôtres.
 - [Notifications](#notifications): Qui est prévenu d'un nouveau dossier, d'une attribution et d'une étape en attente d'approbation.
@@ -49,6 +49,7 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | Règles de détection | Une règle correspond | **Open a Case on Match**, à l'étape **En cas de correspondance** de la règle |
 | Renseignement sur les menaces | Un événement nomme un indicateur connu | **Open a Case on Match**, à l'étape **En cas de correspondance** du flux |
 | Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Polling** de la connexion |
+| Risque des entités | Le risque d'un utilisateur, d'un hôte ou d'une adresse atteint le seuil du projet | **Dossiers de risque**, dans **Paramètres → Notation du risque** |
 | Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
 
 Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
@@ -186,7 +187,7 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 | Priorité du dossier de sécurité | L'une des priorités de dossier du projet, comme Critique ou Élevé |
 | Titre du dossier de sécurité, Description du dossier de sécurité | Un texte que le titre ou la description du dossier contient, par lequel il commence ou par lequel il se termine |
 | Statut du dossier de sécurité | L'un des statuts de dossier du projet, comme Nouveau ou Fermé |
-| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product ou Manuel |
+| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product, Risque des entités ou Manuel |
 | Étiquettes du dossier de sécurité | Les étiquettes du dossier |
 
 Les trois notifications sont chacune publiées dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.

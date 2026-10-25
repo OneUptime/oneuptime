@@ -37,6 +37,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Entidades** | Eventos | Os usuários, hosts e endereços que os seus achados mais citam |
+| **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
 | **Detection Rules** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
 | **Rule Library** | Detections | Regras de detecção prontas para adicionar, cada uma com os eventos que lê e se eles chegam, com as recomendadas marcadas |
@@ -51,6 +52,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
 | **Prioridades de casos** | Configurações | Quão urgente é um caso: as prioridades do próprio projeto, a mais urgente primeiro |
 | **Status de casos** | Configurações | As etapas por que um caso passa, e como conta um caso em cada uma |
+| **Pontuação de risco** | Configurações | Se o risco de uma entidade abre um caso, com que risco, e quanto importa cada entidade |
 
 **Detections**, **IA**, **Connections** e **Configurações**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
 

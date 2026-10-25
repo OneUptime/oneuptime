@@ -395,6 +395,7 @@
     "Get Started with Security": "보안 시작하기",
     "Security Events (SIEM)": "보안 이벤트(SIEM)",
     "Security Cases and Playbooks (SOAR)": "보안 케이스 및 플레이북(SOAR)",
+    "Entity Risk (Risk-Based Alerting)": "엔티티 위험 (위험 기반 알림)",
     "Threat Intelligence (STIX/TAXII)": "위협 인텔리전스(STIX/TAXII)",
     "OneUptime AI in Security": "보안의 OneUptime AI",
     "RUM Overview": "RUM 개요",

@@ -45,6 +45,7 @@ En AI-bedömning läser:
 - ärendet: titel, prioritet, status, entiteter och ATT&CK-koppling;
 - dess detektioner, den senaste först, med en exempelhändelse för var och en;
 - säkerhetshändelserna och hotunderrättelserna om ärendets användare, värdar och adresser;
+- risken för ärendets användare, värdar och adresser, och vad som bidrog till den den här veckan;
 - de värdar i OneUptime som ärendets värdar och adresser motsvarar, och vem som äger dem;
 - incidenten som ärendet har deklarerat, dess anteckningar, dess skyddade entiteter och de playbooks som är påslagna.
 

@@ -288,6 +288,7 @@ describe("Security Cases and Playbooks docs", () => {
       "Detection rules",
       "Threat intelligence",
       "Connected products",
+      "Entity risk",
       "People",
     ]);
 
@@ -327,6 +328,20 @@ describe("Security Cases and Playbooks docs", () => {
         /^\*\*Open a Case on Match\*\*, on the (rule|feed)'s \*\*On Match\*\* step$/,
       );
     }
+
+    // Entity risk opens cases from Settings > Risk Scoring's one switch.
+    const riskCopy: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/EntityRisk/EntityRiskCopy.ts`,
+      ),
+    );
+
+    expect(riskCopy).toContain(
+      'export const RISK_CASES_CARD_TITLE: string = translationKey("Risk Cases");',
+    );
+    expect(sourceRows[3]?.[2]).toBe(
+      "**Risk Cases**, under **Settings → Risk Scoring**",
+    );
 
     expect(connections).toContain('title: "Open Cases From",');
     expect(connections).toContain(
@@ -545,6 +560,8 @@ describe("Security Cases and Playbooks docs", () => {
     ).toEqual([
       STATE_SETTINGS_COPY[StateListType.SecurityCasePriority].title,
       STATE_SETTINGS_COPY[StateListType.SecurityCaseStatus].title,
+      // When an entity's risk opens a case (Entity Risk's docs page).
+      "Risk Scoring",
     ]);
     expect(settings?.startsCollapsed).toBe(true);
     expect(flat(section(page, "Case priorities and statuses"))).toContain(
