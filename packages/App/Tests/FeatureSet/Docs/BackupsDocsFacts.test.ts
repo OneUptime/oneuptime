@@ -449,10 +449,9 @@ describe("the destinations", () => {
   });
 
   it("gives the folder, the Amazon S3 region and each endpoint the form starts with", () => {
-    const amazon: BackupDestinationDefinition =
-      getBackupDestinationDefinition(
-        BackupProviderCatalog[0]!.type,
-      ) as BackupDestinationDefinition;
+    const amazon: BackupDestinationDefinition = getBackupDestinationDefinition(
+      BackupProviderCatalog[0]!.type,
+    ) as BackupDestinationDefinition;
 
     expect(fieldTitled(amazon, "Region")?.defaultValue).toBe(
       BACKUP_DEFAULT_S3_REGION,
@@ -496,7 +495,10 @@ describe("the destinations", () => {
       ) as BackupProviderDefinition;
     };
 
-    for (const provider of [BackupProvider.BackblazeB2, BackupProvider.Wasabi]) {
+    for (const provider of [
+      BackupProvider.BackblazeB2,
+      BackupProvider.Wasabi,
+    ]) {
       const definition: BackupProviderDefinition = byProvider(provider);
       const endpoint: string = definition.endpointPlaceholder as string;
 
@@ -510,7 +512,9 @@ describe("the destinations", () => {
     }
 
     // Anything else signs for us-east-1, as the page says.
-    expect(providerSection(byProvider(BackupProvider.OtherS3Compatible))).toContain(
+    expect(
+      providerSection(byProvider(BackupProvider.OtherS3Compatible)),
+    ).toContain(
       `Left empty, it is read from the endpoint, or is \`${BACKUP_DEFAULT_S3_REGION}\`.`,
     );
     expect(inferS3RegionFromEndpoint("https://s3.example.com")).toBe(
@@ -522,9 +526,7 @@ describe("the destinations", () => {
     const destinations: string = section(english(), DESTINATIONS_HEADING);
     const policy: {
       Statement: Array<{ Action: string | Array<string>; Resource: string }>;
-    } = JSON.parse(
-      (fences(destinations, "json")[0] as DocsFence).code,
-    ) as {
+    } = JSON.parse((fences(destinations, "json")[0] as DocsFence).code) as {
       Statement: Array<{ Action: string | Array<string>; Resource: string }>;
     };
     const actions: Array<string> = policy.Statement.flatMap(
@@ -799,7 +801,9 @@ describeWhenEnterprisePresent(
     });
 
     it("finds backups and turns the schedule off from the status card's menu", () => {
-      const card: string = readEe("AdminDashboard/Backups/BackupStatusCard.tsx");
+      const card: string = readEe(
+        "AdminDashboard/Backups/BackupStatusCard.tsx",
+      );
       const menu: string = card.slice(
         card.indexOf("<MoreMenu"),
         card.indexOf("</MoreMenu>"),
@@ -831,13 +835,17 @@ describeWhenEnterprisePresent(
         return steps.get(member) as string;
       };
       const diagram: string = (
-        fences(section(english(), HOW_A_BACKUP_WORKS_HEADING), "mermaid")[0] as DocsFence
+        fences(
+          section(english(), HOW_A_BACKUP_WORKS_HEADING),
+          "mermaid",
+        )[0] as DocsFence
       ).code;
 
       for (const key of BACKUP_STEP_KEYS) {
-        expect({ key, inDiagram: diagram.includes(`["${stepName(key)}"]`) }).toEqual(
-          { key, inDiagram: true },
-        );
+        expect({
+          key,
+          inDiagram: diagram.includes(`["${stepName(key)}"]`),
+        }).toEqual({ key, inDiagram: true });
       }
 
       const restoreTable: Array<Array<string>> = (
@@ -894,9 +902,9 @@ describeWhenEnterprisePresent(
       const notifications: string = readEe(
         "Server/Backup/BackupNotifications.ts",
       );
-      const hours: string = (FAILURE_INTERVAL.exec(
-        notifications,
-      ) as RegExpExecArray)[1] as string;
+      const hours: string = (
+        FAILURE_INTERVAL.exec(notifications) as RegExpExecArray
+      )[1] as string;
 
       expect(section(english(), WHEN_FAILS_HEADING)).toContain(
         `Every master admin also receives an email, at most once every ${hours} hours while backups keep failing.`,

@@ -540,9 +540,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         });
     };
 
-    expect(codeBlocks(translatedPage(language))).toEqual(
-      codeBlocks(english()),
-    );
+    expect(codeBlocks(translatedPage(language))).toEqual(codeBlocks(english()));
   });
 
   it("breaks its diagram's labels into lines short enough for the 590px docs column", () => {
@@ -728,9 +726,9 @@ describe("the helpers, on this page's shape", () => {
   });
 
   it("read the numbers a row states, in any digits, code left out", () => {
-    expect(numbersIn("`us-east-1` from 1 to 3,650 days, 30 by default")).toEqual(
-      ["1", "30", "3650"],
-    );
+    expect(
+      numbersIn("`us-east-1` from 1 to 3,650 days, 30 by default"),
+    ).toEqual(["1", "30", "3650"]);
     expect(numbersIn("از ۱ تا ۳۶۵۰ روز")).toEqual(["1", "3650"]);
   });
 

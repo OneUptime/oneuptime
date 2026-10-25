@@ -79,6 +79,7 @@
     "test-auto-remediation-rules-ui": "playwright test --config playwright.auto-remediation-rules-ui.config.ts",
     "test-external-mcp-servers-ui": "playwright test --config playwright.external-mcp-servers-ui.config.ts",
     "test-ai-context-ui": "playwright test --config playwright.ai-context-ui.config.ts",
+    "test-backups-ui": "playwright test --config playwright.backups-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
     "test-cloud-connect-ui": "playwright test --config playwright.cloud-connect-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",

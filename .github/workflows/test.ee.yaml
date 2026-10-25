@@ -157,3 +157,53 @@ jobs:
       - name: Run the ee tests
         working-directory: ee
         run: npm test
+
+  # The Backups page (Admin Dashboard > Settings > Backups) in real Chromium,
+  # with no backend: packages/E2E/Backups bundles the production page through
+  # the Admin Dashboard's Enterprise plugin, and the Community Edition beside
+  # it, over in-memory settings and runs - the first run, setting backups up,
+  # a backup running and one failed, a restore and its confirmation, at 1280
+  # and 390 pixels, light and dark. App Test's Dashboard Offline UI groups
+  # remove ee/ first, so only this job holds the Enterprise page to them.
+  # About a minute with its bundle; a job of its own, so it runs beside the ee
+  # tests rather than after them. The bundle reads Common's and the Admin
+  # Dashboard's packages and nothing of App's or ee's own installs.
+  backups-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install Common
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install Admin Dashboard
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/AdminDashboard
+      - name: Install browser test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser.
+          args: --ignore-scripts
+      - name: Install Chromium
+        working-directory: packages/E2E
+        timeout-minutes: 10
+        run: npx playwright install --with-deps chromium
+      - name: Run the Backups page's browser checks
+        working-directory: packages/E2E
+        run: npm run test-backups-ui
+      - name: Upload browser screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          path: |
+            output/playwright/backups-ui/*.png
+            output/playwright/backups-ui/test-results
