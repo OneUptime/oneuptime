@@ -154,9 +154,13 @@ describe.each(GUIDES)("the $label guide", (guide: GuideCase) => {
     expect(listPage).toContain(
       `{${guide.countState} === 0 && ( <AddResourceGuide onboarding={${guide.onboarding.constant}} title={${guide.onboarding.constant}.firstRunTitle}`,
     );
-    expect(onboarding).toContain(
-      `firstRunTitle: translationKey( "${guide.listTitle}", ),`,
-    );
+    // On one line or wrapped, however long the title is.
+    expect(
+      onboarding.replace(
+        /translationKey\( ("[^"]*"), \)/g,
+        "translationKey($1)",
+      ),
+    ).toContain(`firstRunTitle: translationKey("${guide.listTitle}"),`);
     expect(onboarding).toContain(`<${guide.card} title={props.title}`);
   });
 
