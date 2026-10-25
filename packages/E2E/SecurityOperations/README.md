@@ -151,18 +151,22 @@ that list is not empty.
   themes.
 - **Playbooks**: the list leads the page (steps, status, trigger and minimum priority) and fits
   its card, no card of templates above it; Create from Template, in the card's ⋯, lists the
-  templates, each one the project has marked Added with View to open its playbook; a project with
+  templates across the dialog (it closes with Close), each one the project has marked Added with
+  View to open its playbook; a project with
   no playbook (`?empty=1`) has the templates as its empty list, with Create a blank playbook; a
   template becomes a working playbook in one click, built as Turn on recommended builds Enrich New
   Cases, and one that cannot be added says why in the amber box; a playbook's page is named for it
-  in the trail and the tab, its settings read in full; its steps and latest runs, each run folded
-  to a line but the one waiting for approval; Waiting for Approval, at the runs page's old
+  in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
+  its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
+  Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
+  phone; Waiting for Approval, at the runs page's old
   address, lists the run held for a decision, and Playbook Runs every run, each a line of how far
   it got - the failed one Stopped at step 2 in red, its reason under Show steps; an empty runs
   page says what it is for in its empty state only.
 - **Detections**: ATT&CK Coverage counts what the enabled rules cover and opens on the tactics, a
   row each with how many of its techniques the rules cover and how many more the Rule Library
-  would, opening on its techniques by coverage; an Overview tactic bar opens its tactic there
+  would, opening on its techniques under a heading per state, each tile counting its rules (the
+  legend is the matrix's); an Overview tactic bar opens its tactic there
   (`?tactic=`); the matrix, behind the By tactic / Matrix switch (`?view=matrix`), scrolls inside
   its card; a box says how many techniques the Rule Library covers that the rules do not and opens
   the rules not added; on a phone and in dark; the rule library marks the rules the project has
@@ -174,8 +178,9 @@ that list is not empty.
   pages, each its own address and entry; the side menu is nine sections of pages, the ones set up
   once folded (Settings among them), its Workspace section listing only the connected Slack, and on
   a phone it names the section and the page; Entities ranks what the findings name in the
-  product's table over 1, 7 or 30 days, each row opening the entity in Correlate and, on a phone, a
-  card of its figures, with the lookup under it.
+  product's table over 1, 7 or 30 days, ten a page with the foot every list has, each row opening
+  the entity in Correlate and, on a phone, a card of its figures, with the lookup under it, its box
+  and Look Up one height on one line.
 - **Case priorities and statuses** (`?values=custom`): Settings → Case Statuses lists the
   project's statuses in order, what a case in each counts as, the four built-in ones tagged and the
   retired one folded under the table; Case Priorities lists Emergency above the five a detection
@@ -187,7 +192,9 @@ that list is not empty.
   name the statuses as the project does.
 - **Detection rules and threat intel**: both lead with their lists - their How it works card
   folds once the list has rows - and each row's one button is Edit, with Create Monitor (and a
-  feed's Update Credentials) in its ⋯. Detection Rules names each rule's kind (Single event,
+  feed's Update Credentials) in its ⋯. Detection Rules fits 1280 without scrolling sideways, its
+  Last Match how long ago (the date under the pointer) and Last Evaluated in Customize Columns, and
+  names each rule's kind (Single event,
   Sequence, First seen) and says what it means on hover; a single rule pasted into the form counts
   by Group By Field, Distinct Count Field and Match Count Threshold, while a correlation is said in
   a sentence under its YAML - the rules it reads by their titles, its fields as code - named after

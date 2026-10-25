@@ -262,7 +262,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
         </div>
 
         {isWaiting ? (
-          <div className="ml-auto flex flex-shrink-0 items-center gap-2">
+          <div className="ms-auto flex flex-shrink-0 items-center gap-2">
             <Button
               title="Reject"
               icon={IconProp.Close}
@@ -290,7 +290,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
           </div>
         ) : !isFinished ? (
           // In the same place as Approve and Reject: the row's right, a phone's too.
-          <div className="ml-auto flex flex-shrink-0 items-center">
+          <div className="ms-auto flex flex-shrink-0 items-center">
             <Button
               title="Cancel Run"
               icon={IconProp.Stop}

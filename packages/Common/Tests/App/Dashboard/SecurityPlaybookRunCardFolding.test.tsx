@@ -399,12 +399,12 @@ describe("a run's header", () => {
     const reject: HTMLElement = within(card()).getByRole("button", {
       name: "Reject",
     });
-    const buttons: HTMLElement = approve.closest(".ml-auto") as HTMLElement;
+    const buttons: HTMLElement = approve.closest(".ms-auto") as HTMLElement;
 
     expect(buttons).not.toBeNull();
     expect(buttons).toContainElement(reject);
     expect(buttons.className.split(" ")).toEqual(
-      expect.arrayContaining(["ml-auto", "flex", "flex-shrink-0"]),
+      expect.arrayContaining(["ms-auto", "flex", "flex-shrink-0"]),
     );
     // A sibling of the words, in the header's own row.
     expect(buttons.parentElement).toBe(words().parentElement);
@@ -422,11 +422,11 @@ describe("a run's header", () => {
     const cancel: HTMLElement = within(card()).getByRole("button", {
       name: "Cancel Run",
     });
-    const place: HTMLElement = cancel.closest(".ml-auto") as HTMLElement;
+    const place: HTMLElement = cancel.closest(".ms-auto") as HTMLElement;
 
     expect(place).not.toBeNull();
     expect(place.className.split(" ")).toEqual(
-      expect.arrayContaining(["ml-auto", "flex", "flex-shrink-0"]),
+      expect.arrayContaining(["ms-auto", "flex", "flex-shrink-0"]),
     );
     expect(place.parentElement).toBe(words().parentElement);
   });

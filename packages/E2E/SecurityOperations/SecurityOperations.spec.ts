@@ -2922,6 +2922,19 @@ test.describe("playbooks", () => {
       ).toHaveCount(0);
     }
     await pageAtRest(page);
+    // The tiles fill the dialog, not a column in its middle.
+    const dialogBox: Box = await boxOf(dialog);
+    const pickerBox: Box = await boxOf(
+      dialog.getByTestId("security-playbook-templates"),
+    );
+    expect(pickerBox.x - dialogBox.x).toBeLessThanOrEqual(48);
+    expect(
+      dialogBox.x + dialogBox.width - (pickerBox.x + pickerBox.width),
+    ).toBeLessThanOrEqual(48);
+    // A tile acts at once: the dialog closes, there is nothing to cancel.
+    await expect(dialog.getByTestId("modal-footer-close-button")).toHaveText(
+      "Close",
+    );
     await screenshot(page, "playbooks-templates-dialog");
 
     await dialog
@@ -3053,6 +3066,16 @@ test.describe("playbooks", () => {
     await expect(
       runs.nth(1).getByTestId("security-playbook-run-summary"),
     ).toHaveText("4 of 4 steps done");
+    // Every run here is this playbook's: each is named by its case, not the playbook again.
+    await expect(runs.first().getByRole("link").first()).toHaveText(
+      "CASE-142 Password spray against Okta from 203.0.113.47",
+    );
+    await expect(runs.nth(1).getByRole("link").first()).toHaveText(
+      "CASE-140 CrowdStrike: credential dumping on fin-ws-112",
+    );
+    for (const run of await runs.all()) {
+      await expect(run).not.toContainText("Contain Compromised Okta Users");
+    }
 
     await screenshot(page, "playbook-desktop");
   });
@@ -3140,6 +3163,78 @@ test.describe("playbooks", () => {
     expect(await litEntries(page)).toEqual(["Playbook Runs"]);
 
     await screenshot(page, "playbook-runs-desktop");
+  });
+
+  test("a run's buttons keep its title's line at a laptop's width, at the card's right, and drop under its words on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The fixture is 64px narrower than production: 1344 here is a 1280 laptop.
+    for (const pathname of [RUNS_PATH, ALL_RUNS_PATH]) {
+      await open(page, pathname, { width: 1344 });
+      const held: Locator = page
+        .getByTestId("security-playbook-run-card")
+        .filter({ hasText: "Waiting for Approval" });
+      await expect(held).toHaveCount(1, { timeout: 30000 });
+
+      const card: Box = await boxOf(held);
+      const title: Box = await boxOf(
+        held.getByText("Contain Compromised Okta Users", { exact: true }),
+      );
+      const approve: Box = await boxOf(
+        held.getByRole("button", { name: "Approve" }),
+      );
+      const reject: Box = await boxOf(
+        held.getByRole("button", { name: "Reject" }),
+      );
+
+      // On the title's line - not a row of their own under an empty band.
+      expect(approve.y, pathname).toBeLessThan(title.y + title.height);
+      expect(title.y, pathname).toBeLessThan(approve.y + approve.height);
+      expect(Math.abs(reject.y - approve.y)).toBeLessThanOrEqual(1);
+      expect(reject.x + reject.width).toBeLessThanOrEqual(approve.x);
+      // At the card's right edge.
+      expect(card.x + card.width - (approve.x + approve.width)).toBeLessThan(
+        24,
+      );
+    }
+
+    // A running run's Cancel Run keeps the same place.
+    const running: Locator = page
+      .getByTestId("security-playbook-run-card")
+      .filter({ hasText: "Running" });
+    const runningTitle: Box = await boxOf(
+      running.getByText("Escalate Known-Bad Indicators", { exact: true }),
+    );
+    const cancel: Box = await boxOf(
+      running.getByRole("button", { name: "Cancel Run" }),
+    );
+    expect(cancel.y).toBeLessThan(runningTitle.y + runningTitle.height);
+    expect(
+      (await boxOf(running)).x +
+        (await boxOf(running)).width -
+        (cancel.x + cancel.width),
+    ).toBeLessThan(24);
+
+    // A phone: the words keep the width, the buttons drop under them, still at the right.
+    await open(page, RUNS_PATH, { width: 390, height: 844 });
+    const heldOnPhone: Locator = page.getByTestId("security-playbook-run-card");
+    await expect(heldOnPhone).toHaveCount(1, { timeout: 30000 });
+    const phoneCard: Box = await boxOf(heldOnPhone);
+    const phoneSummary: Box = await boxOf(
+      heldOnPhone.getByTestId("security-playbook-run-summary"),
+    );
+    const phoneApprove: Box = await boxOf(
+      heldOnPhone.getByRole("button", { name: "Approve" }),
+    );
+    expect(phoneApprove.y).toBeGreaterThanOrEqual(
+      phoneSummary.y + phoneSummary.height,
+    );
+    expect(
+      phoneCard.x + phoneCard.width - (phoneApprove.x + phoneApprove.width),
+    ).toBeLessThan(24);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 
   test("the runs pages in both themes, and on a phone", async ({
@@ -3251,6 +3346,33 @@ test.describe("detections", () => {
     await expect(
       techniques.getByTestId("attack-technique-T1110"),
     ).toHaveAttribute("data-coverage", "covered");
+    // Its tiles sit under a heading per state, with how many: the legend's words, right above them.
+    const groups: Locator = techniques.getByRole("group");
+    await expect(groups).toHaveCount(3);
+    await expect(groups.first()).toHaveAttribute(
+      "data-testid",
+      "attack-coverage-group-covered",
+    );
+    await expect(
+      techniques.getByText("Available in the Rule Library", { exact: true }),
+    ).toBeVisible();
+    const firstHeading: Box = await boxOf(
+      techniques.getByText("Covered by an enabled rule", { exact: true }),
+    );
+    const firstTile: Box = await boxOf(
+      techniques.getByTestId("attack-technique-T1110"),
+    );
+    expect(firstHeading.y + firstHeading.height).toBeLessThanOrEqual(
+      firstTile.y,
+    );
+    // A tile says what its count counts.
+    await expect(
+      techniques
+        .getByTestId("attack-technique-T1110")
+        .getByTestId("attack-technique-rule-count"),
+    ).toHaveText(/^\d+ rules?$/);
+    // By tactic there is no legend at the card's foot: the headings say it.
+    await expect(page.getByTestId("attack-coverage-legend")).toHaveCount(0);
     await screenshot(page, "attack-coverage-tactic-open");
 
     // The gap's link opens the Rule Library on the rules not added.
@@ -3290,6 +3412,8 @@ test.describe("detections", () => {
       .getByTestId("attack-technique-T1110")
       .first();
     await expect(technique).toBeVisible();
+    // The matrix's cells are keyed under it.
+    await expect(page.getByTestId("attack-coverage-legend")).toBeVisible();
 
     // The matrix is taller and wider than its card: it scrolls inside it.
     const matrix: Locator = technique.locator(
@@ -3609,7 +3733,7 @@ test.describe("detections", () => {
     await open(page, ATTACK_COVERAGE_PATH, { width: 1280, tactic: "TA0006" });
     await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
     await page.getByTestId("attack-technique-T1110").first().click();
-    await page.getByRole("link", { name: "Open the rule library" }).click();
+    await page.getByRole("link", { name: "Open the Rule Library" }).click();
     await expect
       .poll(() => {
         return pathnameOf(page);
@@ -4293,6 +4417,19 @@ test.describe("detections", () => {
     const lookup: Box = await boxOf(cardTitled(page, "Look Up an Entity"));
     expect(ranking.y).toBeLessThan(lookup.y);
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    // The ranking has the foot every list has: how many, and the pages.
+    await expect(
+      cardTitled(page, "Riskiest Entities").getByTestId("pagination-summary"),
+    ).toHaveText(/^Showing 1.10 of 10 entities$/);
+    // Look Up sits beside its box, at the box's own height.
+    const box: Box = await boxOf(
+      page.getByRole("textbox", { name: "Look Up an Entity" }),
+    );
+    const lookUp: Box = await boxOf(
+      page.getByRole("button", { name: "Look Up", exact: true }),
+    );
+    expect(Math.abs(box.height - lookUp.height)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box.y - lookUp.y)).toBeLessThanOrEqual(1);
     await screenshot(page, "entities-desktop");
 
     // The window switch reads the ranking again over a month.
@@ -4421,6 +4558,43 @@ test.describe("detection rules and threat intel", () => {
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "detection-rules-desktop", { fullPage: false });
+  });
+
+  test("Detection Rules fits a laptop's width: no row scrolls sideways, and Last Match says how long ago", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The fixture is 64px narrower than production: 1344 here is a 1280 laptop.
+    await open(page, DETECTION_RULES_PATH, { width: 1344 });
+    await expect(rowNamed(page, SEQUENCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    const headers: Array<string> = (
+      await page.locator("table thead th").allTextContents()
+    )
+      .map((text: string): string => {
+        return text.trim();
+      })
+      .filter(Boolean);
+    expect(headers.join(" | ")).toContain("Last Match");
+    // Whether a rule runs, its Status says: Last Evaluated waits in Customize Columns.
+    expect(headers.join(" | ")).not.toContain("Last Evaluated");
+    await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
+
+    const matched: Locator = rowNamed(page, SEQUENCE_RULE).getByTestId(
+      "relative-time-cell",
+    );
+    await expect(matched).toHaveText("4 hours ago");
+    await expect(matched).toHaveAttribute("title", /2026/);
+    await expect(
+      rowNamed(page, FIRST_SEEN_RULE).getByTestId("relative-time-cell"),
+    ).toHaveText("Never");
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 
   test("a correlation pasted into the form is said in a sentence, and the single rule's counting fields leave", async ({
