@@ -48,6 +48,9 @@ const LEFT_OUT: Record<string, string> = {
   "Utils/Analytics": "a browser library",
 };
 
+// How long one build of the stand-in may take: each takes about a second.
+const BUILD_TIMEOUT_MS: number = 120000;
+
 // A stand-in Common, file by file.
 const STAND_IN: Record<string, string> = {
   "tsconfig.json": JSON.stringify({
@@ -240,7 +243,11 @@ function filesIn(directory: string): Array<string> {
 function buildStandIn(
   name: string,
   extra: Record<string, string>,
-  options: { rootExports?: ReadonlyArray<RootExport>; buildDirectory?: string },
+  options: {
+    rootExports?: ReadonlyArray<RootExport>;
+    buildDirectory?: string;
+    readExportsTimeoutMs?: number;
+  },
 ): { sourceRoot: string; run: BuildRun } {
   const sourceRoot: string = path.join(scratch, name);
   writeFiles(sourceRoot, { ...STAND_IN, ...extra });
@@ -259,6 +266,9 @@ function buildStandIn(
       rootExports: options.rootExports || ROOT_EXPORTS,
       licenseFile: path.join(sourceRoot, "LICENSE.txt"),
       readmeFile: path.join(sourceRoot, "README.md"),
+      ...(options.readExportsTimeoutMs
+        ? { readExportsTimeoutMs: options.readExportsTimeoutMs }
+        : {}),
     }),
   );
   fs.writeFileSync(
@@ -278,10 +288,20 @@ function buildStandIn(
     ].join("\n"),
   );
 
+  /*
+   * A synchronous spawn holds jest's own timeout off, so a build that never
+   * ended would hold the suite for ever: it gets one of its own.
+   */
   const built: childProcess.SpawnSyncReturns<string> = childProcess.spawnSync(
     process.execPath,
     [runner, settings, output],
-    { cwd: sourceRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+    {
+      cwd: sourceRoot,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: BUILD_TIMEOUT_MS,
+      killSignal: "SIGKILL",
+    },
   );
 
   if (built.status !== 0 || !fs.existsSync(output)) {
@@ -785,6 +805,76 @@ describe("a build that cannot publish what it would write", () => {
     expect(run.report).toBeUndefined();
     expect(run.error).toBe(
       "These modules throw when Node.js loads them from the package:\n  Types/Throws: Needs an environment",
+    );
+  });
+
+  /*
+   * A module that starts a timer (or opens a socket) as it loads keeps every
+   * script that loads it from ending. The build loads every module, so it
+   * would hang too - the release's npm job with it - until GitHub ended the
+   * job hours later. It says what runs, and which module started it.
+   */
+  test("fails when a published module keeps Node.js running once it has loaded, naming what runs and the module that started it", () => {
+    const started: number = Date.now();
+    const { run }: { run: BuildRun } = buildStandIn(
+      "keeps-running",
+      {
+        "Types/KeepsRunning.ts": [
+          "export const ticks: Array<number> = [];",
+          "setInterval(() => {",
+          "  ticks.push(Date.now());",
+          "}, 60000);",
+          "",
+        ].join("\n"),
+      },
+      {},
+    );
+
+    expect(run.report).toBeUndefined();
+    expect(run.error).toBe(
+      "Loading the package's modules leaves Node.js running (Timeout), so a script that loads them would never end on its own. More was running after these loaded: Types/KeepsRunning",
+    );
+    // It says so seconds after the modules loaded, not at a timeout.
+    expect(Date.now() - started).toBeLessThan(BUILD_TIMEOUT_MS / 2);
+  });
+
+  test("passes a module whose one-off timer only delays the end", () => {
+    const { run }: { run: BuildRun } = buildStandIn(
+      "delays-the-end",
+      {
+        "Types/DelaysTheEnd.ts": [
+          "export const done: Array<boolean> = [];",
+          "setTimeout(() => {",
+          "  done.push(true);",
+          "}, 1500);",
+          "",
+        ].join("\n"),
+      },
+      {},
+    );
+
+    expect(run.error).toBeUndefined();
+    expect(run.report?.published).toContain("Types/DelaysTheEnd");
+  });
+
+  test("stops, and fails, when loading the modules never ends", () => {
+    const { run }: { run: BuildRun } = buildStandIn(
+      "never-ends",
+      {
+        "Types/NeverEnds.ts": [
+          "export const value: number = 1;",
+          "while (Date.now() > 0) {",
+          "  // Waits for ever, as it loads.",
+          "}",
+          "",
+        ].join("\n"),
+      },
+      { readExportsTimeoutMs: 3000 },
+    );
+
+    expect(run.report).toBeUndefined();
+    expect(run.error).toBe(
+      "Loading the package's modules did not end within 3 s: a module loops or waits as Node.js loads it",
     );
   });
 

@@ -43,8 +43,9 @@
  *
  * The build fails, rather than publishing something broken, when the
  * TypeScript does not compile, a root export cannot be published, a published
- * module throws when it is loaded, or the package it wrote refers to a file
- * or package it does not have (verifyPackage).
+ * module throws when it is loaded (or loading them leaves Node.js running, or
+ * never ends), or the package it wrote refers to a file or package it does
+ * not have (verifyPackage).
  */
 
 const childProcess = require("child_process");
@@ -135,6 +136,26 @@ const ROOT_ENTRY = "index";
 const COMMONJS_BINDING = "commonJsModule";
 
 const READ_EXPORTS_FLAG = "--read-exports";
+
+/*
+ * The export reader (readExportNames) loads every published module in a
+ * Node.js process of its own. Common's 2,218 load in about 15 s, so one that
+ * has not ended after this long loops or waits as it loads: the build stops
+ * it and fails, rather than holding the release's npm job until GitHub ends
+ * it.
+ */
+const READ_EXPORTS_TIMEOUT_MS = 10 * 60 * 1000;
+
+/*
+ * Once it has written what it read, the export reader ends the way Node.js
+ * does: when nothing is left to run. When something a module started as it
+ * loaded - an interval, a socket - is still running this long after, it
+ * would keep every script that loads that module from ever ending (a
+ * one-off timer of a second or two only delays the end), so the reader says
+ * what is running, and ends with KEPT_RUNNING_EXIT_CODE.
+ */
+const KEPT_RUNNING_AFTER_MS = 5000;
+const KEPT_RUNNING_EXIT_CODE = 3;
 
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -1515,15 +1536,51 @@ function selectDependencies(input) {
 }
 
 /**
+ * What the export reader printed last when something kept Node.js running
+ * after it had read every module: what was running, and the modules after
+ * whose load more was running than before.
+ * @param {string} stderr - what the export reader wrote to stderr
+ * @returns {{ running: Array<string>, startedBy: Array<string> }} the report, empty lists when there is none
+ */
+function keptRunningReport(stderr) {
+  const lines = String(stderr || "")
+    .trim()
+    .split("\n")
+    .reverse();
+
+  for (const line of lines) {
+    try {
+      const report = JSON.parse(line);
+
+      if (report && Array.isArray(report.keptRunning)) {
+        return {
+          running: report.keptRunning.map(String),
+          startedBy: Array.isArray(report.startedBy)
+            ? report.startedBy.map(String)
+            : [],
+        };
+      }
+    } catch {
+      // A line a module printed; the report is further down.
+    }
+  }
+
+  return { running: [], startedBy: [] };
+}
+
+/**
  * What each module's CommonJS exports: loaded in a Node.js process of its
  * own, from the package directory, so it resolves its packages as an
  * installed package would from there. Throws, naming each module, when a
- * module throws as it loads.
+ * module throws as it loads; and, naming what runs, when loading them leaves
+ * Node.js running or does not end within the timeout.
  * @param {string} packageDirectory - the package, with its .js files written
  * @param {Array<string>} ids - the modules
+ * @param {number} [timeoutMs] - how long the loading may take (default: READ_EXPORTS_TIMEOUT_MS)
  * @returns {Map<string, { hasDefault: boolean, names: Array<string> }>} what each exports
  */
-function readExportNames(packageDirectory, ids) {
+function readExportNames(packageDirectory, ids, timeoutMs) {
+  const timeout = timeoutMs || READ_EXPORTS_TIMEOUT_MS;
   const scratch = fs.mkdtempSync(
     path.join(os.tmpdir(), "oneuptime-common-exports-"),
   );
@@ -1540,8 +1597,28 @@ function readExportNames(packageDirectory, ids) {
         cwd: packageDirectory,
         encoding: "utf8",
         maxBuffer: 64 * 1024 * 1024,
+        timeout,
+        killSignal: "SIGKILL",
       },
     );
+
+    if (loaded.error && loaded.error.code === "ETIMEDOUT") {
+      throw new Error(
+        `Loading the package's modules did not end within ${Math.round(timeout / 1000)} s: a module loops or waits as Node.js loads it`,
+      );
+    }
+
+    if (loaded.status === KEPT_RUNNING_EXIT_CODE) {
+      const report = keptRunningReport(loaded.stderr);
+
+      throw new Error(
+        `Loading the package's modules leaves Node.js running (${
+          report.running.join(", ") || "something"
+        }), so a script that loads them would never end on its own. More was running after these loaded: ${
+          report.startedBy.join(", ") || "none of them, as it loaded"
+        }`,
+      );
+    }
 
     if (loaded.status !== 0 || !fs.existsSync(output)) {
       throw new Error(
@@ -1579,8 +1656,17 @@ function readExportNames(packageDirectory, ids) {
  */
 function readExportNamesHere(packageDirectory, input, output) {
   const results = {};
+  // What runs before any module loads, such as this process's own pipes.
+  const baseline = process.getActiveResourcesInfo();
+  // The modules after whose load more was running than before.
+  const startedBy = [];
+  const running = () => {
+    return process.getActiveResourcesInfo().length;
+  };
 
   for (const id of JSON.parse(fs.readFileSync(input, "utf8"))) {
+    const runningBefore = running();
+
     try {
       const loaded = require(path.join(packageDirectory, `${id}.js`));
 
@@ -1595,9 +1681,51 @@ function readExportNamesHere(packageDirectory, input, output) {
         error: String((error && error.message) || error).split("\n")[0],
       };
     }
+
+    if (running() > runningBefore) {
+      startedBy.push(id);
+    }
   }
 
   fs.writeFileSync(output, JSON.stringify(results));
+
+  /*
+   * Node.js ends here once nothing is left to run; this timer, unref'd,
+   * keeps nothing running itself. It fires only when something a module
+   * started as it loaded is still running, and then says what.
+   */
+  setTimeout(() => {
+    // Read before writing: writing opens stderr's pipe, which is not theirs.
+    const keptRunning = withoutBaseline(
+      process.getActiveResourcesInfo(),
+      baseline,
+    );
+
+    process.stderr.write(`${JSON.stringify({ keptRunning, startedBy })}\n`);
+    process.exit(KEPT_RUNNING_EXIT_CODE);
+  }, KEPT_RUNNING_AFTER_MS).unref();
+}
+
+/**
+ * What runs now that did not run before: `now` without one of each entry
+ * of `baseline`.
+ * @param {Array<string>} now - process.getActiveResourcesInfo() now
+ * @param {Array<string>} baseline - what it gave before
+ * @returns {Array<string>} the rest, in order
+ */
+function withoutBaseline(now, baseline) {
+  const left = [...baseline];
+
+  return now.filter((resource) => {
+    const index = left.indexOf(resource);
+
+    if (index === -1) {
+      return true;
+    }
+
+    left.splice(index, 1);
+    return false;
+  });
 }
 
 /**
@@ -2012,6 +2140,7 @@ function assertDeletable(buildDirectory, sourceRoot) {
  * @param {ReadonlyArray<object>} [options.rootExports] - the root's exports (default: ROOT_EXPORTS)
  * @param {string} [options.licenseFile] - the LICENSE to ship (default: the repository's)
  * @param {string} [options.readmeFile] - the README.md to ship (default: <sourceRoot>/README.md)
+ * @param {number} [options.readExportsTimeoutMs] - how long loading the published modules may take (default: READ_EXPORTS_TIMEOUT_MS)
  * @returns {object} what it built: the package directory, the manifest, what was published and left out, and the package's size
  */
 function buildNpmPackage(options) {
@@ -2126,7 +2255,11 @@ function buildNpmPackage(options) {
     );
   }
 
-  const exportNames = readExportNames(packageDirectory, selection.published);
+  const exportNames = readExportNames(
+    packageDirectory,
+    selection.published,
+    settings.readExportsTimeoutMs,
+  );
 
   for (const id of selection.published) {
     writeFile(

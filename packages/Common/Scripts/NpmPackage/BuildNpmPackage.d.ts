@@ -100,6 +100,8 @@ export interface BuildOptions {
   rootExports?: ReadonlyArray<RootExport>;
   licenseFile?: string;
   readmeFile?: string;
+  // How long loading the published modules may take, in milliseconds.
+  readExportsTimeoutMs?: number;
 }
 
 export interface BuildReport {
