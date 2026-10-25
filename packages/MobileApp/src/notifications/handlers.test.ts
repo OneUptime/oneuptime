@@ -20,9 +20,9 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *
  * 2. Dropping an entityType the server actually sends. Common/Server/Utils/
  *    PushNotificationUtil.ts sends incident, alert, incident-episode,
- *    alert-episode, monitor and scheduled-maintenance. Five of those six have
- *    a screen in this app; a switch that quietly misses one is a page that
- *    opens the app and shows nothing.
+ *    alert-episode, monitor, security-case and scheduled-maintenance. Six of
+ *    those seven have a screen in this app; a switch that quietly misses one
+ *    is a page that opens the app and shows nothing.
  *
  * The navigator is a stand-in rather than a real NavigationContainer because
  * what is being asserted is the DECISION - deliver now, hold, or ignore - and
@@ -668,5 +668,210 @@ describe("A notification keeps a useful Back destination", () => {
     expect(container.navigations).toHaveLength(1);
     expect(container.inboxBackRoutes).toEqual([]);
     expect(container.initialRouteOverrides).toEqual([false]);
+  });
+});
+
+describe("a security case page", () => {
+  /*
+   * SecurityCaseNotifications sends three pushes about a case - it opened or
+   * rose to the person's chosen priority, it was assigned to them or their
+   * team, a playbook step on it waits for their approval - all with
+   * entityType "security-case". Before the app had a case screen, each opened
+   * the app wherever it was, which reads to an analyst as the page having
+   * been for nothing.
+   */
+  const CASE_ID: string = "5ec0ca5e-0142-4d1a-9a00-000000000142";
+  const PROJECT_ID: string = "0b5e55ed-aaaa-4aaa-8aaa-00000000a0a0";
+
+  test.each([
+    ["security-case-opened"],
+    ["security-case-assigned"],
+    ["security-playbook-approval"],
+  ])("%s opens the case in the Inbox", (type: string) => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    handlers.handleNotificationResponse(
+      tap({
+        type,
+        entityType: "security-case",
+        entityId: CASE_ID,
+        projectId: PROJECT_ID,
+        url: "https://oneuptime.com/dashboard/" + PROJECT_ID + "/security-events/cases/" + CASE_ID,
+      }),
+    );
+
+    expect(container.navigations).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "SecurityCaseDetail",
+        params: { caseId: CASE_ID, projectId: PROJECT_ID },
+      },
+    ]);
+  });
+
+  test("goes Back to every open case, where it is listed", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    handlers.handleNotificationResponse(
+      tap({
+        entityType: "security-case",
+        entityId: CASE_ID,
+        projectId: PROJECT_ID,
+      }),
+    );
+
+    expect(container.inboxBackRoutes).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "InboxList",
+        params: {
+          initialView: "security",
+          initialCaseFilter: "open",
+          initialFilter: "all",
+        },
+      },
+    ]);
+  });
+
+  test("tapped while signed out, it waits for the tabs and is not lost", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(AUTH_STACK_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    handlers.handleNotificationResponse(
+      tap({
+        entityType: "security-case",
+        entityId: CASE_ID,
+        projectId: PROJECT_ID,
+      }),
+    );
+    expect(container.navigations).toEqual([]);
+
+    container.mount(MAIN_TAB_ROUTES);
+    handlers.processPendingNotification();
+
+    expect(container.navigations).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "SecurityCaseDetail",
+        params: { caseId: CASE_ID, projectId: PROJECT_ID },
+      },
+    ]);
+  });
+
+  test("a case in another project opens once the app has switched to it", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+    let switched: boolean = false;
+    handlers.setProjectNavigationGuard((): "ready" | "switching" => {
+      return switched ? "ready" : "switching";
+    });
+
+    handlers.handleNotificationResponse(
+      tap({
+        entityType: "security-case",
+        entityId: CASE_ID,
+        projectId: PROJECT_ID,
+      }),
+    );
+    expect(container.navigations).toEqual([]);
+
+    switched = true;
+    handlers.processPendingNotification();
+
+    expect(container.navigations).toHaveLength(1);
+    expect(container.navigations[0]!.screen).toBe("SecurityCaseDetail");
+  });
+});
+
+describe("a link to a security case, inside the app", () => {
+  const CASE_ID: string = "5ec0ca5e-0142-4d1a-9a00-000000000142";
+  const PROJECT_ID: string = "0b5e55ed-aaaa-4aaa-8aaa-00000000a0a0";
+
+  test("opens the case on top of what the reader was reading", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    expect(handlers.openSecurityCaseFromLink(PROJECT_ID, CASE_ID)).toBe(true);
+
+    expect(container.navigations).toEqual([
+      {
+        routeName: "Inbox",
+        screen: "SecurityCaseDetail",
+        params: { caseId: CASE_ID, projectId: PROJECT_ID },
+      },
+    ]);
+    // Pushed, never a reset of the Inbox: Back returns to the alert or incident.
+    expect(container.inboxBackRoutes).toEqual([]);
+    expect(container.initialRouteOverrides).toEqual([false]);
+  });
+
+  test("a case in another project waits for the switch, then opens", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+    let switched: boolean = false;
+    handlers.setProjectNavigationGuard((): "ready" | "switching" => {
+      return switched ? "ready" : "switching";
+    });
+
+    expect(handlers.openSecurityCaseFromLink(PROJECT_ID, CASE_ID)).toBe(true);
+    expect(container.navigations).toEqual([]);
+
+    switched = true;
+    handlers.processPendingNotification();
+
+    expect(container.navigations[0]).toMatchObject({
+      screen: "SecurityCaseDetail",
+      params: { caseId: CASE_ID, projectId: PROJECT_ID },
+    });
+  });
+
+  test("a case in a project the reader no longer has is not opened, and not left to the browser", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+    handlers.setProjectNavigationGuard((): "unavailable" => {
+      return "unavailable";
+    });
+
+    expect(handlers.openSecurityCaseFromLink(PROJECT_ID, CASE_ID)).toBe(true);
+    expect(container.navigations).toEqual([]);
+  });
+
+  test("while the app cannot show it - signed out, locked - the browser opens it", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(AUTH_STACK_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    expect(handlers.openSecurityCaseFromLink(PROJECT_ID, CASE_ID)).toBe(false);
+
+    container.mount(null);
+    expect(handlers.openSecurityCaseFromLink(PROJECT_ID, CASE_ID)).toBe(false);
+    expect(container.navigations).toEqual([]);
+  });
+
+  test("a link without a case opens nothing", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    expect(handlers.openSecurityCaseFromLink(PROJECT_ID, "")).toBe(false);
+    expect(container.navigations).toEqual([]);
   });
 });

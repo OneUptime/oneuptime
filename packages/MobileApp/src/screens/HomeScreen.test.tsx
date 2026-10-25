@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, type ViewStyle, type TextStyle } from "react-native";
 import {
+  act,
   render,
   screen,
   waitFor,
@@ -1224,5 +1225,159 @@ describe("Home on a wide window", () => {
     expect(columns()).toMatchObject({ flexDirection: "row" });
     expect(screen.getByTestId("home-tile-incidents")).toBeTruthy();
     expect(screen.getByTestId("home-grouped-events")).toBeTruthy();
+  });
+});
+
+describe("Security cases on Home", () => {
+  /*
+   * Only for the people the Inbox shows Security to: those who can see the
+   * project's cases, in a project that has had one. For everybody else Home
+   * is the Home it always was. Its counts are their own requests, so their
+   * failing - or being refused - never retires the counts above them.
+   */
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockOnCall.current = onCallOnDuty();
+    mockColorScheme.current = "light";
+    mockCounts.current = countsWith({ incidentCount: 2 });
+    mockSecurityCounts.current = securityCountsWith();
+  });
+
+  test("somebody who cannot see cases gets no Security row", async () => {
+    await render(<HomeScreen />);
+
+    expect(screen.queryByTestId("home-security")).toBeNull();
+    expect(screen.queryByText("Open security cases")).toBeNull();
+  });
+
+  test("somebody who can sees how many cases are open", async () => {
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 4,
+      awaitingApprovalCount: 0,
+    });
+
+    await render(<HomeScreen />);
+
+    const row: RenderedElement = screen.getByTestId("home-row-security-cases");
+    expect(within(row).getByText("Open security cases")).toBeTruthy();
+    expect(screen.getByTestId("home-row-security-cases-count").props.children).toBe("4");
+    expect(screen.queryByText(/^Approval needed on/)).toBeNull();
+    expect(
+      flatStyle(screen.getByTestId("home-row-security-cases-count")).color,
+    ).toBe(lightColors.statusWarning);
+  });
+
+  test("says how many cases wait for an approval, one or many", async () => {
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 4,
+      awaitingApprovalCount: 1,
+    });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <HomeScreen />,
+    );
+    expect(screen.getByText("Approval needed on 1 case")).toBeTruthy();
+
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 4,
+      awaitingApprovalCount: 3,
+    });
+    await view.rerender(<HomeScreen />);
+    expect(screen.getByText("Approval needed on 3 cases")).toBeTruthy();
+  });
+
+  test("no open case is a zero, not highlighted", async () => {
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 0,
+      awaitingApprovalCount: 0,
+    });
+
+    await render(<HomeScreen />);
+
+    const count: RenderedElement = screen.getByTestId(
+      "home-row-security-cases-count",
+    );
+    expect(count.props.children).toBe("0");
+    expect(flatStyle(count).color).toBe(lightColors.textPrimary);
+  });
+
+  test.each([
+    ["still loading", { isLoading: true }],
+    ["failed", { isError: true }],
+  ])(
+    "a count %s is a placeholder, never a zero, and the other counts stay",
+    async (_state: string, overrides: Partial<SecurityCaseCounts>) => {
+      mockSecurityCounts.current = securityCountsWith({
+        isAvailable: true,
+        openCount: undefined,
+        awaitingApprovalCount: 2,
+        ...overrides,
+      });
+
+      await render(<HomeScreen />);
+
+      expect(
+        screen.getByTestId("home-row-security-cases-count").props.children,
+      ).toBe("--");
+      expect(screen.queryByText(/^Approval needed on/)).toBeNull();
+      expect(screen.getByTestId("home-tile-incidents-count").props.children).toBe(
+        "2",
+      );
+    },
+  );
+
+  test("a press is felt, then opens the open cases in the Inbox", async () => {
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 4,
+      awaitingApprovalCount: 0,
+    });
+    await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId("home-row-security-cases"));
+
+    expect(mockLightImpact).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("Inbox", {
+      screen: "InboxList",
+      params: { initialView: "security", initialCaseFilter: "open" },
+    });
+  });
+
+  test("tells a screen reader the count and where the row goes", async () => {
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 4,
+      awaitingApprovalCount: 0,
+    });
+
+    await render(<HomeScreen />);
+
+    const row: RenderedElement = screen.getByRole("button", {
+      name: "4 Open security cases. Tap to view.",
+    });
+    expect(row.props.accessibilityHint).toBe(
+      "Opens the open security cases in the inbox",
+    );
+  });
+
+  test("pull to refresh asks for the security counts again too", async () => {
+    mockSecurityCounts.current = securityCountsWith({
+      isAvailable: true,
+      openCount: 4,
+      awaitingApprovalCount: 0,
+    });
+    await render(<HomeScreen />);
+
+    await act(async () => {
+      await screen
+        .getByTestId("home-scroll")
+        .props.refreshControl.props.onRefresh();
+    });
+
+    expect(mockSecurityRefetch).toHaveBeenCalled();
   });
 });
