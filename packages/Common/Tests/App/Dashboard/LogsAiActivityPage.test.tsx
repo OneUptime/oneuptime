@@ -255,6 +255,14 @@ describe("Logs → AI → Activity", () => {
 
       expect(finding).toHaveTextContent(words);
       expect(TELEMETRY_AI_LOG_FINDINGS[classification]).toBe(words);
+      /*
+       * Marked as OneUptime AI's own words with the AI tab's sparkles, a
+       * mark screen readers skip: the sentence says who found it.
+       */
+      const mark: SVGElement | null = finding.querySelector("svg");
+      expect(mark).not.toBeNull();
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      expect(finding.querySelector("p")).toHaveTextContent(words);
       expect(finding).toHaveAttribute("data-classification", classification);
       // Below what the investigation was about, beside how it stands.
       expect(within(investigation!).getByText("Done")).toBeInTheDocument();
@@ -349,6 +357,65 @@ describe("Logs → AI → Activity", () => {
 
     await shownEntries(1);
     expect(requests()).toHaveLength(2);
+  });
+
+  /*
+   * A finding keeps one verdict - its last triage's - so a finding looked
+   * into twice says it once, on its newer investigation: the older one may
+   * have found otherwise and does not borrow it, on the same page or when
+   * it arrives with Load More.
+   */
+  test("a finding looked into twice says what was found once, on the newer investigation", async () => {
+    const NEWER_ID: string = "5a660000-0000-4000-8000-0000000000c5";
+    const OLDER_ID: string = "5a660000-0000-4000-8000-0000000000c6";
+    const OLDEST_ID: string = "5a660000-0000-4000-8000-0000000000c7";
+
+    serve(
+      ok({
+        entries: [
+          entry({ runId: NEWER_ID, classification: ErrorClass.CodeFault }),
+          entry({
+            runId: OLDER_ID,
+            at: "2026-10-23T09:00:00.000Z",
+            classification: ErrorClass.CodeFault,
+          }),
+        ],
+        totalCount: 3,
+      }),
+      ok({
+        entries: [
+          entry({
+            runId: OLDEST_ID,
+            at: "2026-10-22T09:00:00.000Z",
+            classification: ErrorClass.CodeFault,
+          }),
+        ],
+        totalCount: 3,
+      }),
+    );
+    openPage();
+
+    const [newer, older] = await shownEntries(2);
+
+    expect(
+      within(newer!).getByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+    ).toHaveTextContent(TELEMETRY_AI_LOG_FINDINGS[ErrorClass.CodeFault]);
+    expect(
+      within(older!).queryByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId(TELEMETRY_AI_TEST_IDS.logsLoadMore));
+
+    const shown: Array<HTMLElement> = await shownEntries(3);
+
+    expect(
+      screen.queryAllByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+    ).toHaveLength(1);
+    expect(
+      within(shown[2]!).queryByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+    ).not.toBeInTheDocument();
+    // Each row is still there, saying how it stands.
+    expect(within(shown[2]!).getByText("Done")).toBeInTheDocument();
   });
 
   test("a failed Load More says so in the page's own name, under the entries already shown", async () => {

@@ -1281,7 +1281,7 @@ function buildLogErrorPatternMonitor(
     name: name,
     description: [
       translateTemplate(
-        "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:",
+        "Created from an AI insight that found an error logged again and again. Opens an incident when this happens again:",
       ),
       condition,
       translateTemplate(

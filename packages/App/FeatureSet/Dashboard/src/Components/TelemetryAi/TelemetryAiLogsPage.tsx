@@ -56,6 +56,7 @@ import {
   TELEMETRY_AI_TEST_IDS,
   TelemetryAiLaneCopy,
   getTelemetryAiLogFinding,
+  getTelemetryAiLogFindingRunIds,
 } from "./TelemetryAiCopy";
 
 /*
@@ -64,9 +65,10 @@ import {
  * data, newest first (Common/Server/API/TelemetryAiAPI): each investigation
  * - an insight's triage - and each pull request it opened on its own or was
  * asked to open from a finding, with how it stands, the finding it was
- * for, who started it, and the Code task and pull request it led to. A done
- * investigation says what it found (its verdict): why the finding got a
- * pull request, or did not.
+ * for, who started it, and the Code task and pull request it led to. The
+ * newest done investigation of each finding says what it found (its
+ * verdict, marked as OneUptime AI's): why the finding got a pull request,
+ * or did not.
  *
  * A page at a time, with Load more. Only about findings the reader may
  * read; a repository they may not read in Code is not named.
@@ -111,6 +113,12 @@ export function getPullRequestUrl(url: string | undefined): URL | null {
 export interface TelemetryAiLogRowProps {
   lane: TelemetryAiLane;
   entry: TelemetryAiLogEntryJSON;
+  /*
+   * Whether the row may say what its investigation found: false for an
+   * older investigation of a finding a newer one already speaks for
+   * (getTelemetryAiLogFindingRunIds). Absent, it says it.
+   */
+  isFindingShown?: boolean | undefined;
 }
 
 export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
@@ -121,7 +129,8 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   const at: Date = new Date(entry.at);
   const hasDate: boolean = !Number.isNaN(at.getTime());
   const pullRequestUrl: URL | null = getPullRequestUrl(entry.pullRequest?.url);
-  const finding: string | null = getTelemetryAiLogFinding(entry);
+  const finding: string | null =
+    props.isFindingShown === false ? null : getTelemetryAiLogFinding(entry);
 
   const meta: Array<ReactElement> = [];
 
@@ -219,14 +228,23 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
           })}
         </div>
 
+        {/*
+         * What the investigation found, marked as OneUptime AI's own words
+         * (the sparkles of the AI tab): the row's result, as a pull
+         * request's row ends on its links.
+         */}
         {finding ? (
-          <p
-            className="mt-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
+          <div
+            className="mt-1.5 flex items-start gap-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
             data-testid={TELEMETRY_AI_TEST_IDS.logFinding}
             data-classification={entry.classification}
           >
-            {translator.translateText(finding)}
-          </p>
+            <Icon
+              icon={IconProp.Sparkles}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500"
+            />
+            <p className="min-w-0">{translator.translateText(finding)}</p>
+          </div>
         ) : (
           <></>
         )}
@@ -433,6 +451,9 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
       );
     }
 
+    // Each finding's verdict, said once: on its newest done investigation.
+    const findingRunIds: Set<string> = getTelemetryAiLogFindingRunIds(entries);
+
     return (
       <div className="space-y-3">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -443,6 +464,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
                   key={entry.runId}
                   lane={props.lane}
                   entry={entry}
+                  isFindingShown={findingRunIds.has(entry.runId)}
                 />
               );
             })}

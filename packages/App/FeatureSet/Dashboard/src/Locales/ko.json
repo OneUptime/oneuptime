@@ -34381,14 +34381,14 @@
   "What a case in this status is waiting for, in a sentence.": "이 상태의 케이스가 무엇을 기다리는지 한 문장으로 적습니다.",
   "What the priority is called, like High or P1.": "우선순위의 이름입니다(예: High, P1).",
   "What the status is called, like Investigating or Triage.": "상태의 이름입니다(예: 조사 중, 분류).",
-  "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:": "반복해서 로그에 기록되는 오류를 찾은 AI 인사이트에서 만들었습니다. 다시 로그에 기록되면 인시던트를 엽니다:",
+  "Created from an AI insight that found an error logged again and again. Opens an incident when this happens again:": "반복해서 로그에 기록되는 오류를 찾은 AI 인사이트에서 만들었습니다. 이런 일이 다시 일어나면 인시던트를 엽니다:",
   "Enable Automatic Log Remediation": "로그 자동 수정 사용",
   "Error Log": "오류 로그",
   "Error log": "오류 로그",
   "Error log in {{serviceName}}": "{{serviceName}}의 오류 로그",
   "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.": "OneUptime은 매시간 로그에서 반복되는 오류, 로그에 남지 않는 실패, 노이즈가 많은 줄을 찾습니다. OneUptime AI는 수정할 수 있는 것을 풀 리퀘스트로 수정합니다.",
   "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.": "OneUptime은 매시간 서비스의 로그를 살펴보고, 오류가 반복되거나 실패가 로그에 남지 않거나 한 줄이 로그를 뒤덮으면 발견 사항을 기록합니다.",
-  "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime은 매시간 서비스의 로그에서 반복해서 기록되는 오류, 기록되지 않는 실패, 로그를 뒤덮는 줄을 찾아, 발견한 내용을 근거와 함께 여기에 기록합니다. OneUptime AI는 AI 설정에 따라 각 발견 사항을 살펴보고 수정하는 풀 리퀘스트를 엽니다.",
+  "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime은 매시간 서비스의 로그에서 반복되는 오류, 로그에 남지 않는 실패, 노이즈가 많은 줄을 찾아, 발견한 내용을 근거와 함께 여기에 기록합니다. OneUptime AI는 AI 설정에 따라 각 발견 사항을 살펴보고 수정하는 풀 리퀘스트를 엽니다.",
   "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.": "OneUptime AI가 로그에서 발견한 문제로 한 모든 일(최신순): 각 조사와, 연 풀 리퀘스트 또는 열도록 요청받은 풀 리퀘스트.",
   "Fewer than {{threshold}} of these error logs in the past hour.": "지난 1시간 동안 이 오류 로그가 {{threshold}}개 미만입니다.",
   "Find and fix error, missing and noisy logs": "오류 로그, 누락된 로그, 노이즈가 많은 로그 찾아 수정",
@@ -34420,5 +34420,6 @@
   "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI가 거부된 로그인처럼 제 역할을 하는 검사를 찾았습니다.",
   "OneUptime AI found that a change to the code fixes it.": "OneUptime AI가 코드를 변경하면 해결된다는 것을 알아냈습니다.",
   "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI가 의존성, 환경 또는 그 구성처럼 코드 밖에서 원인을 찾았습니다.",
-  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI가 코드가 잘못된 입력을 제대로 거부하고 있음을 확인했습니다."
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI가 코드가 잘못된 입력을 제대로 거부하고 있음을 확인했습니다.",
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI가 이 서비스의 로그에 트레이스 ID를 추가하는 풀 리퀘스트를 열고 검토를 요청합니다."
 }

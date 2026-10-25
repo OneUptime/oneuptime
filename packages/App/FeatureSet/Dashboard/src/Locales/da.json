@@ -34381,14 +34381,14 @@
   "What a case in this status is waiting for, in a sentence.": "Hvad en sag med denne status venter på, i én sætning.",
   "What the priority is called, like High or P1.": "Hvad prioriteten hedder, som High eller P1.",
   "What the status is called, like Investigating or Triage.": "Hvad statussen hedder, som Undersøger eller Vurdering.",
-  "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:": "Oprettet ud fra en AI-indsigt, der fandt en fejl, som logges igen og igen. Åbner en hændelse, når den logges igen:",
+  "Created from an AI insight that found an error logged again and again. Opens an incident when this happens again:": "Oprettet ud fra en AI-indsigt, der fandt en fejl, som logges igen og igen. Åbner en hændelse, når det sker igen:",
   "Enable Automatic Log Remediation": "Aktivér automatisk udbedring af logs",
   "Error Log": "Fejllog",
   "Error log": "Fejllog",
   "Error log in {{serviceName}}": "Fejllog i {{serviceName}}",
   "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.": "Hver time tjekker OneUptime dine logs for gentagne fejl, fejlende forespørgsler uden log og støjende linjer. OneUptime AI retter det, den kan, med pull requests.",
   "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.": "Hver time gennemgår OneUptime dine tjenesters logs og opretter et fund, når en fejl gentager sig, en fejl ikke bliver logget, eller én linje oversvømmer dem.",
-  "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "Hver time gennemgår OneUptime dine tjenesters logs for fejl, de logger igen og igen, fejl, de ikke logger, og linjer, der oversvømmer dem, og gemmer det, den finder, her med beviserne. OneUptime AI undersøger hvert fund og åbner en pull request for at rette det, som dine AI-indstillinger siger.",
+  "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "Hver time tjekker OneUptime dine tjenesters logs for gentagne fejl, fejlende forespørgsler uden log og støjende linjer og gemmer det, den finder, her med beviserne. OneUptime AI undersøger hvert fund og åbner en pull request for at rette det, som dine AI-indstillinger siger.",
   "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.": "Alt, hvad OneUptime AI gjorde med de problemer, den fandt i dine logs, nyeste først: hver undersøgelse og hver pull request, den åbnede eller blev bedt om at åbne.",
   "Fewer than {{threshold}} of these error logs in the past hour.": "Færre end {{threshold}} af disse fejllogs inden for den seneste time.",
   "Find and fix error, missing and noisy logs": "Find og ret fejllogs, manglende og støjende logs",
@@ -34420,5 +34420,6 @@
   "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI fandt en kontrol, der gør sit arbejde, som et afvist login.",
   "OneUptime AI found that a change to the code fixes it.": "OneUptime AI fandt, at en ændring i koden løser det.",
   "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI fandt årsagen uden for koden, som en afhængighed, miljøet eller dets konfiguration.",
-  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI fandt kode, der afviser ugyldigt input, som den skal."
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI fandt kode, der afviser ugyldigt input, som den skal.",
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI åbner en pull request, der tilføjer trace-id'et til denne tjenestes logs, så du kan gennemgå den."
 }

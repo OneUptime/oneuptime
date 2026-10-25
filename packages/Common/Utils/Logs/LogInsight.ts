@@ -885,7 +885,7 @@ export function buildLogInsightDetail(data: {
 
     if (evidence.traceCount) {
       lines.push(
-        mdText`- In ${plural(evidence.traceCount, "trace", "traces")}`,
+        mdText`- Logged in ${plural(evidence.traceCount, "trace", "traces")}`,
       );
     }
 

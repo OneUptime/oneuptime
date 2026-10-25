@@ -1293,6 +1293,12 @@ describe("LogErrorPattern → Logs monitor", () => {
     expect(description).toContain(
       "Created from an AI insight that found an error logged again and again.",
     );
+    /*
+     * When it fires, in the words the other monitors made from an insight
+     * use: the condition follows, so it is never read as "logged once more".
+     */
+    expect(description).toContain("Opens an incident when this happens again:");
+    expect(description).not.toContain("when it is logged again");
     expect(description).toContain(
       `The error was logged ${LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT} or more times within an hour.`,
     );

@@ -17,6 +17,7 @@ import {
   getTelemetryAiFixOptions,
   getTelemetryAiInsightsScope,
   getTelemetryAiLogFinding,
+  getTelemetryAiLogFindingRunIds,
   getTelemetryAiRulesTableId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
@@ -315,6 +316,60 @@ describe("the logs' words", () => {
     ).toBeNull();
   });
 
+  /*
+   * A finding keeps one verdict, the one its last triage wrote: only its
+   * newest done investigation says it, never an older one that may have
+   * found otherwise - nor anything without a verdict to say.
+   */
+  test("each finding's verdict is said once, by its newest done investigation", () => {
+    const investigation: (
+      runId: string,
+      insightId: string,
+      state: TelemetryAiLogState,
+      classification?: string,
+    ) => {
+      runId: string;
+      kind: TelemetryAiLogKind;
+      state: TelemetryAiLogState;
+      classification?: string;
+      insight: { id: string };
+    } = (
+      runId: string,
+      insightId: string,
+      state: TelemetryAiLogState,
+      classification?: string,
+    ) => {
+      return {
+        runId,
+        kind: TelemetryAiLogKind.Investigation,
+        state,
+        ...(classification ? { classification } : {}),
+        insight: { id: insightId },
+      };
+    };
+
+    expect(
+      Array.from(
+        getTelemetryAiLogFindingRunIds([
+          // Newest first, as the list is.
+          investigation("r1", "a", TelemetryAiLogState.Working, "code-fault"),
+          investigation("r2", "a", TelemetryAiLogState.Done, "code-fault"),
+          investigation("r3", "b", TelemetryAiLogState.Done, "infrastructure"),
+          investigation("r4", "a", TelemetryAiLogState.Done, "code-fault"),
+          {
+            ...investigation("r5", "c", TelemetryAiLogState.Done, "code-fault"),
+            kind: TelemetryAiLogKind.PullRequest,
+          },
+          investigation("r6", "c", TelemetryAiLogState.Done, "Actionable"),
+          investigation("r7", "b", TelemetryAiLogState.Failed),
+          investigation("r8", "b", TelemetryAiLogState.Done, "infrastructure"),
+        ]),
+      ),
+    ).toEqual(["r2", "r3"]);
+
+    expect(getTelemetryAiLogFindingRunIds([]).size).toBe(0);
+  });
+
   test("a failed read names the page as its lane does: Activity in Logs, the AI logs elsewhere", () => {
     expect(TELEMETRY_AI_LOGS_COULD_NOT_LOAD).toBe(
       "Could not load the AI logs: {{error}}",
@@ -549,6 +604,23 @@ describe("Logs' AI section", () => {
     expect(copy.insightsEmptyTitle).toBe(
       "No error, missing or noisy logs found",
     );
+  });
+
+  /*
+   * The inbox says what OneUptime checks the logs for in the switch's own
+   * words, so Insights and Settings name the same three problems the same
+   * way.
+   */
+  test("its inbox intro names the three problems as the switch does", () => {
+    const words: string = "repeated errors, unlogged failures and noisy lines";
+
+    expect(copy.insightsIntro).toBe(
+      "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+    );
+    expect(copy.insightsIntro).toContain(words);
+    expect(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Log][0]!.description,
+    ).toContain(words);
   });
 
   test("while its switch is off, the inbox says nothing is looked for, and names the switch", () => {

@@ -34381,14 +34381,14 @@
   "What a case in this status is waiting for, in a sentence.": "O que um caso neste status aguarda, em uma frase.",
   "What the priority is called, like High or P1.": "Como a prioridade se chama, como High ou P1.",
   "What the status is called, like Investigating or Triage.": "Como o status se chama, como Investigando ou Triagem.",
-  "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:": "Criado a partir de um insight de IA que encontrou um erro registrado nos logs repetidas vezes. Abre um incidente quando ele for registrado novamente:",
+  "Created from an AI insight that found an error logged again and again. Opens an incident when this happens again:": "Criado a partir de um insight de IA que encontrou um erro registrado nos logs repetidas vezes. Abre um incidente quando isso acontecer novamente:",
   "Enable Automatic Log Remediation": "Ativar a correção automática de logs",
   "Error Log": "Log de erro",
   "Error log": "Log de erro",
   "Error log in {{serviceName}}": "Log de erro em {{serviceName}}",
   "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.": "A cada hora o OneUptime verifica seus logs em busca de erros repetidos, falhas não registradas e linhas ruidosas. O OneUptime AI corrige o que puder com pull requests.",
   "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.": "A cada hora o OneUptime analisa os logs dos seus serviços e registra uma constatação quando um erro se repete, uma falha não é registrada ou uma linha os inunda.",
-  "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "A cada hora o OneUptime analisa os logs dos seus serviços em busca de erros que eles registram repetidas vezes, falhas que não registram e linhas que os inundam, e registra aqui o que encontra, com as evidências. O OneUptime AI analisa cada constatação e abre um pull request para corrigi-la, conforme suas configurações de IA.",
+  "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "A cada hora o OneUptime verifica os logs dos seus serviços em busca de erros repetidos, falhas não registradas e linhas ruidosas, e registra aqui o que encontra, com as evidências. O OneUptime AI analisa cada constatação e abre um pull request para corrigi-la, conforme suas configurações de IA.",
   "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.": "Tudo o que o OneUptime AI fez com os problemas encontrados nos seus logs, do mais recente: cada investigação e cada pull request que abriu ou que pediram para abrir.",
   "Fewer than {{threshold}} of these error logs in the past hour.": "Menos de {{threshold}} desses logs de erro na última hora.",
   "Find and fix error, missing and noisy logs": "Encontrar e corrigir logs de erro, ausentes ou ruidosos",
@@ -34420,5 +34420,6 @@
   "OneUptime AI found a check doing its job, such as a refused sign-in.": "O OneUptime AI encontrou uma verificação fazendo seu trabalho, como um login recusado.",
   "OneUptime AI found that a change to the code fixes it.": "O OneUptime AI descobriu que uma alteração no código resolve o problema.",
   "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "O OneUptime AI encontrou a causa fora do código, como uma dependência, o ambiente ou sua configuração.",
-  "OneUptime AI found the code refusing bad input, as it should.": "O OneUptime AI encontrou um código que recusa entradas inválidas, como deve."
+  "OneUptime AI found the code refusing bad input, as it should.": "O OneUptime AI encontrou um código que recusa entradas inválidas, como deve.",
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "O OneUptime AI abre um pull request que adiciona o ID do trace aos logs deste serviço, para você revisar."
 }

@@ -34381,14 +34381,14 @@
   "What a case in this status is waiting for, in a sentence.": "このステータスのケースが何を待っているかを一文で書きます。",
   "What the priority is called, like High or P1.": "優先度の名前です（例: 高、P1）。",
   "What the status is called, like Investigating or Triage.": "ステータスの名前です（例: 調査中、トリアージ）。",
-  "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:": "繰り返しログに記録されるエラーを見つけた AI インサイトから作成されました。再びログに記録されたときにインシデントを作成します:",
+  "Created from an AI insight that found an error logged again and again. Opens an incident when this happens again:": "繰り返しログに記録されるエラーを見つけた AI インサイトから作成されました。これが再び起きたときにインシデントを作成します:",
   "Enable Automatic Log Remediation": "ログの自動修復を有効にする",
   "Error Log": "エラーログ",
   "Error log": "エラーログ",
   "Error log in {{serviceName}}": "{{serviceName}} のエラーログ",
   "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.": "OneUptime は 1 時間ごとにログから、繰り返されるエラー、ログに記録されない失敗、ノイズの多い行を探します。OneUptime AI は修正できるものをプルリクエストで修正します。",
   "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.": "OneUptime は 1 時間ごとにサービスのログを調べ、エラーが繰り返される、失敗がログに記録されない、または 1 つの行がログを埋め尽くす場合に検出結果を記録します。",
-  "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime は 1 時間ごとにサービスのログから、繰り返し記録されるエラー、記録されない失敗、ログを埋め尽くす行を探し、見つかったものを根拠とともにここに記録します。OneUptime AI は AI 設定に従って各検出結果を調べ、修正のプルリクエストを開きます。",
+  "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime は 1 時間ごとにサービスのログから、繰り返されるエラー、ログに記録されない失敗、ノイズの多い行を探し、見つかったものを根拠とともにここに記録します。OneUptime AI は AI 設定に従って各検出結果を調べ、修正のプルリクエストを開きます。",
   "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.": "ログで見つかった問題に対して OneUptime AI が行ったすべてのこと (新しい順): 各調査と、開いた、または開くよう依頼された各プルリクエスト。",
   "Fewer than {{threshold}} of these error logs in the past hour.": "過去 1 時間にこのエラーログが {{threshold}} 件未満。",
   "Find and fix error, missing and noisy logs": "エラーログ、ログの不足、ノイズの多いログを見つけて修正する",
@@ -34420,5 +34420,6 @@
   "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI は、拒否されたサインインのように、チェックが役目を果たしていることを確認しました。",
   "OneUptime AI found that a change to the code fixes it.": "OneUptime AI は、コードを変更すれば直ることを突き止めました。",
   "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI は、原因がコードの外（依存関係、環境、その構成など）にあることを突き止めました。",
-  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI は、コードが不正な入力を正しく拒否していることを確認しました。"
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI は、コードが不正な入力を正しく拒否していることを確認しました。",
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI がこのサービスのログにトレース ID を追加するプルリクエストを作成します。内容を確認してください。"
 }

@@ -1125,10 +1125,12 @@ const AIInsightViewPage: FunctionComponent<
           )}
 
           {/*
-           * A slow, failing or under-traced operation with no fix yet:
-           * "Fix with AI" - the pull request OneUptime AI would open on its
-           * own, what an AI rule that asks before fixing leaves to a person.
-           * The task names this finding, and the finding links the task.
+           * A slow, failing or under-traced operation, or an error, missing
+           * or noisy log, with no fix yet: "Fix with AI" - the pull request
+           * OneUptime AI would open on its own, what an AI rule that asks
+           * before fixing leaves to a person. The task names this finding,
+           * and the finding links the task. Its evidence lets the lead say
+           * what the pull request does for what the logs lack.
            */}
           {doesInsightOfferTelemetryAiFix({
             insightType: insight.insightType,
@@ -1138,6 +1140,7 @@ const AIInsightViewPage: FunctionComponent<
             <TelemetryAiFixStrip
               insightId={modelId.toString()}
               insightType={insight.insightType}
+              evidence={insight.evidence}
               onTaskStarted={() => {
                 fetchInsight().catch(() => {
                   // handled inside fetchInsight

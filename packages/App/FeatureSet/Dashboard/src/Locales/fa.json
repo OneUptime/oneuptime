@@ -34381,14 +34381,14 @@
   "What a case in this status is waiting for, in a sentence.": "پرونده‌ای در این وضعیت منتظر چه چیزی است، در یک جمله.",
   "What the priority is called, like High or P1.": "نام اولویت، مانند «High» یا «P1».",
   "What the status is called, like Investigating or Triage.": "نام وضعیت، مانند «در حال بررسی» یا «تریاژ».",
-  "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:": "از یک بینش هوش مصنوعی ساخته شده که خطایی را پیدا کرده که بارها و بارها در لاگ ثبت می‌شود. وقتی دوباره در لاگ ثبت شود یک حادثه باز می‌کند:",
+  "Created from an AI insight that found an error logged again and again. Opens an incident when this happens again:": "از یک بینش هوش مصنوعی ساخته شده که خطایی را پیدا کرده که بارها و بارها در لاگ ثبت می‌شود. وقتی این دوباره رخ دهد یک حادثه باز می‌کند:",
   "Enable Automatic Log Remediation": "فعال‌سازی اصلاح خودکار لاگ",
   "Error Log": "لاگ خطا",
   "Error log": "لاگ خطا",
   "Error log in {{serviceName}}": "لاگ خطا در {{serviceName}}",
   "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.": "OneUptime هر ساعت لاگ‌های شما را برای یافتن خطاهای تکراری، شکست‌های ثبت‌نشده و خط‌های پرسروصدا بررسی می‌کند. OneUptime AI هر کدام را که بتواند با Pull Request اصلاح می‌کند.",
   "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.": "OneUptime هر ساعت لاگ‌های سرویس‌های شما را بررسی می‌کند و وقتی خطایی تکرار می‌شود، شکستی در لاگ ثبت نمی‌شود یا یک خط لاگ‌ها را پر می‌کند، یک یافته ثبت می‌کند.",
-  "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime هر ساعت لاگ‌های سرویس‌های شما را برای یافتن خطاهایی که بارها و بارها ثبت می‌کنند، شکست‌هایی که ثبت نمی‌کنند و خط‌هایی که لاگ‌ها را پر می‌کنند بررسی می‌کند و یافته‌ها را با شواهد در اینجا ثبت می‌کند. OneUptime AI طبق تنظیمات هوش مصنوعی شما هر یافته را بررسی می‌کند و برای اصلاح آن یک Pull Request باز می‌کند.",
+  "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.": "OneUptime هر ساعت لاگ‌های سرویس‌های شما را برای یافتن خطاهای تکراری، شکست‌های ثبت‌نشده و خط‌های پرسروصدا بررسی می‌کند و یافته‌ها را با شواهد در اینجا ثبت می‌کند. OneUptime AI طبق تنظیمات هوش مصنوعی شما هر یافته را بررسی می‌کند و برای اصلاح آن یک Pull Request باز می‌کند.",
   "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.": "هر کاری که OneUptime AI با مشکلات پیداشده در لاگ‌های شما انجام داد، از جدیدترین: هر بررسی، و هر Pull Request که باز کرد یا از او خواسته شد باز کند.",
   "Fewer than {{threshold}} of these error logs in the past hour.": "کمتر از {{threshold}} مورد از این لاگ‌های خطا در یک ساعت گذشته.",
   "Find and fix error, missing and noisy logs": "یافتن و اصلاح لاگ‌های خطا، ناقص و پرسروصدا",
@@ -34420,5 +34420,6 @@
   "OneUptime AI found a check doing its job, such as a refused sign-in.": "OneUptime AI دریافت که یک بررسی کار خودش را انجام می‌دهد، مانند ورودی ردشده به حساب کاربری.",
   "OneUptime AI found that a change to the code fixes it.": "OneUptime AI دریافت که تغییری در کد آن را برطرف می‌کند.",
   "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.": "OneUptime AI علت را بیرون از کد یافت، مانند یک وابستگی، محیط یا پیکربندی آن.",
-  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI دریافت که کد ورودی نادرست را همان‌طور که باید رد می‌کند."
+  "OneUptime AI found the code refusing bad input, as it should.": "OneUptime AI دریافت که کد ورودی نادرست را همان‌طور که باید رد می‌کند.",
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI یک Pull Request باز می‌کند که شناسه ترِیس را به لاگ‌های این سرویس اضافه می‌کند، تا شما بازبینی کنید."
 }

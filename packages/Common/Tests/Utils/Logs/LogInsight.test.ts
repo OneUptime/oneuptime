@@ -1149,7 +1149,9 @@ describe("the evidence on the insight", () => {
     expect(detail).toContain(
       "- The service's Error and Fatal logs in that hour: 2,100",
     );
-    expect(detail).toContain("- In 312 traces");
+    // Said as what happened: the message was logged in that many traces.
+    expect(detail).toContain("- Logged in 312 traces");
+    expect(detail).not.toContain("- In 312 traces");
     expect(detail).toContain(
       "- A request that logged it: trace `4bf92f3577b34da6a3ce929d0e0e4736`",
     );

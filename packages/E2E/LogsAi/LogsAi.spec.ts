@@ -516,9 +516,10 @@ test.describe("Logs → AI → Insights", () => {
           await expect(page.getByText(title)).toBeVisible({ timeout: 60000 });
         }
 
+        // In the switch's own words: what OneUptime checks the logs for.
         await expect(
           page.getByText(
-            "Every hour OneUptime looks through your services' logs for errors they log again and again",
+            "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines",
             { exact: false },
           ),
         ).toBeVisible();
@@ -698,6 +699,9 @@ test.describe("Logs → AI → a finding", () => {
         exact: true,
       }),
     ).toBeVisible();
+    await expect(
+      page.getByText("Logged in 312 traces", { exact: true }),
+    ).toBeVisible();
     // The message as its pattern: the amount masked, never a line as logged.
     await expect(
       page.getByText("Payment provider returned <num>: card declined", {
@@ -801,15 +805,16 @@ test.describe("Logs → AI → a finding", () => {
     ]);
   });
 
-  test("logs with no trace context: Fix with AI adds the logging this lacks, and Open in Logs opens the service's logs", async ({
+  test("logs with no trace context: Fix with AI adds the trace id to them, and Open in Logs opens the service's logs", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/insights/${UNTRACED_INSIGHT}`);
 
+    // The logs are written; what they lack is the trace id, and it says so.
     await expect(page.getByTestId("telemetry-ai-fix-lead")).toHaveText(
-      "OneUptime AI opens a pull request that adds the logging this lacks, for you to review.",
+      "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.",
       { timeout: 60000 },
     );
 
@@ -1034,10 +1039,33 @@ test.describe("Logs → AI → Activity", () => {
           automatic.getByRole("link", { name: "Pull request #1307" }),
         ).toHaveAttribute("href", "https://github.com/acme/payments/pull/1307");
 
-        // A done investigation says what OneUptime AI found.
-        await expect(
-          entries.nth(1).getByTestId("telemetry-ai-log-finding"),
-        ).toHaveText("OneUptime AI found that a change to the code fixes it.");
+        /*
+         * A done investigation says what OneUptime AI found, marked with the
+         * AI tab's sparkles, on one line beside its mark.
+         */
+        const verdict: Locator = entries
+          .nth(1)
+          .getByTestId("telemetry-ai-log-finding");
+
+        await expect(verdict).toHaveText(
+          "OneUptime AI found that a change to the code fixes it.",
+        );
+        await expect(verdict.locator("svg")).toHaveCount(1);
+
+        const markBox: { y: number; height: number } | null = await verdict
+          .locator("svg")
+          .boundingBox();
+        const wordsBox: { y: number; height: number } | null = await verdict
+          .locator("p")
+          .boundingBox();
+
+        expect(markBox).not.toBeNull();
+        expect(wordsBox).not.toBeNull();
+        // The mark sits on the first line of the words, not above them.
+        expect(markBox!.y).toBeGreaterThanOrEqual(wordsBox!.y);
+        expect(markBox!.y + markBox!.height).toBeLessThanOrEqual(
+          wordsBox!.y + 24,
+        );
         await expect(
           automatic.getByTestId("telemetry-ai-log-finding"),
         ).toHaveCount(0);

@@ -1,3 +1,4 @@
+import AIInsightEvidence from "Common/Types/AI/AIInsightEvidence";
 import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "Common/Types/AI/AIInsightStatus";
@@ -7,6 +8,7 @@ import {
   getTelemetryAiLaneOfInsightType,
 } from "Common/Types/AI/TelemetryAi";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { LogLoggingGap } from "Common/Utils/Logs/LogInsight";
 
 /*
  * "FIX WITH AI" ON A LANE'S FINDING - what the strip on a finding's page
@@ -75,12 +77,37 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   ),
 };
 
+/*
+ * Missing logging whose gap is logs with no trace context: the service
+ * logs, its lines just carry no trace id, so its pull request adds the id
+ * (Utils/Logs/LogInsight's "Add trace context to ...'s logs"), not "the
+ * logging this lacks" - the lead of the other gap, failures that write no
+ * line at all.
+ */
+export const TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD: string = translationKey(
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.",
+);
+
 // When a finding's kind has no line of its own.
 export const TELEMETRY_AI_FIX_LEAD: string = translationKey(
   "OneUptime AI opens a pull request that fixes this, for you to review.",
 );
 
-export function getTelemetryAiFixLead(insightType: unknown): string {
+/*
+ * The lead for a finding: by its kind, and - for missing logging - by what
+ * its logs lack, when its evidence says.
+ */
+export function getTelemetryAiFixLead(
+  insightType: unknown,
+  evidence?: AIInsightEvidence | null | undefined,
+): string {
+  if (
+    insightType === AIInsightType.LogMissingLogging &&
+    evidence?.log?.gap === LogLoggingGap.NoTraceContext
+  ) {
+    return TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD;
+  }
+
   return (
     TELEMETRY_AI_FIX_LEADS[insightType as AIInsightType] ||
     TELEMETRY_AI_FIX_LEAD

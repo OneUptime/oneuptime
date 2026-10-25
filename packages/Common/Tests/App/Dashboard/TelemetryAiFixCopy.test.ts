@@ -10,9 +10,11 @@ import {
   TELEMETRY_AI_FIX_LANES,
   TELEMETRY_AI_FIX_LEAD,
   TELEMETRY_AI_FIX_LEADS,
+  TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD,
   doesInsightOfferTelemetryAiFix,
   getTelemetryAiFixLead,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import AIInsightEvidence from "../../../Types/AI/AIInsightEvidence";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import {
@@ -20,6 +22,7 @@ import {
   TelemetryAiLane,
 } from "../../../Types/AI/TelemetryAi";
 import ObjectID from "../../../Types/ObjectID";
+import { LogLoggingGap } from "../../../Utils/Logs/LogInsight";
 
 /*
  * Which findings draw "Fix with AI" (TelemetryAiFixStrip) and what it says:
@@ -127,6 +130,70 @@ describe("what Fix with AI says", () => {
     expect(getTelemetryAiFixLead(AIInsightType.LogNoisyPattern)).toBe(
       "OneUptime AI opens a pull request that logs this line less, for you to review.",
     );
+  });
+
+  /*
+   * Missing logging has two gaps: failures that write no line get the
+   * logging they lack, but logs with no trace context lack no line - their
+   * pull request adds the trace id, and the lead says so.
+   */
+  test("missing logging says what its pull request adds, by what the logs lack", () => {
+    expect(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD).toBe(
+      "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD.length).toBeLessThanOrEqual(
+      LINE_LIMIT,
+    );
+
+    const logsLacking: (gap: string | undefined) => AIInsightEvidence = (
+      gap: string | undefined,
+    ): AIInsightEvidence => {
+      return {
+        log: {
+          serviceId: ObjectID.generate().toString(),
+          kind: "MissingLogging",
+          ...(gap ? { gap } : {}),
+          windowStartTime: "2026-10-24T08:00:00.000Z",
+          windowEndTime: "2026-10-24T09:00:00.000Z",
+          logCount: 18400,
+        },
+      };
+    };
+
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.LogMissingLogging,
+        logsLacking(LogLoggingGap.NoTraceContext),
+      ),
+    ).toBe(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD);
+
+    // Failures that write no line, or no gap said: the logging they lack.
+    for (const evidence of [
+      logsLacking(LogLoggingGap.SilentFailures),
+      logsLacking(undefined),
+      {},
+      null,
+      undefined,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(AIInsightType.LogMissingLogging, evidence),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.LogMissingLogging]);
+    }
+
+    // Only missing logging reads the gap: every other kind keeps its line.
+    for (const insightType of [
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogNoisyPattern,
+      AIInsightType.TraceMissingTracing,
+      AIInsightType.TraceFailingOperation,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(
+          insightType,
+          logsLacking(LogLoggingGap.NoTraceContext),
+        ),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[insightType]);
+    }
   });
 
   test("the button and the rest read as the Profiler's own", () => {

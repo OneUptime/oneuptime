@@ -121,6 +121,7 @@ jest.mock("react-i18next", () => {
 import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/View/Index";
 import {
   TELEMETRY_AI_FIX_LEADS,
+  TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD,
   TELEMETRY_AI_FIX_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
@@ -172,6 +173,16 @@ const SILENT_FAILURE: LogInsightEvidence = {
   failedSpanCount: 312,
   failedSampleSize: 20,
   sampleTraceId: "5bf92f3577b34da6a3ce929d0e0e4737",
+};
+
+const NO_TRACE_CONTEXT: LogInsightEvidence = {
+  serviceId: SERVICE_ID,
+  kind: "MissingLogging",
+  gap: "NoTraceContext",
+  ...WINDOW,
+  logCount: 48000,
+  tracedLogCount: 0,
+  serviceSpanCount: 6400,
 };
 
 const NOISY: LogInsightEvidence = {
@@ -323,6 +334,33 @@ describe("a Logs finding's page", () => {
       ]);
     },
   );
+
+  /*
+   * The page hands the strip the finding's evidence: logs that carry no
+   * trace context lack no line, so their lead says the pull request adds
+   * the trace id - not "the logging this lacks", a silent failure's lead.
+   */
+  test("logs with no trace context: Fix with AI says it adds the trace id", async () => {
+    finding = {
+      ...finding,
+      insightType: AIInsightType.LogMissingLogging,
+      evidence: NO_TRACE_CONTEXT,
+      title: "checkout's logs carry no trace context",
+    };
+    await renderPage();
+
+    expect(
+      await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead),
+    ).toHaveTextContent(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD);
+    expect(
+      screen.getByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead),
+    ).not.toHaveTextContent(
+      TELEMETRY_AI_FIX_LEADS[AIInsightType.LogMissingLogging]!,
+    );
+  });
 
   test("its evidence reads as the detector wrote it, drawn in safe mode", async () => {
     await renderPage();

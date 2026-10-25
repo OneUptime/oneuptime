@@ -305,8 +305,9 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     noticeContext: ProjectAiNoticeContext.Logs,
     ruleCriteriaSubject: RuleCriteriaSubject.Services,
 
+    // In the switch's own words: repeated errors, unlogged failures, noisy lines.
     insightsIntro: translationKey(
-      "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+      "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
     ),
     insightsEmptyTitle: translationKey("No error, missing or noisy logs found"),
     insightsEmptyDescription: translationKey(
@@ -701,6 +702,38 @@ export function getTelemetryAiLogFinding(entry: {
   const errorClass: ErrorClass | null = toErrorClass(entry.classification);
 
   return errorClass ? TELEMETRY_AI_LOG_FINDINGS[errorClass] : null;
+}
+
+/*
+ * Which rows of a list say what was found: the newest done investigation
+ * of each finding, and no other. A finding keeps one verdict - the one its
+ * last triage wrote - so an older investigation of the same finding, which
+ * may have found otherwise, says nothing rather than borrow it. The list
+ * is newest first and Load More appends older rows, so the newer rows are
+ * always read before an older one.
+ */
+export function getTelemetryAiLogFindingRunIds(
+  entries: ReadonlyArray<{
+    runId: string;
+    kind: TelemetryAiLogKind;
+    state: TelemetryAiLogState;
+    classification?: string | undefined;
+    insight: { id: string };
+  }>,
+): Set<string> {
+  const saidFor: Set<string> = new Set<string>();
+  const runIds: Set<string> = new Set<string>();
+
+  for (const entry of entries) {
+    if (!getTelemetryAiLogFinding(entry) || saidFor.has(entry.insight.id)) {
+      continue;
+    }
+
+    saidFor.add(entry.insight.id);
+    runIds.add(entry.runId);
+  }
+
+  return runIds;
 }
 
 export const TELEMETRY_AI_LOGS_SHOWING: PluralTemplate = {
