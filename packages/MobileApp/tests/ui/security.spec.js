@@ -49,6 +49,13 @@ async function openSecurity(page) {
   ).toBeVisible();
 }
 
+// A button's fill as the browser draws it.
+async function fillOf(locator) {
+  return locator.evaluate((element) => {
+    return getComputedStyle(element).backgroundColor;
+  });
+}
+
 function caseRows(page) {
   return page
     .getByRole("button", { name: /^Security case CASE-/ })
@@ -152,15 +159,25 @@ test("a playbook step is approved from the case, with a comment, and the case is
   await expect(approval).toBeVisible();
   await expect(approval).toContainText("Suspend the user in Okta");
   await expect(approval).toContainText(
-    "Step 2 of Contain a compromised account",
+    "Playbook Contain a compromised account waits at step 2 until someone approves or rejects it.",
   );
   await expect(approval).toContainText("alice@acme.test");
-  await expect(approval).toContainText("Leaves alone, as protected");
+  await expect(approval).toContainText("Protected, never acted on");
   await expect(
     page
       .getByText("Needs an analyst", { exact: true })
       .filter({ visible: true }),
   ).toBeVisible();
+  // What OneUptime AI found, before anything is tapped: its report's Summary.
+  await expect(
+    page.getByTestId("case-ai-summary").filter({ visible: true }),
+  ).toContainText("Fourteen failed VPN sign-ins for alice@acme.test");
+  // One filled button at a time: Approve, while the step waits on it.
+  const assignToMe = page
+    .getByRole("button", { name: "Assign CASE-142 to me" })
+    .filter({ visible: true });
+  const approveFill = await fillOf(approval.getByTestId("playbook-approve"));
+  expect(await fillOf(assignToMe)).not.toBe(approveFill);
   await capture(page, "security-case", testInfo);
 
   await approval.getByTestId("playbook-approve").click();
@@ -186,6 +203,12 @@ test("a playbook step is approved from the case, with a comment, and the case is
     projectId: projects[0]._id,
     body: { comment: "Alice did not sign in.", targets: ["alice@acme.test"] },
   });
+  // The step decided, taking the case is the next step: now the filled button.
+  await expect
+    .poll(async () => {
+      return fillOf(assignToMe);
+    })
+    .toBe(approveFill);
 
   await page
     .getByRole("button", { name: "Assign CASE-142 to me" })

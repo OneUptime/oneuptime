@@ -236,7 +236,8 @@ export function readWaitingPlaybookStep(
   return {
     runId,
     caseId: readText(run.securityCaseId),
-    playbookName: readText(run.playbookName) || "Playbook",
+    // "" for a run whose playbook has no name: the card says "The playbook".
+    playbookName: readText(run.playbookName).trim(),
     stepNumber: index + 1,
     stepTitle: getPlaybookActionTitle(action) || `Step ${index + 1}`,
     proposed: targets.filter((target: PlaybookTarget): boolean => {

@@ -334,6 +334,11 @@ describe("before there is a case to show", () => {
     await renderScreen();
 
     expect(screen.getByText("You cannot see this case")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Your role in this project does not cover this case. A project admin can give you access.",
+      ),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
   });
 });
@@ -377,6 +382,31 @@ describe("a case nobody has", () => {
 
     expect(within(guidance()).getByText("Needs an analyst")).toBeTruthy();
     expect(actionLabels()).toEqual(["Assign CASE-142 to me", "Close CASE-142"]);
+    expect(
+      screen.getByRole("button", { name: "Assign CASE-142 to me" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(screen.getByRole("button", { name: "Close CASE-142" })).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+  });
+
+  test("handed to a team, it says which team it waits on", async () => {
+    setCase({
+      assignedToTeamId: "7ea70000-0001-4000-8000-000000000001",
+      assignedToTeam: {
+        _id: "7ea70000-0001-4000-8000-000000000001",
+        name: "Security Operations",
+      },
+    });
+
+    await renderScreen();
+
+    expect(within(guidance()).getByText("Needs an analyst")).toBeTruthy();
+    expect(
+      within(guidance()).getByText(
+        "Waiting for someone in Security Operations. Assign it to yourself to take it on.",
+      ),
+    ).toBeTruthy();
   });
 
   test("Assign to me writes the reader onto the case, then reads it again", async () => {
@@ -837,6 +867,86 @@ describe("a playbook step waiting for an approval", () => {
     ]);
   });
 
+  test("is the one filled button: the case's own actions wait outlined under it", async () => {
+    await renderScreen();
+
+    expect(screen.getByTestId("playbook-approve")).toHaveStyle({
+      backgroundColor: lightColors.actionPrimary,
+    });
+    expect(
+      screen.getByRole("button", { name: "Assign CASE-142 to me" }),
+    ).toHaveStyle({ backgroundColor: lightColors.backgroundElevated });
+    expect(screen.getByRole("button", { name: "Close CASE-142" })).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+  });
+
+  test("once decided, the case's next step is the filled button again", async () => {
+    const view: Awaited<ReturnType<typeof renderScreen>> = await renderScreen();
+
+    mockRuns.current = query<SecurityPlaybookRunItem[]>([]);
+    await view.rerender(
+      <SecurityCaseDetailScreen
+        {...({
+          route: {
+            key: "SecurityCaseDetail-1",
+            name: "SecurityCaseDetail",
+            params: { caseId: CASE_ID, projectId: PROJECT_ID },
+          },
+          navigation: { navigate: mockNavigate },
+        } as unknown as React.ComponentProps<typeof SecurityCaseDetailScreen>)}
+      />,
+    );
+
+    expect(screen.queryByTestId("playbook-approval-card")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Assign CASE-142 to me" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+  });
+
+  test("a step the reader started, which they cannot approve, leaves the case's next step filled", async () => {
+    mockRuns.current = query<SecurityPlaybookRunItem[]>([
+      makeWaitingPlaybookRun({ _id: RUN_ID, triggeredByUserId: ME }),
+    ]);
+
+    await renderScreen();
+
+    expect(
+      screen.getByRole("button", { name: "Assign CASE-142 to me" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+  });
+
+  test("on my case and on a closed one too, Close case and Reopen wait outlined", async () => {
+    setCase({
+      ...inStatus(INVESTIGATING),
+      assignedToUserId: ME,
+      assignedToUser: { _id: ME, name: "Alex Morgan" },
+    });
+    const view: Awaited<ReturnType<typeof renderScreen>> = await renderScreen();
+
+    expect(screen.getByRole("button", { name: "Close CASE-142" })).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+
+    setCase({ ...inStatus(CLOSED), verdict: "True Positive" });
+    await view.rerender(
+      <SecurityCaseDetailScreen
+        {...({
+          route: {
+            key: "SecurityCaseDetail-1",
+            name: "SecurityCaseDetail",
+            params: { caseId: CASE_ID, projectId: PROJECT_ID },
+          },
+          navigation: { navigate: mockNavigate },
+        } as unknown as React.ComponentProps<typeof SecurityCaseDetailScreen>)}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reopen CASE-142" })).toHaveStyle(
+      { backgroundColor: lightColors.backgroundElevated },
+    );
+  });
+
   test("comes first, above who has the case", async () => {
     await renderScreen();
 
@@ -984,7 +1094,7 @@ describe("the rest of the case", () => {
     await fireEvent.press(screen.getByTestId("add-note-button"));
     expect(
       screen.getByText(
-        "Notes stay on the case. Only people who can see security cases read them.",
+        "Only people who can see security cases read this note.",
       ),
     ).toBeTruthy();
     await fireEvent.changeText(

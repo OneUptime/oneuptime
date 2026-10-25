@@ -260,3 +260,290 @@ export function getTriageReportBody(markdown: unknown): string {
 
   return lines.join("\n").trim();
 }
+
+/*
+ * THE TRIAGE'S SUMMARY, READ BEFORE ANYTHING IS TAPPED.
+ *
+ * The triage writes its report in sections, as bold headings, Summary first
+ * (Common/Server/Utils/AI/Security/SecurityCaseTriagePrompt): "two sentences
+ * the analyst can read in five seconds: what happened and what it most
+ * likely is". The dashboard lifts that Summary above the rest of the report
+ * (InvestigationReportView); the phone shows it at once too, and folds the
+ * rest under it.
+ *
+ * Only a report that opens with its Summary has one to lift: a Summary
+ * label on the report's first line - "**Summary**", "**Summary:** text",
+ * "**Summary** - text", "## Summary" or "Summary: text" - and then its first
+ * paragraph, which ends sooner at any line that could open another section
+ * (a heading, a bold label, a rule, a fence, "Evidence: ..."). So what the
+ * phone lifts is the start of the Summary Common's report parser reads
+ * (parseInvestigationReport), never anything after it, and whatever is not
+ * lifted stays in the folded report. Any other shape lifts nothing, and the
+ * whole report folds, as written. Common's SecurityCaseMobileParity holds
+ * this to the parser. Each line is read by position, in time in line with
+ * its length.
+ */
+
+// The labels a Summary goes by, lower-cased (Common's KNOWN_LABELS).
+const SUMMARY_LABELS: ReadonlySet<string> = new Set([
+  "summary",
+  "tl;dr",
+  "tl; dr",
+  "tldr",
+]);
+
+// The parser's other known labels: "Evidence: ..." opens a section of its own.
+const OTHER_SECTION_LABELS: ReadonlySet<string> = new Set([
+  "most likely root cause",
+  "likely root cause",
+  "probable root cause",
+  "root cause",
+  "root cause hypothesis",
+  "evidence",
+  "key evidence",
+  "supporting evidence",
+  "key findings",
+  "findings",
+  "suggested next steps",
+  "next steps",
+  "recommended next steps",
+  "recommended actions",
+  "recommendations",
+  "evidence checked",
+]);
+
+const WHITESPACE_RUN: RegExp = /\s+/;
+
+function isSpace(character: string): boolean {
+  return character === " " || character === "\t";
+}
+
+/*
+ * A label as the parser looks it up: "Summary:", "summary" and "Summary
+ * (high confidence)" are all Summary.
+ */
+function toLabelKey(label: string): string {
+  let key: string = label.trim();
+
+  if (key.endsWith(":")) {
+    key = key.slice(0, -1).trimEnd();
+  }
+
+  const open: number = key.lastIndexOf("(");
+
+  if (
+    key.endsWith(")") &&
+    open !== -1 &&
+    !key.slice(open + 1, -1).includes(")")
+  ) {
+    key = key.slice(0, open).trimEnd();
+  }
+
+  if (key.endsWith(":")) {
+    key = key.slice(0, -1);
+  }
+
+  return key.split(WHITESPACE_RUN).filter(Boolean).join(" ").toLowerCase();
+}
+
+// "- text", ": text", "— text" after a label: the text; null without a separator.
+function textAfterSeparator(rest: string): string | null {
+  for (const separator of [":", "—", "–", "--", "-"]) {
+    if (rest.startsWith(separator)) {
+      return rest.slice(separator.length).trim();
+    }
+  }
+
+  return null;
+}
+
+/*
+ * The Summary label a report opens with, and any text after it on that
+ * line; null for a line that is not one. A bold phrase followed by prose
+ * with no separator ("**Summary** is below") is prose, as the parser reads
+ * it.
+ */
+export function readSummaryLabel(line: string): { text: string } | null {
+  const content: string = line.trim();
+
+  if (content.startsWith("#")) {
+    let level: number = 0;
+
+    while (content[level] === "#") {
+      level += 1;
+    }
+
+    let heading: string = content.slice(level);
+
+    if (level > 6 || (heading !== "" && !isSpace(heading[0]!))) {
+      return null;
+    }
+
+    heading = heading.trim();
+
+    // "## Summary ##": an ATX heading may close with hashes of its own.
+    let end: number = heading.length;
+
+    while (end > 0 && heading[end - 1] === "#") {
+      end -= 1;
+    }
+
+    if (end < heading.length && isSpace(heading[end - 1] || "")) {
+      heading = heading.slice(0, end);
+    }
+
+    return SUMMARY_LABELS.has(toLabelKey(heading)) ? { text: "" } : null;
+  }
+
+  const marker: string | undefined = ["***", "___", "**", "__"].find(
+    (candidate: string): boolean => {
+      return content.startsWith(candidate);
+    },
+  );
+
+  if (marker) {
+    const close: number = content.indexOf(marker, marker.length);
+
+    if (close <= marker.length) {
+      return null;
+    }
+
+    const inner: string = content.slice(marker.length, close);
+    const after: string = content.slice(close + marker.length).trim();
+
+    if (!SUMMARY_LABELS.has(toLabelKey(inner))) {
+      return null;
+    }
+
+    if (after === "" || after === ":") {
+      return { text: "" };
+    }
+
+    const separated: string | null = textAfterSeparator(after);
+
+    if (separated !== null) {
+      return { text: separated };
+    }
+
+    return inner.trimEnd().endsWith(":") ? { text: after } : null;
+  }
+
+  const colon: number = content.indexOf(":");
+  const plainLabel: string = colon > 0 ? content.slice(0, colon).trim() : "";
+
+  return isPlainLabel(plainLabel) && SUMMARY_LABELS.has(toLabelKey(plainLabel))
+    ? { text: content.slice(colon + 1).trim() }
+    : null;
+}
+
+function isLetter(character: string): boolean {
+  return (
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z")
+  );
+}
+
+/*
+ * The words before a plain label's colon, as the parser takes them: a
+ * letter first, then letters, spaces and ";,()" - "Summary", "TL;DR" - and
+ * no more than 61 characters.
+ */
+function isPlainLabel(label: string): boolean {
+  return (
+    label.length > 0 &&
+    label.length <= 61 &&
+    isLetter(label[0]!) &&
+    [...label].every((character: string): boolean => {
+      return isLetter(character) || " \t;,()".includes(character);
+    })
+  );
+}
+
+// "---", "***", "_ _ _": a rule, which the report's footer starts with.
+function isRule(content: string): boolean {
+  const character: string = content[0] || "";
+  let count: number = 0;
+
+  if (character !== "-" && character !== "*" && character !== "_") {
+    return false;
+  }
+
+  for (const next of content) {
+    if (next === character) {
+      count += 1;
+    } else if (!isSpace(next)) {
+      return false;
+    }
+  }
+
+  return count >= 3;
+}
+
+/*
+ * Whether a line ends the Summary's first paragraph: a blank line, or a
+ * line that could open another section or a block of its own.
+ */
+function endsSummary(line: string): boolean {
+  const content: string = line.trim();
+
+  if (
+    content === "" ||
+    isRule(content) ||
+    ["#", "**", "__", "```", "~~~"].some((start: string): boolean => {
+      return content.startsWith(start);
+    })
+  ) {
+    return true;
+  }
+
+  const colon: number = content.indexOf(":");
+
+  if (colon <= 0) {
+    return false;
+  }
+
+  const key: string = toLabelKey(content.slice(0, colon));
+
+  return SUMMARY_LABELS.has(key) || OTHER_SECTION_LABELS.has(key);
+}
+
+export interface TriageReportParts {
+  // The start of the report's Summary, as written, or "" when it has none to lift.
+  summary: string;
+  // Everything after it, as written: the whole report when nothing was lifted.
+  rest: string;
+}
+
+export function splitTriageReport(markdown: unknown): TriageReportParts {
+  const body: string = getTriageReportBody(markdown);
+  const none: TriageReportParts = { summary: "", rest: body };
+  const lines: Array<string> = body.split("\n");
+  const label: { text: string } | null = readSummaryLabel(lines[0] || "");
+
+  if (!label) {
+    return none;
+  }
+
+  const summaryLines: Array<string> = label.text ? [label.text] : [];
+  let index: number = 1;
+
+  // Blank lines between the label and its text.
+  while (
+    summaryLines.length === 0 &&
+    index < lines.length &&
+    !lines[index]!.trim()
+  ) {
+    index += 1;
+  }
+
+  while (index < lines.length && !endsSummary(lines[index]!)) {
+    summaryLines.push(lines[index]!);
+    index += 1;
+  }
+
+  const summary: string = summaryLines.join("\n").trim();
+
+  return summary
+    ? { summary, rest: lines.slice(index).join("\n").trim() }
+    : none;
+}

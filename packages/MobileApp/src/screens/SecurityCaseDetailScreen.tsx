@@ -361,7 +361,7 @@ export default function SecurityCaseDetailScreen({
         >
           <EmptyState
             title="You cannot see this case"
-            subtitle="Your role in this project does not include this security case. A project admin can give you a Security role."
+            subtitle="Your role in this project does not cover this case. A project admin can give you access."
             icon="access"
           />
         </ScrollView>
@@ -437,9 +437,22 @@ export default function SecurityCaseDetailScreen({
     isMine,
     hasAssignee: Boolean(securityCase.assignedToUserId),
     assigneeName,
+    teamName,
     isContained: hasCaseStatusReached(statuses, statusId, "Contained"),
     verdict: securityCase.verdict,
   });
+  /*
+   * One filled button on the screen at a time. While a playbook step waits
+   * for the reader's decision, Approve is that button - nothing happens
+   * until somebody decides - and the case's own actions below it stay
+   * outlined until the step is decided. A step the reader started, which
+   * they cannot approve, leaves the case's next step filled.
+   */
+  const approvalLeads: boolean = waitingSteps.some(
+    (step: WaitingPlaybookStep): boolean => {
+      return !didStartPlaybookRun(step, userId);
+    },
+  );
   const closedStatus: SecurityCaseStatusItem | undefined = getCaseStatusOfStage(
     statuses,
     "Closed",
@@ -486,7 +499,7 @@ export default function SecurityCaseDetailScreen({
       label: "Assign to me",
       accessibilityLabel: `Assign ${caseNumber} to me`,
       icon: "person-add-outline",
-      primary: guidance.stage === "unassigned",
+      primary: guidance.stage === "unassigned" && !approvalLeads,
       onPress: async (): Promise<void> => {
         await applyChange(getAssignWrite(userId), "Could not assign the case");
       },
@@ -498,7 +511,7 @@ export default function SecurityCaseDetailScreen({
       label: "Close case",
       accessibilityLabel: `Close ${caseNumber}`,
       icon: "checkmark-circle-outline",
-      primary: guidance.stage === "mine",
+      primary: guidance.stage === "mine" && !approvalLeads,
       onPress: (): void => {
         openClose(closedStatus);
       },
@@ -510,7 +523,7 @@ export default function SecurityCaseDetailScreen({
       label: "Reopen",
       accessibilityLabel: `Reopen ${caseNumber}`,
       icon: "refresh-outline",
-      primary: true,
+      primary: !approvalLeads,
       onPress: async (): Promise<void> => {
         await applyChange(
           getStatusWrite({
@@ -919,7 +932,7 @@ export default function SecurityCaseDetailScreen({
           void addNote(note);
         }}
         isSubmitting={submittingNote}
-        footnote="Notes stay on the case. Only people who can see security cases read them."
+        footnote="Only people who can see security cases read this note."
       />
     </>
   );

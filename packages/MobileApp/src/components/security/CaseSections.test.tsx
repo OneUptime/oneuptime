@@ -13,10 +13,10 @@ import type { SecurityEntity } from "../../security/caseTerms";
 
 /*
  * What a case's screen says of a case that no other screen says: OneUptime
- * AI's read of it, what it is about, and its facts - three of which a tap
- * changes. AI's read is a suggestion: a word and a sentence, a warning when
- * the case's data tried to steer it, its suggested priority as one tap, and
- * its report folded under it.
+ * AI's read of it, its entities, and its facts - three of which a tap
+ * changes. AI's read is a suggestion: a word, a warning when the case's data
+ * tried to steer it, what it found - its report's own Summary, at once - its
+ * suggested priority as one tap, and the rest of its report folded under it.
  */
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
@@ -44,6 +44,16 @@ const REPORT: string = [
   "",
   "**Summary**",
   "A brute force that ended in a success.",
+  "",
+  "**Assessment**",
+  "Likely malicious: the address is on a password-spray list [C1].",
+].join("\n");
+
+// A report the model wrote without the sections it was asked for.
+const UNSECTIONED_REPORT: string = [
+  "## 🧠 AI — Security Case Triage",
+  "",
+  "The sign-ins came from one address on a password-spray list.",
 ].join("\n");
 
 function aiSection(
@@ -63,7 +73,7 @@ function aiSection(
 }
 
 describe("OneUptime AI", () => {
-  test("its read in a word and a sentence, and when it read the case", async () => {
+  test("its read in a word, when it read the case, and what it found at once", async () => {
     await render(aiSection());
 
     expect(screen.getByRole("header", { name: "OneUptime AI" })).toBeTruthy();
@@ -71,12 +81,61 @@ describe("OneUptime AI", () => {
       backgroundColor: lightColors.statusErrorBg,
     });
     expect(screen.getByText("Likely Malicious")).toBeTruthy();
+    expect(screen.getByText("Triaged 12m ago")).toBeTruthy();
+    // The report's own Summary, before anything is tapped.
+    expect(screen.getByTestId("case-ai-summary")).toHaveTextContent(
+      "A brute force that ended in a success.",
+    );
+    // It says what the read means for this case: the read's own meaning is left out.
+    expect(screen.queryByTestId("case-ai-verdict-description")).toBeNull();
     expect(
-      screen.getByText(
+      screen.queryByText(
         "The evidence points at malicious or unauthorized activity.",
       ),
-    ).toBeTruthy();
-    expect(screen.getByText("Triaged 12m ago")).toBeTruthy();
+    ).toBeNull();
+    expect(screen.queryByTestId("case-ai-report")).toBeNull();
+  });
+
+  test("a report with no Summary to lift says what the read means, and folds whole", async () => {
+    await render(aiSection({ report: UNSECTIONED_REPORT }));
+
+    expect(screen.queryByTestId("case-ai-summary")).toBeNull();
+    expect(screen.getByTestId("case-ai-verdict-description")).toHaveTextContent(
+      "The evidence points at malicious or unauthorized activity.",
+    );
+    expect(screen.getByText("Read the report")).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("case-ai-report-toggle"));
+
+    expect(screen.getByTestId("case-ai-report")).toHaveTextContent(
+      "The sign-ins came from one address on a password-spray list.",
+    );
+    expect(screen.getByText("Hide the report")).toBeTruthy();
+  });
+
+  test("a report that is all Summary has nothing more to fold", async () => {
+    await render(
+      aiSection({
+        report:
+          "## 🧠 AI — Security Case Triage\n\n**Summary**\nA brute force that ended in a success.",
+      }),
+    );
+
+    expect(screen.getByTestId("case-ai-summary")).toHaveTextContent(
+      "A brute force that ended in a success.",
+    );
+    expect(screen.queryByTestId("case-ai-report-toggle")).toBeNull();
+  });
+
+  test("the warning about text that tried to steer it comes before what it found", async () => {
+    await render(aiSection({ promptInjectionSuspected: true }));
+
+    const order: Array<string> = screen
+      .getAllByTestId(/^case-ai-(injection-warning|summary)$/)
+      .map((node: ReturnType<typeof screen.getByTestId>): string => {
+        return String(node.props.testID);
+      });
+    expect(order).toEqual(["case-ai-injection-warning", "case-ai-summary"]);
   });
 
   test("a case it has not triaged says so, and nothing else", async () => {
@@ -89,14 +148,17 @@ describe("OneUptime AI", () => {
     expect(screen.queryByTestId("case-ai-report-toggle")).toBeNull();
   });
 
-  test("a report without a read it can name still shows the report", async () => {
+  test("a report without a read it can name still shows what it found, and the rest", async () => {
     await render(aiSection({ aiVerdict: "Something new" }));
 
     expect(screen.queryByTestId("case-ai-verdict")).toBeNull();
+    expect(screen.getByTestId("case-ai-summary")).toHaveTextContent(
+      "A brute force that ended in a success.",
+    );
     expect(screen.getByTestId("case-ai-report-toggle")).toBeTruthy();
   });
 
-  test("the report is folded under the read, without its brand heading", async () => {
+  test("the rest of the report is folded under the Summary, without its brand heading", async () => {
     await render(aiSection());
 
     expect(screen.queryByTestId("case-ai-report")).toBeNull();
@@ -104,15 +166,17 @@ describe("OneUptime AI", () => {
       "case-ai-report-toggle",
     );
     expect(toggle.props.accessibilityState).toEqual({ expanded: false });
+    expect(screen.getByText("Read the full report")).toBeTruthy();
 
     await fireEvent.press(toggle);
 
-    expect(screen.getByTestId("case-ai-report")).toBeTruthy();
-    expect(
-      screen.getByText(/A brute force that ended in a success\./),
-    ).toBeTruthy();
+    const report: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("case-ai-report");
+    expect(report).toHaveTextContent(/password-spray list/);
+    // The Summary is said once, above the fold, never again inside it.
+    expect(report).not.toHaveTextContent(/A brute force/);
     expect(screen.queryByText(/Security Case Triage/)).toBeNull();
-    expect(screen.getByText("Hide the report")).toBeTruthy();
+    expect(screen.getByText("Hide the full report")).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId("case-ai-report-toggle"));
     expect(screen.queryByTestId("case-ai-report")).toBeNull();
@@ -169,8 +233,8 @@ describe("OneUptime AI", () => {
   });
 });
 
-describe("what the case is about", () => {
-  test("each user, host and address, by what it is", async () => {
+describe("the case's entities", () => {
+  test("each user, host and address, by what it is, under the dashboard's own title", async () => {
     await render(
       <CaseEntitiesSection
         entities={[
@@ -181,9 +245,7 @@ describe("what the case is about", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("header", { name: "What it is about" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Entities" })).toBeTruthy();
     expect(screen.getAllByTestId("case-entity")).toHaveLength(3);
     expect(screen.getByText("alice@acme.test")).toBeTruthy();
     expect(screen.getByText("IP address")).toBeTruthy();

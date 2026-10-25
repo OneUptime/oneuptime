@@ -169,10 +169,13 @@ describe("the step a run waits on", () => {
     }
   });
 
-  test("a playbook with no name is still a playbook", () => {
-    expect(read(waitingRun({ playbookName: "" })).playbookName).toBe(
-      "Playbook",
-    );
+  test("a playbook with no name reads as no name: the card says The playbook", () => {
+    expect(read(waitingRun({ playbookName: "" })).playbookName).toBe("");
+    expect(read(waitingRun({ playbookName: "   " })).playbookName).toBe("");
+    expect(read(waitingRun({ playbookName: null })).playbookName).toBe("");
+    expect(
+      read(waitingRun({ playbookName: " Contain a host " })).playbookName,
+    ).toBe("Contain a host");
   });
 });
 

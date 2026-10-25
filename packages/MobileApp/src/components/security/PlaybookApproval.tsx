@@ -18,6 +18,9 @@ import {
 import { getEntityTerm } from "../../security/caseTerms";
 import type { PlaybookDecision } from "../../api/securityCases";
 
+// The heading over the targets a step never acts on, as the dashboard says it.
+export const PROTECTED_TARGETS_TITLE: string = "Protected, never acted on";
+
 interface PlaybookApprovalCardProps {
   step: WaitingPlaybookStep;
   // The reader started the run: someone else must approve it.
@@ -29,8 +32,8 @@ interface PlaybookApprovalCardProps {
 /**
  * A playbook step held for a decision, first on the case's screen: nothing
  * happens until somebody approves or rejects it, and this is often why the
- * phone rang. It says which playbook, which step, and what the step would
- * act on, with Reject and Approve beside it.
+ * phone rang. It says which step of which playbook waits, what the step
+ * would act on and what it leaves alone, with Reject and Approve beside it.
  */
 export function PlaybookApprovalCard({
   step,
@@ -89,9 +92,22 @@ export function PlaybookApprovalCard({
             {step.stepTitle}
           </Text>
           <Text
+            testID="playbook-approval-where"
             style={{ ...typography.subhead, color: theme.colors.textSecondary }}
           >
-            {`Step ${step.stepNumber} of ${step.playbookName}. Nothing happens until somebody approves or rejects it.`}
+            {step.playbookName ? (
+              <>
+                {"Playbook "}
+                <Text
+                  style={{ fontWeight: "600", color: theme.colors.textPrimary }}
+                >
+                  {step.playbookName}
+                </Text>
+              </>
+            ) : (
+              "The playbook"
+            )}
+            {` waits at step ${step.stepNumber} until someone approves or rejects it.`}
           </Text>
         </View>
       </View>
@@ -101,20 +117,15 @@ export function PlaybookApprovalCard({
       ) : null}
       {step.protectedTargets.length > 0 ? (
         <TargetGroup
-          title="Leaves alone, as protected"
+          title={PROTECTED_TARGETS_TITLE}
           targets={step.protectedTargets}
         />
       ) : null}
 
-      <Text
-        testID="playbook-approval-started"
-        style={{ ...typography.footnote, color: theme.colors.textTertiary }}
-      >
-        {startedWhen && startedWhen !== "—"
-          ? `${step.startedBy}, ${startedWhen}`
-          : step.startedBy}
-      </Text>
-
+      {/*
+        Who started the run, or how it started on its own. The reader's own
+        run says why they cannot approve it instead: the sentence names them.
+      */}
       {isOwnRun ? (
         <Text
           testID="playbook-approval-own-run"
@@ -122,7 +133,16 @@ export function PlaybookApprovalCard({
         >
           {SELF_APPROVAL_SENTENCE}
         </Text>
-      ) : null}
+      ) : (
+        <Text
+          testID="playbook-approval-started"
+          style={{ ...typography.footnote, color: theme.colors.textTertiary }}
+        >
+          {startedWhen && startedWhen !== "—"
+            ? `${step.startedBy}, ${startedWhen}`
+            : step.startedBy}
+        </Text>
+      )}
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
         <GradientButton
@@ -466,7 +486,7 @@ export function PlaybookDecisionSheet({
                 marginTop: spacing.xs,
               }}
             >
-              {`Never acted on, because they are protected: ${step.protectedTargets
+              {`${PROTECTED_TARGETS_TITLE}: ${step.protectedTargets
                 .map((target: PlaybookTarget): string => {
                   return target.value;
                 })

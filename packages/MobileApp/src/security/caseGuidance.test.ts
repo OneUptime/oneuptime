@@ -32,6 +32,39 @@ describe("a case nobody has", () => {
   });
 });
 
+describe("a case handed to a team nobody in it has taken yet", () => {
+  test("says which team it waits on, and still how to take it on", () => {
+    const guidance: CaseGuidance = getCaseGuidance({
+      ...OPEN,
+      teamName: "Security Operations",
+    });
+
+    expect(guidance.stage).toBe("unassigned");
+    expect(guidance.title).toBe("Needs an analyst");
+    expect(guidance.message).toBe(
+      "Waiting for someone in Security Operations. Assign it to yourself to take it on.",
+    );
+  });
+
+  test("a team with no name to show reads as no team", () => {
+    expect(getCaseGuidance({ ...OPEN, teamName: "   " }).message).toBe(
+      "Nobody has taken this case yet. Assign it to yourself to take it on.",
+    );
+  });
+
+  test("a person on the case counts before the team", () => {
+    const guidance: CaseGuidance = getCaseGuidance({
+      ...OPEN,
+      hasAssignee: true,
+      assigneeName: "Priya Shah",
+      teamName: "Security Operations",
+    });
+
+    expect(guidance.stage).toBe("theirs");
+    expect(guidance.message).not.toContain("Security Operations");
+  });
+});
+
 describe("a case somebody else has", () => {
   test("names them, and offers taking it over", () => {
     const guidance: CaseGuidance = getCaseGuidance({

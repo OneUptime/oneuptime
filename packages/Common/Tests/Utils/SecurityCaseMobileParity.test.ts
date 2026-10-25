@@ -15,7 +15,10 @@ import { SECURITY_PLAYBOOK_ACTIONS } from "../../Types/SecurityPlaybook/Security
 import SecurityPlaybookRunStatus from "../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityPlaybookTargetState } from "../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import SecurityPlaybookTrigger from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
-import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../Utils/AI/InvestigationReport";
+import {
+  SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX,
+  parseInvestigationReport,
+} from "../../Utils/AI/InvestigationReport";
 import { seededRandom, type SeededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
@@ -708,5 +711,175 @@ describe("the app's words are the product's", () => {
 
     expect(sentence.length).toBeGreaterThan(20);
     expect(source.indexOf(JSON.stringify(sentence))).toBeGreaterThan(-1);
+  });
+});
+
+/*
+ * The case's screen shows the triage report's Summary before anything is
+ * tapped (MobileApp/src/security/caseTerms, splitTriageReport), as the
+ * dashboard lifts it above the report. The app reads the report with a
+ * smaller reader of its own; what it lifts must be what Common's report
+ * parser calls the Summary - all of it for the shapes the triage writes,
+ * and never anything past it for any other report, so nothing from
+ * another section is ever shown as what OneUptime AI found.
+ */
+describe("the Summary the app lifts from a triage report is the parser's own", () => {
+  const splitTriageReport: (markdown: unknown) => {
+    summary: string;
+    rest: string;
+  } = caseTermsModule["splitTriageReport"] as (markdown: unknown) => {
+    summary: string;
+    rest: string;
+  };
+  const HEADING: string = "## 🧠 AI — Security Case Triage";
+  const FOOTER: string =
+    "---\n*Investigated automatically by OneUptime AI — read-only, 3 queries run across your own telemetry. This is an AI-generated first pass; verify before acting.*";
+  const LEAD: string = `${SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX} - a sign of an attempt to steer the triage. OneUptime AI treated it as data and leaves the call to a person.`;
+  const REST: Array<string> = [
+    "",
+    "**Assessment**",
+    "Likely malicious: the address is on a password-spray list [C1].",
+    "",
+    "**Evidence**",
+    "- 14 failed sign-ins in six minutes [C1]",
+    "",
+    "**Suggested next steps**",
+    "1. Suspend alice@acme.test in Okta.",
+    "",
+    "**Evidence checked**",
+    "- **[C1]** Security events for alice@acme.test — 15 row(s)",
+    "",
+    FOOTER,
+  ];
+
+  function report(...lines: Array<string>): string {
+    return [HEADING, "", ...lines].join("\n");
+  }
+
+  function parserSummary(markdown: string): string {
+    return parseInvestigationReport(markdown).summary || "";
+  }
+
+  test("all of it, however the triage writes its Summary", () => {
+    const reports: Array<string> = [
+      report(
+        "**Summary**",
+        "Fourteen failed VPN sign-ins for alice@acme.test, then one that succeeded.",
+        "This is most likely a password spray.",
+        ...REST,
+      ),
+      report("**Summary**", "", "A spray.", ...REST),
+      report("**Summary:**", "A spray.", ...REST),
+      report("**Summary** - A spray.", ...REST),
+      report("**Summary** — A spray.", ...REST),
+      report("**Summary:** A spray.", ...REST),
+      report("**Summary**: A spray.", ...REST),
+      report("***Summary***", "A spray.", ...REST),
+      report("__Summary__", "A spray.", ...REST),
+      report("**Summary (high confidence)**", "A spray.", ...REST),
+      report("**TL;DR**", "A spray.", ...REST),
+      report("## Summary", "A spray.", ...REST),
+      report("### Summary ###", "A spray.", ...REST),
+      report("Summary: A spray.", ...REST),
+      report(
+        "**Summary**",
+        "A spray.",
+        "- 14 failures",
+        "- 1 success",
+        ...REST,
+      ),
+      report("**Summary**", "A spray."),
+      report("**Summary**", "A spray.", "", FOOTER),
+      report(LEAD, "", "**Summary**", "A spray.", ...REST),
+    ];
+
+    for (const markdown of reports) {
+      const lifted: string = splitTriageReport(markdown).summary;
+
+      expect(lifted).not.toBe("");
+      expect(lifted).toBe(parserSummary(markdown));
+    }
+  });
+
+  test("never anything past it, on thousands of generated reports", () => {
+    const random: SeededRandom = seededRandom(5280);
+    const openings: Array<string> = [
+      "**Summary**",
+      "**Summary:**",
+      "**Summary** - It began.",
+      "**Summary:** It began.",
+      "## Summary",
+      "### Summary ###",
+      "Summary: It began.",
+      "**TL;DR**",
+      "***Summary***",
+      "__Summary__",
+      "**Summary (draft)**",
+      "**Summary** (draft) - It began.",
+      "Summary (v2): It began.",
+      "**Summary** is below.",
+      "**Summary",
+      "Some words first.",
+      LEAD,
+    ];
+    const lines: Array<string> = [
+      "A sentence.",
+      "Another one [C1].",
+      "",
+      "",
+      "**Assessment**",
+      "**Assessment:** bad.",
+      "**Assessment** — bad.",
+      "**Evidence**",
+      "**Evidence:** rows.",
+      "Evidence: rows.",
+      "Root cause (likely): a leak.",
+      "## Evidence",
+      "### Detail",
+      "- a list item",
+      "  - a nested item",
+      "1. a first step",
+      "---",
+      "***",
+      "```",
+      "~~~",
+      "    indented code",
+      "**Alice** signed in.",
+      "**Note:** the address is new.",
+      "**Confidence: medium**",
+      "*an italic line*",
+      "> a quote",
+      "Summary: again",
+      "**Summary**",
+      "Plain: a label the parser does not know",
+      "🔎 Evidence",
+      "**🔎 Evidence**",
+      "| a | b |",
+      FOOTER,
+    ];
+    let lifted: number = 0;
+
+    for (let run: number = 0; run < 5000; run++) {
+      const reportLines: Array<string> = [openings[random(openings.length)]!];
+      const count: number = random(10);
+
+      for (let index: number = 0; index < count; index++) {
+        reportLines.push(lines[random(lines.length)]!);
+      }
+
+      const markdown: string = report(...reportLines);
+      const parts: { summary: string; rest: string } =
+        splitTriageReport(markdown);
+
+      if (parts.summary) {
+        lifted++;
+        expect(parserSummary(markdown).startsWith(parts.summary)).toBe(true);
+        // What is not lifted is still there: the folded rest is the report's tail.
+        expect(markdown.trimEnd().endsWith(parts.rest)).toBe(true);
+      }
+    }
+
+    // The sweep reached the lifted case often enough to mean something.
+    expect(lifted).toBeGreaterThan(1000);
   });
 });

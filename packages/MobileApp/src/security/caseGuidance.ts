@@ -29,6 +29,8 @@ export function getCaseGuidance(data: {
   // Whether a person has the case: someone else, when not the reader.
   hasAssignee: boolean;
   assigneeName: string;
+  // The team the case is handed to, when it has one: "" for none.
+  teamName?: string;
   isContained: boolean;
   verdict: string | null | undefined;
 }): CaseGuidance {
@@ -68,12 +70,16 @@ export function getCaseGuidance(data: {
     };
   }
 
+  // A case handed to a team waits for one of them: say which team.
+  const teamName: string = (data.teamName || "").trim();
+
   return {
     stage: "unassigned",
     tone: "warning",
     icon: "alert-circle-outline",
     title: "Needs an analyst",
-    message:
-      "Nobody has taken this case yet. Assign it to yourself to take it on.",
+    message: teamName
+      ? `Waiting for someone in ${teamName}. Assign it to yourself to take it on.`
+      : "Nobody has taken this case yet. Assign it to yourself to take it on.",
   };
 }

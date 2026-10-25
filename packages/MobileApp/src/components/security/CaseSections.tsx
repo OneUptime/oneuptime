@@ -14,9 +14,10 @@ import { ResponseSection } from "../ResponseDetailLayout";
 import {
   getAiVerdictTerm,
   getEntityTerm,
-  getTriageReportBody,
+  splitTriageReport,
   type SecurityCaseAiVerdictTerm,
   type SecurityEntity,
+  type TriageReportParts,
 } from "../../security/caseTerms";
 import type { SecurityCasePriorityItem } from "../../api/types";
 
@@ -48,10 +49,11 @@ const AI_TONES: Record<SecurityCaseAiVerdictTerm["tone"], StatusTone> = {
 
 /**
  * OneUptime AI's triage, as the analyst reads it before deciding: its read
- * of the case in a word and a sentence, a warning when the case's data tried
- * to steer it, the priority it suggests as one tap, and its report folded
- * under the verdict. A suggestion only: a person sets the verdict and the
- * priority.
+ * of the case in a word, a warning when the case's data tried to steer it,
+ * what it found - the report's own Summary, two sentences written to be read
+ * in five seconds, or the read's meaning when the report has none to lift -
+ * the priority it suggests as one tap, and the rest of the report folded
+ * under it. A suggestion only: a person sets the verdict and the priority.
  */
 export function CaseAiSection({
   aiVerdict,
@@ -66,8 +68,11 @@ export function CaseAiSection({
   const [showReport, setShowReport] = useState<boolean>(false);
   const term: SecurityCaseAiVerdictTerm | undefined =
     getAiVerdictTerm(aiVerdict);
-  const body: string = getTriageReportBody(report);
-  const triaged: boolean = Boolean(term) || Boolean(body);
+  const parts: TriageReportParts = splitTriageReport(report);
+  const summary: string = parts.summary;
+  // What the fold holds: the rest of the report, or all of it with no summary.
+  const folded: string = parts.rest;
+  const triaged: boolean = Boolean(term) || Boolean(summary) || Boolean(folded);
   const triagedWhen: string = triagedAt ? formatRelativeTime(triagedAt) : "";
 
   return (
@@ -114,14 +119,17 @@ export function CaseAiSection({
                   </Text>
                 ) : null}
               </View>
-              <Text
-                style={{
-                  ...typography.subhead,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {term.description}
-              </Text>
+              {summary ? null : (
+                <Text
+                  testID="case-ai-verdict-description"
+                  style={{
+                    ...typography.subhead,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  {term.description}
+                </Text>
+              )}
             </View>
           ) : null}
           {promptInjectionSuspected ? (
@@ -132,6 +140,11 @@ export function CaseAiSection({
               title="Text in this case reads like instructions to an AI"
               message="OneUptime AI treated it as data and leaves the call to you."
             />
+          ) : null}
+          {summary ? (
+            <View testID="case-ai-summary">
+              <MarkdownContent content={summary} />
+            </View>
           ) : null}
           {suggestedPriority ? (
             <View
@@ -173,7 +186,7 @@ export function CaseAiSection({
               />
             </View>
           ) : null}
-          {body ? (
+          {folded ? (
             <View style={{ gap: spacing.sm }}>
               <Pressable
                 testID="case-ai-report-toggle"
@@ -202,7 +215,13 @@ export function CaseAiSection({
                     color: theme.colors.actionPrimary,
                   }}
                 >
-                  {showReport ? "Hide the report" : "Read the report"}
+                  {summary
+                    ? showReport
+                      ? "Hide the full report"
+                      : "Read the full report"
+                    : showReport
+                      ? "Hide the report"
+                      : "Read the report"}
                 </Text>
                 <Ionicons
                   name={showReport ? "chevron-up" : "chevron-down"}
@@ -212,7 +231,7 @@ export function CaseAiSection({
               </Pressable>
               {showReport ? (
                 <View testID="case-ai-report">
-                  <MarkdownContent content={body} />
+                  <MarkdownContent content={folded} />
                 </View>
               ) : null}
             </View>
@@ -244,7 +263,7 @@ export function CaseEntitiesSection({
 
   return (
     <ResponseSection
-      title="What it is about"
+      title="Entities"
       iconName="locate-outline"
       count={entities.length}
       testID="case-entities-section"

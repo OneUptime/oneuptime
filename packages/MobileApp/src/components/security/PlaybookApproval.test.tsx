@@ -108,11 +108,29 @@ describe("the approval card", () => {
     expect(screen.getByTestId("playbook-approval-step")).toHaveTextContent(
       "Suspend the user in Okta",
     );
-    expect(
-      screen.getByText(
-        "Step 1 of Contain a compromised account. Nothing happens until somebody approves or rejects it.",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByTestId("playbook-approval-where")).toHaveTextContent(
+      "Playbook Contain a compromised account waits at step 1 until someone approves or rejects it.",
+    );
+    // The playbook's name reads as a name inside the sentence.
+    expect(screen.getByText("Contain a compromised account")).toHaveStyle({
+      fontWeight: "600",
+      color: lightColors.textPrimary,
+    });
+  });
+
+  test("a playbook with no name is the playbook", async () => {
+    await render(
+      <PlaybookApprovalCard
+        step={waitingStep({ playbookName: "" })}
+        isOwnRun={false}
+        busy={false}
+        onDecide={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("playbook-approval-where")).toHaveTextContent(
+      "The playbook waits at step 1 until someone approves or rejects it.",
+    );
   });
 
   test("lists what it acts on apart from what it leaves alone as protected", async () => {
@@ -129,7 +147,7 @@ describe("the approval card", () => {
     expect(screen.getAllByTestId("playbook-target")).toHaveLength(1);
     expect(screen.getByText("alice@acme.test")).toBeTruthy();
     expect(screen.getByText("User · What the case is grouped on")).toBeTruthy();
-    expect(screen.getByText("Leaves alone, as protected")).toBeTruthy();
+    expect(screen.getByText("Protected, never acted on")).toBeTruthy();
     expect(screen.getAllByTestId("playbook-target-protected")).toHaveLength(1);
     expect(screen.getByText("User · Matches breakglass-*")).toBeTruthy();
   });
@@ -145,7 +163,7 @@ describe("the approval card", () => {
     );
 
     expect(screen.queryByText("Acts on")).toBeNull();
-    expect(screen.queryByText("Leaves alone, as protected")).toBeNull();
+    expect(screen.queryByText("Protected, never acted on")).toBeNull();
   });
 
   test("says how the run started", async () => {
@@ -194,6 +212,8 @@ describe("the approval card", () => {
     expect(screen.getByTestId("playbook-approval-own-run")).toHaveTextContent(
       "You started this run, so someone else must approve its steps.",
     );
+    // The sentence says who started it: no "Run by" line naming the reader too.
+    expect(screen.queryByTestId("playbook-approval-started")).toBeNull();
     expect(isDisabled(screen.getByTestId("playbook-approve"))).toBe(true);
     expect(isDisabled(screen.getByTestId("playbook-reject"))).toBe(false);
     await fireEvent.press(screen.getByTestId("playbook-approve"));
@@ -280,7 +300,7 @@ describe("approving a step", () => {
     }
     expect(
       screen.getByText(
-        "Never acted on, because they are protected: breakglass-admin@acme.test.",
+        "Protected, never acted on: breakglass-admin@acme.test.",
       ),
     ).toBeTruthy();
   });

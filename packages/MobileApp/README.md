@@ -262,14 +262,16 @@ Security Events a paged analyst needs, and only that part:
 - **The decisions that cannot wait for a laptop.** A playbook step waiting
   for approval comes first on the case: approve it - leaving any user or host
   out, protected ones never acted on - or reject it, with a comment. The
-  person who started a run cannot approve it. Then who has the case and the
-  next step: **Assign to me** (which is how a case is acknowledged), **Close
-  case** with a verdict and a closing note, **Reopen**; and the status, the
-  priority and the assignee, each a tap from its sheet.
-- **Enough to decide.** OneUptime AI's read (its verdict, its report, a
-  warning when the case's data tried to steer it, its suggested priority as
-  one tap), what the case is about (users, hosts, addresses), its details,
-  description, timeline and notes.
+  person who started a run cannot approve it. While a step waits for the
+  reader, Approve is the screen's one filled button. Then who has the case
+  and the next step: **Assign to me** (which is how a case is acknowledged),
+  **Close case** with a verdict and a closing note, **Reopen**; and the
+  status, the priority and the assignee, each a tap from its sheet.
+- **Enough to decide.** OneUptime AI's read: its verdict, what it found - the
+  report's own Summary, shown at once, with the rest of the report folded
+  under **Read the full report** - a warning when the case's data tried to
+  steer it, and its suggested priority as one tap. Then the case's entities
+  (users, hosts, addresses), its details, description, timeline and notes.
 - **The queue.** For people who can see the project's cases, in a project
   that has had one, the Inbox has a **Security** category: the open cases,
   a case waiting for an approval first, then the most urgent by the project's

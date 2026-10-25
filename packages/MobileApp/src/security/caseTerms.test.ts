@@ -10,7 +10,10 @@ import {
   getTriageReportBody,
   isSecurityCaseVerdict,
   readCaseEntities,
+  readSummaryLabel,
+  splitTriageReport,
   type SecurityCaseAiVerdictTerm,
+  type TriageReportParts,
 } from "./caseTerms";
 
 /*
@@ -179,5 +182,175 @@ describe("the triage report as the phone draws it", () => {
     expect(getTriageReportBody(null)).toBe("");
     expect(getTriageReportBody({ _type: "Markdown" })).toBe("");
     expect(getTriageReportBody("   \n  ")).toBe("");
+  });
+});
+
+describe("the triage's Summary, lifted above the rest of the report", () => {
+  const HEADING: string = "## 🧠 AI — Security Case Triage";
+  const LEAD: string = `${TRIAGE_INJECTION_LEAD_PREFIX} - a sign of an attempt to steer the triage.`;
+  const FOOTER: string =
+    "---\n*Investigated automatically by OneUptime AI — read-only, 3 queries run across your own telemetry. This is an AI-generated first pass; verify before acting.*";
+
+  function split(...lines: Array<string>): TriageReportParts {
+    return splitTriageReport([HEADING, "", ...lines].join("\n"));
+  }
+
+  test("the report as the triage is asked to write it: the Summary, then the rest", () => {
+    const parts: TriageReportParts = split(
+      "**Summary**",
+      "Fourteen failed VPN sign-ins for alice@acme.test, then one that succeeded.",
+      "This is most likely a password spray.",
+      "",
+      "**Assessment**",
+      "Likely malicious [C1].",
+      "",
+      "**Suggested next steps**",
+      "1. Suspend alice@acme.test in Okta.",
+      "",
+      FOOTER,
+    );
+
+    expect(parts.summary).toBe(
+      "Fourteen failed VPN sign-ins for alice@acme.test, then one that succeeded.\nThis is most likely a password spray.",
+    );
+    expect(parts.rest).toBe(
+      `**Assessment**\nLikely malicious [C1].\n\n**Suggested next steps**\n1. Suspend alice@acme.test in Okta.\n\n${FOOTER}`,
+    );
+  });
+
+  test("whatever way the label is written", () => {
+    const shapes: Array<Array<string>> = [
+      ["**Summary**", "A spray."],
+      ["**Summary:**", "A spray."],
+      ["**Summary**:", "A spray."],
+      ["**Summary** - A spray."],
+      ["**Summary** — A spray."],
+      ["**Summary:** A spray."],
+      ["**Summary**: A spray."],
+      ["***Summary***", "A spray."],
+      ["__Summary__", "A spray."],
+      ["**Summary (high confidence)**", "A spray."],
+      ["**TL;DR**", "A spray."],
+      ["## Summary", "A spray."],
+      ["### Summary ###", "A spray."],
+      ["Summary: A spray."],
+      ["TL;DR: A spray."],
+      ["**Summary**", "", "", "A spray."],
+    ];
+
+    for (const shape of shapes) {
+      expect(split(...shape, "", "**Assessment**", "Bad.")).toEqual({
+        summary: "A spray.",
+        rest: "**Assessment**\nBad.",
+      });
+    }
+  });
+
+  test("after the runner's heads-up, which the AI section says as a warning", () => {
+    expect(split(LEAD, "", "**Summary**", "A spray.").summary).toBe("A spray.");
+  });
+
+  test("its first paragraph, which a line that could open anything else ends sooner", () => {
+    const enders: Array<string> = [
+      "",
+      "**Assessment**",
+      "**Evidence:** fourteen rows.",
+      "__Evidence__",
+      "### Evidence",
+      "Evidence: fourteen rows.",
+      "Root cause (likely): a leaked password.",
+      "---",
+      "***",
+      "```",
+      "~~~",
+    ];
+
+    for (const ender of enders) {
+      const parts: TriageReportParts = split(
+        "**Summary**",
+        "A spray.",
+        ender,
+        "More.",
+      );
+
+      expect(parts.summary).toBe("A spray.");
+      expect(parts.rest).toBe([ender, "More."].join("\n").trim());
+    }
+  });
+
+  test("lines that only read like labels stay in it", () => {
+    expect(
+      split(
+        "**Summary**",
+        "Fourteen failed sign-ins:",
+        "- from 203.0.113.24",
+        "- in six minutes",
+        "Note: the address is new.",
+      ).summary,
+    ).toBe(
+      "Fourteen failed sign-ins:\n- from 203.0.113.24\n- in six minutes\nNote: the address is new.",
+    );
+  });
+
+  test("a report that does not open with its Summary lifts nothing, and folds whole", () => {
+    const reports: Array<Array<string>> = [
+      ["Some words first.", "", "**Summary**", "A spray."],
+      ["**Assessment**", "Bad."],
+      ["**Summary** is below.", "", "A spray."],
+      ["Summary (v2): A spray."],
+      ["**Summary**"],
+      ["**Summary**", "", "**Assessment**", "Bad."],
+      ["**Summary**", "**Alice** signed in from Lisbon."],
+      ["Summary"],
+      ["#Summary", "A spray."],
+      ["####### Summary", "A spray."],
+    ];
+
+    for (const lines of reports) {
+      const report: string = [HEADING, "", ...lines].join("\n");
+
+      expect(splitTriageReport(report)).toEqual({
+        summary: "",
+        rest: getTriageReportBody(report),
+      });
+    }
+  });
+
+  test("a report that is not text lifts nothing", () => {
+    for (const report of [undefined, null, 42, { _type: "Markdown" }, ""]) {
+      expect(splitTriageReport(report)).toEqual({ summary: "", rest: "" });
+    }
+  });
+
+  test("a label is read only at the start of the line", () => {
+    expect(readSummaryLabel("**Summary**")).toEqual({ text: "" });
+    expect(readSummaryLabel("  **Summary:** A spray.  ")).toEqual({
+      text: "A spray.",
+    });
+    expect(readSummaryLabel("The **Summary** follows.")).toBeNull();
+    expect(readSummaryLabel("**Summaries**")).toBeNull();
+    expect(readSummaryLabel("**")).toBeNull();
+    expect(readSummaryLabel("****")).toBeNull();
+    expect(readSummaryLabel("")).toBeNull();
+  });
+
+  test("reads megabytes of one shape in time in line with their length", () => {
+    const long: number = 400000;
+    const worst: Array<string> = [
+      `**${"*".repeat(long)}`,
+      `**Summary**\n${"**".repeat(long / 2)}`,
+      `**Summary**\n${"a ".repeat(long / 2)}:`,
+      `Summary${" ".repeat(long)}:`,
+      `${"#".repeat(long)} Summary`,
+      `**Summary**\n${"x\n".repeat(long / 2)}`,
+      `**Summary** ${"-".repeat(long)}`,
+      `## ${"#".repeat(long)}`,
+    ];
+
+    for (const report of worst) {
+      const started: number = Date.now();
+      splitTriageReport(report);
+      expect(Date.now() - started).toBeLessThan(2000);
+    }
   });
 });
