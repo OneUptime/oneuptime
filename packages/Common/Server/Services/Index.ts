@@ -391,6 +391,8 @@ import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityEntityRiskService from "./SecurityEntityRiskService";
+import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -896,6 +898,8 @@ const services: Array<BaseService> = [
   SecurityPlaybookService,
   SecurityPlaybookRunService,
   SecurityProtectedEntityService,
+  SecurityEntityRiskService,
+  SecurityEntityCriticalityService,
   AlertNoteTemplateService,
   AlertFeedService,
 

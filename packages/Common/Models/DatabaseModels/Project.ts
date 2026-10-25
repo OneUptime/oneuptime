@@ -2183,6 +2183,84 @@ export default class Project extends TenantModel {
   public enableAutomaticSecurityCaseTriage?: boolean = undefined;
 
   /*
+   * Opening security cases from entity risk: when what the project's
+   * detection rules, threat intel and connected products found about one
+   * user, host or address in the last week adds up to
+   * securityRiskCaseThreshold, a case opens about it - or the open case
+   * about it takes the risk in (Types/SecurityCase/SecurityEntityRisk). On
+   * for new projects (ProjectService.applyNewProjectSecurityDefaults); a
+   * project that existed before keeps it off until someone turns it on under
+   * Security Events > Settings > Entity Risk, so an upgrade opens no case
+   * nobody asked for. Risk scores are kept either way.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Open Security Cases From Entity Risk",
+    description:
+      "When on, a security case opens about a user, host or IP address whose risk reaches the threshold. On for new projects.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableSecurityRiskCases?: boolean = undefined;
+
+  /*
+   * The risk at which an entity's case opens (and its level reads High):
+   * 100 by default - two different High findings, or a High and two Medium,
+   * about the same entity within a week. A whole number from 10 to 10000;
+   * the server refuses anything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Security Risk Case Threshold",
+    description:
+      "The risk score at which a case opens about a user, host or IP address: a whole number from 10 to 10000, 100 unless changed.",
+    defaultValue: 100,
+    example: 100,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 100,
+  })
+  public securityRiskCaseThreshold?: number = undefined;
+
+  /*
    * Fixing new incidents and alerts automatically (auto-remediation): the
    * master switches, one per kind of signal, as investigation has. OFF for
    * every project, new ones included, and on purpose not among the switches

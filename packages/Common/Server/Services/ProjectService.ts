@@ -917,6 +917,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     this.applyNewProjectAiDefaults(data.data);
+    this.applyNewProjectSecurityDefaults(data.data);
 
     const carryForward: ProjectCreateCarryForward = {
       isCreatorMasterAdmin: user.isMasterAdmin === true,
@@ -1046,6 +1047,25 @@ export class ProjectService extends ProjectReferencesService<Model> {
       if (data[column] === undefined || data[column] === null) {
         data[column] = true;
       }
+    }
+  }
+
+  /*
+   * A new project opens security cases from entity risk: when what its
+   * rules, threat intel and connected products found about one user, host or
+   * address adds up to its threshold (Types/SecurityCase/SecurityEntityRisk).
+   * On unless the create request set it itself. The column's database
+   * default stays false, so a project that existed before opens no case
+   * from risk until someone turns it on.
+   */
+  public applyNewProjectSecurityDefaults(data: {
+    enableSecurityRiskCases?: boolean | null | undefined;
+  }): void {
+    if (
+      data.enableSecurityRiskCases === undefined ||
+      data.enableSecurityRiskCases === null
+    ) {
+      data.enableSecurityRiskCases = true;
     }
   }
 

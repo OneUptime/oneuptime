@@ -288,6 +288,7 @@ import "./Jobs/SecurityEvents/PollSecurityEventConnections";
 import "./Jobs/SecurityEvents/RunSecurityEventConnection";
 import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";
 import "./Jobs/SecurityEvents/ForwardSecurityEvents";
+import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";

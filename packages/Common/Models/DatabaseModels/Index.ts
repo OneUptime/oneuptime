@@ -171,6 +171,8 @@ import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityEntityRisk from "./SecurityEntityRisk";
+import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
 import AuditLogExport from "./AuditLogExport";
 import SecurityLogSource from "./SecurityLogSource";
@@ -601,6 +603,8 @@ const AllModelTypes: Array<{
   SecurityPlaybook,
   SecurityPlaybookRun,
   SecurityProtectedEntity,
+  SecurityEntityRisk,
+  SecurityEntityCriticality,
   SecurityEventDestination,
   AuditLogExport,
   SecurityLogSource,
