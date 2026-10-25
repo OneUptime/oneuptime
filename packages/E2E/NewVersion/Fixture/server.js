@@ -36,6 +36,9 @@ const port = Number(process.env.NEW_VERSION_FIXTURE_PORT || 4618);
 
 const BUILD_IDS = { a: "fixture-build-a", b: "fixture-build-b" };
 
+// The longest slow-documents may hold a page back; any other value holds nothing.
+const MAX_SLOW_DOCUMENTS_IN_MS = 30000;
+
 // The Dashboard's own font, so screenshots are drawn as the product draws them.
 const font = path.join(
   repository,
@@ -204,7 +207,12 @@ async function handleControl(url, request, response) {
   } else if (command === "missing") {
     state.missing = url.searchParams.get("chunk") || "";
   } else if (command === "slow-documents") {
-    state.slowDocumentsInMs = Number(url.searchParams.get("ms") || "0");
+    const ms = Number(url.searchParams.get("ms") || "0");
+    state.slowDocumentsInMs = 0;
+
+    if (ms > 0 && ms <= MAX_SLOW_DOCUMENTS_IN_MS) {
+      state.slowDocumentsInMs = ms;
+    }
   } else if (command === "hold-documents") {
     state.holdDocuments = url.searchParams.get("on") === "1";
   } else if (command !== "stats") {
