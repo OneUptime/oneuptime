@@ -239,14 +239,12 @@ export default class ChatInfrastructureAccess {
       KubernetesClusterAiAccessService.getStatusesForSubject({
         projectId: data.projectId,
         ...subject,
-      }).catch(
-        (error: unknown): Array<KubernetesClusterAiAccessStatus> => {
-          logger.error(
-            `AI: could not resolve the clusters an Ask AI conversation's ${noun} is linked to; offering none of them: ${error}`,
-          );
-          return [];
-        },
-      ),
+      }).catch((error: unknown): Array<KubernetesClusterAiAccessStatus> => {
+        logger.error(
+          `AI: could not resolve the clusters an Ask AI conversation's ${noun} is linked to; offering none of them: ${error}`,
+        );
+        return [];
+      }),
       ResourceAiAccessService.getStatusesForSubject({
         projectId: data.projectId,
         ...subject,

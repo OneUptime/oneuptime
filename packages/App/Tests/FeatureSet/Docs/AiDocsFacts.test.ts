@@ -469,9 +469,9 @@ describe("Ask AI", () => {
      * The commands only read; Ask AI's own actions - a runbook among them -
      * are the permission mode's, which the next section describes.
      */
-    expect(
-      readRepoFile("Common/Server/Utils/AI/Toolbox/Index.ts"),
-    ).toContain("    RunRunbookTool,");
+    expect(readRepoFile("Common/Server/Utils/AI/Toolbox/Index.ts")).toContain(
+      "    RunRunbookTool,",
+    );
     expect(section).toContain(
       "Ask AI's own actions, such as running a runbook, follow the conversation's permission mode, as below.",
     );

@@ -1092,7 +1092,8 @@ describe("ChatInfrastructureAccess.buildWithoutAccessSection", () => {
           code: "ai_agent_not_connected",
           title: "No Kubernetes AI agent is connected",
           description: "AI cannot run kubectl on this cluster.",
-          nextStep: "Install the Kubernetes AI agent with the Kubernetes agent chart.",
+          nextStep:
+            "Install the Kubernetes AI agent with the Kubernetes agent chart.",
           blocks: "both",
         },
         {
@@ -1217,7 +1218,11 @@ describe("ChatInfrastructureAccess.buildForPage", () => {
       `At most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands in this run.`,
     );
 
-    for (let sent: number = 0; sent < MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER; sent++) {
+    for (
+      let sent: number = 0;
+      sent < MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER;
+      sent++
+    ) {
       expect(
         (
           await tool.execute({
