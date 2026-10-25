@@ -1443,23 +1443,23 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    throw this.getPreviousInstanceOnlineRefusal({
-      clusterIdentifier: data.clusterIdentifier,
-      retryAfterSeconds: Service.getTakeoverRetryAfterSeconds({
+    throw this.getPreviousInstanceOnlineRefusal(
+      data.clusterIdentifier,
+      Service.getTakeoverRetryAfterSeconds({
         unansweredSince: unansweredSince || now,
         now,
       }),
-    });
+    );
   }
 
-  private getPreviousInstanceOnlineRefusal(data: {
-    clusterIdentifier: string;
-    retryAfterSeconds: number;
-  }): KubernetesAiAgentRegistrationRefusedException {
+  private getPreviousInstanceOnlineRefusal(
+    clusterIdentifier: string,
+    retryAfterSeconds: number,
+  ): KubernetesAiAgentRegistrationRefusedException {
     return new KubernetesAiAgentRegistrationRefusedException({
       reason: "previous_instance_online",
-      retryAfterSeconds: data.retryAfterSeconds,
-      message: `Another Kubernetes AI agent for cluster "${data.clusterIdentifier}" is online. If it is the pod this one replaces, this agent takes its place as soon as it signs off, or once it has sent nothing for ${KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds (a pod that was deleted with --force, OOM-killed or lost with its node); the agent retries on its own. If it lasts, make sure only one kubernetes-agent release uses clusterName "${data.clusterIdentifier}".`,
+      retryAfterSeconds,
+      message: `Another Kubernetes AI agent for cluster "${clusterIdentifier}" is online. If it is the pod this one replaces, this agent takes its place as soon as it signs off, or once it has sent nothing for ${KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds (a pod that was deleted with --force, OOM-killed or lost with its node); the agent retries on its own. If it lasts, make sure only one kubernetes-agent release uses clusterName "${clusterIdentifier}".`,
     });
   }
 
@@ -1566,13 +1566,13 @@ export class Service extends DatabaseService<Model> {
 
       const now: Date = OneUptimeDate.getCurrentDate();
 
-      throw this.getPreviousInstanceOnlineRefusal({
-        clusterIdentifier: data.clusterIdentifier,
-        retryAfterSeconds: Service.getTakeoverRetryAfterSeconds({
+      throw this.getPreviousInstanceOnlineRefusal(
+        data.clusterIdentifier,
+        Service.getTakeoverRetryAfterSeconds({
           unansweredSince: now,
           now,
         }),
-      });
+      );
     }
   }
 
