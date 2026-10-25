@@ -367,5 +367,20 @@
   "Important": "महत्वपूर्ण",
   "Warning": "चेतावनी",
   "Caution": "सावधानी",
-  "Danger": "खतरा"
+  "Danger": "खतरा",
+  "Updating to the new version": "नए संस्करण में अपडेट हो रहा है",
+  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.": "यह पेज खुला रहने के दौरान OneUptime अपडेट हो गया। नया संस्करण लोड होने तक आप इसी पेज पर रहेंगे।",
+  "You're offline": "आप ऑफ़लाइन हैं",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "इस पेज को लोड होने के लिए इंटरनेट कनेक्शन चाहिए। आपके फिर से ऑनलाइन होते ही यह लोड हो जाएगा।",
+  "Can't reach the server": "सर्वर तक नहीं पहुँचा जा सका",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "हो सकता है कि यह किसी अपडेट के बाद फिर से शुरू हो रहा हो। सर्वर के वापस आते ही यह पेज लोड हो जाएगा।",
+  "A new version of OneUptime is ready": "OneUptime का नया संस्करण तैयार है",
+  "This page needs it to load. Reloading discards changes you haven't saved.": "इस पेज को लोड होने के लिए इसकी ज़रूरत है। पुनः लोड करने पर बिना सहेजे गए बदलाव हट जाएँगे।",
+  "This page couldn't be loaded": "यह पेज लोड नहीं हो सका",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "ज़रूरी फ़ाइल सर्वर से डाउनलोड नहीं हो सकी। थोड़ी देर में पेज फिर से लोड करके देखें।",
+  "Try now": "अभी कोशिश करें",
+  "Reload page": "पेज पुनः लोड करें",
+  "Try again": "फिर से प्रयास करें",
+  "Loading...": "लोड हो रहा है...",
+  "Loading": "लोड हो रहा है"
 }

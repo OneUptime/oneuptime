@@ -367,5 +367,20 @@
   "Important": "重要",
   "Warning": "警告",
   "Caution": "小心",
-  "Danger": "危險"
+  "Danger": "危險",
+  "Updating to the new version": "正在更新到新版本",
+  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.": "此頁面開啟期間，OneUptime 已更新。新版本載入時，你會停留在此頁面。",
+  "You're offline": "你已離線",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "此頁面需要網路連線才能載入。恢復連線後會立即載入。",
+  "Can't reach the server": "無法連線到伺服器",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "伺服器可能在更新後正在重新啟動。伺服器恢復後，此頁面會立即載入。",
+  "A new version of OneUptime is ready": "OneUptime 新版本已就緒",
+  "This page needs it to load. Reloading discards changes you haven't saved.": "此頁面需要新版本才能載入。重新載入會捨棄未儲存的變更。",
+  "This page couldn't be loaded": "無法載入此頁面",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "無法從伺服器下載所需的檔案。請稍後重新載入。",
+  "Try now": "立即重試",
+  "Reload page": "重新載入頁面",
+  "Try again": "再試一次",
+  "Loading...": "載入中...",
+  "Loading": "載入中"
 }

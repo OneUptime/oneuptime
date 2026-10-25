@@ -367,5 +367,20 @@
   "Important": "Wichtig",
   "Warning": "Warnung",
   "Caution": "Vorsicht",
-  "Danger": "Gefahr"
+  "Danger": "Gefahr",
+  "Updating to the new version": "Aktualisierung auf die neue Version",
+  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.": "OneUptime wurde aktualisiert, während diese Seite geöffnet war. Sie bleiben auf dieser Seite, während die neue Version geladen wird.",
+  "You're offline": "Sie sind offline",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "Diese Seite braucht eine Internetverbindung, um zu laden. Sie wird geladen, sobald Sie wieder online sind.",
+  "Can't reach the server": "Der Server ist nicht erreichbar",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "Er startet vielleicht nach einem Update neu. Diese Seite wird geladen, sobald der Server wieder erreichbar ist.",
+  "A new version of OneUptime is ready": "Eine neue Version von OneUptime ist bereit",
+  "This page needs it to load. Reloading discards changes you haven't saved.": "Diese Seite braucht sie, um zu laden. Beim Neuladen gehen nicht gespeicherte Änderungen verloren.",
+  "This page couldn't be loaded": "Diese Seite konnte nicht geladen werden",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "Eine benötigte Datei konnte nicht vom Server heruntergeladen werden. Laden Sie die Seite in einem Moment neu.",
+  "Try now": "Jetzt versuchen",
+  "Reload page": "Seite neu laden",
+  "Try again": "Erneut versuchen",
+  "Loading...": "Wird geladen...",
+  "Loading": "Wird geladen"
 }

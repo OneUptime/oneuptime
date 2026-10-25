@@ -367,5 +367,20 @@
   "Important": "重要",
   "Warning": "警告",
   "Caution": "注意",
-  "Danger": "危険"
+  "Danger": "危険",
+  "Updating to the new version": "新しいバージョンに更新しています",
+  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.": "このページを開いている間に OneUptime が更新されました。新しいバージョンを読み込む間も、このページにとどまります。",
+  "You're offline": "オフラインです",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "このページの読み込みにはインターネット接続が必要です。オンラインに戻るとすぐに読み込まれます。",
+  "Can't reach the server": "サーバーに接続できません",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "アップデート後に再起動している可能性があります。サーバーが復旧するとすぐにこのページが読み込まれます。",
+  "A new version of OneUptime is ready": "OneUptime の新しいバージョンの準備ができました",
+  "This page needs it to load. Reloading discards changes you haven't saved.": "このページの読み込みには新しいバージョンが必要です。再読み込みすると、保存されていない変更は破棄されます。",
+  "This page couldn't be loaded": "このページを読み込めませんでした",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "必要なファイルをサーバーからダウンロードできませんでした。しばらくしてから再読み込みしてください。",
+  "Try now": "今すぐ再試行",
+  "Reload page": "ページを再読み込み",
+  "Try again": "再試行",
+  "Loading...": "読み込み中...",
+  "Loading": "読み込み中"
 }

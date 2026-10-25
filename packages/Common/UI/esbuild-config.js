@@ -456,9 +456,15 @@ function createConfig(options) {
  */
 async function build(config, serviceName) {
   const isAnalyze = process.env.analyze === "true";
-  const buildId = createBuildId();
+  let buildId;
 
-  applyBuildIdentity(config, buildId);
+  try {
+    buildId = createBuildId();
+    applyBuildIdentity(config, buildId);
+  } catch (error) {
+    console.error(`❌ ${serviceName} build failed:`, error);
+    process.exit(1);
+  }
 
   // Clean the output directory before building to remove stale content-hashed chunks.
   if (config.outdir && fs.existsSync(config.outdir)) {

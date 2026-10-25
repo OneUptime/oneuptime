@@ -367,5 +367,20 @@
   "Important": "Vigtigt",
   "Warning": "Advarsel",
   "Caution": "Forsigtig",
-  "Danger": "Fare"
+  "Danger": "Fare",
+  "Updating to the new version": "Opdaterer til den nye version",
+  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.": "OneUptime blev opdateret, mens denne side var åben. Du bliver på denne side, mens den nye version indlæses.",
+  "You're offline": "Du er offline",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "Denne side skal bruge en internetforbindelse for at indlæse. Den indlæses, så snart du er online igen.",
+  "Can't reach the server": "Serveren kan ikke nås",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "Den genstarter måske efter en opdatering. Denne side indlæses, så snart serveren er tilbage.",
+  "A new version of OneUptime is ready": "En ny version af OneUptime er klar",
+  "This page needs it to load. Reloading discards changes you haven't saved.": "Denne side skal bruge den for at indlæse. Genindlæsning kasserer ændringer, du ikke har gemt.",
+  "This page couldn't be loaded": "Denne side kunne ikke indlæses",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "En fil, siden skal bruge, kunne ikke hentes fra serveren. Prøv at genindlæse om et øjeblik.",
+  "Try now": "Prøv nu",
+  "Reload page": "Genindlæs siden",
+  "Try again": "Prøv igen",
+  "Loading...": "Indlæser...",
+  "Loading": "Indlæser"
 }

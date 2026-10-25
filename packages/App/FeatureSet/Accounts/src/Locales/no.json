@@ -367,5 +367,20 @@
   "Important": "Viktig",
   "Warning": "Advarsel",
   "Caution": "Forsiktig",
-  "Danger": "Fare"
+  "Danger": "Fare",
+  "Updating to the new version": "Oppdaterer til den nye versjonen",
+  "OneUptime was updated while this page was open. You'll stay on this page while the new version loads.": "OneUptime ble oppdatert mens denne siden var åpen. Du blir værende på denne siden mens den nye versjonen lastes inn.",
+  "You're offline": "Du er frakoblet",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "Denne siden trenger en internettforbindelse for å lastes inn. Den lastes inn så snart du er på nett igjen.",
+  "Can't reach the server": "Får ikke kontakt med serveren",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "Den starter kanskje på nytt etter en oppdatering. Denne siden lastes inn så snart serveren er tilbake.",
+  "A new version of OneUptime is ready": "En ny versjon av OneUptime er klar",
+  "This page needs it to load. Reloading discards changes you haven't saved.": "Denne siden trenger den for å lastes inn. Ny innlasting forkaster endringer du ikke har lagret.",
+  "This page couldn't be loaded": "Denne siden kunne ikke lastes inn",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "En fil siden trenger, kunne ikke lastes ned fra serveren. Prøv å laste inn på nytt om et øyeblikk.",
+  "Try now": "Prøv nå",
+  "Reload page": "Last inn siden på nytt",
+  "Try again": "Prøv igjen",
+  "Loading...": "Laster...",
+  "Loading": "Laster"
 }

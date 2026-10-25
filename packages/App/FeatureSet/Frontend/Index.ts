@@ -430,7 +430,7 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
       }
 
       res.setHeader("Cache-Control", "no-store");
-      res.status(404).send("Not found");
+      res.status(404).type("text/plain").send("Not found");
     },
   );
 
