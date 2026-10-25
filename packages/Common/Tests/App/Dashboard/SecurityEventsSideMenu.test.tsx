@@ -126,6 +126,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     [
       ["Events", PageMap.SECURITY_EVENTS],
       ["Entities", PageMap.SECURITY_EVENTS_ENTITIES],
+      ["Entity Risk", PageMap.SECURITY_EVENTS_ENTITY_RISK],
       ["Correlate", PageMap.SECURITY_EVENTS_CORRELATE],
     ],
   ],
@@ -176,6 +177,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     [
       ["Case Priorities", PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES],
       ["Case Statuses", PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES],
+      ["Risk Scoring", PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING],
     ],
   ],
 ];
@@ -381,6 +383,31 @@ describe("Security Events side menu", () => {
       );
     },
   );
+
+  test("on an entity's page, lights Entity Risk, the list it opens from, whatever entity", async () => {
+    for (const query of [
+      "?value=203.0.113.47&type=IP+Address",
+      "?value=k.morgan%40acme-commerce.example",
+      "",
+    ]) {
+      cleanup();
+      goTo(routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW));
+      // The entity is in the query, which the router's location leaves out.
+      window.history.replaceState(
+        {},
+        "",
+        `${routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW)}${query}`,
+      );
+      await renderSecurityMenu();
+
+      expect([query, activeLinkTitles()]).toEqual([query, ["Entity Risk"]]);
+      expect(isExpanded("Events")).toBe(true);
+      // The entry still opens the list, not the entity.
+      expect(entryAnchor("Events", "Entity Risk").getAttribute("href")).toBe(
+        routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
+      );
+    }
+  });
 
   test("lights nothing on a case's own page: it opens outside the menu", async () => {
     goTo(

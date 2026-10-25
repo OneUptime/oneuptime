@@ -12,6 +12,7 @@ import {
   PROVIDER_ACCOUNTS,
   SECURITY_AI,
   SECURITY_CASES,
+  SECURITY_ENTITY_RISK,
   SECURITY_EVENTS,
   SECURITY_GETTING_STARTED,
   SECURITY_PAGES,
@@ -134,6 +135,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [SECURITY_CASES]: 26,
   [SECURITY_GETTING_STARTED]: 24,
   [SECURITY_AI]: 20,
+  [SECURITY_ENTITY_RISK]: 26,
 };
 
 // Bold words that name a product opened from the Products menu.

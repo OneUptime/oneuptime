@@ -438,6 +438,33 @@ export default class DetectionRule extends BaseModel {
   })
   public shouldCreateCase?: boolean = undefined;
 
+  /*
+   * What each match adds to the risk of the user, host or address it is
+   * about (Types/SecurityCase/SecurityEntityRisk): empty for the points of
+   * the rule's level - Low 10, Medium 25, High 50, Critical 75 - or the
+   * rule's own, from 0 (adds no risk) to 100. A rule that opens no cases
+   * still adds risk, so a rule too noisy to open cases of its own can still
+   * tell, with others, which entity to look at.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Risk Points",
+    description:
+      "What a match adds to the risk of the user, host or address it is about, from 0 to 100. Empty: by the rule's level.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public riskScore?: number = undefined;
+
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,

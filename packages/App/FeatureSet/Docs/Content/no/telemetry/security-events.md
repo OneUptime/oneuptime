@@ -37,6 +37,7 @@ flowchart TB
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
 | **Entiteter** | Hendelser | Brukerne, vertene og adressene som funnene dine nevner oftest |
+| **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
 | **Detection Rules** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
 | **Rule Library** | Detections | Ferdige deteksjonsregler å legge til, hver med hendelsene den leser og om de kommer inn, med de anbefalte merket |
@@ -51,6 +52,7 @@ flowchart TB
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
 | **Saksprioriteter** | Innstillinger | Hvor mye en sak haster: prosjektets egne prioriteter, den som haster mest først |
 | **Saksstatuser** | Innstillinger | Trinnene en sak går gjennom, og hva en sak i hvert trinn teller som |
+| **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
 
 **Detections**, **KI**, **Connections** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 

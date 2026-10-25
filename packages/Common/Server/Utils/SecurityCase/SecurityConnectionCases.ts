@@ -18,6 +18,8 @@ import FeedMarkdown, {
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
 import SecurityEventConnectionService from "../../Services/SecurityEventConnectionService";
+import SecurityEntityRiskRecorder from "../SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { riskFindingsForImportedAlerts } from "../SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
 import logger from "../Logger";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
@@ -169,6 +171,7 @@ export default class SecurityConnectionCases {
       );
 
       if (!minimum) {
+        await this.recordRisk(data);
         return 0;
       }
 
@@ -217,11 +220,15 @@ export default class SecurityConnectionCases {
         });
 
       if (signals.length === 0) {
+        await this.recordRisk(data);
         return 0;
       }
 
       const result: { casesOpened: number } =
         await SecurityCaseIngest.recordDetections(signals);
+
+      // After the cases, so a risk that reaches the threshold joins theirs.
+      await this.recordRisk(data);
 
       return result.casesOpened;
     } catch (error) {
@@ -231,5 +238,25 @@ export default class SecurityConnectionCases {
       logger.error(error);
       return 0;
     }
+  }
+
+  /*
+   * Every imported alert, at any severity, adds to the risk of the user and
+   * the host it is about: the product judged it, and an alert below the
+   * connection's Open Cases From still says something about who it names.
+   * Never throws (SecurityEntityRiskRecorder).
+   */
+  private static async recordRisk(data: {
+    connection: SecurityEventConnection;
+    definition: { productName: string };
+    events: Array<NormalizedSecurityEvent>;
+  }): Promise<void> {
+    await SecurityEntityRiskRecorder.record(
+      riskFindingsForImportedAlerts({
+        connection: data.connection,
+        productName: data.definition.productName,
+        events: data.events,
+      }),
+    );
   }
 }

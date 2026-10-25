@@ -58,6 +58,10 @@ import { getJestSpyOn } from "../../../../Spy";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import SecurityEntityRiskRecorder from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { SecurityRiskFinding } from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
+import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import {
   afterEach,
   beforeEach,
@@ -210,6 +214,96 @@ beforeEach(() => {
     detectionsAdded: 0,
     detectionsRepeated: 0,
   } as never);
+  // So is entity risk (SecurityEntityRiskRecorder).
+  getJestSpyOn(SecurityEntityRiskRecorder, "record").mockResolvedValue({
+    entitiesUpdated: 0,
+    riskCasesRaised: 0,
+  } as never);
+});
+
+/*
+ * Each indicator a check opens adds to the risk of the address it names
+ * (SecurityEntityRiskRecorder), after the check's cases and whether the
+ * feed opens cases or not; a domain or a file hash is threat intel's to
+ * judge and adds none.
+ */
+describe("ThreatIntelMatcher: entity risk", () => {
+  test("an address indicator adds risk to the address, at its confidence's points, after the cases", async () => {
+    matchesSpy.mockResolvedValue([
+      buildMatchGroup({
+        indicatorValue: "203.0.113.7",
+        indicatorType: "ipv4-addr",
+        confidence: 95,
+      }),
+      buildMatchGroup({ indicatorValue: "evil.example" }),
+    ] as never);
+
+    const order: Array<string> = [];
+
+    getJestSpyOn(SecurityCaseIngest, "recordDetections").mockImplementation(
+      async () => {
+        order.push("cases");
+        return {
+          casesOpened: 2,
+          detectionsAdded: 2,
+          detectionsRepeated: 0,
+        } as never;
+      },
+    );
+
+    const risk: Spy = getJestSpyOn(
+      SecurityEntityRiskRecorder,
+      "record",
+    ).mockImplementation(async () => {
+      order.push("risk");
+      return { entitiesUpdated: 1, riskCasesRaised: 0 } as never;
+    });
+
+    await ThreatIntelMatcher.evaluateFeed(buildFeed());
+
+    expect(order).toEqual(["cases", "risk"]);
+
+    const findings: Array<SecurityRiskFinding> = risk.mock
+      .calls[0]![0] as Array<SecurityRiskFinding>;
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      source: SecurityDetectionSource.ThreatIntel,
+      sourceKey: `intel:${FEED_ID.toString()}`,
+      sourceName: "Test Feed",
+      severity: OcsfSeverity.Critical,
+      points: 75,
+      entities: [{ type: SecurityEntityType.IpAddress, value: "203.0.113.7" }],
+    });
+    expect(findings[0]!.threatIntelFeedId?.toString()).toBe(FEED_ID.toString());
+  });
+
+  test("a feed that opens no cases still adds risk", async () => {
+    matchesSpy.mockResolvedValue([
+      buildMatchGroup({ indicatorValue: "198.51.100.4", confidence: 70 }),
+    ] as never);
+
+    const feed: ThreatIntelFeed = buildFeed({ shouldCreateAlert: false });
+    feed.shouldCreateCase = false;
+
+    const cases: Spy = getJestSpyOn(SecurityCaseIngest, "recordDetections");
+    const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+    await ThreatIntelMatcher.evaluateFeed(feed);
+
+    expect(cases).not.toHaveBeenCalled();
+    expect(
+      (risk.mock.calls[0]![0] as Array<SecurityRiskFinding>)[0],
+    ).toMatchObject({ points: 50, severity: OcsfSeverity.High });
+  });
+
+  test("a check that matched nothing adds nothing", async () => {
+    const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+    await ThreatIntelMatcher.evaluateFeed(buildFeed());
+
+    expect(risk).not.toHaveBeenCalled();
+  });
 });
 
 afterEach(() => {
