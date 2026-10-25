@@ -728,6 +728,8 @@ describe("the guide that opens once a form has added a resource", () => {
 
     expect(pageText()).toContain("Database not found");
     expect(screen.queryByTestId("resource-connection-waiting")).toBeNull();
+    // No "follow the steps below" over an error with no steps.
+    expect(screen.queryByTestId("resource-added-note")).toBeNull();
   });
 
   test("a queue's: its messaging system's guide, waiting for its first data", async () => {

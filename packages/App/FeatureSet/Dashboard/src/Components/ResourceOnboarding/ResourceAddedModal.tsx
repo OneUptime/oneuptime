@@ -87,23 +87,26 @@ const ResourceAddedModal: FunctionComponent<ComponentProps> = (
       error={props.error}
     >
       <div data-testid="resource-added-modal">
-        <div
-          className="mb-6 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-          data-testid="resource-added-note"
-        >
-          <Icon
-            icon={IconProp.CheckCircle}
-            className="h-5 w-5 flex-shrink-0 text-emerald-600"
-          />
-          <span className="min-w-0 break-words">
-            <TranslatedSentence
-              template={RESOURCE_ADDED}
-              slots={{
-                name: <span className="font-semibold">{props.name}</span>,
-              }}
+        {/* Not over an error: there are no steps below it then. */}
+        {!props.error && (
+          <div
+            className="mb-6 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+            data-testid="resource-added-note"
+          >
+            <Icon
+              icon={IconProp.CheckCircle}
+              className="h-5 w-5 flex-shrink-0 text-emerald-600"
             />
-          </span>
-        </div>
+            <span className="min-w-0 break-words">
+              <TranslatedSentence
+                template={RESOURCE_ADDED}
+                slots={{
+                  name: <span className="font-semibold">{props.name}</span>,
+                }}
+              />
+            </span>
+          </div>
+        )}
         {props.error ? (
           <></>
         ) : (

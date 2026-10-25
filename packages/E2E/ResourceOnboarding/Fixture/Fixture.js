@@ -25,8 +25,10 @@
  * window.__resourceOnboardingFixture.arrive(kind, name) is an agent
  * reporting for the first time: ingest registers the record (kind:
  * kubernetes | docker | iot | serverless | rum). report(kind, name) is a
- * record the project already has reporting again, and engineMetrics(name)
- * is a database's first engine metrics.
+ * record the project already has reporting again, engineMetrics(name) is a
+ * database's first engine metrics and queueData(name) a queue's first data.
+ * Create on the Databases, Queues and RUM lists stores what the form sent,
+ * as the services fill it in.
  *
  * Every read is recorded on window.__resourceOnboardingFixture: listRequests,
  * countRequests, creates, apiRequests and unhandled - anything the fixture
@@ -492,8 +494,15 @@ ModelAPI.getItem = async (options) => {
   return record ? Object.assign(new options.modelType(), record) : null;
 };
 
-// What the services fill in for a database or a queue added by hand.
+// What the services fill in for a database, a queue or an application added by hand.
 const CREATED_DEFAULTS = {
+  RumApplication: (json) => {
+    const identifier = String(json.appIdentifier || "").trim();
+    return {
+      name: String(json.name || "").trim() || identifier,
+      appIdentifier: identifier,
+    };
+  },
   DatabaseServer: (json) => {
     const address = String(json.serverAddress || "").trim();
     const port = json.serverPort || 5432;
@@ -507,12 +516,22 @@ const CREATED_DEFAULTS = {
   },
   MessageQueue: (json) => {
     const destination = String(json.destinationName || json.name || "").trim();
+    const system = json.messagingSystem || "rabbitmq";
     return {
       name: String(json.name || "").trim() || destination,
       destinationName: destination,
-      messagingSystem: json.messagingSystem || "rabbitmq",
+      messagingSystem: system,
+      // The identity discovery keys a queue on, as the service works it out.
+      queueIdentifier: `${system}|${destination}`,
+      discoverySource: "manual",
     };
   },
+};
+
+const CREATED_PREFIXES = {
+  DatabaseServer: "35000000",
+  MessageQueue: "36000000",
+  RumApplication: "37000000",
 };
 
 ModelAPI.createOrUpdate = async (options) => {
@@ -528,7 +547,7 @@ ModelAPI.createOrUpdate = async (options) => {
 
   const table = store[modelName];
   const created = {
-    _id: uuid(modelName === "DatabaseServer" ? "35000000" : "36000000", 1 + table.length),
+    _id: uuid(CREATED_PREFIXES[modelName], 1 + table.length),
     ...defaults(json),
     createdAt: new Date(),
     lastSeenAt: null,
