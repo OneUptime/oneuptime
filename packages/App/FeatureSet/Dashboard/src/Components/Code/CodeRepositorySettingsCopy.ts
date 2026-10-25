@@ -1,8 +1,8 @@
 import {
-  FIX_PULL_REQUEST_LIMIT_SHOWN,
   FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT,
   FixPullRequestLimit,
   getFixPullRequestLimit,
+  getFixPullRequestLimitCopy,
 } from "../CodeRepository/FixPullRequestLimit";
 import {
   PRODUCTION_REVIEW_CONTENT_COPY,
@@ -183,12 +183,15 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   runnerCardDescription: string;
   moreSettingsDescription: string;
   moreSettingsDescriptionPullRequests: string;
+  moreSettingsDescriptionMergeRequests: string;
   moreSettingsDescriptionBranches: string;
   noRunnerValue: string;
   branchesCardTitle: string;
   branchesCardDescription: string;
   pullRequestsCardTitle: string;
   pullRequestsCardDescription: string;
+  mergeRequestsCardTitle: string;
+  mergeRequestsCardDescription: string;
   mainBranchTitle: string;
   mainBranchFormDescription: string;
   mainBranchDetailDescription: string;
@@ -223,6 +226,10 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   moreSettingsDescriptionPullRequests: translationKey(
     "Where AI works, and where its pull requests open.",
   ),
+  // The same, on GitLab, which calls a pull request a merge request.
+  moreSettingsDescriptionMergeRequests: translationKey(
+    "Where AI works, and where its merge requests open.",
+  ),
   // The same, for a repository on a Git server.
   moreSettingsDescriptionBranches: translationKey(
     "Where AI works, and the branch it starts from.",
@@ -240,6 +247,11 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   pullRequestsCardTitle: translationKey("Pull Requests"),
   pullRequestsCardDescription: translationKey(
     "Where AI's pull requests open, and how many may be open at once.",
+  ),
+  // On GitLab, which calls a pull request a merge request.
+  mergeRequestsCardTitle: translationKey("Merge Requests"),
+  mergeRequestsCardDescription: translationKey(
+    "Where AI's merge requests open, and how many may be open at once.",
   ),
   mainBranchTitle: translationKey("Main Branch"),
   mainBranchFormDescription: translationKey(
@@ -468,7 +480,7 @@ export function getRepositoryMoreSettingsItems(
     ),
     {
       key: CodeRepositorySetting.PullRequests,
-      title: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle,
+      title: getPullRequestsCardCopy(provider).title,
       isSet: limit !== FixPullRequestLimit.NoLimit,
       ...(limit === FixPullRequestLimit.Limit
         ? {
@@ -483,7 +495,10 @@ export function getRepositoryMoreSettingsItems(
           }
         : limit === FixPullRequestLimit.Blocked
           ? {
-              value: FIX_PULL_REQUEST_LIMIT_SHOWN[FixPullRequestLimit.Blocked],
+              value:
+                getFixPullRequestLimitCopy(provider).shown[
+                  FixPullRequestLimit.Blocked
+                ],
               translateValue: true,
             }
           : {}),
@@ -560,7 +575,38 @@ export function getRepositoryMoreSettingsDescription(
     return CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription;
   }
 
-  return CodeHost.can(type, CodeHostCapability.PullRequests)
-    ? CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionPullRequests
-    : CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionBranches;
+  if (!CodeHost.can(type, CodeHostCapability.PullRequests)) {
+    return CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionBranches;
+  }
+
+  return isMergeRequestHost(type)
+    ? CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionMergeRequests
+    : CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionPullRequests;
+}
+
+// Whether the host calls a pull request a merge request (GitLab).
+export function isMergeRequestHost(
+  provider: string | null | undefined,
+): boolean {
+  return CodeHost.getFacts(provider).pullRequestTerm === "merge request";
+}
+
+/*
+ * The Pull Requests card's title and description, in the host's word: on
+ * GitLab, Merge Requests - as its tasks, their rows and the request box say
+ * merge request.
+ */
+export function getPullRequestsCardCopy(provider: string | null | undefined): {
+  title: string;
+  description: string;
+} {
+  return isMergeRequestHost(provider)
+    ? {
+        title: CODE_REPOSITORY_SETTINGS_COPY.mergeRequestsCardTitle,
+        description: CODE_REPOSITORY_SETTINGS_COPY.mergeRequestsCardDescription,
+      }
+    : {
+        title: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle,
+        description: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription,
+      };
 }

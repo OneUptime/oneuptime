@@ -1611,13 +1611,13 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     ).toHaveText(
       "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
     );
-    // More settings holds only what GitLab has.
+    // More settings holds only what GitLab has, in GitLab's word.
     const moreSettings: Locator = page.getByTestId(
       "code-repository-more-settings",
     );
     await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
       "Runner",
-      "Pull Requests",
+      "Merge Requests",
     ]);
     await expect(
       page.getByTestId("code-repository-github-commands"),

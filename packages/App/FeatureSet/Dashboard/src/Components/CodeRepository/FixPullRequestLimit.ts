@@ -1,3 +1,4 @@
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -140,3 +141,93 @@ export const FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT: string = translationKey(
 export const FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION: string = translationKey(
   "How many fix pull requests AI may have open at once in this repository.",
 );
+
+// The number, asked for a limit: the column's own title.
+export const MAX_OPEN_FIX_PULL_REQUESTS_TITLE: string = translationKey(
+  "Max Open Fix Pull Requests",
+);
+
+/*
+ * The limit's words on GitLab, which calls a pull request a merge request
+ * (CodeHost's pullRequestTerm): the same question, in GitLab's word.
+ */
+export const FIX_MERGE_REQUEST_LIMIT_FIELD_TITLE: string = translationKey(
+  "AI Fix Merge Requests",
+);
+
+export const FIX_MERGE_REQUEST_LIMIT_COPY: Record<
+  FixPullRequestLimit,
+  { title: string; description: string }
+> = {
+  [FixPullRequestLimit.NoLimit]: {
+    title: FIX_PULL_REQUEST_LIMIT_COPY[FixPullRequestLimit.NoLimit].title,
+    description: translationKey(
+      "AI opens as many fix merge requests as it needs.",
+    ),
+  },
+  [FixPullRequestLimit.Limit]: {
+    title: FIX_PULL_REQUEST_LIMIT_COPY[FixPullRequestLimit.Limit].title,
+    description: translationKey(
+      "AI waits while this many of its fix merge requests are open.",
+    ),
+  },
+  [FixPullRequestLimit.Blocked]: {
+    title: FIX_PULL_REQUEST_LIMIT_COPY[FixPullRequestLimit.Blocked].title,
+    description: translationKey(
+      "AI opens no fix merge requests in this repository.",
+    ),
+  },
+};
+
+export const FIX_MERGE_REQUEST_LIMIT_SHOWN: Record<
+  Exclude<FixPullRequestLimit, FixPullRequestLimit.Limit>,
+  string
+> = {
+  [FixPullRequestLimit.NoLimit]:
+    FIX_PULL_REQUEST_LIMIT_SHOWN[FixPullRequestLimit.NoLimit],
+  [FixPullRequestLimit.Blocked]: translationKey(
+    "None: AI opens no fix merge requests here",
+  ),
+};
+
+export const FIX_MERGE_REQUEST_LIMIT_CARD_DESCRIPTION: string = translationKey(
+  "How many fix merge requests AI may have open at once in this repository.",
+);
+
+export const MAX_OPEN_FIX_MERGE_REQUESTS_TITLE: string = translationKey(
+  "Max Open Fix Merge Requests",
+);
+
+// The limit's words for a repository, as its host names a pull request.
+export interface FixPullRequestLimitCopy {
+  fieldTitle: string;
+  answers: Record<FixPullRequestLimit, { title: string; description: string }>;
+  shown: Record<
+    Exclude<FixPullRequestLimit, FixPullRequestLimit.Limit>,
+    string
+  >;
+  cardDescription: string;
+  maxFieldTitle: string;
+}
+
+export function getFixPullRequestLimitCopy(
+  provider: string | null | undefined,
+): FixPullRequestLimitCopy {
+  if (CodeHost.getFacts(provider).pullRequestTerm === "merge request") {
+    return {
+      fieldTitle: FIX_MERGE_REQUEST_LIMIT_FIELD_TITLE,
+      answers: FIX_MERGE_REQUEST_LIMIT_COPY,
+      shown: FIX_MERGE_REQUEST_LIMIT_SHOWN,
+      cardDescription: FIX_MERGE_REQUEST_LIMIT_CARD_DESCRIPTION,
+      maxFieldTitle: MAX_OPEN_FIX_MERGE_REQUESTS_TITLE,
+    };
+  }
+
+  return {
+    fieldTitle: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+    answers: FIX_PULL_REQUEST_LIMIT_COPY,
+    shown: FIX_PULL_REQUEST_LIMIT_SHOWN,
+    cardDescription: FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
+    maxFieldTitle: MAX_OPEN_FIX_PULL_REQUESTS_TITLE,
+  };
+}

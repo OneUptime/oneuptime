@@ -134,9 +134,19 @@ import {
   CodeRepositorySetting,
   DEFAULT_GITHUB_TRIGGER_LABEL,
   getGitHubTriggerLabel,
+  getPullRequestsCardCopy,
+  getRepositoryMoreSettingsDescription,
   getRepositoryMoreSettingsItems,
   hasRepositoryCommands,
+  isMergeRequestHost,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositorySettingsCopy";
+import {
+  FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
+  FixPullRequestLimitCopy,
+  getFixPullRequestLimitCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CodeRepository/FixPullRequestLimit";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../../Types/CodeRepository/CodeHost";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
@@ -2151,7 +2161,7 @@ describe("a repository off GitHub: only what its host has", () => {
     })!;
   }
 
-  test("GitLab: the Runner and Pull Requests, and nothing of GitHub's", async () => {
+  test("GitLab: the Runner and Merge Requests, and nothing of GitHub's", async () => {
     hostedOn("GitLab");
     draw();
     await hostRead();
@@ -2173,12 +2183,153 @@ describe("a repository off GitHub: only what its host has", () => {
     expect(
       screen.queryByRole("switch", { name: "Respond to GitHub Commands" }),
     ).toBeNull();
-    expect(foldedNames()).toEqual(["Runner", "Pull Requests"]);
+    // In GitLab's word, as its tasks and the request box say it.
+    expect(foldedNames()).toEqual(["Runner", "Merge Requests"]);
 
     openMoreSettings();
     expect(folded()).toHaveTextContent(
+      "Where AI works, and where its merge requests open.",
+    );
+    expect(folded()).not.toHaveTextContent("pull request");
+  });
+
+  /*
+   * GitLab calls a pull request a merge request (CodeHost's
+   * pullRequestTerm): the card, its Edit form, its limit and what More
+   * settings says of it while folded say merge request there - and pull
+   * request on GitHub, Forgejo and Gitea.
+   */
+  test("GitLab: the card, its Edit form and its limit say merge request", async () => {
+    hostedOn("GitLab");
+    draw();
+    await hostRead();
+
+    const props: Record<string, unknown> = card("Repository > Pull Requests");
+    const cardProps: { title: string; description: string; id: string } = props[
+      "cardProps"
+    ] as { title: string; description: string; id: string };
+
+    expect(cardProps.title).toBe("Merge Requests");
+    expect(cardProps.description).toBe(
+      "Where AI's merge requests open, and how many may be open at once.",
+    );
+    // The same place on the page: links land on it as on any host.
+    expect(cardProps.id).toBe("pull-requests");
+    expect(props["editModalTitle"]).toBe("Merge Requests");
+
+    const fields: Array<FormField> = props["formFields"] as Array<FormField>;
+    const limit: FormField = fields.find((field: FormField) => {
+      return field.overrideFieldKey === FIX_PULL_REQUEST_LIMIT_FIELD_KEY;
+    })!;
+
+    expect(limit.title).toBe("AI Fix Merge Requests");
+    expect(
+      (limit.radioButtonOptions || []).map(
+        (option: { title: string; description?: string | undefined }) => {
+          return [option.title, option.description];
+        },
+      ),
+    ).toEqual([
+      ["No limit", "AI opens as many fix merge requests as it needs."],
+      [
+        "A limit",
+        "AI waits while this many of its fix merge requests are open.",
+      ],
+      ["None", "AI opens no fix merge requests in this repository."],
+    ]);
+
+    const max: FormField = fields.find((field: FormField) => {
+      return (
+        columnsOf(field).includes("maxOpenFixPullRequests") && !field.formOnly
+      );
+    })!;
+
+    expect(max.title).toBe("Max Open Fix Merge Requests");
+
+    const shown: DetailField = (
+      props["modelDetailProps"] as { fields: Array<DetailField> }
+    ).fields.find((field: DetailField): boolean => {
+      return columnsOf(field).includes("maxOpenFixPullRequests");
+    })!;
+
+    expect(shown.title).toBe("AI Fix Merge Requests");
+    expect(shown.description).toBe(
+      "How many fix merge requests AI may have open at once in this repository.",
+    );
+
+    const blocked: CodeRepository = new CodeRepository();
+    blocked.maxOpenFixPullRequests = 0;
+    render(shown.getElement!(blocked));
+
+    expect(
+      screen.getByText("None: AI opens no fix merge requests here"),
+    ).toBeInTheDocument();
+  });
+
+  test("GitLab: More settings, folded, says a blocked limit in GitLab's word", () => {
+    const items: Array<FoldedSectionItem> = getRepositoryMoreSettingsItems(
+      { maxOpenFixPullRequests: 0 },
+      english,
+      undefined,
+      "GitLab",
+    );
+
+    expect(
+      items.find((item: FoldedSectionItem): boolean => {
+        return item.key === "pull-requests";
+      }),
+    ).toMatchObject({
+      title: "Merge Requests",
+      isSet: true,
+      value: "None: AI opens no fix merge requests here",
+      translateValue: true,
+    });
+  });
+
+  test("every other host keeps pull request: GitHub, Forgejo and Gitea", () => {
+    for (const provider of ["GitHub", "Forgejo", undefined]) {
+      expect(getPullRequestsCardCopy(provider)).toEqual({
+        title: "Pull Requests",
+        description:
+          "Where AI's pull requests open, and how many may be open at once.",
+      });
+
+      const copy: FixPullRequestLimitCopy =
+        getFixPullRequestLimitCopy(provider);
+
+      expect(copy.fieldTitle).toBe("AI Fix Pull Requests");
+      expect(copy.maxFieldTitle).toBe("Max Open Fix Pull Requests");
+      expect(copy.cardDescription).toBe(
+        "How many fix pull requests AI may have open at once in this repository.",
+      );
+      expect(isMergeRequestHost(provider)).toBe(false);
+    }
+
+    expect(isMergeRequestHost("GitLab")).toBe(true);
+    expect(getRepositoryMoreSettingsDescription("Forgejo")).toBe(
       "Where AI works, and where its pull requests open.",
     );
+    expect(getRepositoryMoreSettingsDescription("GitLab")).toBe(
+      "Where AI works, and where its merge requests open.",
+    );
+  });
+
+  /*
+   * The words are one table's: the host's own term for a pull request
+   * (CodeHost's pullRequestTerm), so a new host that calls one a merge
+   * request is drawn in its word with no change here.
+   */
+  test("the word follows the host table's term", () => {
+    for (const type of Object.values(CodeRepositoryType)) {
+      expect({
+        type,
+        mergeRequest: isMergeRequestHost(type),
+      }).toEqual({
+        type,
+        mergeRequest:
+          CodeHost.getFacts(type).pullRequestTerm === "merge request",
+      });
+    }
   });
 
   test("GitLab: Repository Details says its server, account and token's last characters", async () => {

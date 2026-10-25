@@ -13,12 +13,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   FIX_PULL_REQUEST_LIMIT_ANSWERS,
-  FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
-  FIX_PULL_REQUEST_LIMIT_COPY,
   FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
-  FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
-  FIX_PULL_REQUEST_LIMIT_SHOWN,
   FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT,
+  FixPullRequestLimitCopy,
+  getFixPullRequestLimitCopy,
   FixPullRequestLimit,
   getFixPullRequestLimit,
   getPickedFixPullRequestLimit,
@@ -50,6 +48,7 @@ import {
   CodeRepositorySetting,
   CodeRepositorySettingsValues,
   DEFAULT_GITHUB_TRIGGER_LABEL,
+  getPullRequestsCardCopy,
   getRepositoryMoreSettingsDescription,
   getRepositoryMoreSettingsItems,
   getRepositorySettingsFor,
@@ -215,6 +214,15 @@ const CodeRepositorySettings: FunctionComponent<
   const opensPullRequestsHere: boolean = !repositorySettings.includes(
     CodeRepositorySetting.Branches,
   );
+
+  /*
+   * The Pull Requests card in the host's word: Merge Requests on GitLab, as
+   * its tasks, their rows and the request box say merge request.
+   */
+  const pullRequestsCard: { title: string; description: string } =
+    getPullRequestsCardCopy(provider);
+  const limitCopy: FixPullRequestLimitCopy =
+    getFixPullRequestLimitCopy(provider);
 
   const rememberSettings: (item: CodeRepository) => void = (
     item: CodeRepository,
@@ -563,10 +571,10 @@ const CodeRepositorySettings: FunctionComponent<
           }
           cardProps={{
             title: opensPullRequestsHere
-              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle
+              ? pullRequestsCard.title
               : CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle,
             description: opensPullRequestsHere
-              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription
+              ? pullRequestsCard.description
               : CODE_REPOSITORY_SETTINGS_COPY.branchesCardDescription,
             id: opensPullRequestsHere
               ? CodeRepositorySetting.PullRequests
@@ -576,7 +584,7 @@ const CodeRepositorySettings: FunctionComponent<
           editButtonText="Edit"
           editModalTitle={
             opensPullRequestsHere
-              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle
+              ? pullRequestsCard.title
               : CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle
           }
           formFields={[
@@ -606,15 +614,14 @@ const CodeRepositorySettings: FunctionComponent<
                     },
                     overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
                     formOnly: true,
-                    title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+                    title: limitCopy.fieldTitle,
                     fieldType: FormFieldSchemaType.RadioButton,
                     radioButtonOptions: FIX_PULL_REQUEST_LIMIT_ANSWERS.map(
                       (limit: FixPullRequestLimit) => {
                         return {
                           value: limit,
-                          title: FIX_PULL_REQUEST_LIMIT_COPY[limit].title,
-                          description:
-                            FIX_PULL_REQUEST_LIMIT_COPY[limit].description,
+                          title: limitCopy.answers[limit].title,
+                          description: limitCopy.answers[limit].description,
                         };
                       },
                     ),
@@ -653,7 +660,7 @@ const CodeRepositorySettings: FunctionComponent<
                     field: {
                       maxOpenFixPullRequests: true,
                     },
-                    title: "Max Open Fix Pull Requests",
+                    title: limitCopy.maxFieldTitle,
                     description: "How many may be open at once.",
                     fieldType: FormFieldSchemaType.Number,
                     showIf: (values: FormValues<CodeRepository>): boolean => {
@@ -708,8 +715,8 @@ const CodeRepositorySettings: FunctionComponent<
                        * Named as the Edit form's choice is, and shown as its
                        * answer: No limit, Up to 3 open at once, or None.
                        */
-                      title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
-                      description: FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
+                      title: limitCopy.fieldTitle,
+                      description: limitCopy.cardDescription,
                       fieldType: FieldType.Element,
                       getElement: (item: CodeRepository): ReactElement => {
                         const limit: FixPullRequestLimit =
@@ -727,7 +734,7 @@ const CodeRepositorySettings: FunctionComponent<
                                   },
                                 )
                               : translator.translateText(
-                                  FIX_PULL_REQUEST_LIMIT_SHOWN[limit],
+                                  limitCopy.shown[limit],
                                 )}
                           </span>
                         );
