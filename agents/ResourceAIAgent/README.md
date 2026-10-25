@@ -117,7 +117,7 @@ It needs the same OneUptime version as the image, or newer. With an older server
 | `ONEUPTIME_AI_WRITE_TARGETS` | all | Comma-separated globs (`*` matches any run of characters) of the targets changes may touch: container, service, VM, unit names, … Empty means any target except the protected ones. |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated globs of targets OneUptime AI must never change, on top of the agent's own container and its collector. |
 | `ONEUPTIME_AI_AGENT_POLL_INTERVAL_MS` | `3000` | How often to ask for work (minimum 1000). |
-| `ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS` | `30000` | How often to heartbeat (minimum 5000). |
+| `ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS` | `30000` | How often to heartbeat (minimum 5000). Keep this or the poll interval under 40000: once another agent is refused this agent's place, OneUptime lets it in if this agent sends nothing for 40 seconds. |
 | `PORT` | `3877` | Health server port (the Kubernetes AI agent uses 3876). |
 | `ONEUPTIME_AI_AGENT_HEALTH_HOST` | `127.0.0.1` | The address the health server listens on. Loopback, so an agent on the host's network (the Host AI agent, or `network_mode: host`) does not serve `/status` to the network; every documented check runs on the agent's own network. `0.0.0.0` (or `::`) serves it on every interface, to publish the port. Anything but an IP address is ignored, with a warning. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |

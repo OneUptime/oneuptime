@@ -51,7 +51,7 @@ The chart sets all of these; you normally only touch `aiAgent.*` chart values.
 | `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` | off | `true` allows cordon, drain, taint and node changes (`aiAgent.remediation.nodeOperations`). |
 | `ONEUPTIME_AI_AGENT_POD_NAMESPACE` | — | The pod's namespace (downward API). The agent never changes anything in it. |
 | `ONEUPTIME_AI_AGENT_POLL_INTERVAL_MS` | `3000` | How often to ask for work (minimum 1000). |
-| `ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS` | `30000` | How often to heartbeat (minimum 5000). |
+| `ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS` | `30000` | How often to heartbeat (minimum 5000). Keep this or the poll interval under 40000: once another pod is refused this agent's place, OneUptime lets it in if this agent sends nothing for 40 seconds. |
 | `PORT` | `3876` | Health server port. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
 
