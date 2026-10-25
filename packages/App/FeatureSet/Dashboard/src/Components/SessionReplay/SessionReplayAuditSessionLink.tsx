@@ -2,6 +2,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
@@ -39,7 +40,9 @@ const SessionReplayAuditSessionLink: FunctionComponent<
     });
   const context: Array<string> = [
     presentation.startedAt
-      ? `Recorded ${OneUptimeDate.fromNow(presentation.startedAt)}`
+      ? translateTemplate("Recorded {{time}}", {
+          time: OneUptimeDate.fromNow(presentation.startedAt),
+        })
       : "",
     presentation.durationLabel,
     presentation.deviceLabel,
@@ -49,7 +52,9 @@ const SessionReplayAuditSessionLink: FunctionComponent<
     : "";
   const hoverDetails: string = [
     `Session ${presentation.fullSessionId}`,
-    absoluteStart ? `Recorded ${absoluteStart}` : "",
+    absoluteStart
+      ? translateTemplate("Recorded {{time}}", { time: absoluteStart })
+      : "",
     props.summary?.entryUrl || "",
   ]
     .filter(Boolean)

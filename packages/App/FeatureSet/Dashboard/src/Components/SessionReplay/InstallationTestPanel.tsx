@@ -12,6 +12,7 @@ import Route from "Common/Types/API/Route";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -454,11 +455,14 @@ export function buildInstallationCheckRows(
     const exceededAt: number | null = parseHealthTimestamp(
       status.budgetExceededAt,
     );
+    // In English, as the panel's sentences are.
     const whenCopy: string =
       exceededAt === null
-        ? OneUptimeDate.fromNow(
-            OneUptimeDate.fromString(status.budgetExceededAt),
-          )
+        ? inEnglishDates((): string => {
+            return OneUptimeDate.fromNow(
+              OneUptimeDate.fromString(status.budgetExceededAt as string),
+            );
+          })
         : formatRelativeAge(exceededAt, nowUnixMs);
 
     /*

@@ -462,10 +462,18 @@ const HostSystemdUnits: FunctionComponent<
       `Systemd units on this host (last ${UNIT_LOOKBACK_MINUTES} minutes).`,
     ];
     if (latestSampleAt) {
-      parts.push(`Latest sample ${OneUptimeDate.fromNow(latestSampleAt)}.`);
+      parts.push(
+        translator.translateTemplate("Latest sample {{time}}.", {
+          time: OneUptimeDate.fromNow(latestSampleAt),
+        }),
+      );
     }
     if (refreshedAt) {
-      parts.push(`Refreshed ${OneUptimeDate.fromNow(refreshedAt)}.`);
+      parts.push(
+        translator.translateTemplate("Refreshed {{time}}.", {
+          time: OneUptimeDate.fromNow(refreshedAt),
+        }),
+      );
     }
     if (isSnapshotTruncated) {
       parts.push(

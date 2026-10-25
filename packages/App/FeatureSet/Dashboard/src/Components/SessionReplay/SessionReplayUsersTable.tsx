@@ -12,6 +12,7 @@ import Route from "Common/Types/API/Route";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import IconProp from "Common/Types/Icon/IconProp";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -334,7 +335,9 @@ function getUserRollupCells(
         {row.liveSessionCount > 0
           ? `${row.liveSessionCount} live`
           : firstSeen
-            ? `first seen ${OneUptimeDate.fromNow(firstSeen)}`
+            ? translateTemplate("first seen {{time}}", {
+                time: OneUptimeDate.fromNow(firstSeen),
+              })
             : ""}
       </div>
     </div>,

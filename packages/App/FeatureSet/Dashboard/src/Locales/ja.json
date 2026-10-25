@@ -34772,5 +34772,15 @@
   "Describe the scheduled maintenance event here.": "定期メンテナンスイベントの内容をここに記述します。",
   "Describe the status page group here.": "ステータスページのグループをここに記述します。",
   "Describe this resource here.": "このリソースの説明をここに記述します。",
-  "Describe your status page overview here.": "ステータスページの概要をここに記述します。"
+  "Describe your status page overview here.": "ステータスページの概要をここに記述します。",
+  "A copy of this recording is stored under pinned retention until {{date}}.": "この録画のコピーは、固定による保持期間で {{date}} まで保存されます。",
+  "Added {{time}}": "追加: {{time}}",
+  "Generated {{date}}": "生成日時: {{date}}",
+  "Latest sample {{time}}.": "最新のサンプル: {{time}}。",
+  "Recorded {{time}}": "録画: {{time}}",
+  "Refreshed {{time}}.": "更新: {{time}}。",
+  "Show events since {{date}}": "{{date}} 以降のイベントを表示",
+  "The most recent security event arrived {{time}} ({{date}}).": "最新のセキュリティイベントは {{time}}に届きました ({{date}})。",
+  "{{count}} days ({{date}})": "{{count}} 日 ({{date}})",
+  "{{count}} days ({{date}})_one": "{{count}} 日 ({{date}})"
 }

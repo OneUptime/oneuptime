@@ -104,7 +104,18 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
           title="Signature Expires"
           value={
             dnssecResponse?.daysUntilSignatureExpiry !== undefined
-              ? `${dnssecResponse.daysUntilSignatureExpiry} days (${formatDateText(dnssecResponse.earliestSignatureExpiration)})`
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} day ({{date}})",
+                    other: "{{count}} days ({{date}})",
+                  },
+                  dnssecResponse.daysUntilSignatureExpiry,
+                  {
+                    date: formatDateText(
+                      dnssecResponse.earliestSignatureExpiration,
+                    ),
+                  },
+                )
               : "-"
           }
         />

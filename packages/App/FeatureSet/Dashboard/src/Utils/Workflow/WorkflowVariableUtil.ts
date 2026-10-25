@@ -14,6 +14,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -148,9 +149,12 @@ export function getTokenRefreshDescription(
 
   return `${saved}OneUptime fetched a new access token for "${outcome.variableName}" from your identity provider. ${
     outcome.expiresAt
-      ? `It is valid until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          outcome.expiresAt,
-        )}, and a new one is fetched automatically whenever a workflow is about to use it after that.`
+      ? `It is valid until ${inEnglishDates((): string => {
+          // The message is English throughout.
+          return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            outcome.expiresAt as Date,
+          );
+        })}, and a new one is fetched automatically whenever a workflow is about to use it after that.`
       : "The provider did not say when it expires, so every workflow run fetches a new one."
   }`;
 }

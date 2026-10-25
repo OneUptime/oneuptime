@@ -46,6 +46,25 @@ a language, and the rules the guard test enforces.
   are keys of their own (`"{{first}}, {{second}} or {{third}}"`).
 - **Numbers** in a plural `{{count}}` are written the reader's way (`1.234` in
   German). Pass your own `count` value to override.
+- **Dates, times and durations** are written in the reader's language too:
+  every frontend hands its i18next instance to `followLanguageForDates`
+  (`Common/UI/Utils/DateDisplayLanguage`), and `OneUptimeDate` writes month
+  and weekday names, "vor 5 Stunden", "2 Tage, 3 Stunden" and a decimal comma
+  in that language, from the browser's Intl data, in Latin digits and the
+  Gregorian calendar (`Common/Types/DateLanguage`). English, and anything
+  nothing set (the server, emails, workers), reads exactly as it always did.
+  A date put into a sentence follows the sentence: while a locale has not
+  worded "Checked {{time}}" yet, the reader sees the English sentence with
+  the English date, never "Checked vor 5 Stunden". Pass dates as values of a
+  looked-up sentence (`translateTemplate("Added {{time}}", { time:
+OneUptimeDate.fromNow(date) })`), or draw a time component in a
+  `TranslatedSentence` slot - `RelativeTime`, `LiveDuration` and the others
+  read the sentence's language (`useWriteDatesInSentenceLanguage`,
+  `useSentenceLanguage`). Never glue a date into English text in the code
+  (`` `Added ${OneUptimeDate.fromNow(date)}` ``): text that has to stay
+  English - an export, a prompt for OneUptime AI - writes its dates inside
+  `inEnglishDates(() => ...)`. `App/Tests/Dashboard/DatesInEnglishTextGuard`
+  holds every frontend to this.
 - **What ships.** The files here keep every key, so the tooling can track
   what is left to translate. The bundle carries only what a reader can tell
   apart (`Common/UI/esbuild-locales.js`, wired in the Dashboard's
@@ -99,11 +118,11 @@ import {
 const translator: Translator = useTranslator();
 
 // Fixed text.
-<p>{translator.translateText("No monitors yet.")}</p>
+<p>{translator.translateText("No monitors yet.")}</p>;
 
 // A sentence with values. Never glue pieces together.
 translator.translateTemplate("Monitor {{name}} is {{status}}.", {
-  name: monitor.name,                               // inserted as is
+  name: monitor.name, // inserted as is
   status: translatableTerm(statusName, { inSentence: true }), // translated
 });
 
@@ -138,7 +157,9 @@ so the locale can move the element:
 ```tsx
 <TranslatedSentence
   template="Read the {{guide}} before you enable SSO."
-  slots={{ guide: <Link to={GUIDE}>{translator.translateText("setup guide")}</Link> }}
+  slots={{
+    guide: <Link to={GUIDE}>{translator.translateText("setup guide")}</Link>,
+  }}
 />
 ```
 
@@ -160,7 +181,9 @@ where you render them. A template kept in a constant must be wrapped in
 `translationKey()` so the extractor finds it:
 
 ```ts
-export const NO_MATCH: string = translationKey("No {{itemsName}} match these filters.");
+export const NO_MATCH: string = translationKey(
+  "No {{itemsName}} match these filters.",
+);
 ```
 
 The extractor does not read a label map keyed by an enum
@@ -319,21 +342,23 @@ translated the same locale. Take either side, then run
 
 ## Files
 
-| Path | What it is |
-| --- | --- |
-| `src/Locales/en.json` | Every key. It is written by `i18n:extract`. Do not edit it by hand, except to fix a nested key's English. |
-| `src/Locales/<code>.json` | One language. It mirrors `en.json` key for key. |
-| `i18n/SameAsEnglish.json` | English that reads the same in every language. |
-| `i18n/Progress/<code>.json` | The locale's baseline and its own same-as-English list. |
-| `scripts/i18n/ExtractStrings.ts` | Finds user-facing strings in the TypeScript syntax tree. |
-| `scripts/i18n/LocaleFiles.ts` | Reads, orders, aligns and merges locale files. |
-| `scripts/i18n/LocaleStatus.ts` | What counts as untranslated, problems, and baselines. |
-| `scripts/i18n/I18n.ts` | The `npm run i18n:*` commands. |
-| `Common/UI/esbuild-locales.js` | The build plugin that ships each locale without what the English fallback already shows. |
+| Path                             | What it is                                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/Locales/en.json`            | Every key. It is written by `i18n:extract`. Do not edit it by hand, except to fix a nested key's English. |
+| `src/Locales/<code>.json`        | One language. It mirrors `en.json` key for key.                                                           |
+| `i18n/SameAsEnglish.json`        | English that reads the same in every language.                                                            |
+| `i18n/Progress/<code>.json`      | The locale's baseline and its own same-as-English list.                                                   |
+| `scripts/i18n/ExtractStrings.ts` | Finds user-facing strings in the TypeScript syntax tree.                                                  |
+| `scripts/i18n/LocaleFiles.ts`    | Reads, orders, aligns and merges locale files.                                                            |
+| `scripts/i18n/LocaleStatus.ts`   | What counts as untranslated, problems, and baselines.                                                     |
+| `scripts/i18n/I18n.ts`           | The `npm run i18n:*` commands.                                                                            |
+| `Common/UI/esbuild-locales.js`   | The build plugin that ships each locale without what the English fallback already shows.                  |
 
 ## Not covered yet
 
-- Dates and relative times are formatted by Moment in English.
 - The `Common/Types` catalogs are not scanned: permissions, monitor-type and
   workflow-component descriptions.
+- Compact durations keep their unit symbols ("2h 5m", "1,72 s"), as a unit
+  symbol reads the same in every language; only their figures are written
+  the reader's way.
 - `ee/Dashboard` and documentation markdown are not scanned.

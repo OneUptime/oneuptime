@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 import {
   AdminDashboardLanguage,
@@ -120,5 +121,8 @@ i18n
       convertDetectedLanguage,
     },
   });
+
+// Dates, times and durations in the reader's language too.
+followLanguageForDates(i18n);
 
 export default i18n;

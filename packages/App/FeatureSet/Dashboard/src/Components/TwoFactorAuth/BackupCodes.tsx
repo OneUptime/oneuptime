@@ -14,6 +14,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -410,7 +411,13 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
             Store your codes in a password manager or another safe place.
           </span>
           {status.generatedAt && (
-            <span>{`Generated ${OneUptimeDate.getDateAsLocalFormattedString(status.generatedAt)}`}</span>
+            <span>
+              {translateTemplate("Generated {{date}}", {
+                date: OneUptimeDate.getDateAsLocalFormattedString(
+                  status.generatedAt,
+                ),
+              })}
+            </span>
           )}
         </div>
       </div>

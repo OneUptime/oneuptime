@@ -22,6 +22,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
@@ -458,9 +459,12 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 </div>
                 <div className="mt-3 text-sm text-gray-500">
                   {usageSnapshot?.lastUsageReportedAt
-                    ? `Last reported ${OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                        new Date(usageSnapshot.lastUsageReportedAt),
-                      )}`
+                    ? `Last reported ${inEnglishDates((): string => {
+                        // The page's words are English.
+                        return OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                          new Date(usageSnapshot!.lastUsageReportedAt!),
+                        );
+                      })}`
                     : "This license has not reported usage yet."}
                 </div>
                 <div className="mt-1 text-xs text-gray-400">

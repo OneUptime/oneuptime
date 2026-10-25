@@ -34772,5 +34772,15 @@
   "Describe the scheduled maintenance event here.": "Describe the scheduled maintenance event here.",
   "Describe the status page group here.": "Describe the status page group here.",
   "Describe this resource here.": "Describe this resource here.",
-  "Describe your status page overview here.": "Describe your status page overview here."
+  "Describe your status page overview here.": "Describe your status page overview here.",
+  "A copy of this recording is stored under pinned retention until {{date}}.": "A copy of this recording is stored under pinned retention until {{date}}.",
+  "Added {{time}}": "Added {{time}}",
+  "Generated {{date}}": "Generated {{date}}",
+  "Latest sample {{time}}.": "Latest sample {{time}}.",
+  "Recorded {{time}}": "Recorded {{time}}",
+  "Refreshed {{time}}.": "Refreshed {{time}}.",
+  "Show events since {{date}}": "Show events since {{date}}",
+  "The most recent security event arrived {{time}} ({{date}}).": "The most recent security event arrived {{time}} ({{date}}).",
+  "{{count}} days ({{date}})": "{{count}} days ({{date}})",
+  "{{count}} days ({{date}})_one": "{{count}} day ({{date}})"
 }

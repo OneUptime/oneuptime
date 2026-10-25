@@ -14,6 +14,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import { ReplayToolButton } from "./ReplayUi";
@@ -407,7 +408,10 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
 
   const badgeTitle: string = isProtected
     ? expiresAt
-      ? `A copy of this recording is stored under pinned retention until ${OneUptimeDate.getDateAsFormattedString(expiresAt)}.`
+      ? translateTemplate(
+          "A copy of this recording is stored under pinned retention until {{date}}.",
+          { date: OneUptimeDate.getDateAsFormattedString(expiresAt) },
+        )
       : "A copy of this recording is stored under pinned retention."
     : "The pin is queued. Until the recording is finalized and the copy is written, this recording is NOT yet protected from retention.";
 
