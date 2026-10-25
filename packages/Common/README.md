@@ -30,10 +30,11 @@ const ObjectID = require("@oneuptime/common/Types/ObjectID").default;
 whichever way a value was made.
 
 The package itself holds what a script that calls the OneUptime API needs
-most: the API client and its URL, route, response and error types, `ObjectID`,
-`OneUptimeDate`, `JSONFunctions` (which turns OneUptime's JSON, with its dates
-and IDs, into values and back), and the `JSONObject`, `Dictionary` and
-`Headers` types.
+most: the API client, `API`, with `URL`, `Route`, `Hostname`, `Protocol`,
+`HTTPMethod`, `HTTPResponse` and `HTTPErrorResponse`; `ObjectID` and
+`OneUptimeDate`; `JSONFunctions`, which turns OneUptime's JSON, with its dates
+and IDs, into values and back; `Exception` and `BadDataException`; and the
+types `JSONObject`, `JSONArray`, `JSONValue`, `Dictionary` and `Headers`.
 
 ```ts
 import { API, HTTPErrorResponse, URL } from "@oneuptime/common";

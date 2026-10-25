@@ -651,7 +651,10 @@ function statementDeclares(ts, statement) {
     ts.isInterfaceDeclaration(statement) ||
     ts.isTypeAliasDeclaration(statement) ||
     ts.isEnumDeclaration(statement) ||
-    (ts.isModuleDeclaration(statement) && ts.isIdentifier(statement.name))
+    // A namespace; `declare global` declares no name of the file's own.
+    (ts.isModuleDeclaration(statement) &&
+      ts.isIdentifier(statement.name) &&
+      (statement.flags & ts.NodeFlags.GlobalAugmentation) === 0)
   ) {
     const names = statement.name ? [statement.name.text] : [];
     const flags = ts.getCombinedModifierFlags(statement);

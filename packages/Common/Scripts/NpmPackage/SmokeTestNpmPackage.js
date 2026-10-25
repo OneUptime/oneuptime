@@ -150,6 +150,97 @@ function run(command, args, options) {
   });
 }
 
+// npm's codes for a network failure, as Scripts/GHA/npm_install.sh lists them.
+const NETWORK_ERROR_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ECONNABORTED",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EAI_FAIL",
+  "ENETUNREACH",
+  "ENETDOWN",
+  "EHOSTUNREACH",
+  "ERR_SOCKET_TIMEOUT",
+  "ERR_STREAM_PREMATURE_CLOSE",
+  "ECONNECTIONTIMEOUT",
+  "EIDLETIMEOUT",
+  "ERESPONSETIMEOUT",
+  "ETRANSFERTIMEOUT",
+]);
+const NETWORK_ERROR_PHRASES = [
+  "socket hang up",
+  "network timeout at: ",
+  "Response timeout while trying to fetch ",
+];
+const NOT_A_WORD = /[^A-Za-z0-9_]+/;
+const RETRYABLE_STATUS_CODE = /^E(?:408|429|5\d\d)$/;
+const INSTALL_ATTEMPTS = 3;
+
+/**
+ * Whether npm failed on the network - a dropped connection, a timeout, a
+ * failed DNS lookup, a 5xx - rather than on the package: read from the lines
+ * npm files errors under, as Scripts/GHA/npm_install.sh reads them.
+ * @param {string} stderr - what npm wrote
+ * @returns {boolean} whether it did
+ */
+function isNetworkFailure(stderr) {
+  return stderr.split("\n").some((line) => {
+    if (!line.startsWith("npm error") && !line.startsWith("npm ERR!")) {
+      return false;
+    }
+
+    const words = line.split(NOT_A_WORD);
+    const code = words.indexOf("code");
+
+    return (
+      words.some((word) => {
+        return NETWORK_ERROR_CODES.has(word);
+      }) ||
+      (code !== -1 && RETRYABLE_STATUS_CODE.test(words[code + 1] || "")) ||
+      words[2] === "network" ||
+      NETWORK_ERROR_PHRASES.some((phrase) => {
+        return line.includes(phrase);
+      })
+    );
+  });
+}
+
+/**
+ * npm install in a project, tried again after a pause when it failed on the
+ * network: the install fetches the package's dependencies from the
+ * registry.
+ * @param {Array<string>} packages - what to install
+ * @param {string} project - where
+ * @returns {Promise<{ status: number, stdout: string, stderr: string }>} how the last attempt ended
+ */
+async function runNpmInstall(packages, project) {
+  for (let attempt = 1; ; attempt++) {
+    const installed = await run(
+      "npm",
+      ["install", ...packages, "--no-audit", "--no-fund", "--loglevel=error"],
+      { cwd: project },
+    );
+
+    if (
+      installed.status === 0 ||
+      attempt === INSTALL_ATTEMPTS ||
+      !isNetworkFailure(installed.stderr)
+    ) {
+      return installed;
+    }
+
+    console.log(
+      `       npm install hit a network error (attempt ${attempt} of ${INSTALL_ATTEMPTS}); trying again`,
+    );
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 5000 * attempt);
+    });
+  }
+}
+
 /**
  * The last line of a child's output that is JSON: what a check script
  * reports, read past anything a module printed before it.
@@ -732,17 +823,12 @@ async function main() {
     const installs = await check(
       "it installs into a new project, with its dependencies and nothing else of ours",
       async () => {
-        const installedPackage = await run(
-          "npm",
+        const installedPackage = await runNpmInstall(
           [
-            "install",
             tarball,
             `@types/node@${commonManifest.devDependencies["@types/node"]}`,
-            "--no-audit",
-            "--no-fund",
-            "--loglevel=error",
           ],
-          { cwd: project },
+          project,
         );
 
         if (installedPackage.status !== 0) {
@@ -1088,6 +1174,7 @@ module.exports = {
   publishedModules,
   apiAndModelsProblems,
   lastJsonLine,
+  isNetworkFailure,
 };
 
 if (require.main === module) {
