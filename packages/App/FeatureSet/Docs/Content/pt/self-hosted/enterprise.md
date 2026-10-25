@@ -50,6 +50,7 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | Painéis **Health** da administração: visão geral da instância, filas em segundo plano, logs da instância, PostgreSQL, Valkey, cluster ClickHouse, logs de diagnóstico e ingestão de telemetria | Não | Sim | Não se aplica |
 | **Query Console** da administração | Não | Sim | Não disponível |
 | Alertas de saúde do PostgreSQL e do Valkey (Redis) | Não | Sim | Não se aplica |
+| [Backups](/docs/installation/backups) do PostgreSQL e do ClickHouse em um armazenamento próprio, com agendamento e restauração | Não | Sim | Não se aplica |
 | Visão de capacidade do ClickHouse, alertas de capacidade e limpeza automática de disco | Sim | Sim | Não se aplica |
 | Status das migrações, pacote de suporte e probes globais no painel do administrador | Sim | Sim | Não se aplica |
 | Gestão da licença Enterprise, de assentos e de instâncias | Não | Sim | Não se aplica |
@@ -192,6 +193,7 @@ O que para quando uma licença expira:
 - **O registro de auditoria deixa de gravar.** Os logs de auditoria gravados até então são mantidos.
 - **As substituições de retenção deixam de valer.** A telemetria nova é mantida pela retenção padrão do projeto. A telemetria já armazenada mantém a retenção com que foi gravada. Você ainda pode apagar uma substituição pela API, mas não configurar uma.
 - **As páginas de status voltam a mostrar Powered by OneUptime.** Uma página que oculta a linha a mostra até que uma licença seja ativada. A configuração é mantida.
+- **Os backups agendados param.** Nenhum backup novo é feito. Os backups já feitos continuam no destino, e você ainda pode restaurá-los e excluí-los.
 
 O que **não** para:
 
