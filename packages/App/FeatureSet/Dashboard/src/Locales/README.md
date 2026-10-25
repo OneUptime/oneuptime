@@ -63,8 +63,16 @@ OneUptimeDate.fromNow(date) })`), or draw a time component in a
   `useSentenceLanguage`). Never glue a date into English text in the code
   (`` `Added ${OneUptimeDate.fromNow(date)}` ``): text that has to stay
   English - an export, a prompt for OneUptime AI - writes its dates inside
-  `inEnglishDates(() => ...)`. `App/Tests/Dashboard/DatesInEnglishTextGuard`
-  holds every frontend to this.
+  `inEnglishDates(() => ...)`. So does a sentence in a component whose
+  other words are still English: look the sentence up when the component
+  is translated, so the reader never meets one German line among English
+  ones. `App/Tests/Dashboard/DatesInEnglishTextGuard` holds every frontend
+  to this, and reads `Common/Types/Date.ts` for the helpers that write in
+  the reader's language.
+- **Durations in a sentence.** Intl writes a duration in the case a
+  sentence's subject takes ("3 Tage"). Word a translation so the duration
+  stands where that case is right: German "{{headline}} · {{duration}}",
+  never "seit {{duration}}", which needs "3 Tagen".
 - **What ships.** The files here keep every key, so the tooling can track
   what is left to translate. The bundle carries only what a reader can tell
   apart (`Common/UI/esbuild-locales.js`, wired in the Dashboard's
