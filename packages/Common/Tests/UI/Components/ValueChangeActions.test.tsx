@@ -450,7 +450,7 @@ describe("a row's Change Severity", () => {
     expect(refreshCount).toBe(1);
   });
 
-  test("picking the severity it has already changes nothing", async () => {
+  test("opens on the severity the row has now, and sending it unchanged changes nothing", async () => {
     render(
       <RowHarness
         item={incident(INCIDENT_ONE_ID, "Checkout API down", MAJOR_ID)}
@@ -459,7 +459,13 @@ describe("a row's Change Severity", () => {
 
     const modal: HTMLElement = await openRowDialog();
 
-    await pick(modal, "Major");
+    // The picker shows the row's own severity before anything is picked.
+    await waitFor(() => {
+      expect(modal.querySelector(".ou-select__single-value")?.textContent).toBe(
+        "Major",
+      );
+    });
+
     fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
 
     await waitFor(

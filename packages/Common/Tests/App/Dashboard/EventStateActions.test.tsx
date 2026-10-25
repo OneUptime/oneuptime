@@ -223,11 +223,15 @@ const MAINTENANCE_STATES: Array<ScheduledMaintenanceState> = [
   maintenanceState(ENDED, "Ended", 3, { isEndedState: true }),
 ];
 
-const stateLink: (id: string, name: string, order: number) => object = (
+const stateLink: (
   id: string,
   name: string,
   order: number,
-): object => {
+) => Record<string, unknown> = (
+  id: string,
+  name: string,
+  order: number,
+): Record<string, unknown> => {
   return { _id: id, name: name, order: order };
 };
 
@@ -243,11 +247,12 @@ const incident: (data: {
   const row: Incident = new Incident();
   row._id = INCIDENT_ID;
   row.title = "Checkout API down";
+  // The state as the list reads it: its id, name and place.
   row.currentIncidentState = stateLink(
     data.stateId,
     state.name!,
     state.order!,
-  ) as IncidentState;
+  ) as unknown as IncidentState;
 
   if (data.isPrivate !== undefined) {
     row.isPrivate = data.isPrivate;
@@ -385,9 +390,11 @@ describe("Acknowledge from an incident's row", () => {
     expect(modal).toHaveTextContent(
       "This records an acknowledgement on the incident timeline and stops any on-call escalation for this incident.",
     );
+    // One row is named on a line of its own, not as a list of one.
     expect(
-      within(modal).getByTestId("form-modal-before-form"),
-    ).toHaveTextContent("Checkout API down");
+      within(modal).getByTestId("state-change-item-name"),
+    ).toHaveTextContent(/^Checkout API down$/);
+    expect(within(modal).queryByTestId("delete-confirmation-items")).toBeNull();
     expect(modal).toHaveTextContent("Notify Status Page Subscribers");
     expect(
       within(modal).getByRole("button", { name: "Add a public note" }),
@@ -528,7 +535,7 @@ describe("a scheduled maintenance event's row", () => {
       stateId,
       state.name!,
       state.order!,
-    ) as ScheduledMaintenanceState;
+    ) as unknown as ScheduledMaintenanceState;
 
     return row;
   };

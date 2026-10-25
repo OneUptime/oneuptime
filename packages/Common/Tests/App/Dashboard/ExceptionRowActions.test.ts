@@ -182,12 +182,15 @@ describe("the actions", () => {
       },
     });
 
-    await resolve!.onClick(
-      exception({ isResolved: false, isArchived: false }),
-      (): void => {
-        completed++;
-      },
-      (): void => {},
+    // onClick is typed as returning nothing; the action's write is awaited.
+    await Promise.resolve(
+      resolve!.onClick(
+        exception({ isResolved: false, isArchived: false }),
+        (): void => {
+          completed++;
+        },
+        (): void => {},
+      ),
     );
 
     expect(updateCalls).toEqual([
@@ -209,12 +212,14 @@ describe("the actions", () => {
         },
       })[2]!;
 
-    await archive.onClick(
-      exception({ isResolved: false, isArchived: false }),
-      (): void => {},
-      (error: Error): void => {
-        errors.push(error.message);
-      },
+    await Promise.resolve(
+      archive.onClick(
+        exception({ isResolved: false, isArchived: false }),
+        (): void => {},
+        (error: Error): void => {
+          errors.push(error.message);
+        },
+      ),
     );
 
     expect(errors).toEqual([

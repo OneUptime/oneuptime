@@ -6,6 +6,7 @@ import { getModelTypeByName } from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * "I dont see the button to assign to me, change priority, change status
@@ -457,7 +458,9 @@ describe("2. a list that archives or unarchives in Bulk Actions does it in each 
   ): Array<string> => {
     return filesOf(
       uses.filter((use: ListUse): boolean => {
-        return new RegExp(`\\b${name}\\b`).test(use.actionButtons);
+        return new RegExp(`\\b${escapeRegExp(name)}\\b`).test(
+          use.actionButtons,
+        );
       }),
     );
   };
@@ -588,7 +591,9 @@ describe("3. every incident, alert, episode and maintenance list offers its stat
       });
 
       expect(source).toMatch(
-        new RegExp(`useValueChangeActions<${table.model}, \\w+Severity>\\(\\{`),
+        new RegExp(
+          `useValueChangeActions<${escapeRegExp(table.model)}, \\w+Severity>\\(\\{`,
+        ),
       );
       expect(source).toContain(`column: "${table.severity}",`);
       expect(list!.actionButtons).toContain("...severityRowActions");

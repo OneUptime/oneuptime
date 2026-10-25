@@ -133,14 +133,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import {
+import useBulkSwitchActions, {
   BulkSwitchActionsConfig,
   isRowSwitchActionOffered,
   SwitchActionsResult,
   UNSUBSCRIBE_SWITCH_ACTION,
   useSwitchActions,
 } from "../../../UI/Components/BulkUpdate/BulkSwitchActions";
-import useBulkSwitchActions from "../../../UI/Components/BulkUpdate/BulkSwitchActions";
 import { getBulkSwitchConsequence } from "../../../UI/Components/BulkUpdate/BulkSwitchConsequences";
 import { BulkActionButtonSchema } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import RowActions from "../../../UI/Components/ActionButton/RowActions";

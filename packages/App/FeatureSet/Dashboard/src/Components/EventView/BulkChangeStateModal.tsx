@@ -141,8 +141,19 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       error={props.error}
       submitButtonText={props.submitButtonText || "Change State"}
+      /*
+       * The records it lands on: one row's name, as a row's question names
+       * it (a ⋯ action), or the selection's names (Bulk Actions).
+       */
       beforeFormElement={
-        props.itemNames && props.itemNames.length > 0 ? (
+        props.itemNames && props.itemNames.length === 1 ? (
+          <p
+            data-testid="state-change-item-name"
+            className="break-words text-sm font-semibold text-gray-900"
+          >
+            {props.itemNames[0]}
+          </p>
+        ) : props.itemNames && props.itemNames.length > 1 ? (
           <DeleteItemNames
             names={props.itemNames}
             totalCount={props.itemNames.length}

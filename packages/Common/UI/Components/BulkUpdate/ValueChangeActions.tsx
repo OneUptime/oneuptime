@@ -506,6 +506,19 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
       }}
       formProps={{
         name: `change-${config.idColumn}`,
+        // A row's dialog opens on the value the row has now.
+        ...(dialog.kind === "row" && dialog.items[0]
+          ? {
+              initialValues: {
+                [PICKED_VALUE_KEY]:
+                  getCurrentValueId(
+                    dialog.items[0],
+                    config.column,
+                    config.idColumn,
+                  ) || undefined,
+              },
+            }
+          : {}),
         fields: [
           {
             field: {

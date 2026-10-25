@@ -519,7 +519,11 @@ describe("the five kinds", () => {
     );
   });
 
-  test.each(KINDS.map((kind: EventStateKindDefinition) => [kind.kind, kind]))(
+  test.each(
+    KINDS.map((kind: EventStateKindDefinition) => {
+      return [kind.kind, kind];
+    }),
+  )(
     "%s: the timeline and the record have the columns the engine writes and reads",
     (_name: unknown, kind: unknown) => {
       const definition: EventStateKindDefinition =
@@ -682,23 +686,24 @@ describe("the words, in every Dashboard language", () => {
     }),
   ];
 
-  test.each([...new Set(sentences)].map((sentence: string) => [sentence]))(
-    "%s is a Dashboard key, worded in every language",
-    (sentence: string) => {
-      expect(english[sentence]).toBe(sentence);
+  test.each(
+    [...new Set(sentences)].map((sentence: string) => {
+      return [sentence];
+    }),
+  )("%s is a Dashboard key, worded in every language", (sentence: string) => {
+    expect(english[sentence]).toBe(sentence);
 
-      for (const language of LANGUAGES) {
-        const translated: string | undefined = locales[language]![sentence];
+    for (const language of LANGUAGES) {
+      const translated: string | undefined = locales[language]![sentence];
 
-        expect({ language, isText: typeof translated === "string" }).toEqual({
-          language,
-          isText: true,
-        });
-        expect({ language, same: translated === sentence }).toEqual({
-          language,
-          same: false,
-        });
-      }
-    },
-  );
+      expect({ language, isText: typeof translated === "string" }).toEqual({
+        language,
+        isText: true,
+      });
+      expect({ language, same: translated === sentence }).toEqual({
+        language,
+        same: false,
+      });
+    }
+  });
 });

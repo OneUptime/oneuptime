@@ -36,7 +36,6 @@ import {
   SwitchActionsResult,
   useSwitchActions,
 } from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { RowActionConfirmation } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import { getTurnOffMonitoringConfirmation } from "./MonitoringCard";
 import {
@@ -87,7 +86,9 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  RowActionConfirmation,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
