@@ -109,6 +109,7 @@ export const BackupTestResultBox: FunctionComponent<{
                         ? "mt-0.5 break-words text-gray-600"
                         : "mt-0.5 whitespace-pre-wrap break-words text-red-700"
                     }
+                    dir="auto"
                   >
                     {check.message}
                   </div>

@@ -758,30 +758,124 @@ test.describe("the Enterprise Edition's Backups page", () => {
     expect((await postsTo(page, "/backup/find")).length).toBe(1);
   });
 
-  test("a lapsed license pauses new backups, and restoring and deleting still work", async ({
+  for (const [license, notice, words] of [
+    [
+      "lapsed",
+      "backups-license-lapsed",
+      "Enterprise license required: no new backups are made.",
+    ],
+    [
+      "not-included",
+      "backups-license-not-included",
+      "Your Enterprise license does not include backups: no new backups are made.",
+    ],
+  ] as Array<[string, string, string]>) {
+    test(`a license that is ${license} pauses new backups, and restoring and deleting still work`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openPage(page, `?license=${license}`);
+
+      await expect(page.getByTestId(notice)).toContainText(words);
+      await expect(page.getByTestId("backups-status-title")).toHaveText(
+        "New backups are paused",
+      );
+      await expect(page.getByTestId("backups-back-up-now")).toBeDisabled();
+      // The settings wait for a license too.
+      await expect(
+        page.getByRole("button", { name: "Edit", exact: true }),
+      ).toBeDisabled();
+      // The installation's own data stays within reach.
+      await expect(
+        backupRows(page).nth(0).getByRole("button", {
+          name: "Restore",
+          exact: true,
+        }),
+      ).toBeEnabled();
+      await backupRows(page)
+        .nth(0)
+        .getByTestId("row-actions-more-button")
+        .click();
+      await expect(
+        page.getByRole("menuitem", { name: "Delete" }),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+      await screenshot(page, `${license}-laptop-light`);
+    });
+  }
+
+  test("the page reads in the reader's language: German on a phone, and Persian right to left", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openPage(page, "?license=lapsed");
+    const german: Record<string, string> = adminLocale("de");
+    const persian: Record<string, string> = adminLocale("fa");
 
-    await expect(page.getByTestId("backups-license-lapsed")).toContainText(
-      "Enterprise license required: no new backups are made.",
-    );
+    await page.setViewportSize(PHONE);
+    await openPage(page, "?lang=de");
     await expect(page.getByTestId("backups-status-title")).toHaveText(
-      "New backups are paused",
+      german["Backups are on"] as string,
     );
-    await expect(page.getByTestId("backups-back-up-now")).toBeDisabled();
-    // The installation's own data stays within reach.
     await expect(
-      backupRows(page).nth(0).getByRole("button", {
-        name: "Restore",
-        exact: true,
+      backupRows(page)
+        .nth(0)
+        .getByRole("button", {
+          name: german["Restore"] as string,
+          exact: true,
+        }),
+    ).toBeVisible();
+    await expectNoHorizontalScroll(page);
+    await screenshot(page, "on-phone-german");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openPage(page, "?lang=fa&scene=failed");
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
       }),
-    ).toBeEnabled();
-    await screenshot(page, "lapsed-laptop-light");
+    ).toBe("rtl");
+    await expect(page.getByTestId("backups-status-title")).toHaveText(
+      persian["The last backup failed"] as string,
+    );
+    /*
+     * The storage's address, and the server's own sentence about what went
+     * wrong, read left to right: otherwise a trailing slash and a full stop
+     * land at the wrong end of the line.
+     */
+    expect(
+      await page
+        .getByTestId("backups-settings-location")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    expect(
+      await page
+        .getByTestId("backups-status-failed")
+        .locator("[dir=auto]")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).direction;
+        }),
+    ).toBe("ltr");
+    await expectNoHorizontalScroll(page);
+    await screenshot(page, "failed-laptop-persian");
   });
 });
+
+// The Admin Dashboard's words in a language, keyed by the English text.
+function adminLocale(language: string): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `../../App/FeatureSet/AdminDashboard/src/Locales/${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
 
 test("the Community Edition's Settings have no Backups page", async ({
   page,

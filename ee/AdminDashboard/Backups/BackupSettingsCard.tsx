@@ -112,6 +112,7 @@ const BackupSettingsCard: FunctionComponent<ComponentProps> = (
                 <div
                   className="break-all text-xs text-gray-500"
                   data-testid="backups-settings-location"
+                  dir="ltr"
                 >
                   {props.location}
                 </div>

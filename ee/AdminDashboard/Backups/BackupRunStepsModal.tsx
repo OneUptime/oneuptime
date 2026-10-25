@@ -288,6 +288,7 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
               <div
                 className="break-all text-sm text-gray-900"
                 data-testid="backup-run-location"
+                dir="ltr"
               >
                 {run.location}
               </div>
@@ -364,6 +365,7 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
                           : "mt-1 break-words text-sm text-gray-600"
                       }
                       data-testid={`backup-run-step-message-${step.key}`}
+                      dir="auto"
                     >
                       {step.message}
                     </p>
@@ -384,7 +386,10 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
             <div className="text-sm font-medium text-red-700">
               {translator.translateText(BackupsCopy.errorTitle)}
             </div>
-            <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-sm text-red-700">
+            <pre
+              className="mt-1 whitespace-pre-wrap break-words font-sans text-sm text-red-700"
+              dir="auto"
+            >
               {run.error}
             </pre>
           </div>

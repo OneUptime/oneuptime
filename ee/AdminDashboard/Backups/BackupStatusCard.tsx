@@ -342,7 +342,10 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
               : ""}
           </span>
           {last.error ? (
-            <span className="text-red-700">{` · ${last.error}`}</span>
+            <span className="text-red-700">
+              {" · "}
+              <span dir="auto">{last.error}</span>
+            </span>
           ) : (
             <></>
           )}

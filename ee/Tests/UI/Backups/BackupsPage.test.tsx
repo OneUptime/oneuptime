@@ -907,6 +907,11 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-settings-location")).toHaveTextContent(
       "s3://oneuptime-backups/prod/",
     );
+    // An address reads left to right, on a right-to-left page too.
+    expect(screen.getByTestId("backups-settings-location")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
     expect(screen.getByTestId("backups-settings-schedule")).toHaveTextContent(
       "Every day at 02:00 UTC",
     );
@@ -1042,12 +1047,27 @@ describe("the status card", () => {
     expect(screen.getByTestId("backups-status-failed")).toHaveTextContent(
       "30 minutes ago · ClickHouse could not write to the destination",
     );
+    /*
+     * The server's sentence takes the direction of its first letter, so on
+     * a right-to-left page an English error still ends with its full stop.
+     */
+    expect(
+      screen.getByTestId("backups-status-failed").querySelector("[dir=auto]")
+        ?.textContent,
+    ).toBe(
+      "ClickHouse could not write to the destination: Access Denied. Allow s3:PutObject on oneuptime-backups/prod/*.",
+    );
 
     await click(screen.getByTestId("backups-failed-view-steps"));
 
     expect(
       screen.getByTestId(`backup-run-step-${BackupStepKey.BackUpClickhouse}`),
     ).toHaveAttribute("data-status", BackupStepStatus.Failed);
+    expect(
+      screen.getByTestId(
+        `backup-run-step-message-${BackupStepKey.BackUpClickhouse}`,
+      ),
+    ).toHaveAttribute("dir", "auto");
   });
 
   test("a backup running: its step, what it wrote, Cancel and View steps", async () => {
