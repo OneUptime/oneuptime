@@ -26,6 +26,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -515,7 +516,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             fingerprint={telemetryException.fingerprint}
             primaryEntityId={telemetryException.primaryEntityId}
           />
-          <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-2">
+          {/*
+           * The exception and its latest occurrence side by side where the
+           * page has the room, the shorter card as tall as the other
+           * (CardGrid).
+           */}
+          <CardGrid columns={2}>
             <ExceptionDetail {...telemetryException} services={services} />
             <ExceptionLatestOccurrence
               instance={latestInstance}
@@ -533,7 +539,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                 },
               ]}
             />
-          </div>
+          </CardGrid>
         </>
       )}
 

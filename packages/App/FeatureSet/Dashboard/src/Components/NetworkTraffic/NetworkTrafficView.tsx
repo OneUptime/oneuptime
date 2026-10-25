@@ -74,6 +74,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import {
   ChartTimeRangeZoomContextValue,
   TimeRangeZoomScope,
@@ -1287,7 +1288,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
 
           {loaded && summary && isUsageSettled && !needsSetup && hasTraffic ? (
             <Fragment>
-              <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <CardGrid columns={2} cardWidth="narrow">
                 {scope.kind === "device" ? (
                   <Fragment>
                     <TrafficTopList
@@ -1378,7 +1379,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                     />
                   </Fragment>
                 )}
-              </div>
+              </CardGrid>
 
               <Card
                 title={

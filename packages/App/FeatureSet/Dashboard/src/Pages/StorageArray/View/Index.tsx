@@ -11,6 +11,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -1277,7 +1279,9 @@ const StorageArrayOverview: FunctionComponent<
         description={data.description}
       >
         {data.rows.length === 0 ? (
-          <div className="text-sm text-gray-500">
+          <div
+            className={`${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`}
+          >
             {translator.translateText(
               "Nothing has reported recently enough to rank.",
             )}
@@ -1327,7 +1331,7 @@ const StorageArrayOverview: FunctionComponent<
 
     if (isFlashBlade) {
       return (
-        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CardGrid columns={2} cardWidth="narrow" className="!mb-6">
           {renderTopList({
             title: "Slowest File Systems",
             description: "File systems with the highest read or write latency.",
@@ -1342,12 +1346,12 @@ const StorageArrayOverview: FunctionComponent<
             rows: largestObjects,
             detailPageKey: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL,
           })}
-        </div>
+        </CardGrid>
       );
     }
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <CardGrid columns={2} cardWidth="narrow" className="!mb-6">
         {renderTopList({
           title: "Slowest Volumes",
           description: "Volumes with the highest read or write latency.",
@@ -1362,7 +1366,7 @@ const StorageArrayOverview: FunctionComponent<
           rows: largestObjects,
           detailPageKey: PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL,
         })}
-      </div>
+      </CardGrid>
     );
   };
 

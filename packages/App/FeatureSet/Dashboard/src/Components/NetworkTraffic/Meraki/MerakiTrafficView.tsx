@@ -62,6 +62,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -680,7 +681,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
       {hasTraffic ? (
         <Fragment>
-          <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <CardGrid columns={2} cardWidth="narrow">
             {listsNetworks ? (
               <TrafficTopList
                 title="Top networks"
@@ -729,7 +730,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
               emptyMessage="No destinations in this time range."
               dataTestId="meraki-top-destinations"
             />
-          </div>
+          </CardGrid>
 
           {/*
            * Where Top conversations is on the flow side: why there are none

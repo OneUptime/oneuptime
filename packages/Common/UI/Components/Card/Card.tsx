@@ -1,5 +1,6 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
+import { CardGridCellContext, useIsCardGridCell } from "./CardGridCell";
 import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
@@ -101,7 +102,8 @@ export interface ComponentProps {
    * is a column, so what is in it can grow into the room (flex-1) or sit in
    * its middle. The card adds no gap under itself: the box's parent spaces
    * its cards. A card drawn as a section of another card ignores it: the
-   * card it is in has the height.
+   * card it is in has the height. The card of a CardGrid cell fills it
+   * unless this says false.
    */
   fillHeight?: boolean | undefined;
   /*
@@ -417,6 +419,7 @@ const Card: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
   const isSection: boolean = useIsCardSection();
+  const isGridCell: boolean = useIsCardGridCell();
   const hasButtons: boolean = Boolean(
     props.buttons && props.buttons.length > 0,
   );
@@ -693,10 +696,12 @@ const Card: FunctionComponent<ComponentProps> = (
 
   /*
    * Only a card with a frame of its own fills its box: a section's height
-   * is the card it is in. Without fillHeight every class below is exactly
-   * what it was, so no other card changes.
+   * is the card it is in. The card of a CardGrid cell fills it unless it
+   * says otherwise. Without either every class below is exactly what it
+   * was, so no other card changes.
    */
-  const fillsHeight: boolean = Boolean(props.fillHeight) && !isSection;
+  const fillsHeight: boolean =
+    (props.fillHeight ?? isGridCell) && !isSection;
   const isHeaderHidden: boolean = Boolean(props.isHeaderHidden);
   const bodyClassName: string = isHeaderHidden
     ? props.bodyClassName || ""
@@ -723,7 +728,17 @@ const Card: FunctionComponent<ComponentProps> = (
               : bodyClassName
           }
         >
-          {props.children}
+          {/*
+           * The cell is this card's: a card drawn in its body is as tall
+           * as its content.
+           */}
+          {isGridCell ? (
+            <CardGridCellContext.Provider value={false}>
+              {props.children}
+            </CardGridCellContext.Provider>
+          ) : (
+            props.children
+          )}
         </div>
       )}
     </div>
