@@ -24,6 +24,7 @@ import {
   type ContentGutters,
 } from "../layout/windowLayout";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
+import { useSecurityCaseCounts } from "../hooks/useSecurityCases";
 import { useActiveProject } from "../hooks/useProject";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
@@ -185,6 +186,8 @@ function AttentionTile({
 
 interface CountRowProps {
   label: string;
+  // A short second line, e.g. how many of them wait for a decision.
+  subtitle?: string;
   count: number | undefined;
   known: boolean;
   iconName: keyof typeof Ionicons.glyphMap;
@@ -199,6 +202,7 @@ interface CountRowProps {
 /** A grouped-list row that opens a filtered list and shows how many it holds. */
 function CountRow({
   label,
+  subtitle,
   count,
   known,
   iconName,
@@ -217,6 +221,7 @@ function CountRow({
     <ListItem
       testID={testID}
       title={label}
+      subtitle={subtitle}
       icon={iconName}
       iconColor={iconColor}
       showChevron
@@ -291,6 +296,19 @@ export default function HomeScreen(): React.JSX.Element {
   } = useAllProjectCounts();
 
   const now: number = useNow();
+
+  /*
+   * Security cases, for the people the Inbox shows them to: those who can see
+   * the project's cases, in a project that has had one. A row of its own, so
+   * its requests failing - or being refused - never retire the counts above.
+   */
+  const securityCounts: ReturnType<typeof useSecurityCaseCounts> =
+    useSecurityCaseCounts();
+  const securityKnown: boolean =
+    !securityCounts.isLoading &&
+    !securityCounts.isError &&
+    securityCounts.openCount !== undefined;
+  const awaitingApproval: number = securityCounts.awaitingApprovalCount ?? 0;
 
   /*
    * The Home card used to count assignments. A count is not what somebody
@@ -417,6 +435,7 @@ export default function HomeScreen(): React.JSX.Element {
         refreshProjects(),
         refetchOnCall(),
         checkSsoStatus(),
+        securityCounts.refetch(),
       ]);
     } finally {
       setRefreshing(false);
@@ -621,6 +640,36 @@ export default function HomeScreen(): React.JSX.Element {
                 }}
               />
             </View>
+            {securityCounts.isAvailable ? (
+              <ListGroup testID="home-security" style={{ marginTop: spacing.md }}>
+                <CountRow
+                  testID="home-row-security-cases"
+                  count={securityCounts.openCount}
+                  label="Open security cases"
+                  subtitle={
+                    securityKnown && awaitingApproval > 0
+                      ? awaitingApproval === 1
+                        ? "1 case waits for an approval"
+                        : `${awaitingApproval} cases wait for an approval`
+                      : undefined
+                  }
+                  iconColor={theme.colors.statusWarning}
+                  highlightColor={theme.colors.statusWarning}
+                  iconName="shield-outline"
+                  known={securityKnown}
+                  accessibilityHint="Opens the open security cases in the inbox"
+                  onPress={() => {
+                    return navigation.navigate("Inbox", {
+                      screen: "InboxList",
+                      params: {
+                        initialView: "security",
+                        initialCaseFilter: "open",
+                      },
+                    });
+                  }}
+                />
+              </ListGroup>
+            ) : null}
           </View>
           <Card
             testID="home-oncall-card"

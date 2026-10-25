@@ -17,6 +17,10 @@ import type OnCallDutyPolicyEscalationRuleModel from "Common/Models/DatabaseMode
 import type OnCallDutyPolicyScheduleModel from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule.js";
 import type ProjectModel from "Common/Models/DatabaseModels/Project.js";
 import type TeamModel from "Common/Models/DatabaseModels/Team.js";
+import type SecurityCaseModelClass from "Common/Models/DatabaseModels/SecurityCase.js";
+import type SecurityCasePriorityModelClass from "Common/Models/DatabaseModels/SecurityCasePriority.js";
+import type SecurityCaseStatusModelClass from "Common/Models/DatabaseModels/SecurityCaseStatus.js";
+import type SecurityPlaybookRunModelClass from "Common/Models/DatabaseModels/SecurityPlaybookRun.js";
 
 type Alert = InstanceType<typeof AlertModel>;
 type AlertEpisode = InstanceType<typeof AlertEpisodeModel>;
@@ -43,6 +47,14 @@ type OnCallDutyPolicySchedule = InstanceType<
 >;
 type Project = InstanceType<typeof ProjectModel>;
 type Team = InstanceType<typeof TeamModel>;
+type SecurityCaseModel = InstanceType<typeof SecurityCaseModelClass>;
+type SecurityCasePriorityModel = InstanceType<
+  typeof SecurityCasePriorityModelClass
+>;
+type SecurityCaseStatusModel = InstanceType<typeof SecurityCaseStatusModelClass>;
+type SecurityPlaybookRunModel = InstanceType<
+  typeof SecurityPlaybookRunModelClass
+>;
 
 type RequiredModelFields<T, K extends keyof T> = {
   [P in K]-?: NonNullable<T[P]>;
@@ -589,4 +601,130 @@ export interface MyOnCallShiftsResponse {
   truncated: boolean;
 
   generatedAt: string;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Security cases (`/api/security-case/...`)
+ *
+ * The parts of Security Events a paged analyst works from a phone: the case,
+ * its project's statuses and priorities, its timeline and notes, and the
+ * playbook runs waiting for somebody to approve a step. Column names come
+ * from Common's models, so a renamed column fails to compile here.
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * A colour as the API hands it back: a Color serialized as { _type, value },
+ * or already a hex string (utils/color reads both).
+ */
+export type SerializedColor =
+  | ColorField
+  | string
+  | { _type?: string; value?: string }
+  | null;
+
+type SecurityCaseStatusFromCommon = RequiredModelFields<
+  SecurityCaseStatusModel,
+  "_id" | "name"
+>;
+
+export interface SecurityCaseStatusItem extends SecurityCaseStatusFromCommon {
+  color?: SerializedColor;
+  order?: number | string | null;
+  createdAt?: string | null;
+  isNewStatus?: boolean | null;
+  isAcknowledgedStatus?: boolean | null;
+  isContainedStatus?: boolean | null;
+  isClosedStatus?: boolean | null;
+  isArchived?: boolean | null;
+}
+
+type SecurityCasePriorityFromCommon = RequiredModelFields<
+  SecurityCasePriorityModel,
+  "_id" | "name"
+>;
+
+export interface SecurityCasePriorityItem
+  extends SecurityCasePriorityFromCommon {
+  color?: SerializedColor;
+  order?: number | string | null;
+  createdAt?: string | null;
+  isCriticalPriority?: boolean | null;
+  isHighPriority?: boolean | null;
+  isMediumPriority?: boolean | null;
+  isLowPriority?: boolean | null;
+  isInformationalPriority?: boolean | null;
+  isArchived?: boolean | null;
+}
+
+// A person on a case, as a relation read hands them back.
+export interface SecurityCasePersonRef {
+  _id: string;
+  // API values are serialized data, never Common's Name or Email instances.
+  name?: string | { _type?: string; value?: string } | null;
+  email?: string | { _type?: string; value?: string } | null;
+}
+
+type SecurityCaseFromCommon = RequiredModelFields<
+  SecurityCaseModel,
+  "_id" | "title"
+>;
+
+export interface SecurityCaseItem extends SecurityCaseFromCommon {
+  caseNumber?: number | null;
+  caseNumberWithPrefix?: string | null;
+  description?: string | null;
+  securityCaseStatusId?: string | null;
+  securityCaseStatus?: SecurityCaseStatusItem | null;
+  securityCasePriorityId?: string | null;
+  securityCasePriority?: SecurityCasePriorityItem | null;
+  assignedToUserId?: string | null;
+  assignedToUser?: SecurityCasePersonRef | null;
+  assignedToTeamId?: string | null;
+  assignedToTeam?: { _id: string; name?: string | null } | null;
+  source?: string | null;
+  entities?: unknown;
+  detectionCount?: number | null;
+  firstDetectedAt?: string | null;
+  lastDetectedAt?: string | null;
+  acknowledgedAt?: string | null;
+  containedAt?: string | null;
+  closedAt?: string | null;
+  verdict?: string | null;
+  closingNote?: string | null;
+  aiVerdict?: string | null;
+  aiSuggestedSecurityCasePriorityId?: string | null;
+  aiTriageReport?: string | null;
+  aiTriagedAt?: string | null;
+  aiTriagePromptInjectionSuspected?: boolean | null;
+  incidentId?: string | null;
+  createdAt: string;
+  projectId?: string;
+}
+
+export type ProjectSecurityCaseItem = WithProject<SecurityCaseItem>;
+
+// One entry of a case's timeline, with what kind of event it records.
+export interface SecurityCaseFeedItem extends FeedItem {
+  securityCaseFeedEventType?: string | null;
+}
+
+type SecurityPlaybookRunFromCommon = RequiredModelFields<
+  SecurityPlaybookRunModel,
+  "_id"
+>;
+
+export interface SecurityPlaybookRunItem extends SecurityPlaybookRunFromCommon {
+  securityCaseId?: string | null;
+  playbookName?: string | null;
+  status?: string | null;
+  trigger?: string | null;
+  steps?: unknown;
+  stepResults?: unknown;
+  currentStepIndex?: number | null;
+  triggeredByUserId?: string | null;
+  triggeredByUser?: SecurityCasePersonRef | null;
+  startedAt?: string | null;
+  createdAt?: string | null;
 }

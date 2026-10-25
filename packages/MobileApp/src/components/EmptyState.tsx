@@ -13,6 +13,8 @@ type EmptyIcon =
   | "episodes"
   | "notes"
   | "monitors"
+  | "security"
+  | "access"
   | "success"
   | "error"
   | "default";
@@ -33,6 +35,8 @@ const iconMap: Record<EmptyIcon, keyof typeof Ionicons.glyphMap> = {
   episodes: "layers-outline",
   notes: "document-text-outline",
   monitors: "pulse-outline",
+  security: "shield-outline",
+  access: "lock-closed-outline",
   success: "checkmark-circle-outline",
   error: "cloud-offline-outline",
   default: "remove-circle-outline",

@@ -15,17 +15,22 @@ import {
   type NavigationState,
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { InboxStackParamList } from "../navigation/types";
+import type { InboxStackParamList, InboxView } from "../navigation/types";
 import { useTheme } from "../theme";
 import { radius, spacing, typography } from "../theme/tokens";
 import { withAlpha } from "../utils/color";
 import ScreenIntro from "../components/ScreenIntro";
-import { useContentGutters, useWindowLayout } from "../layout/WindowLayout";
+import {
+  useContentGutters,
+  usePane,
+  useWindowLayout,
+  type PaneLayout,
+} from "../layout/WindowLayout";
 import type { ContentGutters, WindowLayout } from "../layout/windowLayout";
+import { useSecurityCasesAvailability } from "../hooks/useSecurityCases";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";
-
-type InboxView = "incidents" | "alerts";
+import SecurityCasesScreen from "./SecurityCasesScreen";
 type InboxNavigation = NativeStackNavigationProp<
   InboxStackParamList,
   "InboxList"
@@ -51,7 +56,34 @@ const categories: Array<InboxCategory> = [
     icon: "notifications-outline",
     selectedIcon: "notifications",
   },
+  {
+    key: "security",
+    label: "Security",
+    icon: "shield-outline",
+    selectedIcon: "shield",
+  },
 ];
+
+/*
+ * The narrowest a category tab may be with its icon beside its label:
+ * "Incidents" in bold and an 18-point icon take about 96 points. Three tabs
+ * on a 320-point phone get 90 each, so there the labels stand alone.
+ */
+export const CATEGORY_TAB_MIN_WIDTH_WITH_ICON: number = 104;
+
+// The category a detail screen belongs to, by its route's name.
+export function getInboxViewOfRoute(routeName: string): InboxView | null {
+  if (routeName.startsWith("SecurityCase")) {
+    return "security";
+  }
+  if (routeName.startsWith("Incident")) {
+    return "incidents";
+  }
+  if (routeName.startsWith("Alert")) {
+    return "alerts";
+  }
+  return null;
+}
 
 /** Incidents and alerts are adjacent views, not competing top-level destinations. */
 export default function InboxScreen(): React.JSX.Element {
@@ -63,10 +95,35 @@ export default function InboxScreen(): React.JSX.Element {
    * height to the list: the tab or rail beside it already says Inbox.
    */
   const showTitle: boolean = windowLayout.heightClass !== "compact";
+  const pane: PaneLayout = usePane();
   const navigation: InboxNavigation = useNavigation<InboxNavigation>();
   const route: RouteProp<InboxStackParamList, "InboxList"> =
     useRoute<RouteProp<InboxStackParamList, "InboxList">>();
   const selectedView: InboxView = route.params?.initialView ?? "incidents";
+  /*
+   * Security is a category only for the people who can read the project's
+   * cases, in a project that has had one; everybody else's Inbox keeps its
+   * two. Once it is the category on screen - a case opened from a push -
+   * it stays, whatever the check says.
+   */
+  const security: ReturnType<typeof useSecurityCasesAvailability> =
+    useSecurityCasesAvailability();
+  const visibleCategories: Array<InboxCategory> = categories.filter(
+    (category: InboxCategory): boolean => {
+      return (
+        category.key !== "security" ||
+        security.isAvailable ||
+        selectedView === "security"
+      );
+    },
+  );
+  const tabWidth: number =
+    (pane.width -
+      gutters.paddingLeft -
+      gutters.paddingRight -
+      spacing.xs * (visibleCategories.length - 1)) /
+    visibleCategories.length;
+  const showIcons: boolean = tabWidth >= CATEGORY_TAB_MIN_WIDTH_WITH_ICON;
   const focusedRoute: string = useNavigationState(
     (state: NavigationState): string => {
       return state.routes[state.index]?.name ?? "InboxList";
@@ -90,21 +147,21 @@ export default function InboxScreen(): React.JSX.Element {
     }
     lastFollowedRoute.current = focusedRoute;
 
-    const detailView: InboxView | null = focusedRoute.startsWith("Incident")
-      ? "incidents"
-      : focusedRoute.startsWith("Alert")
-        ? "alerts"
-        : null;
+    const detailView: InboxView | null = getInboxViewOfRoute(focusedRoute);
 
     // A page may open a different category from the one last read. Keep Back useful.
     if (detailView && detailView !== selectedView) {
-      navigation.setParams({
-        initialView: detailView,
-        initialSegment: focusedRoute.includes("Episode")
-          ? "episodes"
-          : detailView,
-        initialFilter: "all",
-      });
+      navigation.setParams(
+        detailView === "security"
+          ? { initialView: "security", initialCaseFilter: "open" }
+          : {
+              initialView: detailView,
+              initialSegment: focusedRoute.includes("Episode")
+                ? "episodes"
+                : detailView,
+              initialFilter: "all",
+            },
+      );
     }
   }, [focusedRoute, navigation, selectedView]);
 
@@ -134,7 +191,7 @@ export default function InboxScreen(): React.JSX.Element {
             borderBottomColor: theme.colors.borderSubtle,
           }}
         >
-          {categories.map((category: InboxCategory): React.JSX.Element => {
+          {visibleCategories.map((category: InboxCategory): React.JSX.Element => {
             const selected: boolean = category.key === selectedView;
             const contentColor: string = selected
               ? theme.colors.actionPrimary
@@ -149,11 +206,15 @@ export default function InboxScreen(): React.JSX.Element {
                 testID={`inbox-category-${category.key}`}
                 onPress={(): void => {
                   if (!selected) {
-                    navigation.setParams({
-                      initialView: category.key,
-                      initialSegment: category.key,
-                      initialFilter: "all",
-                    });
+                    navigation.setParams(
+                      category.key === "security"
+                        ? { initialView: "security" }
+                        : {
+                            initialView: category.key,
+                            initialSegment: category.key,
+                            initialFilter: "all",
+                          },
+                    );
                   }
                 }}
                 style={({ pressed }: PressableStateCallbackType): ViewStyle => {
@@ -175,11 +236,13 @@ export default function InboxScreen(): React.JSX.Element {
                   };
                 }}
               >
-                <Ionicons
-                  name={selected ? category.selectedIcon : category.icon}
-                  size={18}
-                  color={contentColor}
-                />
+                {showIcons ? (
+                  <Ionicons
+                    name={selected ? category.selectedIcon : category.icon}
+                    size={18}
+                    color={contentColor}
+                  />
+                ) : null}
                 <Text
                   style={{
                     ...typography.callout,
@@ -209,10 +272,12 @@ export default function InboxScreen(): React.JSX.Element {
           })}
         </View>
       </View>
-      {selectedView === "incidents" ? (
-        <IncidentsScreen embedded />
-      ) : (
+      {selectedView === "security" ? (
+        <SecurityCasesScreen />
+      ) : selectedView === "alerts" ? (
         <AlertsScreen embedded />
+      ) : (
+        <IncidentsScreen embedded />
       )}
     </View>
   );

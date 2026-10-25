@@ -17,6 +17,7 @@ import {
 } from "../__tests__/windowSize";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
+import type { SecurityCaseCounts } from "../hooks/useSecurityCases";
 import { makeProject } from "../__tests__/testSupport";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
@@ -65,6 +66,33 @@ const mockOnCall: { current: OnCallState } = {
   current: {} as OnCallState,
 };
 
+/*
+ * Security cases, which most people on call never see: unless a test says
+ * otherwise, the person cannot see any (the hook's own suite owns how it
+ * decides), so Home is the Home it always was.
+ */
+const mockSecurityRefetch: jest.Mock = jest.fn(async () => {
+  return undefined;
+});
+
+function securityCountsWith(
+  overrides: Partial<SecurityCaseCounts> = {},
+): SecurityCaseCounts {
+  return {
+    isAvailable: false,
+    openCount: undefined,
+    awaitingApprovalCount: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: mockSecurityRefetch as unknown as () => Promise<void>,
+    ...overrides,
+  };
+}
+
+const mockSecurityCounts: { current: SecurityCaseCounts } = {
+  current: securityCountsWith(),
+};
+
 const mockProjects: { current: ProjectItem[] } = { current: [] };
 const mockNavigate: jest.Mock = jest.fn();
 
@@ -103,6 +131,14 @@ jest.mock("../hooks/useOnCallDuty", () => {
   return {
     useOnCallDuty: () => {
       return mockOnCall.current;
+    },
+  };
+});
+
+jest.mock("../hooks/useSecurityCases", () => {
+  return {
+    useSecurityCaseCounts: () => {
+      return mockSecurityCounts.current;
     },
   };
 });
