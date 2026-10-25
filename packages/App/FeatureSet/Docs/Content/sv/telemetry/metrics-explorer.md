@@ -29,7 +29,7 @@ Utforskaren har fem flikar:
 | --- | --- |
 | **Tittare** | Listan över mätvärden, vart och ett med ett litet diagram och sitt senaste värde. Den öppnas på den senaste timmen. |
 | **Insikter** | Vilka tjänster som rapporterar mätvärden, och hur många. |
-| **AI** | De mätvärden som registrerar för många värden eller vars buckets inte passar, och de saknade mätvärden som OneUptime hittar, och vad OneUptime AI gjorde åt dem. Se [Förbättra mätvärden och lägg till de som saknas med AI](#förbättra-mätvärden-och-lägg-till-de-som-saknas-med-ai). |
+| **AI** | Problemen som OneUptime hittar i dina mätvärden (för många värden, histogram-buckets som inte passar, saknade mätvärden), och vad OneUptime AI gjorde åt dem. Se [Förbättra mätvärden och lägg till de som saknas med AI](#förbättra-mätvärden-och-lägg-till-de-som-saknas-med-ai). |
 | **Installationsguide** | Hur du skickar mätvärden med OpenTelemetry med en av dina inmatningsnycklar. |
 | **Inställningar** | **Pipelineregler** och **Inspelningsregler**: vad som händer med mätvärden när de kommer in. |
 
@@ -112,7 +112,7 @@ Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mått**, 
 
 ## Förbättra mätvärden och lägg till de som saknas med AI
 
-Varje timme går OneUptime igenom mätvärdena som dina tjänster skickade under den senaste timmen efter sådana som registrerar för många värden eller vars histogram-buckets inte passar, och efter hårt belastade tjänster som inte skickar några mätvärden, och registrerar det den hittar som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som åtgärdar det. Inget slås någonsin ihop: ditt team granskar varje pull request.
+Varje timme går OneUptime igenom mätvärdena som dina tjänster skickade under den senaste timmen efter sådana som registrerar för många värden, histogram vars buckets inte passar och hårt belastade tjänster som inte skickar några mätvärden. Det den hittar registrerar den som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som åtgärdar det. Inget slås någonsin ihop: ditt team granskar varje pull request.
 
 OneUptime läser noga de 10 mätvärden som dina tjänster skickade flest datapunkter för under timmen, vart och ett med minst 1 000 av dem, och registrerar tre sorters fynd:
 

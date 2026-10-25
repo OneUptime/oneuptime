@@ -29,7 +29,7 @@ L'explorateur a cinq onglets :
 | --- | --- |
 | **Lecteur** | La liste des métriques, chacune avec un petit graphique et sa dernière valeur. Il s'ouvre sur la dernière heure. |
 | **Analyses** | Quels services rapportent des métriques, et combien. |
-| **IA** | Les métriques qui enregistrent trop de valeurs ou dont les buckets ne conviennent pas, et les métriques manquantes, qu'OneUptime trouve, et ce qu'OneUptime AI en a fait. Voir [Améliorer les métriques et ajouter celles qui manquent avec l'IA](#améliorer-les-métriques-et-ajouter-celles-qui-manquent-avec-lia). |
+| **IA** | Les problèmes qu'OneUptime trouve dans vos métriques (trop de valeurs, des buckets d'histogramme qui ne conviennent pas, des métriques manquantes), et ce qu'OneUptime AI en a fait. Voir [Améliorer les métriques et ajouter celles qui manquent avec l'IA](#améliorer-les-métriques-et-ajouter-celles-qui-manquent-avec-lia). |
 | **Guide de configuration** | Comment envoyer des métriques avec OpenTelemetry, avec l'une de vos clés d'ingestion. |
 | **Paramètres** | **Règles de pipeline** et **Règles d'enregistrement** : ce qui arrive aux métriques à leur arrivée. |
 
@@ -112,7 +112,7 @@ L'onglet **Analyses** compte les métriques d'une plage de temps : **Métriques 
 
 ## Améliorer les métriques et ajouter celles qui manquent avec l'IA
 
-Chaque heure, OneUptime parcourt les métriques que vos services ont envoyées dans la dernière heure à la recherche de celles qui enregistrent trop de valeurs ou dont les buckets d'histogramme ne conviennent pas, et des services chargés qui n'envoient aucune métrique, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+Chaque heure, OneUptime parcourt les métriques que vos services ont envoyées dans la dernière heure à la recherche de celles qui enregistrent trop de valeurs, des histogrammes dont les buckets ne conviennent pas et des services chargés qui n'envoient aucune métrique. Il enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
 
 OneUptime lit de près les 10 métriques pour lesquelles vos services ont envoyé le plus de points de données dans l'heure, chacune avec au moins 1 000 points, et enregistre trois sortes de constats :
 

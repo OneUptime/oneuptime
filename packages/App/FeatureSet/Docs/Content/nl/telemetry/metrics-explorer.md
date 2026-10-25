@@ -29,7 +29,7 @@ De verkenner heeft vijf tabbladen:
 | --- | --- |
 | **Kijker** | De lijst met metrieken, elk met een kleine grafiek en de laatste waarde. Opent op het afgelopen uur. |
 | **Inzichten** | Welke services metrieken melden, en hoeveel. |
-| **AI** | De metrieken die te veel waarden vastleggen of waarvan de buckets niet passen, en de ontbrekende metrieken, die OneUptime vindt, en wat OneUptime AI eraan deed. Zie [Metrieken verbeteren en ontbrekende toevoegen met AI](#metrieken-verbeteren-en-ontbrekende-toevoegen-met-ai). |
+| **AI** | De problemen die OneUptime in uw metrieken vindt (te veel waarden, histogram-buckets die niet passen, ontbrekende metrieken), en wat OneUptime AI eraan deed. Zie [Metrieken verbeteren en ontbrekende toevoegen met AI](#metrieken-verbeteren-en-ontbrekende-toevoegen-met-ai). |
 | **Installatiegids** | Hoe u metrieken verstuurt met OpenTelemetry, met een van uw ingestiesleutels. |
 | **Instellingen** | **Pipelineregels** en **Opnameregels**: wat er met metrieken gebeurt als ze binnenkomen. |
 
@@ -112,7 +112,7 @@ Het tabblad **Inzichten** telt de metrieken in een tijdsbereik: **Actieve metrie
 
 ## Metrieken verbeteren en ontbrekende toevoegen met AI
 
-Elk uur doorzoekt OneUptime de metrieken die uw services in het afgelopen uur hebben verstuurd op metrieken die te veel waarden vastleggen of waarvan de histogram-buckets niet passen, en op drukke services die geen metrieken versturen, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+Elk uur doorzoekt OneUptime de metrieken die uw services in het afgelopen uur hebben verstuurd op metrieken die te veel waarden vastleggen, histogrammen waarvan de buckets niet passen en drukke services die geen metrieken versturen. Wat het vindt, legt het vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
 
 OneUptime leest de 10 metrieken waarvoor uw services in dat uur de meeste datapunten verstuurden nauwkeurig, elk met minstens 1.000 datapunten, en legt drie soorten bevindingen vast:
 

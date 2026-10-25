@@ -29,7 +29,7 @@ Der Explorer hat fünf Tabs:
 | --- | --- |
 | **Betrachter** | Die Liste der Metriken, jede mit einem kleinen Diagramm und ihrem letzten Wert. Er öffnet mit der letzten Stunde. |
 | **Einblicke** | Welche Dienste Metriken melden, und wie viele. |
-| **KI** | Die Metriken, die zu viele Werte erfassen oder deren Buckets nicht passen, und die fehlenden Metriken, die OneUptime findet, und was OneUptime AI dagegen getan hat. Siehe [Metriken mit KI verbessern und fehlende ergänzen](#metriken-mit-ki-verbessern-und-fehlende-ergänzen). |
+| **KI** | Die Probleme, die OneUptime in Ihren Metriken findet (zu viele Werte, Histogramm-Buckets, die nicht passen, fehlende Metriken), und was OneUptime AI dagegen getan hat. Siehe [Metriken mit KI verbessern und fehlende ergänzen](#metriken-mit-ki-verbessern-und-fehlende-ergänzen). |
 | **Einrichtungsanleitung** | Wie Sie Metriken mit OpenTelemetry senden, mit einem Ihrer Aufnahmeschlüssel. |
 | **Einstellungen** | **Pipeline-Regeln** und **Aufzeichnungsregeln**: was mit Metriken beim Eintreffen geschieht. |
 
@@ -112,7 +112,7 @@ Der Tab **Einblicke** zählt die Metriken eines Zeitraums: **Aktive Metriken**, 
 
 ## Metriken mit KI verbessern und fehlende ergänzen
 
-Jede Stunde durchsucht OneUptime die Metriken, die Ihre Dienste in der letzten Stunde gesendet haben, nach solchen, die zu viele Werte erfassen oder deren Histogramm-Buckets nicht passen, und nach ausgelasteten Diensten, die keine Metriken senden, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+Jede Stunde durchsucht OneUptime die Metriken, die Ihre Dienste in der letzten Stunde gesendet haben, nach solchen, die zu viele Werte erfassen, nach Histogrammen, deren Buckets nicht passen, und nach ausgelasteten Diensten, die keine Metriken senden. Seine Befunde legt es mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
 
 OneUptime liest die 10 Metriken genau, für die Ihre Dienste in der Stunde die meisten Datenpunkte gesendet haben, jede mit mindestens 1.000 davon, und legt drei Arten von Befunden an:
 

@@ -29,7 +29,7 @@ Udforskeren har fem faner:
 | --- | --- |
 | **Seer** | Listen over metrikker, hver med et lille diagram og sin seneste værdi. Den åbner på den seneste time. |
 | **Indsigter** | Hvilke tjenester der rapporterer metrikker, og hvor mange. |
-| **AI** | De metrikker, der registrerer for mange værdier, eller hvis buckets ikke passer, og de manglende metrikker, som OneUptime finder, og hvad OneUptime AI gjorde ved dem. Se [Forbedr metrikker og tilføj de manglende med AI](#forbedr-metrikker-og-tilføj-de-manglende-med-ai). |
+| **AI** | De problemer, OneUptime finder i dine metrikker (for mange værdier, histogram-buckets, der ikke passer, manglende metrikker), og hvad OneUptime AI gjorde ved dem. Se [Forbedr metrikker og tilføj de manglende med AI](#forbedr-metrikker-og-tilføj-de-manglende-med-ai). |
 | **Opsætningsvejledning** | Sådan sender du metrikker med OpenTelemetry med en af dine indtagelsesnøgler. |
 | **Indstillinger** | **Pipelineregler** og **Optagelsesregler**: hvad der sker med metrikker, når de ankommer. |
 
@@ -112,7 +112,7 @@ Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**,
 
 ## Forbedr metrikker og tilføj de manglende med AI
 
-Hver time gennemgår OneUptime de metrikker, dine tjenester har sendt i den seneste time, for dem, der registrerer for mange værdier, eller hvis histogram-buckets ikke passer, og for travle tjenester, der ikke sender nogen metrikker, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+Hver time gennemgår OneUptime de metrikker, dine tjenester har sendt i den seneste time, for dem, der registrerer for mange værdier, histogrammer, hvis buckets ikke passer, og travle tjenester, der ikke sender nogen metrikker. Det, den finder, gemmer den som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
 
 OneUptime læser nøje de 10 metrikker, dine tjenester sendte flest datapunkter for i den seneste time, hver med mindst 1.000 af dem, og opretter tre slags fund:
 

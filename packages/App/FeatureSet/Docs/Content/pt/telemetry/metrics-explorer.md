@@ -29,7 +29,7 @@ O explorador tem cinco abas:
 | --- | --- |
 | **Visualizador** | A lista de métricas, cada uma com um pequeno gráfico e o último valor. Abre na última hora. |
 | **Insights** | Quais serviços informam métricas, e quantas. |
-| **IA** | As métricas que registram valores demais ou cujos buckets não se ajustam, e as métricas ausentes, que o OneUptime encontra, e o que o OneUptime AI fez a respeito. Veja [Melhorar as métricas e adicionar as que faltam com IA](#melhorar-as-métricas-e-adicionar-as-que-faltam-com-ia). |
+| **IA** | Os problemas que o OneUptime encontra nas suas métricas (valores demais, buckets de histograma que não se ajustam, métricas ausentes), e o que o OneUptime AI fez a respeito. Veja [Melhorar as métricas e adicionar as que faltam com IA](#melhorar-as-métricas-e-adicionar-as-que-faltam-com-ia). |
 | **Guia de configuração** | Como enviar métricas com OpenTelemetry, usando uma das suas chaves de ingestão. |
 | **Configurações** | **Regras de pipeline** e **Regras de gravação**: o que acontece com as métricas quando chegam. |
 
@@ -112,7 +112,7 @@ A aba **Insights** conta as métricas de um intervalo de tempo: **Métricas ativ
 
 ## Melhorar as métricas e adicionar as que faltam com IA
 
-A cada hora o OneUptime procura, nas métricas que seus serviços enviaram na última hora, as que registram valores demais ou cujos buckets de histograma não se ajustam, e serviços movimentados que não enviam métricas, e registra o que encontra como insights de IA, com as evidências. Em seguida, o OneUptime AI analisa cada um e abre um pull request para corrigi-lo. Nada é mesclado: sua equipe revisa cada pull request.
+A cada hora o OneUptime procura, nas métricas que seus serviços enviaram na última hora, as que registram valores demais, histogramas cujos buckets não se ajustam e serviços movimentados que não enviam métricas. Ele registra o que encontra como insights de IA, com as evidências. Em seguida, o OneUptime AI analisa cada um e abre um pull request para corrigi-lo. Nada é mesclado: sua equipe revisa cada pull request.
 
 O OneUptime lê com atenção as 10 métricas para as quais seus serviços enviaram mais pontos de dados na hora, cada uma com pelo menos 1.000 deles, e registra três tipos de constatação:
 

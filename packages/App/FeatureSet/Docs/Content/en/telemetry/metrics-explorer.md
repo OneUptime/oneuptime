@@ -29,7 +29,7 @@ The explorer has five tabs:
 | --- | --- |
 | **Viewer** | The list of metrics, each with a small chart and its latest value. It opens on the past hour. |
 | **Insights** | Which services report metrics, and how many. |
-| **AI** | The metrics that record too many values or whose buckets do not fit, and the missing metrics, that OneUptime finds, and what OneUptime AI did about them. See [Improve metrics and add missing ones with AI](#improve-metrics-and-add-missing-ones-with-ai). |
+| **AI** | The problems OneUptime finds in your metrics (too many values, histogram buckets that do not fit, missing metrics), and what OneUptime AI did about them. See [Improve metrics and add missing ones with AI](#improve-metrics-and-add-missing-ones-with-ai). |
 | **Setup Guide** | How to send metrics with OpenTelemetry, using one of your ingestion keys. |
 | **Settings** | **Pipeline Rules** and **Recording Rules**: what happens to metrics as they arrive. |
 
@@ -112,7 +112,7 @@ The **Insights** tab counts the metrics in a time range: **Active metrics**, **R
 
 ## Improve metrics and add missing ones with AI
 
-Every hour OneUptime looks through the metrics your services sent in the last hour for ones that record too many values or whose histogram buckets do not fit, and for busy services that send no metrics, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
+Every hour OneUptime looks through the metrics your services sent in the last hour for ones that record too many values, histograms whose buckets do not fit, and busy services that send no metrics. It files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
 
 OneUptime reads closely the 10 metrics your services sent the most data points for in the hour, each with at least 1,000 of them, and files three kinds of finding:
 

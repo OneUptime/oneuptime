@@ -29,7 +29,7 @@ Utforskeren har fem faner:
 | --- | --- |
 | **Viser** | Listen over metrikker, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
 | **Innsikt** | Hvilke tjenester som rapporterer metrikker, og hvor mange. |
-| **KI** | Målingene som registrerer for mange verdier eller der bøttene ikke passer, og de manglende målingene, som OneUptime finner, og hva OneUptime AI gjorde med dem. Se [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki). |
+| **KI** | Problemene OneUptime finner i målingene dine (for mange verdier, histogrambøtter som ikke passer, manglende målinger), og hva OneUptime AI gjorde med dem. Se [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki). |
 | **Oppsettveiledning** | Hvordan du sender metrikker med OpenTelemetry med en av inntaksnøklene dine. |
 | **Innstillinger** | **Pipelineregler** og **Opptaksregler**: hva som skjer med metrikker når de kommer inn. |
 
@@ -112,7 +112,7 @@ Fanen **Innsikt** teller metrikkene i et tidsintervall: **Aktive målinger**, **
 
 ## Forbedre målinger og legg til de som mangler med KI
 
-Hver time går OneUptime gjennom målingene tjenestene dine sendte i siste time etter dem som registrerer for mange verdier eller der histogrammets bøtter ikke passer, og etter travle tjenester som ikke sender noen målinger, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
+Hver time går OneUptime gjennom målingene tjenestene dine sendte i siste time etter dem som registrerer for mange verdier, histogrammer der bøttene ikke passer, og travle tjenester som ikke sender noen målinger. Det den finner, registrerer den som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
 
 OneUptime leser nøye de 10 målingene tjenestene dine sendte flest datapunkter for i timen, hver med minst 1 000 av dem, og registrerer tre typer funn:
 

@@ -29,7 +29,7 @@ El explorador tiene cinco pestañas:
 | --- | --- |
 | **Visor** | La lista de métricas, cada una con un pequeño gráfico y su último valor. Se abre con la última hora. |
 | **Análisis** | Qué servicios informan métricas, y cuántas. |
-| **IA** | Las métricas que registran demasiados valores o cuyos buckets no encajan, y las métricas que faltan, que OneUptime encuentra, y lo que la IA de OneUptime hizo al respecto. Consulte [Mejorar las métricas y añadir las que faltan con IA](#mejorar-las-métricas-y-añadir-las-que-faltan-con-ia). |
+| **IA** | Los problemas que OneUptime encuentra en sus métricas (demasiados valores, buckets de histograma que no encajan, métricas que faltan), y lo que la IA de OneUptime hizo al respecto. Consulte [Mejorar las métricas y añadir las que faltan con IA](#mejorar-las-métricas-y-añadir-las-que-faltan-con-ia). |
 | **Guía de configuración** | Cómo enviar métricas con OpenTelemetry, usando una de sus claves de ingesta. |
 | **Ajustes** | **Reglas de canalización** y **Reglas de grabación**: lo que les pasa a las métricas al llegar. |
 
@@ -112,7 +112,7 @@ La pestaña **Análisis** cuenta las métricas de un intervalo de tiempo: **Mét
 
 ## Mejorar las métricas y añadir las que faltan con IA
 
-Cada hora OneUptime revisa las métricas que sus servicios enviaron en la última hora en busca de las que registran demasiados valores o cuyos buckets de histograma no encajan, y de servicios con mucho tráfico que no envían métricas, y registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
+Cada hora OneUptime revisa las métricas que sus servicios enviaron en la última hora en busca de las que registran demasiados valores, de histogramas cuyos buckets no encajan y de servicios con mucho tráfico que no envían métricas. Registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
 
 OneUptime lee con detalle las 10 métricas para las que sus servicios enviaron más puntos de datos en la hora, cada una con al menos 1,000 de ellos, y registra tres tipos de hallazgo:
 
