@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "打开修复拉取请求",
   "Open Telemetry Pull Requests": "打开遥测拉取请求",
   "Telemetry pull requests": "遥测拉取请求",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "OneUptime AI 为此规则运行 Bash 命令的位置，在您的网络内。受影响集群或主机上的命令通过其 AI 代理运行。",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "指标的置信度决定其威胁级别：即其发现的严重程度，以及在源未设置时警报的严重程度。",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "每个匹配的指标都会开启一个案例或并入已开启的案例，开启一条警报（在其开启期间去重），可选地开启一个事件，并记录一条威胁情报发现。",
   "Read the source": "读取来源",
@@ -34561,5 +34560,10 @@
   "{{done}} of {{count}} steps done_one": "{{done}} of {{count}} step done",
   "Available in the Rule Library": "可在 Rule Library 中找到",
   "In the Rule Library": "Rule Library 中",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "设置后，剧本只会在检测来自这些规则之一的案例上运行。"
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "设置后，剧本只会在检测来自这些规则之一的案例上运行。",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "OneUptime AI 为此规则运行 Bash 命令的位置。受影响集群或主机上的命令通过其 AI 代理运行。",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "由 OneUptime 为所有项目运行。OneUptime AI 不会在其上运行 Bash 命令。",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI 不会在所有项目共享的全局 Runner 上运行 Bash 命令。要运行它们，请选择您自己的一个 Runner。",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI 不会在所有项目共享的全局 Runner 上运行 Bash 命令。要运行它们，请在 {{location}} 中添加一个 Runner。",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI 不会在所有项目共享的全局 Runner 上运行 Bash 命令。"
 }

@@ -38,8 +38,13 @@ import {
   PROJECT_DEFAULT_TAG,
   REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
   REMEDIATION_ADD_RUNNER_TEMPLATE,
+  REMEDIATION_GLOBAL_RUNNER_ADD_TEMPLATE,
+  REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  REMEDIATION_GLOBAL_RUNNER_PICK_TEXT,
+  REMEDIATION_GLOBAL_RUNNER_TEXT,
   REMEDIATION_NO_RUNNER_PLACEHOLDER,
   RUNNER_NOT_CONNECTED_TEMPLATE,
+  RuleRunnerLine,
   RunnerPickerModel,
   RunnerPickerOption,
   RunnerPickerOptionKind,
@@ -47,6 +52,7 @@ import {
   RunnerPickerWork,
   STEP_NO_GLOBAL_RUNNER_HELPER_TEXT,
   buildRunnerPickerModel,
+  getRuleRunnerLine,
   getWaitingProjectRunner,
   hasPickableOption,
   isGlobalRunnerChoiceWaiting,
@@ -69,11 +75,16 @@ import {
  * follow, each with how it is doing. When there is nothing to pick, one
  * plain sentence says what to do instead of an empty box.
  *
- * A rule's picker lists the project's own Runners only - its default first,
- * tagged - and a rule may pick none: then it reads "No Runner", and a pick
- * can be cleared back to it. With no Runner to pick it stays drawn, empty,
- * with where one is added under it: a rule with no Runner is a rule that
- * works, not one that is broken.
+ * An AI rule's picker lists the project's own Runners - its default first,
+ * tagged - and the Global Runner, which is what a rule that picks none shows
+ * where the project uses global Runners and the server has one: on it,
+ * OneUptime AI runs no Bash commands - a shell never runs on a host every
+ * project shares - and the line under the picker says so, with the way to
+ * have them run on a Runner of the project's own. Where there is no Global
+ * Runner to show, a rule that picks none reads "No Runner", and a pick can
+ * be cleared back to it; with no Runner to pick it stays drawn, empty, with
+ * where one is added under it. Either way, a rule with no Runner of its own
+ * is a rule that works, not one that is broken.
  */
 
 export interface ComponentProps {
@@ -166,7 +177,9 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         label: `${translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)} · ${getStatusText(option)}`,
         description: isForCodeRepository
           ? CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION
-          : GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+          : isForRemediation
+            ? REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION
+            : GLOBAL_RUNNER_CHOICE_DESCRIPTION,
       };
     }
 
@@ -240,6 +253,17 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     : undefined;
 
   /*
+   * A rule may pick none. Where the Global Runner is listed, picking it is
+   * how: it stands for none, as a step's first choice does, so there is
+   * nothing to clear. Without it, clearing the pick is "No Runner".
+   */
+  const isRuleClearable: boolean =
+    isForRemediation &&
+    !model.options.some((option: RunnerPickerOption): boolean => {
+      return option.kind === RunnerPickerOptionKind.Global;
+    });
+
+  /*
    * Where a Runner is added, as a link: in a new tab, so the steps being
    * edited here stay as they are. The page that shows the picker reads the
    * Runners again when the person comes back to it
@@ -304,34 +328,57 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderHelperText: () => ReactNode = (): ReactNode => {
-    /*
-     * A rule that picked no Runner: the choice and the field's line say what
-     * that does. With no Runner to pick, where one is added.
-     */
-    if (model.outcome === RunnerPickerOutcome.NoRunner) {
-      if (
-        props.choices.projectRunners.length > 0 ||
-        props.choices.areProjectRunnersUnread
-      ) {
+  /*
+   * An AI rule's line (getRuleRunnerLine): on the Global Runner, that
+   * OneUptime AI's Bash commands do not run there and the way to have them
+   * run; on "No Runner" with nothing to pick, where a Runner is added; a
+   * pick the reader may not see, said so. Nothing where the box and the
+   * field's own line say it all.
+   */
+  const renderRuleHelperText: () => ReactNode = (): ReactNode => {
+    const line: RuleRunnerLine = getRuleRunnerLine({
+      model,
+      projectRunnerCount: props.choices.projectRunners.length,
+      areProjectRunnersUnread: props.choices.areProjectRunnersUnread,
+    });
+
+    switch (line) {
+      case RuleRunnerLine.GlobalRunnerPickOwn:
+        return translator.translateText(REMEDIATION_GLOBAL_RUNNER_PICK_TEXT);
+      case RuleRunnerLine.GlobalRunnerAddOwn:
+        return (
+          <TranslatedSentence
+            template={REMEDIATION_GLOBAL_RUNNER_ADD_TEMPLATE}
+            slots={{
+              location: runnersLocation,
+            }}
+          />
+        );
+      case RuleRunnerLine.GlobalRunner:
+        return translator.translateText(REMEDIATION_GLOBAL_RUNNER_TEXT);
+      case RuleRunnerLine.AddRunner:
+        return (
+          <TranslatedSentence
+            template={REMEDIATION_ADD_RUNNER_TEMPLATE}
+            slots={{
+              location: runnersLocation,
+            }}
+          />
+        );
+      case RuleRunnerLine.HiddenRunner:
+        return translator.translateText(REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT);
+      case RuleRunnerLine.None:
         return null;
+      default: {
+        const unhandled: never = line;
+        return unhandled;
       }
-
-      return (
-        <TranslatedSentence
-          template={REMEDIATION_ADD_RUNNER_TEMPLATE}
-          slots={{
-            location: runnersLocation,
-          }}
-        />
-      );
     }
+  };
 
-    if (
-      isForRemediation &&
-      model.outcome === RunnerPickerOutcome.UnknownRunner
-    ) {
-      return translator.translateText(REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT);
+  const renderHelperText: () => ReactNode = (): ReactNode => {
+    if (isForRemediation) {
+      return renderRuleHelperText();
     }
 
     /*
@@ -455,8 +502,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
                 ? REMEDIATION_NO_RUNNER_PLACEHOLDER
                 : "Select a Runner"
             }
-            // A rule may pick none: clearing its pick is "No Runner".
-            isClearable={isForRemediation}
+            // A rule may pick none: without a Global Runner, by clearing it.
+            isClearable={isRuleClearable}
             disabled={isForRemediation && options.length === 0}
             dataTestId={`${dataTestId}-dropdown`}
             ariaLabel="Runner"

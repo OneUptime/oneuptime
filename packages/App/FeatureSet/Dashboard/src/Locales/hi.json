@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "सुधार के पुल रिक्वेस्ट खोलें",
   "Open Telemetry Pull Requests": "टेलीमेट्री के पुल रिक्वेस्ट खोलें",
   "Telemetry pull requests": "टेलीमेट्री के पुल रिक्वेस्ट",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "इस नियम के लिए OneUptime AI Bash कमांड कहां चलाता है, आपके नेटवर्क के अंदर। प्रभावित क्लस्टर या होस्ट पर कमांड उसके AI एजेंट के ज़रिए चलते हैं।",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "किसी संकेतक का कॉन्फ़िडेंस उसका खतरा स्तर तय करता है: उसकी फ़ाइंडिंग की गंभीरता, और जब फ़ीड कोई गंभीरता तय न करे तो अलर्ट की गंभीरता।",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "हर मिलान वाला संकेतक एक केस खोलता है या खुले केस में जुड़ता है, एक अलर्ट खोलता है (खुला रहने तक डुप्लिकेट हटाकर), वैकल्पिक रूप से एक घटना, और एक थ्रेट इंटेल फ़ाइंडिंग दर्ज करता है।",
   "Read the source": "स्रोत पढ़ें",
@@ -34561,5 +34560,10 @@
   "{{done}} of {{count}} steps done_one": "{{count}} में से {{done}} चरण पूरा",
   "Available in the Rule Library": "Rule Library में उपलब्ध",
   "In the Rule Library": "Rule Library में",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "सेट होने पर, प्लेबुक केवल उन केस पर चलती है जिनका डिटेक्शन इनमें से किसी नियम से आया हो।"
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "सेट होने पर, प्लेबुक केवल उन केस पर चलती है जिनका डिटेक्शन इनमें से किसी नियम से आया हो।",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "इस नियम के लिए OneUptime AI Bash कमांड कहां चलाता है। प्रभावित क्लस्टर या होस्ट पर कमांड उसके AI एजेंट के ज़रिए चलते हैं।",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "OneUptime इसे हर प्रोजेक्ट के लिए चलाता है। OneUptime AI इस पर कोई Bash कमांड नहीं चलाता।",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI ग्लोबल Runner पर कोई Bash कमांड नहीं चलाता, जिसे हर प्रोजेक्ट साझा करता है। उन्हें चलाने के लिए अपने Runner में से कोई एक चुनें।",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI ग्लोबल Runner पर कोई Bash कमांड नहीं चलाता, जिसे हर प्रोजेक्ट साझा करता है। उन्हें चलाने के लिए {{location}} में एक Runner जोड़ें।",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI ग्लोबल Runner पर कोई Bash कमांड नहीं चलाता, जिसे हर प्रोजेक्ट साझा करता है।"
 }

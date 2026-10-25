@@ -43,6 +43,11 @@ import {
   GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT,
   PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT,
   STEP_NO_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT,
+  REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  REMEDIATION_NO_RUNNER_PLACEHOLDER,
+  RunnerPickerWork,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import { GLOBAL_RUNNER_CHOICE_ID } from "../../../Types/Runner/RunnerChoice";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -931,5 +936,146 @@ describe("what the picker loads", () => {
     );
 
     expect(loaded.projectUsesGlobalRunners).toBe(true);
+  });
+});
+
+/*
+ * "If there are no runners, it should use the global runner by default" -
+ * the maintainer, of an AI rule's Runner that read "No Runner". In a
+ * project with no Runner of its own, every Runner field opens on the Global
+ * Runner wherever global Runners can run its work, saying what runs there;
+ * where they cannot - a Bash, SSH or kubectl step, an AI rule's Bash
+ * commands - it says what happens instead and how to add a Runner, never
+ * running a shell on a host every project shares.
+ */
+describe("in a project with no Runner of its own, every Runner field", () => {
+  const NO_OWN_RUNNERS: RunnerChoices = {
+    projectRunners: [],
+    globalRunners: [
+      {
+        id: "bbbbbbbb-0000-4000-8000-000000000001",
+        name: "global-eu",
+        description: "",
+        liveStatus: RunnerLiveStatus.Connected,
+        runsRunbooks: true,
+      },
+    ],
+    projectUsesGlobalRunners: true,
+  };
+
+  const PICKER_TEST_ID: string = "runner-field";
+
+  function renderField(data: {
+    work?: RunnerPickerWork | undefined;
+    stepType: string;
+  }): void {
+    render(
+      <RunnerPicker
+        work={data.work}
+        stepType={data.stepType}
+        value=""
+        onChange={(next: string) => {
+          changes.push(next);
+        }}
+        choices={NO_OWN_RUNNERS}
+        isFormField={data.work !== undefined}
+        dataTestId={PICKER_TEST_ID}
+      />,
+    );
+  }
+
+  function fieldShown(): string {
+    return (
+      screen
+        .getByTestId(PICKER_TEST_ID)
+        .querySelector(".ou-select__single-value")?.textContent || ""
+    );
+  }
+
+  function fieldLine(): string {
+    return (
+      screen.getByTestId(`${PICKER_TEST_ID}-help`).textContent || ""
+    ).trim();
+  }
+
+  function fieldMenu(): Array<HTMLElement> {
+    fireEvent.keyDown(
+      within(screen.getByTestId(PICKER_TEST_ID)).getByRole("combobox"),
+      { key: "ArrowDown", code: "ArrowDown" },
+    );
+
+    return screen.getAllByRole("option");
+  }
+
+  test("a JavaScript step runs on the Global Runner, saying it reaches the internet only", () => {
+    renderField({ stepType: RunbookStepType.JavaScript });
+
+    expect(fieldShown()).toBe(`${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`);
+    expect(fieldLine()).toBe(
+      `Runs in a sandbox that reaches the internet only, for up to ${GLOBAL_RUNNER_MAX_MINUTES} minutes. To reach your network, pick one of your Runners.`,
+    );
+    expect(fieldMenu()[0]).toHaveTextContent(GLOBAL_RUNNER_CHOICE_DESCRIPTION);
+    expect(changes).toEqual([]);
+  });
+
+  for (const [stepType, stepTypeName, article] of [
+    [RunbookStepType.Bash, "Bash", "a"],
+    [RunbookStepType.SSH, "SSH", "an"],
+    [RunbookStepType.Kubernetes, "kubectl", "a"],
+  ] as Array<[string, string, string]>) {
+    test(`${article} ${stepTypeName} step never runs on it: one sentence says it needs a Runner of your own, and where to add one`, () => {
+      render(
+        <RunnerPicker
+          stepType={stepType}
+          stepTypeName={stepTypeName}
+          value=""
+          onChange={(next: string) => {
+            changes.push(next);
+          }}
+          choices={NO_OWN_RUNNERS}
+          dataTestId={PICKER_TEST_ID}
+        />,
+      );
+
+      const box: HTMLElement = screen.getByTestId(
+        `${PICKER_TEST_ID}-nothing-to-pick`,
+      );
+      expect(box).toHaveTextContent(
+        `${stepTypeName} steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under Runbooks › Runners, then pick it here.`,
+      );
+      // No menu to put the Global Runner in front of it.
+      expect(within(screen.getByTestId(PICKER_TEST_ID)).queryByRole("combobox")).toBeNull();
+    });
+  }
+
+  test("a code repository works on the Global Runner, saying it does not build or test the change", () => {
+    renderField({ work: RunnerPickerWork.CodeRepository, stepType: "" });
+
+    expect(fieldShown()).toBe(`${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`);
+    expect(fieldLine()).toBe(CODE_GLOBAL_RUNNER_HELPER_TEXT);
+    expect(fieldMenu()[0]).toHaveTextContent(
+      CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    );
+  });
+
+  test("an AI rule shows the Global Runner, saying OneUptime AI runs no Bash commands there, and where to add a Runner that will", () => {
+    renderField({ work: RunnerPickerWork.AutoRemediation, stepType: "" });
+
+    expect(fieldShown()).toBe(`${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`);
+    expect(fieldShown()).not.toContain(REMEDIATION_NO_RUNNER_PLACEHOLDER);
+    expect(fieldLine()).toBe(
+      "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under Runbooks › Runners to run them.",
+    );
+    expect(
+      within(screen.getByTestId(`${PICKER_TEST_ID}-help`)).getByRole("link", {
+        name: "Runbooks › Runners",
+      }),
+    ).toHaveAttribute("target", "_blank");
+    expect(fieldMenu()[0]).toHaveTextContent(
+      REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    );
+    // Never said to wait on it, as a step on it is: nothing of the rule's runs there.
+    expect(screen.queryByTestId(`${PICKER_TEST_ID}-global-waiting`)).toBeNull();
+    expect(changes).toEqual([]);
   });
 });

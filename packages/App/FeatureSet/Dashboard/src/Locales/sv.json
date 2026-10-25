@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "Öppna pull requests med korrigeringar",
   "Open Telemetry Pull Requests": "Öppna pull requests med telemetri",
   "Telemetry pull requests": "Pull requests med telemetri",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "Var OneUptime AI kör Bash-kommandon för den här regeln, inom ditt nätverk. Kommandon på det berörda klustret eller den berörda värden går via dess AI-agent.",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "En indikators konfidens bestämmer dess hotnivå: allvarlighetsgraden för dess fynd, och larmets allvarlighetsgrad när flödet inte anger någon.",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Varje matchande indikator öppnar ett ärende eller ansluter till det öppna, öppnar ett larm (deduplicerat medan det är öppet), eventuellt en incident, och registrerar ett hotunderrättelsefynd.",
   "Read the source": "Läs källan",
@@ -34561,5 +34560,10 @@
   "{{done}} of {{count}} steps done_one": "{{done}} av {{count}} steg klart",
   "Available in the Rule Library": "Tillgänglig i Rule Library",
   "In the Rule Library": "I Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "När de är valda körs playbooken bara på ärenden vars detektering kom från någon av de här reglerna."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "När de är valda körs playbooken bara på ärenden vars detektering kom från någon av de här reglerna.",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "Var OneUptime AI kör Bash-kommandon för den här regeln. Kommandon på det berörda klustret eller den berörda värden går via dess AI-agent.",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "Körs av OneUptime för alla projekt. OneUptime AI kör inga Bash-kommandon på den.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI kör inga Bash-kommandon på Global Runner, som alla projekt delar. Välj en av dina Runners för att köra dem.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI kör inga Bash-kommandon på Global Runner, som alla projekt delar. Lägg till en Runner under {{location}} för att köra dem.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI kör inga Bash-kommandon på Global Runner, som alla projekt delar."
 }

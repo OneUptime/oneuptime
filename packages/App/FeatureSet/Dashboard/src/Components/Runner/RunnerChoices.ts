@@ -132,33 +132,46 @@ export default class RunnerChoicesLoader {
   }
 
   /*
-   * An auto remediation rule's Runner picker: the project's own Runners a
-   * rule may pick for OneUptime AI's commands - never the in-cluster Runners
-   * the Kubernetes agent chart installed, which run kubectl for their own
-   * cluster only - and no global Runners: they never run OneUptime AI's
-   * commands, so the picker's first choice is no Runner at all
+   * An AI rule's Runner picker: the project's own Runners a rule may pick
+   * for OneUptime AI's commands - never the in-cluster Runners the
+   * Kubernetes agent chart installed, which run kubectl for their own
+   * cluster only - and, as for a step, the global Runners that run runbook
+   * steps and the project's switch for them. A rule that picks none shows
+   * the Global Runner where the project uses one: it runs none of the
+   * rule's commands - a shell never runs on a host every project shares - so
+   * picking it picks no Runner of the project's own
    * (RunnerPickerWork.AutoRemediation).
    *
-   * Someone who may change a rule but not read Runners is still shown the
-   * rule's choice: none, or a Runner they do not have access to.
+   * Each is read on its own: someone who may change a rule but not read
+   * Runners is still shown the rule's choice - the Global Runner, "No
+   * Runner", or a Runner they do not have access to.
    */
   public static async loadForRemediation(
     projectId: ObjectID,
   ): Promise<RunnerChoices> {
     let areProjectRunnersUnread: boolean = false;
 
-    const projectRunners: Array<RunnerPickerRunner> =
-      await RunnerChoicesLoader.loadProjectRunners(projectId, {
+    const [projectRunners, globalRunners, projectUsesGlobalRunners]: [
+      Array<RunnerPickerRunner>,
+      Array<GlobalRunnerRow>,
+      boolean,
+    ] = await Promise.all([
+      RunnerChoicesLoader.loadProjectRunners(projectId, {
         forCodeRepository: true,
       }).catch((): Array<RunnerPickerRunner> => {
         areProjectRunnersUnread = true;
         return [];
-      });
+      }),
+      RunnerChoicesLoader.loadGlobalRunners(),
+      RunnerChoicesLoader.loadProjectUsesGlobalRunners(projectId),
+    ]);
 
     return {
       projectRunners,
-      globalRunners: [],
-      projectUsesGlobalRunners: true,
+      globalRunners: globalRunners.filter((runner: GlobalRunnerRow) => {
+        return runner.runsRunbooks;
+      }),
+      projectUsesGlobalRunners,
       areProjectRunnersUnread,
     };
   }
