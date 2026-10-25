@@ -265,7 +265,12 @@ describe("criteria anywhere else (a monitor's Criteria page, a template)", () =>
     expect(expanded()).toEqual(["true", "true"]);
 
     for (const body of bodies()) {
-      expect(body).toHaveClass("max-h-[5000px]");
+      // Open, nothing caps its height.
+      expect(
+        Array.from(body.classList).filter((name: string): boolean => {
+          return name.startsWith("max-h-");
+        }),
+      ).toEqual([]);
       expect(body).not.toHaveClass("invisible");
       expect(body).toHaveAttribute("aria-hidden", "false");
     }
