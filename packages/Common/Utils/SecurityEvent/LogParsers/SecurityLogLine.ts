@@ -1,5 +1,10 @@
 import IP from "../../../Types/IP/IP";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import {
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+  SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+} from "../../../Types/SecurityCase/SecurityConnection";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   ocsfCategoryForClassUid,
@@ -40,6 +45,13 @@ export interface SecurityLogLine {
   logId?: string | undefined;
   // The service the log was sent under.
   serviceName?: string | undefined;
+  /*
+   * The record the log was sent under - its primary entity: a Service, a
+   * Host, a Kubernetes cluster... (Types/Telemetry/ServiceType) - so the
+   * event is connected to it exactly (Types/SecurityCase/SecurityConnection).
+   */
+  resourceId?: string | undefined;
+  resourceType?: string | undefined;
 }
 
 // The longest line a text parser reads; past it a line is cut, not skipped.
@@ -213,6 +225,18 @@ export function buildLogSecurityEvent(
 
   if (input.line.serviceName) {
     attributes["oneuptime.log.service"] = input.line.serviceName;
+  }
+
+  /*
+   * The record the log was sent under, when the log names one (a real id
+   * and its type): what connects the event to that host or service exactly.
+   */
+  const resourceId: string = (input.line.resourceId || "").trim();
+  const resourceType: string = (input.line.resourceType || "").trim();
+
+  if (resourceType && ObjectID.isValidUUID(resourceId)) {
+    attributes[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE] = resourceId;
+    attributes[SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE] = resourceType;
   }
 
   const recordSuffix: string =

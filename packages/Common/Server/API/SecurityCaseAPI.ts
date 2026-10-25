@@ -76,6 +76,23 @@ import {
   MAX_EVIDENCE_EVENTS,
   rerunInvestigationEvidence,
 } from "../Utils/AI/SRE/InvestigationEvidenceRerun";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import {
+  IncidentSecurityJson,
+  ResourceSecurityJson,
+  SECURITY_CONNECTION_MAX_ENTITIES,
+  SecurityConnectionKind,
+  SecurityConnectionsJson,
+} from "../../Types/SecurityCase/SecurityConnection";
+import {
+  SecurityEntity,
+  readSecurityEntities,
+} from "../../Types/SecurityCase/SecurityEntity";
+import { SecurityLogResource } from "../../Utils/SecurityCase/SecurityConnectionMatch";
+import SecurityConnections from "../Utils/SecurityEvent/Connections/SecurityConnections";
+import { getLogResourceKind } from "../Utils/SecurityEvent/Connections/SecurityConnectedRecords";
+import ResourceSecurity from "../Utils/SecurityEvent/Connections/ResourceSecurity";
+import IncidentSecurity from "../Utils/SecurityEvent/Connections/IncidentSecurity";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -117,6 +134,58 @@ function readBody(req: ExpressRequest): JSONObject {
     : {};
 }
 
+// A time a request names, or nothing when it names none a person could mean.
+export function readOptionalDate(value: JSONValue | undefined): Date | undefined {
+  if (typeof value !== "string" || !value.trim() || value.length > 64) {
+    return undefined;
+  }
+
+  const date: Date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+// The most log resources a request may name (an event has one).
+export const MAX_REQUEST_LOG_RESOURCES: number = 5;
+
+/*
+ * The records an event's log lines were sent under, as a request names them:
+ * each a kind of record the connections know and a real id, at most a few.
+ */
+export function readLogResources(
+  value: JSONValue | undefined,
+): Array<SecurityLogResource> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const resources: Array<SecurityLogResource> = [];
+
+  for (const item of value) {
+    if (resources.length >= MAX_REQUEST_LOG_RESOURCES) {
+      break;
+    }
+
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const type: unknown = (item as JSONObject)["type"];
+    const id: unknown = (item as JSONObject)["id"];
+
+    if (
+      typeof type === "string" &&
+      typeof id === "string" &&
+      getLogResourceKind(type) &&
+      ObjectID.isValidUUID(id)
+    ) {
+      resources.push({ type, id });
+    }
+  }
+
+  return resources;
+}
+
 function readWholeNumber(
   value: JSONValue | undefined,
   fallback: number,
@@ -143,6 +212,13 @@ function readWholeNumber(
  *   POST /security-case/overview           the overview's figures
  *   POST /security-case/entity-activity    how active some values have been
  *   POST /security-case/top-entities       the values the findings name most
+ *   POST /security-case/connections        what a case or an event names in
+ *                                          the rest of OneUptime (Connected
+ *                                          Signals)
+ *   POST /security-case/resource-security  what Security Events says about a
+ *                                          host, cluster, service or member
+ *   POST /security-case/incident-security  the cases behind an incident and
+ *                                          naming what it affects
  *   POST /security-case/:caseId/declare-incident
  *   POST /security-case/setup/status       how security is set up
  *   POST /security-case/setup/turn-on-recommended
@@ -291,6 +367,182 @@ export default class SecurityCaseAPI extends BaseAPI<
               },
             ),
           });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Connected Signals: what a case - or an event's or an entity's values -
+     * names in the rest of OneUptime, and what is happening on it. Takes the
+     * right to read security events; every record and fact is then read with
+     * the caller's own permissions (a kind they cannot read is said to be).
+     */
+    this.router.post(
+      `${basePath}/connections`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          this.assertCanReadSecurityEvents(props);
+
+          const body: JSONObject = readBody(req);
+          const caseId: JSONValue | undefined = body["caseId"];
+
+          if (caseId !== undefined && caseId !== null) {
+            if (typeof caseId !== "string" || !ObjectID.isValidUUID(caseId)) {
+              throw new BadDataException("A valid case ID is required.");
+            }
+
+            const connections: SecurityConnectionsJson | null =
+              await SecurityConnections.forCase({
+                projectId,
+                securityCaseId: new ObjectID(caseId),
+                props,
+              });
+
+            if (!connections) {
+              throw new NotFoundException("This case could not be found.");
+            }
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              connections as unknown as JSONObject,
+            );
+          }
+
+          const entities: Array<SecurityEntity> = readSecurityEntities(
+            body["entities"],
+          ).slice(0, SECURITY_CONNECTION_MAX_ENTITIES);
+          const time: Date | undefined = readOptionalDate(body["time"]);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            (await SecurityConnections.forEntities({
+              projectId,
+              entities,
+              time,
+              logResources: readLogResources(body["logResources"]),
+              readLogResources: body["readLogResources"] === true,
+              props,
+            })) as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * A record's Security card: what Security Events says about one of the
+     * project's hosts, clusters, devices, services or members. Takes the
+     * right to read security events, and the right to read the record.
+     */
+    this.router.post(
+      `${basePath}/resource-security`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          this.assertCanReadSecurityEvents(props);
+
+          const body: JSONObject = readBody(req);
+          const kind: JSONValue | undefined = body["kind"];
+          const id: JSONValue | undefined = body["id"];
+
+          if (
+            typeof kind !== "string" ||
+            !(Object.values(SecurityConnectionKind) as Array<string>).includes(
+              kind,
+            )
+          ) {
+            throw new BadDataException("Name the kind of record to read.");
+          }
+
+          if (typeof id !== "string" || !ObjectID.isValidUUID(id)) {
+            throw new BadDataException("A valid record ID is required.");
+          }
+
+          const security: ResourceSecurityJson | null =
+            await ResourceSecurity.read({
+              projectId,
+              kind: kind as SecurityConnectionKind,
+              id: new ObjectID(id),
+              props,
+            });
+
+          if (!security) {
+            throw new NotFoundException("This record could not be found.");
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            security as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    // An incident's Security card: the case that declared it, and the cases naming what it affects.
+    this.router.post(
+      `${basePath}/incident-security`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityCase,
+            props,
+            errorMessage:
+              "Reading security cases takes a Security role, or Project Owner or Project Admin.",
+          });
+
+          const incidentId: JSONValue | undefined = readBody(req)["incidentId"];
+
+          if (
+            typeof incidentId !== "string" ||
+            !ObjectID.isValidUUID(incidentId)
+          ) {
+            throw new BadDataException("A valid incident ID is required.");
+          }
+
+          const security: IncidentSecurityJson | null =
+            await IncidentSecurity.read({
+              projectId,
+              incidentId: new ObjectID(incidentId),
+              props,
+            });
+
+          if (!security) {
+            throw new NotFoundException("This incident could not be found.");
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            security as unknown as JSONObject,
+          );
         } catch (error) {
           next(error);
         }

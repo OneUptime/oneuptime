@@ -4,6 +4,7 @@ import FeedMarkdown, {
   mdText,
 } from "../Markdown/FeedMarkdown";
 import { describeMitreId } from "../../Types/SecurityEvent/MitreAttack";
+import { SecurityConnectionKind } from "../../Types/SecurityCase/SecurityConnection";
 import { SecurityEntity } from "../../Types/SecurityCase/SecurityEntity";
 import { isStixIndicatorId } from "../../Types/SecurityEvent/ThreatIntelConstants";
 
@@ -111,6 +112,44 @@ export function incidentDeclaredMarkdown(data: {
   }
 
   return mdText`🚨 Declared incident **${data.incidentNumber}**${byPlaybook(data.playbookName)}.`;
+}
+
+// What a connected record is called in a sentence: "Host web-1".
+export const SECURITY_CONNECTION_KIND_NOUNS: Readonly<
+  Record<SecurityConnectionKind, string>
+> = {
+  [SecurityConnectionKind.Host]: "Host",
+  [SecurityConnectionKind.DockerHost]: "Docker host",
+  [SecurityConnectionKind.PodmanHost]: "Podman host",
+  [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
+  [SecurityConnectionKind.NetworkDevice]: "Network device",
+  [SecurityConnectionKind.Service]: "Service",
+  [SecurityConnectionKind.User]: "Member",
+};
+
+/*
+ * The first line of an incident a case declared, on the incident's feed:
+ * which case, and the records of the project the incident was linked to
+ * because the case names them exactly.
+ */
+export function incidentDeclaredFromCaseMarkdown(data: {
+  caseNumber: string;
+  caseUrl: string;
+  linked: ReadonlyArray<{ kind: SecurityConnectionKind; name: string }>;
+}): MarkdownText {
+  const declared: MarkdownText = mdText`🛡️ Declared from security case [${data.caseNumber}](${data.caseUrl}).`;
+
+  if (data.linked.length === 0) {
+    return declared;
+  }
+
+  return mdText`${declared} Linked to what it names: ${FeedMarkdown.join(
+    data.linked.map(
+      (record: { kind: SecurityConnectionKind; name: string }): MarkdownText => {
+        return mdText`${SECURITY_CONNECTION_KIND_NOUNS[record.kind] || "Record"} **${record.name}**`;
+      },
+    ),
+  )}.`;
 }
 
 export interface SecurityCaseSummaryInput {

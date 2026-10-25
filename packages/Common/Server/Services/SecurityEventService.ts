@@ -8,7 +8,14 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  TimeoutOverflowMode,
+  getQuerySettings,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+  SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+} from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 
@@ -100,6 +107,39 @@ export interface EntityFindingSummary {
 
 // Findings: OCSF Detection Finding and Incident Finding.
 export const SECURITY_FINDING_CLASS_UIDS: Array<number> = [2004, 2005];
+
+/*
+ * How long the reads behind Security Events' connections may run - a case's
+ * Connected Signals, a resource page's Security card - and how they stop: a
+ * person is waiting, so a quarter of a minute, and 'throw', so a read that
+ * runs out of time fails as exactly that rather than answering "nothing".
+ */
+export const SECURITY_CONNECTION_READ_TIME_LIMIT: Readonly<{
+  maxExecutionTimeInSeconds: number;
+  timeoutOverflowMode: TimeoutOverflowMode;
+}> = {
+  maxExecutionTimeInSeconds: 15,
+  timeoutOverflowMode: "throw",
+};
+
+/*
+ * How many security events named a record over a window: the Security card
+ * on its page. The findings among them, the worst severity and when the
+ * latest was.
+ */
+export interface SecurityEventsNamingSummary {
+  eventCount: number;
+  findingCount: number;
+  maxSeverityId: number;
+  lastSeen: Date | null;
+}
+
+// A record a "Your logs" event's log line was sent under, and how many events say so.
+export interface SecurityEventLogResource {
+  type: string;
+  id: string;
+  eventCount: number;
+}
 
 // The most values one activity lookup reads.
 export const OBSERVABLE_ACTIVITY_MAX_VALUES: number = 50;
@@ -468,6 +508,229 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
         };
       },
     );
+  }
+
+  /*
+   * How many events named any of these values, or were read from this
+   * record's logs, over a window: a resource page's Security card. The
+   * values are matched as stored, in the spellings given (the caller passes
+   * the usual casings - getObservableSearchValues), so the bloom index on
+   * the observables narrows the scan; the log record by the attribute "Your
+   * logs" events carry, which only they have, so its keys' index skips the
+   * rest.
+   */
+  public async countEventsNaming(data: {
+    projectId: ObjectID;
+    values: Array<string>;
+    // The record's id, matched against the log resource of "Your logs" events.
+    logResourceId?: ObjectID | undefined;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<SecurityEventsNamingSummary> {
+    const values: Array<string> = Array.from(
+      new Set(
+        data.values
+          .map((value: string): string => {
+            return value.trim();
+          })
+          .filter((value: string): boolean => {
+            return value.length > 0;
+          }),
+      ),
+    ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
+
+    if (values.length === 0 && !data.logResourceId) {
+      return { eventCount: 0, findingCount: 0, maxSeverityId: 0, lastSeen: null };
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT count() AS eventCount, countIf(classUid IN (2004, 2005)) AS findingCount, max(severityId) AS maxSeverityId, max(time) AS lastSeen FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND (`,
+    );
+
+    if (values.length > 0) {
+      statement.append(
+        SQL`hasAny(observables, ${{
+          type: TableColumnType.ArrayText,
+          value: values,
+        }})`,
+      );
+    }
+
+    if (data.logResourceId) {
+      if (values.length > 0) {
+        statement.append(" OR ");
+      }
+
+      statement.append(
+        SQL`(has(attributeKeys, ${{
+          type: TableColumnType.Text,
+          value: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+        }}) AND attributes[${{
+          type: TableColumnType.Text,
+          value: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+        }}] = ${{
+          type: TableColumnType.Text,
+          value: data.logResourceId.toString(),
+        }})`,
+      );
+    }
+
+    statement.append(")");
+    statement.append(getQuerySettings(SECURITY_CONNECTION_READ_TIME_LIMIT));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const row: JSONObject = (response.data || [])[0] || {};
+    const eventCount: number = Number(row["eventCount"] || 0);
+
+    return {
+      eventCount,
+      findingCount: Number(row["findingCount"] || 0),
+      maxSeverityId: eventCount > 0 ? Number(row["maxSeverityId"] || 0) : 0,
+      // An empty window's max(time) is the epoch, not a time anything was seen.
+      lastSeen: eventCount > 0 ? readDate(row["lastSeen"]) : null,
+    };
+  }
+
+  /*
+   * The records the log lines behind events naming these values were sent
+   * under ("Your logs" events say), the most named first: a case's
+   * connection to the very host or service whose logs it was found in.
+   */
+  public async findLogResourcesNaming(data: {
+    projectId: ObjectID;
+    values: Array<string>;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+  }): Promise<Array<SecurityEventLogResource>> {
+    const values: Array<string> = Array.from(
+      new Set(
+        data.values
+          .map((value: string): string => {
+            return value.trim();
+          })
+          .filter((value: string): boolean => {
+            return value.length > 0;
+          }),
+      ),
+    ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
+
+    if (values.length === 0) {
+      return [];
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+    }}] AS resourceType, attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+    }}] AS resourceId, count() AS eventCount FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND hasAny(observables, ${{
+        type: TableColumnType.ArrayText,
+        value: values,
+      }}) AND has(attributeKeys, ${{
+        type: TableColumnType.Text,
+        value: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+      }}) GROUP BY resourceType, resourceId ORDER BY eventCount DESC, resourceId ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.min(100, Math.trunc(data.limit))),
+      }}`,
+    );
+    statement.append(getQuerySettings(SECURITY_CONNECTION_READ_TIME_LIMIT));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || [])
+      .map((row: JSONObject): SecurityEventLogResource => {
+        return {
+          type: String(row["resourceType"] ?? "").trim(),
+          id: String(row["resourceId"] ?? "").trim(),
+          eventCount: Number(row["eventCount"] || 0),
+        };
+      })
+      .filter((resource: SecurityEventLogResource): boolean => {
+        return Boolean(resource.type) && ObjectID.isValidUUID(resource.id);
+      });
+  }
+
+  /*
+   * Whether the project has any security event since this time: a project
+   * that does not use Security Events is shown nothing about it on its other
+   * pages. One row read at most, from the start of the project's range.
+   */
+  public async hasEventsSince(data: {
+    projectId: ObjectID;
+    startTime: Date;
+  }): Promise<boolean> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT 1 AS found FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} LIMIT 1`,
+    );
+    statement.append(getQuerySettings(SECURITY_CONNECTION_READ_TIME_LIMIT));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []).length > 0;
   }
 }
 

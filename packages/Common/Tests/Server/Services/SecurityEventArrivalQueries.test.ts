@@ -176,7 +176,7 @@ describe("LogService.findSecurityLogCandidates", () => {
     const query: string = statement.query;
 
     expect(query).toContain(
-      `SELECT _id, time, createdAt, primaryEntityId, attributes, substring(body, 1, {p0:Int32}) AS body FROM oneuptime.${LogService.model.tableName} WHERE projectId = {p1:String}`,
+      `SELECT _id, time, createdAt, primaryEntityId, primaryEntityType, attributes, substring(body, 1, {p0:Int32}) AS body FROM oneuptime.${LogService.model.tableName} WHERE projectId = {p1:String}`,
     );
     expect(query).toContain("AND createdAt > {p3:DateTime}");
     expect(query).toContain("AND createdAt <= {p4:DateTime}");
