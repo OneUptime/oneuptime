@@ -6,6 +6,8 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
@@ -46,6 +48,7 @@ type PageFilter = "all" | "unacknowledged";
 export default function MyOnCallPagesScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { lightImpact, selectionFeedback } = useHaptics();
   const navigation: MyPagesNavProp = useNavigation<MyPagesNavProp>();
 
@@ -156,6 +159,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: spacing.xl,
+            ...gutters,
             paddingBottom: bottomPadding,
           }}
         >
@@ -176,6 +180,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: spacing.xl,
+          ...gutters,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -210,6 +215,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       refreshControl={

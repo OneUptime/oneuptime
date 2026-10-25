@@ -12,6 +12,7 @@ import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { getScreenBottomPadding } from "../theme/layout";
 import { radius } from "../theme/tokens";
+import { SHEET_MAX_WIDTH } from "../layout/windowLayout";
 import type { ProjectUserItem } from "../api/types";
 
 let mockColorScheme: "light" | "dark" = "light";
@@ -427,6 +428,30 @@ describe("UserPickerModal sheet", () => {
     const list: Record<string, unknown> = flatStyle("user-picker-list");
     expect(list.backgroundColor).toBe(lightColors.backgroundElevated);
     expect(list.borderRadius).toBe(radius.lg);
+  });
+
+  test("on a wide window the sheet stops at 640 points and sits in the middle", async (): Promise<void> => {
+    /*
+     * An unfolded foldable or a tablet: a teammate list stretched across the
+     * whole screen is hard to scan, and a centred sheet is what large-screen
+     * bottom sheets look like on both platforms.
+     */
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    const sheet: Record<string, unknown> = flatStyle("user-picker-sheet");
+    expect(sheet.width).toBe("100%");
+    expect(sheet.maxWidth).toBe(SHEET_MAX_WIDTH);
+    expect(sheet.alignSelf).toBe("center");
   });
 
   test("dark mode swaps the scrim and sheet for the dark tokens", async (): Promise<void> => {

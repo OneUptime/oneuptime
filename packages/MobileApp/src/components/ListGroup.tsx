@@ -102,6 +102,11 @@ export interface ListItemProps {
   destructive?: boolean;
   onPress?: () => void;
   showChevron?: boolean;
+  /**
+   * What the row opens is showing in the detail pane beside this list, on a
+   * window wide enough for both. Drawn on the soft accent fill.
+   */
+  selected?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   selectableValue?: boolean;
@@ -119,6 +124,7 @@ export function ListItem({
   destructive = false,
   onPress,
   showChevron,
+  selected = false,
   accessibilityLabel,
   accessibilityHint,
   selectableValue,
@@ -194,12 +200,16 @@ export function ListItem({
        * the current setting ("System", a server address) is never read out.
        */
       accessibilityValue={value ? { text: value } : undefined}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={onPress}
       style={({ pressed }: { pressed: boolean }): ViewStyle => {
         return {
-          backgroundColor: pressed
-            ? theme.colors.backgroundTertiary
-            : "transparent",
+          backgroundColor: selected
+            ? theme.colors.cardAccent
+            : pressed
+              ? theme.colors.backgroundTertiary
+              : "transparent",
         };
       }}
     >

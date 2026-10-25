@@ -311,6 +311,26 @@ const readFailure = READ_FAILURES.includes(params.get("fail"))
   ? params.get("fail")
   : "";
 /*
+ * ?ranked=: how much the Overview's ranked lists hold, beside the queue of
+ * open cases (always the project's priorities and open statuses) and the
+ * four verdicts - for the rows of cards of different heights:
+ *
+ *   (none given)  the month as it is: six rules, eight tactics, eight
+ *                 entities - every list long
+ *   short         a quieter month, as the maintainer's own Overview read:
+ *                 two rules raised the detections, two tactics are behind
+ *                 the cases, two entities were named
+ *   none          nothing to rank: no rule, tactic or entity, so each of
+ *                 those cards says so
+ */
+const RANKED_SCENARIOS = { short: 2, none: 0 };
+const rankedLimit = Object.prototype.hasOwnProperty.call(
+  RANKED_SCENARIOS,
+  params.get("ranked"),
+)
+  ? RANKED_SCENARIOS[params.get("ranked")]
+  : null;
+/*
  * ?data=: what the project's security events say it sends, as the Rule
  * Library reads them (one grouped count over the last week):
  *
@@ -2166,6 +2186,12 @@ function overview() {
     now: NOW,
   });
 
+  // ?ranked=short|none: the month's most-raised rules and tactics cut short.
+  if (rankedLimit !== null) {
+    metrics.topRules = metrics.topRules.slice(0, rankedLimit);
+    metrics.topTactics = metrics.topTactics.slice(0, rankedLimit);
+  }
+
   return {
     generatedAt: NOW.toISOString(),
     caseWindowInDays: 30,
@@ -2472,7 +2498,11 @@ function topEntities(body) {
   if (!hasHistory) {
     return { entities: [] };
   }
-  const limit = Number(body?.limit || 10);
+  // ?ranked=short|none: fewer entities named, as the quieter month has.
+  const limit = Math.min(
+    Number(body?.limit || 10),
+    rankedLimit === null ? TOP_ENTITIES.length : rankedLimit,
+  );
   return {
     entities: TOP_ENTITIES.slice(0, limit).map(
       ([value, findingCount, ruleCount, maxSeverityId, minutesAgo]) => {

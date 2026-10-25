@@ -575,3 +575,56 @@ describe("In dark mode", () => {
     });
   });
 });
+
+describe("A row whose screen is open beside the list", () => {
+  /*
+   * On a wide window a menu (the on-call overview) sits on the left and the
+   * screen a row opens is on the right. That row is marked, and says so.
+   */
+  test("is selected and sits on the soft accent fill", async () => {
+    await render(
+      <ListItem title="Pages sent to me" selected onPress={() => {}} />,
+    );
+
+    const row: RenderedElement = screen.getByRole("button", {
+      name: "Pages sent to me",
+    });
+    expect(row).toBeSelected();
+    expect(row).toHaveStyle({ backgroundColor: lightColors.cardAccent });
+  });
+
+  test("every other row is not", async () => {
+    await render(<ListItem title="My on-call policies" onPress={() => {}} />);
+
+    const row: RenderedElement = screen.getByRole("button", {
+      name: "My on-call policies",
+    });
+    expect(row).not.toBeSelected();
+    expect(row).toHaveStyle({ backgroundColor: "transparent" });
+  });
+
+  test("can drop its chevron, because it opens on the right rather than on a new screen", async () => {
+    await render(
+      <ListItem
+        title="Coverage & overrides"
+        showChevron={false}
+        onPress={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText(glyphFor("chevron-forward"))).toBeNull();
+  });
+
+  test("uses the dark accent fill in dark mode", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <ListItem title="Pages sent to me" selected onPress={() => {}} />
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Pages sent to me" }),
+    ).toHaveStyle({ backgroundColor: darkColors.cardAccent });
+  });
+});

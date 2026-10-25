@@ -209,6 +209,8 @@ npm run compile
 npx expo-doctor
 npm run test-file -- --watch=false --runTestsByPath \
   src/__tests__/appConfig.test.ts \
+  src/__tests__/foldableAppConfig.test.ts \
+  src/navigation/FoldContinuity.integration.test.tsx \
   src/api/authServerUrl.test.ts \
   src/api/clientRefreshQueue.test.ts \
   src/api/sso.test.ts \
@@ -314,6 +316,51 @@ showed every service available. Answering **No** to reuse and **Yes** to
 _Generate a new Apple Provisioning Profile_ created a working profile through
 the current API. The old, invalid profile remains in the portal and is no
 longer used by EAS.
+
+### Foldables: Xcode 27.1, the scene life cycle and Android continuity
+
+Since the foldables release (October 2026) two build settings matter for
+every iOS release, and both are pinned by `src/__tests__/foldableAppConfig.test.ts`:
+
+- `eas.json`'s `production` profile builds on the EAS image
+  `macos-tahoe-26.6-xcode-27.1`. Only apps built with the **iOS 27.1 SDK** or
+  later fill the **iPhone Duo**'s inner screen; older builds are shown at
+  phone size in the middle of it, with empty space around them. Xcode 27.1 was
+  a release candidate on EAS when this was set; Apple accepts RC builds. Keep
+  the image pinned (not `latest`) so a release is reproducible, and move it
+  forward deliberately.
+- `app.json` turns on `expo-build-properties`' `ios.enableSceneSupport`. The
+  iOS 27 SDK requires the UIKit scene life cycle: an app built with Xcode 27
+  **without** it does not launch on iOS 27. The plugin moves React Native's
+  start-up into Expo's scene delegate (`EXExpoAppSceneDelegate`) and adds the
+  scene manifest to Info.plist. SDK 58 does this by itself; remove the option
+  when the app moves to SDK 58.
+
+Before submitting the first build made this way, smoke-test on iOS 27 (a
+device, or the iPhone Duo simulator in Xcode 27.1's Device Hub) the paths the
+scene life cycle carries: a cold start from a tapped push notification, an
+on-call page arriving while the app is open, single sign-on returning to the
+app, the critical alert sound, and the biometric lock. Then fold and unfold
+the iPhone Duo simulator with an incident open and a note half-written: both
+must survive. If anything there fails, the fallback is to build on the
+`sdk-57` image (Xcode 26.6) - the app keeps working, letterboxed on the
+iPhone Duo - while the problem is fixed.
+
+On Android, `plugins/withFoldableContinuity.js` adds `density` to the main
+activity's `configChanges` (Expo's template already handles orientation, size
+and layout changes) and states `resizeableActivity`. Without `density`,
+unfolding a foldable whose screens differ in density restarts the activity
+and loses everything on screen. Check the built AAB's manifest for both
+(`bundletool dump manifest`), and on a Galaxy Z Fold or the Android Studio
+foldable emulator fold and unfold with an incident and a half-written note
+open.
+
+**Store listings.** iPhone Duo screenshots (outer display 1398 × 2034, inner
+display 2007 × 2853 pixels, portrait) are optional today and earn the product
+page an "Optimized for iPhone Duo" badge; from April 2027 they are required for
+apps built with the iOS 27.1 SDK. Take them in the iPhone Duo simulator. On
+Google Play, add tablet screenshots (7- and 10-inch) from a foldable or tablet
+emulator so the listing shows the two-pane layout.
 
 ## 5. Publish Android through Play Console
 

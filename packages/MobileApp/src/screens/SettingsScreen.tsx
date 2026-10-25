@@ -32,6 +32,8 @@ import { useCriticalAlertSoundChoice } from "../hooks/useCriticalAlertSoundChoic
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { getServerUrl } from "../storage/serverUrl";
 import AppText from "../components/AppText";
 import Card from "../components/Card";
@@ -312,6 +314,7 @@ export default function SettingsScreen(): React.JSX.Element {
     useOnCallCalendarFeedAvailability();
   const { selectionFeedback } = useHaptics();
   const paddingBottom: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const [serverUrl, setServerUrlState] = useState("");
 
   useEffect(() => {
@@ -372,6 +375,7 @@ export default function SettingsScreen(): React.JSX.Element {
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom,
         gap: spacing.xxl,
       }}

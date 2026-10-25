@@ -5,6 +5,10 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import {
+  CARD_GRID_GAP_IN_PX,
+  getCardGridColumnsAt,
+} from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
 
@@ -831,4 +835,181 @@ test("German readers on the free plan read the plan in German", async ({
   await expect(planNote(page).getByRole("link")).toHaveText(
     "Tarif in den Abrechnungseinstellungen upgraden",
   );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A network with devices: the Overview's rows of cards
+ * ---------------------------------------------------------------------------
+ *
+ * "Gap between cards dont look nice. Please fix it." - the maintainer, of
+ * cards of different heights side by side. The Overview's four lists - the
+ * devices and the sites needing attention, the fleet by vendor and the recent
+ * scans - are a CardGrid: two by two where the page has the room, each row
+ * ending on one line however long either list is, and a list with nothing in
+ * it saying so in the middle of its card.
+ */
+interface NetworkOverviewCell {
+  title: string;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  // Where the card's own frame - its border - ends.
+  frameBottom: number;
+}
+
+test("a busy network's four lists end on one line two by two, and one above the other where there is no room, light and dark", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const ACROSS: Record<number, number> = {
+    1440: 2,
+    1280: 2,
+    1024: 1,
+    768: 1,
+    390: 1,
+  };
+  const TITLES: Array<string> = [
+    "Devices needing attention",
+    "Sites needing attention",
+    "Fleet by vendor",
+    "Recent discovery scans",
+  ];
+
+  for (const width of [1440, 1280, 1024, 768, 390]) {
+    for (const theme of ["", "&theme=dark"]) {
+      await page.setViewportSize({ width: width, height: 900 });
+      await open(page, `devices=6&probes=connected&lists=busy${theme}`);
+      await expect(page.getByText("core-switch-01")).toBeVisible();
+      await expect(
+        page.getByText(
+          "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
+        ),
+      ).toBeVisible();
+
+      const label: string = `${width}px${theme}`;
+      const rows: {
+        left: number;
+        right: number;
+        cells: Array<NetworkOverviewCell>;
+      } = await page
+        .getByTestId("network-overview-cards")
+        .evaluate((container: Element) => {
+          const grid: Element = container.firstElementChild as Element;
+          const box: DOMRect = grid.getBoundingClientRect();
+
+          return {
+            left: box.left,
+            right: box.right,
+            cells: Array.from(grid.children).map((cell: Element) => {
+              const cellBox: DOMRect = cell.getBoundingClientRect();
+              const frame: Element = cell.querySelector(
+                '[data-testid="card"] > div',
+              ) as Element;
+
+              return {
+                title: (
+                  cell.querySelector('[data-testid="card-details-heading"]')
+                    ?.textContent || ""
+                ).trim(),
+                top: Math.round(cellBox.top),
+                left: Math.round(cellBox.left),
+                right: Math.round(cellBox.right),
+                bottom: Math.round(cellBox.bottom),
+                frameBottom: Math.round(frame.getBoundingClientRect().bottom),
+              };
+            }),
+          };
+        });
+
+      expect([
+        label,
+        rows.cells.map((cell: NetworkOverviewCell): string => {
+          return cell.title;
+        }),
+      ]).toEqual([label, TITLES]);
+      expect([
+        label,
+        getCardGridColumnsAt(
+          { columns: 2, cardWidth: "wide" },
+          rows.right - rows.left,
+        ),
+      ]).toEqual([label, ACROSS[width]]);
+
+      const across: number = ACROSS[width]!;
+
+      for (let index: number = 0; index < rows.cells.length; index += across) {
+        const line: Array<NetworkOverviewCell> = rows.cells.slice(
+          index,
+          index + across,
+        );
+        const bottom: number = Math.max(
+          ...line.map((cell: NetworkOverviewCell): number => {
+            return cell.bottom;
+          }),
+        );
+
+        for (const cell of line) {
+          // On one line, each card's frame to the row's bottom.
+          expect([
+            label,
+            cell.title,
+            cell.top - line[0]!.top,
+            bottom - cell.frameBottom,
+          ]).toEqual([label, cell.title, 0, 0]);
+        }
+        // From the grid's left edge to its right, the grid's 20px between.
+        expect([
+          label,
+          line[0]!.left - Math.round(rows.left),
+          Math.round(rows.right) - line[line.length - 1]!.right,
+          line.length > 1
+            ? line[1]!.left - line[0]!.right
+            : CARD_GRID_GAP_IN_PX,
+        ]).toEqual([label, 0, 0, CARD_GRID_GAP_IN_PX]);
+        // And 20px under the row above.
+        if (index > 0) {
+          const above: number = Math.max(
+            ...rows.cells
+              .slice(index - across, index)
+              .map((cell: NetworkOverviewCell): number => {
+                return cell.bottom;
+              }),
+          );
+          expect([label, line[0]!.top - above]).toEqual([
+            label,
+            CARD_GRID_GAP_IN_PX,
+          ]);
+        }
+      }
+
+      expect(await scrollsSideways(page)).toBe(false);
+    }
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, "devices=6&probes=connected&lists=busy");
+  await expect(page.getByText("core-switch-01")).toBeVisible();
+  // A list with nothing in it says so in the middle of its card.
+  const scans: Locator = page.getByTestId("card").filter({
+    has: page.getByRole("heading", {
+      name: "Recent discovery scans",
+      exact: true,
+    }),
+  });
+  const card: { y: number; height: number } | null = await scans.boundingBox();
+  const header: { y: number; height: number } | null = await scans
+    .getByTestId("card-header")
+    .boundingBox();
+  const words: { y: number; height: number } | null = await scans
+    .getByText(
+      "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
+    )
+    .boundingBox();
+  const room: number =
+    (header!.y + header!.height + card!.y + card!.height) / 2;
+  expect(Math.abs(words!.y + words!.height / 2 - room)).toBeLessThanOrEqual(24);
+  await screenshot(page, "network-overview-busy");
 });

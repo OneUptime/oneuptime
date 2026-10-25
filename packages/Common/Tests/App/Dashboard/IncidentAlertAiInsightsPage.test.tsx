@@ -32,6 +32,8 @@ import IncidentAIInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/I
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { CARD_GRID_CELL_TEST_ID } from "../../../UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "../../../UI/Components/Card/CardGridLayout";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -926,6 +928,41 @@ describe.each(
       expect(
         screen.getByTestId("ai-insights-services-empty"),
       ).toHaveTextContent("No service came up more than once.");
+    });
+
+    /*
+     * The monitors and the services that keep failing are a row of cards
+     * (CardGrid): side by side once each has room for its names, the
+     * shorter list's card as tall as the other, and an empty one saying
+     * so in the middle of its card.
+     */
+    test("the monitors and the services are the two cards of one row, each filling its cell", async () => {
+      serve(ok(insights(product, { services: [] })));
+      openPage(product);
+
+      const row: HTMLElement = await findTestId("ai-insights-hotspots");
+
+      expect(row).toHaveAttribute("data-columns", "2");
+      expect(row).toHaveAttribute("data-card-width", "narrow");
+      const cells: Array<HTMLElement> = within(row).getAllByTestId(
+        CARD_GRID_CELL_TEST_ID,
+      );
+      expect(
+        cells.map((cell: HTMLElement): string => {
+          return (
+            within(cell).getByTestId("card-details-heading").textContent || ""
+          );
+        }),
+      ).toEqual(["Monitors that keep failing", "Services that keep failing"]);
+      for (const cell of cells) {
+        expect(within(cell).getByTestId("card")).toHaveAttribute(
+          "data-fill-height",
+          "true",
+        );
+      }
+      expect(screen.getByTestId("ai-insights-services-empty")).toHaveClass(
+        ...CARD_GRID_CENTERED_STATE_CLASS_NAME.split(" "),
+      );
     });
 
     describe("what OneUptime AI did: the footnote", () => {
