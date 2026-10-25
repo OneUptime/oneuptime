@@ -229,7 +229,7 @@ describe("what an entry holds", () => {
         query: { _id: ROW_ID },
         data: { value: "dc-*", entityType: SecurityEntityType.Host },
         props: { isRoot: true },
-      } as UpdateBy<SecurityEntityCriticality>),
+      } as unknown as UpdateBy<SecurityEntityCriticality>),
     ).rejects.toThrow(/already in the list/);
 
     await expect(
@@ -245,7 +245,7 @@ describe("what an entry holds", () => {
         query: { _id: ROW_ID },
         data: { criticality: Criticality.Low },
         props: { isRoot: true },
-      } as UpdateBy<SecurityEntityCriticality>);
+      } as unknown as UpdateBy<SecurityEntityCriticality>);
 
     expect(fine.carryForward).toEqual([PROJECT_ID]);
   });
@@ -312,7 +312,7 @@ describe("every change weighs the project's risk again, in the background", () =
       await service.onBeforeDelete({
         query: { _id: ROW_ID },
         props: { isRoot: true },
-      } as DeleteBy<SecurityEntityCriticality>);
+      } as unknown as DeleteBy<SecurityEntityCriticality>);
 
     await service.onDeleteSuccess(onDelete, [ROW_ID]);
 

@@ -154,7 +154,10 @@ jest.mock("../../../UI/Utils/PermissionGate", () => {
     ...actual,
     __esModule: true,
     default: {
-      check: (): { isAllowed: boolean; disabledReason?: string } => {
+      check: (): {
+        isAllowed: boolean;
+        disabledReason?: string | undefined;
+      } => {
         return resetGate;
       },
     },
@@ -262,7 +265,8 @@ const SPRAY_SOURCES: Array<SecurityEntityRiskContribution> = [
   }),
 ];
 
-function riskRow(data: Partial<SecurityEntityRisk>): SecurityEntityRisk {
+// A risk row as the API reads it; a test names only the columns it changes.
+function riskRow(data: Record<string, unknown>): SecurityEntityRisk {
   return Object.assign(new SecurityEntityRisk(), {
     _id: ROW_ID,
     entityType: SecurityEntityType.IpAddress,

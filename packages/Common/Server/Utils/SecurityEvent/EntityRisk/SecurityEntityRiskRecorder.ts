@@ -565,10 +565,10 @@ export default class SecurityEntityRiskRecorder {
   }
 
   /*
-   * The hourly turn: every project with an entity whose next source has
-   * stopped counting is refreshed, and the entities whose risk has been
-   * quiet for ENTITY_RISK_HISTORY_IN_DAYS days are forgotten, their history
-   * with them. Returns how many rows it worked out again.
+   * The turn every 15 minutes: every project with an entity whose next
+   * source has stopped counting is refreshed, and the entities whose risk
+   * has been quiet for ENTITY_RISK_HISTORY_IN_DAYS days are forgotten, their
+   * history with them. Returns how many rows it worked out again.
    */
   @CaptureSpan()
   public static async refreshDue(): Promise<number> {
