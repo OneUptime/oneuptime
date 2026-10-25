@@ -86,6 +86,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import ConnectedSignals, {
+  CONNECTED_CHANGE_ITEM_CLASS_NAME,
+  CONNECTED_CHANGE_TITLE_CLASS_NAME,
   CONNECTED_FACT_ROW_CLASS_NAME,
   CONNECTED_RECORD_TEXT_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ConnectedSignals";
@@ -349,6 +351,13 @@ describe("Connected Signals", () => {
       "2026-10-25T09:55:00.000Z",
     );
     expect(change).toHaveTextContent("Fixed: disk 91% full");
+    // Its title beside the time while it keeps 16rem there, under it on a phone.
+    expect(change.className).toBe(CONNECTED_CHANGE_ITEM_CLASS_NAME);
+    expect(CONNECTED_CHANGE_ITEM_CLASS_NAME).toContain("flex-wrap");
+    expect(change.querySelector("time + span")?.className).toBe(
+      CONNECTED_CHANGE_TITLE_CLASS_NAME,
+    );
+    expect(CONNECTED_CHANGE_TITLE_CLASS_NAME).toContain("basis-64");
     expect(within(record).queryByTestId(IDS.nothingActive)).toBeNull();
     expect(screen.getByTestId(IDS.window)).toHaveTextContent("Signals from");
     // No colon run-on sentences any more: a label is a label.
@@ -947,11 +956,27 @@ describe("a record's Security card", () => {
 
     // The card's description says the week: no tile says it again.
     expect(bar).not.toHaveTextContent("In the last 7 days");
+    expect(bar).toHaveTextContent("Last seen");
     // The worst finding's pill says what it is to a screen reader and under the pointer.
     expect(within(bar).getByText("Highest severity")).toHaveClass("sr-only");
     expect(within(bar).getByTitle("Highest severity")).toHaveTextContent(
       "High",
     );
+
+    // Not seen at all: the Events tile says nothing under its number, never the week again.
+    cleanup();
+    getResourceSecurityMock.mockResolvedValue(
+      security({ lastSeen: null }) as never,
+    );
+
+    await drawCard();
+
+    const quietBar: HTMLElement = within(
+      await screen.findByTestId(IDS.resourceSecurity),
+    ).getByRole("group", { name: "Security" });
+
+    expect(quietBar).not.toHaveTextContent("In the last 7 days");
+    expect(quietBar).not.toHaveTextContent("Last seen");
   });
 });
 

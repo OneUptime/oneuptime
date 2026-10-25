@@ -861,27 +861,44 @@ test.describe("a case's Connected Signals", () => {
         }
       }
 
-      // A change's title beside its time while there is room, under it on a phone.
+      /*
+       * A change's title beside its time while it keeps 16rem there, under
+       * it otherwise (a phone, a tablet beside the case's menu): never in a
+       * column a few words wide.
+       */
       const change: Locator = record(page, "checkout-web-01")
         .getByTestId("security-connected-changes")
         .getByTestId("security-connected-fact-item")
         .last();
-      const time: { top: number; bottom: number } = await change
-        .locator("time")
-        .evaluate((element: Element) => {
-          const box: DOMRect = element.getBoundingClientRect();
-          return { top: box.top, bottom: box.bottom };
-        });
-      const title: { top: number } = await change
-        .locator("bdi")
-        .evaluate((element: Element) => {
-          return { top: element.getBoundingClientRect().top };
-        });
-      if (width === 390) {
-        expect(title.top).toBeGreaterThanOrEqual(time.bottom - 1);
+      const placed: {
+        item: number;
+        time: { top: number; bottom: number; width: number };
+        title: { top: number; width: number };
+      } = await change.evaluate((item: Element) => {
+        const time: DOMRect = item
+          .querySelector("time")!
+          .getBoundingClientRect();
+        const title: DOMRect = item
+          .querySelector("time + span")!
+          .getBoundingClientRect();
+        return {
+          item: item.getBoundingClientRect().width,
+          time: { top: time.top, bottom: time.bottom, width: time.width },
+          title: { top: title.top, width: title.width },
+        };
+      });
+      const isTitleBeside: boolean =
+        placed.item >= placed.time.width + 12 + 16 * 16;
+      if (isTitleBeside) {
+        expect(
+          Math.abs(placed.title.top - placed.time.top),
+        ).toBeLessThanOrEqual(4);
+        expect(placed.title.width).toBeGreaterThanOrEqual(16 * 16 - 1);
       } else {
-        expect(Math.abs(title.top - time.top)).toBeLessThanOrEqual(4);
+        expect(placed.title.top).toBeGreaterThanOrEqual(placed.time.bottom - 1);
       }
+      // On a phone the title is under its time; on a laptop's page beside it.
+      expect(isTitleBeside).toBe(width === 1280);
 
       await expect(
         page.getByTestId("security-connected-more-records"),

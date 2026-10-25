@@ -142,14 +142,14 @@ export const CONNECTED_RECORD_TEXT_CLASS_NAME: string =
 
 /*
  * A change: its time, then what changed - beside the time while the title
- * keeps 12rem there, under it on a phone, rather than in a column a few
- * words wide.
+ * keeps 16rem there, under it on a phone or beside a tablet's side menu,
+ * rather than in a column a few words wide.
  */
 export const CONNECTED_CHANGE_ITEM_CLASS_NAME: string =
   "flex min-w-0 flex-wrap gap-x-3";
 
 export const CONNECTED_CHANGE_TITLE_CLASS_NAME: string =
-  "min-w-0 flex-1 basis-48 text-gray-900 [overflow-wrap:anywhere]";
+  "min-w-0 flex-1 basis-64 text-gray-900 [overflow-wrap:anywhere]";
 
 // A section's heading in the card: Possible matches, Not in OneUptime.
 const SECTION_HEADING_CLASS_NAME: string =
