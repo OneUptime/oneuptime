@@ -2078,26 +2078,6 @@ test.describe("a case", () => {
     await expect(caseHeader(page)).toHaveAttribute("data-layout", "full");
   });
 
-  test("a link straight to any of its pages opens that page, and the case's own address still opens the case", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    for (const casePage of CASE_PAGES) {
-      await open(page, casePagePath(casePage));
-      await waitForCasePage(page, casePage);
-
-      expect([casePage.title, await litEntries(page)]).toEqual([
-        casePage.title,
-        [casePage.title],
-      ]);
-      await expect(
-        menuSection(page, casePage.section),
-        `${casePage.title}'s section`,
-      ).toHaveAttribute("aria-expanded", "true");
-    }
-  });
-
   test("the Security Cases crumb goes back to the open cases", async ({
     page,
   }: {
@@ -2553,24 +2533,57 @@ test.describe("a case", () => {
     await expect(toggle).toContainText("Investigation / Entities");
   });
 
-  test("every page of the case at 1280 and 390, in both themes: nothing scrolls sideways", async ({
+  /*
+   * Every page opened straight from its address, at a laptop's width and a
+   * phone's: in the dark theme at the laptop's width, and on the phone for
+   * the pages whose own content changes there (the Overview's figures, the
+   * Entities table's columns) - the header's phone layout in the dark is
+   * the header's own test, above. Kept to these, so the suite stays inside
+   * its CI group's time.
+   */
+  const CASE_PAGE_SHOTS: ReadonlyArray<[number, "dark" | undefined]> = [
+    [1344, undefined],
+    [1344, "dark"],
+    [390, undefined],
+  ];
+  const CASE_PAGES_DARK_ON_A_PHONE: ReadonlyArray<string> = [
+    "Overview",
+    "Entities",
+  ];
+
+  test("a link straight to any of its pages opens that page, its entry lit; at 1280 and 390, in both themes, nothing scrolls sideways", async ({
     page,
   }: {
     page: Page;
   }) => {
     for (const casePage of CASE_PAGES) {
-      for (const [width, theme] of [
-        [1344, undefined],
-        [1344, "dark"],
-        [390, undefined],
-        [390, "dark"],
-      ] as Array<[number, "dark" | undefined]>) {
+      const shots: Array<[number, "dark" | undefined]> = [
+        ...CASE_PAGE_SHOTS,
+        ...(CASE_PAGES_DARK_ON_A_PHONE.includes(casePage.title)
+          ? ([[390, "dark"]] as Array<[number, "dark" | undefined]>)
+          : []),
+      ];
+
+      for (const [width, theme] of shots) {
         await open(page, casePagePath(casePage), {
           width,
           height: width === 390 ? 844 : 1000,
           theme,
         });
         await waitForCasePage(page, casePage);
+
+        if (width === 1344 && !theme) {
+          // Its own entry lit, and its section open, the Overview's too.
+          expect([casePage.title, await litEntries(page)]).toEqual([
+            casePage.title,
+            [casePage.title],
+          ]);
+          await expect(
+            menuSection(page, casePage.section),
+            `${casePage.title}'s section`,
+          ).toHaveAttribute("aria-expanded", "true");
+        }
+
         expect(
           await pageOverflow(page),
           `${casePage.title} at ${width} ${theme || "light"}`,
@@ -5748,19 +5761,7 @@ test.describe("every page fits the screen", () => {
     ["unassigned", UNASSIGNED_CASES_PATH, "CASE-141"],
     ["closed cases", CLOSED_CASES_PATH, "Benign Positive"],
     ["all cases", ALL_CASES_PATH, "CASE-142"],
-    // A case's Overview, and the pages of it the widest things are on.
     ["case", SPRAY_CASE_PATH, "Time to Contain"],
-    ["case detections", `${SPRAY_CASE_PATH}/detections`, "31 times"],
-    [
-      "case entities",
-      `${SPRAY_CASE_PATH}/entities`,
-      "a.ng@acme-commerce.example",
-    ],
-    [
-      "case playbook runs",
-      `${SPRAY_CASE_PATH}/playbook-runs`,
-      "Started on its own: Case Opened",
-    ],
     ["entities", ENTITIES_PATH, "203.0.113.47"],
     ["detection rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
     ["rule library", RULE_LIBRARY_PATH, "Brute force from one IP address"],
@@ -5775,13 +5776,35 @@ test.describe("every page fits the screen", () => {
     ["case statuses", CASE_STATUSES_PATH, "Investigating"],
   ];
 
+  /*
+   * A case's pages the widest things are on, at the widths where the side
+   * menu leaves them least room; every page of a case is read at 1280 and
+   * 390 with the case's own tests (a case, above).
+   */
+  const CASE_PAGES_BESIDE_THE_MENU: ReadonlyArray<[string, string, string]> = [
+    ["case detections", `${SPRAY_CASE_PATH}/detections`, "31 times"],
+    [
+      "case entities",
+      `${SPRAY_CASE_PATH}/entities`,
+      "a.ng@acme-commerce.example",
+    ],
+    [
+      "case playbook runs",
+      `${SPRAY_CASE_PATH}/playbook-runs`,
+      "Started on its own: Case Opened",
+    ],
+  ];
+
   for (const width of [1280, 1024, 768, 390]) {
     test(`at ${width}, no page scrolls sideways`, async ({
       page,
     }: {
       page: Page;
     }) => {
-      for (const [name, pathname, text] of PAGES) {
+      for (const [name, pathname, text] of [
+        ...PAGES,
+        ...(width === 1024 || width === 768 ? CASE_PAGES_BESIDE_THE_MENU : []),
+      ]) {
         await open(page, pathname, { width });
         await expect(page.getByText(text).first(), name).toBeVisible({
           timeout: 30000,

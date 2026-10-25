@@ -28194,7 +28194,7 @@
   "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.": "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.",
   "Columns are tactics and cells techniques. Lit cells are covered by your rules, outlined ones by library rules not added yet.": "Le colonne sono tattiche e le celle tecniche. Le celle evidenziate sono coperte dalle tue regole, quelle con il bordo da regole della libreria non ancora aggiunte.",
   "Each template is a working playbook you can save as it is and change later.": "Each template is a working playbook you can save as it is and change later.",
-  "Edit Case": "Edit Case",
+  "Edit Case": "Modifica caso",
   "Edit Step": "Edit Step",
   "Email people": "Email people",
   "Email users and teams a summary of the case with a link to it.": "Email users and teams a summary of the case with a link to it.",

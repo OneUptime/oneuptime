@@ -82,15 +82,27 @@ Sakene i et nytt prosjekt går gjennom fire statuser, som du kan gi nye navn og 
 | Contained | Trusselen kan ikke lenger gjøre skade; oppryddingen gjenstår |
 | Lukket | Ferdig, med en konklusjon om hva det var |
 
-Siden til saken har alt du trenger for å behandle den:
+En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en egen side:
 
-- Øverst: **Assign to Me**, **Run Playbook**, **Erklær hendelse** og **Close Case**, statusstegene, og prioriteten under menyen ved siden av dem.
-- **OneUptime AI**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
+| Seksjon i sidemenyen | Sider |
+| --- | --- |
+| **Oversikt** | **Oversikt**, **Tidslinje** |
+| **Undersøkelse** | **Detections**, **Entiteter**, **Playbook-kjøringer** |
+| **Notater** | **Private notater** |
+| **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
+
+Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Assign to Me**, **Run Playbook**, **Erklær hendelse** og **Close Case**, og i menyen ⋯ ved siden av **Angi prioritet**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**.
+
+- **Oversikt**: sakens beskrivelse, etiketter og statussteg, hvem som har den og hva som åpnet den, og tallene: hvor mange deteksjoner den har, hvor lenge den har vært åpen, og hvor lang tid det tok å bekrefte og inndemme den.
+- **OneUptime AI**, på **Oversikt**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, på **Oversikt**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
+- **Tidslinje**: alt som skjedde med saken, med hvem som gjorde det.
 - **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
-- **MITRE ATT&CK**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
-- **Playbook-kjøringer**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning.
-- **Notater** og **Tidslinje**: hva teamet skrev, og alt som skjedde, med hvem som gjorde det.
+- **Playbook-kjøringer**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbook-kjøringer**.
+- **Private notater**: hva teamet skrev om saken.
+- **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
+- **Slett sak**: sletter saken for godt, med deteksjonene, notatene og tidslinjen. For å beholde den som dokumentasjon, lukk den heller med en konklusjon.
 
 For å behandle flere saker samtidig merker du dem i køen og bruker **Assign to Me**, **Change Status** eller **Change Priority**.
 

@@ -28194,7 +28194,7 @@
   "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.": "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.",
   "Columns are tactics and cells techniques. Lit cells are covered by your rules, outlined ones by library rules not added yet.": "कॉलम टैक्टिक हैं और सेल तकनीकें। हाइलाइट किए गए सेल आपके नियमों से कवर हैं, आउटलाइन वाले उन लाइब्रेरी नियमों से जो अभी जोड़े नहीं गए।",
   "Each template is a working playbook you can save as it is and change later.": "Each template is a working playbook you can save as it is and change later.",
-  "Edit Case": "Edit Case",
+  "Edit Case": "केस संपादित करें",
   "Edit Step": "Edit Step",
   "Email people": "Email people",
   "Email users and teams a summary of the case with a link to it.": "Email users and teams a summary of the case with a link to it.",

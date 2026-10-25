@@ -82,15 +82,27 @@ Los casos de un proyecto nuevo pasan por cuatro estados, a los que puedes cambia
 | Contenido | La amenaza ya no puede causar daño; queda pendiente la limpieza |
 | Cerrado | Terminado, con un veredicto sobre lo que era |
 
-La página del caso tiene todo lo necesario para gestionarlo:
+Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso es una página propia:
 
-- Arriba: **Assign to Me**, **Run Playbook**, **Declarar incidente** y **Close Case**, los pasos de estado y la prioridad, en el menú junto a ellos.
-- **OneUptime AI**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
+| Sección del menú lateral | Páginas |
+| --- | --- |
+| **Vista general** | **Vista general**, **Cronología** |
+| **Investigación** | **Detecciones**, **Entidades**, **Ejecuciones de playbooks** |
+| **Notas** | **Notas privadas** |
+| **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
+
+Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Assign to Me**, **Run Playbook**, **Declarar incidente** y **Close Case**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**.
+
+- **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo.
+- **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, en la **Vista general**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
+- **Cronología**: todo lo que le pasó al caso, con quién lo hizo.
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
-- **MITRE ATT&CK**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
-- **Ejecuciones de playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación.
-- **Notas** y **Cronología**: lo que escribió el equipo y todo lo que pasó, con quién lo hizo.
+- **Ejecuciones de playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Ejecuciones de playbooks**.
+- **Notas privadas**: lo que el equipo escribió sobre el caso.
+- **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
+- **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas y cronología. Para conservar el registro, ciérralo con un veredicto.
 
 Para gestionar varios casos a la vez, selecciónalos en la cola y usa **Assign to Me**, **Change Status** o **Change Priority**.
 

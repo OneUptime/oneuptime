@@ -82,15 +82,27 @@ I casi di un nuovo progetto attraversano quattro stati, che puoi rinominare e a 
 | Contained | La minaccia non può più fare danni; resta da fare la bonifica |
 | Chiuso | Concluso, con un verdetto su cosa fosse |
 
-La pagina del caso ha tutto ciò che serve per gestirlo:
+Un caso ha un proprio menu laterale, come un incidente, e ogni parte del caso è una pagina a sé:
 
-- In alto: **Assign to Me**, **Run Playbook**, **Dichiara incidente** e **Close Case**, i passaggi di stato e, nel menu accanto, la priorità.
-- **OneUptime AI**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
+| Sezione del menu laterale | Pagine |
+| --- | --- |
+| **Panoramica** | **Panoramica**, **Cronologia** |
+| **Indagine** | **Detections**, **Entità**, **Esecuzioni dei playbook** |
+| **Note** | **Note private** |
+| **Avanzato** | **Registri di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
+
+Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e titolo, **Assign to Me**, **Run Playbook**, **Dichiara incidente** e **Close Case** e, nel menu ⋯ accanto, **Imposta la priorità**, **Modifica caso** e **Elimina caso**. Così il caso si gestisce da qualsiasi sua pagina, e un link al caso apre ancora la sua **Panoramica**.
+
+- **Panoramica**: la descrizione, le etichette e i passaggi di stato del caso, chi lo ha in carico e cosa lo ha aperto, e i suoi numeri: quanti rilevamenti ha, da quanto tempo è aperto e quanto ci è voluto per prenderlo in carico e per contenerlo.
+- **OneUptime AI**, nella **Panoramica**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, nella **Panoramica**: le tattiche e le tecniche a cui corrispondono i suoi rilevamenti, ciascuna con un link alla propria pagina su attack.mitre.org.
+- **Cronologia**: tutto ciò che è successo al caso, con chi l'ha fatto.
 - **Detections**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
-- **MITRE ATT&CK**: le tattiche e le tecniche a cui corrispondono i suoi rilevamenti, ciascuna con un link alla propria pagina su attack.mitre.org.
-- **Esecuzioni dei playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione.
-- **Note** e **Cronologia**: cosa ha scritto il team, e tutto ciò che è successo, con chi l'ha fatto.
+- **Esecuzioni dei playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione. Finché ci sono esecuzioni in attesa, il menu ne mostra il numero accanto a **Esecuzioni dei playbook**.
+- **Note private**: cosa ha scritto il team sul caso.
+- **Registri di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Registri di audit](/docs/configuration/audit-logs).
+- **Elimina caso**: elimina per sempre il caso, con i suoi rilevamenti, le note e la cronologia. Per conservarne la traccia, chiudilo invece con un verdetto.
 
 Per gestire più casi insieme, selezionali nella coda e usa **Assign to Me**, **Change Status** o **Change Priority**.
 

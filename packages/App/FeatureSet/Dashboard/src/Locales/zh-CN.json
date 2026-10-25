@@ -28194,7 +28194,7 @@
   "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.": "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.",
   "Columns are tactics and cells techniques. Lit cells are covered by your rules, outlined ones by library rules not added yet.": "列是战术，单元格是技术。高亮的单元格由你的规则覆盖，带轮廓的由尚未添加的库规则覆盖。",
   "Each template is a working playbook you can save as it is and change later.": "Each template is a working playbook you can save as it is and change later.",
-  "Edit Case": "Edit Case",
+  "Edit Case": "编辑案例",
   "Edit Step": "Edit Step",
   "Email people": "Email people",
   "Email users and teams a summary of the case with a link to it.": "Email users and teams a summary of the case with a link to it.",
