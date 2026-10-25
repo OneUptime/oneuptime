@@ -1340,6 +1340,20 @@ html.dark .ou-select__option--is-selected {
   color: #e0e7ff !important;
 }
 
+/*
+ * An option that cannot be picked never takes the accent, even with focus on
+ * it (react-select focuses the first option, picked or not): a quiet row,
+ * as Dropdown's getDropdownOptionStyle draws it in light mode.
+ */
+html.dark .ou-select__option--is-disabled {
+  background-color: var(--ou-surface-primary) !important;
+  color: var(--ou-text-subtle) !important;
+}
+
+html.dark .ou-select__option--is-disabled.ou-select__option--is-focused {
+  background-color: var(--ou-surface-tertiary) !important;
+}
+
 html.dark .ou-select__multi-value {
   background-color: var(--ou-accent-soft) !important;
   border-color: rgb(129 140 248 / 45%) !important;

@@ -768,7 +768,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
             : `absolute ${
                 props.isMenuLeftAligned ? "left-0" : "right-0"
               } z-50 w-56 rounded-lg`
-        } bg-white text-left shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
+        } bg-white text-start shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
           isMenuAbove
             ? `${isMenuPortaled ? "" : "bottom-full mb-2 "}${
                 isMenuGrowingFromLeft

@@ -91,7 +91,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
-Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **Assign to Me**, **Run Playbook**, **Déclarer un incident** et **Close Case**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**.
+Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Run Playbook**, **Déclarer un incident** et **Close Case**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Attribuer à quelqu'un d'autre**, **Changer le statut**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**.
 
 - **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir.
 - **OneUptime AI**, sur la **Vue d'ensemble** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
 - **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes, sa chronologie et ses exécutions de playbooks. Pour en garder la trace, clôturez-le plutôt avec un verdict.
 
-Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **Assign to Me**, **Change Status** ou **Change Priority**.
+### Traiter les dossiers depuis la file d'attente
+
+Inutile d'ouvrir un dossier pour le traiter. Dans les listes de la file d'attente, le menu ⋯ de la ligne d'un dossier propose **M'attribuer**, **Attribuer à quelqu'un d'autre**, **Changer le statut** et **Changer la priorité**. Pour traiter plusieurs dossiers à la fois, sélectionnez-les et utilisez les mêmes actions sous **Actions groupées** : elles indiquent quels dossiers ont été modifiés, lesquels sont restés tels quels, et pourquoi.
+
+- Pour confier un dossier à quelqu'un d'autre, utilisez **Attribuer à quelqu'un d'autre** et choisissez une personne, ou une équipe. Le dossier d'une équipe attend sous **Non attribué** jusqu'à ce que quelqu'un de l'équipe le prenne en charge.
+- Un statut qui ferme un dossier demande un verdict et une note de clôture, comme **Close Case**.
+- Un dossier fermé n'est attribué à personne. Pour le traiter à nouveau, rouvrez-le avec **Changer le statut**.
 
 ### Fermer un dossier
 
@@ -193,7 +199,7 @@ Les trois notifications sont chacune publiées dans les canaux de toutes les rè
 
 ## Playbooks
 
-Un playbook est une liste d'étapes qui s'exécutent sur un dossier. Créez-en un sous **Produits → Événements de sécurité → Playbooks**, à partir d'un modèle ou de zéro, et ajoutez ses étapes sur sa page.
+Un playbook est une liste d'étapes qui s'exécutent sur un dossier. Créez-en un sous **Produits → Événements de sécurité → Playbooks**, à partir d'un modèle ou de zéro, et ajoutez ses étapes sur sa page. Un projet sans playbook voit les modèles à la place d'une liste vide ; dès qu'il a des playbooks, **Créer à partir d'un modèle** sur la liste les ouvre, avec **Ajouté** sur ceux que le projet a déjà.
 
 ### Quand un playbook s'exécute
 
@@ -303,7 +309,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
-Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. **En attente d'approbation**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions.
+Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. **En attente d'approbation**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions. Sur **Exécutions de playbooks** et sur la page d'un playbook, chaque exécution tient sur une ligne qui dit jusqu'où elle est allée, ou l'étape où elle s'est arrêtée ; **Afficher les étapes** ouvre ses étapes. Une exécution en attente d'approbation s'ouvre d'elle-même.
 
 Une exécution dont le worker ne donne plus signe de vie, après un redémarrage par exemple, est reprise : une exécution en file d'attente est remise en file au bout de 2 minutes, et une exécution restée muette pendant 30 minutes passe en échec.
 
@@ -320,9 +326,9 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 
 ## Trouver des menaces
 
-- **Entités** classe les utilisateurs, hôtes, adresses et hachages que vos constats nomment le plus, sur le dernier jour, la dernière semaine ou le dernier mois, et recherche n'importe quelle valeur dans 30 jours d'événements.
+- **Entités** classe les utilisateurs, hôtes, adresses et hachages que vos constats nomment le plus, sur le dernier jour, la dernière semaine ou le dernier mois, et recherche n'importe quelle valeur dans 30 jours d'événements. Sélectionnez une entité pour l'ouvrir dans **Corréler**.
 - **Rule Library** propose des règles de détection prêtes à l'emploi, pour les menaces visant les identités, les terminaux, le cloud, le réseau, le web et Kubernetes. Chacune est une règle Sigma écrite pour les champs vers lesquels chaque source connectée est normalisée. Sa ligne indique ce qu'elle détecte, les tactiques et techniques MITRE ATT&CK auxquelles elle se rattache, les événements qu'elle lit et s'il en est arrivé au cours des 7 derniers jours (**Reçus** ou **Non reçus**), ainsi que sa gravité. Filtrez la liste par catégorie, par les données que lisent les règles et selon que vous les avez ajoutées ou non, ou cherchez-y par nom, technique ATT&CK ou gravité ; l'adresse de la page conserve les filtres. Sélectionnez une règle pour voir ses détails : comment commencer à envoyer les événements qu'elle lit, comment elle s'exécute, et sa règle Sigma. **Ajouter** la crée comme l'une de vos règles de détection, activée et ouvrant des dossiers plutôt que des alertes ; modifiez-la sous **Règles de détection** comme n'importe quelle autre. Les règles marquées **Recommandés** trouvent des menaces dans des données que OneUptime a déjà, et un bouton ajoute celles que vous n'avez pas encore.
-- **ATT&CK Coverage** dessine la matrice MITRE ATT&CK en mettant en évidence les techniques que couvrent vos règles activées, et entoure celles qu'une règle de la bibliothèque couvrirait. Sélectionnez une technique pour voir les règles de la bibliothèque qui la couvrent, et ouvrir la **Rule Library** sur elles.
+- **ATT&CK Coverage** liste les tactiques MITRE ATT&CK, chacune avec le nombre de ses techniques que couvrent vos règles activées, et le nombre de techniques en plus pour lesquelles la **Rule Library** a des règles. Ouvrez une tactique pour voir ses techniques, ou passez à **Matrice** pour la matrice entière. Sélectionnez une technique pour voir les règles de la bibliothèque qui la couvrent, et ouvrir la **Rule Library** sur elles.
 
 ## Automatiser
 

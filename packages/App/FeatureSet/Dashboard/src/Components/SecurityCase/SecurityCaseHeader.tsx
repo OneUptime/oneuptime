@@ -46,6 +46,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
@@ -72,7 +73,11 @@ export interface ComponentProps {
   layout?: SecurityCaseHeaderLayout | undefined;
   isWorking: boolean;
   onAssignToMe: () => void;
+  // Opens Assign to Someone Else: a person to work the case, or a team.
+  onAssignToSomeoneElse: () => void;
   onChangeStatus: (status: SecurityCaseStatus) => void;
+  // Opens Change Status: any of the project's statuses, from any page.
+  onPickStatus: () => void;
   onChangePriority: (priority: SecurityCasePriority) => void;
   onRunPlaybook: () => void;
   onDeclareIncident: () => void;
@@ -177,7 +182,11 @@ const HeaderActionButton: FunctionComponent<{
  * and the moves an analyst makes on it - take it, move it along, run a
  * playbook, hand it to incident response. Its priority and status are the
  * project's own: Close Case moves it to the project's closed status, Reopen
- * to its acknowledged one, and the ⋯ sets any priority nobody archived.
+ * to its acknowledged one, and the ⋯ sets any priority nobody archived. The
+ * ⋯ also has what a row's ⋯ in the case lists has: Assign to Someone Else
+ * (an open case only, as Assign to Me) and Change Status, which moves the
+ * case to any of the project's statuses from every page of it - not only
+ * the Overview, whose status steps do the same.
  *
  * Every page of the case draws it: in full on the Overview, and compact
  * (number, pills, a title of two lines at most, and the actions) on the
@@ -367,6 +376,28 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
               </MoreMenuSection>,
             ]
           : []),
+        ...(!isClosed
+          ? [
+              <MoreMenuItem
+                key="assign-to-someone-else"
+                icon={IconProp.UserPlus}
+                text="Assign to Someone Else"
+                isDisabled={isUpdateLocked}
+                tooltip={disabledTooltip}
+                dataTestId={SECURITY_CASE_HEADER_TEST_IDS.assignToSomeoneElse}
+                onClick={props.onAssignToSomeoneElse}
+              />,
+            ]
+          : []),
+        <MoreMenuItem
+          key="change-status"
+          icon={IconProp.ArrowCircleRight}
+          text="Change Status"
+          isDisabled={isUpdateLocked}
+          tooltip={disabledTooltip}
+          dataTestId={SECURITY_CASE_HEADER_TEST_IDS.changeStatus}
+          onClick={props.onPickStatus}
+        />,
         <MoreMenuItem
           key="edit"
           icon={IconProp.Edit}
@@ -376,6 +407,8 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.edit}
           onClick={props.onEdit}
         />,
+        // A gap above Delete Case, as a row's ⋯ keeps above its Delete.
+        <MoreMenuDivider key="delete-divider" />,
         <MoreMenuItem
           key="delete"
           icon={IconProp.Trash}

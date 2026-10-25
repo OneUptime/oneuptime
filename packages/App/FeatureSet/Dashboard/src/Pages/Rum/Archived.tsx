@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const RumArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<RumApplication>({
-    modelType: RumApplication,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<RumApplication>({
+      modelType: RumApplication,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const RumArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<RumApplication>
         modelType={RumApplication}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="rum-archived-table"
         userPreferencesKey="rum-archived-table"
         topContent={filterBar}

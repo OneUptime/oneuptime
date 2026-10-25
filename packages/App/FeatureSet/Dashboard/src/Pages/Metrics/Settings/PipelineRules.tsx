@@ -259,6 +259,8 @@ const MetricPipelineRules: FunctionComponent<
   return (
     <ModelTable<MetricPipelineRule>
       modelType={MetricPipelineRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

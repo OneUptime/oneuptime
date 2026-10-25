@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const ServerlessArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
-    modelType: ServerlessFunction,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<ServerlessFunction>({
+      modelType: ServerlessFunction,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const ServerlessArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<ServerlessFunction>
         modelType={ServerlessFunction}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="serverless-archived-table"
         userPreferencesKey="serverless-archived-table"
         topContent={filterBar}

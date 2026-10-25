@@ -1539,6 +1539,63 @@ describe("a project with Security set up", () => {
   });
 });
 
+describe("the charts below the card", () => {
+  test("every card fills its row, so each row of cards ends on one line", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview({
+        openCases: 3,
+        casesOpenedInWindow: 5,
+        detectionsInWindow: 9,
+        topTactics: [{ tacticId: "TA0006", count: 4 }],
+      }),
+    );
+    await renderPage();
+
+    for (const title of [
+      "Cases Opened",
+      "Detections",
+      "Open Cases",
+      "Verdicts",
+      "MITRE ATT&CK Tactics",
+      "Top Detections",
+      "Riskiest Entities",
+    ]) {
+      const heading: HTMLElement | undefined = screen
+        .getAllByText(title)
+        .find((candidate: HTMLElement): boolean => {
+          return Boolean(candidate.closest('[data-testid="card"]'));
+        });
+      const card: HTMLElement = heading!.closest(
+        '[data-testid="card"]',
+      ) as HTMLElement;
+
+      expect([title, card.className.includes("h-full")]).toEqual([title, true]);
+    }
+  });
+
+  test("a tactic behind the cases opens ATT&CK Coverage on that tactic", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview({
+        openCases: 3,
+        casesOpenedInWindow: 5,
+        detectionsInWindow: 9,
+        topTactics: [{ tacticId: "TA0006", count: 4 }],
+      }),
+    );
+    await renderPage();
+
+    const tactic: HTMLElement = screen
+      .getByText("TA0006 Credential Access")
+      .closest("a") as HTMLElement;
+
+    expect(tactic.getAttribute("href")).toContain(
+      "/security-events/attack-coverage?tactic=TA0006",
+    );
+  });
+});
+
 describe("a server that cannot answer the set-up figures", () => {
   test("says so in the pipeline's place, with Try again - never leaves the page, never claims nothing is watched", async () => {
     answerStatus(new Error("Not found"));

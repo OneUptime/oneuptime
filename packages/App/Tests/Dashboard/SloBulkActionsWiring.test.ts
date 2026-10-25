@@ -158,13 +158,23 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
     expect(HOOK_CODE).not.toContain('archiveConfirmMessage: "');
   });
 
-  test("the switch hook turns SLOs on and off by their isEnabled, in the SLO's own names", () => {
+  test("the switch hook turns SLOs on and off by their isEnabled, in the SLO's own names, in bulk and in each row", () => {
     expect(HOOK_CODE).toContain(
-      'import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";',
+      squash(
+        'import { SwitchActionsResult, useSwitchActions, } from "Common/UI/Components/BulkUpdate/BulkSwitchActions";',
+      ),
     );
     expect(HOOK_CODE).toContain(
       squash(
-        'useBulkSwitchActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, column: "isEnabled", singularName: "SLO", pluralName: "SLOs", })',
+        'const { bulkActions: switchBulkActions, rowActions: switchRowActions, }: SwitchActionsResult<ServiceLevelObjective> = useSwitchActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, column: "isEnabled", singularName: "SLO", pluralName: "SLOs", })',
+      ),
+    );
+  });
+
+  test("it hands back each row's Enable or Disable, Archive and Unarchive apart, as it hands back the bulk ones", () => {
+    expect(HOOK_CODE).toContain(
+      squash(
+        "rowActions: switchRowActions, archiveRowActions: archiveRowActions, unarchiveRowActions: unarchiveRowActions,",
       ),
     );
   });
@@ -326,23 +336,25 @@ describe("the SLOs page does not own the hook", () => {
   });
 });
 
-// [label, path, import specifier, hook destructuring, buttons prop]
-type ConsumerCase = [string, Array<string>, string, string, string];
+// [label, path, import specifier, hook destructuring, buttons prop, row actions prop]
+type ConsumerCase = [string, Array<string>, string, string, string, string];
 
 const CONSUMER_CASES: Array<ConsumerCase> = [
   [
     "Pages/Slo/Slos.tsx",
     SLOS_PAGE,
     "../../Components/Slo/useSloBulkActions",
-    "const { bulkActions, archiveBulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
+    "const { bulkActions, archiveBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
     "bulkActions={{ buttons: [...bulkActions, ...archiveBulkActions], }}",
+    "actionButtons={[...rowActions, ...archiveRowActions]}",
   ],
   [
     "Pages/Monitor/View/Slos.tsx",
     MONITOR_SLOS_PAGE,
     "../../../Components/Slo/useSloBulkActions",
-    "const { bulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
+    "const { bulkActions, rowActions, modals }: SloBulkActionsResult = useSloBulkActions();",
     "bulkActions={{ buttons: [...bulkActions], }}",
+    "actionButtons={[...rowActions]}",
   ],
 ];
 
@@ -355,6 +367,7 @@ describe("both live SLO tables consume the shared hook", () => {
       specifier: string,
       destructuring: string,
       buttons: string,
+      rowActions: string,
     ) => {
       const code: string = readCode(...relativeParts);
 
@@ -365,6 +378,8 @@ describe("both live SLO tables consume the shared hook", () => {
       );
       expect(code).toContain(squash(destructuring));
       expect(code).toContain(squash(buttons));
+      // Each row's ⋯ menu offers what Bulk Actions offers the row.
+      expect(code).toContain(squash(rowActions));
 
       /*
        * A sibling of the table, not a child of it: ModelTable renders no
@@ -453,12 +468,14 @@ describe("each SLO table offers the archive action that fits its list", () => {
     );
     expect(code).toContain(
       squash(
-        "const { unarchiveBulkActions, modals }: SloBulkActionsResult = useSloBulkActions();",
+        "const { unarchiveBulkActions, unarchiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
       ),
     );
     expect(code).toContain(
       squash("bulkActions={{ buttons: [...unarchiveBulkActions], }}"),
     );
+    // And Unarchive alone in each row's ⋯ menu.
+    expect(code).toContain(squash("actionButtons={[...unarchiveRowActions]}"));
     expect(code).toContain("/> {modals}");
     expect(code).not.toMatch(ARCHIVE_ACTIONS_NAME);
     expect(code).not.toContain("useBulkArchiveActions");

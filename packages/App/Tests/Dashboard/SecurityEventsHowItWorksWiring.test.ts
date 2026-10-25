@@ -61,10 +61,31 @@ const GUIDES: Array<[string, SecurityEventsGuide]> = [
   ["Threat Intel", ThreatIntelGuide],
 ];
 
-const PAGES: Array<[string, string, string]> = [
-  ["DetectionRules.tsx", "DetectionRulesGuide", "ModelTable<DetectionRule>"],
-  ["ThreatIntel.tsx", "ThreatIntelGuide", "ModelTable<ThreatIntelFeed>"],
+const PAGES: Array<[string, string, string, string]> = [
+  [
+    "DetectionRules.tsx",
+    "DetectionRulesGuide",
+    "ModelTable<DetectionRule>",
+    "ruleCount",
+  ],
+  [
+    "ThreatIntel.tsx",
+    "ThreatIntelGuide",
+    "ModelTable<ThreatIntelFeed>",
+    "feedCount",
+  ],
 ];
+
+// The card's element, as written: from its tag to the end of its props.
+function cardElementOf(source: string): { index: number; text: string } {
+  const index: number = source.indexOf("<SecurityEventsHowItWorksCard");
+
+  if (index === -1) {
+    return { index, text: "" };
+  }
+
+  return { index, text: source.slice(index, source.indexOf("/>", index) + 2) };
+}
 
 describe("Security Events how-it-works guides", () => {
   test.each(GUIDES)(
@@ -121,13 +142,38 @@ describe("Security Events pages use the how-it-works card", () => {
         readDashboardSource("Pages", "SecurityEvents", fileName),
       );
 
-      const cardIndex: number = source.indexOf(
-        `<SecurityEventsHowItWorksCard guide={${guideName}} />`,
-      );
+      const card: { index: number; text: string } = cardElementOf(source);
       const tableIndex: number = source.indexOf(`<${tableTag}`);
 
-      expect(cardIndex).toBeGreaterThan(-1);
-      expect(tableIndex).toBeGreaterThan(cardIndex);
+      expect(card.index).toBeGreaterThan(-1);
+      expect(card.text).toContain(`guide={${guideName}}`);
+      expect(tableIndex).toBeGreaterThan(card.index);
+    },
+  );
+
+  /*
+   * The card opens by itself only over an empty list: the page tells it
+   * how many rows its table first read (onFetchSuccess), so a busy
+   * project opens on its list rather than on the steps.
+   */
+  test.each(PAGES)(
+    "%s tells the card how many rows its table read",
+    (
+      fileName: string,
+      _guideName: string,
+      _tableTag: string,
+      countName: string,
+    ) => {
+      const source: string = stripComments(
+        readDashboardSource("Pages", "SecurityEvents", fileName),
+      );
+      const setter: string = `set${countName.charAt(0).toUpperCase()}${countName.slice(1)}(`;
+
+      expect(cardElementOf(source).text).toContain(
+        `listItemCount={${countName}}`,
+      );
+      expect(source).toContain("onFetchSuccess=");
+      expect(source.indexOf(setter)).toBeGreaterThan(-1);
     },
   );
 

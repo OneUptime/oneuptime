@@ -64,7 +64,8 @@
  *   - theme=dark      (read by server.js) the Dashboard's dark mode
  *
  * Every list read is recorded on `window.__fixture.listRequests`, every
- * write on `window.__fixture.updates`, every delete on
+ * write on `window.__fixture.updates`, every record created (a row's state
+ * move, a new owner) on `window.__fixture.creates`, every delete on
  * `window.__fixture.deletes`, every navigation on
  * `window.__fixture.navigations`, and every read of a table this fixture
  * does not model on `window.__fixture.unmodelled` (the suite fails on any).
@@ -163,6 +164,7 @@ window.__fixture = {
   listRequests: [],
   itemRequests: [],
   updates: [],
+  creates: [],
   deletes: [],
   navigations: [],
   unmodelled: [],
@@ -1197,7 +1199,25 @@ ModelAPI.updateById = async (options) => {
   });
   if (record) {
     Object.assign(record, options.data);
+    /*
+     * A value written by its id (a row's Change Severity) is read back
+     * through its link, as the server joins it.
+     */
+    for (const [idColumn, [link, table]] of Object.entries(LINKED_VALUES)) {
+      if (options.data && options.data[idColumn]) {
+        record[link] =
+          RECORDS[table].find((value) => {
+            return idOf(value._id) === idOf(options.data[idColumn]);
+          }) || record[link];
+      }
+    }
   }
+};
+
+// The values a record links to by an id column: the link, and its table.
+const LINKED_VALUES = {
+  incidentSeverityId: ["incidentSeverity", "IncidentSeverity"],
+  alertSeverityId: ["alertSeverity", "AlertSeverity"],
 };
 
 ModelAPI.deleteItem = async (options) => {
@@ -1209,6 +1229,91 @@ ModelAPI.deleteItem = async (options) => {
   if (index >= 0) {
     rows.splice(index, 1);
   }
+};
+
+// The member the fixture signs in, as an owner row names them.
+const VIEWER = new UserModel();
+VIEWER._id = USER_ID;
+VIEWER.name = new Name("Morgan Lee");
+VIEWER.email = new Email("morgan@acme-commerce.example");
+
+// A created record's own values: ids as text, objects left out.
+function plainOf(model) {
+  const plain = {};
+  for (const [key, value] of Object.entries(model)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+    if (value instanceof ObjectID) {
+      plain[key] = value.toString().toLowerCase();
+    } else if (typeof value !== "object" && typeof value !== "function") {
+      plain[key] = value;
+    }
+  }
+  return plain;
+}
+
+/*
+ * A record created as the API creates it. A state timeline row moves its
+ * incident or alert into the state, as the server's timeline service does,
+ * so the list read again shows it there; an owner row names its person.
+ */
+const STATE_MOVES = {
+  IncidentStateTimeline: {
+    records: "Incident",
+    states: "IncidentState",
+    recordId: "incidentId",
+    stateId: "incidentStateId",
+    current: "currentIncidentState",
+  },
+  AlertStateTimeline: {
+    records: "Alert",
+    states: "AlertState",
+    recordId: "alertId",
+    stateId: "alertStateId",
+    current: "currentAlertState",
+  },
+};
+
+ModelAPI.create = async (options) => {
+  const model = options.model;
+  const tableName =
+    model.tableName || new options.modelType().tableName || "unknown";
+  window.__fixture.creates.push({ tableName, data: plainOf(model) });
+
+  await waitFor(delay);
+
+  if (!RECORDS[tableName]) {
+    window.__fixture.unmodelled.push(`create ${tableName}`);
+    return { data: model };
+  }
+
+  model._id = uuid("83000000", window.__fixture.creates.length);
+
+  const move = STATE_MOVES[tableName];
+  if (move) {
+    const record = RECORDS[move.records].find((candidate) => {
+      return idOf(candidate._id) === idOf(model[move.recordId]);
+    });
+    const state = RECORDS[move.states].find((candidate) => {
+      return idOf(candidate._id) === idOf(model[move.stateId]);
+    });
+    if (record && state) {
+      record[move.current] = state;
+      record[`${move.current}Id`] = new ObjectID(state._id);
+    }
+    model.startsAt = new Date();
+  }
+
+  if (tableName.endsWith("OwnerUser")) {
+    model.user =
+      [...PEOPLE, VIEWER].find((person) => {
+        return idOf(person._id) === idOf(model.userId);
+      }) || null;
+  }
+
+  RECORDS[tableName].push(model);
+  return { data: model };
 };
 
 API.get = async (options) => {

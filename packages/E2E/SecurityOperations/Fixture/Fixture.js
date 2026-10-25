@@ -46,6 +46,10 @@
  *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
  *            Eradicating and Closed - Duplicate among the statuses, and
  *            Emergency above Critical.
+ *   ?refuse= case numbers, comma separated (138): the server refuses every
+ *            change to those cases, as a role scoped to labels the reader
+ *            lacks does - so a bulk action names the cases it could not
+ *            change, and a row's dialog says why.
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -85,6 +89,7 @@ import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/Secu
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns";
+import SecurityProtectedEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ProtectedEntities";
 import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
@@ -112,9 +117,11 @@ import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventC
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -313,6 +320,20 @@ const language = LANGUAGES.includes(params.get("lang"))
  * priority below lay them out. Its cases sit in some of them.
  */
 const hasCustomValues = params.get("values") === "custom";
+/*
+ * ?refuse=138: the cases, by number, whose every change the server refuses
+ * with the sentence it gives a reader whose role does not reach them.
+ */
+const REFUSED_CASE_NUMBERS = (params.get("refuse") || "")
+  .split(",")
+  .map((number) => {
+    return Number(number.trim());
+  })
+  .filter((number) => {
+    return Number.isInteger(number) && number > 0;
+  });
+const REFUSED_CASE_MESSAGE =
+  "You do not have permission to update this Security Case. Your role reaches only cases labelled for your team.";
 let statusReads = 0;
 let overviewReads = 0;
 // The recommended rule the partly scenario leaves undone the first time.
@@ -349,6 +370,7 @@ const ID = {
   rule: (n) => uuid("26000000", n),
   connection: (n) => uuid("27000000", n),
   intel: (n) => uuid("28000000", n),
+  protectedEntity: (n) => uuid("2b000000", n),
 };
 
 let rowCounter = 9000;
@@ -1957,6 +1979,36 @@ const INDICATORS = isEmpty
       };
     });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Protected entities: the users and hosts no playbook contains - the
+ * break-glass account, every service account, the domain controller.
+ * ---------------------------------------------------------------------------
+ */
+if (!isEmpty) {
+  insert(SecurityProtectedEntity, {
+    _id: ID.protectedEntity(1),
+    entityType: SecurityEntityType.User,
+    value: "breakglass@acme-commerce.example",
+    description: "The admin account for when single sign-on is down.",
+    createdAt: ago(60 * DAY),
+  });
+  insert(SecurityProtectedEntity, {
+    _id: ID.protectedEntity(2),
+    entityType: SecurityEntityType.User,
+    value: "svc-*",
+    description: "Every service account: suspending one stops the job it runs.",
+    createdAt: ago(45 * DAY),
+  });
+  insert(SecurityProtectedEntity, {
+    _id: ID.protectedEntity(3),
+    entityType: SecurityEntityType.Host,
+    value: "dc-01",
+    description: "The domain controller.",
+    createdAt: ago(45 * DAY),
+  });
+}
+
 // What a playbook's steps can name: policies, severities, labels, workflows.
 insert(OnCallDutyPolicy, { name: "Security on-call" });
 insert(IncidentSeverity, { name: "SEV1", color: "#dc2626", order: 1 });
@@ -1989,12 +2041,30 @@ for (const modelType of [
   SecurityLogSource,
   DetectionRule,
   ThreatIntelFeed,
+  SecurityProtectedEntity,
   Team,
+  TeamMember,
   WorkspaceProjectAuthToken,
 ]) {
   table(modelType);
 }
 table(Team).push({ ...socTeam, projectId: projectObjectId });
+
+/*
+ * The project's members, as the people pickers read them (TeamMember rows
+ * with their user): Assign to Someone Else offers Maya and her teammates,
+ * then SOC Tier 2. Each is on SOC Tier 2.
+ */
+for (const member of Object.values(people)) {
+  table(TeamMember).push({
+    _id: rowId(),
+    projectId: projectObjectId,
+    teamId: new ObjectID(socTeam._id),
+    userId: new ObjectID(member._id),
+    user: member,
+    createdAt: NOW,
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -2446,9 +2516,9 @@ Realtime.listenToAnalyticsModelEvent = () => {
 };
 
 /*
- * The relations the pages select through a record - a case's status and
- * priority, a playbook's minimum priority - joined at read time from the
- * value tables, so an edit of either reads back at once.
+ * The relations the pages select through a record - a case's status,
+ * priority, assignee and team, a playbook's minimum priority - joined at
+ * read time from the tables, so an edit of any of them reads back at once.
  */
 function valueById(modelType, id) {
   if (!id) {
@@ -2472,6 +2542,12 @@ function withRelations(modelName, record) {
         SecurityCasePriority,
         record.securityCasePriorityId,
       ),
+      assignedToUser: record.assignedToUserId
+        ? Object.values(people).find((member) => {
+            return member._id === String(record.assignedToUserId);
+          })
+        : undefined,
+      assignedToTeam: valueById(Team, record.assignedToTeamId),
     };
   }
   if (modelName === tableName(SecurityPlaybook)) {
@@ -2554,10 +2630,24 @@ ModelAPI.getCount = ModelAPI.count;
 ModelAPI.updateById = async (options) => {
   const modelName = tableName(options.modelType);
   const id = options.id?.toString();
-  fixture.updates.push({ modelName, id, data: serialize(options.data) });
   const record = (tables.get(modelName)?.records || []).find((item) => {
     return String(item._id) === id;
   });
+  // ?refuse=: refused as the server refuses it, recorded as tried.
+  const isRefused = Boolean(
+    record &&
+      modelName === tableName(SecurityCase) &&
+      REFUSED_CASE_NUMBERS.includes(record.caseNumber),
+  );
+  fixture.updates.push({
+    modelName,
+    id,
+    data: serialize(options.data),
+    ...(isRefused ? { refused: true } : {}),
+  });
+  if (isRefused) {
+    throw new HTTPErrorResponse(403, { message: REFUSED_CASE_MESSAGE }, {});
+  }
   if (record) {
     Object.assign(record, options.data);
   }
@@ -3222,6 +3312,7 @@ const PAGES = [
   ...SECURITY_PLAYBOOK_RUN_VIEWS.map((view) => {
     return [view.page, SecurityPlaybookRunsPage, view.key];
   }),
+  [PageMap.SECURITY_PROTECTED_ENTITIES, SecurityProtectedEntitiesPage],
   [PageMap.SECURITY_EVENTS_SETTINGS_AI, SecurityEventsAISettingsPage],
   [
     PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES,

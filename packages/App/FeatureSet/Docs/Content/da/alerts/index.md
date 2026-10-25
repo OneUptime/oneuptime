@@ -64,7 +64,9 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
 
-Listen viser **Advarselsnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer** (advarslens monitor først), **Oprettet**, **Varighed**, **Etiketter** og **Ejere**. Vælg advarsler for at handle på flere på én gang: **Skift tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Tilknyt til hændelse**, **Erklær hændelse** eller slet dem.
+Listen viser **Advarselsnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer** (advarslens monitor først), **Oprettet**, **Varighed**, **Etiketter** og **Ejere**. Vælg advarsler for at handle på flere på én gang: **Bekræft**, **Løs**, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Tilknyt til hændelse**, **Erklær hændelse** eller slet dem.
+
+Menuen **⋯** for enden af hver advarsels række gør det samme for netop den advarsel: **Bekræft** og **Løs**, så længe advarslen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Add Owner** for at give den videre til en anden.
 
 ## Opret en advarsel i hånden
 

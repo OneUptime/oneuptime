@@ -161,7 +161,12 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkArchiveActions", () => {
   return {
     __esModule: true,
     default: () => {
-      return { archiveBulkActions: [], unarchiveBulkActions: [] };
+      return {
+        archiveRowActions: [],
+        unarchiveRowActions: [],
+        archiveBulkActions: [],
+        unarchiveBulkActions: [],
+      };
     },
   };
 });

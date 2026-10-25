@@ -18,6 +18,8 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityEventsHowItWorksCard, {
   getHowItWorksCollapsedStorageKey,
+  isHowItWorksCollapsed,
+  readHowItWorksChoice,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
 import {
   SecurityEventsGuide,
@@ -115,6 +117,33 @@ function renderCard(guide: SecurityEventsGuide = TEST_GUIDE): void {
       <SecurityEventsHowItWorksCard guide={guide} />
     </MemoryRouter>,
   );
+}
+
+// The card over a list the page reads: null while it is read.
+function renderOverList(listItemCount: number | null): {
+  rerender: (count: number | null) => void;
+} {
+  const view: ReturnType<typeof render> = render(
+    <MemoryRouter>
+      <SecurityEventsHowItWorksCard
+        guide={TEST_GUIDE}
+        listItemCount={listItemCount}
+      />
+    </MemoryRouter>,
+  );
+
+  return {
+    rerender: (count: number | null): void => {
+      view.rerender(
+        <MemoryRouter>
+          <SecurityEventsHowItWorksCard
+            guide={TEST_GUIDE}
+            listItemCount={count}
+          />
+        </MemoryRouter>,
+      );
+    },
+  };
 }
 
 function card(guide: SecurityEventsGuide = TEST_GUIDE): HTMLElement {
@@ -247,7 +276,7 @@ describe("SecurityEventsHowItWorksCard", () => {
       );
     });
 
-    test("Show brings the card back and forgets the hidden state", () => {
+    test("Show brings the card back and remembers it shown", () => {
       renderCard();
 
       fireEvent.click(toggleButton());
@@ -257,11 +286,12 @@ describe("SecurityEventsHowItWorksCard", () => {
         TEST_GUIDE.steps.length,
       );
       expect(toggleButton()).toHaveAttribute("aria-expanded", "true");
+      // Shown on purpose: a page whose list has rows would fold it otherwise.
       expect(
         window.localStorage.getItem(
           getHowItWorksCollapsedStorageKey(TEST_GUIDE.id),
         ),
-      ).toBeNull();
+      ).toBe("false");
     });
 
     test("a card hidden on an earlier visit renders hidden", () => {
@@ -334,6 +364,144 @@ describe("SecurityEventsHowItWorksCard", () => {
 
       fireEvent.click(toggleButton());
       expect(toggleButton()).toHaveTextContent("Hide");
+    });
+  });
+
+  /*
+   * A page whose list has rows opens on the list: the card is its title
+   * row until the reader shows it. The explanation is for whoever looks at
+   * an empty list; an analyst tuning forty rules met the same steps above
+   * them on every visit.
+   */
+  describe("over a list", () => {
+    function isShown(): boolean {
+      return toggleButton().getAttribute("aria-expanded") === "true";
+    }
+
+    test("folded while the list is read, so nothing jumps when it has rows", () => {
+      renderOverList(null);
+
+      expect(isShown()).toBe(false);
+      expect(within(card()).queryAllByTestId("how-it-works-step")).toHaveLength(
+        0,
+      );
+      expect(toggleButton()).toHaveTextContent("Show");
+      // The full guide is still a click away.
+      expect(openGuideButton()).toBeInTheDocument();
+    });
+
+    test("open over an empty list: the one who needs it is looking at nothing", () => {
+      renderOverList(0);
+
+      expect(isShown()).toBe(true);
+      expect(within(card()).getAllByTestId("how-it-works-step")).toHaveLength(
+        TEST_GUIDE.steps.length,
+      );
+    });
+
+    test("folded over a list with rows", () => {
+      renderOverList(12);
+
+      expect(isShown()).toBe(false);
+      expect(card()).toHaveTextContent(TEST_GUIDE.title);
+      expect(card()).not.toHaveTextContent(TEST_GUIDE.summary);
+    });
+
+    test("opens once the list reads empty, and stays folded once it reads rows", () => {
+      const empty: { rerender: (count: number | null) => void } =
+        renderOverList(null);
+      expect(isShown()).toBe(false);
+      empty.rerender(0);
+      expect(isShown()).toBe(true);
+      cleanup();
+
+      const busy: { rerender: (count: number | null) => void } =
+        renderOverList(null);
+      busy.rerender(3);
+      expect(isShown()).toBe(false);
+    });
+
+    test("the reader's own choice wins over the list, both ways", () => {
+      window.localStorage.setItem(
+        getHowItWorksCollapsedStorageKey(TEST_GUIDE.id),
+        "true",
+      );
+      renderOverList(0);
+      expect(isShown()).toBe(false);
+      cleanup();
+
+      window.localStorage.setItem(
+        getHowItWorksCollapsedStorageKey(TEST_GUIDE.id),
+        "false",
+      );
+      renderOverList(40);
+      expect(isShown()).toBe(true);
+    });
+
+    test("Show over a list with rows sticks, and Hide over an empty one does", () => {
+      const view: { rerender: (count: number | null) => void } =
+        renderOverList(8);
+
+      fireEvent.click(toggleButton());
+      expect(isShown()).toBe(true);
+      view.rerender(9);
+      expect(isShown()).toBe(true);
+      expect(
+        readHowItWorksChoice(getHowItWorksCollapsedStorageKey(TEST_GUIDE.id)),
+      ).toBe(false);
+      cleanup();
+      window.localStorage.clear();
+
+      renderOverList(0);
+      fireEvent.click(toggleButton());
+      expect(isShown()).toBe(false);
+      expect(
+        window.localStorage.getItem(
+          getHowItWorksCollapsedStorageKey(TEST_GUIDE.id),
+        ),
+      ).toBe("true");
+    });
+
+    test("whether it is folded, as the card decides it", () => {
+      // No choice, no list: open, as the card always opened.
+      expect(
+        isHowItWorksCollapsed({ choice: null, listItemCount: undefined }),
+      ).toBe(false);
+      expect(isHowItWorksCollapsed({ choice: null, listItemCount: null })).toBe(
+        true,
+      );
+      expect(isHowItWorksCollapsed({ choice: null, listItemCount: 0 })).toBe(
+        false,
+      );
+      expect(isHowItWorksCollapsed({ choice: null, listItemCount: 1 })).toBe(
+        true,
+      );
+      expect(isHowItWorksCollapsed({ choice: true, listItemCount: 0 })).toBe(
+        true,
+      );
+      expect(isHowItWorksCollapsed({ choice: false, listItemCount: 7 })).toBe(
+        false,
+      );
+      expect(
+        isHowItWorksCollapsed({ choice: false, listItemCount: null }),
+      ).toBe(false);
+    });
+
+    test("the stored choice reads as hidden, shown or none, and storage that fails reads as none", () => {
+      const key: string = getHowItWorksCollapsedStorageKey(TEST_GUIDE.id);
+
+      expect(readHowItWorksChoice(key)).toBeNull();
+      window.localStorage.setItem(key, "true");
+      expect(readHowItWorksChoice(key)).toBe(true);
+      window.localStorage.setItem(key, "false");
+      expect(readHowItWorksChoice(key)).toBe(false);
+      window.localStorage.setItem(key, "garbage");
+      expect(readHowItWorksChoice(key)).toBeNull();
+
+      jest.spyOn(LocalStorage, "getItem").mockImplementation(() => {
+        throw new Error("SecurityError: storage is disabled");
+      });
+      expect(readHowItWorksChoice(key)).toBeNull();
     });
   });
 

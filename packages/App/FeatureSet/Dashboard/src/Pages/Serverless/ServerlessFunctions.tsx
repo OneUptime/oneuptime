@@ -51,9 +51,10 @@ const ServerlessFunctions: FunctionComponent<
       modelType: ServerlessFunction,
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
-    modelType: ServerlessFunction,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<ServerlessFunction>({
+      modelType: ServerlessFunction,
+    });
 
   /*
    * Labels and owners in Bulk Actions, as on every other resource list:
@@ -120,6 +121,8 @@ const ServerlessFunctions: FunctionComponent<
     <Fragment>
       <ModelTable<ServerlessFunction>
         modelType={ServerlessFunction}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         topContent={getFirstRunTopContent({
           topContent: filterBar,

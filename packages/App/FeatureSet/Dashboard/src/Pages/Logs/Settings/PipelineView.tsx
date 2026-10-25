@@ -231,6 +231,8 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       {/* Section 3: Processors */}
       <ModelTable<LogPipelineProcessor>
         modelType={LogPipelineProcessor}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         query={{
           logPipelineId: modelId,
         }}

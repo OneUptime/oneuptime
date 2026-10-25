@@ -33,9 +33,10 @@ const DatabaseArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const { unarchiveBulkActions } = useBulkArchiveActions<DatabaseServer>({
-    modelType: DatabaseServer,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<DatabaseServer>({
+      modelType: DatabaseServer,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -64,6 +65,8 @@ const DatabaseArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<DatabaseServer>
         modelType={DatabaseServer}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="database-archived-table"
         userPreferencesKey="database-archived-table"
         topContent={filterBar}

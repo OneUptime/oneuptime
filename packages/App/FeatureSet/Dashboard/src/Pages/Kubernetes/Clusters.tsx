@@ -64,9 +64,10 @@ const KubernetesClusters: FunctionComponent<
       resourceIdField: "kubernetesClusterId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<KubernetesCluster>({
-    modelType: KubernetesCluster,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<KubernetesCluster>({
+      modelType: KubernetesCluster,
+    });
 
   const kubernetesExtraFacets: Array<ResourceFacet> = [
     {
@@ -132,6 +133,8 @@ const KubernetesClusters: FunctionComponent<
     <Fragment>
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"

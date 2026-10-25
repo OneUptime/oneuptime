@@ -57,9 +57,10 @@ const ProxmoxClusters: FunctionComponent<
       resourceIdField: "proxmoxClusterId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<ProxmoxCluster>({
-    modelType: ProxmoxCluster,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<ProxmoxCluster>({
+      modelType: ProxmoxCluster,
+    });
 
   const proxmoxExtraFacets: Array<ResourceFacet> = [
     {
@@ -115,6 +116,8 @@ const ProxmoxClusters: FunctionComponent<
     <Fragment>
       <ModelTable<ProxmoxCluster>
         modelType={ProxmoxCluster}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="proxmox-clusters-table"
         userPreferencesKey="proxmox-clusters-table"

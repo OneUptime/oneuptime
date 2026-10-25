@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -40,6 +41,7 @@ type CapturedFormField = {
 
 type CapturedActionButton = {
   title: string;
+  placement?: string | undefined;
   disabled?: boolean | undefined;
   tooltip?: string | undefined;
   onClick: (
@@ -52,6 +54,24 @@ type CapturedActionButton = {
 type CapturedTableProps = {
   formFields?: Array<CapturedFormField>;
   actionButtons?: Array<CapturedActionButton>;
+  // The page hears how many rules the table read (the how-it-works card).
+  onFetchSuccess?:
+    | ((data: Array<unknown>, totalCount: number) => void)
+    | undefined;
+  noItemsMessage?: unknown;
+  emptyState?:
+    | {
+        title?: string | undefined;
+        description?: unknown;
+        actions?:
+          | Array<{
+              title: string;
+              dataTestId?: string | undefined;
+              onClick: () => void;
+            }>
+          | undefined;
+      }
+    | undefined;
   createInitialValues?: Record<string, unknown>;
   helpContent?:
     | {
@@ -834,6 +854,91 @@ describe("Detection Rules page", () => {
 
       expect(button?.disabled).toBe(true);
       expect(button?.tooltip).toBe("You need the Create Monitor permission.");
+    });
+
+    /*
+     * In the row's menu: a monitor on a rule's findings is set up once.
+     * As the row's one button it took the place of Edit, what a rule's row
+     * is for, and the width Last Match needed at 1280.
+     */
+    test("waits in the row's menu, so Edit is the row's button", () => {
+      renderPage();
+
+      expect(createMonitorButton()?.placement).toBe("MoreMenu");
+    });
+  });
+
+  describe("an empty list, and the card above a busy one", () => {
+    function rulesRead(count: number): void {
+      act(() => {
+        capturedTableProps!.onFetchSuccess!([], count);
+      });
+    }
+
+    function isCardShown(): boolean {
+      return (
+        screen
+          .getByTestId("how-it-works-toggle")
+          .getAttribute("aria-expanded") === "true"
+      );
+    }
+
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    test("the card waits folded while the rules are read, and opens only for a project with none", () => {
+      renderPage();
+      expect(isCardShown()).toBe(false);
+
+      rulesRead(0);
+      expect(isCardShown()).toBe(true);
+      cleanup();
+
+      renderPage();
+      rulesRead(9);
+      expect(isCardShown()).toBe(false);
+      // A search that empties the table later does not open it.
+      rulesRead(0);
+      expect(isCardShown()).toBe(false);
+    });
+
+    test("an empty list says no rules yet, and leads to the Rule Library", () => {
+      const navigateSpy: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      renderPage();
+
+      // Its own words, not the old "No detection rules found."
+      expect(capturedTableProps?.noItemsMessage).toBeUndefined();
+      expect(capturedTableProps?.emptyState?.title).toBe(
+        "No detection rules yet",
+      );
+      expect(capturedTableProps?.emptyState?.description).toBe(
+        "Add ready-made rules from the Rule Library in a click, or write a Sigma rule of your own.",
+      );
+
+      const actions: Array<{
+        title: string;
+        dataTestId?: string | undefined;
+        onClick: () => void;
+      }> = capturedTableProps?.emptyState?.actions || [];
+
+      expect(
+        actions.map((action: { title: string }): string => {
+          return action.title;
+        }),
+      ).toEqual(["Open the Rule Library"]);
+
+      actions[0]!.onClick();
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(String(navigateSpy.mock.calls[0]?.[0])).toContain(
+        "/security-events/rule-library",
+      );
     });
   });
 });

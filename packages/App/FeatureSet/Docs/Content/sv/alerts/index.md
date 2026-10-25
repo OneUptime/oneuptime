@@ -64,7 +64,9 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 
 **Varningar** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
 
-Listan visar **Larmnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser** (larmets monitor först), **Skapad**, **Varaktighet**, **Etiketter** och **Ägare**. Markera larm för att agera på flera samtidigt: **Ändra tillstånd**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Länka till incident**, **Deklarera incident** eller ta bort dem.
+Listan visar **Larmnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser** (larmets monitor först), **Skapad**, **Varaktighet**, **Etiketter** och **Ägare**. Markera larm för att agera på flera samtidigt: **Bekräfta**, **Lös**, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Länka till incident**, **Deklarera incident** eller ta bort dem.
+
+Menyn **⋯** i slutet av varje larms rad gör samma sak för just det larmet: **Bekräfta** och **Lös** så länge larmet kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger det, och **Add Owner** för att lämna över det till någon annan.
 
 ## Skapa ett larm manuellt
 

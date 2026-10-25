@@ -61,9 +61,10 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "dockerHostId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<DockerHost>({
-    modelType: DockerHost,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<DockerHost>({
+      modelType: DockerHost,
+    });
 
   const dockerExtraFacets: Array<ResourceFacet> = [
     {
@@ -129,6 +130,8 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<DockerHost>
         modelType={DockerHost}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="docker-hosts-table"
         userPreferencesKey="docker-hosts-table"

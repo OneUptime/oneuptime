@@ -1,4 +1,8 @@
 import {
+  DETECTION_RULE_LIBRARY,
+  DetectionRuleLibraryEntry,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
   MITRE_TACTICS,
   MITRE_TACTIC_TECHNIQUES,
   MitreTactic,
@@ -10,6 +14,7 @@ import SigmaRule from "Common/Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser, {
   detectionRuleHeader,
 } from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import { ExistingRule, isLibraryRuleAdded } from "./RuleLibraryUtil";
 
 /*
  * Which parts of the ATT&CK matrix the project's detection rules cover, and
@@ -194,4 +199,249 @@ export function countCoveredTechniques(coverage: AttackCoverage): number {
   }
 
   return count;
+}
+
+/*
+ * WHAT THE PAGE DRAWS: EACH TACTIC AS A ROW, EACH TECHNIQUE AS A CHIP.
+ *
+ * The page used to open on the whole matrix: fifteen columns of tiny
+ * cells, wider than any screen, so the one tactic a project covers sat off
+ * to the right behind a scrollbar and the page read as a wall of grey.
+ * Now it opens on the tactics, in the order an attack moves through them,
+ * each with how much of it the project's rules cover; a tactic opens on
+ * its techniques. The matrix stays one switch away.
+ */
+
+// Where a technique stands, most covered first.
+export enum TechniqueCoverage {
+  // An enabled rule of the project covers it.
+  Covered = "covered",
+  // Only rules that are turned off cover it.
+  DisabledOnly = "disabled-only",
+  // No rule of the project covers it; a Rule Library rule it has not added does.
+  InLibrary = "in-library",
+  NotCovered = "not-covered",
+}
+
+// The order a tactic's techniques are listed in: what the project has first.
+export const TECHNIQUE_COVERAGE_ORDER: ReadonlyArray<TechniqueCoverage> = [
+  TechniqueCoverage.Covered,
+  TechniqueCoverage.DisabledOnly,
+  TechniqueCoverage.InLibrary,
+  TechniqueCoverage.NotCovered,
+];
+
+export interface TechniqueCoverageView {
+  id: string;
+  name: string;
+  coverage: TechniqueCoverage;
+  // How many of the project's rules name it, on or off.
+  ruleCount: number;
+}
+
+export interface TacticCoverageView {
+  tactic: MitreTactic;
+  techniqueCount: number;
+  // Its techniques an enabled rule covers.
+  coveredCount: number;
+  // Its techniques no enabled rule covers that a library rule not added yet would.
+  libraryCount: number;
+  // Every technique of the tactic, most covered first, each group in the matrix's order.
+  techniques: Array<TechniqueCoverageView>;
+  // The same techniques in the matrix's own order (its column, top to bottom).
+  matrixTechniques: Array<TechniqueCoverageView>;
+}
+
+function hasEnabledRule(rules: ReadonlyArray<CoveringRule>): boolean {
+  return rules.some((rule: CoveringRule): boolean => {
+    return rule.isEnabled;
+  });
+}
+
+export function getTechniqueCoverage(
+  techniqueId: string,
+  coverage: AttackCoverage,
+  library: AttackCoverage,
+): TechniqueCoverage {
+  const rules: Array<CoveringRule> =
+    coverage.rulesByTechnique.get(techniqueId) || [];
+
+  if (hasEnabledRule(rules)) {
+    return TechniqueCoverage.Covered;
+  }
+
+  if (rules.length > 0) {
+    return TechniqueCoverage.DisabledOnly;
+  }
+
+  if ((library.rulesByTechnique.get(techniqueId) || []).length > 0) {
+    return TechniqueCoverage.InLibrary;
+  }
+
+  return TechniqueCoverage.NotCovered;
+}
+
+// A technique no enabled rule covers, that a library rule not added yet would.
+function isLibraryGap(
+  techniqueId: string,
+  coverage: AttackCoverage,
+  library: AttackCoverage,
+): boolean {
+  return (
+    !hasEnabledRule(coverage.rulesByTechnique.get(techniqueId) || []) &&
+    (library.rulesByTechnique.get(techniqueId) || []).length > 0
+  );
+}
+
+// Every tactic of the matrix, in its order, as the page's rows.
+export function getTacticCoverageViews(
+  coverage: AttackCoverage,
+  library: AttackCoverage,
+): Array<TacticCoverageView> {
+  return MITRE_TACTICS.map((tactic: MitreTactic): TacticCoverageView => {
+    const techniques: Array<TechniqueCoverageView> = (
+      MITRE_TACTIC_TECHNIQUES[tactic.id] || []
+    ).map(([id, name]: readonly [string, string]): TechniqueCoverageView => {
+      return {
+        id,
+        name,
+        coverage: getTechniqueCoverage(id, coverage, library),
+        ruleCount: (coverage.rulesByTechnique.get(id) || []).length,
+      };
+    });
+
+    const ordered: Array<TechniqueCoverageView> = TECHNIQUE_COVERAGE_ORDER.map(
+      (state: TechniqueCoverage): Array<TechniqueCoverageView> => {
+        return techniques.filter(
+          (technique: TechniqueCoverageView): boolean => {
+            return technique.coverage === state;
+          },
+        );
+      },
+    ).flat();
+
+    return {
+      tactic,
+      techniqueCount: techniques.length,
+      coveredCount: techniques.filter(
+        (technique: TechniqueCoverageView): boolean => {
+          return technique.coverage === TechniqueCoverage.Covered;
+        },
+      ).length,
+      libraryCount: techniques.filter(
+        (technique: TechniqueCoverageView): boolean => {
+          return isLibraryGap(technique.id, coverage, library);
+        },
+      ).length,
+      techniques: ordered,
+      matrixTechniques: techniques,
+    };
+  });
+}
+
+/*
+ * The Rule Library's rules the project has no rule of, known as the
+ * library knows them: by the Sigma id a rule carries, however the team
+ * renamed it, or by its name (isLibraryRuleAdded). A renamed library rule
+ * counted as missing here while the library said Added.
+ */
+export function getLibraryRulesNotAdded(
+  existingRules: ReadonlyArray<ExistingRule>,
+): Array<DetectionRuleLibraryEntry> {
+  return DETECTION_RULE_LIBRARY.filter(
+    (entry: DetectionRuleLibraryEntry): boolean => {
+      return !isLibraryRuleAdded(entry, existingRules);
+    },
+  );
+}
+
+// What those rules would cover, as the matrix counts a rule.
+export function buildLibraryCoverage(
+  existingRules: ReadonlyArray<ExistingRule>,
+): AttackCoverage {
+  return buildAttackCoverage(
+    getLibraryRulesNotAdded(existingRules).map(
+      (entry: DetectionRuleLibraryEntry): CoverageRuleInput => {
+        return {
+          id: entry.id,
+          name: entry.title,
+          isEnabled: true,
+          sigmaRuleYaml: entry.sigmaRuleYaml,
+        };
+      },
+    ),
+  );
+}
+
+/*
+ * The page's next step: how many techniques no enabled rule covers that
+ * the Rule Library would, and how many of its rules (not added yet) cover
+ * at least one of them.
+ */
+export interface LibraryCoverageGap {
+  ruleCount: number;
+  techniqueCount: number;
+}
+
+export function getLibraryCoverageGap(
+  coverage: AttackCoverage,
+  library: AttackCoverage,
+): LibraryCoverageGap {
+  const ruleIds: Set<string> = new Set();
+  let techniqueCount: number = 0;
+
+  for (const [techniqueId, rules] of library.rulesByTechnique.entries()) {
+    if (!isLibraryGap(techniqueId, coverage, library)) {
+      continue;
+    }
+
+    techniqueCount++;
+
+    for (const rule of rules) {
+      ruleIds.add(rule.id);
+    }
+  }
+
+  return { ruleCount: ruleIds.size, techniqueCount };
+}
+
+// A tactic's share covered, as a whole percent for its bar.
+export function getCoveredPercent(view: {
+  coveredCount: number;
+  techniqueCount: number;
+}): number {
+  return view.techniqueCount > 0
+    ? Math.round((view.coveredCount / view.techniqueCount) * 100)
+    : 0;
+}
+
+/*
+ * An open tactic's techniques under a heading per state - covered, covered
+ * only by rules that are off, in the Rule Library, not covered - in that
+ * order, leaving out the states none of them is in. The headings say what
+ * each tile's look means right above it: a legend at the card's foot sat a
+ * screen below a tactic opened near the top.
+ */
+export interface TechniqueCoverageGroup {
+  coverage: TechniqueCoverage;
+  techniques: Array<TechniqueCoverageView>;
+}
+
+export function groupTechniquesByCoverage(
+  techniques: ReadonlyArray<TechniqueCoverageView>,
+): Array<TechniqueCoverageGroup> {
+  return TECHNIQUE_COVERAGE_ORDER.map(
+    (coverage: TechniqueCoverage): TechniqueCoverageGroup => {
+      return {
+        coverage,
+        techniques: techniques.filter(
+          (technique: TechniqueCoverageView): boolean => {
+            return technique.coverage === coverage;
+          },
+        ),
+      };
+    },
+  ).filter((group: TechniqueCoverageGroup): boolean => {
+    return group.techniques.length > 0;
+  });
 }

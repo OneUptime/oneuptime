@@ -637,6 +637,7 @@ export class Service extends ProjectReferencesService<Model> {
             SecurityCaseStatuses.find(values.statuses, newStatusId),
           ),
           verdict,
+          reopens: change.reopens,
           playbookName,
         }).toString(),
         moreInformationInMarkdown:

@@ -62,7 +62,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. A lista
 
 **Visão geral** e **Calendário** ficam abertas; **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Desenvolvedores** reúne **Terraform**, **API** e **Assistentes de IA**, para gerenciar a manutenção pelo código. Tudo sobre manutenção fica aqui, não nas **Configurações do projeto**.
 
-A lista mostra **Número da manutenção programada**, **Título**, **Estado atual**, **Recursos afetados**, **Exibido na página de status**, **Começa em**, **Duração**, **Termina em**, **Rótulos** e **Proprietários**. Selecione eventos para agir sobre vários de uma vez: **Alterar estado**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** ou **Excluir**.
+A lista mostra **Número da manutenção programada**, **Título**, **Estado atual**, **Recursos afetados**, **Exibido na página de status**, **Começa em**, **Duração**, **Termina em**, **Rótulos** e **Proprietários**. Selecione eventos para agir sobre vários de uma vez: **Marcar como {{state}}**, **Alterar estado**, **Atribuir a mim**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** ou **Excluir**. O menu **⋯** no fim da linha de cada evento faz o mesmo só para esse evento: os passos **Marcar como {{state}}** enquanto o evento puder dá-los, **Alterar estado**, **Atribuir a mim** até você ser o proprietário e **Add Owner**.
 
 **Calendário de manutenção**, na seção **Calendário**, mostra os mesmos eventos em um mês, uma semana ou um dia, e pode mostrar ao lado calendários de fora do projeto. Veja [Calendário de manutenção](/docs/scheduled-maintenance/calendar).
 

@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const DockerSwarmArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<DockerSwarmCluster>({
-    modelType: DockerSwarmCluster,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<DockerSwarmCluster>({
+      modelType: DockerSwarmCluster,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const DockerSwarmArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<DockerSwarmCluster>
         modelType={DockerSwarmCluster}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="docker-swarm-archived-table"
         userPreferencesKey="docker-swarm-archived-table"
         topContent={filterBar}

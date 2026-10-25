@@ -11,13 +11,19 @@ import path from "path";
  * sight when the rows scroll sideways, a header that sticks while a long
  * page scrolls, a row that opens its record, the phone's cards and the dark
  * theme as drawn - and, in CardHeaders.spec.ts, where every card header
- * shape puts its description under its title.
+ * shape puts its description under its title, and in RowActions.spec.ts,
+ * what each row's ⋯ menu offers and does on the incidents, alerts, monitors
+ * and runbooks lists.
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
 export default defineConfig({
   testDir: "./ModelTables",
-  testMatch: ["ModelTables.spec.ts", "CardHeaders.spec.ts"],
+  testMatch: [
+    "ModelTables.spec.ts",
+    "CardHeaders.spec.ts",
+    "RowActions.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

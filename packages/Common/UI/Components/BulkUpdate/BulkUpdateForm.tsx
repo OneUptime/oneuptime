@@ -7,6 +7,7 @@ import ConfirmModal, {
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import MoreMenuDivider from "../MoreMenu/Divider";
+import { startsNewMenuGroup } from "../ActionButton/ActionMenuGroup";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { Gray500, Green, Red } from "../../../Types/BrandColors";
@@ -153,6 +154,12 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
   isLoading?: boolean | undefined;
   isVisible?: (items: Array<T>) => boolean | undefined;
   className?: string | undefined;
+  /*
+   * The kind of action this is (ActionMenuGroup, or a list's own kind): the
+   * menu draws a gap where one kind ends and the next begins. Left out, the
+   * action sits with its unnamed neighbours, as it always has.
+   */
+  menuGroup?: string | undefined;
   onClick: (props: BulkActionOnClickProps<T>) => Promise<void>;
   disabled?: boolean | undefined;
   /* Why the action is unavailable - shown on hover of the locked menu item. */
@@ -603,6 +610,16 @@ const BulkUpdateForm: <T extends GenericObject>(
   const menuChildren: Array<ReactElement> = [];
 
   safeButtons.forEach((button: BulkActionButtonSchema<T>, index: number) => {
+    const previous: BulkActionButtonSchema<T> | undefined =
+      safeButtons[index - 1];
+
+    // A gap where one kind of action ends and the next begins.
+    if (previous && startsNewMenuGroup(previous.menuGroup, button.menuGroup)) {
+      menuChildren.push(
+        <MoreMenuDivider key={`bulk-action-group-divider-${index}`} />,
+      );
+    }
+
     menuChildren.push(renderMenuItem(button, index));
   });
 
