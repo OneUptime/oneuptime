@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -14,9 +15,12 @@ import (
 )
 
 type agentService struct {
-	stopChan chan struct{}
-	agent    *Agent
-	config   *ConfigFile
+	config *ConfigFile
+
+	// stop cancels the context the agent runs with, and stopped is closed
+	// once runAgent has returned. Start makes both.
+	stop    context.CancelFunc
+	stopped chan struct{}
 }
 
 func (a *agentService) Start(s service.Service) error {
@@ -25,32 +29,36 @@ func (a *agentService) Start(s service.Service) error {
 	} else {
 		slog.Info("Running under service manager.")
 	}
-	a.stopChan = make(chan struct{})
-	go a.runAgent()
+	ctx, stop := context.WithCancel(context.Background())
+	a.stop = stop
+	a.stopped = make(chan struct{})
+	go a.runAgent(ctx)
 	return nil
 }
 
-func (a *agentService) runAgent() {
-	a.agent = NewAgent(a.config.SecretKey, a.config.OneUptimeURL, a.config.ProxyURL)
-	a.agent.Start()
-	if service.Interactive() {
-		slog.Info("Running in terminal.")
-		NewShutdownHook().Close(func() {
-			slog.Info("Service Exiting...")
-			a.agent.Close()
-		})
-	} else {
-		slog.Info("Running under service manager.")
-		for range a.stopChan {
-			slog.Info("Service Exiting...")
-			a.agent.Close()
-			return
-		}
+// runAgent runs the agent until ctx is cancelled, then shuts it down.
+func (a *agentService) runAgent(ctx context.Context) {
+	defer close(a.stopped)
+
+	agent := NewAgent(ctx, a.config.SecretKey, a.config.OneUptimeURL, a.config.ProxyURL)
+	if agent == nil {
+		return
 	}
+	agent.Start()
+
+	<-ctx.Done()
+	slog.Info("Service Exiting...")
+	agent.Close()
 }
 
+// Stop is called however the agent runs: by kardianos/service when the
+// service manager stops the service, and on Ctrl+C when the agent runs in a
+// terminal. The process exits as soon as Stop returns, so it returns only
+// once the agent has shut down: its scheduler stopped, and a report or key
+// verification in flight abandoned.
 func (a *agentService) Stop(s service.Service) error {
-	close(a.stopChan)
+	a.stop()
+	<-a.stopped
 	return nil
 }
 
