@@ -143,6 +143,7 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkOwnerActions", () => {
     default: (options: unknown) => {
       bulkOwnerOptionsMock(options);
       return {
+        rowActions: [],
         bulkActions: [{ title: "Add Owner" }, { title: "Remove Owner" }],
         modals: null,
       };

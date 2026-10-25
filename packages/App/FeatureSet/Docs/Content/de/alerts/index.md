@@ -64,7 +64,9 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 
 **Warnungen** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Bereich öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. Die Konfiguration von Warnungen liegt hier, nicht in den **Projekteinstellungen**.
 
-Die Liste zeigt **Warnungsnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen** (zuerst der Monitor der Warnung), **Erstellt**, **Dauer**, **Beschriftungen** und **Eigentümer**. Wählen Sie Warnungen aus, um mehrere auf einmal zu bearbeiten: **Status ändern**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Mit Vorfall verknüpfen**, **Vorfall melden** oder löschen.
+Die Liste zeigt **Warnungsnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen** (zuerst der Monitor der Warnung), **Erstellt**, **Dauer**, **Beschriftungen** und **Eigentümer**. Wählen Sie Warnungen aus, um mehrere auf einmal zu bearbeiten: **Bestätigen**, **Beheben**, **Status ändern**, **Schweregrad ändern**, **Mir zuweisen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Mit Vorfall verknüpfen**, **Vorfall melden** oder löschen.
+
+Das Menü **⋯** am Ende der Zeile jeder Warnung tut dasselbe für diese eine Warnung: **Bestätigen** und **Beheben**, solange die Warnung diesen Schritt machen kann, **Status ändern**, **Schweregrad ändern**, **Mir zuweisen**, bis Sie ihr Eigentümer sind, und **Eigentümer hinzufügen**, um sie an jemand anderen zu übergeben.
 
 ## Eine Warnung von Hand erstellen
 

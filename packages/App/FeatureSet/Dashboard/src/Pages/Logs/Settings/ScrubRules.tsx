@@ -210,9 +210,9 @@ const LogScrubRules: FunctionComponent<
 
   return (
     <ModelTable<LogScrubRule>
+      modelType={LogScrubRule}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
-      modelType={LogScrubRule}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

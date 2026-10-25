@@ -30,9 +30,9 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <ModelTable<LlmCostBudget>
+      modelType={LlmCostBudget}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
-      modelType={LlmCostBudget}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

@@ -84,7 +84,7 @@ Os casos de um projeto novo passam por quatro status, que você pode renomear e 
 
 A página do caso tem tudo para tratá-lo:
 
-- No topo: **Assign to Me**, **Run Playbook**, **Declarar incidente** e **Close Case**, as etapas de status e, no menu ao lado, a prioridade.
+- No topo: **Atribuir a mim**, **Run Playbook**, **Declarar incidente** e **Close Case**, as etapas de status e, no menu ao lado, a prioridade.
 - **OneUptime AI**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 - **Detections**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
@@ -92,7 +92,7 @@ A página do caso tem tudo para tratá-lo:
 - **Execuções de playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação.
 - **Notas** e **Linha do tempo**: o que a equipe escreveu, e tudo o que aconteceu, com quem fez.
 
-Para tratar vários casos de uma vez, selecione-os na fila e use **Assign to Me**, **Change Status** ou **Change Priority**.
+Para tratar vários casos de uma vez, selecione-os na fila e use **Atribuir a mim**, **Change Status** ou **Change Priority**.
 
 ### Fechar um caso
 

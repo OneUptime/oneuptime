@@ -73,9 +73,9 @@ const ExternalMcpServersPage: FunctionComponent<PageComponentProps> = (
       <ProjectAiNotice context={ProjectAiNoticeContext.ExternalMcpServers} />
 
       <ModelTable<ExternalMcpServer>
+        modelType={ExternalMcpServer}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
-        modelType={ExternalMcpServer}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

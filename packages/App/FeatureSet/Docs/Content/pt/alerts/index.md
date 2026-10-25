@@ -64,7 +64,9 @@ Abra **Alertas** no menu **Produtos** da barra superior. A lista de alertas fica
 
 **Alertas** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. A configuração dos alertas fica aqui, não em **Configurações do projeto**.
 
-A lista mostra **Número do alerta**, **Título**, **Estado**, **Gravidade**, **Recursos afetados** (primeiro o monitor do alerta), **Criado**, **Duração**, **Rótulos** e **Proprietários**. Selecione alertas para agir em vários de uma vez: **Alterar estado**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Vincular a incidente**, **Declarar incidente** ou excluí-los.
+A lista mostra **Número do alerta**, **Título**, **Estado**, **Gravidade**, **Recursos afetados** (primeiro o monitor do alerta), **Criado**, **Duração**, **Rótulos** e **Proprietários**. Selecione alertas para agir em vários de uma vez: **Confirmar**, **Resolver**, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Vincular a incidente**, **Declarar incidente** ou excluí-los.
+
+O menu **⋯** no fim da linha de cada alerta faz o mesmo só para esse alerta: **Confirmar** e **Resolver** enquanto o alerta puder dar esse passo, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim** até você ser o proprietário e **Add Owner** para passá-lo a outra pessoa.
 
 ## Criar um alerta manualmente
 

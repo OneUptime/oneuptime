@@ -84,7 +84,7 @@ De zaken van een nieuw project doorlopen vier statussen, die je kunt hernoemen e
 
 De pagina van de zaak heeft alles om haar af te handelen:
 
-- Bovenaan: **Assign to Me**, **Run Playbook**, **Incident melden** en **Close Case**, de statusstappen, en de prioriteit onder het menu ernaast.
+- Bovenaan: **Aan mij toewijzen**, **Run Playbook**, **Incident melden** en **Close Case**, de statusstappen, en de prioriteit onder het menu ernaast.
 - **OneUptime AI**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
@@ -92,7 +92,7 @@ De pagina van de zaak heeft alles om haar af te handelen:
 - **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten.
 - **Notities** en **Tijdlijn**: wat het team schreef, en alles wat er gebeurde, met wie het deed.
 
-Om meerdere zaken tegelijk af te handelen, selecteer je ze in de wachtrij en gebruik je **Assign to Me**, **Change Status** of **Change Priority**.
+Om meerdere zaken tegelijk af te handelen, selecteer je ze in de wachtrij en gebruik je **Aan mij toewijzen**, **Change Status** of **Change Priority**.
 
 ### Een zaak sluiten
 

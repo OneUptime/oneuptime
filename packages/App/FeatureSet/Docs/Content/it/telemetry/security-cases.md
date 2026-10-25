@@ -84,7 +84,7 @@ I casi di un nuovo progetto attraversano quattro stati, che puoi rinominare e a 
 
 La pagina del caso ha tutto ciò che serve per gestirlo:
 
-- In alto: **Assign to Me**, **Run Playbook**, **Dichiara incidente** e **Close Case**, i passaggi di stato e, nel menu accanto, la priorità.
+- In alto: **Assegna a me**, **Run Playbook**, **Dichiara incidente** e **Close Case**, i passaggi di stato e, nel menu accanto, la priorità.
 - **OneUptime AI**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 - **Detections**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
@@ -92,7 +92,7 @@ La pagina del caso ha tutto ciò che serve per gestirlo:
 - **Esecuzioni dei playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione.
 - **Note** e **Cronologia**: cosa ha scritto il team, e tutto ciò che è successo, con chi l'ha fatto.
 
-Per gestire più casi insieme, selezionali nella coda e usa **Assign to Me**, **Change Status** o **Change Priority**.
+Per gestire più casi insieme, selezionali nella coda e usa **Assegna a me**, **Change Status** o **Change Priority**.
 
 ### Chiudere un caso
 

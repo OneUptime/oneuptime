@@ -64,9 +64,9 @@ const MetricRecordingRules: FunctionComponent<
   const translator: Translator = useTranslator();
   return (
     <ModelTable<MetricRecordingRule>
+      modelType={MetricRecordingRule}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{ column: "isEnabled" }}
-      modelType={MetricRecordingRule}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

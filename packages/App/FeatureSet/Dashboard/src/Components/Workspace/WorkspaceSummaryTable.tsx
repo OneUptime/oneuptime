@@ -275,9 +275,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <ModelTable<WorkspaceNotificationSummary>
+        modelType={WorkspaceNotificationSummary}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
-        modelType={WorkspaceNotificationSummary}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           summaryType: props.summaryType,

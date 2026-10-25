@@ -138,9 +138,9 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
 
       {/* Section 3: Processors */}
       <ModelTable<TracePipelineProcessor>
+        modelType={TracePipelineProcessor}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
-        modelType={TracePipelineProcessor}
         query={{
           tracePipelineId: modelId,
         }}

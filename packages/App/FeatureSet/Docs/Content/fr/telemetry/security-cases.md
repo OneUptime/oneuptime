@@ -84,7 +84,7 @@ Les dossiers d'un nouveau projet passent par quatre statuts, que vous pouvez ren
 
 La page du dossier réunit tout ce qu'il faut pour le traiter :
 
-- En haut : **Assign to Me**, **Run Playbook**, **Déclarer un incident** et **Close Case**, les étapes de statut, et la priorité, dans le menu à côté.
+- En haut : **M'attribuer**, **Run Playbook**, **Déclarer un incident** et **Close Case**, les étapes de statut, et la priorité, dans le menu à côté.
 - **OneUptime AI** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
@@ -92,7 +92,7 @@ La page du dossier réunit tout ce qu'il faut pour le traiter :
 - **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation.
 - **Notes** et **Chronologie** : ce que l'équipe a écrit, et tout ce qui s'est passé, avec son auteur.
 
-Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **Assign to Me**, **Change Status** ou **Change Priority**.
+Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **M'attribuer**, **Change Status** ou **Change Priority**.
 
 ### Fermer un dossier
 

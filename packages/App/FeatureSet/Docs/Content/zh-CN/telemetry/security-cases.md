@@ -84,7 +84,7 @@ flowchart TB
 
 案例页面上有处理它所需的一切：
 
-- 顶部：**Assign to Me**、**Run Playbook**、**声明事件** 和 **Close Case** 按钮，状态步骤，以及它们旁边菜单中的优先级。
+- 顶部：**分配给我**、**Run Playbook**、**声明事件** 和 **Close Case** 按钮，状态步骤，以及它们旁边菜单中的优先级。
 - **OneUptime AI**：OneUptime AI 对案例的研判、它建议的优先级和剧本，以及背后的证据。请参阅 [安全中的 OneUptime AI](/docs/telemetry/security-ai)。
 - **Detections**：触发后打开或并入该案例的检测、触发次数，以及最新的匹配事件。
 - **实体**：案例涉及的用户、主机和地址，以及它们最近 7 天在你所有安全事件中的活动。每个实体都可以在 **关联分析** 中打开。
@@ -92,7 +92,7 @@ flowchart TB
 - **剧本运行记录**：每个剧本在该案例上逐步做了什么，以及等待审批的步骤。
 - **备注** 和 **时间线**：团队写下的内容，以及发生过的一切和操作人。
 
-要同时处理多个案例，请在队列中选中它们，然后使用 **Assign to Me**、**Change Status** 或 **Change Priority**。
+要同时处理多个案例，请在队列中选中它们，然后使用 **分配给我**、**Change Status** 或 **Change Priority**。
 
 ### 关闭案例
 

@@ -130,9 +130,9 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
   return (
     <Fragment>
       <ModelTable<SecurityEventDestination>
+        modelType={SecurityEventDestination}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
-        modelType={SecurityEventDestination}
         refreshToggle={String(refreshCounter)}
         selectMoreFields={{
           projectId: true,

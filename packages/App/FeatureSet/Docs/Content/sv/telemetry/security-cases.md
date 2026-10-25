@@ -84,7 +84,7 @@ Ett ärendes prioritet kommer från detektionens allvarlighetsgrad, som projekte
 
 Ärendets sida har allt som behövs för att arbeta med det:
 
-- Överst: **Assign to Me**, **Run Playbook**, **Deklarera incident** och **Close Case**, statusstegen, och prioriteten i menyn bredvid dem.
+- Överst: **Tilldela mig**, **Run Playbook**, **Deklarera incident** och **Close Case**, statusstegen, och prioriteten i menyn bredvid dem.
 - **OneUptime AI**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
@@ -92,7 +92,7 @@ Ett ärendes prioritet kommer från detektionens allvarlighetsgrad, som projekte
 - **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande.
 - **Anteckningar** och **Tidslinje**: vad teamet skrev, och allt som hände, med vem som gjorde det.
 
-För att arbeta med flera ärenden samtidigt markerar du dem i kön och använder **Assign to Me**, **Change Status** eller **Change Priority**.
+För att arbeta med flera ärenden samtidigt markerar du dem i kön och använder **Tilldela mig**, **Change Status** eller **Change Priority**.
 
 ### Stäng ett ärende
 

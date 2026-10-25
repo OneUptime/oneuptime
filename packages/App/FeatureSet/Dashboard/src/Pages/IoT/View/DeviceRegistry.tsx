@@ -68,9 +68,9 @@ const IoTFleetDeviceRegistry: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<IoTDeviceCredential>
+        modelType={IoTDeviceCredential}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
-        modelType={IoTDeviceCredential}
         id="iot-device-registry-table"
         userPreferencesKey="iot-device-registry-table"
         query={{

@@ -84,7 +84,7 @@ Sakene i et nytt prosjekt går gjennom fire statuser, som du kan gi nye navn og 
 
 Siden til saken har alt du trenger for å behandle den:
 
-- Øverst: **Assign to Me**, **Run Playbook**, **Erklær hendelse** og **Close Case**, statusstegene, og prioriteten under menyen ved siden av dem.
+- Øverst: **Tildel til meg**, **Run Playbook**, **Erklær hendelse** og **Close Case**, statusstegene, og prioriteten under menyen ved siden av dem.
 - **OneUptime AI**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 - **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
@@ -92,7 +92,7 @@ Siden til saken har alt du trenger for å behandle den:
 - **Playbook-kjøringer**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning.
 - **Notater** og **Tidslinje**: hva teamet skrev, og alt som skjedde, med hvem som gjorde det.
 
-For å behandle flere saker samtidig merker du dem i køen og bruker **Assign to Me**, **Change Status** eller **Change Priority**.
+For å behandle flere saker samtidig merker du dem i køen og bruker **Tildel til meg**, **Change Status** eller **Change Priority**.
 
 ### Lukk en sak
 

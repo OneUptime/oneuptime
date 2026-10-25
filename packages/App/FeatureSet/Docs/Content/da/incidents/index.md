@@ -165,7 +165,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 
 **Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
 
-Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer**, **Erklæret**, **Varighed**, **Etiketter** og **Ejere**, med en massehandling **Skift tilstand** til at lukke flere på én gang.
+Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer**, **Erklæret**, **Varighed**, **Etiketter** og **Ejere**. Menuen **⋯** for enden af hver hændelses række tilbyder **Bekræft** og **Løs**, så længe hændelsen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Add Owner** for at give den videre til en anden. Vælg flere hændelser for at gøre det samme ved dem alle på én gang.
 
 ## Hvad hver side på en hændelse viser
 

@@ -344,41 +344,41 @@ describe("state, severity and status options keep their colours", () => {
   });
 });
 
-const BULK_TABLES: Array<{ file: string; model: string; states: string }> =
-  [
-    {
-      file: "Components/Incident/IncidentsTable.tsx",
-      model: "IncidentState",
-      states: "incidentStates",
-    },
-    {
-      file: "Components/Alert/AlertsTable.tsx",
-      model: "AlertState",
-      states: "alertStates",
-    },
-    {
-      file: "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
-      model: "IncidentState",
-      states: "incidentStates",
-    },
-    {
-      file: "Components/AlertEpisode/AlertEpisodesTable.tsx",
-      model: "AlertState",
-      states: "alertStates",
-    },
-    {
-      file: "Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx",
-      model: "ScheduledMaintenanceState",
-      states: "scheduledMaintenanceStates",
-    },
-  ];
+const BULK_TABLES: Array<{ file: string; model: string; states: string }> = [
+  {
+    file: "Components/Incident/IncidentsTable.tsx",
+    model: "IncidentState",
+    states: "incidentStates",
+  },
+  {
+    file: "Components/Alert/AlertsTable.tsx",
+    model: "AlertState",
+    states: "alertStates",
+  },
+  {
+    file: "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
+    model: "IncidentState",
+    states: "incidentStates",
+  },
+  {
+    file: "Components/AlertEpisode/AlertEpisodesTable.tsx",
+    model: "AlertState",
+    states: "alertStates",
+  },
+  {
+    file: "Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx",
+    model: "ScheduledMaintenanceState",
+    states: "scheduledMaintenanceStates",
+  },
+];
 
 /*
  * The tables' state changes - a row's Acknowledge, Resolve or Change State,
  * and the bulk ones - are drawn by one engine, which opens the shared bulk
  * dialog with the state rows each table hands it.
  */
-const STATE_ACTIONS_ENGINE: string = "Components/EventView/useEventStateActions.tsx";
+const STATE_ACTIONS_ENGINE: string =
+  "Components/EventView/useEventStateActions.tsx";
 
 describe("3. the bulk Change State dialogs show each state's colour", () => {
   test("the one engine opens the dialog, for every table", () => {

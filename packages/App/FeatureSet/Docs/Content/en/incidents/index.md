@@ -165,7 +165,7 @@ Open **Incidents** from the **Products** menu in the top bar. Its side menu is o
 
 **Overview** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 
-The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**, with a **Change State** bulk action for closing several at once.
+The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**. Each incident's **⋯** menu, at the end of its row, offers **Acknowledge** and **Resolve** while the incident can make that move, **Change State**, **Change Severity**, **Assign to Me** until you own it, and **Add Owner** to hand it to someone else. Select several incidents to do the same to all of them at once.
 
 ## What each page on an incident shows
 

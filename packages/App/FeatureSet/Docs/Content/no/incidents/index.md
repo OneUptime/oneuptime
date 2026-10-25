@@ -165,7 +165,7 @@ Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger �
 
 **Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
 
-Selve listen over hendelser viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser**, **Erklært**, **Varighet**, **Etiketter** og **Eiere**, med en massehandling **Endre tilstand** for å lukke flere på én gang.
+Selve listen over hendelser viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser**, **Erklært**, **Varighet**, **Etiketter** og **Eiere**. Menyen **⋯** på slutten av raden til hver hendelse tilbyr **Bekreft** og **Løs** så lenge hendelsen kan ta det steget, **Endre tilstand**, **Endre alvorlighetsgrad**, **Tildel til meg** til du eier den, og **Add Owner** for å gi den videre til noen andre. Velg flere hendelser for å gjøre det samme med alle samtidig.
 
 ## Hva hver side på en hendelse viser
 

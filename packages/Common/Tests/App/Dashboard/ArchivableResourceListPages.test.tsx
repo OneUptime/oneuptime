@@ -215,7 +215,7 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkOwnerActions", () => {
   return {
     __esModule: true,
     default: () => {
-      return { bulkActions: ["owner-action"], modals: <></> };
+      return { rowActions: [], bulkActions: ["owner-action"], modals: <></> };
     },
   };
 });

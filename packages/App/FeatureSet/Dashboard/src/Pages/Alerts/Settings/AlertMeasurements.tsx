@@ -58,9 +58,9 @@ const AlertMeasurementsPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<AlertMeasurement>
+        modelType={AlertMeasurement}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
         rowSwitch={{ column: "isEnabled" }}
-        modelType={AlertMeasurement}
         id="alert-measurements-table"
         name="Settings > Alert Measurements"
         userPreferencesKey="alert-measurements-table"
