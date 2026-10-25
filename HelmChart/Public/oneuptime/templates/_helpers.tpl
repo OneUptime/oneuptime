@@ -945,6 +945,9 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE
   value: {{ $.Values.notifications.webhooks.slack.onSubscriptionUpdate }}
 
+- name: NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK
+  value: {{ $.Values.notifications.webhooks.slack.onAiFeedback }}
+
 - name: LETS_ENCRYPT_NOTIFICATION_EMAIL
   value: {{ $.Values.letsEncrypt.email }}
 
