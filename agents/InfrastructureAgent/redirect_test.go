@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"go/ast"
 	"go/parser"
@@ -155,7 +156,7 @@ func TestCheckIfSecretKeyIsValidIsNotSentOnToAnotherServer(t *testing.T) {
 				return other.URL
 			})
 
-			if checkIfSecretKeyIsValid(testSecretKey, srv.URL, "") {
+			if checkIfSecretKeyIsValid(context.Background(), testSecretKey, srv.URL, "") {
 				t.Error("a key whose verification was redirected to another server must not be treated as valid")
 			}
 
@@ -182,7 +183,7 @@ func TestCheckIfSecretKeyIsValidFollowsARedirectOnItsOwnServer(t *testing.T) {
 		return self
 	})
 
-	if !checkIfSecretKeyIsValid(testSecretKey, srv.URL, "") {
+	if !checkIfSecretKeyIsValid(context.Background(), testSecretKey, srv.URL, "") {
 		t.Fatalf("a verification redirected on its own server should get there, got logs:\n%s", buf.String())
 	}
 
@@ -228,7 +229,7 @@ func TestCollectMetricsJobIsNotSentOnToAnotherServer(t *testing.T) {
 		return other.URL
 	})
 
-	collectMetricsJob(testSecretKey, srv.URL, "")
+	collectMetricsJob(context.Background(), testSecretKey, srv.URL, "")
 
 	request := recorder.only(t)
 	if want := testIngestPath + testSecretKey; request.path != want {
@@ -254,7 +255,7 @@ func TestCollectMetricsJobFollowsARedirectOnItsOwnServer(t *testing.T) {
 		return self
 	})
 
-	collectMetricsJob(testSecretKey, srv.URL, "")
+	collectMetricsJob(context.Background(), testSecretKey, srv.URL, "")
 
 	requests := recorder.all()
 	if len(requests) != 2 {
@@ -325,9 +326,9 @@ func TestEveryAgentHTTPClientChecksItsRedirects(t *testing.T) {
 		})
 	}
 
-	// The agent's two requests each make a client, and one more for a proxy.
-	if clients < 4 {
-		t.Errorf("found %d http.Client literal(s), want at least 4; the scan has stopped finding them", clients)
+	// The agent's requests all get their client from newHTTPClient (client.go).
+	if clients < 1 {
+		t.Errorf("found %d http.Client literal(s), want at least 1; the scan has stopped finding them", clients)
 	}
 }
 

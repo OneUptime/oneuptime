@@ -8,6 +8,7 @@ In de logboekverkenner doorzoekt en leest u de logboeken die uw services, hosts 
 - [Logboeken live volgen](#logboeken-live-volgen): Nieuwe regels elke 10 seconden.
 - [Een weergave opslaan](#een-weergave-opslaan): Een zoekopdracht, de filters en de kolommen voor iedereen bewaren.
 - [Inzichten in logboeken](#inzichten-in-logboeken): Belangrijkste fouten, ernstniveaus en wie wat logt.
+- [Fout-, ontbrekende en luidruchtige logs vinden en oplossen met AI](#fout-ontbrekende-en-luidruchtige-logs-vinden-en-oplossen-met-ai): Pull requests die fouten oplossen, loggen wat niet gelogd wordt en luidruchtige regels stiller maken.
 :::
 
 ## Hoe de verkenner uw logboeken beperkt
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Eén logboek: details<br/>en context"]
 ```
 
-De verkenner heeft vier tabbladen:
+De verkenner heeft vijf tabbladen:
 
 | Tabblad | Waarvoor het dient |
 | --- | --- |
 | **Kijker** | Logboeken zoeken, filteren en lezen. Opent op het afgelopen uur, nieuwste eerst, 100 logboeken per pagina. |
 | **Inzichten** | Wat uw services in een tijdsbereik gelogd hebben, en wat er misging. |
+| **AI** | De foutlogs, de ontbrekende logging en de luidruchtige logs die OneUptime in uw logs vindt, en wat OneUptime AI eraan deed. Zie [Fout-, ontbrekende en luidruchtige logs vinden en oplossen met AI](#fout-ontbrekende-en-luidruchtige-logs-vinden-en-oplossen-met-ai). |
 | **Installatiegids** | Hoe u logboeken verstuurt met OpenTelemetry, Fluent Bit of Fluentd, met een van uw [ingestiesleutels](/docs/telemetry/ingestion-keys). |
 | **Instellingen** | Wat er met logboeken gebeurt als ze binnenkomen: **Pipelines**, **Drop-filters**, **Scrub-regels** en **Opnameregels**. |
 
@@ -129,6 +131,46 @@ Het tabblad **Inzichten** toont wat uw services in een tijdsbereik gelogd hebben
 | **Sources reporting logs** | Het volume en het foutsignaal van elke service, host of andere bron. |
 
 Selecteer een topfout om te zien wat er rond die fout gebeurde: wanneer hij optrad, wat de voorvallen gemeen hebben, waar hij optreedt, de traces die hem dragen en de nieuwste regels. **Open matching logs** opent ze in de **Kijker**, en **Explain with AI** opent [AI vragen](/docs/ai/ask-ai) met de fout en het bewijs als prompt die u kunt aanpassen.
+
+## Fout-, ontbrekende en luidruchtige logs vinden en oplossen met AI
+
+Elk uur doorzoekt OneUptime de logs van het afgelopen uur van elke service op fouten die ze steeds opnieuw logt, storingen die ze niet logt en regels die haar logs overspoelen, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+
+OneUptime legt drie soorten bevindingen vast:
+
+| Bevinding | Wanneer OneUptime die vastlegt | De pull request |
+| --- | --- | --- |
+| **Foutlog** | Een service logde in het uur één bericht 20 keer of vaker op Error of Fatal, een bericht met eigen woorden en zonder uitzondering. Een bericht dat met een uitzondering, of met een stacktrace erin, wordt gelogd, wordt in plaats daarvan gevolgd in [Uitzonderingen volgen](/docs/telemetry/exceptions). | Lost op waarom de fout wordt gelogd, of logt hem op het niveau dat hij verdient. |
+| **Ontbrekende logging** | Minstens 20 spans van een bewerking zijn in het uur mislukt, 5% of meer ervan, terwijl minstens 100 logs van de service een trace-ID dragen, en geen van de 20 meest recente mislukte verzoeken van de bewerking heeft een logregel geschreven. Of een service stuurde in het uur 500 of meer logs en 100 of meer spans, en minder dan 1% van haar logs draagt een trace-ID. | Logt de storing waar die gebeurt, of laat de logs van de service de trace-ID dragen. |
+| **Luidruchtige log** | Eén bericht dat onder Error wordt gelogd, is in het uur 25% of meer van de regels van een service, zo'n 10.000 regels of meer. | Logt de regel minder: op Debug, eenmaal per batch, of helemaal niet. |
+
+Een bevinding bewaart een bericht als zijn patroon: de delen die van regel tot regel veranderen, zoals getallen en ID's, worden gemaskeerd. De pull request wordt gevraagd met dat patroon, nooit met een regel zoals die werd gelogd, en OneUptime AI krijgt de opdracht nooit geheimen of persoonsgegevens te loggen, en geen logregels naar de pull request te kopiëren.
+
+OneUptime AI opent de pull request voor een foutlog pas zelf als het de schuldige code vindt. Een fout die van elders komt, zoals een afhankelijkheid die plat ligt, krijgt geen pull request, tenzij iemand er een vraagt met **Oplossen met AI**.
+
+### Inschakelen
+
+**Logboeken → AI → Instellingen** bevat de schakelaar **Fout-, ontbrekende en luidruchtige logs vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan worden fout-, ontbrekende en luidruchtige logs nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+
+OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), voor alle telemetrie die het oplost samen, één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
+
+### AI-regels
+
+Zonder regel onderzoekt OneUptime AI elk probleem dat het in uw logs vindt meteen en opent een pull request voor elk probleem dat het kan oplossen. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
+
+| Stap | Wat die beslist |
+| --- | --- |
+| **Overeenkomst** | Welke services: de gekozen services, die met bepaalde labels of die waarvan de naam bij een patroon past. |
+| **Onderzoeken** | **Meteen**, of **Alleen als het na een wachttijd nog gevonden wordt**: een probleem dat tijdens de wachttijd verdwijnt, wordt niet onderzocht. |
+| **Herstel** | **Niet herstellen**, **Eerst om goedkeuring vragen** of **Herstellen zonder te vragen**. Eerst vragen laat de pull request aan een persoon over: de bevinding biedt **Oplossen met AI** aan. |
+
+Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de LLM-provider die OneUptime AI ervoor mag gebruiken. Is er niets gekozen, dan mag het ze allemaal gebruiken, en de standaard-LLM-provider van het project.
+
+### Zien wat het deed
+
+- **Logboeken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Logboeken**, dat de regels waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Een storing die geen logregel schrijft, heeft geen regels om te openen: **Openen in Traces** opent in plaats daarvan haar mislukte spans. Bij een foutlog stelt **Monitor maken** een logmonitor in die de regels van het bericht telt.
+- **Logboeken → AI → Activiteit** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat. Een afgerond onderzoek zegt ook wat OneUptime AI vond, zoals de oorzaak van een fout buiten de code, en daarom kreeg die foutlog niet vanzelf een pull request.
+- In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met logboeken gebeurt als ze binnenkomen
 

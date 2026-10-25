@@ -2638,6 +2638,54 @@ export default class Project extends TenantModel {
   })
   public enableAutomaticExceptionRemediation?: boolean = undefined;
 
+  /*
+   * Logs → AI → Settings: "Find and fix error, missing and noisy logs".
+   * While it is on, OneUptime reads each service's logs once an hour for an
+   * error it logs again and again (with no exception: an error with one is
+   * the Exceptions product's), for requests that fail without writing a log
+   * line, for logs that carry no trace context, and for one line that floods
+   * them (Utils/Logs/LogInsight), files each as an insight, and OneUptime AI
+   * looks into it and opens a pull request that fixes the code behind the
+   * error, logs what is not logged, or logs the noisy line less - in a
+   * connected repository, on the Runner that repository picks, never
+   * merged. An error log's pull request opens on its own only once the
+   * investigation found the code at fault. Log AI rules
+   * (AutoRemediationRule with triggerEntityType Log), when there are any,
+   * narrow which services' problems are worked on and how
+   * (Types/AI/TelemetryAi). On for new projects, off for projects that
+   * existed before, so an upgrade spends no AI credits and opens no pull
+   * request unasked. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Log Remediation",
+    description:
+      "When enabled, OneUptime reads each service's logs once an hour for an error message it logs again and again (one without an exception: errors with an exception are fixed from Exceptions), for requests that fail without writing a log line, for logs that carry no trace context, and for one message that makes up a large share of its logs, and files each as an insight; OneUptime AI looks into it and opens a pull request that fixes the code behind the error, adds the logging that is missing or logs the noisy message less, in a repository connected in Code. An error log's pull request opens on its own only once the investigation finds the code at fault. Pull requests never copy log lines, are never merged automatically, and honor the repository's open pull request cap. Log AI rules, when there are any, choose which services' problems are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticLogRemediation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

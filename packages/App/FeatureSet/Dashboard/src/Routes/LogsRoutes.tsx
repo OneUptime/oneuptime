@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import LogsLayout from "../Pages/Logs/Layout";
 import LogsSettingsLayout from "../Pages/Logs/Settings/Layout";
+import LogsAILayout from "../Pages/Logs/AI/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { LogsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -17,6 +18,10 @@ import LogsSettingsDropFilters from "../Pages/Logs/Settings/DropFilters";
 import LogsSettingsDropFilterView from "../Pages/Logs/Settings/DropFilterView";
 import LogsSettingsScrubRules from "../Pages/Logs/Settings/ScrubRules";
 import LogsSettingsRecordingRules from "../Pages/Logs/Settings/RecordingRules";
+import LogsAIInsightsPage from "../Pages/Logs/AI/Insights";
+import LogsAIInsightViewPage from "../Pages/Logs/AI/InsightView";
+import LogsAIActivityPage from "../Pages/Logs/AI/Activity";
+import LogsAISettingsPage from "../Pages/Logs/AI/Settings";
 
 const LogsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,6 +53,46 @@ const LogsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {/* The AI section: what OneUptime found, what it did, its settings. */}
+        <PageRoute element={<LogsAILayout />}>
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_AI_INSIGHTS] || ""}
+            element={
+              <LogsAIInsightsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_AI_INSIGHTS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_AI_INSIGHT_VIEW] || ""}
+            element={
+              <LogsAIInsightViewPage
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_AI_INSIGHT_VIEW] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_AI_ACTIVITY] || ""}
+            element={
+              <LogsAIActivityPage
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_AI_ACTIVITY] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={LogsRoutePath[PageMap.LOGS_AI_SETTINGS] || ""}
+            element={
+              <LogsAISettingsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.LOGS_AI_SETTINGS] as Route}
+              />
+            }
+          />
+        </PageRoute>
 
         {/* Settings Routes */}
         <PageRoute element={<LogsSettingsLayout />}>

@@ -152,15 +152,23 @@ describe("registration", () => {
       new AddSecurityCasePriorityAndStatusIndexesAndKeys1807210000000().name,
     ).toBe(KEYS_NAME);
 
-    const files: Array<string> = fs
-      .readdirSync(MIGRATIONS_DIR)
-      .filter((file: string): boolean => {
-        return file.startsWith("18072");
-      })
-      .sort();
+    /*
+     * Each timestamp names one file, this migration's. Read by the whole
+     * timestamp: a later migration may share a shorter prefix (#5240's
+     * 1807220000000-AddExceptionAiSwitch shares 18072).
+     */
+    const filesOf: (timestamp: string) => Array<string> = (
+      timestamp: string,
+    ): Array<string> => {
+      return fs.readdirSync(MIGRATIONS_DIR).filter((file: string): boolean => {
+        return file.startsWith(`${timestamp}-`);
+      });
+    };
 
-    expect(files).toEqual([
+    expect(filesOf("1807200000000")).toEqual([
       "1807200000000-AddSecurityCasePrioritiesAndStatuses.ts",
+    ]);
+    expect(filesOf("1807210000000")).toEqual([
       "1807210000000-AddSecurityCasePriorityAndStatusIndexesAndKeys.ts",
     ]);
   });

@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import AIInsightEvidence from "Common/Types/AI/AIInsightEvidence";
 import { CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
@@ -69,6 +70,11 @@ export interface ComponentProps {
   insightId: string;
   // Which kind of finding: what Fix with AI does is said for it.
   insightType?: string | undefined;
+  /*
+   * The finding's evidence, when the page has it: a missing-logging
+   * finding's says what its logs lack, and the lead says that fix.
+   */
+  evidence?: AIInsightEvidence | null | undefined;
   // Told once a task has started, with its id.
   onTaskStarted?: ((taskId: string) => void) | undefined;
 }
@@ -330,7 +336,11 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
    */
   const lead: string | null =
     suggestion.offer === SuggestionOffer.Act && !taskId
-      ? getTelemetryAiFixLead(props.insightType, suggestion.recipe)
+      ? getTelemetryAiFixLead(
+          props.insightType,
+          suggestion.recipe,
+          props.evidence,
+        )
       : null;
 
   return (

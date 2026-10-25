@@ -19,6 +19,15 @@ enum PageMap {
   LOGS_SETTINGS_DROP_FILTER_VIEW = "LOGS_SETTINGS_DROP_FILTER_VIEW",
   LOGS_SETTINGS_SCRUB_RULES = "LOGS_SETTINGS_SCRUB_RULES",
   LOGS_SETTINGS_RECORDING_RULES = "LOGS_SETTINGS_RECORDING_RULES",
+  /*
+   * Logs' AI section (Types/AI/TelemetryAi): error logs, missing logging,
+   * noisy logs, and their fixes. Its record of what OneUptime AI did is
+   * Activity - "Logs" inside Logs would read as log lines.
+   */
+  LOGS_AI_INSIGHTS = "LOGS_AI_INSIGHTS",
+  LOGS_AI_INSIGHT_VIEW = "LOGS_AI_INSIGHT_VIEW",
+  LOGS_AI_ACTIVITY = "LOGS_AI_ACTIVITY",
+  LOGS_AI_SETTINGS = "LOGS_AI_SETTINGS",
 
   // Security Events (standalone product)
   SECURITY_EVENTS_ROOT = "SECURITY_EVENTS_ROOT",
