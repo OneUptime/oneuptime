@@ -128,44 +128,50 @@ function descriptionSentences(file: string): Array<ts.Expression> {
 }
 
 describe("a host page's table description is one paragraph in the reader's language", () => {
-  test.each(PAGES)("%s looks up every sentence it is built from", (page) => {
-    const sentences: Array<ts.Expression> = descriptionSentences(page);
+  test.each(PAGES)(
+    "%s looks up every sentence it is built from",
+    (page: string) => {
+      const sentences: Array<ts.Expression> = descriptionSentences(page);
 
-    // A reading that found no description would pass anything.
-    expect(sentences.length).toBeGreaterThanOrEqual(3);
+      // A reading that found no description would pass anything.
+      expect(sentences.length).toBeGreaterThanOrEqual(3);
 
-    const written: Array<string> = sentences
-      .filter((sentence: ts.Expression): boolean => {
-        return !isLookedUp(sentence);
-      })
-      .map((sentence: ts.Expression): string => {
-        return sentence.getText();
-      });
+      const written: Array<string> = sentences
+        .filter((sentence: ts.Expression): boolean => {
+          return !isLookedUp(sentence);
+        })
+        .map((sentence: ts.Expression): string => {
+          return sentence.getText();
+        });
 
-    expect(written).toEqual([]);
-  });
+      expect(written).toEqual([]);
+    },
+  );
 
-  test.each(LANGUAGES)("%s words every one of those sentences", (language) => {
-    const english: Record<string, unknown> = JSON.parse(
-      fs.readFileSync(path.join(LOCALES, "en.json"), "utf8"),
-    ) as Record<string, unknown>;
-    const locale: Record<string, unknown> = JSON.parse(
-      fs.readFileSync(path.join(LOCALES, `${language}.json`), "utf8"),
-    ) as Record<string, unknown>;
-    const keys: Array<string> = [
-      "Latest snapshot of processes on this host (last {{count}} minutes).",
-      "Windows services on this host (last {{count}} minutes).",
-      "Systemd units on this host (last {{count}} minutes).",
-      "Latest sample {{time}}.",
-      "Refreshed {{time}}.",
-      'This host reports more processes than this page can load at once, so some may be missing or show no CPU or memory reading — narrow the collector\'s "process" scraper with include or exclude filters to see a complete list.',
-      'This host reports more than {{count}} units per scrape, so some are not listed — narrow the receiver\'s "units" patterns to see a complete list.',
-    ];
+  test.each(LANGUAGES)(
+    "%s words every one of those sentences",
+    (language: string) => {
+      const english: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES, "en.json"), "utf8"),
+      ) as Record<string, unknown>;
+      const locale: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES, `${language}.json`), "utf8"),
+      ) as Record<string, unknown>;
+      const keys: Array<string> = [
+        "Latest snapshot of processes on this host (last {{count}} minutes).",
+        "Windows services on this host (last {{count}} minutes).",
+        "Systemd units on this host (last {{count}} minutes).",
+        "Latest sample {{time}}.",
+        "Refreshed {{time}}.",
+        'This host reports more processes than this page can load at once, so some may be missing or show no CPU or memory reading — narrow the collector\'s "process" scraper with include or exclude filters to see a complete list.',
+        'This host reports more than {{count}} units per scrape, so some are not listed — narrow the receiver\'s "units" patterns to see a complete list.',
+      ];
 
-    for (const key of keys) {
-      expect(english[key]).toBe(key);
-      expect(typeof locale[key]).toBe("string");
-      expect(locale[key]).not.toBe(key);
-    }
-  });
+      for (const key of keys) {
+        expect(english[key]).toBe(key);
+        expect(typeof locale[key]).toBe("string");
+        expect(locale[key]).not.toBe(key);
+      }
+    },
+  );
 });
