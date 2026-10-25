@@ -537,10 +537,12 @@ export function detectionOverflowMarkdown(data: {
 export const ENTITY_RISK_MARKDOWN_SOURCE_LIMIT: number = 10;
 
 /*
- * What an entity's risk detection says, on the case it opens or joins: the
- * entity, what its risk reached against the threshold, and each source that
- * added to it. The entity's value comes from events and a source's name can
- * be a connected product's own rule name, so each is code or escaped text.
+ * What an entity's risk detection says, on the case it opens or joins (and
+ * in the case's email): the entity, what its risk reached and the level
+ * that reads as against the project's threshold, and each source that added
+ * to it - its points, how often it fired, when it last did. The entity's
+ * value comes from events and a source's name can be a connected product's
+ * own rule name, so each is code or escaped text.
  */
 export function entityRiskMarkdown(data: {
   entityValue: string;
@@ -562,7 +564,7 @@ export function entityRiskMarkdown(data: {
   }>;
 }): MarkdownText {
   const parts: Array<MarkdownValue> = [
-    mdText`The risk of ${FeedMarkdown.code(data.entityValue)} (${data.entityType}) reached **${String(data.score)}**, ${data.level}: the project opens a case at ${String(data.threshold)}. ${String(data.sources.length)} source${data.sources.length === 1 ? "" : "s"} found it in the last ${String(data.windowInDays)} days:`,
+    mdText`The risk of ${FeedMarkdown.code(data.entityValue)} (${data.entityType}) reached **${String(data.score)}**, ${data.level} against the project's threshold of ${String(data.threshold)}. ${String(data.sources.length)} source${data.sources.length === 1 ? "" : "s"} found it in the last ${String(data.windowInDays)} days:`,
   ];
 
   const shown: typeof data.sources = data.sources.slice(
@@ -573,7 +575,7 @@ export function entityRiskMarkdown(data: {
   parts.push(
     FeedMarkdown.bulletList(
       shown.map((source: (typeof data.sources)[number]): MarkdownText => {
-        return mdText`**${source.name}** (${source.source}, ${source.severity}): ${String(source.points)} point${source.points === 1 ? "" : "s"}, ${source.hits === 1 ? "once" : `${String(source.hits)} times`}, last ${source.lastSeen}`;
+        return mdText`**${source.name}** (${source.source}, ${source.severity}): ${String(source.points)} point${source.points === 1 ? "" : "s"}, fired ${source.hits === 1 ? "once" : `${String(source.hits)} times`}, last ${source.lastSeen}`;
       }),
     ),
   );

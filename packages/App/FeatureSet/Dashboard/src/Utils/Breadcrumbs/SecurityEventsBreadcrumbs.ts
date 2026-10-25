@@ -41,7 +41,8 @@ import Link from "Common/Types/Link";
  * case's side menu names it (SecurityCaseNavigation.ts): Project > Security
  * Events > Security Cases > CASE-142 > Detections. The case's crumb opens
  * its Overview, and is named for the case once it is read - its layout does
- * that through nameRecordInTrail, as an incident's ModelPage does.
+ * that through nameRecordInTrail, as an incident's ModelPage does. An
+ * entity's page is named for its entity the same way (nameEntityInTrail).
  */
 
 /*
@@ -161,6 +162,36 @@ function getSectionLandingOf(page: PageMap): PageMap | undefined {
 
 function routeOf(page: PageMap): Route {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route);
+}
+
+/*
+ * An entity's page names its entity in the trail and the browser's tab -
+ * "Entity Risk > k.morgan@acme-commerce.example", not "Entity Risk > Entity"
+ * whichever entity it is - as a case's page names its case. The entity is
+ * in the page's query, not its address, so the layout hands it over; the
+ * crumb shows it as written (Link.recordName), never looked up as words.
+ * Any other page's trail, or a page that names no entity, is left as it is.
+ */
+export function nameEntityInTrail(data: {
+  links: Array<Link> | undefined;
+  path: string;
+  entityValue: string | null | undefined;
+}): Array<Link> | undefined {
+  const value: string = (data.entityValue || "").trim();
+  const links: Array<Link> | undefined = data.links;
+
+  if (
+    !links ||
+    links.length === 0 ||
+    !value ||
+    getPageForPath(data.path) !== PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW
+  ) {
+    return links;
+  }
+
+  return links.map((link: Link, index: number): Link => {
+    return index === links.length - 1 ? { ...link, recordName: value } : link;
+  });
 }
 
 export function getSecurityEventsBreadcrumbs(

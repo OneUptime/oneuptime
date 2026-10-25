@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -165,6 +166,16 @@ jest.mock("../../../UI/Utils/PermissionGate", () => {
 });
 
 import SecurityEntityRiskPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk";
+import {
+  ENTITY_RISK_HEADER_BUTTONS_CLASS_NAME,
+  ENTITY_RISK_HEADER_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskHeader";
+import {
+  SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
+  SECURITY_CASE_HEADER_CHIPS_CLASS_NAME,
+  SECURITY_CASE_HEADER_CLASS_NAME,
+  SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseHeaderLayout";
 import SecurityEntityRiskViewPage, {
   getEntityEventsRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
@@ -212,6 +223,10 @@ import { getEntityRiskLevel } from "../../../Utils/SecurityCase/SecurityEntityRi
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  TableCardContext,
+  TableCellContext,
+} from "../../../UI/Components/Table/TableCellContext";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
@@ -323,6 +338,8 @@ beforeEach(() => {
   recordedTables.length = 0;
   recordedSwitches.length = 0;
   recordedDetails.length = 0;
+  // The guide remembers a reader's Show or Hide in this browser: each test starts unchosen.
+  window.localStorage.clear();
   resetGate = { isAllowed: true };
   settings = { securityRiskCaseThreshold: 100, enableSecurityRiskCases: true };
   rows = [riskRow({})];
@@ -616,6 +633,21 @@ describe("Security Events > Entity Risk", () => {
     );
   }
 
+  // The list's first read, as ModelTable reports it: how many entities have risk.
+  async function listRead(total: number): Promise<void> {
+    const onFetchSuccess: (
+      items: Array<SecurityEntityRisk>,
+      count: number,
+    ) => void = tableById("security-entity-risk-table")["onFetchSuccess"] as (
+      items: Array<SecurityEntityRisk>,
+      count: number,
+    ) => void;
+
+    await act(async () => {
+      onFetchSuccess([], total);
+    });
+  }
+
   test("lists the entities with risk, the riskiest first, five columns and ATT&CK in Customize Columns", async () => {
     drawList();
 
@@ -637,13 +669,37 @@ describe("Security Events > Entity Risk", () => {
     expect(table["isCreateable"]).toBe(false);
     expect(table["isEditable"]).toBe(false);
     expect(table["viewButtonText"]).toBe("View");
+    // A row is an entity: "Showing 1-9 of 9 entities", never "entity risks".
+    expect(table["singularName"]).toBe("Entity");
+    expect(table["pluralName"]).toBe("Entities");
     expect(columnTitles(table)).toEqual([
       "Entity",
       "Risk",
       "Found By",
       "ATT&CK Tactics",
-      "Last Risk",
+      "Last Finding",
     ]);
+    // A phone's card: the entity untitled, its risk under it, no Risk field.
+    const columns: Array<{
+      title: string;
+      hideOnMobile?: boolean;
+      hideTitleOnMobile?: boolean;
+    }> = table["columns"] as Array<{
+      title: string;
+      hideOnMobile?: boolean;
+      hideTitleOnMobile?: boolean;
+    }>;
+    expect(columns[0]!.hideTitleOnMobile).toBe(true);
+    expect(columns[0]!.hideOnMobile).toBeFalsy();
+    expect(
+      columns
+        .filter((column: { hideOnMobile?: boolean }): boolean => {
+          return Boolean(column.hideOnMobile);
+        })
+        .map((column: { title: string }): string => {
+          return column.title;
+        }),
+    ).toEqual(["Risk", "Found By", "ATT&CK Tactics", "Last Finding"]);
     expect(
       (
         table["columns"] as Array<{
@@ -664,7 +720,7 @@ describe("Security Events > Entity Risk", () => {
           return filter.title;
         },
       ),
-    ).toEqual(["Entity", "Type", "Criticality", "Last Risk"]);
+    ).toEqual(["Entity", "Type", "Criticality", "Last Finding"]);
     // The criticality filter names each with its weight.
     const criticalityFilter: {
       filterDropdownOptions: Array<{ label: string; value: string }>;
@@ -746,6 +802,16 @@ describe("Security Events > Entity Risk", () => {
     expect(cell("Entity", riskRow({}))).toHaveTextContent(
       /^203\.0\.113\.47IP Address$/,
     );
+    /*
+     * The entity as Security Events draws one everywhere (the chip of
+     * Entities and a case's Entities): its value whole on hover, and no link
+     * of its own - the row opens the entity's page.
+     */
+    const chip: HTMLElement = within(cell("Entity", cfo)).getByTitle(
+      "k.morgan@acme-commerce.example",
+    );
+    expect(chip).toHaveClass("truncate", "font-mono");
+    expect(chip.closest("a")).toBeNull();
     expect(cell("Risk", cfo)).toHaveTextContent("200Critical");
     expect(cell("Found By", riskRow({}))).toHaveTextContent(
       "3 sourcesPassword spraying and 2 more",
@@ -757,9 +823,73 @@ describe("Security Events > Entity Risk", () => {
       "-",
     );
     // Said as every "last seen" in the product says it.
-    expect(cell("Last Risk", riskRow({}))).toHaveTextContent(
+    expect(cell("Last Finding", riskRow({}))).toHaveTextContent(
       OneUptimeDate.fromNow(new Date(minutesAgo(9))),
     );
+
+    // A phone's card has no Risk field: the entity's own cell says its risk.
+    const entityColumn: {
+      getElement: (row: SecurityEntityRisk) => ReactElement;
+    } = columns.find((each: { title: string }): boolean => {
+      return each.title === "Entity";
+    })!;
+    const card: HTMLElement = render(
+      <MemoryRouter>
+        <TableCellContext.Provider value={true}>
+          <TableCardContext.Provider value={true}>
+            {entityColumn.getElement(cfo)}
+          </TableCardContext.Provider>
+        </TableCellContext.Provider>
+      </MemoryRouter>,
+    ).container;
+    expect(card).toHaveTextContent(
+      "k.morgan@acme-commerce.exampleUserExtreme (×2)200Critical",
+    );
+    expect(within(card).getByRole("meter")).toHaveAttribute(
+      "aria-valuenow",
+      "200",
+    );
+    // A card's value runs onto a second line rather than ending in "...".
+    expect(
+      within(card).getByTitle("k.morgan@acme-commerce.example"),
+    ).not.toHaveClass("truncate");
+    // In a row of the table, the Risk column says it: not twice.
+    expect(within(cell("Entity", cfo)).queryByRole("meter")).toBeNull();
+  });
+
+  test("the guide waits folded over a list with rows, opens over an empty one, and the reader's choice wins", async () => {
+    drawList();
+    await screen.findByText("How entity risk works");
+    // Folded while the list is read, and still when it has rows.
+    expect(screen.queryByText("Findings add points")).toBeNull();
+    await listRead(9);
+    expect(screen.queryByText("Findings add points")).toBeNull();
+    expect(screen.getByRole("button", { name: /Show/ })).toBeInTheDocument();
+
+    // Shown by the reader, and remembered for the next visit.
+    fireEvent.click(screen.getByRole("button", { name: /Show/ }));
+    expect(screen.getByText("Findings add points")).toBeInTheDocument();
+    cleanup();
+    drawList();
+    await screen.findByText("How entity risk works");
+    await listRead(9);
+    expect(screen.getByText("Findings add points")).toBeInTheDocument();
+
+    // A new project's empty list: how it works, open by itself.
+    cleanup();
+    window.localStorage.clear();
+    drawList();
+    await screen.findByText("How entity risk works");
+    await listRead(0);
+    expect(screen.getByText("Findings add points")).toBeInTheDocument();
+
+    // The first read decides: a search that finds nothing does not open it.
+    cleanup();
+    drawList();
+    await screen.findByText("How entity risk works");
+    await listRead(9);
+    await listRead(0);
+    expect(screen.queryByText("Findings add points")).toBeNull();
   });
 
   test("the levels and the guide are the project's own threshold's", async () => {
@@ -767,6 +897,8 @@ describe("Security Events > Entity Risk", () => {
     drawList();
 
     await screen.findByText("How entity risk works");
+    // Over an empty list the guide is open.
+    await listRead(0);
     for (const range of ["1 to 24", "25 to 49", "50 to 99", "100 or more"]) {
       expect(screen.getByText(range)).toBeInTheDocument();
     }
@@ -814,6 +946,7 @@ describe("Security Events > Entity Risk", () => {
     drawList();
 
     await screen.findByText("How entity risk works");
+    await listRead(0);
     expect(screen.getByText("100 to 199")).toBeInTheDocument();
     expect(screen.queryByTestId(RISK_CASES_OFF_TEST_ID)).toBeNull();
   });
@@ -837,6 +970,15 @@ describe("an entity's page", () => {
 
   function header(): HTMLElement {
     return screen.getByTestId(ENTITY_RISK_TEST_IDS.entityHeader);
+  }
+
+  // The header's ⋯, where Reset Risk waits; the menu it opens.
+  async function openMore(): Promise<HTMLElement> {
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(ENTITY_RISK_HEADER_TEST_IDS.more));
+    });
+
+    return screen.getByRole("menu");
   }
 
   test("reads its risk by its key, and its week of activity", async () => {
@@ -888,6 +1030,53 @@ describe("an entity's page", () => {
       "125",
     );
 
+    /*
+     * Laid out as a case's header is: its kind first, the entity as the
+     * page's one heading, and the ways into investigating it named as a
+     * group, after the heading as they are read.
+     */
+    expect(header()).toHaveClass(...SECURITY_CASE_HEADER_CLASS_NAME.split(" "));
+    expect(
+      within(header()).getByTestId(ENTITY_RISK_HEADER_TEST_IDS.kind),
+    ).toHaveTextContent("IP Address");
+    expect(
+      within(header()).getByTestId(ENTITY_RISK_HEADER_TEST_IDS.kind)
+        .parentElement,
+    ).toHaveClass(...SECURITY_CASE_HEADER_CHIPS_CLASS_NAME.split(" "));
+    expect(
+      within(header()).getByRole("heading", { level: 1 }),
+    ).toHaveTextContent(/^203\.0\.113\.47$/);
+    const actions: HTMLElement = within(header()).getByRole("group", {
+      name: "Entity actions",
+    });
+    expect(actions).toHaveClass(
+      ...SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME.split(" "),
+    );
+    expect(actions.parentElement).toHaveClass(
+      ...SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME.split(" "),
+    );
+    expect(
+      within(actions)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return (
+            button.getAttribute("aria-label") ||
+            button.textContent ||
+            ""
+          ).trim();
+        }),
+    ).toEqual([
+      "Open in Correlate",
+      "Search Its Events",
+      "More entity actions",
+    ]);
+    expect(
+      within(actions).getByTestId(ENTITY_RISK_HEADER_TEST_IDS.openInCorrelate)
+        .parentElement,
+    ).toHaveClass(ENTITY_RISK_HEADER_BUTTONS_CLASS_NAME);
+    // Reset Risk is not a button of the header: it waits under the ⋯.
+    expect(screen.queryByTestId(ENTITY_RISK_TEST_IDS.reset)).toBeNull();
+
     const sources: HTMLElement = screen.getByTestId(
       ENTITY_RISK_TEST_IDS.sources,
     );
@@ -903,8 +1092,26 @@ describe("an entity's page", () => {
     expect(
       screen.getByTestId(ENTITY_RISK_TEST_IDS.history),
     ).toBeInTheDocument();
-    expect(screen.getByTestId(ENTITY_RISK_TEST_IDS.activity)).toHaveTextContent(
-      "475",
+    // Its week: the counts say so, and its last event says when - no "first seen".
+    const activity: HTMLElement = screen.getByTestId(
+      ENTITY_RISK_TEST_IDS.activity,
+    );
+    expect(activity).toHaveTextContent("475");
+    expect(activity).toHaveTextContent("36");
+    expect(within(activity).getAllByText("In the last 7 days")).toHaveLength(2);
+    expect(activity).toHaveTextContent("Last Seen");
+    expect(activity).not.toHaveTextContent("First Seen");
+    // How often each source fired, as a case's Detections say it.
+    expect(sourceRows[0]).toContain("14 times");
+    expect(sourceRows[1]).toContain("1 time");
+    expect(
+      within(sources)
+        .getAllByRole("columnheader")
+        .map((cell: HTMLElement): string => {
+          return (cell.textContent || "").trim();
+        }),
+    ).toEqual(
+      expect.arrayContaining(["Source", "Severity", "Points", "Fired"]),
     );
 
     // The cases about it: the ones grouped on it.
@@ -945,8 +1152,19 @@ describe("an entity's page", () => {
       expect(header()).toHaveTextContent("125High");
     });
 
-    fireEvent.click(screen.getByTestId(ENTITY_RISK_TEST_IDS.reset));
+    const menu: HTMLElement = await openMore();
+    const item: HTMLElement = within(menu).getByRole("menuitem", {
+      name: "Reset Risk",
+    });
+    expect(item).toHaveAttribute("data-testid", ENTITY_RISK_TEST_IDS.reset);
+    expect(item).toHaveAttribute("aria-disabled", "false");
+    fireEvent.click(item);
     expect(screen.getByText("Reset this entity's risk?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Its score and its sources are cleared, and what is found next counts from zero. Use it after a planned test, for instance. Its cases are not changed.",
+      ),
+    ).toBeInTheDocument();
     expect(deleteItemMock).not.toHaveBeenCalled();
 
     fireEvent.click(
@@ -966,7 +1184,9 @@ describe("an entity's page", () => {
       id: new ObjectID(ROW_ID),
     });
     expect(getListMock).toHaveBeenCalledTimes(2);
+    // No risk left to reset: no ⋯ either.
     expect(screen.queryByTestId(ENTITY_RISK_TEST_IDS.reset)).toBeNull();
+    expect(screen.queryByTestId(ENTITY_RISK_HEADER_TEST_IDS.more)).toBeNull();
     expect(screen.queryByTestId(ENTITY_RISK_TEST_IDS.sources)).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -980,7 +1200,9 @@ describe("an entity's page", () => {
       expect(header()).toHaveTextContent("125High");
     });
 
-    fireEvent.click(screen.getByTestId(ENTITY_RISK_TEST_IDS.reset));
+    fireEvent.click(
+      within(await openMore()).getByRole("menuitem", { name: "Reset Risk" }),
+    );
     fireEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", {
         name: "Reset Risk",
@@ -1005,17 +1227,26 @@ describe("an entity's page", () => {
       expect(header()).toHaveTextContent("125High");
     });
 
-    expect(screen.getByTestId(ENTITY_RISK_TEST_IDS.reset)).toBeDisabled();
-    expect(
-      screen.getByTestId(`${ENTITY_RISK_TEST_IDS.reset}-disabled-wrapper`),
-    ).toBeInTheDocument();
+    // Locked where it waits, saying why, and pressing it opens nothing.
+    const item: HTMLElement = within(await openMore()).getByRole("menuitem", {
+      name: "Reset Risk",
+    });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveAccessibleDescription(
+      "You need the Delete Security Detection permission.",
+    );
+    fireEvent.click(item);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteItemMock).not.toHaveBeenCalled();
 
+    // While the permissions are still being read: no ⋯ at all.
     cleanup();
     resetGate = { isAllowed: false };
     drawEntity("?value=203.0.113.47&type=IP+Address");
     await waitFor(() => {
       expect(header()).toHaveTextContent("125High");
     });
+    expect(screen.queryByTestId(ENTITY_RISK_HEADER_TEST_IDS.more)).toBeNull();
     expect(screen.queryByTestId(ENTITY_RISK_TEST_IDS.reset)).toBeNull();
   });
 
@@ -1061,6 +1292,11 @@ describe("an entity's page", () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId(ENTITY_RISK_TEST_IDS.sources)).toBeNull();
     expect(screen.queryByTestId(ENTITY_RISK_TEST_IDS.reset)).toBeNull();
+    // Nothing to reset, so no ⋯; the ways into its events stay.
+    expect(screen.queryByTestId(ENTITY_RISK_HEADER_TEST_IDS.more)).toBeNull();
+    expect(
+      screen.getByTestId(ENTITY_RISK_HEADER_TEST_IDS.searchItsEvents),
+    ).toBeInTheDocument();
 
     cleanup();
     rows = [];
@@ -1079,14 +1315,26 @@ describe("an entity's page", () => {
     });
   });
 
-  test("with no entity named, it asks which, and reads nothing", () => {
+  test("with no entity named, it asks which, reads nothing, and opens Entity Risk", () => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
     drawEntity("");
 
-    expect(screen.getByTestId(ENTITY_RISK_TEST_IDS.notNamed)).toHaveTextContent(
+    const notNamed: HTMLElement = screen.getByTestId(
+      ENTITY_RISK_TEST_IDS.notNamed,
+    );
+    expect(notNamed).toHaveTextContent(
       "Which entity? This page opens on a user, a host or an address",
     );
     expect(getListMock).not.toHaveBeenCalled();
     expect(getEntityActivityMock).not.toHaveBeenCalled();
+
+    // The one way on: the list of every entity with risk.
+    fireEvent.click(
+      within(notNamed).getByRole("button", { name: "Open Entity Risk" }),
+    );
+    expect(String(navigate.mock.calls[0]![0])).toBe(`${PRODUCT}/entity-risk`);
   });
 
   test("Search Its Events opens the Events explorer on its week", () => {

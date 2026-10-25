@@ -319,6 +319,39 @@ function entityHeader(page: Page): Locator {
   return page.getByTestId("entity-risk-header");
 }
 
+// The header's ⋯, where Reset Risk waits, opened.
+async function openEntityMore(page: Page): Promise<void> {
+  await page.getByTestId("entity-risk-more").click();
+  await expect(page.getByRole("menu")).toBeVisible();
+}
+
+// The How it works card's steps, shown: the card folds over a list with rows.
+async function showGuide(page: Page): Promise<void> {
+  const toggle: Locator = page.getByTestId("how-it-works-toggle");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
+// A box, rounded to whole pixels.
+async function boxOf(locator: Locator): Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}> {
+  const box: { x: number; y: number; width: number; height: number } | null =
+    await locator.boundingBox();
+  expect(box).not.toBeNull();
+  return {
+    x: Math.round(box!.x),
+    y: Math.round(box!.y),
+    width: Math.round(box!.width),
+    height: Math.round(box!.height),
+  };
+}
+
 // The sources table of an entity's page, by the source each row names.
 function sourceRows(page: Page): Locator {
   return page.getByTestId("entity-risk-sources").locator("table tbody tr");
@@ -421,7 +454,7 @@ test.describe("Entity Risk", () => {
           // The select-all box and the row actions say nothing about a row.
           return !["", "Select all items", "Actions"].includes(header);
         }),
-    ).toEqual(["Entity", "Risk", "Found By", "Last Risk"]);
+    ).toEqual(["Entity", "Risk", "Found By", "Last Finding"]);
 
     // One read: every row with risk, the riskiest first.
     const reads: FixtureState["listRequests"] = (
@@ -438,8 +471,21 @@ test.describe("Entity Risk", () => {
     });
     expect(reads[0]!.sort).toEqual({ riskScore: "DESC" });
 
-    // How the score is counted, for the project's threshold.
+    /*
+     * How the score is counted, for the project's threshold: its title row
+     * over a list with rows - the riskiest come first on the page - and its
+     * steps one click away.
+     */
     await expect(page.getByText("How entity risk works")).toBeVisible();
+    await expect(page.getByTestId("how-it-works-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(page.getByTestId("how-it-works-step")).toHaveCount(0);
+    const listTop: number = (await boxOf(cardTitled(page, "Entity Risk"))).y;
+    expect(listTop, "the list starts near the top").toBeLessThan(300);
+    await showGuide(page);
+    await expect(page.getByTestId("how-it-works-step")).toHaveCount(4);
     for (const range of ["1 to 49", "50 to 99", "100 to 199", "200 or more"]) {
       await expect(page.getByText(range, { exact: true })).toBeVisible();
     }
@@ -472,13 +518,17 @@ test.describe("Entity Risk", () => {
     expect(queryOf(page, "value")).toBe(SPRAY_IP);
     expect(queryOf(page, "type")).toBe("IP Address");
     expect(await litEntries(page)).toEqual(["Entity Risk"]);
+    // The trail and the tab name the entity, as a case's page names its case.
     expect(await breadcrumbs(page)).toEqual([
       "Project",
       "Security Events",
       "Events",
       "Entity Risk",
-      "Entity",
+      SPRAY_IP,
     ]);
+    await expect(page).toHaveTitle(
+      `OneUptime | Project - Security Events - Events - Entity Risk - ${SPRAY_IP}`,
+    );
 
     // The trail leads back to the list.
     await page
@@ -522,6 +572,7 @@ test.describe("Entity Risk", () => {
         value,
       ).toHaveText(level!);
     }
+    await showGuide(page);
     for (const range of ["1 to 24", "25 to 49", "50 to 99", "100 or more"]) {
       await expect(page.getByText(range, { exact: true })).toBeVisible();
     }
@@ -584,6 +635,64 @@ test.describe("Entity Risk", () => {
         return pathnameOf(page);
       })
       .toBe(RULE_LIBRARY_PATH);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The list on a phone
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("Entity Risk on a phone", () => {
+  /*
+   * A phone draws each row as a card. Each entity reads in one look: the
+   * entity as Security Events draws one, its kind and how much it matters,
+   * and its risk under it - no "Entity" or "Risk" field names, and no score
+   * drawn twice.
+   */
+  test("each entity is one card: who, how much it matters and how risky", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ENTITY_RISK_PATH, { width: 390, height: 844 });
+    const card: Locator = page
+      .getByTitle(CFO, { exact: true })
+      .locator("xpath=ancestor::dl[1]");
+    await expect(card).toBeVisible({ timeout: 30000 });
+
+    /*
+     * One field, the entity's, with no name drawn (a screen reader still
+     * hears it): its value says what it is, and its risk is under it.
+     */
+    await expect(card.locator("dt")).toHaveCount(1);
+    await expect(card.locator("dt")).toHaveClass(/sr-only/);
+    await expect(card).toContainText("User");
+    await expect(card.getByTestId("entity-risk-criticality")).toHaveText(
+      "Extreme (×2)",
+    );
+    expect(await scoreOf(card)).toBe(200);
+    await expect(card.getByTestId("entity-risk-level")).toHaveText("Critical");
+    await expect(card.getByTestId("entity-risk-score")).toHaveCount(1);
+
+    // The value is whole on a card: it runs onto a second line, never "...".
+    const value: Locator = page.getByTitle(CFO, { exact: true });
+    expect(
+      await value.evaluate((element: Element): number => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(0);
+
+    // Every entity with risk, each a card, and nothing scrolls sideways.
+    for (const [listed, score] of LISTED_ENTITIES) {
+      const each: Locator = page
+        .getByTitle(listed, { exact: true })
+        .locator("xpath=ancestor::dl[1]");
+      expect(await scoreOf(each), listed).toBe(score);
+    }
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "entity-risk-phone-cards", { fullPage: false });
   });
 });
 
@@ -718,6 +827,96 @@ test.describe("an entity's page", () => {
     );
   });
 
+  /*
+   * The header is laid out as a case's is: the ways into investigating the
+   * entity at the right - on the first line beside its kind where there is
+   * room, under the entity where there is not - never at the left under it,
+   * and the ⋯ in the top-right corner at every width.
+   */
+  test("the header keeps its actions at the right, at every width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1440, 1280, 1024, 768, 390]) {
+      await open(page, entityPath(CFO, "User"), {
+        width,
+        height: width === 390 ? 844 : 1000,
+      });
+      const header: Locator = entityHeader(page);
+      await expect(header).toContainText(CFO, { timeout: 30000 });
+
+      const headerBox: { x: number; y: number; width: number } =
+        await boxOf(header);
+      const kind: { y: number; height: number } = await boxOf(
+        header.getByTestId("entity-risk-kind"),
+      );
+      const title: { y: number } = await boxOf(
+        header.getByRole("heading", { level: 1 }),
+      );
+      const correlate: { x: number; y: number; width: number } = await boxOf(
+        header.getByTestId("entity-risk-open-in-correlate"),
+      );
+      const search: { x: number; y: number; width: number } = await boxOf(
+        header.getByTestId("entity-risk-search-its-events"),
+      );
+      const more: { x: number; y: number; width: number } = await boxOf(
+        header.getByTestId("entity-risk-more"),
+      );
+      const right: number = headerBox.x + headerBox.width;
+      const isWide: boolean = headerBox.width >= 58 * 16;
+      if (width === 1440) {
+        expect(isWide, "the widest header lays out wide").toBe(true);
+      }
+      if (width <= 1024) {
+        expect(isWide, `${width}: a narrower header`).toBe(false);
+      }
+
+      // The ⋯ keeps the top-right corner, level with the kind.
+      expect(
+        right - (more.x + more.width),
+        `${width}: ⋯ at the right`,
+      ).toBeLessThanOrEqual(24);
+      expect(
+        Math.abs(more.y - kind.y),
+        `${width}: ⋯ on the first line`,
+      ).toBeLessThanOrEqual(12);
+      /*
+       * The two buttons share a row, the second ending by the ⋯ or the
+       * edge; only a phone's header, too narrow for both, gives each a row
+       * of its own, the whole width (a case's header does the same).
+       */
+      if (correlate.y === search.y) {
+        expect(search.x, `${width}: in order`).toBeGreaterThan(correlate.x);
+      } else {
+        expect(
+          headerBox.width,
+          `${width}: stacked on a phone only`,
+        ).toBeLessThan(36 * 16);
+        expect(search.y).toBeGreaterThan(correlate.y);
+        expect(Math.abs(correlate.width - search.width)).toBeLessThanOrEqual(1);
+        expect(correlate.x).toBe(search.x);
+      }
+      expect(
+        right - (search.x + search.width),
+        `${width}: Search Its Events at the right`,
+      ).toBeLessThanOrEqual(isWide ? 24 + more.width + 8 : 24);
+
+      /*
+       * Wide (a header of 58rem and more, as a case's): beside the kind, the
+       * entity under them across the header. Narrower: under the entity, at
+       * the right.
+       */
+      if (isWide) {
+        expect(Math.abs(correlate.y - more.y)).toBeLessThanOrEqual(1);
+        expect(title.y).toBeGreaterThan(kind.y + kind.height);
+      } else {
+        expect(correlate.y).toBeGreaterThan(title.y);
+      }
+      expect(await pageOverflow(page), `${width}`).toBeLessThanOrEqual(1);
+    }
+  });
+
   test("Open in Correlate and Search Its Events open on the entity", async ({
     page,
   }: {
@@ -766,9 +965,14 @@ test.describe("an entity's page", () => {
     await expect(header).toContainText("web-03", { timeout: 30000 });
     expect(await scoreOf(header)).toBe(50);
 
+    // Under the header's ⋯, as a case's Delete Case is.
+    await openEntityMore(page);
+    await expect(page.getByRole("menu")).toHaveText("Reset Risk");
     await page.getByTestId("entity-risk-reset").click();
     await expect(dialog(page)).toContainText("Reset this entity's risk?");
-    await expect(dialog(page)).toContainText("Its cases are not changed.");
+    await expect(dialog(page)).toContainText(
+      "Use it after a planned test, for instance. Its cases are not changed.",
+    );
     // Asking deletes nothing.
     expect((await fixture(page)).deletes).toEqual([]);
     await screenshot(page, "entity-risk-reset-confirm", { fullPage: false });
@@ -788,11 +992,12 @@ test.describe("an entity's page", () => {
         },
       ]);
 
-    // Read again: no risk, no sources, no button to reset nothing.
+    // Read again: no risk, no sources, no ⋯ to reset nothing.
     await expect(header).toContainText(
       "Nothing found about it counts toward risk in the last 7 days.",
     );
     await expect(page.getByTestId("entity-risk-reset")).toHaveCount(0);
+    await expect(page.getByTestId("entity-risk-more")).toHaveCount(0);
     await expect(page.getByTestId("entity-risk-sources")).toHaveCount(0);
     // Its activity and its cases are still there.
     await expect(page.getByTestId("entity-risk-cases")).toContainText(
@@ -820,11 +1025,14 @@ test.describe("an entity's page", () => {
     expect(await scoreOf(entityHeader(page))).toBe(125);
     await expect(sourceRows(page)).toHaveCount(3);
 
+    // Locked where it waits, under the ⋯, saying why.
+    await openEntityMore(page);
     const reset: Locator = page.getByTestId("entity-risk-reset");
-    await expect(reset).toBeDisabled();
-    await page.getByTestId("entity-risk-reset-disabled-wrapper").hover();
+    await expect(reset).toHaveAttribute("aria-disabled", "true");
+    await reset.hover();
     await expect(page.getByRole("tooltip")).toContainText(/permission/i);
-    await page.getByTestId("entity-risk-reset-disabled-wrapper").click();
+    // Pressed anyway (aria-disabled, so it stays reachable): it asks nothing.
+    await reset.click({ force: true });
     await expect(page.getByRole("dialog")).toHaveCount(0);
     expect((await fixture(page)).deletes).toEqual([]);
   });
@@ -845,6 +1053,7 @@ test.describe("an entity's page", () => {
     await expect(page.getByTestId("entity-risk-sources")).toHaveCount(0);
     await expect(page.getByTestId("entity-risk-history")).toBeVisible();
     await expect(page.getByTestId("entity-risk-reset")).toHaveCount(0);
+    await expect(page.getByTestId("entity-risk-more")).toHaveCount(0);
     await expect(page.getByTestId("entity-risk-cases")).toContainText(
       "No case has been opened about it",
     );
@@ -872,6 +1081,17 @@ test.describe("an entity's page", () => {
         expect.objectContaining({ modelName: "SecurityEntityRisk" }),
       ]),
     );
+    // Its one way on: the list.
+    await page
+      .getByTestId("entity-risk-not-named")
+      .getByRole("button", { name: "Open Entity Risk", exact: true })
+      .click();
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(ENTITY_RISK_PATH);
+    await expect(riskRow(page, CFO)).toBeVisible({ timeout: 30000 });
   });
 });
 
@@ -1160,7 +1380,7 @@ test.describe("entity risk on a case", () => {
     await expect(
       page
         .getByText(
-          /reached 100, High: the project opens a case at 100\. 3 sources found it in the last 7 days:/,
+          /reached 100, High against the project's threshold of 100\. 3 sources found it in the last 7 days:/,
         )
         .first(),
     ).toBeVisible();

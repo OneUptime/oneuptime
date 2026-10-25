@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import MitreAttackChips from "../../Components/SecurityCase/MitreAttackChips";
+import { SecurityEntityChip } from "../../Components/SecurityCase/SecurityEntityChips";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
 import { getEntityRiskGuide } from "../../Components/SecurityEvents/HowItWorks/EntityRiskGuide";
 import {
@@ -10,12 +11,14 @@ import {
   CRITICALITY_COLUMN_TITLE,
   CRITICALITY_WEIGHT_LABELS,
   ENTITY_COLUMN_TITLE,
+  ENTITY_PLURAL,
   ENTITY_RISK_EMPTY_ACTION,
   ENTITY_RISK_EMPTY_DESCRIPTION,
   ENTITY_RISK_EMPTY_TITLE,
   ENTITY_RISK_TABLE_DESCRIPTION,
   ENTITY_RISK_TABLE_TITLE,
-  LAST_RISK_COLUMN_TITLE,
+  ENTITY_SINGULAR,
+  LAST_FINDING_COLUMN_TITLE,
   MORE_TACTICS,
   RISK_CASES_OFF_ACTION,
   RISK_CASES_OFF_DESCRIPTION,
@@ -44,10 +47,7 @@ import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  SecurityEntityType,
-  getSecurityEntityIcon,
-} from "Common/Types/SecurityCase/SecurityEntity";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   RISK_ENTITY_TYPES,
   SECURITY_ENTITY_CRITICALITIES,
@@ -59,12 +59,13 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { useIsTableCard } from "Common/UI/Components/Table/TableCellContext";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export const ENTITY_RISK_TABLE_ID: string = "security-entity-risk-table";
 
@@ -93,37 +94,55 @@ function routeTo(page: PageMap): Route {
 }
 
 /*
- * Who the row is about: the value, with its kind under it and, when the
- * project said how much it matters, its criticality beside that.
+ * Who the row is about: the entity as every Security Events list draws one
+ * (the chip of Entities and of a case's Entities), with its kind under it
+ * and, when the project said how much it matters, its criticality beside
+ * that. A long value is cut short to the column, whole on hover and on its
+ * page: the column keeps a floor and gives up the rest, so the list does not
+ * run past its card. On a phone's card its risk is here too, under it - the
+ * card has no Risk field of its own to label - so a row reads in one look.
  */
-const EntityCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
+const EntityCell: FunctionComponent<{
   item: SecurityEntityRisk;
-}): ReactElement => {
+  threshold: number;
+}> = (props: { item: SecurityEntityRisk; threshold: number }): ReactElement => {
   const translator: Translator = useTranslator();
-  const type: string = props.item.entityType || SecurityEntityType.Other;
+  const isCard: boolean = useIsTableCard();
+  const type: SecurityEntityType =
+    (props.item.entityType as SecurityEntityType | undefined) ||
+    SecurityEntityType.Other;
   const criticality: SecurityEntityCriticality | null = readEntityCriticality(
     props.item.criticality,
   );
 
   return (
-    <div className="flex min-w-0 items-start gap-2">
-      <Icon
-        icon={getSecurityEntityIcon(type)}
-        className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
-      />
+    <div className="grid min-w-[15rem] grid-cols-1 gap-1">
       <div className="min-w-0">
-        <div className="font-mono text-sm text-gray-900 [overflow-wrap:anywhere]">
-          {props.item.entityValue || ""}
-        </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-          <span>{translator.translateText(type) || type}</span>
-          {criticality ? (
-            <EntityCriticalityPill criticality={criticality} />
-          ) : (
-            <></>
-          )}
-        </div>
+        <SecurityEntityChip
+          entity={{ type: type, value: props.item.entityValue || "" }}
+          // The row opens the entity's page; Correlate is a click away there.
+          isLink={false}
+          isValueWrapped={isCard}
+        />
       </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+        <span>{translator.translateText(type) || type}</span>
+        {criticality ? (
+          <EntityCriticalityPill criticality={criticality} />
+        ) : (
+          <></>
+        )}
+      </div>
+      {isCard ? (
+        <div className="mt-1">
+          <EntityRiskScore
+            score={props.item.riskScore || 0}
+            threshold={props.threshold}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
@@ -150,8 +169,9 @@ const SourcesCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
 
   const first: SecurityEntityRiskContribution = sources[0]!;
 
+  // Cut short to the column rather than widening it (a grid track gives up its width).
   return (
-    <div className="min-w-0 text-sm">
+    <div className="grid min-w-[8rem] grid-cols-1 text-sm">
       <div className="font-medium text-gray-900">
         {translator.translatePlural(SOURCE_COUNT, sources.length)}
       </div>
@@ -188,18 +208,32 @@ const SecurityEntityRiskPage: FunctionComponent<
   const settings: EntityRiskSettings = useEntityRiskSettings();
   // Worked out for the project's threshold: the card and the table's help say the same.
   const guide: SecurityEventsGuide = getEntityRiskGuide(settings.threshold);
+  /*
+   * How many entities have risk, as the list first reads them: the guide
+   * opens by itself only over an empty list, as on Detection Rules and
+   * Threat Intel - an analyst looking for the riskiest met 600 pixels of
+   * how it works above them on every visit.
+   */
+  const [entityCount, setEntityCount] = useState<number | null>(null);
 
   return (
     <div className="space-y-6">
       {settings.isLoaded ? (
-        <SecurityEventsHowItWorksCard guide={guide} />
+        <SecurityEventsHowItWorksCard
+          guide={guide}
+          listItemCount={entityCount}
+        />
       ) : (
         <></>
       )}
 
       {settings.isRiskCaseEnabled === false ? (
+        /*
+         * The quiet panel the product's other notices are drawn in (the AI
+         * settings' when Enable AI is off): a card's corners and padding.
+         */
         <div
-          className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
           data-testid={RISK_CASES_OFF_TEST_ID}
         >
           <div className="flex min-w-0 items-start gap-3">
@@ -243,6 +277,9 @@ const SecurityEntityRiskPage: FunctionComponent<
           // An entity whose sources all went quiet is kept for its history, not listed.
           riskScore: new GreaterThan(0),
         }}
+        // "Showing 1-9 of 9 entities": a row is an entity, not "an entity risk".
+        singularName={ENTITY_SINGULAR}
+        pluralName={ENTITY_PLURAL}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
@@ -250,6 +287,12 @@ const SecurityEntityRiskPage: FunctionComponent<
         viewButtonText="View"
         onViewPage={async (item: SecurityEntityRisk): Promise<Route> => {
           return getEntityRiskRoute(item.entityValue || "", item.entityType);
+        }}
+        onFetchSuccess={(_items: Array<SecurityEntityRisk>, total: number) => {
+          // The first read decides the guide; a search or filter after it does not.
+          setEntityCount((count: number | null): number => {
+            return count === null ? total : count;
+          });
         }}
         sortBy="riskScore"
         sortOrder={SortOrder.Descending}
@@ -300,7 +343,7 @@ const SecurityEntityRiskPage: FunctionComponent<
           },
           {
             field: { lastRiskAt: true },
-            title: LAST_RISK_COLUMN_TITLE,
+            title: LAST_FINDING_COLUMN_TITLE,
             type: FieldType.Date,
           },
         ]}
@@ -316,14 +359,18 @@ const SecurityEntityRiskPage: FunctionComponent<
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-[20rem]",
+            // A phone's card is the entity itself: its value says what it is.
+            hideTitleOnMobile: true,
             getElement: (item: SecurityEntityRisk): ReactElement => {
-              return <EntityCell item={item} />;
+              return <EntityCell item={item} threshold={settings.threshold} />;
             },
           },
           {
             field: { riskScore: true },
             title: RISK_COLUMN_TITLE,
             type: FieldType.Element,
+            // On a phone's card, under the entity (EntityCell).
+            hideOnMobile: true,
             getElement: (item: SecurityEntityRisk): ReactElement => {
               return (
                 <EntityRiskScore
@@ -339,7 +386,7 @@ const SecurityEntityRiskPage: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             wrapContent: true,
-            wrapMaxWidthClassName: "max-w-[16rem]",
+            wrapMaxWidthClassName: "max-w-[14rem]",
             getElement: (item: SecurityEntityRisk): ReactElement => {
               return <SourcesCell item={item} />;
             },
@@ -379,7 +426,7 @@ const SecurityEntityRiskPage: FunctionComponent<
           },
           {
             field: { lastRiskAt: true },
-            title: LAST_RISK_COLUMN_TITLE,
+            title: LAST_FINDING_COLUMN_TITLE,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: SecurityEntityRisk): ReactElement => {

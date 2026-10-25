@@ -5,18 +5,17 @@ import SecurityCaseApi, {
   EntityActivity,
 } from "../../Components/SecurityCase/SecurityCaseApi";
 import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/SecurityEntityChips";
-import EntityCriticalityPill from "../../Components/SecurityEvents/EntityRisk/EntityCriticalityPill";
 import {
   ACTIVITY_CARD_TITLE,
   ACTIVITY_EVENTS,
   ACTIVITY_FINDINGS,
-  ACTIVITY_FIRST_SEEN,
   ACTIVITY_LAST_SEEN,
+  ACTIVITY_WINDOW,
+  ENTITY_PAGE_NOT_NAMED_ACTION,
   ENTITY_PAGE_NOT_NAMED_DESCRIPTION,
   ENTITY_PAGE_NOT_NAMED_TITLE,
   ENTITY_NO_RISK,
   ENTITY_RISK_TEST_IDS,
-  OPEN_IN_CORRELATE,
   RESET_RISK,
   RESET_RISK_CONFIRM_DESCRIPTION,
   RESET_RISK_CONFIRM_TITLE,
@@ -24,10 +23,10 @@ import {
   RISK_CASE_OPENED_AT,
   RISK_FALLS_AT,
   RISK_FIRST_AND_LAST,
-  SEARCH_ITS_EVENTS,
   SOURCE_COUNT,
 } from "../../Components/SecurityEvents/EntityRisk/EntityRiskCopy";
 import EntityRiskCases from "../../Components/SecurityEvents/EntityRisk/EntityRiskCases";
+import EntityRiskHeader from "../../Components/SecurityEvents/EntityRisk/EntityRiskHeader";
 import EntityRiskHistory from "../../Components/SecurityEvents/EntityRisk/EntityRiskHistory";
 import {
   ENTITY_TYPE_QUERY_PARAM,
@@ -52,7 +51,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import {
   SecurityEntityType,
-  getSecurityEntityIcon,
   inferSecurityEntityType,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import {
@@ -64,11 +62,10 @@ import {
   getEntityRiskKey,
   readRiskHistory,
 } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -108,12 +105,20 @@ export function getEntityEventsRoute(value: string, now: Date): Route {
   });
 }
 
+// Security Events > Entity Risk: where a page that names no entity sends you.
+function getEntityRiskListRoute(): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK] as Route,
+  );
+}
+
 /*
  * One user's, host's or address's page: who it is, how risky it is now and
  * why - each source that added to its risk, the score of each of the last 30
  * days - the cases opened about it, and its activity this week; with the
- * ways into Correlate and the Events explorer, and, for whoever may delete
- * security data, Reset Risk.
+ * ways into Correlate and the Events explorer at the top right, as a case's
+ * page has its moves, and, for whoever may delete security data, Reset Risk
+ * under the header's ⋯.
  *
  * Any value opens it (?value=): an entity nothing scored yet still has its
  * activity and its cases. Its value is shown as written, never looked up as
@@ -219,6 +224,15 @@ const SecurityEntityRiskViewPage: FunctionComponent<
             description={translator.translateText(
               ENTITY_PAGE_NOT_NAMED_DESCRIPTION,
             )}
+            actions={[
+              {
+                title: ENTITY_PAGE_NOT_NAMED_ACTION,
+                icon: IconProp.Fire,
+                onClick: () => {
+                  Navigation.navigate(getEntityRiskListRoute());
+                },
+              },
+            ]}
           />
         </div>
       </Card>
@@ -279,81 +293,36 @@ const SecurityEntityRiskViewPage: FunctionComponent<
 
   return (
     <div className="space-y-6 [container-type:inline-size]">
-      <section
-        className="rounded-xl border border-gray-200 bg-white shadow-sm"
-        data-testid={ENTITY_RISK_TEST_IDS.entityHeader}
-      >
-        <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 [@container(min-width:64rem)]:flex-row [@container(min-width:64rem)]:items-start [@container(min-width:64rem)]:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
-              <Icon
-                icon={getSecurityEntityIcon(type)}
-                className="h-5 w-5 text-gray-500"
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  {translator.translateText(type) || type}
-                </span>
-                {breakdown?.criticality ? (
-                  <EntityCriticalityPill criticality={breakdown.criticality} />
-                ) : (
-                  <></>
-                )}
-              </div>
-              <h1 className="mt-0.5 font-mono text-xl font-semibold text-gray-900 [overflow-wrap:anywhere]">
-                {risk?.entityValue || value}
-              </h1>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 [@container(min-width:64rem)]:flex-shrink-0 [@container(min-width:64rem)]:justify-end">
-            <Button
-              title={OPEN_IN_CORRELATE}
-              icon={IconProp.Share}
-              buttonStyle={ButtonStyleType.NORMAL}
-              className="!ml-0"
-              onClick={() => {
-                Navigation.navigate(getCorrelateRouteForEntity(value));
-              }}
-            />
-            <Button
-              title={SEARCH_ITS_EVENTS}
-              icon={IconProp.Search}
-              buttonStyle={ButtonStyleType.NORMAL}
-              className="!ml-0"
-              onClick={() => {
-                Navigation.navigate(
-                  getEntityEventsRoute(value, OneUptimeDate.getCurrentDate()),
-                );
-              }}
-            />
-            {/*
-             * Locked, with why, for whoever may not delete security data;
-             * left out while the permissions are still loading.
-             */}
-            {hasScore && (resetGate.isAllowed || resetGate.disabledReason) ? (
-              <Button
-                title={RESET_RISK}
-                icon={IconProp.Refresh}
-                buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                className={resetGate.isAllowed ? "!ml-0" : "!ml-0 opacity-60"}
-                dataTestId={ENTITY_RISK_TEST_IDS.reset}
-                disabled={!resetGate.isAllowed}
-                tooltip={
-                  resetGate.isAllowed ? undefined : resetGate.disabledReason
-                }
-                onClick={() => {
+      <EntityRiskHeader
+        value={risk?.entityValue || value}
+        type={type}
+        criticality={breakdown?.criticality || null}
+        onOpenInCorrelate={() => {
+          Navigation.navigate(getCorrelateRouteForEntity(value));
+        }}
+        onSearchItsEvents={() => {
+          Navigation.navigate(
+            getEntityEventsRoute(value, OneUptimeDate.getCurrentDate()),
+          );
+        }}
+        /*
+         * Locked, with why, for whoever may not delete security data; left
+         * out while the permissions are still loading, and while there is no
+         * risk to reset.
+         */
+        reset={
+          hasScore && (resetGate.isAllowed || resetGate.disabledReason)
+            ? {
+                isAllowed: resetGate.isAllowed,
+                disabledReason: resetGate.disabledReason,
+                onClick: () => {
                   setResetError("");
                   setIsConfirmingReset(true);
-                }}
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-        </div>
-
+                },
+              }
+            : undefined
+        }
+      >
         <div className="border-t border-gray-100 px-4 py-4 sm:px-5">
           {!isRiskLoaded || !settings.isLoaded ? (
             <ComponentLoader />
@@ -429,7 +398,7 @@ const SecurityEntityRiskViewPage: FunctionComponent<
             </p>
           )}
         </div>
-      </section>
+      </EntityRiskHeader>
 
       <div data-testid={ENTITY_RISK_TEST_IDS.activity}>
         {activityError ? (
@@ -438,9 +407,9 @@ const SecurityEntityRiskViewPage: FunctionComponent<
           </Card>
         ) : (
           <EventStatBar
-            columns={4}
+            columns={3}
             isLaidOutByOwnWidth={true}
-            ariaLabel={translator.translateText(ACTIVITY_CARD_TITLE)}
+            ariaLabel={ACTIVITY_CARD_TITLE}
           >
             <EventStatTile
               variant="segment"
@@ -448,10 +417,7 @@ const SecurityEntityRiskViewPage: FunctionComponent<
               label={ACTIVITY_EVENTS}
               value={translator.formatNumber(activity?.eventCount || 0)}
               description={translator.translatePlural(
-                {
-                  one: "In the last {{count}} day",
-                  other: "In the last {{count}} days",
-                },
+                ACTIVITY_WINDOW,
                 ENTITY_RISK_WINDOW_IN_DAYS,
               )}
             />
@@ -460,16 +426,10 @@ const SecurityEntityRiskViewPage: FunctionComponent<
               icon={IconProp.ShieldExclamation}
               label={ACTIVITY_FINDINGS}
               value={translator.formatNumber(activity?.findingCount || 0)}
-            />
-            <EventStatTile
-              variant="segment"
-              icon={IconProp.Clock}
-              label={ACTIVITY_FIRST_SEEN}
-              value={
-                activity?.firstSeen
-                  ? OneUptimeDate.fromNow(activity.firstSeen)
-                  : "-"
-              }
+              description={translator.translatePlural(
+                ACTIVITY_WINDOW,
+                ENTITY_RISK_WINDOW_IN_DAYS,
+              )}
             />
             <EventStatTile
               variant="segment"

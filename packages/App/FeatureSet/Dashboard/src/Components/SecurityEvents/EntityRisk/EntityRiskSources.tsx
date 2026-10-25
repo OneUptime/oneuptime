@@ -3,6 +3,8 @@ import MitreAttackChips from "../../SecurityCase/MitreAttackChips";
 import { getSecurityDetectionSourceIcon } from "../../SecurityCase/SecurityCasePills";
 import {
   ENTITY_RISK_TEST_IDS,
+  FIRED_COLUMN_TITLE,
+  FIRED_TIMES,
   LAST_SEEN_COLUMN_TITLE,
   POINTS_COLUMN_TITLE,
   SEVERITY_COLUMN_TITLE,
@@ -11,7 +13,6 @@ import {
   SOURCES_EMPTY,
   SOURCE_COLUMN_TITLE,
   TACTICS_COLUMN_TITLE,
-  TIMES_COLUMN_TITLE,
 } from "./EntityRiskCopy";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -124,15 +125,16 @@ const EntityRiskSources: FunctionComponent<ComponentProps> = (
                 },
               },
               {
+                // How often it fired, as a case's Detections say it: "14 times".
                 key: "hits",
-                title: TIMES_COLUMN_TITLE,
+                title: FIRED_COLUMN_TITLE,
                 type: FieldType.Element,
                 disableSort: true,
                 hideOnMobile: true,
                 getElement: (row: SourceRow): ReactElement => {
                   return (
-                    <span className="text-sm tabular-nums text-gray-700">
-                      {translator.formatNumber(row.hits)}
+                    <span className="whitespace-nowrap text-sm tabular-nums text-gray-700">
+                      {translator.translatePlural(FIRED_TIMES, row.hits)}
                     </span>
                   );
                 },

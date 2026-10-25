@@ -282,12 +282,15 @@ Reset Risk deletes the row; and an edit form saves onto the row it edits (`updat
 
 `EntityRisk.spec.ts` covers: the list (the riskiest first, each level against the threshold,
 criticality beside the kind, what found it and when, ATT&CK left to Customize Columns, one read of
-the rows with risk), a row opening its entity's page with Entity Risk lit in the menu and named in
-the trail; the levels and guide at another threshold; the note and the way to Risk Scoring when
-risk opens no case; a new project's empty list; an entity's page (the score worked out, criticality
-weighing it, each source, the month, the activity, the cases about it, Open in Correlate and Search
-Its Events), Reset Risk asking first and clearing the row, locked with why for a Security Viewer;
-a quiet entity's month, an unscored one's activity and a page that names no entity; Risk Scoring's
+the rows with risk, the guide folded to its title row over a list with rows), each entity one card
+on a phone (its risk under it, no field names), a row opening its entity's page with Entity Risk
+lit in the menu and the entity named in the trail and the tab; the levels and guide at another
+threshold; the note and the way to Risk Scoring when risk opens no case; a new project's empty
+list; an entity's page (the score worked out, criticality weighing it, each source, the month, the
+activity, the cases about it, Open in Correlate and Search Its Events at the header's right at
+every width, as a case's actions are), Reset Risk under the header's ⋯ asking first and clearing
+the row, locked with why for a Security Viewer; a quiet entity's month, an unscored one's activity
+and a page that names no entity, with its way to Entity Risk; Risk Scoring's
 switch saving as it flips, the threshold refused out of range in the product's words and saved, Add
 Entity, and a Security Viewer changing nothing; the Risk column of a case's Entities (under the
 value, named, beside the case's menu and on a phone); the case Entity Risk opens, its detection

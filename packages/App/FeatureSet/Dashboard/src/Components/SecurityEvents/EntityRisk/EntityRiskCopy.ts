@@ -46,13 +46,18 @@ export const RISK_CASES_OFF_ACTION: string =
 
 export const RISK_CASES_OFF_TEST_ID: string = "entity-risk-cases-off";
 
+// What one row of the list is, in its foot ("Showing 1-9 of 9 entities").
+export const ENTITY_SINGULAR: string = translationKey("Entity");
+export const ENTITY_PLURAL: string = translationKey("Entities");
+
 // The list's columns.
 export const ENTITY_COLUMN_TITLE: string = translationKey("Entity");
 export const RISK_COLUMN_TITLE: string = translationKey("Risk");
 export const CRITICALITY_COLUMN_TITLE: string = translationKey("Criticality");
 export const SOURCES_COLUMN_TITLE: string = translationKey("Found By");
 export const TACTICS_COLUMN_TITLE: string = translationKey("ATT&CK Tactics");
-export const LAST_RISK_COLUMN_TITLE: string = translationKey("Last Risk");
+// When something was last found about it: the entity's page says "last finding".
+export const LAST_FINDING_COLUMN_TITLE: string = translationKey("Last Finding");
 
 // "Brute force and 2 more": the sources column, under its count.
 export const SOURCES_AND_MORE: PluralTemplate = {
@@ -80,6 +85,10 @@ export const ENTITY_PAGE_NOT_NAMED_TITLE: string = translationKey(
 export const ENTITY_PAGE_NOT_NAMED_DESCRIPTION: string = translationKey(
   "Open one from Entity Risk, or from the entities of a case.",
 );
+
+// The one way on from a page that names no entity.
+export const ENTITY_PAGE_NOT_NAMED_ACTION: string =
+  translationKey("Open Entity Risk");
 
 export const ENTITY_NO_RISK: string = translationKey(
   "Nothing found about it counts toward risk in the last 7 days.",
@@ -122,7 +131,12 @@ export const SOURCES_EMPTY: string = translationKey(
 export const SOURCE_COLUMN_TITLE: string = translationKey("Source");
 export const SEVERITY_COLUMN_TITLE: string = translationKey("Severity");
 export const POINTS_COLUMN_TITLE: string = translationKey("Points");
-export const TIMES_COLUMN_TITLE: string = translationKey("Times");
+// How often a source fired: "Fired 14 times", as a case's Detections say it.
+export const FIRED_COLUMN_TITLE: string = translationKey("Fired");
+export const FIRED_TIMES: PluralTemplate = {
+  one: "{{count}} time",
+  other: "{{count}} times",
+};
 export const LAST_SEEN_COLUMN_TITLE: string = translationKey("Last Seen");
 
 export const HISTORY_CARD_TITLE: string = translationKey(
@@ -148,26 +162,40 @@ export const CASES_EMPTY: string = translationKey(
 );
 
 export const CASES_EMPTY_DESCRIPTION: string = translationKey(
-  "A case a detection opens about it, or its risk opens at the threshold, shows here.",
+  "When a detection or its risk opens a case about it, the case shows here.",
 );
 
 export const ACTIVITY_CARD_TITLE: string = translationKey("Activity");
 
+/*
+ * Its activity is read over the week its risk counts: the counts say so,
+ * and its last event says when. (A first seen read over the same week said
+ * "6 days ago" of an entity seen every day for a year, so there is none.)
+ */
 export const ACTIVITY_EVENTS: string = translationKey("Events");
 export const ACTIVITY_FINDINGS: string = translationKey("Findings");
-export const ACTIVITY_FIRST_SEEN: string = translationKey("First Seen");
 export const ACTIVITY_LAST_SEEN: string = translationKey("Last Seen");
+export const ACTIVITY_WINDOW: PluralTemplate = {
+  one: "In the last {{count}} day",
+  other: "In the last {{count}} days",
+};
 
 export const OPEN_IN_CORRELATE: string = translationKey("Open in Correlate");
 export const SEARCH_ITS_EVENTS: string = translationKey("Search Its Events");
 export const RESET_RISK: string = translationKey("Reset Risk");
+
+// The header's buttons and its ⋯, as a screen reader names them.
+export const ENTITY_ACTIONS_LABEL: string = translationKey("Entity actions");
+export const MORE_ENTITY_ACTIONS_LABEL: string = translationKey(
+  "More entity actions",
+);
 
 export const RESET_RISK_CONFIRM_TITLE: string = translationKey(
   "Reset this entity's risk?",
 );
 
 export const RESET_RISK_CONFIRM_DESCRIPTION: string = translationKey(
-  "Its score and its sources are cleared, and what is found next counts from zero. Use it after a planned test, say. Its cases are not changed.",
+  "Its score and its sources are cleared, and what is found next counts from zero. Use it after a planned test, for instance. Its cases are not changed.",
 );
 
 // ---------- Settings > Risk Scoring ----------

@@ -161,13 +161,13 @@ describe("the risk detection", () => {
     }).description!;
 
     expect(description).toContain(
-      "The risk of `Alice@Corp.Example` (User) reached **113**, High: the project opens a case at 100. 2 sources found it in the last 7 days:",
+      "The risk of `Alice@Corp.Example` (User) reached **113**, High against the project's threshold of 100. 2 sources found it in the last 7 days:",
     );
     expect(description).toContain(
-      "- **Brute force** (Detection Rule, High): 50 points, 3 times, last ",
+      "- **Brute force** (Detection Rule, High): 50 points, fired 3 times, last ",
     );
     expect(description).toContain(
-      "- **First sudo on a host** (Detection Rule, Medium): 25 points, once, last ",
+      "- **First sudo on a host** (Detection Rule, Medium): 25 points, fired once, last ",
     );
     expect(description).toContain(
       "Its criticality, High, weighs its risk ×1.5.",
@@ -273,6 +273,6 @@ describe("entityRiskMarkdown", () => {
     }).toString();
 
     expect(markdown).toContain("1 source found it");
-    expect(markdown).toContain(": 1 point, once, last Oct 14, 2026");
+    expect(markdown).toContain(": 1 point, fired once, last Oct 14, 2026");
   });
 });

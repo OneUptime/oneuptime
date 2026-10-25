@@ -11,6 +11,7 @@ import RouteMap, {
 import {
   getSecurityEventsBreadcrumbPages,
   getSecurityEventsBreadcrumbs,
+  nameEntityInTrail,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SecurityEventsBreadcrumbs";
 import {
   SECURITY_EVENTS_DETAIL_PAGES,
@@ -435,6 +436,83 @@ describe("each crumb opens what its name says", () => {
       expect(trail[4]![1]).toBe(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
     },
   );
+
+  /*
+   * An entity's page is about one entity, as a case's is about one case:
+   * the trail and the browser's tab name it - "Entity Risk >
+   * k.morgan@acme-commerce.example" - not "Entity Risk > Entity" for every
+   * one of them. The value is in the page's query, written out as it is.
+   */
+  test("an entity's page names its entity in the trail and the tab; nothing else is renamed", () => {
+    const path: string = visit(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW);
+    const routePath: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+    const value: string = "k.morgan@acme-commerce.example";
+
+    const links: Array<Link> = nameEntityInTrail({
+      links: getSecurityEventsBreadcrumbs(routePath),
+      path: routePath,
+      entityValue: `  ${value}  `,
+    })!;
+
+    expect(
+      links.map((link: Link): string | undefined => {
+        return link.recordName;
+      }),
+    ).toEqual([undefined, undefined, undefined, undefined, value]);
+    // Its crumb still stands for its page, and Entity Risk still opens the list.
+    expect(links[4]!.to.toString()).toBe(path);
+    expect(links[3]!.to.toString()).toBe(
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
+    );
+
+    render(
+      <Page breadcrumbLinks={links}>
+        <div>Page content</div>
+      </Page>,
+    );
+
+    const trail: HTMLElement = screen.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+
+    expect(within(trail).getByText(value)).toBeInTheDocument();
+    expect(within(trail).queryByText("Entity")).toBeNull();
+    expect(document.title).toContain(value);
+
+    // A link that names no entity keeps "Entity"; so does a value of spaces.
+    for (const entityValue of [null, undefined, "", "   "]) {
+      expect(
+        nameEntityInTrail({
+          links: getSecurityEventsBreadcrumbs(routePath),
+          path: routePath,
+          entityValue,
+        })!.map((link: Link): string | undefined => {
+          return link.recordName;
+        }),
+      ).toEqual([undefined, undefined, undefined, undefined, undefined]);
+    }
+
+    // Any other page's trail is left as it is, whatever its query holds.
+    visit(PageMap.SECURITY_EVENTS_ENTITY_RISK);
+    const listPath: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+    const listLinks: Array<Link> | undefined =
+      getSecurityEventsBreadcrumbs(listPath);
+
+    expect(
+      nameEntityInTrail({
+        links: listLinks,
+        path: listPath,
+        entityValue: value,
+      }),
+    ).toBe(listLinks);
+    expect(
+      nameEntityInTrail({
+        links: undefined,
+        path: routePath,
+        entityValue: value,
+      }),
+    ).toBeUndefined();
+  });
 
   test("the case's crumb takes the case's number once the case is read, in the trail and the tab", () => {
     visit(PageMap.SECURITY_CASE_VIEW_DETECTIONS);
