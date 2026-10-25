@@ -2,6 +2,12 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { McpToolInfo } from "../Types/McpTypes";
+import {
+  zodToJsonSchema,
+  ZodToJsonSchemaResult,
+} from "../Tools/SchemaConverter";
+import { ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
+import Zod from "Common/Utils/Schema/Zod";
 
 // Mock the Common dependencies
 jest.mock("Common/Models/DatabaseModels/Index");
@@ -122,42 +128,26 @@ describe("DynamicToolGenerator", () => {
 
   describe("Schema Conversion", () => {
     it("should handle Zod schema to JSON schema conversion", () => {
-      /*
-       * This test validates that schema conversion would work
-       * Mock Zod schema structure
-       */
-      const mockZodSchema: Record<string, any> = {
-        _def: {
-          shape: {
-            name: { _def: { typeName: "string" } },
-            email: { _def: { typeName: "string" } },
-            age: { _def: { typeName: "number" } },
-            isActive: { _def: { typeName: "boolean" } },
-          },
-        },
-      };
+      // A real zod schema, as ModelSchema makes them (Common's zod).
+      const zodSchema: ModelSchemaType = Zod.object({
+        name: Zod.string().openapi({ type: "string" }),
+        email: Zod.string().optional().openapi({ type: "string" }),
+        age: Zod.number().optional().openapi({ type: "number" }),
+        isActive: Zod.boolean().optional().openapi({ type: "boolean" }),
+      }) as unknown as ModelSchemaType;
 
-      // Test the conversion logic
-      const expectedJsonSchema: {
-        type: string;
-        properties: Record<string, any>;
-        required: string[];
-      } = {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          email: { type: "string" },
-          age: { type: "number" },
-          isActive: { type: "boolean" },
-        },
-        required: [],
-      };
+      const jsonSchema: ZodToJsonSchemaResult = zodToJsonSchema(zodSchema);
 
-      // Since zodToJsonSchema is private, we test the expected structure
-      expect(mockZodSchema["_def"]["shape"]).toHaveProperty("name");
-      expect(expectedJsonSchema.type).toBe("object");
-      expect(expectedJsonSchema.properties).toHaveProperty("name");
-      expect(expectedJsonSchema.properties).toHaveProperty("email");
+      expect(jsonSchema.type).toBe("object");
+      expect(Object.keys(jsonSchema.properties)).toEqual([
+        "name",
+        "email",
+        "age",
+        "isActive",
+      ]);
+      expect(jsonSchema.properties["age"]?.type).toBe("number");
+      expect(jsonSchema.properties["isActive"]?.type).toBe("boolean");
+      expect(jsonSchema.required).toEqual(["name"]);
     });
 
     it("should handle empty schemas", () => {
@@ -439,26 +429,17 @@ describe("DynamicToolGenerator", () => {
     });
 
     it("should handle invalid schema definitions", () => {
-      const invalidSchema: { _def: null } = {
+      const invalidSchema: ModelSchemaType = {
         _def: null,
-      };
+      } as unknown as ModelSchemaType;
 
-      // Verify invalid schema structure
-      expect(invalidSchema._def).toBeNull();
-
-      // Should fall back to basic schema
-      const fallbackSchema: {
-        type: string;
-        properties: Record<string, any>;
-        required: any[];
-      } = {
-        type: "object",
-        properties: {},
-        required: [],
-      };
+      // Falls back to an empty object schema rather than throwing.
+      const fallbackSchema: ZodToJsonSchemaResult =
+        zodToJsonSchema(invalidSchema);
 
       expect(fallbackSchema.type).toBe("object");
       expect(Object.keys(fallbackSchema.properties)).toHaveLength(0);
+      expect(fallbackSchema.required).toBeUndefined();
     });
   });
 

@@ -73,7 +73,7 @@ import {
   ConfigurationBotFrameworkAuthenticationOptions,
   Activity,
   ResourceResponse,
-} from "botbuilder";
+} from "./Botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 // Teams action handlers and types

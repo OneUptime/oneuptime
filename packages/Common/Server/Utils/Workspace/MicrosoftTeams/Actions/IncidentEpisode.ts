@@ -3,7 +3,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import IncidentEpisodeService from "../../../../Services/IncidentEpisodeService";
 import IncidentEpisode from "../../../../../Models/DatabaseModels/IncidentEpisode";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {

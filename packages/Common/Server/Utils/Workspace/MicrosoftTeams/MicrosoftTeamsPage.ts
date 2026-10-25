@@ -1,4 +1,4 @@
-import { TeamsChannelAccount, TeamsInfo, TurnContext } from "botbuilder";
+import { TeamsChannelAccount, TeamsInfo, TurnContext } from "./Botbuilder";
 import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";

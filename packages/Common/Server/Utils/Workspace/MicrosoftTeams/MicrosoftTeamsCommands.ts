@@ -1,4 +1,4 @@
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "./Botbuilder";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";

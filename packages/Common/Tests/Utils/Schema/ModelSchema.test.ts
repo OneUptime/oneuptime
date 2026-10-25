@@ -1,5 +1,5 @@
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
-import Zod from "../../../Utils/Schema/Zod";
+import { z } from "zod";
 import {
   getTableColumns,
   TableColumnMetadata,
@@ -71,7 +71,7 @@ const UPDATE_EXCLUDED_FIELDS: Array<string> = [
 const isZodObject: (schema: unknown) => boolean = (
   schema: unknown,
 ): boolean => {
-  return schema instanceof Zod.ZodObject;
+  return schema instanceof z.ZodObject;
 };
 
 const shapeKeys: (schema: any) => Array<string> = (
