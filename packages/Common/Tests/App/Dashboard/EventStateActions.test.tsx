@@ -595,8 +595,10 @@ describe("how the moves sit in their menus", () => {
       });
     });
 
-    const actions: Array<{ title: string; menuGroup?: string | undefined }> =
-      [...result.current.rowActions, ...result.current.bulkActions];
+    const actions: Array<{ title: string; menuGroup?: string | undefined }> = [
+      ...result.current.rowActions,
+      ...result.current.bulkActions,
+    ];
 
     expect(actions.length).toBe(6);
     for (const action of actions) {

@@ -614,10 +614,7 @@ const BulkUpdateForm: <T extends GenericObject>(
       safeButtons[index - 1];
 
     // A gap where one kind of action ends and the next begins.
-    if (
-      previous &&
-      startsNewMenuGroup(previous.menuGroup, button.menuGroup)
-    ) {
+    if (previous && startsNewMenuGroup(previous.menuGroup, button.menuGroup)) {
       menuChildren.push(
         <MoreMenuDivider key={`bulk-action-group-divider-${index}`} />,
       );

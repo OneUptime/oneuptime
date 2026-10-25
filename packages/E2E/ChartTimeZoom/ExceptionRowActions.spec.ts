@@ -1,4 +1,10 @@
-import { expect, Locator, Page, Route as PlaywrightRoute, test } from "@playwright/test";
+import {
+  expect,
+  Locator,
+  Page,
+  Route as PlaywrightRoute,
+  test,
+} from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 
@@ -258,10 +264,7 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
 
       await fs.mkdir(SCREENSHOTS, { recursive: true });
       await deadline.screenshot({
-        path: path.join(
-          SCREENSHOTS,
-          `exception-row-390-${theme}.png`,
-        ),
+        path: path.join(SCREENSHOTS, `exception-row-390-${theme}.png`),
         animations: "disabled",
       });
     });

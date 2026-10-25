@@ -886,10 +886,14 @@ test.describe("a row's question is drawn over the whole page", () => {
 
       // The other rows' ⋯ are under the backdrop, out of reach.
       for (const other of ["Marketing Website", "Primary Database Ping"]) {
-        const box: { x: number; y: number; width: number; height: number } | null =
-          await row(page, "Monitors-table", other)
-            .getByTestId("row-actions-more-button")
-            .boundingBox();
+        const box: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        } | null = await row(page, "Monitors-table", other)
+          .getByTestId("row-actions-more-button")
+          .boundingBox();
         const isInRow: boolean = await page.evaluate(
           (point: { x: number; y: number }): boolean => {
             const top: Element | null = document.elementFromPoint(
@@ -907,7 +911,10 @@ test.describe("a row's question is drawn over the whole page", () => {
 
       await fs.mkdir(SCREENSHOTS, { recursive: true });
       await page.screenshot({
-        path: path.join(SCREENSHOTS, `row-actions-archive-dialog-1280-${theme}.png`),
+        path: path.join(
+          SCREENSHOTS,
+          `row-actions-archive-dialog-1280-${theme}.png`,
+        ),
         animations: "disabled",
       });
 

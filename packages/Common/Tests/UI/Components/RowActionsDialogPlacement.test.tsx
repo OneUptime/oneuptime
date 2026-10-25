@@ -163,9 +163,7 @@ describe("a row's dialogs are drawn over the page, not in the row", () => {
       "Archive workflow",
     );
     expect(screen.getByTestId("the-row")).not.toContainElement(dialog);
-    expect(screen.getByTestId("the-actions-cell")).not.toContainElement(
-      dialog,
-    );
+    expect(screen.getByTestId("the-actions-cell")).not.toContainElement(dialog);
     expect(document.body).toContainElement(dialog);
     // Its sentence and details are in it, wrapped by nothing of the row's.
     expect(dialog).toContainElement(screen.getByTestId("row-question-details"));

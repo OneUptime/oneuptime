@@ -66,9 +66,7 @@ describe("BasicFormModal isSubmitting", () => {
 
     await screen.findByRole("textbox", { name: "Note" });
 
-    expect(
-      screen.getByTestId("modal-footer-submit-button"),
-    ).not.toBeDisabled();
+    expect(screen.getByTestId("modal-footer-submit-button")).not.toBeDisabled();
   });
 
   test("is not isLoading, which waits for what the dialog shows: a loader in the fields' place", () => {
