@@ -1989,6 +1989,8 @@ notifications:
       onDeleteProject:
       onCreateProject:
       onSubscriptionUpdate:
+      # Called with each thumbs up or thumbs down people give an answer from OneUptime AI in Microsoft Teams, and what they wrote.
+      onAiFeedback:
 
 startupProbe: # Startup probe configuration
   enabled: true

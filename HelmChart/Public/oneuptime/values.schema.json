@@ -3255,6 +3255,12 @@
                                         "string",
                                         "null"
                                     ]
+                                },
+                                "onAiFeedback": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
