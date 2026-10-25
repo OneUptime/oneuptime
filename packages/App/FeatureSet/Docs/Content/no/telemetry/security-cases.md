@@ -193,7 +193,7 @@ De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det 
 
 ## Playbooks
 
-En playbook er en liste med steg som kjører på en sak. Opprett en under **Produkter → Security Events → Playbooks**, fra en mal eller fra bunnen av, og legg til stegene på siden dens.
+En playbook er en liste med steg som kjører på en sak. Opprett en under **Produkter → Security Events → Playbooks**, fra en mal eller fra bunnen av, og legg til stegene på siden dens. Et prosjekt uten playbooks ser malene i stedet for en tom liste; når det finnes playbooks, åpner **Opprett fra mal** ved listen dem, med **Lagt til** ved dem prosjektet allerede har.
 
 ### Når en playbook kjører
 
@@ -303,7 +303,7 @@ Hver kjøring vises på saken sin og under **Produkter → Security Events → P
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |
 
-Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring.
+Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring. På **Playbook-kjøringer** og på siden til en playbook er hver kjøring én linje som sier hvor langt den kom, eller hvilket steg den stoppet ved; **Vis trinn** åpner stegene. En kjøring som venter på godkjenning, åpnes av seg selv.
 
 En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart, plukkes opp igjen: en kjøring i kø settes i kø på nytt etter 2 minutter, og en kjøring som ikke har sagt noe på 30 minutter, markeres som mislykket.
 
@@ -320,9 +320,9 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 
 ## Finn trusler
 
-- **Entiteter** rangerer brukerne, vertene, adressene og hashene som funnene dine nevner oftest, over det siste døgnet, den siste uken eller måneden, og slår opp hvilken som helst verdi på tvers av 30 dager med hendelser.
+- **Entiteter** rangerer brukerne, vertene, adressene og hashene som funnene dine nevner oftest, over det siste døgnet, den siste uken eller måneden, og slår opp hvilken som helst verdi på tvers av 30 dager med hendelser. Velg en entitet for å åpne den i **Korreler**.
 - **Rule Library** har ferdige deteksjonsregler for trusler mot identitet, endepunkter, sky, nettverk, web og Kubernetes. Hver av dem er en Sigma-regel skrevet for feltene som alle tilkoblede kilder normaliseres til. Raden dens viser hva den finner, MITRE ATT&CK-taktikkene og -teknikkene den er merket med, hendelsene den leser og om noen har kommet inn de siste 7 dagene (**Mottas** eller **Mottas ikke**), og alvorlighetsgraden. Avgrens listen etter kategori, etter dataene reglene leser og etter om du har lagt dem til, eller søk i den etter navn, ATT&CK-teknikk eller alvorlighetsgrad; adressen til siden tar vare på filtrene. Velg en regel for å se detaljene: hvordan du begynner å sende hendelsene den leser, hvordan den kjører, og Sigma-regelen. **Legg til** oppretter den som din egen deteksjonsregel, slått på og med saker i stedet for varsler; endre den under **Detection Rules** som alle andre. Reglene merket **Anbefalt** finner trusler i data OneUptime allerede har, og én knapp legger til dem du ikke har ennå.
-- **ATT&CK Coverage** tegner MITRE ATT&CK-matrisen, uthever teknikkene de aktiverte reglene dine dekker, og rammer inn teknikkene en regel fra biblioteket ville dekket. Velg en teknikk for å se reglene fra biblioteket som dekker den, og åpne **Rule Library** på dem.
+- **ATT&CK Coverage** viser taktikkene i MITRE ATT&CK, hver med hvor mange av teknikkene dens de aktiverte reglene dine dekker, og hvor mange flere **Rule Library** har regler for. Åpne en taktikk for teknikkene dens, eller bytt til **Matrise** for hele matrisen. Velg en teknikk for å se reglene fra biblioteket som dekker den, og åpne **Rule Library** på dem.
 
 ## Automatiser
 
