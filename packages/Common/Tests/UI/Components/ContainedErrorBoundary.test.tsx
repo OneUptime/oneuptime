@@ -13,12 +13,14 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import React, { ErrorInfo, FunctionComponent, ReactElement } from "react";
 import ContainedErrorBoundary, {
   ContainedErrorFallbackProps,
 } from "../../../UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 import { CHUNK_LOAD_RELOAD_STORAGE_KEY } from "../../../UI/Components/ErrorBoundary";
+import NewVersion from "../../../UI/Utils/NewVersion/NewVersion";
 import { Mock, SpyInstance } from "jest-mock";
 
 /*
@@ -27,7 +29,9 @@ import { Mock, SpyInstance } from "jest-mock";
  * a throw below it replaces only its own children, with the fallback it was
  * handed; the rest of the page renders on; the fallback can draw the
  * children again; new reset keys start it over; and a stale bundle still
- * reloads the page the way the app's own boundary does.
+ * reloads the page the way the app's own boundary does - saying, in the
+ * part's place, that it is loading the latest version (the rest of that is
+ * Tests/UI/Components/NewVersion/ChunkLoadRecovery.test.tsx).
  */
 
 let shouldThrow: boolean = true;
@@ -69,6 +73,7 @@ beforeEach(() => {
   shouldThrow = true;
   renders = 0;
   window.sessionStorage.clear();
+  NewVersion.reset();
 
   reloadMock = jest.fn<() => void>();
   Object.defineProperty(window, "location", {
@@ -85,6 +90,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  NewVersion.reset();
   consoleErrorSpy.mockRestore();
   Object.defineProperty(window, "location", {
     configurable: true,
@@ -240,17 +246,33 @@ describe("ContainedErrorBoundary", () => {
     );
   });
 
-  test("a stale bundle reloads the page once, as the app's boundary does", () => {
+  test("a stale bundle reloads the page once, as the app's boundary does", async () => {
+    const consoleWarnSpy: SpyInstance<typeof console.warn> = jest
+      .spyOn(console, "warn")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
     render(
       <ContainedErrorBoundary renderFallback={fallback}>
         <ChunkFailure />
       </ContainedErrorBoundary>,
     );
 
-    expect(reloadMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+    });
     expect(
       window.sessionStorage.getItem(CHUNK_LOAD_RELOAD_STORAGE_KEY),
     ).not.toBeNull();
+    // The part says what is happening; the caller's fallback would blame it.
+    expect(screen.getByTestId("chunk-load-recovery")).toHaveAttribute(
+      "data-variant",
+      "part",
+    );
+    expect(screen.queryByTestId("contained-fallback")).toBeNull();
+
+    consoleWarnSpy.mockRestore();
   });
 
   test("an ordinary error never reloads the page", () => {

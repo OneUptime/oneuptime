@@ -6,6 +6,7 @@
 const esbuild = require("esbuild");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const dotenv = require("dotenv");
 const { createMermaidSourcePlugin } = require("./esbuild-mermaid");
 
@@ -164,6 +165,85 @@ function copyTailwindAsset(outdir) {
 
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(source, destination);
+}
+
+// Which build a browser tab runs, and which one the server serves now.
+//
+// A tab keeps running the build it loaded, and every deploy replaces the
+// content-hashed chunks it fetches pages from, so a tab opened before a
+// deploy asks for chunks the server no longer has. To notice the new
+// version before that happens, the tab has to know which build it runs and
+// ask the server which build it serves (Common/UI/Utils/NewVersion).
+//
+// build() and watch() below give every build an id, write it into the bundle
+// (the __ONEUPTIME_BUILD_ID__ define) and into build.json next to the
+// bundle, which is served as a static file from the same place as the
+// chunks. The id is new for every build, so two builds of one commit - the
+// Community and the Enterprise image's Dashboard - never pass for each
+// other; one image's pods all serve the same file.
+//
+// createConfig() adds neither, so a bundle built from it some other way (the
+// offline E2E fixtures call esbuild.build directly) has no id, and its page
+// never asks for build.json.
+const BUILD_MANIFEST_FILENAME = "build.json";
+const BUILD_ID_DEFINE = "__ONEUPTIME_BUILD_ID__";
+const BUILD_MANIFEST_URL_DEFINE = "__ONEUPTIME_BUILD_MANIFEST_URL__";
+const BUILD_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+
+// ONEUPTIME_FRONTEND_BUILD_ID names the build instead (tests and fixtures).
+function createBuildId(environment) {
+  const env = environment || process.env;
+  const requested = (env.ONEUPTIME_FRONTEND_BUILD_ID || "").trim();
+
+  if (requested) {
+    if (!BUILD_ID_PATTERN.test(requested)) {
+      throw new Error(
+        `ONEUPTIME_FRONTEND_BUILD_ID must be 1-128 letters, digits, dots, dashes or underscores, not ${JSON.stringify(requested)}.`,
+      );
+    }
+
+    return requested;
+  }
+
+  const version = (env.APP_VERSION || "").trim().replace(/[^A-Za-z0-9.]/g, "");
+  const gitSha = (env.GIT_SHA || "").trim().replace(/[^A-Za-z0-9]/g, "");
+
+  return [
+    version || "dev",
+    gitSha.slice(0, 12) || "local",
+    crypto.randomBytes(6).toString("hex"),
+  ].join("-");
+}
+
+// Writes the build's id into the bundle and says where build.json is.
+function applyBuildIdentity(config, buildId) {
+  config.define = {
+    ...(config.define || {}),
+    [BUILD_ID_DEFINE]: JSON.stringify(buildId),
+    [BUILD_MANIFEST_URL_DEFINE]: JSON.stringify(
+      `${config.publicPath || "/dist/"}${BUILD_MANIFEST_FILENAME}`,
+    ),
+  };
+
+  return config;
+}
+
+function writeBuildManifest(outdir, buildId, environment) {
+  const env = environment || process.env;
+
+  fs.mkdirSync(outdir, { recursive: true });
+  fs.writeFileSync(
+    path.join(outdir, BUILD_MANIFEST_FILENAME),
+    `${JSON.stringify(
+      {
+        buildId: buildId,
+        version: env.APP_VERSION || "",
+        gitSha: env.GIT_SHA || "",
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 // Read environment variables from .env file
@@ -376,6 +456,9 @@ function createConfig(options) {
  */
 async function build(config, serviceName) {
   const isAnalyze = process.env.analyze === "true";
+  const buildId = createBuildId();
+
+  applyBuildIdentity(config, buildId);
 
   // Clean the output directory before building to remove stale content-hashed chunks.
   if (config.outdir && fs.existsSync(config.outdir)) {
@@ -389,6 +472,10 @@ async function build(config, serviceName) {
 
     copyTailwindAsset(config.outdir);
     console.log(`📦 Copied Tailwind for ${serviceName}`);
+
+    // Last, so a server never names a build whose files are not all there.
+    writeBuildManifest(config.outdir, buildId);
+    console.log(`🏷️  ${serviceName} build ${buildId}`);
 
     if (isAnalyze && result.metafile) {
       const analyzeText = await esbuild.analyzeMetafile(result.metafile);
@@ -415,6 +502,12 @@ async function build(config, serviceName) {
  */
 async function watch(config, serviceName) {
   try {
+    // One id for the whole watch: a rebuild on save is not a new version.
+    const buildId = createBuildId();
+
+    applyBuildIdentity(config, buildId);
+    writeBuildManifest(config.outdir, buildId);
+
     const context = await esbuild.context(config);
 
     // The copy does not read the built output, so it can run before the
@@ -441,4 +534,10 @@ module.exports = {
   // Exported so Common/Tests can run it, rather than assert on its source.
   copyTailwindAsset,
   TAILWIND_FILENAME,
+  createBuildId,
+  applyBuildIdentity,
+  writeBuildManifest,
+  BUILD_MANIFEST_FILENAME,
+  BUILD_ID_DEFINE,
+  BUILD_MANIFEST_URL_DEFINE,
 };
