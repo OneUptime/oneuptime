@@ -199,7 +199,7 @@ Le tre notifiche vengono pubblicate ciascuna nei canali di ogni regola a cui il 
 
 ## Playbook
 
-Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in **Prodotti → Security Events → Playbooks**, da un modello o da zero, e aggiungi i suoi passi nella sua pagina.
+Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in **Prodotti → Security Events → Playbooks**, da un modello o da zero, e aggiungi i suoi passi nella sua pagina. Un progetto senza playbook vede i modelli al posto di un elenco vuoto; quando ci sono playbook, **Crea da modello** sull'elenco li apre, con **Aggiunto** su quelli che il progetto ha già.
 
 ### Quando viene eseguito un playbook
 
@@ -309,7 +309,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events →
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
-Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. **In attesa di approvazione**, sotto **Playbooks** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni dei playbook** elenca ogni esecuzione.
+Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. **In attesa di approvazione**, sotto **Playbooks** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni dei playbook** elenca ogni esecuzione. In **Esecuzioni dei playbook** e nella pagina di un playbook, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola.
 
 Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un riavvio, viene ripresa: un'esecuzione in coda viene rimessa in coda dopo 2 minuti, e un'esecuzione che tace da 30 minuti viene segnata come non riuscita.
 
@@ -326,9 +326,9 @@ Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i r
 
 ## Trovare le minacce
 
-- **Entità** classifica gli utenti, gli host, gli indirizzi e gli hash che le tue risultanze nominano più spesso, nell'ultimo giorno, nell'ultima settimana o nell'ultimo mese, e cerca qualsiasi valore in 30 giorni di eventi.
+- **Entità** classifica gli utenti, gli host, gli indirizzi e gli hash che le tue risultanze nominano più spesso, nell'ultimo giorno, nell'ultima settimana o nell'ultimo mese, e cerca qualsiasi valore in 30 giorni di eventi. Seleziona un'entità per aprirla in **Correla**.
 - **Rule Library** contiene regole di rilevamento pronte all'uso, per le minacce a identità, endpoint, cloud, rete, web e Kubernetes. Ognuna è una regola Sigma scritta per i campi in cui viene normalizzata ogni origine collegata. La sua riga dice che cosa trova, le tattiche e le tecniche MITRE ATT&CK a cui è associata, gli eventi che legge e se ne sono arrivati negli ultimi 7 giorni (**Ricevuti** o **Non ricevuti**), e la sua gravità. Restringi l'elenco per categoria, per i dati che le regole leggono e in base al fatto che tu le abbia aggiunte, oppure cercalo per nome, tecnica ATT&CK o gravità; l'indirizzo della pagina conserva i filtri. Seleziona una regola per i suoi dettagli: come iniziare a inviare gli eventi che legge, come viene eseguita e la sua regola Sigma. **Aggiungi** la crea come una tua regola di rilevamento, attiva, che apre casi anziché avvisi; modificala in **Detection Rules** come qualsiasi altra. Le regole segnate come **Consigliati** trovano minacce nei dati che OneUptime ha già, e un pulsante aggiunge quelle che non hai ancora.
-- **ATT&CK Coverage** disegna la matrice MITRE ATT&CK con evidenziate le tecniche coperte dalle tue regole abilitate, e contorna quelle che coprirebbe una regola della libreria. Seleziona una tecnica per vedere le regole della libreria che la coprono e aprire la **Rule Library** su di esse.
+- **ATT&CK Coverage** elenca le tattiche di MITRE ATT&CK, ciascuna con quante delle sue tecniche coprono le tue regole abilitate e per quante altre la **Rule Library** ha delle regole. Apri una tattica per vederne le tecniche, o passa a **Matrice** per la matrice intera. Seleziona una tecnica per vedere le regole della libreria che la coprono e aprire la **Rule Library** su di esse.
 
 ## Automatizzare
 

@@ -199,7 +199,7 @@ Var och en av de tre aviseringarna postas i kanalerna för varje regel som ären
 
 ## Playbooks
 
-En playbook är en lista med steg som körs på ett ärende. Skapa en under **Produkter → Security Events → Playbooks**, från en mall eller tom, och lägg till dess steg på dess sida.
+En playbook är en lista med steg som körs på ett ärende. Skapa en under **Produkter → Security Events → Playbooks**, från en mall eller tom, och lägg till dess steg på dess sida. Ett projekt utan playbooks ser mallarna i stället för en tom lista; när det finns playbooks öppnar **Skapa från mall** vid listan dem, med **Tillagd** vid de som projektet redan har.
 
 ### När en playbook körs
 
@@ -309,7 +309,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
-Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget, på ärendets tidslinje och i projektets granskningslogg. **Väntar på godkännande**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning.
+Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget, på ärendets tidslinje och i projektets granskningslogg. **Väntar på godkännande**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning. På **Playbook-körningar** och på en playbooks sida är varje körning en rad som säger hur långt den kom, eller vid vilket steg den stannade; **Visa steg** öppnar dess steg. En körning som väntar på godkännande öppnas av sig själv.
 
 En körning vars worker slutar höra av sig, till exempel efter en omstart, tas upp igen: en köad körning läggs i kö på nytt efter 2 minuter, och en körning som inte har hörts av på 30 minuter markeras som misslyckad.
 
@@ -326,9 +326,9 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 
 ## Hitta hot
 
-- **Entiteter** rangordnar användarna, värdarna, adresserna och hasharna som dina fynd nämner oftast, under det senaste dygnet, den senaste veckan eller månaden, och slår upp vilket värde som helst i 30 dagars händelser.
+- **Entiteter** rangordnar användarna, värdarna, adresserna och hasharna som dina fynd nämner oftast, under det senaste dygnet, den senaste veckan eller månaden, och slår upp vilket värde som helst i 30 dagars händelser. Välj en entitet för att öppna den i **Korrelera**.
 - **Rule Library** har färdiga detektionsregler för hot mot identiteter, slutpunkter, moln, nätverk, webb och Kubernetes. Var och en är en Sigma-regel skriven för fälten som varje ansluten källa normaliseras till. Dess rad visar vad den hittar, MITRE ATT&CK-taktikerna och -teknikerna den är märkt med, händelserna den läser och om några har kommit in de senaste 7 dagarna (**Tas emot** eller **Tas inte emot**), och dess allvarlighetsgrad. Begränsa listan efter kategori, efter de data reglerna läser och efter om du har lagt till dem, eller sök i den efter namn, ATT&CK-teknik eller allvarlighetsgrad; sidans adress behåller filtren. Välj en regel för dess detaljer: hur du börjar skicka händelserna den läser, hur den körs och dess Sigma-regel. **Lägg till** skapar den som en egen detektionsregel, påslagen och med ärenden i stället för larm; ändra den under **Detection Rules** som vilken annan regel som helst. Reglerna markerade **Rekommenderade** hittar hot i data som OneUptime redan har, och en knapp lägger till dem du inte har än.
-- **ATT&CK Coverage** ritar MITRE ATT&CK-matrisen med teknikerna som dina aktiverade regler täcker upplysta, och ramar in de som en regel i biblioteket skulle täcka. Välj en teknik för att se reglerna i biblioteket som täcker den, och öppna **Rule Library** med dem.
+- **ATT&CK Coverage** listar taktikerna i MITRE ATT&CK, var och en med hur många av dess tekniker dina aktiverade regler täcker och för hur många fler **Rule Library** har regler. Öppna en taktik för dess tekniker, eller byt till **Matris** för hela matrisen. Välj en teknik för att se reglerna i biblioteket som täcker den, och öppna **Rule Library** med dem.
 
 ## Automatisera
 

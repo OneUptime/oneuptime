@@ -39,6 +39,7 @@ import {
   useSecurityDetectionErrors,
 } from "../../Components/SecurityEvents/SecurityDetectionErrorModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -61,8 +62,14 @@ import {
   readDetectionRuleShape,
 } from "../../Components/SecurityEvents/DetectionRuleShape";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
+import RelativeTimeCell from "../../Components/SecurityEvents/RelativeTimeCell";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
-import React, { FunctionComponent, ReactElement } from "react";
+import {
+  DETECTION_RULES_EMPTY_DESCRIPTION,
+  DETECTION_RULES_EMPTY_TITLE,
+  OPEN_RULE_LIBRARY,
+} from "../../Components/SecurityEvents/SecurityDetectionsCopy";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * How often a new rule runs, as the form starts it: the
@@ -101,6 +108,12 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
    */
   const ruleErrors: SecurityDetectionErrors<DetectionRule> =
     useSecurityDetectionErrors<DetectionRule>(getDetectionRuleMessages);
+
+  /*
+   * How many rules the project has, as the table first reads them: the
+   * how-it-works card opens by itself only on an empty list. A hook too.
+   */
+  const [ruleCount, setRuleCount] = useState<number | null>(null);
 
   /*
    * Enable and Disable in Bulk Actions (a hook too, so above the gate):
@@ -145,7 +158,10 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
      * the table under it sit flush against each other.
      */
     <div className="space-y-6">
-      <SecurityEventsHowItWorksCard guide={DetectionRulesGuide} />
+      <SecurityEventsHowItWorksCard
+        guide={DetectionRulesGuide}
+        listItemCount={ruleCount}
+      />
 
       <ModelTable<DetectionRule>
         modelType={DetectionRule}
@@ -175,7 +191,34 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           description: DetectionRulesGuide.guideDescription,
           markdown: guideToMarkdown(DetectionRulesGuide),
         }}
-        noItemsMessage={"No detection rules found."}
+        onFetchSuccess={(_rules: Array<DetectionRule>, total: number) => {
+          // The first read decides the card; a search or filter after it does not.
+          setRuleCount((count: number | null): number => {
+            return count === null ? total : count;
+          });
+        }}
+        /*
+         * A project with no rule is one click from the ready-made ones: the
+         * Rule Library, beside writing one in Sigma.
+         */
+        emptyState={{
+          title: DETECTION_RULES_EMPTY_TITLE,
+          description: DETECTION_RULES_EMPTY_DESCRIPTION,
+          actions: [
+            {
+              title: OPEN_RULE_LIBRARY,
+              icon: IconProp.SquareStack3D,
+              dataTestId: "detection-rules-open-rule-library",
+              onClick: (): void => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SECURITY_EVENTS_RULE_LIBRARY] as Route,
+                  ),
+                );
+              },
+            },
+          ],
+        }}
         createInitialValues={{
           isEnabled: true,
           evaluationIntervalInMinutes: 5,
@@ -419,6 +462,12 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Create Monitor",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.AltGlobe,
+            /*
+             * In the row's menu: a monitor on a rule's findings is set up
+             * once, and as the row's one button it took the place of what a
+             * rule's row is for, and the width Last Match needed.
+             */
+            placement: ActionButtonPlacement.MoreMenu,
             disabled: !monitorCreateGate.isAllowed,
             tooltip: monitorCreateGate.isAllowed
               ? "Create a Security Events monitor watching this rule's Detection Findings — alert on rate, not just occurrence."
@@ -521,28 +570,39 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               );
             },
           },
-          // When it last fired comes first; that it runs, the Status says.
+          /*
+           * When it last fired, as how long ago ("5 minutes ago", the date
+           * under the pointer): two columns of full dates ran the table
+           * past its card at 1280, Last Evaluated under the row's buttons.
+           */
           {
             field: {
               lastMatchAt: true,
             },
             title: "Last Match",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
+            type: FieldType.Element,
+            getElement: (item: DetectionRule): ReactElement => {
+              return <RelativeTimeCell date={item.lastMatchAt} />;
+            },
           },
+          /*
+           * Hidden at first (Customize Columns brings them back): that a
+           * rule runs, its Status says ("Waiting for first run", red when a
+           * run fails); the interval is the rule's setting; and Last Error,
+           * empty while the rule works, shows through the Status and View
+           * Error.
+           */
           {
             field: {
               lastEvaluatedAt: true,
             },
             title: "Last Evaluated",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
+            type: FieldType.Element,
+            isHiddenByDefault: true,
+            getElement: (item: DetectionRule): ReactElement => {
+              return <RelativeTimeCell date={item.lastEvaluatedAt} />;
+            },
           },
-          /*
-           * Hidden at first (Customize Columns brings them back): the
-           * interval is the rule's setting, and Last Error, empty while the
-           * rule works, shows through the Status and View Error.
-           */
           {
             field: {
               evaluationIntervalInMinutes: true,
