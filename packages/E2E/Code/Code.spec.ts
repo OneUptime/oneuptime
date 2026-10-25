@@ -3054,6 +3054,88 @@ test.describe("a repository's Runner", () => {
     await expectRunnerValue(page, "Global Runner", "Connected");
   });
 
+  /*
+   * A repository that picks no Runner follows the project's default Runner
+   * (Common/Types/Runner/CodeRepositoryRunner), and moves with it: the card
+   * names the default, tagged, and the picker offers it first - then Global
+   * Runner, a pick of its own that stays on it beside a default.
+   */
+  test("with a project default Runner, a repository that picks none works on it, and picking Global Runner keeps it off the default", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("default=prod"));
+
+    const value: Locator = await expectRunnerValue(
+      page,
+      "prod-eu-west-1",
+      "Connected",
+    );
+    await expect(value.getByRole("link")).toHaveText("prod-eu-west-1");
+    await expect(
+      value.getByTestId("code-repository-runner-default-tag"),
+    ).toHaveText("Project default");
+    // One of the project's own: it builds and tests, nothing says otherwise.
+    await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
+      0,
+    );
+    await screenshot(page, testInfo, "code-repository-runner-default");
+
+    const modal: Locator = await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText("prod-eu-west-1");
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "AI works on the project's default Runner, and moves with it when another Runner becomes the default. It builds and tests its change there the way the repository's AGENTS.md says.",
+    );
+
+    await runnerPicker(page).getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("prod-eu-west-1");
+    await expect(options.nth(0)).toContainText("Project default");
+    await expect(options.nth(1)).toContainText("Global Runner");
+    await expect(options.nth(2)).toContainText("office-runner");
+    await screenshot(page, testInfo, "code-repository-runner-default-picker");
+
+    await options.nth(1).click();
+    const saved: Record<string, unknown> = await save(page, modal);
+    expect(saved["runnerId"]).toBeNull();
+    expect(saved["isGlobalRunnerPicked"]).toBe(true);
+    await expectRunnerValue(page, "Global Runner", "Connected");
+    await expect(
+      page
+        .getByTestId("code-repository-runner")
+        .getByTestId("code-repository-runner-default-tag"),
+    ).toHaveCount(0);
+  });
+
+  test("a repository that picked Global Runner beside a default follows the default again once the default is picked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(atRunner("default=prod&gpick=1"));
+    await expectRunnerValue(page, "Global Runner", "Connected");
+
+    const modal: Locator = await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText("Global Runner");
+    await runnerPicker(page).getByRole("combobox").click();
+    await page.getByRole("option").first().click();
+
+    const saved: Record<string, unknown> = await save(page, modal);
+    // No Runner of its own, and no Global Runner pick: it follows the default.
+    expect(saved["runnerId"]).toBeNull();
+    expect(saved["isGlobalRunnerPicked"]).toBe(false);
+    await expectRunnerValue(page, "prod-eu-west-1", "Connected");
+    await expect(
+      page
+        .getByTestId("code-repository-runner")
+        .getByTestId("code-repository-runner-default-tag"),
+    ).toHaveText("Project default");
+  });
+
   test("a project that turned global Runners off says so, and its picker asks for one of the project's own", async ({
     page,
   }: {
@@ -3563,6 +3645,45 @@ test.describe("a task's conversation", () => {
     await page.getByTestId("code-task-log-back").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
     await expect(page.getByTestId("code-task-turns")).toBeVisible();
+  });
+
+  /*
+   * A task of more than one turn: the Log page lists them (Components/Code/
+   * CodeTaskLogTurns), so another turn's record is one pick away rather
+   * than a trip back to the conversation.
+   */
+  test("a task's Log picks between its turns: the next turn's record is one pick away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // The retries task's second turn (the fixture's reply).
+    const secondTurn: string = "40000000-0000-4000-8000-0000000001d1";
+
+    await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
+    await expect(page.getByText("Session Log")).toBeVisible();
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toBeVisible();
+    await expect(picker).toContainText("Turn 1");
+    await expect(picker.getByRole("combobox")).toHaveAccessibleName("Turn");
+    await expectNoSidewaysScroll(page);
+
+    await picker.getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText("Turn 1");
+    await expect(options.nth(1)).toContainText("Turn 2");
+    await screenshot(page, testInfo, "code-task-log-turn-picker");
+
+    await options.nth(1).click();
+    await expect(page).toHaveURL(
+      `${taskPath(TASK.retries)}/log?turn=${secondTurn}`,
+    );
+    await expect(picker).toContainText("Turn 2");
+    // The way back is still there, and the record is the second turn's.
+    await expect(page.getByTestId("code-task-log-back")).toBeVisible();
+    await expect(page.getByText("Session Log")).toBeVisible();
   });
 
   test("its header says where it works - its repository, the branch it works from - how much it changed, and opens its pull request", async ({

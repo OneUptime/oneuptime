@@ -377,6 +377,9 @@ describe("the Log page's turn picker", () => {
 
     expect(logReads(postSpy)).toEqual([SECOND_RUN_ID]);
 
+    // A turn is always shown: the picker has nothing to clear it to.
+    expect(picker().querySelector(".ou-select__clear-indicator")).toBeNull();
+
     const options: Array<HTMLElement> = openPicker();
 
     expect(

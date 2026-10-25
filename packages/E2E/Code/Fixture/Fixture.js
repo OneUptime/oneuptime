@@ -82,6 +82,12 @@
  *                       prod-eu-west-1, or one the page is not shown (a
  *                       Runner the reader does not have access to); by
  *                       default none (a global Runner)
+ *   - default=prod      prod-eu-west-1 is the project's default Runner, which
+ *                       a repository that picks no Runner follows; by
+ *                       default the project has none
+ *   - gpick=1           checkout-api picked the Global Runner itself
+ *                       (isGlobalRunnerPicked), so it never follows the
+ *                       project's default Runner
  *   - uses=0            the project turned global Runners off
  *   - global=0          the server runs no global Runner for code;
  *                       gstatus=disconnected: it is not heard from
@@ -241,6 +247,7 @@ const RUNNER_IDS = {
 const params = new URLSearchParams(window.location.search);
 const role = params.get("role") || "owner";
 const runnerParam = params.get("runner");
+const isProdTheDefault = params.get("default") === "prod";
 const usesGlobalRunners = params.get("uses") !== "0";
 const globalCodeRunnerStatus =
   params.get("gstatus") === "disconnected" ? "disconnected" : "connected";
@@ -659,6 +666,11 @@ function withProductionReview(repository) {
   };
 }
 
+// checkout-api picked the Global Runner itself (gpick=1).
+if (checkoutSettings && params.get("gpick") === "1") {
+  checkoutSettings.isGlobalRunnerPicked = true;
+}
+
 if (
   runnerParam &&
   RUNNER_IDS[runnerParam] &&
@@ -688,6 +700,13 @@ const PROJECT_RUNNERS = [
   runnerModel(RUNNER_IDS.office, "office-runner", minutesAgo(180)),
   runnerModel(RUNNER_IDS.prod, "prod-eu-west-1", minutesAgo(0.5)),
 ];
+
+// The project's default Runner, as the picker reads it (default=prod).
+if (isProdTheDefault) {
+  const prod = PROJECT_RUNNERS[PROJECT_RUNNERS.length - 1];
+  prod.isProjectDefault = true;
+  prod.canRunRunbooks = true;
+}
 
 // ---- tasks: each a conversation of turns -----------------------------------
 
@@ -3143,6 +3162,7 @@ const SETTING_KEYS = [
   "buildCommand",
   "testCommand",
   "runnerId",
+  "isGlobalRunnerPicked",
   "isProductionReviewEnabled",
   "productionReviewPullRequestContent",
 ];

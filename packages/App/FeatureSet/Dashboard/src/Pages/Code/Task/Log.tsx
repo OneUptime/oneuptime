@@ -557,6 +557,8 @@ const CodeTaskLogTurnPicker: FunctionComponent<{
         options={options}
         value={shown}
         ariaLabel={CODE_TASK_LOG_TURN_COPY.label}
+        // A turn is always shown: there is nothing to clear it to.
+        isClearable={false}
         dataTestId={`${CODE_TASK_LOG_TURN_PICKER_TEST_ID}-dropdown`}
         onChange={(
           value: DropdownValue | Array<DropdownValue> | null,
