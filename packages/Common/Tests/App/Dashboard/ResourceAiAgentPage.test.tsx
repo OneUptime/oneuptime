@@ -817,11 +817,12 @@ describe("the agent card", () => {
     expect(await findText("The connection works")).toBeInTheDocument();
   });
 
-  test("warns when another agent tried to register for the host", async () => {
+  test("warns when another agent tried to register for the host while this one kept running", async () => {
     serve(
       makeStatus({
         agent: makeAgent({
-          lastRefusedRegistrationAt: new Date().toISOString(),
+          // Refused a minute ago; this agent was heard from since.
+          lastRefusedRegistrationAt: minutesAgo(1),
           lastRefusedRegistrationReason: "previous_instance_online",
         }),
       }),
@@ -835,6 +836,30 @@ describe("the agent card", () => {
       "Another agent tried to register for this Docker host at",
     );
     expect(warning).toHaveTextContent("DOCKER_HOST_NAME");
+  });
+
+  test("an agent upgraded with docker rm -f and docker run: the new version, and no warning about its own refusals (issue #5253)", async () => {
+    serve(
+      makeStatus({
+        agent: makeAgent({
+          agentVersion: "14.1.1",
+          posture: makePosture({ agentVersion: "14.1.1" }),
+          // Refused while the old container still counted as online...
+          lastRefusedRegistrationAt: minutesAgo(2),
+          lastRefusedRegistrationReason: "previous_instance_online",
+          // ...then let in once the old one had gone silent.
+          lastRegisteredAt: minutesAgo(1.3),
+        }),
+      }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-version")).toHaveTextContent(
+      "agent 14.1.1",
+    );
+    expect(
+      screen.queryByTestId("ai-agent-refused-registration"),
+    ).not.toBeInTheDocument();
   });
 
   test("shows the last command error the server recorded", async () => {
