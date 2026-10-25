@@ -116,9 +116,10 @@ describe("a traffic top list in a row of cards", () => {
      * sentence's middle is the middle of the card under its header.
      */
     for (const width of WIDTHS_IN_PX) {
-      expect([width, describeHeightFillChain(sentence, cells[1]!, width)]).toEqual(
-        [width, []],
-      );
+      expect([
+        width,
+        describeHeightFillChain(sentence, cells[1]!, width),
+      ]).toEqual([width, []]);
     }
   });
 

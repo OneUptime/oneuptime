@@ -331,7 +331,7 @@ describe("ExceptionLatestOccurrence", () => {
         <MemoryRouter>
           <CardGrid columns={2} dataTestId="exception-overview-cards">
             <Card title="Details">
-              <p>The exception's identity, service and releases.</p>
+              <p>The exception, its service and its releases.</p>
             </Card>
             <ExceptionLatestOccurrence
               isLoading={isLoading}
@@ -359,9 +359,11 @@ describe("ExceptionLatestOccurrence", () => {
       // Its middle is the card's: what holds it runs to the cell's bottom.
       expect(body).toHaveClass("items-center");
       for (const width of WIDTHS_IN_PX) {
-        expect([testId, width, describeHeightFillChain(body, cell, width)]).toEqual(
-          [testId, width, []],
-        );
+        expect([
+          testId,
+          width,
+          describeHeightFillChain(body, cell, width),
+        ]).toEqual([testId, width, []]);
       }
 
       cleanup();

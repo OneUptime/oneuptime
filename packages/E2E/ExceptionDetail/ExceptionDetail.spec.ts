@@ -708,7 +708,9 @@ test.describe("overview", () => {
         // The box runs to the card's bottom padding: no blank card under it...
         expect([
           label,
-          Math.round(boxes.contentBottom - boxes.paddingBottom - boxes.boxBottom),
+          Math.round(
+            boxes.contentBottom - boxes.paddingBottom - boxes.boxBottom,
+          ),
         ]).toEqual([label, 0]);
         // ...taller than its words need, as tall as the details make the card...
         expect(boxes.boxBottom - boxes.boxTop).toBeGreaterThan(
