@@ -54,6 +54,32 @@ export function getLogsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Recording Rules",
     ]),
+    // The AI section's pages name the tab and the menu section they live in.
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_AI_INSIGHTS, [
+      "Project",
+      "Logs",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_AI_INSIGHT_VIEW, [
+      "Project",
+      "Logs",
+      "AI",
+      "Insights",
+      "Insight",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_AI_ACTIVITY, [
+      "Project",
+      "Logs",
+      "AI",
+      "Activity",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_AI_SETTINGS, [
+      "Project",
+      "Logs",
+      "AI",
+      "Settings",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

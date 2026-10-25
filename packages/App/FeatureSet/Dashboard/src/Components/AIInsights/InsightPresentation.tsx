@@ -32,6 +32,9 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
   [AIInsightType.ExceptionMissingStackTrace]: translationKey(
     "Missing Stack Trace",
   ),
+  [AIInsightType.LogErrorPattern]: translationKey("Error Log"),
+  [AIInsightType.LogMissingLogging]: translationKey("Missing Logging"),
+  [AIInsightType.LogNoisyPattern]: translationKey("Noisy Log"),
 };
 
 // Human labels for the wire-contract status values (e.g. "ActionRequired").
@@ -136,6 +139,9 @@ const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
   [AIInsightType.TraceFailingOperation]: IconProp.XCircle,
   [AIInsightType.TraceMissingTracing]: IconProp.EyeSlash,
   [AIInsightType.ExceptionMissingStackTrace]: IconProp.EyeSlash,
+  [AIInsightType.LogErrorPattern]: IconProp.ExclaimationCircle,
+  [AIInsightType.LogMissingLogging]: IconProp.DocumentMinus,
+  [AIInsightType.LogNoisyPattern]: IconProp.SpeakerWave,
 };
 
 export function getInsightTypeLabel(

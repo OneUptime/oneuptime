@@ -7,11 +7,15 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveLogsTab: (path: string) => LogsTabKey = (
+// Which of Logs' tabs a page is under (its AI pages: the AI tab).
+export const getActiveLogsTab: (path: string) => LogsTabKey = (
   path: string,
 ): LogsTabKey => {
   if (path.includes("/logs/settings")) {
     return "settings";
+  }
+  if (path.includes("/logs/ai/")) {
+    return "ai";
   }
   if (path.includes("/logs/insights")) {
     return "insights";
