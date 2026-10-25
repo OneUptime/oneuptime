@@ -49,8 +49,10 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
+| **Priorités des dossiers** | Paramètres | L'urgence d'un dossier : les priorités propres au projet, la plus urgente en premier |
+| **Statuts des dossiers** | Paramètres | Les étapes par lesquelles passe un dossier, et ce que compte un dossier dans chacune |
 
-**Détections**, **IA** et **Connexions**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
+**Détections**, **IA**, **Connexions** et **Paramètres**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
 
 ## Avant de commencer
 

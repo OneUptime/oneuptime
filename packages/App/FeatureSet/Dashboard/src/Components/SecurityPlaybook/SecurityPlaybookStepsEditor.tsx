@@ -24,12 +24,15 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { SecurityCaseValueLists } from "../SecurityCase/SecurityCaseValues";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   steps: Array<SecurityPlaybookStep>;
   lookup: StepNameLookup;
   connections: Array<PlaybookConnectionOption>;
+  // The project's case priorities and statuses, which the case steps set.
+  caseValues: SecurityCaseValueLists;
   canEdit: boolean;
   disabledReason?: string | undefined;
   // Saves the whole list; throws the server's message when it is refused.
@@ -305,6 +308,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
           step={dialog.kind === "edit" ? props.steps[dialog.index] : undefined}
           index={dialog.kind === "edit" ? dialog.index : props.steps.length}
           connections={props.connections}
+          caseValues={props.caseValues}
           onClose={() => {
             setDialog(null);
           }}

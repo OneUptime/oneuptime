@@ -68,9 +68,36 @@ const SHARED_WITH_OTHER_FEATURES: Array<string> = [
   "Monitor Statuses",
   "Incident Severities",
   "Alert Severities",
+  /*
+   * The Case Priorities page's level names: the words alert severities,
+   * monitor sensitivities and the Security Events pages draw too, which
+   * some locales keep in English. The docs name them as each locale draws
+   * them, so a locale words them for every feature at once, never for one
+   * page.
+   */
+  "High",
+  "Medium",
+  "Low",
 ];
 
 const STRINGS: Array<string> = getStateSettingsStrings();
+
+// Every string of one page's copy, however deep it sits.
+function stringsOf(value: unknown): Array<string> {
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap(stringsOf);
+  }
+
+  return [];
+}
+
+const CASE_PRIORITY_STRINGS: Set<string> = new Set(
+  stringsOf(STATE_SETTINGS_COPY[StateListType.SecurityCasePriority]),
+);
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
 
@@ -101,7 +128,11 @@ describe("the state settings strings", () => {
   test("never say the order is a number to type", () => {
     for (const text of STRINGS) {
       expect(text).not.toMatch(/\border number\b/i);
-      expect(text).not.toMatch(/\bpriority\b/i);
+
+      // The Case Priorities page lists priorities: there it is the value, not the order.
+      if (!CASE_PRIORITY_STRINGS.has(text)) {
+        expect(text).not.toMatch(/\bpriority\b/i);
+      }
     }
   });
 

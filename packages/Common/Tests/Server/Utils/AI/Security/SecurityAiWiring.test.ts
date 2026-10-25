@@ -40,6 +40,7 @@ import {
   parseInvestigationReport,
 } from "../../../../../Utils/AI/InvestigationReport";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesStub";
 
 /*
  * Where security case triage meets the rest of OneUptime AI: the agent
@@ -381,6 +382,8 @@ describe("a case a detection opens is handed to the triage", () => {
     });
     jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([]);
     jest.spyOn(SecurityCaseService, "findBy").mockResolvedValue([]);
+    // The project's case priorities and statuses: a new project's.
+    stubSecurityCaseValues();
     jest
       .spyOn(
         SecurityCaseIngest as unknown as { openCase: () => unknown },

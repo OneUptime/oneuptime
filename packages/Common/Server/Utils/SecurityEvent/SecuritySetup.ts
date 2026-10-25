@@ -17,7 +17,9 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { OPEN_SECURITY_CASE_STATUSES } from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../SecurityCase/SecurityCaseValues";
 import {
   DetectionRuleLibraryEntry,
   SETUP_TEST_DETECTION_RULE_ID,
@@ -312,7 +314,9 @@ export default class SecuritySetup {
           await SecurityCaseService.countBy({
             query: {
               projectId,
-              status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
+              securityCaseStatusId: new Includes(
+                await SecurityCaseValues.getOpenStatusIds(projectId),
+              ),
             },
             props,
           })
@@ -623,8 +627,18 @@ export default class SecuritySetup {
 
       if (!match) {
         action = TurnOnRecommendedAction.Add;
+
+        // The template's priorities and statuses, as the project names them.
+        const values: ProjectSecurityCaseValues =
+          await SecurityCaseValues.getForProject(projectId);
+
         await SecurityPlaybookService.create({
-          data: buildSecurityPlaybookFromTemplate({ projectId, template }),
+          data: buildSecurityPlaybookFromTemplate({
+            projectId,
+            template,
+            priorities: values.priorities,
+            statuses: values.statuses,
+          }),
           props,
         });
         result.playbookAdded = true;
@@ -752,7 +766,9 @@ export default class SecuritySetup {
           groupValue: SETUP_TEST_SOURCE_IP,
           fingerprint: "",
         }),
-        status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
+        securityCaseStatusId: new Includes(
+          await SecurityCaseValues.getOpenStatusIds(projectId),
+        ),
       },
       select: { _id: true, caseNumberWithPrefix: true },
       props: { isRoot: true },

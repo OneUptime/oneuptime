@@ -7,6 +7,8 @@ import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../../Models/DatabaseModels/AlertState";
 import IncidentPostmortemStatus from "../../../../Models/DatabaseModels/IncidentPostmortemStatus";
+import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../../Models/DatabaseModels/SecurityCaseStatus";
 import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
@@ -107,6 +109,18 @@ const CREATED_ARCHIVABLE_LATER: Array<LaterValueTable> = [
     modelType: IncidentPostmortemStatus,
     file: "1805900000000-AddIncidentPostmortemStatus.ts",
     migrationName: "AddIncidentPostmortemStatus1805900000000",
+  },
+  {
+    table: "SecurityCaseStatus",
+    modelType: SecurityCaseStatus,
+    file: "1807200000000-AddSecurityCasePrioritiesAndStatuses.ts",
+    migrationName: "AddSecurityCasePrioritiesAndStatuses1807200000000",
+  },
+  {
+    table: "SecurityCasePriority",
+    modelType: SecurityCasePriority,
+    file: "1807200000000-AddSecurityCasePrioritiesAndStatuses.ts",
+    migrationName: "AddSecurityCasePrioritiesAndStatuses1807200000000",
   },
 ];
 

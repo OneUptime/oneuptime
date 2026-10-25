@@ -2,25 +2,27 @@
 
 An offline harness for the Security Events SOC pages, on a month of synthetic security work:
 
-| Page                 | Route (from `RouteMap`)                                                           | Production components                                                                      |
-| -------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Overview             | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`       | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                             |
-| Open Cases           | `SECURITY_CASES` `.../security-events/cases`                                      | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                     |
-| Assigned to Me       | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`        | the same, with the list `SecurityCaseQueueViews` gives the page                            |
-| Unassigned           | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                | the same                                                                                   |
-| Closed Cases         | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                        | the same                                                                                   |
-| All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                              | the same                                                                                   |
-| A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`                              | `Pages/SecurityEvents/CaseView`, `SecurityCase/*`, `EventNotes`, `SecurityPlaybookRunCard` |
-| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                         | `Pages/SecurityEvents/Entities`                                                            |
-| Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`           | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                              |
-| Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                 | `Pages/SecurityEvents/RuleLibrary`                                                         |
-| Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                 | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                          |
-| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`           | `Pages/SecurityEvents/AttackCoverage`                                                      |
-| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                              | `Pages/SecurityEvents/Playbooks`                                                           |
-| A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                      | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                         |
-| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs` | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it     |
-| Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                  | the same                                                                                   |
-| AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                   | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`   |
+| Page                 | Route (from `RouteMap`)                                                                   | Production components                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Overview             | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`               | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                             |
+| Open Cases           | `SECURITY_CASES` `.../security-events/cases`                                              | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                     |
+| Assigned to Me       | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`                | the same, with the list `SecurityCaseQueueViews` gives the page                            |
+| Unassigned           | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                        | the same                                                                                   |
+| Closed Cases         | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                                | the same                                                                                   |
+| All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                   |
+| A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`                                      | `Pages/SecurityEvents/CaseView`, `SecurityCase/*`, `EventNotes`, `SecurityPlaybookRunCard` |
+| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`                                                            |
+| Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                              |
+| Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                         |
+| Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                          |
+| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`                                                      |
+| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`                                                           |
+| A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                         |
+| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it     |
+| Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                   |
+| AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`   |
+| Case Priorities      | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`     |
+| Case Statuses        | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                     |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -32,7 +34,15 @@ No Docker, no database, no sign-in.
 Real: the layout and side menu, every page above, the tables, cards, charts, the case header and
 status steps, the playbook step editor and run cards, the approval dialog, `PermissionGate`, and
 the overview's numbers: the fixture answers `POST /security-case/overview` with what
-`computeSecurityOverviewMetrics` (the function the server calls) works out from its own rows.
+`computeSecurityOverviewMetrics` (the function the server calls) works out from its own rows, and
+with the project's priorities and statuses as the server hands them over.
+
+The project's case priorities and statuses are rows of their own (`SecurityCasePriority`,
+`SecurityCaseStatus`): a new project's, as every project has them from its creation
+(`DEFAULT_SECURITY_CASE_PRIORITIES`, `DEFAULT_SECURITY_CASE_STATUSES`), and with `?values=custom`
+the project's own beside them. Cases and playbooks name them by id, and a read joins the
+relations the pages select (a case's `securityCaseStatus` and `securityCasePriority`, a playbook's
+`minimumSecurityCasePriority`), so an edit reads back at once.
 
 Stubbed:
 
@@ -62,6 +72,9 @@ Stubbed:
   permissions. Profile pictures are drawn as initials. The fixture header says the data is
   synthetic ("Preview workspace · Synthetic data"). Every name, domain and address is made up
   (`*.example` domains, documentation IP ranges).
+- `POST /security-case-priority/:id/usage` and `/security-case-status/:id/usage`, which the
+  Archive and Delete dialogs ask first, answer what uses the value as the server counts it: the
+  cases that have it, and for a priority the playbooks that run from it.
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.
@@ -81,6 +94,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?ai=`      | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
 | `?sources=` | `silent`: the sources sent their last security event three days ago and nothing since (the Overview's top says when, and the Sources cell says it in amber)                                                                                                                                                                                                                                                                        |
 | `?fail=`    | `status` or `overview`: the Overview's set-up figures, or its overview, cannot be read the first time (a 500); Try again reads them again and they answer                                                                                                                                                                                                                                                                          |
+| `?values=`  | `custom`: the project made its case statuses and priorities its own - Triage after New, a retired (archived) Escalated after Investigating, Eradicating after Contained, Closed - Duplicate after Closed, and Emergency above Critical; CASE-142 sits in Eradicating, CASE-138 in Triage and CASE-139 in Escalated                                                                                                                 |
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
@@ -138,9 +152,18 @@ that list is not empty.
   an Add Rule that cannot add its rule says why on its card; an Add All or Add Recommended Rules that
   cannot add one names it with why in a box it brings into view, adds the rest, and adding again
   adds only it; Detections is a section of
-  pages, each its own address and entry; the side menu is eight sections of pages, the ones set up
-  once folded, its Workspace section listing only the connected Slack, and on a phone it names the
-  section and the page; entities ranks what the findings name.
+  pages, each its own address and entry; the side menu is nine sections of pages, the ones set up
+  once folded (Settings among them), its Workspace section listing only the connected Slack, and on
+  a phone it names the section and the page; entities ranks what the findings name.
+- **Case priorities and statuses** (`?values=custom`): Settings → Case Statuses lists the
+  project's statuses in order, what a case in each counts as, the four built-in ones tagged and the
+  retired one folded under the table; Case Priorities lists Emergency above the five a detection
+  opens a case at, which detections open at each, the built-in ones tagged; a new project's are the
+  built-in ones; both pages in both themes at 1280 and 390, every name whole; a case's status steps
+  are the project's statuses with the retired one left out, each whole at 1280 and 390 in both
+  themes; a case still in a retired status keeps it in its place; moving a case into the project's
+  own closing status asks for the verdict first and saves that status; the queue and the overview
+  name the statuses as the project does.
 - **Detection rules and threat intel**: Detection Rules names each rule's kind (Single event,
   Sequence, First seen) and says what it means on hover; a single rule pasted into the form counts
   by Group By Field, Distinct Count Field and Match Count Threshold, while a correlation is said in
@@ -215,7 +238,10 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 `detection-rule-ai-draft-desktop`, `detection-rule-ai-drafted-desktop`, `ai-settings-desktop`,
 `ai-settings-dark`, `ai-settings-phone`, `ai-settings-ai-off-desktop`, `case-ai-limit-desktop`,
 `case-ai-provider-desktop`, `case-ai-failed-desktop`, `case-ai-injection-desktop`,
-`case-ai-injection-phone-dark` and `case-close-ai-read-desktop`.
+`case-ai-injection-phone-dark` and `case-close-ai-read-desktop`, and the project's case priorities
+and statuses: `case-statuses-1280-light`, `case-priorities-1280-light`, each at 1280 dark and at
+390 in both themes (`case-statuses-390-dark` and the rest), `case-status-steps-custom-*` (1280 and
+390, light and dark) and `overview-custom-statuses`.
 
 ## Poke at it by hand
 

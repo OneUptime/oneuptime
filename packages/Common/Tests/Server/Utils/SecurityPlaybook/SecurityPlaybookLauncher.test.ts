@@ -8,7 +8,9 @@ import SecurityPlaybookService from "../../../../Server/Services/SecurityPlayboo
 import SecurityPlaybookLauncher from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookLauncher";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import { testPriorityId } from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import {
   SECURITY_PLAYBOOK_ACTIONS,
@@ -64,7 +66,10 @@ function install(playbooks: Array<SecurityPlaybook>): {
 
   const securityCase: SecurityCase = new SecurityCase();
   securityCase._id = CASE_ID.toString();
-  securityCase.priority = SecurityCasePriority.High;
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.High,
+  );
+  stubSecurityCaseValues();
 
   jest
     .spyOn(SecurityCaseService, "findOneBy")

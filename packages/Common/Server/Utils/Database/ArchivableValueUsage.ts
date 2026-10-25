@@ -70,8 +70,9 @@ export const SETTINGS_REFERENCES: Array<string> = [
 /*
  * JSON columns that hold value ids with no foreign key behind them: the
  * criteria of monitors and monitor templates, the role assignments of an
- * incident grouping rule, and a workflow's steps. All of them set things
- * up, so all are settings; none stops a delete.
+ * incident grouping rule, a workflow's steps and a security playbook's
+ * steps. All of them set things up, so all are settings; none stops a
+ * delete.
  */
 export interface JsonUsageColumn {
   tableName: string;
@@ -131,6 +132,14 @@ export const JSON_USAGE_COLUMNS: Array<JsonUsageColumn> = [
     ],
     title: "Workflows",
     singularTitle: "Workflow",
+  },
+  // Set priority, Set status and Check threat intel's raise name the project's own by id.
+  {
+    tableName: "SecurityPlaybook",
+    column: "steps",
+    valueTables: ["SecurityCasePriority", "SecurityCaseStatus"],
+    title: "Security Playbooks",
+    singularTitle: "Security Playbook",
   },
 ];
 

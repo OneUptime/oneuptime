@@ -7,6 +7,8 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites, {
@@ -152,6 +154,9 @@ export interface ComponentProps {
   incidentSeverities: Array<IncidentSeverity>;
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  // A security case rule's: the project's own case priorities and statuses.
+  securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+  securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
@@ -283,6 +288,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             incidentSeverities={props.incidentSeverities}
             incidentStates={props.incidentStates}
             scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+            securityCasePriorities={props.securityCasePriorities}
+            securityCaseStatuses={props.securityCaseStatuses}
             monitorStatus={props.monitorStatus}
             // When they are checked, over the conditions once there are some.
             conditionsDescription={

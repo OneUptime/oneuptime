@@ -1,7 +1,11 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+} from "../../Helpers/SecurityCaseValues";
 import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
@@ -262,7 +266,7 @@ describe("parseSecurityPlaybookSteps", () => {
   test("reads the JSON text of a list the way it reads the list", () => {
     const steps: Array<Record<string, unknown>> = [
       step(SecurityPlaybookActionType.SetCasePriority, {
-        priority: SecurityCasePriority.High,
+        priorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
       }),
     ];
 
@@ -360,44 +364,58 @@ describe("parseSecurityPlaybookSteps", () => {
     );
   });
 
-  test("Set the priority needs a priority", () => {
+  test("Set the priority needs one of the project's priorities, by id", () => {
+    const priorityId: string =
+      TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical];
+
     expect(
       parseOne(SecurityPlaybookActionType.SetCasePriority, {
-        priority: SecurityCasePriority.Critical,
+        priorityId,
+        extra: "dropped",
       }).config,
-    ).toEqual({ priority: SecurityCasePriority.Critical });
+    ).toEqual({ priorityId });
     expectRejected(
       SecurityPlaybookActionType.SetCasePriority,
-      { priority: "Urgent" },
+      { priorityId: "Urgent" },
+      /choose a priority/,
+    );
+    // A priority by name, as steps were written before priorities were the project's own.
+    expectRejected(
+      SecurityPlaybookActionType.SetCasePriority,
+      { priority: "Critical" },
       /choose a priority/,
     );
   });
 
-  test("Set the status cannot go back to New, and closes only with a verdict", () => {
+  test("Set the status needs one of the project's statuses, by id, and keeps a verdict", () => {
+    const statusId: string = TEST_STATUS_IDS[SecurityCaseStage.Closed];
+
+    /*
+     * Whether the status closes a case - and so needs the verdict - is the
+     * project's list's to say, when the playbook is saved
+     * (validateSecurityPlaybookStepValues).
+     */
     expect(
       parseOne(SecurityPlaybookActionType.SetCaseStatus, {
-        status: SecurityCaseStatus.Investigating,
-        verdict: SecurityCaseVerdict.TruePositive,
-      }).config,
-    ).toEqual({ status: SecurityCaseStatus.Investigating });
-    expect(
-      parseOne(SecurityPlaybookActionType.SetCaseStatus, {
-        status: SecurityCaseStatus.Closed,
+        statusId,
         verdict: SecurityCaseVerdict.FalsePositive,
       }).config,
-    ).toEqual({
-      status: SecurityCaseStatus.Closed,
-      verdict: SecurityCaseVerdict.FalsePositive,
-    });
+    ).toEqual({ statusId, verdict: SecurityCaseVerdict.FalsePositive });
+    expect(
+      parseOne(SecurityPlaybookActionType.SetCaseStatus, {
+        statusId,
+        verdict: "Malicious",
+      }).config,
+    ).toEqual({ statusId });
     expectRejected(
       SecurityPlaybookActionType.SetCaseStatus,
-      { status: SecurityCaseStatus.New },
-      /choose Investigating, Contained or Closed/,
+      { statusId: "Closed" },
+      /choose a status/,
     );
     expectRejected(
       SecurityPlaybookActionType.SetCaseStatus,
-      { status: SecurityCaseStatus.Closed },
-      /closed with a verdict/,
+      { status: "Investigating" },
+      /choose a status/,
     );
   });
 
@@ -432,18 +450,26 @@ describe("parseSecurityPlaybookSteps", () => {
     );
   });
 
-  test("Check threat intel keeps a valid priority to raise to, and nothing else", () => {
+  test("Check threat intel keeps a priority id to raise to, and nothing else", () => {
+    const priorityId: string =
+      TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical];
+
     expect(
       parseOne(SecurityPlaybookActionType.CheckThreatIntel, {}).config,
     ).toEqual({});
     expect(
       parseOne(SecurityPlaybookActionType.CheckThreatIntel, {
-        raisePriorityTo: SecurityCasePriority.Critical,
+        raisePriorityToId: priorityId,
       }).config,
-    ).toEqual({ raisePriorityTo: SecurityCasePriority.Critical });
+    ).toEqual({ raisePriorityToId: priorityId });
     expect(
       parseOne(SecurityPlaybookActionType.CheckThreatIntel, {
-        raisePriorityTo: "Max",
+        raisePriorityToId: "Max",
+      }).config,
+    ).toEqual({});
+    expect(
+      parseOne(SecurityPlaybookActionType.CheckThreatIntel, {
+        raisePriorityTo: "Critical",
       }).config,
     ).toEqual({});
   });

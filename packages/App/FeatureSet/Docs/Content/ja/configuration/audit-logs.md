@@ -100,7 +100,7 @@ flowchart TB
 | コレクター設定 | `Collector Config` |
 | vCenter サーバー | `vCenter` |
 | パケットキャプチャとそのダウンロード | `Packet Capture` |
-| セキュリティケース、プレイブックとその実行、保護対象のエンティティ | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
+| セキュリティケースとその優先度・ステータス、プレイブックとその実行、保護対象のエンティティ | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 | 監査ログのエクスポート | `Audit Log Export` |
 
 管理者が他の人のアカウントで通知方法や個人のオンコールルールを追加または削除したときも記録されます。アドレスや番号そのものは記録されません。

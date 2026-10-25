@@ -49,8 +49,10 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
+| **Prioridades de casos** | Ajustes | Lo urgente que es un caso: las prioridades propias del proyecto, la más urgente primero |
+| **Estados de casos** | Ajustes | Los pasos por los que pasa un caso, y qué cuenta un caso en cada uno |
 
-**Detecciones**, **IA** y **Conexiones**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
+**Detecciones**, **IA**, **Conexiones** y **Ajustes**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
 
 ## Antes de empezar
 

@@ -28,7 +28,15 @@ import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityE
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import URL from "../../../../Types/API/URL";
-import SecurityCaseStatus from "../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatus from "../../../../Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestStatuses,
+  buildTestStatus,
+  testStatusId,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import SecurityCaseVerdict from "../../../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityEventConnectorProvider from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import { CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY } from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -78,7 +86,7 @@ const CASE_URL: string =
 function closedCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   const securityCase: SecurityCase = new SecurityCase();
   securityCase._id = CASE_ID.toString();
-  securityCase.status = SecurityCaseStatus.Closed;
+  securityCase.securityCaseStatusId = testStatusId(SecurityCaseStage.Closed);
   securityCase.verdict = SecurityCaseVerdict.FalsePositive;
   securityCase.closingNote = "Scheduled scan.";
   securityCase.caseNumberWithPrefix = "CASE-7";
@@ -230,6 +238,8 @@ function install(): Recorded {
 }
 
 beforeEach(() => {
+  // The project's statuses: a new project's.
+  stubSecurityCaseValues();
   theCase = closedCase();
   closeResult = { ...emptySourceAlertCloseResult(), closed: 2 };
   getJestSpyOn(logger, "error").mockImplementation((() => {
@@ -338,7 +348,9 @@ describe("the case's job", () => {
 
   test("a case reopened before its job runs closes nothing", async () => {
     const recorded: Recorded = install();
-    theCase = closedCase({ status: SecurityCaseStatus.Investigating });
+    theCase = closedCase({
+      securityCaseStatusId: testStatusId(SecurityCaseStage.Acknowledged),
+    });
 
     expect(
       await SecurityCaseSourceAlerts.queueConnections({
@@ -490,7 +502,9 @@ describe("a connection's job", () => {
 
   test("a case reopened before the connection's job runs closes nothing", async () => {
     const recorded: Recorded = install();
-    theCase = closedCase({ status: SecurityCaseStatus.Contained });
+    theCase = closedCase({
+      securityCaseStatusId: testStatusId(SecurityCaseStage.Contained),
+    });
 
     await runConnectionJob(SECOPS_ID);
 
@@ -557,7 +571,7 @@ describe("the case's service", () => {
 
   function onUpdate(
     data: JSONObject,
-    oldStatus: SecurityCaseStatus,
+    oldStatusId: string,
   ): OnUpdate<SecurityCase> {
     return {
       updateBy: {
@@ -571,7 +585,7 @@ describe("the case's service", () => {
           {
             id: CASE_ID.toString(),
             projectId: PROJECT_ID,
-            status: oldStatus,
+            statusId: oldStatusId,
           },
         ],
       ]),
@@ -592,10 +606,10 @@ describe("the case's service", () => {
     await service.onUpdateSuccess(
       onUpdate(
         {
-          status: SecurityCaseStatus.Closed,
+          securityCaseStatusId: TEST_STATUS_IDS[SecurityCaseStage.Closed],
           verdict: SecurityCaseVerdict.TruePositive,
         },
-        SecurityCaseStatus.Investigating,
+        TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
       ),
       [CASE_ID],
     );
@@ -619,8 +633,8 @@ describe("the case's service", () => {
 
     await service.onUpdateSuccess(
       onUpdate(
-        { status: SecurityCaseStatus.Contained },
-        SecurityCaseStatus.Investigating,
+        { securityCaseStatusId: TEST_STATUS_IDS[SecurityCaseStage.Contained] },
+        TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
       ),
       [CASE_ID],
     );
@@ -628,12 +642,96 @@ describe("the case's service", () => {
     // Saved as Closed again, with nothing changing: no second closing.
     await service.onUpdateSuccess(
       onUpdate(
-        { status: SecurityCaseStatus.Closed },
-        SecurityCaseStatus.Closed,
+        { securityCaseStatusId: TEST_STATUS_IDS[SecurityCaseStage.Closed] },
+        TEST_STATUS_IDS[SecurityCaseStage.Closed],
       ),
       [CASE_ID],
     );
 
     expect(caseClosed).not.toHaveBeenCalled();
+  });
+
+  describe("with statuses of the project's own", () => {
+    const DUPLICATE_ID: string = "c2000000-0000-4000-8000-0000000000a3";
+    const ERADICATING_ID: string = "c2000000-0000-4000-8000-0000000000a2";
+
+    function teamStatuses(): Array<SecurityCaseStatus> {
+      const statuses: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
+      statuses[3]!.order = 5; // Closed
+
+      return [
+        ...statuses,
+        buildTestStatus({ id: ERADICATING_ID, name: "Eradicating", order: 4 }),
+        buildTestStatus({
+          id: DUPLICATE_ID,
+          name: "Closed - Duplicate",
+          order: 6,
+        }),
+      ];
+    }
+
+    test("closing into a status after Closed closes the alerts too, once", async () => {
+      install();
+      stubSecurityCaseValues({ statuses: teamStatuses() });
+      getJestSpyOn(
+        SecurityCaseService,
+        "updateColumnsByIdWithoutHooks",
+      ).mockResolvedValue(undefined as never);
+      const caseClosed: Spy = getJestSpyOn(
+        SecurityCaseSourceAlerts,
+        "caseClosed",
+      ).mockResolvedValue(undefined as never);
+
+      await service.onUpdateSuccess(
+        onUpdate(
+          {
+            securityCaseStatusId: DUPLICATE_ID,
+            verdict: SecurityCaseVerdict.FalsePositive,
+          },
+          ERADICATING_ID,
+        ),
+        [CASE_ID],
+      );
+      expect(caseClosed).toHaveBeenCalledTimes(1);
+
+      // From one closed status to another: already closed, nothing more.
+      await service.onUpdateSuccess(
+        onUpdate(
+          { securityCaseStatusId: TEST_STATUS_IDS[SecurityCaseStage.Closed] },
+          DUPLICATE_ID,
+        ),
+        [CASE_ID],
+      );
+      expect(caseClosed).toHaveBeenCalledTimes(1);
+    });
+
+    test("the job reads a case in a status after Closed as closed", async () => {
+      stubSecurityCaseValues({ statuses: teamStatuses() });
+      const recorded: Recorded = install();
+      theCase = closedCase({
+        securityCaseStatusId: new ObjectID(DUPLICATE_ID),
+      });
+
+      expect(
+        await SecurityCaseSourceAlerts.queueConnections({
+          projectId: PROJECT_ID,
+          securityCaseId: CASE_ID,
+        }),
+      ).toHaveLength(1);
+
+      // Eradicating sits before Closed: open, so nothing is queued.
+      recorded.addJob.mockClear();
+      theCase = closedCase({
+        securityCaseStatusId: new ObjectID(ERADICATING_ID),
+      });
+
+      expect(
+        await SecurityCaseSourceAlerts.queueConnections({
+          projectId: PROJECT_ID,
+          securityCaseId: CASE_ID,
+        }),
+      ).toEqual([]);
+      expect(recorded.addJob).not.toHaveBeenCalled();
+    });
   });
 });

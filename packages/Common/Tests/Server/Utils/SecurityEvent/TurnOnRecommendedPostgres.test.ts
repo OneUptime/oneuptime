@@ -7,7 +7,12 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import { WidenDetectionRuleName1806400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806400000000-WidenDetectionRuleName";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSourceService";
+import SecurityCasePriorityService from "../../../../Server/Services/SecurityCasePriorityService";
+import SecurityCaseStatusService from "../../../../Server/Services/SecurityCaseStatusService";
 import SecurityPlaybookService from "../../../../Server/Services/SecurityPlaybookService";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../../../../Server/Utils/SecurityCase/SecurityCaseValues";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -56,9 +61,12 @@ import { DataSource, QueryRunner } from "typeorm";
  *
  * POST /security-case/setup/turn-on-recommended runs as a Security Admin,
  * with the production SecurityCaseAPI, SecuritySetup and services, on
- * structure-only copies of the migrated DetectionRule, SecurityPlaybook and
- * SecurityLogSource tables in a schema of their own (CREATE TABLE ... LIKE
- * ... INCLUDING ALL: their columns, widths, defaults and indexes). Only the
+ * structure-only copies of the migrated DetectionRule, SecurityPlaybook,
+ * SecurityLogSource, SecurityCasePriority and SecurityCaseStatus tables in a
+ * schema of their own (CREATE TABLE ... LIKE ... INCLUDING ALL: their
+ * columns, widths, defaults and indexes) - the project's case priorities and
+ * statuses, which a template's steps name, written there the first time
+ * they are read, as for a project that had none. Only the
  * realtime and workflow triggers are stubbed. Nothing is written outside the
  * schema, and the schema is dropped afterwards.
  *
@@ -113,6 +121,8 @@ const TABLES: Array<string> = [
   "DetectionRule",
   "SecurityPlaybook",
   "SecurityLogSource",
+  "SecurityCasePriority",
+  "SecurityCaseStatus",
 ];
 
 const SEQUENCE_TITLE: string =
@@ -211,6 +221,8 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       DetectionRuleService,
       SecurityPlaybookService,
       SecurityLogSourceService,
+      SecurityCasePriorityService,
+      SecurityCaseStatusService,
     ]) {
       jest
         .spyOn(service as typeof DetectionRuleService, "onTriggerRealtime")
@@ -564,9 +576,18 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       });
     }
 
+    // The project's case priorities and statuses, as the Playbooks page reads them.
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(projectId);
+
     for (const template of SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS) {
       await SecurityPlaybookService.create({
-        data: buildSecurityPlaybookFromTemplate({ projectId, template }),
+        data: buildSecurityPlaybookFromTemplate({
+          projectId,
+          template,
+          priorities: values.priorities,
+          statuses: values.statuses,
+        }),
         props,
       });
     }
