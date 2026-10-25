@@ -24,6 +24,8 @@ interface AddNoteModalProps {
   onClose: () => void;
   onSubmit: (note: string) => void;
   isSubmitting: boolean;
+  /** Who reads the note, under the box: an incident's never reach a status page. */
+  footnote?: string;
 }
 
 export default function AddNoteModal({
@@ -31,6 +33,7 @@ export default function AddNoteModal({
   onClose,
   onSubmit,
   isSubmitting,
+  footnote = "Internal notes are never shown on status pages.",
 }: AddNoteModalProps): React.JSX.Element {
   const { theme } = useTheme();
   const paddingBottom: number = useScreenPadding({ tabBar: false });
@@ -266,7 +269,7 @@ export default function AddNoteModal({
                   color: theme.colors.textTertiary,
                 }}
               >
-                Internal notes are never shown on status pages.
+                {footnote}
               </Text>
             </View>
 

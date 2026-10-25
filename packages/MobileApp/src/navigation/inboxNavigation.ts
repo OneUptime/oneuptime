@@ -12,10 +12,12 @@ export type InboxDetailRoute = {
 
 type InboxListParams = NonNullable<InboxStackParamList["InboxList"]>;
 
-const backDestinationByDetail: Record<
-  InboxDetailRouteName,
-  Pick<InboxListParams, "initialView" | "initialSegment">
-> = {
+type BackDestination = Pick<
+  InboxListParams,
+  "initialView" | "initialSegment" | "initialCaseFilter"
+>;
+
+const backDestinationByDetail: Record<InboxDetailRouteName, BackDestination> = {
   IncidentDetail: {
     initialView: "incidents",
     initialSegment: "incidents",
@@ -32,16 +34,19 @@ const backDestinationByDetail: Record<
     initialView: "alerts",
     initialSegment: "episodes",
   },
+  // A case opened from a push goes Back to every open case, where it is listed.
+  SecurityCaseDetail: {
+    initialView: "security",
+    initialCaseFilter: "open",
+  },
 };
 
 /** Build an Inbox stack whose detail route always has a useful Back target. */
 export function buildInboxDetailNavigation(
   detailRoute: InboxDetailRoute,
 ): NavigatorScreenParams<InboxStackParamList> {
-  const backDestination: Pick<
-    InboxListParams,
-    "initialView" | "initialSegment"
-  > = backDestinationByDetail[detailRoute.name];
+  const backDestination: BackDestination =
+    backDestinationByDetail[detailRoute.name];
 
   /*
    * Navigating to a nested detail does not rewrite an already-mounted

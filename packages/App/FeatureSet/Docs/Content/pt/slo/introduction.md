@@ -172,7 +172,7 @@ Quando algo impede um SLO de medir, um banner no topo de cada uma das suas pági
 
 A **Visão geral** responde a "estamos dentro do orçamento?", de cima para baixo:
 
-- **O resumo**: o status, uma frase sobre o que ele significa e a descrição. Ao lado ficam **Atualizar** e quando o SLO foi avaliado pela última vez. Abaixo ficam a meta, a **Compliance window** (com um indicador de preenchimento enquanto uma janela móvel nova se enche: veja [SLOs novos e o indicador de preenchimento da janela](#slos-novos-e-o-indicador-de-preenchimento-da-janela)), o número de monitores e os proprietários.
+- **O resumo**: o status, uma frase sobre o que ele significa e a descrição. Ao lado ficam **Atualizar** e quando o SLO foi avaliado pela última vez. Abaixo ficam a meta, a **Compliance window** (com um indicador de preenchimento enquanto uma janela móvel nova se enche: veja [SLOs novos e o indicador de preenchimento da janela](#slos-novos-e-o-indicador-de-preenchimento-da-janela)), o número de monitores e os proprietários, com **Adicionar proprietários** para adicionar um ali mesmo.
 - **Os números principais**:
   - **SLI**: a parcela de tempo bom na janela, e quanto ela está acima ou abaixo da meta.
   - **Error budget left**: uma porcentagem, uma duração como "12m 30s left of 43m 12s" e uma barra com uma marca no limite de risco. Quando o orçamento é ultrapassado, mostra **Budget exceeded** e por quanto.

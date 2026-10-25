@@ -1,6 +1,6 @@
 import { MicrosoftTeamsMonitorActionType } from "./ActionTypes";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import MonitorService from "../../../../Services/MonitorService";

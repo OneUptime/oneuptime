@@ -4518,7 +4518,7 @@
   "Search environment variables...": "Rechercher des variables d'environnement...",
   "Search for numbers containing specific digits (e.g., 555)": "Rechercher des numéros contenant des chiffres spécifiques (par exemple, 555)",
   "Search functions or files…   ( / )": "Rechercher des fonctions ou des fichiers…   ( / )",
-  "Search people or teams...": "Rechercher des personnes ou des équipes...",
+  "Search people or teams...": "Rechercher personnes ou équipes...",
   "Search permissions...": "Rechercher des autorisations...",
   "Search rows…": "Rechercher des lignes…",
   "Search runbooks...": "Rechercher des runbooks...",
@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "La connexion de {{name}} est établie. Ses données arrivent d'ici une à deux minutes.",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "Instrumentez le service avec OpenTelemetry. Chaque extrait ci-dessous contient déjà son service.name.",
   "Send telemetry from {{name}}": "Envoyer la télémétrie depuis {{name}}",
-  "View service": "Voir le service"
+  "View service": "Voir le service",
+  "No people available.": "Aucune personne disponible.",
+  "You do not have permission to add owners.": "Vous n'avez pas l'autorisation d'ajouter des propriétaires.",
+  "You do not have permission to add people as owners.": "Vous n'avez pas l'autorisation d'ajouter des personnes comme propriétaires.",
+  "You do not have permission to add teams as owners.": "Vous n'avez pas l'autorisation d'ajouter des équipes comme propriétaires.",
+  "Search people...": "Rechercher des personnes...",
+  "No one else to add.": "Plus personne à ajouter."
 }

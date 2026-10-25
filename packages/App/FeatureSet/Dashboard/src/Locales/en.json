@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} is connected. Its data arrives within a minute or two.",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.",
   "Send telemetry from {{name}}": "Send telemetry from {{name}}",
-  "View service": "View service"
+  "View service": "View service",
+  "No people available.": "No people available.",
+  "You do not have permission to add owners.": "You do not have permission to add owners.",
+  "You do not have permission to add people as owners.": "You do not have permission to add people as owners.",
+  "You do not have permission to add teams as owners.": "You do not have permission to add teams as owners.",
+  "Search people...": "Search people...",
+  "No one else to add.": "No one else to add."
 }

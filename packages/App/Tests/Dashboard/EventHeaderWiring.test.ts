@@ -215,8 +215,10 @@ describe("each kind keeps its own facts", () => {
     expect(page).toContain(
       'useEventOwners({ownerUserModelType:ScheduledMaintenanceOwnerUser,ownerTeamModelType:ScheduledMaintenanceOwnerTeam,resourceIdField:"scheduledMaintenanceId",resourceId:modelId,});',
     );
-    // Add owners until it is over, to a reader who may add one.
-    expect(page).toContain("canAddOwners:!isEventOver&&owners.canAddOwners,");
+    // Add owners until it is over, to a reader who may add one, right there.
+    expect(page).toContain(
+      "addOwners:!isEventOver&&owners.canAddOwners?{target:owners.target,",
+    );
     expect(page).toContain(
       '<EventFactLinksdataTestId="event-status-page-links"',
     );

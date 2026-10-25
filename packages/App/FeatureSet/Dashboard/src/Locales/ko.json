@@ -13430,7 +13430,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "소유자 없음",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}}이(가) 연결되었습니다. 데이터는 1~2분 안에 도착합니다.",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "OpenTelemetry로 서비스를 계측하세요. 아래의 모든 스니펫에 이 서비스의 service.name이 이미 들어 있습니다.",
   "Send telemetry from {{name}}": "{{name}}에서 텔레메트리 보내기",
-  "View service": "서비스 보기"
+  "View service": "서비스 보기",
+  "No people available.": "사용할 수 있는 사람이 없습니다.",
+  "You do not have permission to add owners.": "소유자를 추가할 권한이 없습니다.",
+  "You do not have permission to add people as owners.": "사람을 소유자로 추가할 권한이 없습니다.",
+  "You do not have permission to add teams as owners.": "팀을 소유자로 추가할 권한이 없습니다.",
+  "Search people...": "사람 검색...",
+  "No one else to add.": "더 추가할 사람이나 팀이 없습니다."
 }

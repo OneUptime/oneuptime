@@ -64,6 +64,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       createOrUpdate: (...args: Array<unknown>): unknown => {
         return createOrUpdateMock(...args);
       },
+      // An owner added from the Add owners list (AddOwners.addOwner).
+      create: (...args: Array<unknown>): unknown => {
+        return createOrUpdateMock(...args);
+      },
       updateById: (...args: Array<unknown>): unknown => {
         return updateByIdMock(...args);
       },
@@ -161,6 +165,7 @@ import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPos
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import Color from "../../../Types/Color";
 import File from "../../../Models/DatabaseModels/File";
@@ -175,6 +180,13 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const WAIT: { timeout: number } = { timeout: 20000 };
+
+// The ids the owner rows below name their first person and team with.
+const ALICE_USER_ID: string = "66666666-6666-4666-8666-666666666660";
+const DATABASE_TEAM_ID: string = "88888888-8888-4888-8888-888888888880";
+// Who else the Add owners list offers.
+const BOB_USER_ID: string = "99999999-9999-4999-8999-999999999991";
+const SRE_TEAM_ID: string = "99999999-9999-4999-8999-999999999992";
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/dashboard"),
@@ -362,6 +374,39 @@ beforeEach(() => {
           },
         );
         return { data: rows, count: rows.length, skip: 0, limit: 100 };
+      }
+
+      /*
+       * What the Add owners list offers: the project's people (through
+       * their team memberships) and its teams - Alice Smith and the
+       * Database Team are the ids the owners above are read with.
+       */
+      if (modelType === TeamMember) {
+        const members: Array<TeamMember> = [
+          { id: ALICE_USER_ID, name: "Alice Smith" },
+          { id: BOB_USER_ID, name: "Bob Jones" },
+        ].map((person: { id: string; name: string }): TeamMember => {
+          const user: User = new User();
+          user._id = person.id;
+          user.name = person.name as never;
+          const member: TeamMember = new TeamMember();
+          member.user = user;
+          return member;
+        });
+        return { data: members, count: members.length, skip: 0, limit: 25 };
+      }
+
+      if (modelType === Team) {
+        const teams: Array<Team> = [
+          { id: DATABASE_TEAM_ID, name: "Database Team" },
+          { id: SRE_TEAM_ID, name: "SRE" },
+        ].map((entry: { id: string; name: string }): Team => {
+          const team: Team = new Team();
+          team._id = entry.id;
+          team.name = entry.name;
+          return team;
+        });
+        return { data: teams, count: teams.length, skip: 0, limit: 25 };
       }
 
       if (templatesFail) {
@@ -1205,7 +1250,7 @@ describe("where the postmortem stands, and who owns it", () => {
     );
   });
 
-  test("its owners are the incident's, by name, with the way to change them", async () => {
+  test("its owners are the incident's, by name, with Add owners right there - no link away to the Owners page", async () => {
     owners = { users: ["Alice Smith"], teams: ["Database Team"] };
 
     await renderPage();
@@ -1221,13 +1266,12 @@ describe("where the postmortem stands, and who owns it", () => {
     }, WAIT);
 
     const summary: HTMLElement = screen.getByTestId("postmortem-summary");
-    const link: HTMLElement = within(summary).getByRole("link", {
-      name: "Change owners",
-    });
 
-    expect(link.getAttribute("href")).toContain(
-      `/incidents/${INCIDENT_ID}/owners`,
-    );
+    expect(within(summary).queryByRole("link")).toBeNull();
+    expect(within(summary).queryByText("Change owners")).toBeNull();
+    expect(
+      within(summary).getByRole("button", { name: "Add owners" }),
+    ).toHaveAttribute("data-testid", "postmortem-add-more-owners");
 
     // Read for this incident, in this project.
     const ownerRequest: Array<unknown> | undefined =
@@ -1246,7 +1290,7 @@ describe("where the postmortem stands, and who owns it", () => {
     ).toBe(INCIDENT_ID);
   });
 
-  test("someone who may not change the incident's owners sees them, with no Change owners link", async () => {
+  test("someone who may not change the incident's owners sees them, with nothing to add or change them", async () => {
     owners = { users: ["Alice Smith"], teams: [] };
     permissionsForTest = VIEWER;
 
@@ -1260,15 +1304,13 @@ describe("where the postmortem stands, and who owns it", () => {
 
     const summary: HTMLElement = screen.getByTestId("postmortem-summary");
 
+    expect(within(summary).queryByRole("link")).toBeNull();
     expect(
-      within(summary).queryByRole("link", { name: "Change owners" }),
-    ).toBeNull();
-    expect(
-      within(summary).queryByRole("link", { name: "Add owners" }),
+      within(summary).queryByRole("button", { name: "Add owners" }),
     ).toBeNull();
   });
 
-  test("with no owners it says so, and offers to add them", async () => {
+  test("with no owners it says so, and offers to add them right there", async () => {
     owners = { users: [], teams: [] };
 
     await renderPage();
@@ -1276,11 +1318,90 @@ describe("where the postmortem stands, and who owns it", () => {
     expect(
       await screen.findByText("No owners yet.", {}, WAIT),
     ).toBeInTheDocument();
+
+    const summary: HTMLElement = screen.getByTestId("postmortem-summary");
+
     expect(
-      within(screen.getByTestId("postmortem-summary")).getByRole("link", {
+      within(summary).getByRole("button", { name: "Add owners" }),
+    ).toHaveAttribute("data-testid", "postmortem-add-owners");
+    expect(within(summary).queryByRole("link")).toBeNull();
+  });
+
+  test("Add owners opens the Add owners list right there, and a pick makes them an owner of the incident", async () => {
+    owners = { users: ["Alice Smith"], teams: ["Database Team"] };
+    createOrUpdateMock.mockImplementation(
+      async (...args: Array<unknown>): Promise<unknown> => {
+        const request: { modelType: unknown } = args[0] as {
+          modelType: unknown;
+        };
+
+        // The server adds the row; the page's next read names the team.
+        if (request.modelType === IncidentOwnerTeam) {
+          owners = { users: owners.users, teams: [...owners.teams, "SRE"] };
+        }
+
+        return { data: {} };
+      },
+    );
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-owners")).toHaveTextContent(
+        "Alice Smith, Database Team",
+      );
+    }, WAIT);
+
+    fireEvent.click(
+      within(screen.getByTestId("postmortem-summary")).getByRole("button", {
         name: "Add owners",
       }),
-    ).toBeInTheDocument();
+    );
+
+    const list: HTMLElement = await screen.findByRole(
+      "dialog",
+      { name: "Add owners" },
+      WAIT,
+    );
+
+    // Alice Smith and the Database Team own it already: left out.
+    await waitFor(() => {
+      expect(
+        within(list)
+          .getAllByRole("option")
+          .map((option: HTMLElement): string | null => {
+            return option.getAttribute("data-id");
+          }),
+      ).toEqual([BOB_USER_ID, SRE_TEAM_ID]);
+    }, WAIT);
+
+    fireEvent.click(within(list).getByText("SRE"));
+
+    await within(list).findByText("Added SRE.", {}, WAIT);
+
+    const added: Array<unknown> | undefined =
+      createOrUpdateMock.mock.calls.find((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: unknown }).modelType === IncidentOwnerTeam
+        );
+      });
+    const row: IncidentOwnerTeam = (added![0] as { model: IncidentOwnerTeam })
+      .model;
+
+    expect(row.incidentId?.toString()).toBe(INCIDENT_ID);
+    expect(row.projectId?.toString()).toBe(PROJECT_ID);
+    expect(row.teamId?.toString()).toBe(SRE_TEAM_ID);
+    // Nobody is told by the page: the server tells the new owner.
+    expect(row.isOwnerNotified).toBeUndefined();
+
+    // The page reads the incident's owners again, and names the team.
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-owners")).toHaveTextContent(
+        "Alice Smith, Database Team, SRE",
+      );
+    }, WAIT);
+    // The list stays open for the next pick.
+    expect(screen.getByRole("dialog", { name: "Add owners" })).toBe(list);
   });
 
   test("more than three owners are named three, and how many more", async () => {

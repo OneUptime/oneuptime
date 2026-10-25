@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Aprire il post-mortem
 
-Aprite l'incidente, poi fate clic su **Post-mortem** sotto **Indagine** nel suo menu laterale. La scheda **Post-mortem** mostra lo **Stato** e i **Proprietari** del post-mortem, la nota, gli allegati e se il post-mortem è sulla pagina di stato.
+Aprite l'incidente, poi fate clic su **Post-mortem** sotto **Indagine** nel suo menu laterale. La scheda **Post-mortem** mostra lo **Stato** e i **Proprietari** del post-mortem, la nota, gli allegati e se il post-mortem è sulla pagina di stato. **Aggiungi proprietari**, accanto ai proprietari, rende una persona o un team del vostro progetto proprietario dell'incidente direttamente lì.
 
 ### Fare clic su Scrivi il post-mortem
 

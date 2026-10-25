@@ -13430,7 +13430,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "Inga ägare",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} har anslutit. Dess data kommer in inom en minut eller två.",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "Instrumentera tjänsten med OpenTelemetry. Varje kodavsnitt nedan innehåller redan tjänstens service.name.",
   "Send telemetry from {{name}}": "Skicka telemetri från {{name}}",
-  "View service": "Visa tjänst"
+  "View service": "Visa tjänst",
+  "No people available.": "Inga personer tillgängliga.",
+  "You do not have permission to add owners.": "Du har inte behörighet att lägga till ägare.",
+  "You do not have permission to add people as owners.": "Du har inte behörighet att lägga till personer som ägare.",
+  "You do not have permission to add teams as owners.": "Du har inte behörighet att lägga till team som ägare.",
+  "Search people...": "Sök personer...",
+  "No one else to add.": "Det finns ingen mer att lägga till."
 }

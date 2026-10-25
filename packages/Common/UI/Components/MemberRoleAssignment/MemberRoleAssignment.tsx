@@ -57,17 +57,6 @@ export interface AvailableUser {
   profilePictureUrl?: string;
 }
 
-/*
- * Somebody outside the card asks for a role's picker - an incident
- * overview's header, whose Assign gives the Incident Commander here. Each new
- * requestId opens that role's picker, with the cursor in it, as the role's
- * own Assign button does.
- */
-export interface MemberRoleAssignRequest {
-  roleId: string;
-  requestId: number;
-}
-
 export interface ComponentProps {
   title?: string;
   description?: string;
@@ -83,7 +72,6 @@ export interface ComponentProps {
   className?: string;
   // Handed to the Card; "stacked" suits a narrow column.
   headerLayout?: CardHeaderLayout | undefined;
-  assignRequest?: MemberRoleAssignRequest | undefined;
 }
 
 interface ReassignState {
@@ -133,8 +121,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
 
   /*
    * A picker that has just opened takes the cursor once it is drawn: the
-   * Assign button that opened it is gone, and a request from outside the
-   * card is somebody who wants to choose a person now.
+   * Assign button that opened it is gone.
    */
   const pickerAwaitingFocusRef: MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -146,55 +133,6 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
     setSelectedUserOption(null);
     pickerAwaitingFocusRef.current = true;
   };
-
-  /*
-   * A request the card was drawn with is not a new one: a card drawn again
-   * for the next record must not open its picker by itself.
-   */
-  const handledRequestIdRef: MutableRefObject<number | undefined> = useRef<
-    number | undefined
-  >(props.assignRequest?.requestId);
-
-  useEffect(() => {
-    const request: MemberRoleAssignRequest | undefined = props.assignRequest;
-
-    if (
-      !request ||
-      request.requestId === handledRequestIdRef.current ||
-      props.isLoading
-    ) {
-      return;
-    }
-
-    handledRequestIdRef.current = request.requestId;
-
-    const role: MemberRole | undefined = props.roles.find(
-      (candidate: MemberRole): boolean => {
-        return candidate.id.toString() === request.roleId;
-      },
-    );
-
-    if (!role) {
-      return;
-    }
-
-    const memberCount: number = props.assignedMembers.filter(
-      (member: AssignedMember): boolean => {
-        return member.roleId.toString() === role.id.toString();
-      },
-    ).length;
-
-    if (!canRoleTakeMorePeople(role, memberCount)) {
-      return;
-    }
-
-    openRolePicker(role.id);
-  }, [
-    props.assignRequest?.requestId,
-    props.isLoading,
-    props.roles,
-    props.assignedMembers,
-  ]);
 
   useEffect(() => {
     if (!activeRoleDropdown || !pickerAwaitingFocusRef.current) {

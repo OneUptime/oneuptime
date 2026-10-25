@@ -172,7 +172,7 @@ Cuando algo impide que un SLO mida, un aviso en la parte superior de cada una de
 
 La **Vista general** responde a «¿estamos dentro del presupuesto?», de arriba abajo:
 
-- **El resumen**: el estado, una frase sobre lo que significa y la descripción. Al lado están **Actualizar** y cuándo se evaluó el SLO por última vez. Debajo están el objetivo, la **Ventana de cumplimiento** (con un indicador de llenado mientras una ventana móvil joven se llena: consulta [Los SLO jóvenes y el indicador de llenado de la ventana](#los-slo-jóvenes-y-el-indicador-de-llenado-de-la-ventana)), el número de monitores y los propietarios.
+- **El resumen**: el estado, una frase sobre lo que significa y la descripción. Al lado están **Actualizar** y cuándo se evaluó el SLO por última vez. Debajo están el objetivo, la **Ventana de cumplimiento** (con un indicador de llenado mientras una ventana móvil joven se llena: consulta [Los SLO jóvenes y el indicador de llenado de la ventana](#los-slo-jóvenes-y-el-indicador-de-llenado-de-la-ventana)), el número de monitores y los propietarios, con **Añadir propietarios** para añadir uno allí mismo.
 - **Las cifras principales**:
   - **SLI**: la parte de tiempo bueno en la ventana, y cuánto está por encima o por debajo del objetivo.
   - **Presupuesto de errores restante**: un porcentaje, una duración como "12m 30s left of 43m 12s" y una barra con una marca en el umbral de riesgo. Cuando el presupuesto se supera, muestra **Budget exceeded** y por cuánto.

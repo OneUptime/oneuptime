@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Åbn postmortem
 
-Åbn hændelsen, og klik på **Postmortem** under **Undersøgelse** i dens sidemenu. Kortet **Postmortem** viser postmortemmens **Status** og **Ejere**, noten, vedhæftningerne, og om postmortem er på statussiden.
+Åbn hændelsen, og klik på **Postmortem** under **Undersøgelse** i dens sidemenu. Kortet **Postmortem** viser postmortemmens **Status** og **Ejere**, noten, vedhæftningerne, og om postmortem er på statussiden. **Tilføj ejere** ved siden af ejerne gør en af projektets personer eller teams til ejer af hændelsen lige der.
 
 ### Klik på Skriv postmortem
 

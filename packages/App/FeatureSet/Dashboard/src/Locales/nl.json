@@ -13430,7 +13430,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "Geen eigenaren",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} is verbonden. De gegevens komen over een à twee minuten binnen.",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "Instrumenteer de service met OpenTelemetry. Elk fragment hieronder bevat al zijn service.name.",
   "Send telemetry from {{name}}": "Stuur telemetrie vanuit {{name}}",
-  "View service": "Service bekijken"
+  "View service": "Service bekijken",
+  "No people available.": "Geen personen beschikbaar.",
+  "You do not have permission to add owners.": "U hebt geen toestemming om eigenaren toe te voegen.",
+  "You do not have permission to add people as owners.": "U hebt geen toestemming om personen als eigenaren toe te voegen.",
+  "You do not have permission to add teams as owners.": "U hebt geen toestemming om teams als eigenaren toe te voegen.",
+  "Search people...": "Personen zoeken...",
+  "No one else to add.": "Er is niemand meer om toe te voegen."
 }

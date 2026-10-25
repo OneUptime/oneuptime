@@ -334,6 +334,34 @@ describe("AIToolbox.getLlmToolDefinitions", () => {
       AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
     ).toEqual(AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly));
   });
+
+  /*
+   * The list is the cache every run of the process shares. The chat runner
+   * once pushed a turn's own command tools onto it, and every later turn of
+   * every project was offered them, described with that turn's resources.
+   */
+  test.each([
+    AIChatPermissionMode.ReadOnly,
+    AIChatPermissionMode.AskForApproval,
+    AIChatPermissionMode.AutoRun,
+  ])(
+    "the shared %s list is frozen, so no run can add a tool to every later run",
+    (mode: AIChatPermissionMode) => {
+      const definitions: ReadonlyArray<LLMToolDefinition> =
+        AIToolbox.getLlmToolDefinitions(mode);
+      const count: number = definitions.length;
+
+      expect(Object.isFrozen(definitions)).toBe(true);
+      expect(() => {
+        (definitions as Array<LLMToolDefinition>).push({
+          name: "run_infrastructure_command",
+          description: 'Run a command on Host "web-1".',
+          inputSchema: { type: "object", properties: {} },
+        });
+      }).toThrow(TypeError);
+      expect(AIToolbox.getLlmToolDefinitions(mode)).toHaveLength(count);
+    },
+  );
 });
 
 describe("AIToolbox.hasPermissionForTool", () => {

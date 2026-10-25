@@ -13430,7 +13430,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "沒有擁有者",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} 已連線。它的資料會在一兩分鐘內送達。",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "使用 OpenTelemetry 檢測服務。下方的每個程式碼片段都已帶有它的 service.name。",
   "Send telemetry from {{name}}": "從 {{name}} 傳送遙測資料",
-  "View service": "檢視服務"
+  "View service": "檢視服務",
+  "No people available.": "沒有可用的人員。",
+  "You do not have permission to add owners.": "您沒有新增擁有者的權限。",
+  "You do not have permission to add people as owners.": "您沒有將人員新增為擁有者的權限。",
+  "You do not have permission to add teams as owners.": "您沒有將團隊新增為擁有者的權限。",
+  "Search people...": "搜尋人員...",
+  "No one else to add.": "沒有其他可新增的人員或團隊。"
 }

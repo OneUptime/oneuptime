@@ -417,11 +417,26 @@ describe("SLO overview links", () => {
         "SLO_VIEW_BURN_RATE_RULES",
         "SLO_VIEW_METRICS",
         "SLO_VIEW_SETTINGS",
-        "SLO_VIEW_OWNERS",
         "SLO_VIEW_ALERTS",
         "SLO_VIEW_INCIDENTS",
       ]),
     );
+  });
+
+  /*
+   * The maintainer: "If I click on add owners, I should be able to add
+   * owners from this page directly instead of going to owners page." The
+   * hero adds owners right there, from the shared Add owners list; the
+   * Owners page stays in the side menu, where the full list is managed.
+   */
+  test("the overview adds owners right there: it never sends the reader to the Owners page to add one", () => {
+    expect(linkedPageKeys.has("SLO_VIEW_OWNERS")).toBe(false);
+
+    const hero: string = getModuleCode("SloOverviewHero");
+
+    expect(hero).toContain("<AddOwnersPopup");
+    expect(hero).toContain("<AddOwnersPlaceButton");
+    expect(hero).toContain("onOwnersChanged={props.onOwnersChanged}");
   });
 
   test("every page the overview links to exists", () => {

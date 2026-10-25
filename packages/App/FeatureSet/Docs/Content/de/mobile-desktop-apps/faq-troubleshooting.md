@@ -32,9 +32,9 @@ Ja. Jedes Telefon und jedes Tablet ist ein eigenes Push-Gerät, mit eigenen Bere
 :::
 
 :::details Was kann ich in der App tun?
-- **Home**: was im Projekt Aufmerksamkeit braucht: aktive Vorfälle und Warnungen, Monitore mit Problemen und gruppierte Ereignisse.
+- **Home**: was im Projekt Aufmerksamkeit braucht: aktive Vorfälle und Warnungen, offene Sicherheitsfälle, wenn Ihre Rolle Ihnen Zugriff darauf gibt, Monitore mit Problemen und gruppierte Ereignisse.
 - **Monitors**: alle Monitore, nach Zustand gefiltert, mit ihren Details.
-- **Inbox**: Vorfälle und Warnungen, und die Episoden, die sie gruppieren. Öffnen Sie einen Eintrag, um **Acknowledge**, **Resolve** oder **Add Note** zu wählen.
+- **Inbox**: Vorfälle und Warnungen, und die Episoden, die sie gruppieren. Öffnen Sie einen Eintrag, um **Acknowledge**, **Resolve** oder **Add Note** zu wählen. Gibt Ihre Rolle Ihnen Zugriff auf die Sicherheitsfälle des Projekts, listet **Security** die offenen: Öffnen Sie einen, um einen Playbook-Schritt, der auf Genehmigung wartet, mit **Approve** oder **Reject** zu entscheiden, den Fall mit **Assign to me** zu übernehmen oder **Close case** zu wählen.
 - **On-Call**: ob Sie Bereitschaft haben und bis wann, wer sonst, die Alarme, die an Sie gingen, und **Cover for me**, das Ihre Alarme für eine Weile an eine Kollegin oder einen Kollegen übergibt.
 - **Settings**: Ihre Projekte und Single Sign-On, das Aussehen, kritische Warnungen und der Alarmton, **Biometrics Login**, Ihr Bereitschafts-Kalenderfeed und **Log Out**.
 
@@ -42,7 +42,7 @@ Alles andere finden Sie im Dashboard.
 :::
 
 :::details Kann ich einen Alarm direkt in der Benachrichtigung bestätigen?
-Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warnung oder die Episode, um die es geht, im richtigen Projekt, und dort bestätigen Sie. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie den Alarm, sobald Sie drin sind.
+Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warnung, die Episode oder den Sicherheitsfall, um den es geht, im richtigen Projekt, und dort bestätigen Sie. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie den Alarm, sobald Sie drin sind.
 :::
 
 :::details Ist meine Anmeldung auf dem Telefon sicher?

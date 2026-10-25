@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} は接続済みです。データは 1〜2 分以内に届きます。",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "OpenTelemetry でサービスを計装します。下のスニペットにはすべて、このサービスの service.name がすでに入っています。",
   "Send telemetry from {{name}}": "{{name}} からテレメトリを送信",
-  "View service": "サービスを表示"
+  "View service": "サービスを表示",
+  "No people available.": "利用できるユーザーがいません。",
+  "You do not have permission to add owners.": "所有者を追加する権限がありません。",
+  "You do not have permission to add people as owners.": "ユーザーを所有者として追加する権限がありません。",
+  "You do not have permission to add teams as owners.": "チームを所有者として追加する権限がありません。",
+  "Search people...": "ユーザーを検索...",
+  "No one else to add.": "追加できるユーザーやチームはもうありません。"
 }

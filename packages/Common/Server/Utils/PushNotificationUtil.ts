@@ -593,9 +593,10 @@ export default class PushNotificationUtil {
   /*
    * A security case that needs the person: it opened or rose at their
    * priority, it was assigned to them or their team, or one of its playbook
-   * steps waits for their approval (SecurityCaseNotifications). The mobile
-   * app has no case screen yet, so the page opens the app and the link opens
-   * the case in the browser.
+   * steps waits for their approval (SecurityCaseNotifications). The On-Call
+   * app (1.7.0 and later) opens the case's own screen from entityType,
+   * entityId and projectId; an older one opens on its last screen. The link
+   * opens the case in the browser.
    */
   public static createSecurityCaseNotification(params: {
     title: string;

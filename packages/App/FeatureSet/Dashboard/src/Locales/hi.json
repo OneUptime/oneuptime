@@ -13430,7 +13430,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "कोई मालिक नहीं",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} कनेक्ट हो गया है। इसका डेटा एक-दो मिनट में पहुँचता है।",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "सेवा को OpenTelemetry से इंस्ट्रूमेंट करें। नीचे दिए हर स्निपेट में इसका service.name पहले से है।",
   "Send telemetry from {{name}}": "{{name}} से टेलीमेट्री भेजें",
-  "View service": "सेवा देखें"
+  "View service": "सेवा देखें",
+  "No people available.": "कोई लोग उपलब्ध नहीं हैं।",
+  "You do not have permission to add owners.": "आपको मालिक जोड़ने की अनुमति नहीं है।",
+  "You do not have permission to add people as owners.": "आपको लोगों को मालिक के रूप में जोड़ने की अनुमति नहीं है।",
+  "You do not have permission to add teams as owners.": "आपको टीमों को मालिक के रूप में जोड़ने की अनुमति नहीं है।",
+  "Search people...": "लोग खोजें...",
+  "No one else to add.": "जोड़ने के लिए कोई और नहीं है।"
 }

@@ -1,5 +1,6 @@
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -103,6 +104,7 @@ import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 import MicrosoftTeamsActionAnswer, {
+  MicrosoftTeamsAnswerLink,
   MicrosoftTeamsMention,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
 import { MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
@@ -220,6 +222,8 @@ function helpReply(misspelt?: WorkspaceCommandMisspelling): Partial<Activity> {
         content: MicrosoftTeamsActionAnswer.buildCard({
           answer: answer,
           mention: SENDER_MENTION,
+          // The help leads somewhere; the answer to a misspelling does not.
+          links: misspelt ? undefined : helpLinks,
         }),
       },
     ],
@@ -227,7 +231,14 @@ function helpReply(misspelt?: WorkspaceCommandMisspelling): Partial<Activity> {
   };
 }
 
-const HELP_REPLY: Partial<Activity> = helpReply();
+// The help's buttons, on this server's own address.
+let helpLinks: Array<MicrosoftTeamsAnswerLink> = [];
+let HELP_REPLY: Partial<Activity> = helpReply();
+
+beforeAll(async () => {
+  helpLinks = await MicrosoftTeamsCommands.getHelpLinks({ isConnected: true });
+  HELP_REPLY = helpReply();
+});
 
 type CreateCommandInput = Parameters<
   typeof MicrosoftTeamsCreateCommands.handleCreateIncidentCommand

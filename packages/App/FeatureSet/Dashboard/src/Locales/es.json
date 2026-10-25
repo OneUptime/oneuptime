@@ -34770,5 +34770,11 @@
   "{{name}} is connected. Its data arrives within a minute or two.": "{{name}} se ha conectado. Sus datos llegan en uno o dos minutos.",
   "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.": "Instrumenta el servicio con OpenTelemetry. Cada fragmento de código de abajo ya lleva su service.name.",
   "Send telemetry from {{name}}": "Enviar telemetría desde {{name}}",
-  "View service": "Ver servicio"
+  "View service": "Ver servicio",
+  "No people available.": "No hay personas disponibles.",
+  "You do not have permission to add owners.": "No tienes permiso para añadir propietarios.",
+  "You do not have permission to add people as owners.": "No tienes permiso para añadir personas como propietarios.",
+  "You do not have permission to add teams as owners.": "No tienes permiso para añadir equipos como propietarios.",
+  "Search people...": "Buscar personas...",
+  "No one else to add.": "No hay nadie más que añadir."
 }

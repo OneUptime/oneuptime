@@ -183,10 +183,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       data.pollCount + data.statusChangeCount + data.manualRefreshCount,
   });
 
-  // Owners change rarely: once per monitor, and again on Refresh.
+  /*
+   * Bumped each time the hero's Add owners list added an owner, so the
+   * owners and the feed (which says who added them) are read again.
+   */
+  const [ownersChangeCount, setOwnersChangeCount] = useState<number>(0);
+
+  // Owners change rarely: once per monitor, again on Refresh and once added.
   const ownersResult: UseMonitorOwnersResult = useMonitorOwners({
     monitorId: modelId,
-    refreshToken: data.manualRefreshCount,
+    refreshToken: data.manualRefreshCount + ownersChangeCount,
   });
 
   // Bumped when the details card saves, so the feed shows the edit.
@@ -257,7 +263,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     MonitorOverviewPresentationUtil.getUptimeCaveat(presentation);
 
   const feedRefreshToken: number =
-    data.manualRefreshCount + data.statusChangeCount + detailsSaveCount;
+    data.manualRefreshCount +
+    data.statusChangeCount +
+    detailsSaveCount +
+    ownersChangeCount;
 
   const onDetailsSaved: () => void = (): void => {
     if (currentModelIdRef.current !== modelIdString) {
@@ -302,6 +311,15 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
            */
           currentStatusId={presentationInput.currentStatus?.id}
           onStatusChanged={onDetailsSaved}
+          onOwnersChanged={() => {
+            if (currentModelIdRef.current !== modelIdString) {
+              return;
+            }
+
+            setOwnersChangeCount((count: number) => {
+              return count + 1;
+            });
+          }}
         />
       </div>
 

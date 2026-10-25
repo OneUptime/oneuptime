@@ -1,0 +1,257 @@
+{
+  "about": "The cases the security case status and priority rules are checked against, by both copies of them: Common/Utils/SecurityCase/SecurityCaseStatuses and SecurityCasePriorities (Common/Tests/Utils/SecurityCaseMobileParity.test.ts), and the mobile app's security/caseValues (src/security/caseValues.test.ts). A status counts as the stage of the last built-in status at or above it (New, Acknowledged, Contained, Closed); a status with no place counts as its own flag, else New. Priorities rank by their place, the most urgent first; urgent is at or above the high priority. Ids lists are in the order the rules return them.",
+  "statusCases": [
+    {
+      "name": "a new project's four statuses",
+      "statuses": [
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "investigating", "order": 2, "isAcknowledgedStatus": true },
+        { "_id": "contained", "order": 3, "isContainedStatus": true },
+        { "_id": "closed", "order": 4, "isClosedStatus": true }
+      ],
+      "stages": {
+        "new": "New",
+        "investigating": "Acknowledged",
+        "contained": "Contained",
+        "closed": "Closed"
+      },
+      "openIds": ["new", "investigating", "contained"],
+      "closedIds": ["closed"],
+      "statusOfStage": {
+        "New": "new",
+        "Acknowledged": "investigating",
+        "Contained": "contained",
+        "Closed": "closed"
+      }
+    },
+    {
+      "name": "statuses of the project's own count as the built-in one above them",
+      "statuses": [
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "queued", "order": 2 },
+        { "_id": "investigating", "order": 3, "isAcknowledgedStatus": true },
+        { "_id": "contained", "order": 4, "isContainedStatus": true },
+        { "_id": "eradicating", "order": 5 },
+        { "_id": "closed", "order": 6, "isClosedStatus": true },
+        { "_id": "closed-duplicate", "order": 7 }
+      ],
+      "stages": {
+        "new": "New",
+        "queued": "New",
+        "investigating": "Acknowledged",
+        "contained": "Contained",
+        "eradicating": "Contained",
+        "closed": "Closed",
+        "closed-duplicate": "Closed"
+      },
+      "openIds": ["new", "queued", "investigating", "contained", "eradicating"],
+      "closedIds": ["closed", "closed-duplicate"],
+      "statusOfStage": {
+        "New": "new",
+        "Acknowledged": "investigating",
+        "Contained": "contained",
+        "Closed": "closed"
+      }
+    },
+    {
+      "name": "the order decides, not where a status arrives in the list",
+      "statuses": [
+        { "_id": "closed", "order": 4, "isClosedStatus": true },
+        { "_id": "investigating", "order": 2, "isAcknowledgedStatus": true },
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "contained", "order": 3, "isContainedStatus": true }
+      ],
+      "stages": {
+        "new": "New",
+        "investigating": "Acknowledged",
+        "contained": "Contained",
+        "closed": "Closed"
+      },
+      "openIds": ["new", "investigating", "contained"],
+      "closedIds": ["closed"],
+      "statusOfStage": {
+        "New": "new",
+        "Acknowledged": "investigating",
+        "Contained": "contained",
+        "Closed": "closed"
+      }
+    },
+    {
+      "name": "a place written as text counts, and ids match whatever their case",
+      "statuses": [
+        { "_id": "NEW-A", "order": "1", "isNewStatus": true },
+        { "_id": "ack-b", "order": "2", "isAcknowledgedStatus": true },
+        { "_id": "Closed-C", "order": "3", "isClosedStatus": true }
+      ],
+      "stages": {
+        "new-a": "New",
+        "ACK-B": "Acknowledged",
+        "closed-c": "Closed"
+      },
+      "openIds": ["NEW-A", "ack-b"],
+      "closedIds": ["Closed-C"],
+      "statusOfStage": {
+        "New": "NEW-A",
+        "Acknowledged": "ack-b",
+        "Closed": "Closed-C"
+      }
+    },
+    {
+      "name": "a status with no place counts as its own flag, else New",
+      "statuses": [
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "investigating", "order": 2, "isAcknowledgedStatus": true },
+        { "_id": "closed", "order": 3, "isClosedStatus": true },
+        { "_id": "unplaced", "order": null },
+        { "_id": "unplaced-closed", "isClosedStatus": true }
+      ],
+      "stages": {
+        "unplaced": "New",
+        "unplaced-closed": "Closed",
+        "closed": "Closed"
+      },
+      "openIds": ["new", "investigating", "unplaced"],
+      "closedIds": ["closed", "unplaced-closed"],
+      "statusOfStage": {
+        "New": "new",
+        "Acknowledged": "investigating",
+        "Closed": "closed"
+      }
+    },
+    {
+      "name": "the first status from the top that carries a flag is the built-in one",
+      "statuses": [
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "investigating", "order": 2, "isAcknowledgedStatus": true },
+        { "_id": "closed-early", "order": 3, "isClosedStatus": true },
+        { "_id": "closed-late", "order": 5, "isClosedStatus": true },
+        { "_id": "between", "order": 4 }
+      ],
+      "stages": {
+        "closed-early": "Closed",
+        "between": "Closed",
+        "closed-late": "Closed"
+      },
+      "openIds": ["new", "investigating"],
+      "closedIds": ["closed-early", "between", "closed-late"],
+      "statusOfStage": {
+        "New": "new",
+        "Acknowledged": "investigating",
+        "Closed": "closed-early"
+      }
+    },
+    {
+      "name": "ties on a place go to the older status, then the lower id",
+      "statuses": [
+        {
+          "_id": "b-closed",
+          "order": 3,
+          "isClosedStatus": true,
+          "createdAt": "2026-01-02T00:00:00.000Z"
+        },
+        {
+          "_id": "a-closed",
+          "order": 3,
+          "isClosedStatus": true,
+          "createdAt": "2026-01-03T00:00:00.000Z"
+        },
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "z-ack", "order": 2, "isAcknowledgedStatus": true },
+        { "_id": "y-ack", "order": 2, "isAcknowledgedStatus": true }
+      ],
+      "stages": {
+        "b-closed": "Closed",
+        "a-closed": "Closed",
+        "y-ack": "Acknowledged",
+        "z-ack": "Acknowledged"
+      },
+      "openIds": ["new", "y-ack", "z-ack"],
+      "closedIds": ["b-closed", "a-closed"],
+      "statusOfStage": {
+        "New": "new",
+        "Acknowledged": "y-ack",
+        "Closed": "b-closed"
+      }
+    },
+    {
+      "name": "an id that is none of the project's has no stage",
+      "statuses": [
+        { "_id": "new", "order": 1, "isNewStatus": true },
+        { "_id": "closed", "order": 2, "isClosedStatus": true }
+      ],
+      "stages": {
+        "missing": null,
+        "": null
+      },
+      "openIds": ["new"],
+      "closedIds": ["closed"],
+      "statusOfStage": {
+        "New": "new",
+        "Closed": "closed"
+      }
+    }
+  ],
+  "priorityCases": [
+    {
+      "name": "a new project's five priorities",
+      "priorities": [
+        { "_id": "critical", "order": 1, "isCriticalPriority": true },
+        { "_id": "high", "order": 2, "isHighPriority": true },
+        { "_id": "medium", "order": 3, "isMediumPriority": true },
+        { "_id": "low", "order": 4, "isLowPriority": true },
+        { "_id": "informational", "order": 5, "isInformationalPriority": true }
+      ],
+      "sortedIds": ["critical", "high", "medium", "low", "informational"],
+      "ranks": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 3,
+        "informational": 4,
+        "missing": null
+      },
+      "urgentIds": ["critical", "high"]
+    },
+    {
+      "name": "an Emergency above Critical is urgent too, and a project's own Elevated between Medium and High is not",
+      "priorities": [
+        { "_id": "medium", "order": 4, "isMediumPriority": true },
+        { "_id": "emergency", "order": 1 },
+        { "_id": "critical", "order": 2, "isCriticalPriority": true },
+        { "_id": "high", "order": 3, "isHighPriority": true },
+        { "_id": "elevated", "order": 3.5 },
+        { "_id": "low", "order": 5, "isLowPriority": true }
+      ],
+      "sortedIds": [
+        "emergency",
+        "critical",
+        "high",
+        "elevated",
+        "medium",
+        "low"
+      ],
+      "ranks": {
+        "emergency": 0,
+        "CRITICAL": 1,
+        "elevated": 3,
+        "low": 5
+      },
+      "urgentIds": ["emergency", "critical", "high"]
+    },
+    {
+      "name": "a project without a high priority calls nothing urgent",
+      "priorities": [
+        { "_id": "critical", "order": 1, "isCriticalPriority": true },
+        { "_id": "low", "order": 2, "isLowPriority": true },
+        { "_id": "unplaced" }
+      ],
+      "sortedIds": ["critical", "low", "unplaced"],
+      "ranks": {
+        "critical": 0,
+        "low": 1,
+        "unplaced": 2
+      },
+      "urgentIds": []
+    }
+  ]
+}

@@ -67,6 +67,8 @@ One monitor per supported type, each on its own id (`70000000-0000-4000-8000-000
 - **Open work**: while the subject is Offline, incident `20000000-…-000000001042` (SEV-1,
   Created) and alert `30000000-…-000000000311` (Critical, Acknowledged) are open on it.
 - **Owners**: Maya Chen, Sam Rivera and the Checkout SRE team (not on the network device).
+  The hero's Add owners list offers the project's people and its two teams (Checkout SRE,
+  Platform); an owner it adds is a row the hero's next read names.
 - **Feed**: created, owner added and the last four status changes.
 
 Navigation targets that are not modelled (every monitor sub-page but Monitoring Logs,
@@ -97,6 +99,9 @@ another monitor lands on a plain, healthy one.
 | `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `?probes=`       | the probes the Probe Status picker finds (`ProbeUtil.getAllProbes`): `custom` (default, the workspace's three probes), `self-hosted` (no custom probe, one global probe, as an installation's bundled probe), `both`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
+`?fail=owner-add` refuses every owner the hero's Add owners list adds ("This team is
+already an owner of this monitor."), as the server refuses a second row for an owner.
+
 ## What the spec covers
 
 `MonitorOverview.spec.ts`:
@@ -121,6 +126,10 @@ another monitor lands on a plain, healthy one.
   viewer: the lock state, no secret) and after data; server awaiting and after data; Kubernetes, and Kubernetes whose evaluations stopped
   landing (overdue by the evaluation log, not the worker's stamp); network device (device
   link, no owners); manual (guide card, no Summary, no MonitorLog read).
+- **Owners, added from the hero**: Add owners beside "No owners" and the + after the
+  avatars open the Add owners list right there (people, then teams, owners left out); one
+  click adds an owner, the hero names it and the feed reads again; `fail=owner-add` says why
+  in the list; a viewer is offered neither; the list whole at 390px and in the dark theme.
 - **Roles**: MonitorViewer (Open now "—", the response-time fallback, no Incident, Alert or
   Metric read), Viewer (no secret-key column in the select), ReadProjectMonitor (no
   duration, "—" tiles, hidden history and activity, no MonitorProbe, MonitorStatusTimeline,

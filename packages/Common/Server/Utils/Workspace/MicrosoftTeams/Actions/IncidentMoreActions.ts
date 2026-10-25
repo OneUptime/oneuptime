@@ -1,4 +1,4 @@
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import IncidentMember from "../../../../../Models/DatabaseModels/IncidentMember";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";

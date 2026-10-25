@@ -32,9 +32,9 @@ Sim. Cada celular ou tablet é um dispositivo push próprio, com as suas própri
 :::
 
 :::details O que posso fazer no aplicativo?
-- **Home**: o que precisa de atenção no projeto: incidentes e alertas ativos, monitores com problemas e eventos agrupados.
+- **Home**: o que precisa de atenção no projeto: incidentes e alertas ativos, casos de segurança abertos se o seu papel permitir vê-los, monitores com problemas e eventos agrupados.
 - **Monitors**: todos os monitores, filtrados por estado, com os detalhes deles.
-- **Inbox**: incidentes e alertas, e os episódios que os agrupam. Abra um para usar **Acknowledge**, **Resolve** ou **Add Note**.
+- **Inbox**: incidentes e alertas, e os episódios que os agrupam. Abra um para usar **Acknowledge**, **Resolve** ou **Add Note**. Se o seu papel permitir ver os casos de segurança do projeto, **Security** lista os abertos: abra um para usar **Approve** ou **Reject** em uma etapa de playbook aguardando aprovação, assumir o caso com **Assign to me** ou usar **Close case**.
 - **On-Call**: se você está de plantão e até quando, quem mais está, os acionamentos enviados a você, e **Cover for me**, que passa os seus acionamentos a um colega por um tempo.
 - **Settings**: os seus projetos e o login único, a aparência, os alertas críticos e o som de alarme, **Biometrics Login**, o seu feed de calendário de plantão e **Log Out**.
 
@@ -42,7 +42,7 @@ Todo o resto está no painel.
 :::
 
 :::details Posso confirmar um acionamento pela notificação?
-Não. Toque na notificação: o aplicativo abre o incidente, o alerta ou o episódio de que ela trata, no projeto certo, e você o confirma ali. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
+Não. Toque na notificação: o aplicativo abre o incidente, o alerta, o episódio ou o caso de segurança de que ela trata, no projeto certo, e você o confirma ali. Se o aplicativo está bloqueado ou você não entrou, ele abre o acionamento assim que você entra.
 :::
 
 :::details O meu login está seguro no celular?

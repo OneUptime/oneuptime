@@ -107,3 +107,57 @@ jobs:
       - name: Run test shard
         working-directory: packages/Common
         run: rm -rf build && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  # What npm publishes as @oneuptime/common, used the way a customer uses it.
+  # What npm published from packages/Common until this job could not be
+  # loaded at all - its main, index.js, did not exist - and nothing noticed,
+  # because nothing ran the package npm had. This builds the package as the
+  # release does (npm run build-npm-package; Scripts/NPM/PublishAllPackages.sh
+  # publishes build/npm/package), packs it as npm publish packs it, and the
+  # smoke test installs the tarball in a new project outside the repository,
+  # loads every module it exports with require and with import, calls a
+  # stand-in API, and type-checks every module in four TypeScript module
+  # modes. It runs on the Node.js of the other jobs, then on each older line
+  # the package supports (BuildNpmPackage.js's NODE_ENGINE).
+  npm-package:
+    name: npm package (Node.js 26, 24 and 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # It reads the checkout and the registry, and writes nothing anywhere.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      # Core is the Community Edition by construction, as in the test job.
+      - name: Remove the Enterprise Edition (core runs without ee/)
+        run: rm -rf ee
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: packages/Common/package-lock.json
+      - name: Install dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Build the package as the release does, and pack it as npm publish does
+        working-directory: packages/Common
+        run: |
+          npm run build-npm-package
+          mkdir -p "$RUNNER_TEMP/common-package"
+          npm pack ./build/npm/package --pack-destination "$RUNNER_TEMP/common-package"
+      - name: Install it in a new project and use it, on Node.js 26
+        working-directory: packages/Common
+        run: node Scripts/NpmPackage/SmokeTestNpmPackage.js --tarball "$RUNNER_TEMP"/common-package/oneuptime-common-*.tgz
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install it in a new project and use it, on Node.js 24
+        working-directory: packages/Common
+        run: node Scripts/NpmPackage/SmokeTestNpmPackage.js --tarball "$RUNNER_TEMP"/common-package/oneuptime-common-*.tgz
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install it in a new project and use it, on Node.js 22
+        working-directory: packages/Common
+        run: node Scripts/NpmPackage/SmokeTestNpmPackage.js --tarball "$RUNNER_TEMP"/common-package/oneuptime-common-*.tgz

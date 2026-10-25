@@ -16,7 +16,7 @@ OneUptime hat eine App für Ihr Telefon und eine für Ihren Computer. **OneUptim
 | Was sie ist | OneUptime On-Call, eine native App für iPhone, iPad und Android | Das OneUptime-Dashboard, aus Ihrem Browser installiert |
 | Woher Sie sie bekommen | Aus dem App Store, von Google Play oder als APK von GitHub | Von Ihrem eigenen OneUptime: Es gibt nichts herunterzuladen |
 | Bereitschaftsalarme | Push-Benachrichtigungen, die den Stummmodus und „Nicht stören“ durchbrechen können | Browser-Benachrichtigungen, sobald Sie den Browser registrieren |
-| Was Sie tun können | Vorfälle, Warnungen, Monitore und wer Bereitschaft hat; bestätigen, lösen und Notizen hinzufügen | Alles, was das Dashboard kann |
+| Was Sie tun können | Vorfälle, Warnungen, Sicherheitsfälle, Monitore und wer Bereitschaft hat; bestätigen, lösen, Playbook-Schritte genehmigen und Notizen hinzufügen | Alles, was das Dashboard kann |
 | Updates | Aus dem Store, oder indem Sie ein neueres APK installieren | Bei jedem Öffnen lädt sie das Dashboard von Ihrem OneUptime |
 | Läuft auf | iOS 16.4 oder neuer, Android 7.0 oder neuer | Windows, macOS und Linux, mit Edge oder Chrome, oder Safari ab macOS Sonoma 14 |
 
