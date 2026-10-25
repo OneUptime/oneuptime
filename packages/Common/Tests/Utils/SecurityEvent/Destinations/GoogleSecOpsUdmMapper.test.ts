@@ -294,9 +294,7 @@ describe("toUdmEvent", () => {
       }),
     );
 
-    expect(String(read(udm, "target.process.file.fullPath")).length).toBe(
-      1024,
-    );
+    expect(String(read(udm, "target.process.file.fullPath")).length).toBe(1024);
     expect(
       (read(udm, "target.process.file.names") as Array<string>)[0]!.length,
     ).toBe(256);
@@ -522,14 +520,17 @@ describe("a process activity, sent as the activity it is", () => {
     ["Something new", UdmEventType.ProcessUncategorized],
     ["Launch", UdmEventType.ProcessLaunch],
     ["", UdmEventType.ProcessLaunch],
-  ])("an activity named %j is %s", (activityName: string, type: UdmEventType) => {
-    expect(chooseUdmEventType({ ...LSASS_OPENED, activityName })).toBe(type);
-  });
+  ])(
+    "an activity named %j is %s",
+    (activityName: string, type: UdmEventType) => {
+      expect(chooseUdmEventType({ ...LSASS_OPENED, activityName })).toBe(type);
+    },
+  );
 
   test("activity names are read as ingest reads them, whatever their case", () => {
-    expect(chooseUdmEventType({ ...LSASS_OPENED, activityName: "INJECT" })).toBe(
-      UdmEventType.ProcessInjection,
-    );
+    expect(
+      chooseUdmEventType({ ...LSASS_OPENED, activityName: "INJECT" }),
+    ).toBe(UdmEventType.ProcessInjection);
     expect(
       chooseUdmEventType({ ...LSASS_OPENED, activityName: " terminate " }),
     ).toBe(UdmEventType.ProcessTermination);
@@ -828,25 +829,23 @@ describe("a process activity, sent as the activity it is", () => {
    * the same activity, with the same process acted on, its parent, and the
    * process that acted.
    */
-  test.each<[string]>([
-    ["Open"],
-    ["Inject"],
-    ["Terminate"],
-    ["Other"],
-  ])("%s reads back as the same activity and processes", (activityName: string) => {
-    const back: NormalizedSecurityEvent = UdmNormalizer.normalize(
-      toUdmEvent({ ...LSASS_OPENED, activityName }),
-    );
+  test.each<[string]>([["Open"], ["Inject"], ["Terminate"], ["Other"]])(
+    "%s reads back as the same activity and processes",
+    (activityName: string) => {
+      const back: NormalizedSecurityEvent = UdmNormalizer.normalize(
+        toUdmEvent({ ...LSASS_OPENED, activityName }),
+      );
 
-    expect(back.classUid).toBe(1007);
-    expect(back.activityName).toBe(activityName);
-    expect(back.processName).toBe("lsass.exe");
-    expect(back.processPath).toBe("C:\\Windows\\System32\\lsass.exe");
-    expect(back.parentProcessName).toBe("wininit.exe");
-    expect(back.principalProcess).toBe(
-      "mimikatz.exe sekurlsa::logonpasswords",
-    );
-  });
+      expect(back.classUid).toBe(1007);
+      expect(back.activityName).toBe(activityName);
+      expect(back.processName).toBe("lsass.exe");
+      expect(back.processPath).toBe("C:\\Windows\\System32\\lsass.exe");
+      expect(back.parentProcessName).toBe("wininit.exe");
+      expect(back.principalProcess).toBe(
+        "mimikatz.exe sekurlsa::logonpasswords",
+      );
+    },
+  );
 
   test("a privilege escalation reads back as one", () => {
     const back: NormalizedSecurityEvent = UdmNormalizer.normalize(

@@ -59,9 +59,12 @@ describe("OCSF Process Activity", () => {
     [Number.POSITIVE_INFINITY],
     [null],
     [undefined],
-  ])("an id OCSF does not define (%p) has no name", (activityId) => {
-    expect(ocsfProcessActivityName(activityId)).toBe("");
-  });
+  ])(
+    "an id OCSF does not define (%p) has no name",
+    (activityId: number | null | undefined) => {
+      expect(ocsfProcessActivityName(activityId)).toBe("");
+    },
+  );
 
   test("an id that is not a number has no name", () => {
     expect(
@@ -79,9 +82,12 @@ describe("getProcessActivityKind", () => {
     [OcsfProcessActivityId.SetUserId, ProcessActivityKind.Other],
     [OcsfProcessActivityId.Unknown, ProcessActivityKind.Other],
     [OcsfProcessActivityId.Other, ProcessActivityKind.Other],
-  ])("activity id %i is %s", (activityId: number, kind: ProcessActivityKind) => {
-    expect(getProcessActivityKind({ activityId })).toBe(kind);
-  });
+  ])(
+    "activity id %i is %s",
+    (activityId: number, kind: ProcessActivityKind) => {
+      expect(getProcessActivityKind({ activityId })).toBe(kind);
+    },
+  );
 
   test.each<[string, ProcessActivityKind]>([
     ["Launch", ProcessActivityKind.Launch],

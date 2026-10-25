@@ -5485,9 +5485,7 @@ test.describe("detections", () => {
         [MY_CASES_PATH, "2"],
         [RUNS_PATH, "1"],
       ]) {
-        const entry: Locator = sideMenu(page).locator(
-          `a[href="${pathname!}"]`,
-        );
+        const entry: Locator = sideMenu(page).locator(`a[href="${pathname!}"]`);
         await expect(entry).toContainText(count!, { timeout: 30000 });
 
         const title: Locator = entry.locator("span.truncate").first();
@@ -5508,10 +5506,9 @@ test.describe("detections", () => {
     expect(cutShort).toEqual([]);
 
     await open(page, OVERVIEW_PATH, { width: 800, lang: "de" });
-    await expect(sideMenu(page).locator(`a[href="${RUNS_PATH}"]`)).toContainText(
-      "Genehmigungen",
-      { timeout: 30000 },
-    );
+    await expect(
+      sideMenu(page).locator(`a[href="${RUNS_PATH}"]`),
+    ).toContainText("Genehmigungen", { timeout: 30000 });
     await screenshot(page, "side-menu-tablet-de", { fullPage: false });
   });
 

@@ -143,10 +143,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Playbooks",
     [
       ["Playbooks", PageMap.SECURITY_PLAYBOOKS],
-      [
-        "Approvals",
-        PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-      ],
+      ["Approvals", PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL],
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
       ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
     ],
@@ -427,11 +424,7 @@ describe("Security Events side menu", () => {
 
     for (const [section, entries] of EXPECTED) {
       for (const [title] of entries) {
-        if (
-          ["Open Cases", "Assigned to Me", "Approvals"].includes(
-            title,
-          )
-        ) {
+        if (["Open Cases", "Assigned to Me", "Approvals"].includes(title)) {
           continue;
         }
 

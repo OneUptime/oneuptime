@@ -447,9 +447,7 @@ describe("a Process Activity's activity name", () => {
   });
 
   test("an event that names no activity at all is left unnamed", () => {
-    expect(OcsfNormalizer.normalize({ class_uid: 1007 }).activityName).toBe(
-      "",
-    );
+    expect(OcsfNormalizer.normalize({ class_uid: 1007 }).activityName).toBe("");
   });
 
   test("other classes are named only by their payload", () => {
@@ -468,7 +466,10 @@ describe("a Process Activity's activity name", () => {
       class_uid: 1007,
       activity_id: 4,
       actor: { process: { name: "loader.exe" } },
-      process: { name: "explorer.exe", parent_process: { name: "userinit.exe" } },
+      process: {
+        name: "explorer.exe",
+        parent_process: { name: "userinit.exe" },
+      },
     });
 
     expect(result.activityName).toBe("Inject");

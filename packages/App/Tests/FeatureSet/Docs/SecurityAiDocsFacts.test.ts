@@ -434,7 +434,9 @@ describe("OneUptime AI in Security docs", () => {
       ),
     ).toBe(false);
     expect(card).toContain("{suggestedPlaybookRun ? (");
-    expect(card).toContain("<SecurityPlaybookRunStatusPill value={suggestedPlaybookRun}");
+    expect(card).toContain(
+      "<SecurityPlaybookRunStatusPill value={suggestedPlaybookRun}",
+    );
     // The run is on the case's own Playbook Runs page.
     expect(
       (investigation?.items || []).map((item: SecurityCaseMenuItem): string => {
