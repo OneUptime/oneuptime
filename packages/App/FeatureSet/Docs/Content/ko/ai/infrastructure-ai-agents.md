@@ -1,6 +1,6 @@
 # 인프라 AI 에이전트
 
-OneUptime AI는 인시던트나 경고를 조사하는 동안 텔레메트리 너머까지 살펴볼 수 있습니다. 리소스(Docker 또는 Podman 호스트, Docker Swarm 클러스터, Proxmox 클러스터, VMware vCenter, Ceph 클러스터, 데이터베이스 서버, Linux 호스트) 옆에 설치한 작은 에이전트가 `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30`, `journalctl -u nginx -n 200 --no-pager` 처럼 OneUptime AI가 요청하는 읽기 전용 명령을 실행하고 출력을 돌려보내므로, 근본 원인 분석은 리소스 자체가 알려 주는 내용을 인용합니다. 허용하면 같은 에이전트가 수정도 적용합니다(컨테이너 재시작, VM 시작, OSD를 다시 in으로 표시 등). 각 수정은 명령 정책에 따라 단계가 정해지며, 다르게 선택하지 않는 한 먼저 사람이 승인합니다.
+OneUptime AI는 인시던트나 경고를 조사하는 동안 텔레메트리 너머까지 살펴볼 수 있습니다. 리소스(Docker 또는 Podman 호스트, Docker Swarm 클러스터, Proxmox 클러스터, VMware vCenter, Ceph 클러스터, 데이터베이스 서버, Linux 호스트) 옆에 설치한 작은 에이전트가 `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30`, `journalctl -u nginx -n 200 --no-pager` 처럼 OneUptime AI가 요청하는 읽기 전용 명령을 실행하고 출력을 돌려보내므로, 근본 원인 분석은 리소스 자체가 알려 주는 내용을 인용합니다. 허용하면 같은 에이전트가 수정도 적용합니다(컨테이너 재시작, VM 시작, OSD를 다시 in으로 표시 등). 각 수정은 명령 정책에 따라 단계가 정해지며, 다르게 선택하지 않는 한 먼저 사람이 승인합니다. 리소스 페이지에서 연 AI에게 질문도 요청하면 같은 읽기 전용 명령을 실행합니다([AI에게 질문](/docs/ai/ask-ai) 참고).
 
 이 에이전트들이 **리소스 AI 에이전트** 입니다. 각 리소스의 대시보드 페이지에는 세 페이지로 된 **AI** 섹션이 있습니다:
 

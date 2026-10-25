@@ -1,6 +1,6 @@
 # 基础设施 AI 代理
 
-OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。
+OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。在资源页面上打开的询问 AI，也会在您提出请求时运行同样的只读命令（请参阅[询问 AI](/docs/ai/ask-ai)）。
 
 这些代理就是 **资源 AI 代理**。每个资源的仪表板页面都有一个 **人工智能** 部分，包含三个页面：
 

@@ -58,6 +58,14 @@ Infrastrukturlister og ressurssider foreslår spørsmål for den typen ressurs d
 
 På en underside registrerer konteksten også poden, containeren, VM-en, prosessen eller den andre underressursen du valgte. Infrastrukturverktøyene leser telemetrien til den overordnede ressursen; de kan ikke måle én underressurs ut fra navnet alene. Spør AI sier det, og gjetter ikke på et Kubernetes-navnerom som siden ikke oppgir. En tilkoblingstilstand er ikke helsen til en arbeidslast, og manglende telemetri betyr ikke at en ressurs er frisk.
 
+## Kommandoer på infrastrukturen din
+
+Åpnet på siden til en ressurs der AI-agenten er tilkoblet (en vert, en Docker- eller Podman-vert, en Docker Swarm-klynge, en Proxmox-klynge, et VMware vCenter, en Ceph-klynge, en databaseserver eller en Kubernetes-klynge), kjører Spør AI kommandoer på den gjennom den agenten når du ber om det: "kjør `uptime` på denne verten" eller "vis de siste 100 linjene av `journalctl -u nginx`". Den svarer med det som kom tilbake, med kildehenvisning som for alt annet bevis. Åpnet på en hendelse eller et varsel når den ressursene som er knyttet til den.
+
+- Den kjører bare de skrivebeskyttede kommandoene en AI-undersøkelse kan kjøre på den typen ressurs (se [AI-agenter for infrastrukturen](/docs/ai/infrastructure-ai-agents)), høyst 30 for ett svar gjennom hver type agent, kontrollert av OneUptime og igjen av agenten, i alle tillatelsesmoduser. En endring gjennom agenten, for eksempel å starte en tjeneste på nytt, kjøres aldri fra Spør AI: den gir deg i stedet den nøyaktige kommandoen, og agenten gjør bare endringer når OneUptime AI utbedrer en hendelse eller et varsel, etter ressursens egne innstillinger for rettelser. Spør AIs egne handlinger, for eksempel å kjøre en runbook, følger samtalens tillatelsesmodus, som beskrevet nedenfor.
+- Den når bare ressursene du har lov til å se, og bare mens AI-undersøkelse er slått på for ressursen.
+- Når den ikke kan kjøre en kommando der (ingen agent er tilkoblet, agenten er frakoblet, eller AI-undersøkelse er slått av for ressursen), sier den det, sammen med hva som må endres, og svarer i stedet ut fra prosjektets data.
+
 ## Handlinger og tillatelsesmoduser
 
 Hver samtale har en tillatelsesmodus, som du velger i skrivefeltet, ved siden av boksen du skriver i:

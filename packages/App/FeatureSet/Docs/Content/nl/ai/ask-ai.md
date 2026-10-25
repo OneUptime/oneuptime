@@ -58,6 +58,14 @@ Infrastructuurlijsten en resourcepagina's bieden vragen aan voor het soort resou
 
 Op een onderliggende pagina legt de context ook de pod, container, VM, het proces of het andere onderdeel vast dat je hebt gekozen. De infrastructuurhulpmiddelen lezen de telemetrie van de bovenliggende resource; ze kunnen één onderdeel niet meten aan de hand van alleen zijn naam. AI vragen zegt dat, en raadt geen Kubernetes-namespace die de pagina niet geeft. Een verbindingsstatus is niet de gezondheid van een workload, en ontbrekende telemetrie betekent niet dat een resource gezond is.
 
+## Opdrachten op je infrastructuur
+
+Geopend op de pagina van een resource waarvan de AI-agent verbonden is (een host, een Docker- of Podman-host, een Docker Swarm-cluster, een Proxmox-cluster, een VMware vCenter, een Ceph-cluster, een databaseserver of een Kubernetes-cluster), voert AI vragen er via die agent opdrachten op uit wanneer je erom vraagt: "voer `uptime` uit op deze host" of "toon de laatste 100 regels van `journalctl -u nginx`". Het antwoordt met wat er terugkwam, met een bronvermelding zoals elk ander bewijs. Geopend op een incident of een waarschuwing bereikt het de resources die eraan gekoppeld zijn.
+
+- Het voert alleen de alleen-lezen-opdrachten uit die een AI-onderzoek op dat soort resource mag uitvoeren (zie [AI-agents voor de infrastructuur](/docs/ai/infrastructure-ai-agents)), hoogstens 30 voor één antwoord via elk soort agent, gecontroleerd door OneUptime en opnieuw door de agent, in elke machtigingsmodus. Een wijziging via de agent, zoals het herstarten van een service, wordt nooit vanuit AI vragen uitgevoerd: je krijgt in plaats daarvan de exacte opdracht, en de agent wijzigt alleen iets wanneer OneUptime AI een incident of waarschuwing herstelt, volgens de eigen fix-instellingen van de resource. De eigen acties van AI vragen, zoals het uitvoeren van een runbook, volgen de machtigingsmodus van het gesprek, zoals hieronder beschreven.
+- Het bereikt alleen de resources die je mag bekijken, en alleen zolang AI-onderzoek voor de resource aan staat.
+- Wanneer het daar geen opdracht kan uitvoeren (er is geen agent verbonden, de agent is offline, of AI-onderzoek staat uit voor de resource), zegt het dat, met wat er moet veranderen, en antwoordt het in plaats daarvan op basis van de gegevens van je project.
+
 ## Acties en machtigingsmodi
 
 Elk gesprek heeft een machtigingsmodus, die je in het invoervak kiest, naast het veld waarin je typt:

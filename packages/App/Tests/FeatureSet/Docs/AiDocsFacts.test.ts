@@ -409,6 +409,93 @@ describe("Ask AI", () => {
       "## Talk to OneUptime AI about the incident",
     );
   });
+
+  /*
+   * Issue #5259: on a host's page Ask AI answered that it had no tool to run
+   * a command, though the Host AI agent was connected. The section says what
+   * it runs now, through which agent, for whom - and what never runs.
+   */
+  it("runs the page's resource's read-only commands through its AI agent, for the resources you may view", () => {
+    const api: string = readRepoFile("Common/Server/API/AIChatAPI.ts");
+    const access: string = flat(
+      readRepoFile("Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts"),
+    );
+    const section: string = flat(
+      englishSection(ASK_AI, "## Commands on your infrastructure"),
+    );
+
+    // Every turn the chat API starts, and every one it resumes, asks for it.
+    expect(api.split("offersPageInfrastructure: true,").length - 1).toBe(2);
+    expect(section).toContain(
+      "Ask AI runs commands on it through that agent when you ask",
+    );
+
+    // The resource or cluster on the page, or what an incident or alert links.
+    expect(access).toContain("ResourceAiAccessService.getStatusForResource({");
+    expect(access).toContain(
+      "KubernetesClusterAiAccessService.getStatusForCluster({",
+    );
+    expect(access).toContain("ResourceAiAccessService.getStatusesForSubject({");
+    expect(section).toContain("or a Kubernetes cluster)");
+    expect(section).toContain(
+      "Opened on an incident or an alert, it reaches the resources linked to it.",
+    );
+
+    // An investigation's own read-only toolkits: never a change.
+    expect(access).toContain("new KubectlInvestigationToolkit(");
+    expect(access).toContain("new InfrastructureInvestigationToolkit(");
+    expect(access).not.toContain("isMutation: true");
+    expect(section).toContain(
+      "It runs only the read-only commands an AI investigation may run on that kind of resource",
+    );
+    expect(section).toContain(
+      "A change through the agent, such as restarting a service, never runs from Ask AI: it gives you the exact command instead",
+    );
+
+    // At most so many for one answer, through each kind of agent's toolkit.
+    const perAnswer: number = numberConstant(
+      readRepoFile("Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts"),
+      "MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER",
+    );
+    expect(access).toContain(
+      "maxCommands: MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,",
+    );
+    expect(access.split("maxCommands: data.maxCommands,").length - 1).toBe(2);
+    expect(section).toContain(
+      `at most ${perAnswer} for one answer through each kind of agent`,
+    );
+
+    /*
+     * The commands only read; Ask AI's own actions - a runbook among them -
+     * are the permission mode's, which the next section describes.
+     */
+    expect(readRepoFile("Common/Server/Utils/AI/Toolbox/Index.ts")).toContain(
+      "    RunRunbookTool,",
+    );
+    expect(section).toContain(
+      "Ask AI's own actions, such as running a runbook, follow the conversation's permission mode, as below.",
+    );
+
+    // When it cannot: why, and what would change it.
+    expect(access).toContain("this.buildWithoutAccessSection(tools.viewable),");
+    expect(section).toContain("it says so, with what to change");
+
+    // Only what the person asking may view.
+    expect(access).toContain(
+      "KubernetesClusterAiAccessService.getStatusesViewableBy({",
+    );
+    expect(access).toContain("ResourceAiAccessService.getStatusesViewableBy({");
+    expect(section).toContain(
+      "It reaches only the resources you may view, and only while AI investigation is on for the resource.",
+    );
+
+    expect(section).toContain(
+      "[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents)",
+    );
+    expect(englishPage(INFRASTRUCTURE_AI_AGENTS).split("\n")[2]).toContain(
+      "Ask AI, opened on the resource's page, runs the same read-only commands when you ask it to (see [Ask AI](/docs/ai/ask-ai)).",
+    );
+  });
 });
 
 describe("Code", () => {
@@ -1893,11 +1980,18 @@ describe("AI SRE and the infrastructure AI agents", () => {
     const threadService: string = flat(
       readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThreadService.ts"),
     );
+    // The thread's tools are built where Ask AI's are, for the person asking.
+    const access: string = flat(
+      readRepoFile("Common/Server/Utils/AI/Chat/ChatInfrastructureAccess.ts"),
+    );
 
     expect(thread).toContain(
+      "await ChatInfrastructureAccess.buildTools({ projectId: data.projectId, aiRunId: data.aiRunId, props: data.props,",
+    );
+    expect(access).toContain(
       "await KubernetesClusterAiAccessService.getStatusesViewableBy({ props: data.props,",
     );
-    expect(thread).toContain(
+    expect(access).toContain(
       "await ResourceAiAccessService.getStatusesViewableBy({ props: data.props,",
     );
     expect(threadService).toContain("props: data.turn.props,");
