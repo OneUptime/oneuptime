@@ -83,15 +83,29 @@ test.beforeEach(({ page }: { page: Page }) => {
   });
 });
 
-test.afterEach(async ({ page }: { page: Page }) => {
-  // The page threw nothing, and asked the server for nothing the fixture does not answer.
-  expect(pageErrors.get(page)).toEqual([]);
-  expect((await fixtureRecord(page)).unmodeled).toEqual([]);
-});
+test.afterEach(
+  async ({ page }: { page: Page }, testInfo: { status?: string }) => {
+    // A spec skipped where ee/ is not checked out opened no page.
+    if (testInfo.status === "skipped") {
+      return;
+    }
 
+    // The page threw nothing, and asked the server for nothing the fixture does not answer.
+    expect(pageErrors.get(page)).toEqual([]);
+    expect((await fixtureRecord(page)).unmodeled).toEqual([]);
+  },
+);
+
+// What the page sent and read, as the fixture recorded it (nothing before it loads).
 async function fixtureRecord(page: Page): Promise<FixtureRecord> {
   return await page.evaluate((): FixtureRecord => {
-    return (window as unknown as { __fixture: FixtureRecord }).__fixture;
+    return (
+      (window as unknown as { __fixture?: FixtureRecord }).__fixture || {
+        posts: [],
+        writes: [],
+        unmodeled: [],
+      }
+    );
   });
 }
 
