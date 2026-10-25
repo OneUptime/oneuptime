@@ -88,7 +88,7 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | Side menu section | Pages |
 | --- | --- |
 | **Overview** | **Overview**, **Timeline** |
-| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbook Runs** |
+| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
 | **Notes** | **Private Notes** |
 | **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
@@ -101,7 +101,7 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).
-- **Playbook Runs**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbook Runs**.
+- **Playbooks**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbooks**.
 - **Private Notes**: what the team wrote about the case.
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
 - **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.

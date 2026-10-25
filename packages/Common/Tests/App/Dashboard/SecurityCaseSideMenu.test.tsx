@@ -19,7 +19,7 @@ import * as React from "react";
  * case's own address for its Overview, each other page one level under it),
  * an icon for every entry, Advanced folded on the case's Overview and open
  * on its own pages, exactly the entry of the page you are on lit, the count
- * of the case's runs waiting for an approval beside Playbook Runs (asking
+ * of the case's runs waiting for an approval beside Playbooks (asking
  * for this case's runs only, and asked again when the case changes), Delete
  * Case drawn as a deletion, and the phone's "Section / Page" summary.
  *
@@ -98,7 +98,7 @@ const EXPECTED: Array<[string, Array<[string, PageMap]>]> = [
       ["Detections", PageMap.SECURITY_CASE_VIEW_DETECTIONS],
       ["Entities", PageMap.SECURITY_CASE_VIEW_ENTITIES],
       ["Connected Signals", PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS],
-      ["Playbook Runs", PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS],
+      ["Playbooks", PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS],
     ],
   ],
   ["Notes", [["Private Notes", PageMap.SECURITY_CASE_VIEW_NOTES]]],
@@ -277,10 +277,10 @@ describe("a security case's side menu", () => {
     );
   });
 
-  test("counts the case's runs waiting for an approval beside Playbook Runs, and nothing else", async () => {
+  test("counts the case's runs waiting for an approval beside Playbooks, and nothing else", async () => {
     await renderCaseMenu();
 
-    expect(badgeOf("Investigation", "Playbook Runs")).toBe("2");
+    expect(badgeOf("Investigation", "Playbooks")).toBe("2");
     expect(badgeOf("Investigation", "Detections")).toBe("");
     expect(badgeOf("Overview", "Timeline")).toBe("");
 
@@ -296,17 +296,17 @@ describe("a security case's side menu", () => {
     ]);
   });
 
-  test("with no run waiting, Playbook Runs shows no count", async () => {
+  test("with no run waiting, Playbooks shows no count", async () => {
     waitingRuns = 0;
     await renderCaseMenu();
 
-    expect(badgeOf("Investigation", "Playbook Runs")).toBe("");
+    expect(badgeOf("Investigation", "Playbooks")).toBe("");
   });
 
   test("asks again when the case changes, so a decided run leaves the count", async () => {
     await renderCaseMenu();
 
-    expect(badgeOf("Investigation", "Playbook Runs")).toBe("2");
+    expect(badgeOf("Investigation", "Playbooks")).toBe("2");
 
     waitingRuns = 1;
 
@@ -315,7 +315,7 @@ describe("a security case's side menu", () => {
     });
 
     expect(countQueries).toHaveLength(2);
-    expect(badgeOf("Investigation", "Playbook Runs")).toBe("1");
+    expect(badgeOf("Investigation", "Playbooks")).toBe("1");
   });
 
   test("on a phone, the menu names the section and the page it is on", async () => {
@@ -324,11 +324,11 @@ describe("a security case's side menu", () => {
     await renderCaseMenu();
 
     expect(mobileSummaryText()).toContain("Investigation");
-    expect(mobileSummaryText()).toContain("Playbook Runs");
+    expect(mobileSummaryText()).toContain("Playbooks");
   });
 });
 
-describe("the count beside Playbook Runs", () => {
+describe("the count beside Playbooks", () => {
   beforeEach(() => {
     goTo(caseRoute(PageMap.SECURITY_CASE_VIEW));
   });

@@ -42,7 +42,7 @@ const SecurityCasePlaybookRuns: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="Playbook Runs"
+      title="Playbooks"
       description="The playbooks that ran on this case and what each step did. A step that needs approval waits here for someone to approve or reject it."
       buttons={
         props.onRunPlaybook

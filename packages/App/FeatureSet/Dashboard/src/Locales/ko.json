@@ -34800,5 +34800,6 @@
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime이 같은 레코드라고 확신할 수 없으므로 해당 페이지에서 집계되지 않고 인시던트에 연결되지도 않습니다.",
   "Possible matches": "일치 가능성이 있는 항목",
   "Some kinds of record could not be read, so it may still be in OneUptime.": "일부 종류의 레코드를 읽을 수 없어 OneUptime에 있을 수도 있습니다.",
-  "Approvals": "승인 대기"
+  "Approvals": "승인 대기",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "이 플레이북은 이 케이스에서 이미 실행 중입니다. 실행 내역은 케이스의 Playbooks에 있습니다."
 }

@@ -652,7 +652,7 @@ describe("Security Cases and Playbooks docs", () => {
           return menuSection.items;
         },
       ).find((item: SecurityCaseMenuItem): boolean => {
-        return item.title === "Playbook Runs";
+        return item.title === "Playbooks";
       });
 
     expect(playbookRuns?.badge).toBe("runsWaitingForApproval");
@@ -664,7 +664,7 @@ describe("Security Cases and Playbooks docs", () => {
       ),
     ).toContain('getSecurityPlaybookRunView("waiting").query');
     expect(page).toContain(
-      "While runs wait, the menu shows how many beside **Playbook Runs**.",
+      "While runs wait, the menu shows how many beside **Playbooks**.",
     );
 
     expect(

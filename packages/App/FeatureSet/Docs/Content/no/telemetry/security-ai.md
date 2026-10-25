@@ -65,7 +65,7 @@ Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør:
 Vurderingen er OneUptime AI sin, aldri sakens konklusjon: **Close Case** starter på konklusjonen den foreslår, og en person velger. Under vurderingen viser kortet:
 
 - **Foreslått prioritet**, med **Angi prioritet** når saken har en annen prioritet.
-- **Foreslått playbook**, med **Kjør playbook**, som kjører den på dine vegne, med hver godkjenning den trenger. Mens den playbooken allerede kjører på saken, står statusen til kjøringen, for eksempel **Venter på godkjenning**, i stedet for **Kjør playbook**: kjøringen ligger under sakens **Playbook-kjøringer**, og en ny ville be om den samme godkjenningen igjen.
+- **Foreslått playbook**, med **Kjør playbook**, som kjører den på dine vegne, med hver godkjenning den trenger. Mens den playbooken allerede kjører på saken, står statusen til kjøringen, for eksempel **Venter på godkjenning**, i stedet for **Kjør playbook**: kjøringen ligger under sakens **Playbooks**, og en ny ville be om den samme godkjenningen igjen.
 - Rapporten: hva som skjedde, hvor sikker vurderingen er og hva som bør gjøres videre, hver påstand fulgt av en henvisning som C1.
 - **Evidence checked**: hver spørring vurderingen kjørte. En henvisning åpner spørringen sin, og når du folder ut en, kjører den på nytt med dine tillatelser, over tidsrommet vurderingen leste.
 - **Spør om denne saken**, som åpner Ask AI på saken.

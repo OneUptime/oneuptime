@@ -157,13 +157,13 @@ that list is not empty.
   case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
   assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
 - **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
-  Entities, Connected Signals, Playbook Runs; Notes: Private Notes; Advanced, folded: Audit Logs,
+  Entities, Connected Signals, Playbooks; Notes: Private Notes; Advanced, folded: Audit Logs,
   Delete Case), each
   part of the case a page of its own at an address under the case's, its entry lit and its trail
   named for the case; the Overview has the header in full (status steps, who has it), the
   figures, the AI card and ATT&CK, and every other page the header compact, with every action,
   the case read once for them all; a link straight to any page opens it; the held run with
-  Approve and Reject, counted beside Playbook Runs until approving it runs the rest; Delete Case
+  Approve and Reject, counted beside Playbooks until approving it runs the rest; Delete Case
   asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
   a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both

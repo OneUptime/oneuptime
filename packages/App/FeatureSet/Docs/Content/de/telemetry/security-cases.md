@@ -88,7 +88,7 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | Abschnitt im Seitenmenü | Seiten |
 | --- | --- |
 | **Übersicht** | **Übersicht**, **Zeitachse** |
-| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbook-Ausführungen** |
+| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
 | **Notizen** | **Private Notizen** |
 | **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
@@ -101,7 +101,7 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
-- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbook-Ausführungen**, wie viele es sind.
+- **Playbooks**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbooks**, wie viele es sind.
 - **Private Notizen**: was das Team zum Fall geschrieben hat.
 - **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
 - **Fall löschen**: löscht den Fall mit seinen Erkennungen, Notizen, seiner Zeitachse und seinen Playbook-Ausführungen endgültig. Um ihn als Nachweis zu behalten, schließen Sie ihn stattdessen mit einer Bewertung.

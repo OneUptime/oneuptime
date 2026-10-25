@@ -88,7 +88,7 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | Sectie van het zijmenu | Pagina's |
 | --- | --- |
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
-| **Onderzoek** | **Detections**, **Entiteiten**, **Verbonden signalen**, **Playbook-uitvoeringen** |
+| **Onderzoek** | **Detections**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
 | **Notities** | **Privénotities** |
 | **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
@@ -101,7 +101,7 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
-- **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbook-uitvoeringen**.
+- **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
 - **Privénotities**: wat het team over de zaak schreef.
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
 - **Zaak verwijderen**: verwijdert de zaak voorgoed, met haar detecties, notities, tijdlijn en playbook-uitvoeringen. Wil je haar als verslag bewaren, sluit haar dan met een oordeel.

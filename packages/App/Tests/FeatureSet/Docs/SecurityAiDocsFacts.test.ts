@@ -437,18 +437,18 @@ describe("OneUptime AI in Security docs", () => {
     expect(card).toContain(
       "<SecurityPlaybookRunStatusPill value={suggestedPlaybookRun}",
     );
-    // The run is on the case's own Playbook Runs page.
+    // The run is on the case's own Playbooks page.
     expect(
       (investigation?.items || []).map((item: SecurityCaseMenuItem): string => {
         return item.title;
       }),
-    ).toContain("Playbook Runs");
+    ).toContain("Playbooks");
     expect(cardWord("suggestedPlaybookRunning")).toBe(
-      "This playbook is already running on this case. Its run is under Playbook Runs.",
+      "This playbook is already running on this case. Its run is under the case's Playbooks.",
     );
 
     expect(page).toContain(
-      `While that playbook is already running on the case, its run's status, such as **${SecurityPlaybookRunStatus.WaitingForApproval}**, takes the place of **${cardWord("runPlaybookButton")}**: the run is on the case's **Playbook Runs**, and a second one would ask for the same approval again.`,
+      `While that playbook is already running on the case, its run's status, such as **${SecurityPlaybookRunStatus.WaitingForApproval}**, takes the place of **${cardWord("runPlaybookButton")}**: the run is on the case's **Playbooks**, and a second one would ask for the same approval again.`,
     );
   });
 

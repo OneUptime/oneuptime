@@ -65,7 +65,7 @@ Ze kan ook de rest van OneUptime lezen zoals het onderzoek van een incident dat 
 De lezing is die van OneUptime AI, nooit het oordeel van de zaak: **Close Case** begint bij het oordeel dat ze voorstelt, en een mens kiest. Onder de lezing toont de kaart:
 
 - **Voorgestelde prioriteit**, met **Prioriteit instellen** als de zaak een andere prioriteit heeft.
-- **Voorgesteld playbook**, met **Playbook uitvoeren**, dat het namens jou uitvoert, met elke goedkeuring die het nodig heeft. Zolang dat playbook al op de zaak loopt, staat de status van zijn uitvoering, zoals **Wacht op goedkeuring**, in plaats van **Playbook uitvoeren**: de uitvoering staat onder **Playbook-uitvoeringen** van de zaak, en een tweede zou opnieuw om dezelfde goedkeuring vragen.
+- **Voorgesteld playbook**, met **Playbook uitvoeren**, dat het namens jou uitvoert, met elke goedkeuring die het nodig heeft. Zolang dat playbook al op de zaak loopt, staat de status van zijn uitvoering, zoals **Wacht op goedkeuring**, in plaats van **Playbook uitvoeren**: de uitvoering staat onder **Playbooks** van de zaak, en een tweede zou opnieuw om dezelfde goedkeuring vragen.
 - Het rapport: wat er gebeurd is, hoe zeker de lezing is en wat je daarna doet, elke bewering gevolgd door een verwijzing zoals C1.
 - **Evidence checked**: elke query die de beoordeling heeft uitgevoerd. Een verwijzing opent de bijbehorende query, en als je er een uitklapt, draait die opnieuw met jouw rechten, over de periode die de beoordeling las.
 - **Vraag over deze zaak**, dat Ask AI op de zaak opent.

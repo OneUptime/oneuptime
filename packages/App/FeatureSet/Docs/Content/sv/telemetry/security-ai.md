@@ -65,7 +65,7 @@ Den kan också läsa resten av OneUptime som utredningen av en incident gör: lo
 AI-bedömningen är OneUptime AI:s, aldrig ärendets bedömning: **Close Case** börjar på den bedömning som den föreslår, och en person väljer. Under AI-bedömningen visar kortet:
 
 - **Föreslagen prioritet**, med **Ange prioritet** när ärendet har en annan prioritet.
-- **Föreslagen playbook**, med **Kör playbook**, som kör den i ditt namn, med varje godkännande som den behöver. Medan den playbooken redan körs på ärendet står körningens status, till exempel **Väntar på godkännande**, i stället för **Kör playbook**: körningen finns under ärendets **Playbook-körningar**, och en till skulle be om samma godkännande igen.
+- **Föreslagen playbook**, med **Kör playbook**, som kör den i ditt namn, med varje godkännande som den behöver. Medan den playbooken redan körs på ärendet står körningens status, till exempel **Väntar på godkännande**, i stället för **Kör playbook**: körningen finns under ärendets **Playbooks**, och en till skulle be om samma godkännande igen.
 - Rapporten: vad som hände, hur säker AI-bedömningen är och vad som ska göras härnäst, varje påstående följt av en hänvisning som C1.
 - **Evidence checked**: varje fråga som AI-bedömningen körde. En hänvisning öppnar sin fråga, och när du fäller ut en körs den igen med dina behörigheter, över den tid som AI-bedömningen läste.
 - **Fråga om det här ärendet**, som öppnar Ask AI för ärendet.

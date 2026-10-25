@@ -65,7 +65,7 @@ Ela também pode ler o resto do OneUptime como a investigação de um incidente 
 A leitura é do OneUptime AI, nunca o veredito do caso: **Close Case** começa no veredito que ela sugere, e uma pessoa escolhe. Abaixo da leitura, o cartão mostra:
 
 - **Prioridade sugerida**, com **Definir prioridade** quando o caso está em outra prioridade.
-- **Playbook sugerido**, com **Executar playbook**, que o executa em seu nome, com cada aprovação de que ele precisar. Enquanto esse playbook já está em execução no caso, o status da execução, como **Aguardando aprovação**, toma o lugar de **Executar playbook**: a execução está em **Execuções de playbooks** do caso, e uma segunda pediria a mesma aprovação de novo.
+- **Playbook sugerido**, com **Executar playbook**, que o executa em seu nome, com cada aprovação de que ele precisar. Enquanto esse playbook já está em execução no caso, o status da execução, como **Aguardando aprovação**, toma o lugar de **Executar playbook**: a execução está em **Playbooks** do caso, e uma segunda pediria a mesma aprovação de novo.
 - O relatório: o que aconteceu, o quanto a leitura é segura e o que fazer em seguida, cada afirmação seguida de uma citação como C1.
 - **Evidence checked**: cada consulta que a classificação executou. Uma citação abre a consulta dela, e expandir uma consulta a executa de novo com as suas permissões, sobre o período que a classificação leu.
 - **Perguntar sobre este caso**, que abre o Ask AI no caso.

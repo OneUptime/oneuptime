@@ -34800,5 +34800,6 @@
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime ne peut pas être sûr qu'il s'agit des mêmes enregistrements, ils ne sont donc ni comptés sur leurs pages ni liés aux incidents.",
   "Possible matches": "Correspondances possibles",
   "Some kinds of record could not be read, so it may still be in OneUptime.": "Certains types d'enregistrements n'ont pas pu être lus, il peut donc quand même se trouver dans OneUptime.",
-  "Approvals": "Approbations"
+  "Approvals": "Approbations",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Ce playbook est déjà en cours sur ce dossier. Son exécution figure sous Playbooks du dossier."
 }

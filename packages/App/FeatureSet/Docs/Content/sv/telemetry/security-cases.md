@@ -88,7 +88,7 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | Avsnitt i sidomenyn | Sidor |
 | --- | --- |
 | **Översikt** | **Översikt**, **Tidslinje** |
-| **Utredning** | **Detections**, **Entiteter**, **Kopplade signaler**, **Playbook-körningar** |
+| **Utredning** | **Detections**, **Entiteter**, **Kopplade signaler**, **Playbooks** |
 | **Anteckningar** | **Privata anteckningar** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
@@ -101,7 +101,7 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).
-- **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbook-körningar**.
+- **Playbooks**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbooks**.
 - **Privata anteckningar**: vad teamet skrev om ärendet.
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
 - **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar, tidslinje och playbook-körningar. För att behålla det som dokumentation, stäng det i stället med en bedömning.

@@ -34800,5 +34800,6 @@
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime kan inte vara säker på att det är samma poster, så de räknas inte på sina sidor och kopplas inte till incidenter.",
   "Possible matches": "Möjliga matchningar",
   "Some kinds of record could not be read, so it may still be in OneUptime.": "Vissa typer av poster kunde inte läsas, så det kan ändå finnas i OneUptime.",
-  "Approvals": "Godkännanden"
+  "Approvals": "Godkännanden",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Den här playbooken körs redan för ärendet. Körningen finns under ärendets Playbooks."
 }

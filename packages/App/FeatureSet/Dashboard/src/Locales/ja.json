@@ -34800,5 +34800,6 @@
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime では同じレコードだと確信できないため、それぞれのページでは数えられず、インシデントにもリンクされません。",
   "Possible matches": "一致の可能性があるもの",
   "Some kinds of record could not be read, so it may still be in OneUptime.": "一部の種類のレコードを読み取れなかったため、OneUptime にある可能性があります。",
-  "Approvals": "承認待ち"
+  "Approvals": "承認待ち",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "このプレイブックはこのケースですでに実行中です。実行はケースの「Playbooks」にあります。"
 }

@@ -65,7 +65,7 @@ Elle peut aussi lire le reste de OneUptime comme le fait l'investigation d'un in
 La lecture est celle de OneUptime AI, jamais le verdict du dossier : **Close Case** part du verdict qu'elle propose, et une personne choisit. Sous la lecture, la carte affiche :
 
 - **Priorité suggérée**, avec **Définir la priorité** quand le dossier a une autre priorité.
-- **Playbook suggéré**, avec **Exécuter le playbook**, qui le lance en votre nom, avec chaque approbation dont il a besoin. Quand ce playbook s'exécute déjà sur le dossier, le statut de son exécution, comme **En attente d'approbation**, prend la place de **Exécuter le playbook** : l'exécution est dans **Exécutions de playbooks** du dossier, et une seconde demanderait à nouveau la même approbation.
+- **Playbook suggéré**, avec **Exécuter le playbook**, qui le lance en votre nom, avec chaque approbation dont il a besoin. Quand ce playbook s'exécute déjà sur le dossier, le statut de son exécution, comme **En attente d'approbation**, prend la place de **Exécuter le playbook** : l'exécution est dans **Playbooks** du dossier, et une seconde demanderait à nouveau la même approbation.
 - Le rapport : ce qui s'est passé, son degré de certitude et la suite à donner, chaque affirmation suivie d'une référence comme C1.
 - **Éléments vérifiés** : chaque requête exécutée par la qualification. Une référence ouvre sa requête, et en déplier une la relance avec vos autorisations, sur la période lue par la qualification.
 - **Poser une question sur ce dossier**, qui ouvre Demander à l'IA sur le dossier.

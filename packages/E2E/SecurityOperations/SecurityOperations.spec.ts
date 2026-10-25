@@ -2174,7 +2174,7 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Investigation",
-    title: "Playbook Runs",
+    title: "Playbooks",
     segment: "/playbook-runs",
     text: "Started on its own: Case Opened",
     slug: "playbook-runs",
@@ -3301,7 +3301,7 @@ test.describe("a case", () => {
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 
-  test("the Playbook Runs page: the held run with Approve and Reject, and its count beside the entry", async ({
+  test("the case's Playbooks page: the held run with Approve and Reject, and its count beside the entry", async ({
     page,
   }: {
     page: Page;
@@ -3316,22 +3316,22 @@ test.describe("a case", () => {
     await expect(held.getByRole("button", { name: "Approve" })).toBeEnabled();
     await expect(held.getByRole("button", { name: "Reject" })).toBeEnabled();
 
-    // One run of this case waits: counted beside Playbook Runs, on any page of it.
+    // One run of this case waits: counted beside Playbooks, on any page of it.
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("1");
     await menuEntry(page, "Timeline").click();
     await waitForCasePage(page, CASE_PAGES[1]!);
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("1");
 
     // Run Playbook is the header's: the card has no second one.
-    await menuEntry(page, "Playbook Runs").click();
+    await menuEntry(page, "Playbooks").click();
     await expect(held).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Run Playbook", exact: true }),
@@ -3352,7 +3352,7 @@ test.describe("a case", () => {
     });
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("1");
 
@@ -3386,7 +3386,7 @@ test.describe("a case", () => {
     // Nothing waits on this case any more.
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("");
   });
@@ -5451,10 +5451,13 @@ test.describe("detections", () => {
    * An entry shares its row with its count. Beside the 224px menu a tablet
    * has (768 to 1023px), "Waiting for Approval" was cut to "Waiting for
    * Appr…" - and in German, French and Italian at every width - and so were
-   * Assigned to Me's Dutch and Japanese names. The page is Approvals now,
-   * and those two are Mijn zaken and 自分の担当: every entry that carries a
-   * count keeps its whole name, in English and in the languages whose names
-   * ran longest, beside a tablet's menu and a laptop's.
+   * Assigned to Me's Dutch and Japanese names, and a case's Playbook Runs in
+   * ten languages (five of them at every width). The page is Approvals now,
+   * those two are Mijn zaken and 自分の担当, and a case's entry is
+   * Playbooks: every entry that carries a count - the three of Security
+   * Events' menu and the one of a case's - keeps its whole name, in English
+   * and in the languages whose names ran longest, beside a tablet's menu and
+   * a laptop's.
    */
   test("an entry keeps its whole name beside its count, beside a tablet's menu and in the longest languages", async ({
     page,
@@ -5475,30 +5478,41 @@ test.describe("detections", () => {
       [800, "fa"],
     ];
 
+    // Each counted entry, by the page whose menu draws it, its address and its count.
+    const counted: Array<[string, string, string]> = [
+      [OVERVIEW_PATH, CASES_PATH, "6"],
+      [OVERVIEW_PATH, MY_CASES_PATH, "2"],
+      [OVERVIEW_PATH, RUNS_PATH, "1"],
+      [SPRAY_CASE_PATH, `${SPRAY_CASE_PATH}/playbook-runs`, "1"],
+    ];
     const cutShort: Array<string> = [];
 
     for (const [width, lang] of views) {
-      await open(page, OVERVIEW_PATH, lang ? { width, lang } : { width });
+      for (const menuPage of [OVERVIEW_PATH, SPRAY_CASE_PATH]) {
+        await open(page, menuPage, lang ? { width, lang } : { width });
 
-      for (const [pathname, count] of [
-        [CASES_PATH, "6"],
-        [MY_CASES_PATH, "2"],
-        [RUNS_PATH, "1"],
-      ]) {
-        const entry: Locator = sideMenu(page).locator(`a[href="${pathname!}"]`);
-        await expect(entry).toContainText(count!, { timeout: 30000 });
+        for (const [onPage, pathname, count] of counted) {
+          if (onPage !== menuPage) {
+            continue;
+          }
 
-        const title: Locator = entry.locator("span.truncate").first();
-        const cutBy: number = await title.evaluate(
-          (element: Element): number => {
-            return element.scrollWidth - element.clientWidth;
-          },
-        );
-
-        if (cutBy > 0) {
-          cutShort.push(
-            `${(await title.textContent()) || ""} (${lang || "en"}, ${width}px): ${cutBy}px`,
+          const entry: Locator = sideMenu(page).locator(
+            `a[href="${pathname!}"]`,
           );
+          await expect(entry).toContainText(count!, { timeout: 30000 });
+
+          const title: Locator = entry.locator("span.truncate").first();
+          const cutBy: number = await title.evaluate(
+            (element: Element): number => {
+              return element.scrollWidth - element.clientWidth;
+            },
+          );
+
+          if (cutBy > 0) {
+            cutShort.push(
+              `${(await title.textContent()) || ""} (${lang || "en"}, ${width}px): ${cutBy}px`,
+            );
+          }
         }
       }
     }

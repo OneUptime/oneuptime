@@ -88,7 +88,7 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | Seção do menu lateral | Páginas |
 | --- | --- |
 | **Visão geral** | **Visão geral**, **Linha do tempo** |
-| **Investigação** | **Detections**, **Entidades**, **Sinais conectados**, **Execuções de playbooks** |
+| **Investigação** | **Detections**, **Entidades**, **Sinais conectados**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
@@ -101,7 +101,7 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 - **Detections**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).
-- **Execuções de playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Execuções de playbooks**.
+- **Playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Playbooks**.
 - **Notas privadas**: o que a equipe escreveu sobre o caso.
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
 - **Excluir caso**: exclui o caso para sempre, com as detecções, notas, linha do tempo e execuções de playbooks dele. Para manter o registro, feche-o com um veredito.

@@ -303,7 +303,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
    * in place of Run playbook, which would start a second run asking for the
    * same approval again. Read again when the page says a run started or
    * moved on, and every few seconds while that run is still going - as
-   * Playbook Runs below is - so its end brings Run playbook back.
+   * the case's Playbooks page is - so its end brings Run playbook back.
    */
   useEffect(() => {
     const playbookId: string | undefined = result.suggestedPlaybookId;

@@ -27,7 +27,7 @@ export interface ComponentProps {
  * menus have, where a case has pages for them. Advanced folds by its title,
  * as theirs does, and opens by itself on its own pages.
  *
- * Beside Playbook Runs, how many of the case's runs wait for an approval
+ * Beside Playbooks, how many of the case's runs wait for an approval
  * (SecurityCaseMenuBadgeCount.ts): seen from any page of the case.
  */
 const SecurityCaseSideMenu: FunctionComponent<ComponentProps> = (
