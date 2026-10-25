@@ -3,7 +3,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import AlertInternalNoteService from "../../../../Services/AlertInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";

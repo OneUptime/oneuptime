@@ -1,4 +1,4 @@
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "./Botbuilder";
 import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";

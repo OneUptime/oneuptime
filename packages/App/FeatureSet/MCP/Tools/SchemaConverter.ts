@@ -6,23 +6,9 @@
 import { JSONSchemaProperty } from "../Types/McpTypes";
 import { ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
 import { AnalyticsModelSchemaType } from "Common/Utils/Schema/AnalyticsModelSchema";
+import { getSchemaFields, SchemaField } from "Common/Utils/Schema/SchemaFields";
 
-// Type for Zod field definition
-interface ZodFieldDef {
-  typeName?: string;
-  innerType?: ZodField;
-  description?: string;
-  openapi?: {
-    metadata?: OpenApiMetadata;
-  };
-}
-
-// Type for Zod field
-interface ZodField {
-  _def?: ZodFieldDef;
-}
-
-// Type for OpenAPI metadata
+// The OpenAPI metadata a property is built from.
 interface OpenApiMetadata {
   type?: string;
   description?: string;
@@ -31,13 +17,6 @@ interface OpenApiMetadata {
   default?: unknown;
   items?: JSONSchemaProperty;
   enum?: Array<string | number | boolean>;
-}
-
-// Type for Zod schema with shape
-interface ZodSchemaWithShape {
-  _def?: {
-    shape?: () => Record<string, ZodField>;
-  };
 }
 
 // Result type for schema conversion
@@ -55,25 +34,21 @@ export function zodToJsonSchema(
   zodSchema: ModelSchemaType | AnalyticsModelSchemaType,
 ): ZodToJsonSchemaResult {
   try {
-    const schemaWithShape: ZodSchemaWithShape =
-      zodSchema as unknown as ZodSchemaWithShape;
-    const shapeFunction: (() => Record<string, ZodField>) | undefined =
-      schemaWithShape._def?.shape;
-
-    if (!shapeFunction) {
-      return createEmptySchema();
-    }
-
-    const shape: Record<string, ZodField> = shapeFunction();
+    /*
+     * Read through Common's SchemaFields, never zod's internals: a zod
+     * upgrade changes those (zod 4 has none of zod 3's _def.shape() or
+     * _def.typeName), and every tool would quietly lose its fields.
+     */
+    const fields: Array<SchemaField> = getSchemaFields(zodSchema);
     const properties: Record<string, JSONSchemaProperty> = {};
     const required: string[] = [];
 
-    for (const [key, value] of Object.entries(shape)) {
-      const { property, isRequired } = convertZodField(key, value);
-      properties[key] = property;
+    for (const field of fields) {
+      const { property, isRequired } = convertSchemaField(field);
+      properties[field.name] = property;
 
       if (isRequired) {
-        required.push(key);
+        required.push(field.name);
       }
     }
 
@@ -94,30 +69,25 @@ export function zodToJsonSchema(
 }
 
 /**
- * Convert a single Zod field to JSON Schema property
+ * Convert a single schema field to JSON Schema property
  */
-function convertZodField(
-  key: string,
-  zodField: ZodField,
-): { property: JSONSchemaProperty; isRequired: boolean } {
-  // Handle ZodOptional fields by looking at the inner type
-  let actualField: ZodField = zodField;
-  let isOptional: boolean = false;
+function convertSchemaField(field: SchemaField): {
+  property: JSONSchemaProperty;
+  isRequired: boolean;
+} {
+  const key: string = field.name;
 
-  if (zodField._def?.typeName === "ZodOptional") {
-    actualField = zodField._def.innerType || zodField;
-    isOptional = true;
-  }
-
-  // Extract OpenAPI metadata
-  const openApiMetadata: OpenApiMetadata | undefined =
-    actualField._def?.openapi?.metadata || zodField._def?.openapi?.metadata;
+  /*
+   * For an optional field, the metadata of the value inside .optional(),
+   * else the field's own.
+   */
+  const openApiMetadata: OpenApiMetadata | undefined = field.openApi as
+    | OpenApiMetadata
+    | undefined;
 
   // Clean up description
   const rawDescription: string =
-    zodField._def?.description ||
-    openApiMetadata?.description ||
-    `${key} field`;
+    field.description || openApiMetadata?.description || `${key} field`;
   const cleanDescription: string = cleanFieldDescription(rawDescription);
 
   let property: JSONSchemaProperty;
@@ -138,7 +108,7 @@ function convertZodField(
 
   return {
     property,
-    isRequired: !isOptional,
+    isRequired: !field.isOptional,
   };
 }
 

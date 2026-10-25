@@ -4,16 +4,6 @@
       "advisory": "GHSA-86w9-cpqp-85rv",
       "expires": "2026-11-01",
       "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest (the advisory was widened to it on 2026-10-01). It comes in only through acme-client 5.4.0, the latest acme-client, which loads it for its legacy forge API. OneUptime calls acme.crypto (createCsr, readCertificateInfo in Common/Server/Utils/Greenlock/Greenlock.ts), which is built on Node's crypto and @peculiar/x509, and acme-client's forge module only generates keys and signs CSRs: nothing here verifies an RSA PKCS#1 v1.5 signature with node-forge, which is where the advisory's forged signatures are accepted."
-    },
-    {
-      "advisory": "GHSA-mrhx-c7xc-m3w5",
-      "expires": "2026-11-06",
-      "reason": "zod has no fixed 3.x release: every version below 4.6.6 is affected and 3.25.76 is the latest 3.x. Common's zod 3 comes from botbuilder 4.23.3, the latest (botbuilder-core, botframework-connector and botframework-schema require zod ^3.23.8), from @asteasolutions/zod-to-openapi 7, and from Common's own Utils/Schema, which builds the OpenAPI document and the MCP tools' schemas from the models and parses nothing with them. The advisory's memory exhaustion is in parsing an array schema with no length limit, which keeps an issue for every failing element. botbuilder's only parse of an incoming request is z.record(z.unknown()) on the activity (CloudAdapter.process), which has no array schema and cannot fail per element, and its other zod uses read its own configuration and credentials. App's zod 4 (the MCP SDK's, which validates tool arguments) is upgraded to 4.6.7. Moving Common to zod 4 is a follow-up."
-    },
-    {
-      "advisory": "GHSA-xcx6-jx8p-x3h5",
-      "expires": "2026-11-06",
-      "reason": "@azure/msal-node has no fixed release that its parent accepts: the fix is 7.1.0, and @azure/identity 4.14.0, the latest, requires msal-node ^6.0.0 (no 6.x is patched). It comes in only through tedious, the SQL Server driver under mssql, which calls @azure/identity only for a Microsoft Entra ID authentication type. OneUptime never sets one: SQL Server connections use SQL credentials (tedious's default authentication) or Windows integrated authentication through an ODBC connection string OneUptime builds and escapes itself (buildSqlServerIntegratedConnectionString), so MSAL never runs. The advisory is about MSAL Node's authorization code flow, the interactive sign-in a web app redirects a person through, which tedious does not use either. OneUptime's own Microsoft sign-ins build their OAuth requests themselves, and botbuilder's msal-node 2.16.3 is outside the affected range."
     }
   ],
   "packages/MobileApp": [
@@ -24,15 +14,8 @@
     },
     {
       "advisory": "GHSA-mrhx-c7xc-m3w5",
-      "expires": "2026-11-06",
-      "reason": "zod has no fixed 3.x release: every version below 4.6.6 is affected and 3.25.76 is the latest 3.x. It comes in only through Expo's developer tooling, @expo/cli 57.0.32 (the latest @expo/cli still requires zod ^3.25.76), which runs in Node on the developer's machine and is not bundled into the app. It validates the developer's own project configuration, never input from an attacker."
-    }
-  ],
-  "packages/Probe": [
-    {
-      "advisory": "GHSA-xcx6-jx8p-x3h5",
-      "expires": "2026-11-06",
-      "reason": "@azure/msal-node has no fixed release that its parent accepts: the fix is 7.1.0, and @azure/identity 4.14.0, the latest, requires msal-node ^6.0.0 (no 6.x is patched). It comes in only through tedious, the SQL Server driver under mssql, which calls @azure/identity only for a Microsoft Entra ID authentication type. OneUptime never sets one: the Probe's SQL Server monitors (SqlMonitor, DatabaseMonitor) connect with SQL credentials (tedious's default authentication) or Windows integrated authentication through an ODBC connection string OneUptime builds and escapes itself (buildSqlServerIntegratedConnectionString), so MSAL never runs. The advisory is about MSAL Node's authorization code flow, the interactive sign-in a web app redirects a person through, which tedious does not use either. OneUptime's own Microsoft sign-ins build their OAuth requests themselves, and botbuilder's msal-node 2.16.3 is outside the affected range."
+      "expires": "2026-12-04",
+      "reason": "zod has no fixed 3.x release: every version below 4.6.6 is affected and 3.25.76 is the latest 3.x. It comes in only through Expo's developer tooling, @expo/cli 57.0.32: every @expo/cli still requires zod ^3.25.76, the newest (58.1.15) included (checked on 2026-10-25). @expo/cli runs in Node on the developer's machine and is not bundled into the app; it validates the developer's own project configuration and dev tools plugins, never input from an attacker. packages/Common moved to zod 4 on 2026-10-25 and has no zod 3 left."
     }
   ]
 }

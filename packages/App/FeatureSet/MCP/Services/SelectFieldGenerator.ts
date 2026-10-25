@@ -7,8 +7,12 @@ import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
-import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
+import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
+import {
+  AnalyticsModelSchema,
+  AnalyticsModelSchemaType,
+} from "Common/Utils/Schema/AnalyticsModelSchema";
+import { getSchemaFieldNames } from "Common/Utils/Schema/SchemaFields";
 import {
   getTableColumns,
   TableColumnMetadata,
@@ -97,13 +101,6 @@ interface ColumnAccessControl {
   read?: Permission[];
   create?: Permission[];
   update?: Permission[];
-}
-
-// Type for Zod schema shape
-interface ZodSchemaWithShape {
-  _def?: {
-    shape?: Record<string, unknown> | (() => Record<string, unknown>);
-  };
 }
 
 /**
@@ -343,7 +340,7 @@ function generateSelectFromSchema(
   tableName: string,
   modelType: ModelType,
 ): JSONObject {
-  let selectSchema: ZodSchemaWithShape;
+  let selectSchema: ModelSchemaType | AnalyticsModelSchemaType;
 
   if (modelType === ModelType.Database) {
     MCPLogger.debug(
@@ -351,40 +348,27 @@ function generateSelectFromSchema(
     );
     selectSchema = ModelSchema.getSelectModelSchema({
       modelType: ModelClass as ModelConstructor<BaseModel>,
-    }) as ZodSchemaWithShape;
+    });
   } else {
     MCPLogger.debug(
       `Generating schema for analytics model: ${(ModelClass as { name: string }).name}`,
     );
     selectSchema = AnalyticsModelSchema.getModelSchema({
       modelType: ModelClass as ModelConstructor<AnalyticsBaseModel>,
-    }) as ZodSchemaWithShape;
+    });
   }
 
-  // Extract field names from the schema
+  // Extract field names from the schema (Common's SchemaFields reads it)
   const selectObject: JSONObject = {};
-  const rawShape:
-    | Record<string, unknown>
-    | (() => Record<string, unknown>)
-    | undefined = selectSchema._def?.shape;
+  const fieldNames: string[] = getSchemaFieldNames(selectSchema);
 
-  // Handle both function and object shapes
-  const shape: Record<string, unknown> | undefined =
-    typeof rawShape === "function" ? rawShape() : rawShape;
-
+  MCPLogger.debug(`Schema shape keys: ${fieldNames.length}`);
   MCPLogger.debug(
-    `Schema shape keys: ${shape ? Object.keys(shape).length : 0}`,
+    `Available fields: ${fieldNames.slice(0, 10).join(", ")}${fieldNames.length > 10 ? "..." : ""}`,
   );
 
-  if (shape) {
-    const fieldNames: string[] = Object.keys(shape);
-    MCPLogger.debug(
-      `Available fields: ${fieldNames.slice(0, 10).join(", ")}${fieldNames.length > 10 ? "..." : ""}`,
-    );
-
-    for (const fieldName of fieldNames) {
-      selectObject[fieldName] = true;
-    }
+  for (const fieldName of fieldNames) {
+    selectObject[fieldName] = true;
   }
 
   MCPLogger.debug(

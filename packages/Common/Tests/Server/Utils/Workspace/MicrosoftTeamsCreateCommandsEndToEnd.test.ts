@@ -91,6 +91,13 @@ import moment from "moment-timezone";
  *   (botbuilder-core, botframework-connector, @azure/*, zod...) through
  *   Node's own loader, outside jest's registry and mapper.
  *
+ * - Node's loader has its own copy of zod (Common's zod 4, which botbuilder
+ *   shares through the package.json override), and botbuilder needs the two
+ *   zod 3 names BotbuilderOnZod4 adds before it can be loaded. The factory
+ *   therefore goes through Tests/Helpers/RealBotbuilder's loadRealBotbuilder,
+ *   which adds them to Node's zod and then loads botbuilder, as production's
+ *   Server/Utils/Workspace/MicrosoftTeams/Botbuilder does.
+ *
  * - Consequence: the real stack lives in the worker's OUTER realm (real Node
  *   globals), while the code under test runs in the jsdom test realm. Errors
  *   the connector throws are outer-realm Errors, so `err instanceof Error` is
@@ -138,13 +145,11 @@ import moment from "moment-timezone";
  * because jest hoists this call above every import and declaration.
  */
 jest.mock("botbuilder", () => {
-  const nodeModuleBuiltin: typeof import("module") =
-    typeof process.getBuiltinModule === "function"
-      ? process.getBuiltinModule("module")
-      : // Fallback: jest's shim subclasses the real Module class.
-        Object.getPrototypeOf(jest.requireActual("module"));
-
-  return nodeModuleBuiltin.createRequire(__filename)("botbuilder");
+  return (
+    jest.requireActual("../../../Helpers/RealBotbuilder") as {
+      loadRealBotbuilder: (fromFile: string) => unknown;
+    }
+  ).loadRealBotbuilder(__filename);
 });
 
 jest.mock("../../../../Server/EnvironmentConfig", () => {

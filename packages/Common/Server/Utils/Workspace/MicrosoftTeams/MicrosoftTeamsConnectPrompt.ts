@@ -1,4 +1,4 @@
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "./Botbuilder";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";

@@ -5,7 +5,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";

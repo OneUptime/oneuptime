@@ -7,7 +7,7 @@ import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import { JSONObject } from "../../Types/JSON";
 import { ModelSchema } from "../../Utils/Schema/ModelSchema";
-import { SafeParseReturnType, ZodObject, ZodRawShape, ZodTypeAny } from "zod";
+import { ZodObject, ZodRawShape, ZodSafeParseResult, ZodTypeAny } from "zod";
 
 /*
  * What the published API says about "notify subscribers" on a new incident
@@ -85,7 +85,7 @@ describe("IncidentPublicNote notify-on-create column contract", () => {
 
     expect(fieldSchema).toBeDefined();
 
-    const parsed: SafeParseReturnType<unknown, unknown> =
+    const parsed: ZodSafeParseResult<unknown> =
       fieldSchema.safeParse(undefined);
 
     expect(parsed.success).toBe(true);
