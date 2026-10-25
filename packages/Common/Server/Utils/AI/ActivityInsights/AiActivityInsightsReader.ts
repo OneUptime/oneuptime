@@ -31,6 +31,7 @@ import { PROFILE_INSIGHT_FINGERPRINT_PREFIX } from "../../../../Utils/Profiles/P
 import { isTraceInsightFingerprintOfService } from "../../../../Utils/Traces/TraceInsight";
 import { isExceptionStackTraceFingerprintOfService } from "../../../../Utils/Exceptions/ExceptionInsight";
 import { isLogInsightFingerprintOfService } from "../../../../Utils/Logs/LogInsight";
+import { isMetricInsightFingerprintOfService } from "../../../../Utils/Metrics/MetricInsight";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
   AI_ACTIVITY_INSIGHTS_MAX_FIXES,
@@ -243,8 +244,9 @@ function toAlertSubject(alert: Alert): AiActivitySubjectInput {
  * the detectors embed the entity a finding is about in its fingerprint
  * (ErrorLogSpikeDetector, MetricDriftDetector, TraceLatencyRegressionDetector,
  * DeployRegressionDetector, ProfileHotspotDetector, TraceProblemDetector,
- * ExceptionMissingStackTraceDetector), and an exception finding's exception
- * belongs to it (exceptionOwners).
+ * ExceptionMissingStackTraceDetector, LogProblemDetector,
+ * MetricProblemDetector), and an
+ * exception finding's exception belongs to it (exceptionOwners).
  */
 export function isPreventiveInsightAboutScope(data: {
   insight: Pick<
@@ -287,6 +289,11 @@ export function isPreventiveInsightAboutScope(data: {
     case AIInsightType.LogMissingLogging:
     case AIInsightType.LogNoisyPattern:
       return isLogInsightFingerprintOfService(fingerprint, scopeId);
+    // A service's metrics: Utils/Metrics/MetricInsight's fingerprints.
+    case AIInsightType.MetricHighCardinality:
+    case AIInsightType.MetricHistogramBuckets:
+    case AIInsightType.MetricMissingMetrics:
+      return isMetricInsightFingerprintOfService(fingerprint, scopeId);
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {
       const exceptionId: string | undefined =

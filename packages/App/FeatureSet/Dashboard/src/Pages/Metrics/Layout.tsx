@@ -9,11 +9,15 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveMetricsTab: (path: string) => MetricsTabKey = (
+// Which of Metrics' tabs a page is under (its AI pages: the AI tab).
+export const getActiveMetricsTab: (path: string) => MetricsTabKey = (
   path: string,
 ): MetricsTabKey => {
   if (path.includes("/metrics/settings")) {
     return "settings";
+  }
+  if (path.includes("/metrics/ai/")) {
+    return "ai";
   }
   if (path.includes("/metrics/insights")) {
     return "insights";

@@ -124,8 +124,8 @@ Toutes les 15 minutes, OneUptime parcourt vos exceptions à la recherche des nou
 
 | Constat | Quand OneUptime l'enregistre | La pull request |
 | --- | --- | --- |
-| **New Exception** | Une exception vue pour la première fois au cours des dernières 24 heures et qui s'est déjà produite 3 fois ou plus. | Corrige l'exception, ou la gère mieux. |
-| **Exception Spike** | Une exception qui s'est produite 10 fois ou plus au cours de la dernière heure, à 5 fois ou plus son rythme horaire des 24 heures précédentes. | Corrige l'exception, ou la gère mieux. |
+| **Nouvelle exception** | Une exception vue pour la première fois au cours des dernières 24 heures et qui s'est déjà produite 3 fois ou plus. | Corrige l'exception, ou la gère mieux. |
+| **Pic d'exceptions** | Une exception qui s'est produite 10 fois ou plus au cours de la dernière heure, à 5 fois ou plus son rythme horaire des 24 heures précédentes. | Corrige l'exception, ou la gère mieux. |
 | **Stack trace manquante** | Les exceptions qu'un service a enregistrées le dernier jour n'ont aucune stack trace et se sont produites, ensemble, 20 fois ou plus. | Fait enregistrer au service une stack trace avec chaque exception. |
 
 La pull request d'une exception nouvelle ou en hausse est la tâche IA propre à l'exception, celle que lance sa page **Assistance IA**, et elle attend qu'OneUptime AI ait examiné le constat. S'il trouve le code en cause (`code-fault`), la pull request le corrige, comme le fait **Corriger cette exception avec l'IA**. S'il trouve une erreur attendue (`user-error` ou `expected-denial`), la pull request gère mieux l'erreur, comme le fait **Améliorer la gestion des erreurs**. Tout autre verdict n'ouvre aucune pull request de lui-même. Avec **Archiver les exceptions attendues** activé, un refus attendu est archivé à la place et n'obtient aucune pull request.

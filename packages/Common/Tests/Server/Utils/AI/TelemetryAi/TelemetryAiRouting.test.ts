@@ -19,6 +19,7 @@ import TelemetryAiRouting, {
 import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRules";
 import TraceInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/TraceInsightFix";
 import LogInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/LogInsightFix";
+import MetricInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/MetricInsightFix";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -346,12 +347,13 @@ describe("TelemetryAiRouting.sweepLane", () => {
     });
   });
 
-  test("every lane has its fix starter: the Profiler's, Traces', Exceptions' and Logs'", () => {
+  test("every lane has its fix starter: the Profiler's, Traces', Exceptions', Logs' and Metrics'", () => {
     expect(Object.keys(TELEMETRY_AI_FIX_STARTERS)).toEqual([
       TelemetryAiLane.Profile,
       TelemetryAiLane.Trace,
       TelemetryAiLane.Exception,
       TelemetryAiLane.Log,
+      TelemetryAiLane.Metric,
     ]);
   });
 
@@ -722,5 +724,188 @@ describe("TelemetryAiRouting.sweepLane - the Log lane", () => {
     expect(triage.mock.calls[0]![0].llmProviderId?.toString()).toBe(
       LLM_PROVIDER,
     );
+  });
+});
+
+/*
+ * Metrics' look: the same routing and its own fix starter. Every kind of
+ * metric problem is a fact about the code read straight off the data, so
+ * no pull request waits for an investigation's verdict.
+ */
+describe("TelemetryAiRouting.sweepLane - the Metric lane", () => {
+  let problems: Array<AIInsight>;
+  let rules: Array<AutoRemediationRule> | null;
+  let findProblems: SpyInstance<typeof AIInsightService.findBy>;
+  let triage: SpyInstance<typeof InsightTriage.enqueueInsightTriage>;
+  let startMetricFix: SpyInstance<typeof MetricInsightFix.start>;
+  let startTraceFix: SpyInstance<typeof TraceInsightFix.start>;
+  let startProfileFix: SpyInstance<typeof ProfileInsightFix.start>;
+  let attach: SpyInstance<typeof AIInsightService.updateOneBy>;
+  const fixTaskId: ObjectID = ObjectID.generate();
+
+  function metricProblem(overrides: Partial<AIInsight> = {}): AIInsight {
+    return problem({
+      insightType: AIInsightType.MetricHighCardinality,
+      title:
+        "http.server.duration in checkout records 47,912 different user.id values an hour",
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    problems = [metricProblem()];
+    rules = [];
+
+    findProblems = jest
+      .spyOn(AIInsightService, "findBy")
+      .mockImplementation(async () => {
+        return problems;
+      });
+    jest.spyOn(TelemetryAiRules, "readRules").mockImplementation(async () => {
+      return rules;
+    });
+    jest.spyOn(TelemetryAiRules, "readServices").mockResolvedValue(new Map());
+    triage = jest
+      .spyOn(InsightTriage, "enqueueInsightTriage")
+      .mockResolvedValue({ triageAiRunId: ObjectID.generate() });
+    startMetricFix = jest
+      .spyOn(MetricInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    startTraceFix = jest
+      .spyOn(TraceInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    startProfileFix = jest
+      .spyOn(ProfileInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    attach = jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function sweep(over?: Project): Promise<TelemetryAiSweepResult> {
+    return TelemetryAiRouting.sweepLane({
+      project:
+        over ||
+        project({
+          enableAutomaticProfileRemediation: false,
+          enableAutomaticTraceRemediation: false,
+          enableAutomaticMetricRemediation: true,
+        }),
+      lane: TelemetryAiLane.Metric,
+      now: NOW,
+    });
+  }
+
+  test("its switch is its own: off, nothing is read, whatever the other lanes' say", async () => {
+    await sweep(
+      project({
+        enableAutomaticProfileRemediation: true,
+        enableAutomaticTraceRemediation: true,
+        enableAutomaticMetricRemediation: false,
+      }),
+    );
+
+    expect(findProblems).not.toHaveBeenCalled();
+    expect(startMetricFix).not.toHaveBeenCalled();
+  });
+
+  test("with Enable AI off, nothing is read even with its switch on", async () => {
+    await sweep(
+      project({ enableAi: false, enableAutomaticMetricRemediation: true }),
+    );
+
+    expect(findProblems).not.toHaveBeenCalled();
+  });
+
+  test("reads Metrics' three kinds of finding, and starts Metrics' own fix", async () => {
+    const result: TelemetryAiSweepResult = await sweep();
+
+    const query: JSONObject = (
+      findProblems.mock.calls[0]![0] as unknown as JSONObject
+    )["query"] as JSONObject;
+
+    for (const type of [
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ]) {
+      expect(JSON.stringify(query["insightType"])).toContain(type);
+    }
+
+    for (const type of [
+      AIInsightType.ProfileHotspot,
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.MetricDrift,
+    ]) {
+      expect(JSON.stringify(query["insightType"])).not.toContain(type);
+    }
+
+    expect(result.fixesStarted).toBe(1);
+    expect(startMetricFix).toHaveBeenCalledTimes(1);
+    expect(startTraceFix).not.toHaveBeenCalled();
+    expect(startProfileFix).not.toHaveBeenCalled();
+  });
+
+  test("every kind opens its pull request with its investigation: none waits for a verdict", async () => {
+    problems = [
+      metricProblem(),
+      metricProblem({ insightType: AIInsightType.MetricHistogramBuckets }),
+      metricProblem({ insightType: AIInsightType.MetricMissingMetrics }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).toHaveBeenCalledTimes(3);
+    expect(startMetricFix).toHaveBeenCalledTimes(3);
+    expect(result.investigationsStarted).toBe(3);
+    expect(result.fixesStarted).toBe(3);
+    expect(result.waitingForVerdict).toBe(0);
+  });
+
+  test("the fix is attached to its insight only while the insight has none", async () => {
+    await sweep();
+
+    const update: JSONObject = attach.mock
+      .calls[0]![0] as unknown as JSONObject;
+    const query: JSONObject = update["query"] as JSONObject;
+
+    expect(sqlOf(query["fixAiRunId"])).toContain("IS NULL");
+    expect((update["data"] as JSONObject)["fixAiRunId"]).toBe(fixTaskId);
+    expect((update["data"] as JSONObject)["status"]).toBe(
+      AIInsightStatus.FixOpened,
+    );
+  });
+
+  test("a problem no longer found is left alone", async () => {
+    problems = [
+      metricProblem({ lastSeenAt: new Date(NOW.getTime() - 3 * HOUR) }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).not.toHaveBeenCalled();
+    expect(startMetricFix).not.toHaveBeenCalled();
+    expect(result.investigationsStarted).toBe(0);
+  });
+
+  test("ask before fixing investigates and opens nothing", async () => {
+    rules = [rule({ executionMode: AutoRemediationExecutionMode.Suggest })];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).toHaveBeenCalledTimes(1);
+    expect(startMetricFix).not.toHaveBeenCalled();
+    expect(result.fixesStarted).toBe(0);
+  });
+
+  test("a fix that cannot start yet attaches nothing, and is looked at again on the next look", async () => {
+    startMetricFix.mockResolvedValue({ skip: undefined });
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(result.fixesStarted).toBe(0);
+    expect(attach).not.toHaveBeenCalled();
   });
 });

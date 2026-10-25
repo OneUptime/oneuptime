@@ -8,6 +8,7 @@ import ProfileInsightFix from "./ProfileInsightFix";
 import { TelemetryAiFixResult } from "./TelemetryAiFix";
 import TraceInsightFix from "./TraceInsightFix";
 import LogInsightFix from "./LogInsightFix";
+import MetricInsightFix from "./MetricInsightFix";
 import TelemetryAiRules, { TelemetryAiRuleService } from "./TelemetryAiRules";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
@@ -95,6 +96,12 @@ export const TELEMETRY_AI_FIX_STARTERS: Record<
     work: TelemetryAiWork;
   }): Promise<TelemetryAiFixResult> => {
     return LogInsightFix.start(data);
+  },
+  [TelemetryAiLane.Metric]: (data: {
+    insight: AIInsight;
+    work: TelemetryAiWork;
+  }): Promise<TelemetryAiFixResult> => {
+    return MetricInsightFix.start(data);
   },
 };
 
