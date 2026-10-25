@@ -9,6 +9,8 @@ import {
 } from "../../../Components/Inventory/InventoryBadges";
 import InventoryAttributes from "../../../Components/Inventory/InventoryAttributes";
 import InventoryAssetDetailsCard from "../../../Components/Inventory/InventoryAssetDetailsCard";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import {
   InventorySourceDescriptor,
   getInventorySourceDescriptor,
@@ -209,6 +211,16 @@ const InventoryItemOverview: FunctionComponent<
        * unknown ones named (issue #4569). Nothing for any other type.
        */}
       <InventoryAssetDetailsCard item={entity} />
+
+      {/*
+       * What Security Events found about the machine this week - by its
+       * names and its public addresses - for whoever may read it. Nothing
+       * for an item that is not a machine (Components/SecurityConnections).
+       */}
+      <ResourceSecurityCard
+        kind={SecurityConnectionKind.InventoryItem}
+        modelId={modelId}
+      />
 
       <InventoryAttributes
         identifyingAttributes={entity.identifyingAttributes}

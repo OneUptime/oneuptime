@@ -89,9 +89,9 @@ Dans un environnement, chaque tâche, instance ou réplica en cours obtient une 
 
 L'identité propre de la plateforme vient en premier, exprès. Un collecteur sidecar et le SDK de l'application la voient tous les deux, et elle survit aux redémarrages. Un SDK invente généralement un nouveau `service.instance.id` pour chaque processus (le SDK Node.js le fait par défaut), si bien qu'une clé basée dessus partagerait une tâche ECS en deux lignes. `service.instance.id` est utilisé quand la plateforme ne définit aucune identité propre. La colonne **Identité d'instance** de [Plateformes prises en charge](#plateformes-prises-en-charge) indique l'attribut qu'utilise une configuration type sur chaque plateforme.
 
-### Environnements créés à la main
+### Ajouter un environnement
 
-C'est rarement nécessaire : l'ingestion crée les environnements pour vous. Pour en créer un avant sa télémétrie, ouvrez **Cloud → Tous les environnements** et cliquez sur **Créer : Ressource cloud**. Choisissez la **Plateforme cloud**, puis saisissez l'**ID de compte cloud** et la **Région cloud** exactement comme votre télémétrie les rapporte. OneUptime construit la clé `platform|account|region` à partir de ces trois valeurs, et l'ingestion associe un environnement par sa clé seule. Il nomme l'environnement comme le ferait l'ingestion ; pour afficher un autre nom, ouvrez **Plus de champs** et saisissez-le dans **Nom d'affichage**.
+L'ingestion crée les environnements pour vous : il n'y a donc rien à saisir. Ouvrez **Cloud → Tous les environnements** et cliquez sur **Ajouter un environnement cloud** : choisissez où s'exécute votre application, et le guide affiche les paramètres OpenTelemetry de cette plateforme, avec votre URL OneUptime et votre clé d'ingestion déjà renseignées. Sa dernière étape, **Attendre la connexion**, indique quand les premières données de l'environnement sont arrivées et renvoie vers lui. Pour afficher un autre nom, choisissez **Modifier les détails** dans la carte **Détails de la ressource** de la page **Paramètres** de l'environnement et saisissez-le dans **Nom d'affichage**.
 
 ## Ce qui n'est pas un environnement cloud
 

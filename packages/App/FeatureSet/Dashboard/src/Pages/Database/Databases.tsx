@@ -21,6 +21,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -50,6 +51,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { getDatabaseServerDiscoverySourceLabel } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
 import DatabaseDocumentationCard from "../../Components/DatabaseServer/DocumentationCard";
+import DatabaseAddedModal from "../../Components/DatabaseServer/DatabaseAddedModal";
 import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/DatabaseServerSummaryStrip";
 import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
 import DatabaseLastSeenCell from "../../Components/DatabaseServer/DatabaseLastSeenCell";
@@ -108,6 +110,14 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * (isDatabaseFleetSummaryStale).
    */
   const [summaryRefreshToken, setSummaryRefreshToken] = useState<number>(0);
+  /*
+   * The database Add Database just saved: its agent guide opens on its own
+   * (DatabaseAddedModal), since the address alone brings no engine metrics.
+   */
+  const [addedDatabase, setAddedDatabase] = useState<{
+    id: ObjectID;
+    name: string;
+  } | null>(null);
   // When the strip last counted; it counts when it mounts with the page.
   const summaryRefreshedAtRef: React.MutableRefObject<number> = useRef<number>(
     Date.now(),
@@ -304,9 +314,18 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }
           return Promise.resolve(item);
         }}
-        onCreateSuccess={(item: DatabaseServer): Promise<DatabaseServer> => {
+        onCreateSuccess={(
+          item: DatabaseServer,
+          modalType?: ModalType,
+        ): Promise<DatabaseServer> => {
           firstRecordWatch.onRecordCreated();
           refreshSummary();
+          if (item._id && modalType !== ModalType.Edit) {
+            setAddedDatabase({
+              id: new ObjectID(item._id.toString()),
+              name: item.name || item.serverAddress || "",
+            });
+          }
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -640,6 +659,15 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <DatabaseDocumentationCard
           title="Getting Started with Databases"
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+        />
+      )}
+      {addedDatabase && (
+        <DatabaseAddedModal
+          databaseId={addedDatabase.id}
+          name={addedDatabase.name}
+          onClose={() => {
+            setAddedDatabase(null);
+          }}
         />
       )}
       {labelBulkActionModals}

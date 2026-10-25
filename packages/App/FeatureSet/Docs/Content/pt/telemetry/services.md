@@ -53,7 +53,7 @@ Acesse **Produtos → Recursos → Serviços**. **Todos os serviços** lista cad
 - Selecione vários serviços para adicionar rótulos ou proprietários a todos de uma vez, ou para arquivá-los.
 - Clique em um serviço para abrir as páginas dele.
 
-Para adicionar um serviço antes de a telemetria dele chegar, por exemplo para definir primeiro os proprietários, clique em **Criar: Serviço** e informe o **Nome** exatamente como será o `service.name` dele. As regras de rótulos e de proprietários se aplicam a ele como a um serviço descoberto.
+Para adicionar um serviço antes de a telemetria dele chegar, por exemplo para definir primeiro os proprietários, clique em **Criar: Serviço** e informe o **Nome** exatamente como será o `service.name` dele. As regras de rótulos e de proprietários se aplicam a ele como a um serviço descoberto. Depois de salvo, o guia de configuração do OpenTelemetry se abre com esse nome em todos os trechos, e a última etapa dele, **Aguardar a conexão**, avisa quando chegam os primeiros dados do serviço.
 
 ## As páginas de um serviço
 

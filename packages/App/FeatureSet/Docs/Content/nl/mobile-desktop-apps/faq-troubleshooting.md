@@ -32,9 +32,9 @@ Ja. Elke telefoon of tablet is een eigen pushapparaat, met eigen bereikbaarheids
 :::
 
 :::details Wat kan ik in de app doen?
-- **Home**: wat in het project aandacht nodig heeft: actieve incidenten en waarschuwingen, monitors met problemen en gegroepeerde gebeurtenissen.
+- **Home**: wat in het project aandacht nodig heeft: actieve incidenten en waarschuwingen, open beveiligingszaken als uw rol u ze laat zien, monitors met problemen en gegroepeerde gebeurtenissen.
 - **Monitors**: alle monitors, gefilterd op gezondheid, met hun details.
-- **Inbox**: incidenten en waarschuwingen, en de episodes die ze groeperen. Open er een om **Acknowledge**, **Resolve** of **Add Note** te gebruiken.
+- **Inbox**: incidenten en waarschuwingen, en de episodes die ze groeperen. Open er een om **Acknowledge**, **Resolve** of **Add Note** te gebruiken. Laat uw rol u de beveiligingszaken van het project zien, dan toont **Security** de open zaken: open er een om **Approve** of **Reject** te gebruiken voor een playbookstap die op goedkeuring wacht, de zaak op te pakken met **Assign to me** of **Close case** te gebruiken.
 - **On-Call**: of u dienst hebt en tot wanneer, wie nog meer, de oproepen die naar u gingen, en **Cover for me**, dat uw oproepen een tijdje aan een collega overdraagt.
 - **Settings**: uw projecten en single sign-on, het uiterlijk, kritieke meldingen en het alarmgeluid, **Biometrics Login**, uw agendafeed voor diensten, en **Log Out**.
 
@@ -42,7 +42,7 @@ Al het andere vindt u in het dashboard.
 :::
 
 :::details Kan ik een oproep vanuit de melding bevestigen?
-Nee. Tik op de melding: de app opent het incident, de waarschuwing of de episode waar het om gaat, in het juiste project, en daar bevestigt u. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
+Nee. Tik op de melding: de app opent het incident, de waarschuwing, de episode of de beveiligingszaak waar het om gaat, in het juiste project, en daar bevestigt u. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
 :::
 
 :::details Is mijn aanmelding veilig op de telefoon?

@@ -134,6 +134,12 @@
  *            reads that language's words, fetched from the Dashboard's own
  *            locale files (server.js serves them).
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?security= declared | naming | both
+ *            What Security Events says about Incident #1042 on its Security
+ *            card (POST /security-case/incident-security): the security
+ *            case that declared it, the open cases naming a host and the
+ *            cluster it affects, or both. Left out, Security Events has
+ *            nothing to say about any incident here, and no card is drawn.
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
  *            Slack / Open in Microsoft Teams): a comma list of slack (one
@@ -434,6 +440,12 @@ const roleMode = ["alert-member", "member", "owner-people", "loading"].includes(
 )
   ? params.get("role")
   : "owner";
+// ?security=: what Incident #1042's Security card is told.
+const securityMode = ["declared", "naming", "both"].includes(
+  params.get("security"),
+)
+  ? params.get("security")
+  : "";
 /*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
@@ -6452,6 +6464,75 @@ function handleCallTranscriptApi(method, url, body) {
   return null;
 }
 
+/*
+ * What Security Events says about an incident (?security=): for Incident
+ * #1042, the case that declared it, and the open cases naming the host and
+ * the cluster it affects, each with which; nothing for any other.
+ */
+function incidentSecurity(body) {
+  const nothing = {
+    declaredBy: [],
+    namingItsResources: [],
+    namingItsResourcesCount: 0,
+  };
+
+  if (!securityMode || body.incidentId !== ID.incident(1042)) {
+    return nothing;
+  }
+
+  const declaredBy = [
+    {
+      id: uuid("2f000000", 12),
+      number: "SEC-12",
+      title: "Credential stuffing against the checkout sign-in",
+      priorityName: "Critical",
+      priorityColor: "#dc2626",
+      statusName: "Contained",
+      statusColor: "#0ea5e9",
+      lastDetectedAt: ago(40 * 60 * 1000).toISOString(),
+    },
+  ];
+  const naming = [
+    {
+      id: uuid("2f000000", 15),
+      number: "SEC-15",
+      title: "Cryptominer on checkout-api-2",
+      priorityName: "High",
+      priorityColor: "#f97316",
+      statusName: "Investigating",
+      statusColor: "#3b82f6",
+      lastDetectedAt: ago(25 * 60 * 1000).toISOString(),
+      resources: [
+        { kind: "Host", id: uuid("2f100000", 1), name: "checkout-api-2" },
+        {
+          kind: "KubernetesCluster",
+          id: uuid("2f100000", 2),
+          name: "prod-eu-west-1",
+        },
+      ],
+    },
+    {
+      id: uuid("2f000000", 16),
+      number: "SEC-16",
+      title: "Outbound connection to a known-bad address from checkout-api-2",
+      priorityName: "Medium",
+      priorityColor: "#eab308",
+      statusName: "New",
+      statusColor: "#ef4444",
+      lastDetectedAt: ago(3 * 60 * 60 * 1000).toISOString(),
+      resources: [
+        { kind: "Host", id: uuid("2f100000", 1), name: "checkout-api-2" },
+      ],
+    },
+  ];
+
+  return {
+    declaredBy: securityMode === "naming" ? [] : declaredBy,
+    namingItsResources: securityMode === "declared" ? [] : naming,
+    namingItsResourcesCount: securityMode === "declared" ? 0 : 3,
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -6622,6 +6703,14 @@ async function handleApi(method, options) {
       }
       return ok({ answers: passOnAnswers(recordType, recordId) });
     }
+  }
+
+  /*
+   * An incident's Security card: the case that declared it, and the open
+   * cases naming what it affects (?security=). Nothing, for the rest.
+   */
+  if (method === "POST" && url.endsWith("/security-case/incident-security")) {
+    return ok(incidentSecurity(body));
   }
 
   // An incident call's transcript routes (?calls=).

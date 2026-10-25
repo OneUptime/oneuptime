@@ -25,6 +25,13 @@ import Navigation from "../../../UI/Utils/Navigation";
 import Clipboard from "../../../UI/Utils/Clipboard";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+  SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+  SecurityConnectionKind,
+} from "../../../Types/SecurityCase/SecurityConnection";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
+import { SECURITY_CONNECTIONS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/SecurityConnectionsCopy";
 import SecurityEventDetailPanel, {
   SECURITY_EVENT_DETAIL_ATTRIBUTES_TAB_ID,
   SECURITY_EVENT_DETAIL_JSON_TAB_ID,
@@ -46,6 +53,23 @@ import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "../../../../App/FeatureSe
  */
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
+
+// The Connected tab's read: what the event names in the rest of OneUptime.
+const getConnectionsMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getConnections: (...args: Array<unknown>) => {
+          return getConnectionsMock(...args);
+        },
+      },
+    };
+  },
+);
 
 function event(fields: Partial<SecurityEvent> = {}): SecurityEvent {
   return Object.assign(new SecurityEvent(), fields);
@@ -406,7 +430,94 @@ describe("the drawer is a modal", () => {
 
     const tablist: HTMLElement = screen.getByRole("tablist");
 
-    expect(within(tablist).getAllByRole("tab")).toHaveLength(3);
+    expect(
+      within(tablist)
+        .getAllByRole("tab")
+        .map((element: HTMLElement): string => {
+          return (element.textContent || "").replace(/[0-9]+$/, "").trim();
+        }),
+    ).toEqual(["Overview", "Attributes", "Connected", "JSON"]);
+  });
+});
+
+/*
+ * Connected: what the event names in the rest of OneUptime - its users,
+ * hosts and addresses as OneUptime knows them, in the hour around it, and
+ * the record its log line was sent under - read when the tab is opened,
+ * not before: most events are read without it.
+ */
+describe("what the event names in the rest of OneUptime", () => {
+  const HOST_ID: string = "30000000-0000-4000-8000-000000000001";
+
+  test("is read when Connected is opened: its entities, its time and the record its log was sent under", async () => {
+    getConnectionsMock.mockReset();
+    getConnectionsMock.mockResolvedValue({
+      windowStart: "2026-09-17T09:30:00.000Z",
+      windowEnd: "2026-09-17T10:30:00.000Z",
+      resources: [
+        {
+          kind: SecurityConnectionKind.Host,
+          id: HOST_ID,
+          name: "web-01",
+          certainty: "Exact",
+          matches: [
+            {
+              entityType: "Host",
+              entityValue: "web-01",
+              certainty: "Exact",
+              reason: "LogSource",
+              matchedValue: "web-01",
+            },
+          ],
+          activeIncidents: { count: 0, items: [] },
+          activeAlerts: { count: 0, items: [] },
+          monitors: null,
+          recentChanges: [],
+        },
+      ],
+      hasMoreResources: false,
+      unmatched: [],
+      unreadableKinds: [],
+      failedKinds: [],
+    } as never);
+
+    renderPanel(
+      event({
+        ...FULL_EVENT,
+        attributes: {
+          ...FULL_EVENT.attributes,
+          [SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]: HOST_ID,
+          [SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]: "Host",
+        },
+      } as Partial<SecurityEvent>),
+    );
+
+    expect(getConnectionsMock).not.toHaveBeenCalled();
+
+    fireEvent.click(tab("Connected"));
+
+    await waitFor(() => {
+      expect(getConnectionsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(getConnectionsMock.mock.calls[0]![0]).toEqual({
+      entities: [
+        { type: SecurityEntityType.User, value: "alice" },
+        { type: SecurityEntityType.Host, value: "web-01" },
+        { type: SecurityEntityType.IpAddress, value: "10.0.0.4" },
+      ],
+      time: new Date("2026-09-17T10:00:00.000Z"),
+      logResources: [{ type: "Host", id: HOST_ID }],
+    });
+
+    const connected: HTMLElement = await screen.findByTestId(
+      SECURITY_CONNECTIONS_TEST_IDS.connectedSignals,
+    );
+
+    expect(
+      await within(connected).findByTestId(
+        SECURITY_CONNECTIONS_TEST_IDS.recordReason,
+      ),
+    ).toHaveTextContent("Read from its logs.");
   });
 });
 

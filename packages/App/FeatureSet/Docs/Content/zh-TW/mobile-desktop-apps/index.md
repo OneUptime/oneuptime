@@ -16,7 +16,7 @@ OneUptime 有一個手機應用程式和一個電腦應用程式。適用於 iPh
 | 是什麼 | OneUptime On-Call，適用於 iPhone、iPad 和 Android 的原生應用程式 | 從瀏覽器安裝的 OneUptime 儀表板 |
 | 從哪裡取得 | App Store、Google Play 或 GitHub 上的 APK | 你自己的 OneUptime：無需下載任何內容 |
 | 待命呼叫 | 能穿透靜音模式和勿擾模式響起的推播通知 | 註冊瀏覽器之後的瀏覽器通知 |
-| 能做什麼 | 事件、警示、監測器以及誰在待命；確認、解決和新增備註 | 儀表板能做的一切 |
+| 能做什麼 | 事件、警示、安全案件、監測器以及誰在待命；確認、解決、核准劇本步驟和新增備註 | 儀表板能做的一切 |
 | 更新 | 從應用程式商店更新，或安裝更新的 APK | 每次開啟時從你的 OneUptime 載入儀表板 |
 | 執行環境 | iOS 16.4 或更高版本，Android 7.0 或更高版本 | Windows、macOS 和 Linux 上的 Edge 或 Chrome，或 macOS Sonoma 14 或更高版本上的 Safari |
 

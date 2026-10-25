@@ -25,6 +25,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getPodmanHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -1665,6 +1667,15 @@ const PodmanHostOverview: FunctionComponent<
           RouteMap[PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE] as Route,
           { modelId: modelId },
         )}
+      />
+      {/*
+       * What Security Events found about it this week, for whoever
+       * may read it (Components/SecurityConnections).
+       */}
+      <ResourceSecurityCard
+        kind={SecurityConnectionKind.PodmanHost}
+        modelId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
       {renderCharts()}
       {renderTopContainers()}

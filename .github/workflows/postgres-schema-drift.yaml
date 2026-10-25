@@ -1771,6 +1771,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PacketCaptureSqlPostgres.test.ts --forceExit
 
+      # Clones the migrated Host, DockerHost, PodmanHost, KubernetesCluster,
+      # NetworkDevice and SecurityCase tables into an isolated schema and
+      # runs Security Events' connections through the services that read
+      # them: a case's host names matched to the hosts that report them
+      # however they are cased, and the full names a bare one starts (a LIKE
+      # wildcard read as itself); and the cases whose entities name a value,
+      # however it was spelled, an entities value that is not an array of
+      # objects matching nothing.
+      - name: Test Security Events' connections on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_CONNECTIONS_TESTS: "true"
+          SECURITY_CONNECTIONS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_CONNECTIONS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_CONNECTIONS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/SecurityConnectionsPostgres.test.ts --forceExit
+
       # Clones the migrated UserSession and StatusPagePrivateUserSession
       # tables into an isolated schema and runs the Health page's query of
       # where people sign in from: the private network addresses several

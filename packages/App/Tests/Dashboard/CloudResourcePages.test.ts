@@ -9,7 +9,9 @@ import path from "path";
  * "resource identifier" that "should match service.name" (so nothing typed
  * there could ever be matched), the telemetry tabs spread an empty attribute
  * filter for a platform-less environment (so a fresh one showed the whole
- * project's logs as its own), and Owners had rules but no page.
+ * project's logs as its own), and Owners had rules but no page. There is no
+ * create form now: ingest creates every environment, and Add Cloud
+ * Environment opens the platform's guide (Components/ResourceOnboarding).
  *
  * The App suite runs in plain Node with no renderer and App/tsconfig.json
  * excludes FeatureSet/Dashboard, so these pin the JSX wiring by reading the
@@ -65,109 +67,47 @@ const SCOPE_UTIL: string = "Pages/Cloud/Utils/CloudResourceTelemetryScope.ts";
 const SCOPE_IMPORT: string = 'from "../Utils/CloudResourceTelemetryScope"';
 const BANNER_TAG: string = "<CloudResourceConnectBanner";
 
-describe("Cloud Environments create form", () => {
+describe("Cloud Environments list", () => {
   const code: string = readCode(LIST_PAGE);
-  const formFields: string = between(code, "formFields={[", "filters={[");
 
-  test("no longer asks for a resource identifier", () => {
-    /*
-     * The key is derived, never typed. A typed one could not match ingest's
-     * "platform|account|region" and would leave the environment orphaned.
-     */
-    expect(formFields).not.toContain("resourceIdentifier");
+  /*
+   * An environment is created by ingest, under the key it works out from
+   * the telemetry. A form that typed the key in could only ever get it
+   * wrong - "A hand-made environment never matches" was a troubleshooting
+   * entry of its own - so the list's button opens the guide instead.
+   */
+  test("asks for nothing by hand: no create form, no key, no name", () => {
+    expect(code).toContain("isCreateable={false}");
+    expect(code).toContain("formFields={[]}");
+    expect(code).not.toContain("onBeforeCreate");
+    expect(code).not.toContain("buildCloudEnvironmentKey(");
+    expect(code).not.toContain("resourceIdentifier");
     expect(code).not.toContain("service.name");
     expect(code).not.toContain("checkout-service");
   });
 
-  test("picks the platform from the shared managed-platform catalogue", () => {
+  test("adds one with the platform's guide, in a dialog and as the empty list's card", () => {
+    expect(code).toContain("title: CLOUD_ENVIRONMENT_ONBOARDING.addTitle,");
+    expect(code).toContain(
+      "<AddResourceModal onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
+    );
+    expect(code).toContain(
+      "{firstRecordWatch.count === 0 && ( <AddResourceGuide onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
+    );
+
+    const onboarding: string = readCode(
+      "Components/Cloud/CloudEnvironmentOnboarding.tsx",
+    );
+
+    expect(onboarding).toContain("<CloudDocumentationCard");
+    expect(onboarding).toContain(
+      "cloudResourceKind: CloudResourceKind.Environment",
+    );
+  });
+
+  test("picks the platform filter from the shared managed-platform catalogue", () => {
     expect(code).toContain('from "Common/Types/Cloud/CloudPlatform"');
     expect(code).toContain("MANAGED_CLOUD_PLATFORMS.map(");
-
-    const platformField: string = between(
-      formFields,
-      "field: { cloudPlatform: true, }",
-      "field: { cloudAccountId: true, }",
-    );
-
-    expect(platformField).toContain("fieldType: FormFieldSchemaType.Dropdown");
-    expect(platformField).toContain(
-      "dropdownOptions: PLATFORM_DROPDOWN_OPTIONS",
-    );
-    expect(platformField).toContain("required: true");
-  });
-
-  test("collects account id and region as optional text", () => {
-    const accountField: string = between(
-      formFields,
-      "field: { cloudAccountId: true, }",
-      "field: { cloudRegion: true, }",
-    );
-    const regionField: string = between(
-      formFields,
-      "field: { cloudRegion: true, }",
-      "getDisplayNameFormField<CloudResource>(",
-    );
-
-    expect(accountField).toContain("fieldType: FormFieldSchemaType.Text");
-    expect(accountField).toContain("required: false");
-    expect(accountField).toContain("cloud.account.id");
-    expect(regionField).toContain("fieldType: FormFieldSchemaType.Text");
-    expect(regionField).toContain("required: false");
-    expect(regionField).toContain("us-east-1");
-  });
-
-  /*
-   * The name used to be required, on a Details step of its own, while its
-   * help said discovered environments are named "platform · region ·
-   * account" - a name the form could work out itself. It is the optional
-   * Display Name now, folded under Advanced, following the three values.
-   */
-  test("asks for no name: the display name follows the platform, account and region", () => {
-    expect(code).not.toContain("formSteps=");
-    expect(formFields).not.toContain("stepId:");
-    expect(formFields).not.toContain("field: { name: true, }");
-
-    const displayNameField: string = between(
-      formFields,
-      "getDisplayNameFormField<CloudResource>(",
-      "field: { description: true, }",
-    );
-
-    expect(displayNameField).toContain(
-      "getDefaultName: getCloudEnvironmentNameFromFields",
-    );
-    expect(displayNameField).toContain("platform · region · account");
-    expect(displayNameField).toContain("collapsibleSection: advancedSection");
-
-    for (const key of ["cloudPlatform", "cloudAccountId", "cloudRegion"]) {
-      expect(formFields).toContain(
-        `onChange: followWithDisplayName<CloudResource>({ fieldKey: "${key}", getDefaultName: getCloudEnvironmentNameFromFields, })`,
-      );
-    }
-  });
-
-  test("folds the description and the labels under the same Advanced section", () => {
-    const rest: string = between(
-      formFields,
-      "field: { description: true, }",
-      "filters={[",
-    );
-
-    expect(rest).toContain("collapsibleSection: advancedSection");
-    expect(rest).toContain(
-      "getLabelsFormField<CloudResource>({ collapsibleSection: advancedSection, })",
-    );
-  });
-
-  test("derives key, provider and default name in onBeforeCreate", () => {
-    const hook: string = between(code, "onBeforeCreate={", "onCreateSuccess={");
-
-    expect(hook).toContain("buildCloudEnvironmentKey(");
-    expect(hook).toContain(
-      "item.resourceIdentifier = buildCloudEnvironmentKey(",
-    );
-    expect(hook).toContain("getCloudProviderForPlatform(platform)");
-    expect(hook).toContain("buildCloudEnvironmentName(");
   });
 
   test("shows friendly platform and provider labels and filters by platform", () => {
@@ -188,11 +128,7 @@ describe("Cloud Environments create form", () => {
     );
   });
 
-  test("renders the cloud documentation card and the fleet summary", () => {
-    expect(code).toContain(
-      'from "../../Components/Cloud/CloudDocumentationCard"',
-    );
-    expect(code).toContain("<CloudDocumentationCard");
+  test("draws the fleet summary over the table", () => {
     expect(code).not.toContain("getCloudDocMarkdown");
     expect(code).not.toContain("<ResourceDocumentationCard");
 

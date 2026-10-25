@@ -73,7 +73,10 @@ describe("CloudDocumentationCard", () => {
   const code: string = readCode(CARD_PATH);
 
   test("keeps the props contract the pages depend on", () => {
-    expect(code).toContain("export interface ComponentProps {");
+    // The Add guide frames it (Components/ResourceOnboarding).
+    expect(code).toContain(
+      "export interface ComponentProps extends SetupGuideFrameProps {",
+    );
     expect(code).toContain("title: string;");
     expect(code).toContain("description: string;");
     expect(code).toContain("initialPlatform?: string | undefined;");

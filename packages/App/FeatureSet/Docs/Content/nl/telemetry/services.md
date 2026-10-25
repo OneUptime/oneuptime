@@ -53,7 +53,7 @@ Ga naar **Producten → Bronnen → Services**. **Alle services** toont elke ser
 - Selecteer meerdere services om ze allemaal tegelijk labels of eigenaren te geven, of om ze te archiveren.
 - Klik op een service om de pagina's ervan te openen.
 
-Om een service toe te voegen voordat de telemetrie ervan binnenkomt, bijvoorbeeld om eerst de eigenaren vast te leggen, klikt u op **Service aanmaken** en vult u de **Naam** precies zo in als de `service.name` straks wordt. Label- en eigenaarsregels lopen erop zoals op een ontdekte service.
+Om een service toe te voegen voordat de telemetrie ervan binnenkomt, bijvoorbeeld om eerst de eigenaren vast te leggen, klikt u op **Service aanmaken** en vult u de **Naam** precies zo in als de `service.name` straks wordt. Label- en eigenaarsregels lopen erop zoals op een ontdekte service. Zodra de service is opgeslagen, gaat de installatiegids voor OpenTelemetry open met die naam in elk fragment, en de laatste stap ervan, **Wachten op verbinding**, meldt wanneer de eerste gegevens van de service binnenkomen.
 
 ## De pagina's van een service
 

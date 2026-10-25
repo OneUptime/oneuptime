@@ -48,6 +48,8 @@ Vul **App-naam (service.name)** in met de `service.name` die je app gaat verstur
 De applicatie krijgt de naam van haar app, net als een ontdekte applicatie. Om een andere naam te tonen open je **Meer velden** en vul je een **Weergavenaam** in; de beschrijving en de labels staan daar ook. Sla daarna het formulier op.
 :::
 
+Daarna gaat de installatiegids van de applicatie vanzelf open, met de app-naam als `service.name` van het fragment. De laatste stap, **Wachten op verbinding**, meldt wanneer de eerste gegevens binnenkomen.
+
 Als het project al een applicatie met die `service.name` heeft, ontdekt, eerder toegevoegd of gearchiveerd, meldt het formulier dat in plaats van een tweede aan te maken.
 
 ## Verbindingsstatus

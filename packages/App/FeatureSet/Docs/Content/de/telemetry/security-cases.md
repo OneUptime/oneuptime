@@ -88,7 +88,7 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | Abschnitt im Seitenmenü | Seiten |
 | --- | --- |
 | **Übersicht** | **Übersicht**, **Zeitachse** |
-| **Untersuchung** | **Erkennungen**, **Entitäten**, **Playbook-Ausführungen** |
+| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbook-Ausführungen** |
 | **Notizen** | **Private Notizen** |
 | **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
@@ -100,6 +100,7 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Zeitachse**: alles, was mit dem Fall geschehen ist, jeweils mit der Person, die es getan hat.
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
+- **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
 - **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbook-Ausführungen**, wie viele es sind.
 - **Private Notizen**: was das Team zum Fall geschrieben hat.
 - **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Jede Person wählt selbst, unter **Benutzereinstellungen → Benachrichtigungsei
 
 Die Auswahl folgt den Fallprioritäten des Projekts, unter ihren eigenen Namen: Dies sind die eines neuen Projekts.
 
-Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet die OneUptime-App, und ihr Link öffnet den Fall im Browser.
+Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet den Fall in der App OneUptime On-Call (1.7.0 oder neuer), wo Sie einen wartenden Playbook-Schritt genehmigen oder ablehnen, den Fall übernehmen und schließen können. Ihr Link öffnet den Fall im Browser.
 
 ### In Kanäle von Slack und Microsoft Teams posten
 

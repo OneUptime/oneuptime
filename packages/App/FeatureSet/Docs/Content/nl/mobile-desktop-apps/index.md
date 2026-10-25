@@ -16,7 +16,7 @@ OneUptime heeft een app voor uw telefoon en een voor uw computer. **OneUptime On
 | Wat het is | OneUptime On-Call, een native app voor iPhone, iPad en Android | Het OneUptime-dashboard, geïnstalleerd vanuit uw browser |
 | Waar u het krijgt | De App Store, Google Play, of een APK van GitHub | Uw eigen OneUptime: er is niets te downloaden |
 | Dienstoproepen | Pushmeldingen, die door de stille modus en Niet storen heen kunnen klinken | Browsermeldingen, zodra u de browser registreert |
-| Wat u kunt doen | Incidenten, waarschuwingen, monitors en wie dienst heeft; bevestigen, oplossen en notities toevoegen | Alles wat het dashboard doet |
+| Wat u kunt doen | Incidenten, waarschuwingen, beveiligingszaken, monitors en wie dienst heeft; bevestigen, oplossen, playbookstappen goedkeuren en notities toevoegen | Alles wat het dashboard doet |
 | Updates | Uit de store, of door een nieuwere APK te installeren | Bij elke start laadt het het dashboard van uw OneUptime |
 | Draait op | iOS 16.4 of nieuwer, Android 7.0 of nieuwer | Windows, macOS en Linux, met Edge of Chrome, of Safari op macOS Sonoma 14 of nieuwer |
 

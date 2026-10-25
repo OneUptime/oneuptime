@@ -19,6 +19,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -40,12 +41,21 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import RumDocumentationCard from "../../Components/Rum/RumDocumentationCard";
+import RumApplicationAddedModal from "../../Components/Rum/RumApplicationAddedModal";
 
 const RumApplications: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
+  /*
+   * The application Create RUM Application just saved: its guide opens on
+   * its own (RumApplicationAddedModal), with its name in the snippet.
+   */
+  const [addedApplication, setAddedApplication] = useState<{
+    id: ObjectID;
+    appIdentifier: string;
+  } | null>(null);
 
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<RumApplication>({
@@ -139,10 +149,19 @@ const RumApplications: FunctionComponent<
         onFetchSuccess={(data: Array<RumApplication>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: RumApplication): Promise<RumApplication> => {
+        onCreateSuccess={(
+          item: RumApplication,
+          modalType?: ModalType,
+        ): Promise<RumApplication> => {
           setCount((currentCount: number | null): number => {
             return (currentCount || 0) + 1;
           });
+          if (item._id && modalType !== ModalType.Edit) {
+            setAddedApplication({
+              id: new ObjectID(item._id.toString()),
+              appIdentifier: item.appIdentifier || item.name || "",
+            });
+          }
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -361,6 +380,15 @@ const RumApplications: FunctionComponent<
         <RumDocumentationCard
           title="Getting Started with Real User Monitoring"
           description="Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives."
+        />
+      )}
+      {addedApplication && (
+        <RumApplicationAddedModal
+          applicationId={addedApplication.id}
+          appIdentifier={addedApplication.appIdentifier}
+          onClose={() => {
+            setAddedApplication(null);
+          }}
         />
       )}
       {labelBulkActionModals}

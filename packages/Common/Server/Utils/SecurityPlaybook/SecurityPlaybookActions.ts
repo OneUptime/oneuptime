@@ -64,6 +64,7 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   SecurityCaseTemplateValues,
+  incidentDeclaredFromCaseMarkdown,
   incidentDeclaredMarkdown,
   renderSecurityCaseTemplate,
   securityCaseSummaryMarkdown,
@@ -108,6 +109,9 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
+import logger from "../Logger";
+import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
+import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 
@@ -871,6 +875,33 @@ export default class SecurityPlaybookActions {
     incident.description =
       mdText`Declared from security case [${caseNumber}](${caseUrl.toString()}).${data.securityCase.description ? mdText`\n\n${FeedMarkdown.asMarkdown(data.securityCase.description)}` : FeedMarkdown.empty()}`.toString();
 
+    /*
+     * The incident is about what the case names: the hosts, container
+     * hosts, Kubernetes clusters and services the case is exactly connected
+     * to (Security Connections) are linked to it, so it shows on their
+     * pages, their owners' rules apply and its investigation reads them. A
+     * possible connection is never linked. Enrichment: when they cannot be
+     * read, the incident is declared without them.
+     */
+    let linked: Array<SecurityConnectedRecord> = [];
+    const connections: ReturnType<typeof loadSecurityConnections> =
+      loadSecurityConnections();
+
+    try {
+      linked = data.securityCase.id
+        ? await connections.default.readIncidentLinks({
+            projectId: data.projectId,
+            securityCaseId: data.securityCase.id,
+          })
+        : [];
+    } catch (error) {
+      logger.error(
+        `Security playbook: what case ${caseNumber} names could not be read; the incident is declared without them: ${error}`,
+      );
+    }
+
+    connections.linkIncidentToConnectedRecords(incident, linked);
+
     if (data.userId) {
       incident.createdByUserId = data.userId;
     } else {
@@ -914,8 +945,11 @@ export default class SecurityPlaybookActions {
       incidentId: created.id!,
       projectId: data.projectId,
       incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
-      feedInfoInMarkdown:
-        mdText`🛡️ Declared from security case [${caseNumber}](${caseUrl.toString()}).`.toString(),
+      feedInfoInMarkdown: incidentDeclaredFromCaseMarkdown({
+        caseNumber,
+        caseUrl: caseUrl.toString(),
+        linked,
+      }).toString(),
       userId: data.userId,
     });
 

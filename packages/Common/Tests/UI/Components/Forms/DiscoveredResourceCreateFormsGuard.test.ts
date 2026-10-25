@@ -74,8 +74,11 @@ interface DiscoveredResource {
   /*
    * Added by a command of its own, not a form: a host runs the Add Host
    * command and registers itself when its collector connects
-   * (HostCollectorAgent), so its list has no create form. Its service still
-   * names and checks what the API creates.
+   * (HostCollectorAgent); a Kubernetes cluster, a Docker or Podman host, a
+   * serverless function and a cloud environment register themselves when
+   * their first data arrives, from the commands of their Add guide
+   * (Components/ResourceOnboarding). So their lists have no create form.
+   * Their services still name and check what the API creates.
    */
   isAddedByCommand?: boolean | undefined;
 }
@@ -97,6 +100,7 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     service: "DockerHostService.ts",
     open: ["hostIdentifier"],
     identityTitle: "Host Name (host.name)",
+    isAddedByCommand: true,
   },
   {
     model: "PodmanHost",
@@ -105,6 +109,7 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     service: "PodmanHostService.ts",
     open: ["hostIdentifier"],
     identityTitle: "Host Name (host.name)",
+    isAddedByCommand: true,
   },
   {
     model: "KubernetesCluster",
@@ -113,6 +118,7 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     service: "KubernetesClusterService.ts",
     open: ["clusterIdentifier"],
     identityTitle: "Cluster Name (clusterName)",
+    isAddedByCommand: true,
   },
   {
     model: "RumApplication",
@@ -129,14 +135,16 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     service: "ServerlessFunctionService.ts",
     open: ["functionIdentifier"],
     identityTitle: "Function Name (faas.name)",
+    isAddedByCommand: true,
   },
   {
     model: "CloudResource",
     listPage: `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
     label: "ModelTable: Cloud Environments",
     service: "CloudResourceService.ts",
-    // Joined into the key (resourceIdentifier) by the page's onBeforeCreate.
+    // The key (resourceIdentifier) a form used to join these into.
     open: ["cloudPlatform", "cloudAccountId", "cloudRegion"],
+    isAddedByCommand: true,
   },
 ];
 
@@ -363,34 +371,6 @@ describe("the create forms of resources that telemetry discovers", () => {
         expect(code).toMatch(follows);
       });
     }
-  });
-
-  test("a cloud environment's display name follows all three values the key is made from", () => {
-    const code: string = readCode(
-      `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
-    );
-
-    expect(code).toContain(
-      "getDisplayNameFormField<CloudResource>({ getDefaultName: getCloudEnvironmentNameFromFields,",
-    );
-
-    for (const key of ["cloudPlatform", "cloudAccountId", "cloudRegion"]) {
-      expect(code).toContain(
-        `onChange: followWithDisplayName<CloudResource>({ fieldKey: "${key}", getDefaultName: getCloudEnvironmentNameFromFields, })`,
-      );
-    }
-  });
-
-  test("the Docker and Podman forms say the same, each of its own agent", () => {
-    const docker: string = readCode(`${DASHBOARD}/Pages/Docker/Hosts.tsx`);
-    const podman: string = readCode(`${DASHBOARD}/Pages/Podman/Hosts.tsx`);
-
-    expect(docker).toContain(
-      "Exactly as the OneUptime Docker Agent reports it.",
-    );
-    expect(podman).toContain(
-      "Exactly as the OneUptime Podman Agent reports it.",
-    );
   });
 
   test("the display name follows by the rule every name a form fills in follows", () => {

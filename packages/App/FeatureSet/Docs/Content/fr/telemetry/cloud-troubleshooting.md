@@ -112,7 +112,7 @@ Ouvrez la **Vue d'ensemble** de chaque environnement : sa **Clé d'environnement
 
 ## Un environnement créé à la main n'est jamais associé
 
-L'ingestion associe un environnement par sa clé seule, et la clé doit valoir exactement `platform|account|region`, par exemple `aws_ecs|123456789012|us-east-1` : la même valeur de plateforme, le même ID de compte et la même région que porte la télémétrie. Le formulaire de création (**Créer : Ressource cloud** sous **Cloud → Tous les environnements**) construit la clé à partir de ses champs **Plateforme cloud**, **ID de compte cloud** et **Région cloud** : ces trois champs doivent donc correspondre à la télémétrie caractère pour caractère. Sinon, l'ingestion crée un second environnement avec la clé qu'elle a calculée, et le vôtre reste vide. Archivez l'environnement créé à la main et laissez l'ingestion créer le bon, ou recréez-le avec les valeurs corrigées.
+L'ingestion associe un environnement par sa clé seule, et la clé doit valoir exactement `platform|account|region`, par exemple `aws_ecs|123456789012|us-east-1` : la même valeur de plateforme, le même ID de compte et la même région que porte la télémétrie. Un environnement créé via l'API, ou à la main avant que **Ajouter un environnement cloud** ne remplace le formulaire du tableau de bord, n'est associé que si ses champs **Plateforme cloud**, **ID de compte cloud** et **Région cloud** sont identiques à ceux de la télémétrie, caractère pour caractère. Sinon, l'ingestion crée un second environnement avec la clé qu'elle a calculée, et le vôtre reste vide. Archivez l'environnement créé à la main et laissez l'ingestion créer le bon.
 
 ## Toujours bloqué
 
