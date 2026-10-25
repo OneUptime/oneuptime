@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useMemo } from "react";
-import { useWindowDimensions } from "react-native";
+import { Platform, useWindowDimensions } from "react-native";
 import {
   SafeAreaInsetsContext,
   type EdgeInsets,
 } from "react-native-safe-area-context";
+import { getDefaultHeaderHeight } from "@react-navigation/elements";
 import {
   READABLE_CONTENT_WIDTH,
   ZERO_INSETS,
@@ -144,6 +145,54 @@ export function usePane(): PaneLayout {
       }
     );
   }, [pane, layout.contentWidth, insets.left, insets.right]);
+}
+
+/** What the header rule needs to know about the platform: React Native's Platform, or a stand-in in a test. */
+export interface HeaderPlatform {
+  OS: string;
+  isPad?: boolean;
+}
+
+/**
+ * The height a header drawn in JavaScript (the list pane's, Home's) must be
+ * given to match the bar iOS draws itself, or undefined to keep React
+ * Navigation's own.
+ *
+ * React Navigation draws an iPhone's header 32 points tall whenever the
+ * window is wider than it is tall, taking it for a phone on its side. The
+ * iPhone Duo held open is wider than tall but 669 points tall - a regular
+ * height, where iOS draws its ordinary 44-point bar - and a 32-point header
+ * there is too short for the 44-point project switcher, and ends above the
+ * native bar of the detail pane beside it. Only that case is corrected:
+ * a phone on its side (a compact height) keeps the 32-point bar iOS uses
+ * too, and every other window keeps React Navigation's height exactly.
+ */
+export function getHeaderHeightOverride(
+  layout: Pick<WindowLayout, "width" | "height" | "heightClass">,
+  topInset: number,
+  platform: HeaderPlatform = Platform as HeaderPlatform,
+): number | undefined {
+  if (platform.OS !== "ios" || platform.isPad) {
+    return undefined;
+  }
+  if (layout.width <= layout.height || layout.heightClass === "compact") {
+    return undefined;
+  }
+  // The height React Navigation gives the same window held upright.
+  return getDefaultHeaderHeight(
+    { width: layout.height, height: layout.width },
+    false,
+    topInset,
+  );
+}
+
+/** getHeaderHeightOverride for the current window and its top inset. */
+export function useHeaderHeightOverride(): number | undefined {
+  const layout: WindowLayout = useWindowLayout();
+  const insets: LayoutInsets = useInsetsInContext();
+  return useMemo((): number | undefined => {
+    return getHeaderHeightOverride(layout, insets.top);
+  }, [layout, insets.top]);
 }
 
 /**

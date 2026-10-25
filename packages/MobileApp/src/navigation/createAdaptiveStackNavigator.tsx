@@ -31,6 +31,7 @@ import {
 import { useTheme } from "../theme";
 import {
   PaneProvider,
+  useHeaderHeightOverride,
   useWindowLayout,
   type PaneLayout,
 } from "../layout/WindowLayout";
@@ -190,6 +191,7 @@ function ListPane({
 }): React.JSX.Element {
   const { theme } = useTheme();
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
+  const headerHeight: number | undefined = useHeaderHeightOverride();
   const pane: PaneLayout = useMemo((): PaneLayout => {
     return {
       kind: "list",
@@ -218,7 +220,11 @@ function ListPane({
             headerTitleAlign={options.headerTitleAlign}
             headerTintColor={options.headerTintColor}
             headerTitleStyle={options.headerTitleStyle}
-            headerStyle={options.headerStyle}
+            headerStyle={
+              headerHeight === undefined
+                ? options.headerStyle
+                : [options.headerStyle, { height: headerHeight }]
+            }
             headerShadowVisible={options.headerShadowVisible}
           />
         </NavigationProvider>

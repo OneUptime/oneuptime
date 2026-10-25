@@ -360,6 +360,57 @@ describe("The header pill", () => {
   });
 
   test.each([
+    ["a phone on its side", { width: 852, height: 393 }],
+    ["a small phone on its side", { width: 568, height: 320 }],
+  ])(
+    "on %s it slims to fit a 32-point bar, keeping a 44-point touch area",
+    async (_label: string, size: { width: number; height: number }) => {
+      jest
+        .spyOn(Dimensions, "get")
+        .mockReturnValue({ ...size, scale: 3, fontScale: 1 });
+      await show();
+
+      const pill: ReturnType<typeof screen.getByTestId> =
+        screen.getByTestId("project-switcher");
+      const style: ViewStyle = flatStyle(pill);
+      const hitSlop: { top: number; bottom: number } = pill.props.hitSlop;
+      expect(Number(style.minHeight)).toBeLessThanOrEqual(32);
+      expect(
+        Number(style.minHeight) + hitSlop.top + hitSlop.bottom,
+      ).toBeGreaterThanOrEqual(44);
+      expect(screen.getByTestId("project-switcher-avatar")).toHaveStyle({
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+      });
+      // The name stays, on one line; the "Project" caption above it goes.
+      expect(within(pill).getByText(first.name).props.numberOfLines).toBe(1);
+      expect(within(pill).queryByText("Project")).toBeNull();
+      expect(
+        screen.getByRole("button", {
+          name: `Switch project, current project ${first.name}`,
+        }),
+      ).toBeTruthy();
+    },
+  );
+
+  test("a window of ordinary height keeps the full pill with its caption", async () => {
+    jest
+      .spyOn(Dimensions, "get")
+      .mockReturnValue({ width: 951, height: 669, scale: 3, fontScale: 1 });
+    await show();
+
+    const pill: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("project-switcher");
+    expect(flatStyle(pill).minHeight).toBe(44);
+    expect(within(pill).getByText("Project")).toBeTruthy();
+    expect(screen.getByTestId("project-switcher-avatar")).toHaveStyle({
+      width: 32,
+      height: 32,
+    });
+  });
+
+  test.each([
     { width: 280, maxWidth: 160 },
     { width: 320, maxWidth: 192 },
     { width: 390, maxWidth: 262 },

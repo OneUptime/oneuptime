@@ -1,22 +1,27 @@
 import React, { useContext } from "react";
-import { Text } from "react-native";
+import { Platform, Text } from "react-native";
 import {
   SafeAreaInsetsContext,
   type EdgeInsets,
 } from "react-native-safe-area-context";
 import { render, screen } from "@testing-library/react-native";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { getDefaultHeaderHeight } from "@react-navigation/elements";
 import {
   PaneProvider,
   WindowLayoutProvider,
+  getHeaderHeightOverride,
   useContentGutters,
+  useHeaderHeightOverride,
   usePane,
   useWindowLayout,
+  type HeaderPlatform,
   type PaneLayout,
 } from "./WindowLayout";
 import {
   NAVIGATION_RAIL_WIDTH,
   TWO_COLUMN_READABLE_WIDTH,
+  computeWindowLayout,
   type ContentGutters,
   type WindowLayout,
 } from "./windowLayout";
@@ -214,5 +219,112 @@ describe("useContentGutters", () => {
     await resizeWindow(TEST_WINDOWS.coverScreen);
 
     expect(screen.getByTestId("gutters")).toHaveTextContent("20/20");
+  });
+});
+
+describe("The height of a header drawn in JavaScript", () => {
+  /*
+   * React Navigation gives an iPhone window that is wider than tall a
+   * 32-point header, taking it for a phone on its side. The iPhone Duo held
+   * open is wider than tall but of a regular height, where iOS draws its
+   * ordinary 44-point bar; nothing else is corrected. The numbers come from
+   * React Navigation's own iOS rule, so the tests run it as iOS on both
+   * platforms' test runs.
+   */
+  const iPhone: HeaderPlatform = { OS: "ios", isPad: false };
+
+  function asIos<T>(run: () => T): T {
+    const replaced: { restore: () => void } = jest.replaceProperty(
+      Platform,
+      "OS",
+      "ios",
+    );
+    try {
+      return run();
+    } finally {
+      replaced.restore();
+    }
+  }
+
+  test("the iPhone Duo held open gets the regular 44-point bar below its status bar", () => {
+    const layout: WindowLayout = computeWindowLayout(
+      TEST_WINDOWS.iPhoneDuoOpen,
+    );
+
+    expect(
+      asIos((): number | undefined => {
+        return getHeaderHeightOverride(layout, 0, iPhone);
+      }),
+    ).toBe(44);
+    expect(
+      asIos((): number | undefined => {
+        return getHeaderHeightOverride(layout, 20, iPhone);
+      }),
+    ).toBe(64);
+    // React Navigation's own rule would have made it a phone on its side's.
+    expect(
+      asIos((): number => {
+        return getDefaultHeaderHeight(TEST_WINDOWS.iPhoneDuoOpen, false, 0);
+      }),
+    ).toBe(32);
+  });
+
+  test.each([
+    [
+      "a phone on its side, where iOS draws a 32-point bar too",
+      TEST_WINDOWS.phoneOnItsSide,
+    ],
+    ["a foldable's cover screen", TEST_WINDOWS.coverScreen],
+    ["an unfolded foldable held upright", TEST_WINDOWS.innerScreen],
+    ["a tablet held upright", TEST_WINDOWS.tabletUpright],
+  ])(
+    "%s keeps React Navigation's own height",
+    (_label: string, size: { width: number; height: number }) => {
+      expect(
+        asIos((): number | undefined => {
+          return getHeaderHeightOverride(computeWindowLayout(size), 0, iPhone);
+        }),
+      ).toBeUndefined();
+    },
+  );
+
+  test("an iPad and Android keep React Navigation's own height at any size", () => {
+    const layout: WindowLayout = computeWindowLayout(
+      TEST_WINDOWS.iPhoneDuoOpen,
+    );
+
+    expect(
+      getHeaderHeightOverride(layout, 0, { OS: "ios", isPad: true }),
+    ).toBeUndefined();
+    expect(
+      getHeaderHeightOverride(layout, 0, { OS: "android" }),
+    ).toBeUndefined();
+  });
+
+  test("the hook follows the window: unfolding the iPhone Duo sets the height, folding clears it", async () => {
+    function HeaderHeightReport(): React.JSX.Element {
+      const height: number | undefined = useHeaderHeightOverride();
+      return <Text testID="header-height">{String(height)}</Text>;
+    }
+    const expectedWhenOpen: string =
+      Platform.OS === "ios" ? String(44 + 24) : "undefined";
+
+    setWindowSize({ width: 393, height: 852 });
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 24, right: 0, bottom: 0, left: 0 }}
+      >
+        <HeaderHeightReport />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(screen.getByTestId("header-height")).toHaveTextContent("undefined");
+
+    await resizeWindow(TEST_WINDOWS.iPhoneDuoOpen);
+    expect(screen.getByTestId("header-height")).toHaveTextContent(
+      expectedWhenOpen,
+    );
+
+    await resizeWindow({ width: 393, height: 852 });
+    expect(screen.getByTestId("header-height")).toHaveTextContent("undefined");
   });
 });

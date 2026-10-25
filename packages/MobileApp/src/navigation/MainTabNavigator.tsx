@@ -6,7 +6,10 @@ import {
 } from "react-native-safe-area-context";
 import { layout } from "../theme/layout";
 import { spacing } from "../theme/tokens";
-import { useWindowLayout } from "../layout/WindowLayout";
+import {
+  useHeaderHeightOverride,
+  useWindowLayout,
+} from "../layout/WindowLayout";
 import {
   NAVIGATION_RAIL_WIDTH,
   type WindowLayout,
@@ -63,6 +66,8 @@ export default function MainTabNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
   const windowLayout: WindowLayout = useWindowLayout();
+  // Home's header is drawn in JavaScript; on the iPhone Duo held open it needs the regular bar's height.
+  const headerHeight: number | undefined = useHeaderHeightOverride();
 
   /*
    * A bar along the bottom on a phone held upright, a rail down the left on
@@ -122,6 +127,7 @@ export default function MainTabNavigator(): React.JSX.Element {
           headerTitleAlign: "left",
           headerStyle: {
             backgroundColor: theme.colors.backgroundPrimary,
+            ...(headerHeight === undefined ? {} : { height: headerHeight }),
           },
           headerShadowVisible: false,
           headerTintColor: theme.colors.textPrimary,

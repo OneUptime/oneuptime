@@ -22,6 +22,8 @@ import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useTheme } from "../theme";
 import type { ProjectItem } from "../api/types";
 import { elevation, radius, spacing } from "../theme/tokens";
+import { useWindowLayout } from "../layout/WindowLayout";
+import type { WindowLayout } from "../layout/windowLayout";
 import AppText from "./AppText";
 import Banner from "./Banner";
 import GradientButton from "./GradientButton";
@@ -94,6 +96,16 @@ export default function ProjectSwitcher(): React.JSX.Element {
   // Drawn outside the app's host (on its own in a test), it keeps a sheet of its own.
   const sheet: ProjectSheetState = hostSheet ?? ownSheet;
   const { width } = useWindowDimensions();
+  const windowLayout: WindowLayout = useWindowLayout();
+  /*
+   * A phone on its side has a short navigation bar - iOS draws it 32 points
+   * tall in a compact height - and the 44-point pill is taller than that
+   * bar. On a short window the pill is slimmer: the project's name on a
+   * smaller avatar, without the "Project" caption, and the touch area is
+   * still 44 points tall.
+   */
+  const slim: boolean = windowLayout.heightClass === "compact";
+  const avatarSize: number = slim ? 24 : 32;
   const activeInitials: string = getInitials(activeProject?.name);
 
   return (
@@ -109,18 +121,18 @@ export default function ProjectSwitcher(): React.JSX.Element {
         accessibilityHint="Select the project shown across the app."
         accessibilityState={{ expanded: sheet.visible }}
         aria-expanded={sheet.visible}
-        hitSlop={4}
+        hitSlop={slim ? { top: 8, bottom: 8, left: 4, right: 4 } : 4}
         onPress={sheet.open}
         style={({ pressed }: { pressed: boolean }): StyleProp<ViewStyle> => {
           return {
-            minHeight: 44,
+            minHeight: slim ? 30 : 44,
             maxWidth: Math.min(300, Math.max(160, width - 128)),
             flexDirection: "row",
             alignItems: "center",
             gap: spacing.sm,
-            paddingLeft: spacing.xs,
+            paddingLeft: slim ? 3 : spacing.xs,
             paddingRight: spacing.md,
-            paddingVertical: spacing.xs,
+            paddingVertical: slim ? 2 : spacing.xs,
             borderRadius: radius.pill,
             backgroundColor: pressed
               ? theme.colors.backgroundTertiary
@@ -134,9 +146,9 @@ export default function ProjectSwitcher(): React.JSX.Element {
         <View
           testID="project-switcher-avatar"
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: avatarSize / 2,
             backgroundColor: theme.colors.actionPrimary,
             alignItems: "center",
             justifyContent: "center",
@@ -144,31 +156,33 @@ export default function ProjectSwitcher(): React.JSX.Element {
         >
           {activeInitials ? (
             <AppText
-              variant="footnote"
+              variant={slim ? "caption" : "footnote"}
               weight="800"
               tone="inverse"
-              maxFontSizeMultiplier={1.3}
+              maxFontSizeMultiplier={slim ? 1.2 : 1.3}
             >
               {activeInitials}
             </AppText>
           ) : (
             <Ionicons
               name="layers-outline"
-              size={16}
+              size={slim ? 14 : 16}
               color={theme.colors.textInverse}
             />
           )}
         </View>
         <View style={{ flexShrink: 1, minWidth: 0 }}>
-          <AppText
-            variant="caption"
-            tone="secondary"
-            weight="600"
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.3}
-          >
-            Project
-          </AppText>
+          {slim ? null : (
+            <AppText
+              variant="caption"
+              tone="secondary"
+              weight="600"
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+            >
+              Project
+            </AppText>
+          )}
           <AppText
             variant="subhead"
             weight="700"

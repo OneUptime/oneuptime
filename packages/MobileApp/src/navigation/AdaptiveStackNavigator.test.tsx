@@ -1,5 +1,13 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type ViewStyle,
+} from "react-native";
 import {
   SafeAreaInsetsContext,
   type EdgeInsets,
@@ -18,6 +26,7 @@ import type {
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { getDefaultHeaderHeight } from "@react-navigation/elements";
 import {
   act,
   fireEvent,
@@ -376,6 +385,73 @@ describe("On an unfolded foldable the list and its detail sit side by side", () 
     expect(stackRouteNames(navigationRef)).toEqual(["List"]);
     expect(screen.getByTestId("empty-detail")).toBeTruthy();
     expect(mounts.list).toBe(1);
+  });
+});
+
+describe("The list pane's header", () => {
+  /*
+   * The list's header is drawn in JavaScript beside the detail pane's native
+   * bar, and React Navigation sizes it by the frame the navigator is laid
+   * out in. On the iPhone Duo held open that frame is wider than tall, and
+   * React Navigation would draw an iPhone on its side's 32-point header; the
+   * list gets the regular bar's height there instead, and keeps React
+   * Navigation's own everywhere else.
+   *
+   * A test renderer never lays anything out, so each test reports the
+   * window's frame to the navigator the way a device's first layout does.
+   */
+  async function layOutAs(size: {
+    width: number;
+    height: number;
+  }): Promise<void> {
+    let node: unknown = screen.getByTestId("list-pane");
+    while (
+      node &&
+      !(node as { props: { onLayout?: unknown } }).props.onLayout
+    ) {
+      node = (node as { parent: unknown }).parent;
+    }
+    if (!node) {
+      throw new Error("nothing above the list pane measures its frame");
+    }
+    await fireEvent(node as Parameters<typeof fireEvent>[0], "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, ...size } },
+    });
+  }
+
+  function listHeaderHeight(): unknown {
+    const header: unknown = screen.getByTestId("list-pane").children[0];
+    if (!header || typeof header === "string") {
+      throw new Error("the list pane has no header");
+    }
+    const style: ViewStyle = StyleSheet.flatten(
+      (header as { props: { style: unknown } }).props.style as ViewStyle,
+    );
+    return style.height;
+  }
+
+  test("on the iPhone Duo held open it is as tall as the regular bar, not an iPhone on its side's", async () => {
+    setWindowSize(TEST_WINDOWS.iPhoneDuoOpen);
+    await renderStack();
+    await layOutAs(TEST_WINDOWS.iPhoneDuoOpen);
+
+    // What React Navigation gives the same window held upright.
+    expect(listHeaderHeight()).toBe(
+      getDefaultHeaderHeight({ width: 669, height: 951 }, false, INSETS.top),
+    );
+    expect(listHeaderHeight()).toBe(
+      Platform.OS === "ios" ? 44 + INSETS.top : 64 + INSETS.top,
+    );
+  });
+
+  test("on an unfolded foldable it keeps React Navigation's own height", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await renderStack();
+    await layOutAs(TEST_WINDOWS.innerScreen);
+
+    expect(listHeaderHeight()).toBe(
+      getDefaultHeaderHeight(TEST_WINDOWS.innerScreen, false, INSETS.top),
+    );
   });
 });
 

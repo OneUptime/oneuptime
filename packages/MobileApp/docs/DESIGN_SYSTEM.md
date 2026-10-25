@@ -128,3 +128,16 @@ The rows are checked in order; the first that fits the window wins.
   segment) in `usePaneState()` and restore its scroll with
   `usePaneScrollRestoration()`. Do not apply route params again on remount
   (see the `appliedParams` pattern in `IncidentsScreen`).
+- **Short windows.** Under 480 points tall (a phone on its side) the header
+  bar is 32 points on iOS, so the project switcher slims to fit it: the
+  project's name on a 24-point avatar, without the "Project" caption, with a
+  44-point touch area. Pages give a large title's height to their content
+  there (see `InboxScreen`).
+- **Headers drawn in JavaScript** (Home's, the list pane's) take
+  `useHeaderHeightOverride()`. React Navigation sizes any iPhone window wider
+  than tall as a phone on its side; the iPhone Duo held open is wider than
+  tall but of a regular height, and gets the regular 44-point bar.
+- **Labels in buttons keep their width.** Yoga shrinks a text that may shrink,
+  and iOS and Android then break a one-word label across lines; browsers
+  never do, so the web suite cannot catch it. Stack the buttons instead (see
+  `RESPONSE_ACTION_MIN_WIDTH`).

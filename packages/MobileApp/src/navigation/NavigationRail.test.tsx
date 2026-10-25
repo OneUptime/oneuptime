@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, type ViewStyle } from "react-native";
+import { Platform, StyleSheet, type ViewStyle } from "react-native";
 import {
   SafeAreaInsetsContext,
   type EdgeInsets,
@@ -187,6 +187,32 @@ describe("A wide window puts the destinations on a rail", () => {
     expect(style.borderTopWidth).toBe(0);
     // Not floating over the content, as the bottom bar does.
     expect(style.position).toBeUndefined();
+  });
+
+  test("Home's header is the regular bar's height on the iPhone Duo held open, and React Navigation's own elsewhere", async () => {
+    /*
+     * React Navigation would give an iPhone window wider than tall the
+     * 32-point header of a phone on its side; the iPhone Duo held open has
+     * a regular height, where iOS draws the 44-point bar.
+     */
+    setWindowSize(TEST_WINDOWS.iPhoneDuoOpen);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+    const headerStyle: () => ViewStyle = (): ViewStyle => {
+      return StyleSheet.flatten(
+        options(navigationRef).headerStyle,
+      ) as ViewStyle;
+    };
+
+    expect(headerStyle().height).toBe(
+      Platform.OS === "ios" ? 44 + INSETS.top : undefined,
+    );
+
+    await resizeWindow(TEST_WINDOWS.phoneOnItsSide);
+    expect(headerStyle().height).toBeUndefined();
+
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+    expect(headerStyle().height).toBeUndefined();
   });
 
   test("every destination keeps its written label and its name", async () => {

@@ -358,6 +358,20 @@ test("a phone on its side: the rail, and the inbox gives its title's height to t
   await expect(
     page.getByRole("heading", { name: "Inbox", exact: true }),
   ).toHaveCount(0);
+
+  /*
+   * iOS draws the header bar 32 points tall on a window this short, so the
+   * project switcher is slim: the project's name without its caption.
+   */
+  const switcher = page
+    .getByTestId("list-pane")
+    .getByTestId("project-switcher");
+  await expect(switcher).toBeVisible();
+  expect((await switcher.boundingBox()).height).toBeLessThanOrEqual(32);
+  await expect(switcher.getByText("Project", { exact: true })).toHaveCount(0);
+  await expect(
+    switcher.getByText("Aurora Production", { exact: true }),
+  ).toBeVisible();
   await capture(page, "phone-landscape-inbox", testInfo);
 });
 
