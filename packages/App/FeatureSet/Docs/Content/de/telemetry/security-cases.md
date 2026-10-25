@@ -3,8 +3,9 @@
 Das Produkt Sicherheitsereignisse macht aus den Funden Ihrer Erkennungsregeln, Ihrer Threat Intelligence und Ihrer verbundenen Sicherheitsprodukte Fälle: einen Fall für jede Sache, die eine Untersuchung wert ist, und darin gebündelt alle Erkennungen zum selben Benutzer, zum selben Host oder zur selben Adresse. Analysten bearbeiten die Fälle in einer Warteschlange, und Playbooks reagieren darauf, von selbst oder auf Knopfdruck.
 
 :::cards
-- [Woher Fälle kommen](#woher-fälle-kommen): Erkennungsregeln, Threat Intelligence, verbundene Produkte und Personen.
+- [Woher Fälle kommen](#woher-fälle-kommen): Erkennungsregeln, Threat Intelligence, verbundene Produkte, Entitätsrisiko und Personen.
 - [Einen Fall bearbeiten](#einen-fall-bearbeiten): Ihn zuweisen, seine Entitäten untersuchen und ihn mit einer Bewertung schließen.
+- [Fallprioritäten und Fallstatus](#fallprioritäten-und-fallstatus): Umbenennen, umfärben, neu ordnen und eigene hinzufügen.
 - [Benachrichtigungen](#benachrichtigungen): Wer von einem neuen Fall, einer Zuweisung und einem Schritt erfährt, der auf Genehmigung wartet.
 - [Playbooks](#playbooks): Schritte, die auf einem Fall laufen, mit Genehmigung, wo es darauf ankommt.
 - [Die Übersicht](#die-übersicht): Was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden.
@@ -48,9 +49,10 @@ Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls
 | Erkennungsregeln | Eine Regel passt | **Open a Case on Match**, im Schritt **Bei Treffer** der Regel |
 | Threat Intelligence | Ein Ereignis einen bekannten Indikator nennt | **Open a Case on Match**, im Schritt **Bei Treffer** des Feeds |
 | Verbundene Produkte | Eine eigene Warnung des Produkts auf oder über dem Schwellenwert der Verbindung importiert wird | **Open Cases From** auf **Nie** gesetzt, im Schritt **Abfrage** der Verbindung |
+| Entitätsrisiko | Das Risiko eines Benutzers, Hosts oder einer Adresse den Schwellenwert des Projekts erreicht | **Risikofälle** unter **Einstellungen → Risikobewertung** |
 | Personen | Jemand einen unter **Sicherheitsfälle** eröffnet, oder mit **Open Case** im Panel eines Ereignisses | Nicht abschaltbar |
 
-Jede Quelle ist standardmäßig eingeschaltet. Eine Verbindung eröffnet Fälle für **Hoch und höher**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
+Jede Quelle eröffnet standardmäßig Fälle, außer dem Entitätsrisiko in Projekten, die vor ihm angelegt wurden: Dort schalten Sie zuerst **Risikofälle** ein ([Entitätsrisiko](/docs/telemetry/security-entity-risk)). Eine Verbindung eröffnet Fälle für **Hoch und höher**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
 
 ### Wie Erkennungen gruppiert werden
 
@@ -60,7 +62,7 @@ Eine Erkennung betrifft eine Entität: den Wert, nach dem ihre Regel gruppiert, 
 - Gibt es keinen, wird ein neuer Fall eröffnet, benannt nach der Erkennung und mit deren Priorität.
 - Eine Erkennung, die erneut auslöst, zählt in ihrer Zeile hoch, statt eine weitere hinzuzufügen.
 
-Die Priorität eines Falls ergibt sich aus dem Schweregrad der Erkennung:
+Die Priorität eines Falls ergibt sich aus dem Schweregrad der Erkennung, als die vordefinierte Priorität des Projekts für diese Stufe, wie auch immer Sie sie benannt haben:
 
 | Schweregrad | Priorität |
 | --- | --- |
@@ -72,7 +74,7 @@ Die Priorität eines Falls ergibt sich aus dem Schweregrad der Erkennung:
 
 ## Einen Fall bearbeiten
 
-Ein Fall durchläuft vier Status. Er kann einen davon überspringen, etwa wenn ein False Positive direkt aus „Neu“ heraus geschlossen wird, und er kann wieder geöffnet werden.
+Die Fälle eines neuen Projekts durchlaufen vier Status, die Sie umbenennen und um eigene ergänzen können (siehe [Fallprioritäten und Fallstatus](#fallprioritäten-und-fallstatus)). Ein Fall kann einen davon überspringen, etwa wenn ein False Positive direkt aus „Neu“ heraus geschlossen wird, und er kann wieder geöffnet werden.
 
 | Status | Bedeutung |
 | --- | --- |
@@ -81,17 +83,35 @@ Ein Fall durchläuft vier Status. Er kann einen davon überspringen, etwa wenn e
 | Contained | Die Bedrohung kann keinen Schaden mehr anrichten; die Bereinigung steht noch aus |
 | Geschlossen | Erledigt, mit einer Bewertung, was er war |
 
-Die Seite des Falls bietet alles, um ihn zu bearbeiten:
+Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls ist eine eigene Seite:
 
-- Oben: **Assign to Me**, **Run Playbook**, **Vorfall melden** und **Close Case**, die Statusschritte und die Priorität im Menü daneben.
-- **OneUptime AI**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+| Abschnitt im Seitenmenü | Seiten |
+| --- | --- |
+| **Übersicht** | **Übersicht**, **Zeitachse** |
+| **Untersuchung** | **Erkennungen**, **Entitäten**, **Playbook-Ausführungen** |
+| **Notizen** | **Private Notizen** |
+| **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
+
+Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel, **Mir zuweisen**, **Run Playbook**, **Vorfall melden** und **Close Case**, und im Menü ⋯ daneben **Priorität setzen**, **Jemand anderem zuweisen**, **Status ändern**, **Fall bearbeiten** und **Fall löschen**. So lässt sich der Fall von jeder seiner Seiten aus bearbeiten, und ein Link zum Fall öffnet weiterhin seine **Übersicht**.
+
+- **Übersicht**: die Beschreibung, Labels und Statusschritte des Falls, wer ihn hat und was ihn eröffnet hat, und seine Kennzahlen: wie viele Erkennungen er hat, wie lange er schon offen ist und wie lange es bis zur Bestätigung und bis zur Eindämmung gedauert hat.
+- **OneUptime AI**, auf der **Übersicht**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, auf der **Übersicht**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
+- **Zeitachse**: alles, was mit dem Fall geschehen ist, jeweils mit der Person, die es getan hat.
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
-- **MITRE ATT&CK**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
-- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten.
-- **Notizen** und **Zeitachse**: was das Team geschrieben hat, und alles, was geschehen ist, jeweils mit der Person, die es getan hat.
+- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbook-Ausführungen**, wie viele es sind.
+- **Private Notizen**: was das Team zum Fall geschrieben hat.
+- **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
+- **Fall löschen**: löscht den Fall mit seinen Erkennungen, Notizen, seiner Zeitachse und seinen Playbook-Ausführungen endgültig. Um ihn als Nachweis zu behalten, schließen Sie ihn stattdessen mit einer Bewertung.
 
-Um mehrere Fälle auf einmal zu bearbeiten, wählen Sie sie in der Warteschlange aus und nutzen **Assign to Me**, **Change Status** oder **Change Priority**.
+### Fälle aus der Warteschlange bearbeiten
+
+Sie müssen einen Fall nicht öffnen, um ihn zu bearbeiten. In den Listen der Warteschlange hat das Menü ⋯ in der Zeile eines Falls **Mir zuweisen**, **Jemand anderem zuweisen**, **Status ändern** und **Priorität ändern**. Um mehrere Fälle auf einmal zu bearbeiten, wählen Sie sie aus und nutzen dieselben Aktionen unter **Massenaktionen**: Dort steht, welche Fälle geändert wurden, welche unverändert blieben und warum.
+
+- Um einen Fall jemand anderem zu geben, nutzen Sie **Jemand anderem zuweisen** und wählen eine Person oder ein Team. Der Fall eines Teams wartet unter **Nicht zugewiesen**, bis ihn jemand aus dem Team übernimmt.
+- Ein Status, der einen Fall schließt, fragt wie **Close Case** nach einer Bewertung und einer Abschlussnotiz.
+- Ein geschlossener Fall wird niemandem zugewiesen. Um ihn wieder zu bearbeiten, öffnen Sie ihn mit **Status ändern** wieder.
 
 ### Einen Fall schließen
 
@@ -111,6 +131,25 @@ Ein Fall, der aus Google SecOps-Warnungen eröffnet wurde, schließt sie auch in
 ### Einen Vorfall melden
 
 **Vorfall melden** öffnet für den Fall einen OneUptime-Vorfall mit dem Schweregrad, den Sie wählen, und verknüpft beide in beide Richtungen: Die Beschreibung des Vorfalls nennt den Fall, und der Kopfbereich des Falls verlinkt auf den Vorfall. Ab dort übernehmen Bereitschaft, Statusseiten und das Postmortem. Dafür braucht es eine Rolle, die sowohl Fälle bearbeiten als auch Vorfälle erstellen darf.
+
+## Fallprioritäten und Fallstatus
+
+Jedes Projekt hat seine eigenen Fallprioritäten und Fallstatus, unter **Produkte → Sicherheitsereignisse → Einstellungen → Fallprioritäten** und **Fallstatus**. Benennen Sie sie um, färben Sie sie um, ziehen Sie sie in eine andere Reihenfolge und fügen Sie eigene hinzu, etwa einen Status „Triage“ oder eine Priorität „Notfall“ über **Kritisch**. Ein neuer Name gilt sofort überall: in der Warteschlange, auf den Fallseiten und in der Übersicht, in Benachrichtigungen, in Slack und Microsoft Teams und in Playbook-Nachrichten.
+
+Einige sind vordefiniert, weil OneUptime liest, was sie bedeuten. Sie lassen sich umbenennen und umfärben, aber weder löschen noch archivieren, und sie behalten ihre Reihenfolge:
+
+| Vordefiniert | Was OneUptime damit macht |
+| --- | --- |
+| Der neue Status | Neue Fälle beginnen darin |
+| Der bestätigte Status | Erreicht ein Fall ihn, wird festgehalten, wann er bestätigt wurde, und **Wieder öffnen** setzt einen geschlossenen Fall darauf zurück |
+| Der eingedämmte Status | Erreicht ein Fall ihn, wird festgehalten, wann er eingedämmt wurde |
+| Der geschlossene Status | **Close Case** setzt einen Fall darauf, mit einer Bewertung |
+| Die Prioritäten Kritisch, Hoch, Medium, Low und Hinweise | Eine Erkennung eröffnet ihren Fall mit der Priorität ihres Schweregrads, und ein Fall, den jemand eröffnet, beginnt mit Medium |
+
+- Wo ein Status steht, entscheidet, wofür ein Fall darin zählt, wie die Spalte **Zählt als** zeigt: ab dem bestätigten Status abwärts als bestätigt, ab dem eingedämmten Status abwärts als eingedämmt, ab dem geschlossenen Status abwärts als geschlossen. Ein Status, den Sie hinzufügen, kommt direkt über den geschlossenen Status, und wer einen Fall in einen Status setzt, der ihn schließt, wird zuerst nach einer Bewertung gefragt.
+- Der Rang einer Priorität ist ihre Dringlichkeit, die dringendste zuerst: **For Cases At Least**, die Auswahl bei den Benachrichtigungen und die Regeln für Slack und Microsoft Teams lesen diese Reihenfolge. Eine Priorität, die Sie hinzufügen, kommt ans Ende, und die Spalte **Schweregrad der Erkennung** zeigt, welche Erkennungen ihre Fälle mit welcher vordefinierten Priorität eröffnen.
+
+Um einen eigenen Status oder eine eigene Priorität nicht mehr zu verwenden, nutzen Sie **Archivieren** in ihrer Zeile. Niemand kann sie dann mehr wählen, und die API, Terraform und MCP lehnen sie ab, aber die Fälle, die sie haben, behalten sie, und Sie können weiter danach filtern. Archivierte Werte stehen im eingeklappten Abschnitt **Archivierte Fallstatus** oder **Archivierte Fallprioritäten** unter der Tabelle, wo **Aus Archiv entfernen** einen zurückholt. **Löschen** wird abgelehnt, solange Fälle den Wert haben oder ein Playbook ab der Priorität läuft.
 
 ## Benachrichtigungen
 
@@ -136,10 +175,12 @@ Jede Person wählt selbst, unter **Benutzereinstellungen → Benachrichtigungsei
 | Auswahl | Benachrichtigt über Fälle der Priorität |
 | --- | --- |
 | Nur Kritisch | Kritisch |
-| Hoch und Kritisch | Hoch und Kritisch (die Voreinstellung) |
+| Hoch und höher | Kritisch und Hoch (die Voreinstellung) |
 | Mittel und höher | Kritisch, Hoch und Medium |
 | Niedrig und höher | Jede außer Hinweise |
 | Jeder Fall | Jede |
+
+Die Auswahl folgt den Fallprioritäten des Projekts, unter ihren eigenen Namen: Dies sind die eines neuen Projekts.
 
 Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet die OneUptime-App, und ihr Link öffnet den Fall im Browser.
 
@@ -149,17 +190,17 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 
 | Bedingung | Trifft zu auf |
 | --- | --- |
-| Priorität des Sicherheitsfalls | Kritisch, Hoch, Medium, Low oder Hinweise |
+| Priorität des Sicherheitsfalls | Eine der Fallprioritäten des Projekts, etwa Kritisch oder Hoch |
 | Titel des Sicherheitsfalls, Beschreibung des Sicherheitsfalls | Text, den der Titel oder die Beschreibung des Falls enthält, mit dem sie beginnen oder auf den sie enden |
-| Status des Sicherheitsfalls | Neu, Untersuchung läuft, Contained oder Geschlossen |
-| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product oder Manuell |
+| Status des Sicherheitsfalls | Einer der Fallstatus des Projekts, etwa Neu oder Geschlossen |
+| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product, Entitätsrisiko oder Manuell |
 | Beschriftungen des Sicherheitsfalls | Die Labels des Falls |
 
 Die drei Benachrichtigungen werden jeweils in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
 
 ## Playbooks
 
-Ein Playbook ist eine Liste von Schritten, die auf einem Fall laufen. Erstellen Sie eines unter **Produkte → Sicherheitsereignisse → Playbooks**, aus einer Vorlage oder leer, und fügen Sie seine Schritte auf seiner Seite hinzu.
+Ein Playbook ist eine Liste von Schritten, die auf einem Fall laufen. Erstellen Sie eines unter **Produkte → Sicherheitsereignisse → Playbooks**, aus einer Vorlage oder leer, und fügen Sie seine Schritte auf seiner Seite hinzu. Ein Projekt ohne Playbooks sieht statt einer leeren Liste die Vorlagen; sobald es Playbooks gibt, öffnet **Aus Vorlage erstellen** an der Liste sie, mit **Hinzugefügt** bei denen, die das Projekt schon hat.
 
 ### Wann ein Playbook läuft
 
@@ -184,7 +225,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | --- | --- | --- |
 | Fall | Assign the case | Übergibt den Fall an eine Person, ein Team oder beide |
 | Fall | Set the priority | Hebt oder senkt die Priorität des Falls |
-| Fall | Set the status | Setzt den Fall auf „Untersuchung läuft“, „Contained“ oder „Geschlossen“, mit der Bewertung, die Sie wählen |
+| Fall | Set the status | Setzt den Fall auf einen anderen Status des Projekts, mit der Bewertung, die Sie wählen, wenn dieser Status ihn schließt |
 | Fall | Add a note | Schreibt eine Notiz an den Fall, etwa eine Checkliste für den Analysten |
 | Fall | Add labels | Versieht den Fall mit Labels |
 | Untersuchen | Check entities against threat intel | Schlägt jede Entität in Ihrer Threat Intelligence nach und kann bei einem Treffer die Priorität anheben |
@@ -247,8 +288,8 @@ Eine Notiz, eine E-Mail, ein Slack-Beitrag und ein Teams-Beitrag können die Wer
 | --- | --- |
 | `{{case.number}}` | Die Fallnummer, etwa CASE-42 |
 | `{{case.title}}` | Der Titel des Falls |
-| `{{case.priority}}` | Critical, High, Medium, Low oder Informational |
-| `{{case.status}}` | New, Investigating, Contained oder Closed |
+| `{{case.priority}}` | Die Priorität des Falls, wie Ihr Projekt sie nennt, etwa High |
+| `{{case.status}}` | Der Status des Falls, wie Ihr Projekt ihn nennt, etwa Investigating |
 | `{{case.assignee}}` | Wem der Fall zugewiesen ist |
 | `{{case.url}}` | Ein Link zum Fall in OneUptime |
 | `{{case.entities}}` | Die Benutzer, Hosts und Adressen, um die es im Fall geht |
@@ -269,7 +310,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. **Wartet auf Genehmigung**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. **Wartet auf Genehmigung**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung. Auf **Playbook-Ausführungen** und auf der Seite eines Playbooks ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 
@@ -278,7 +319,7 @@ Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, 
 **Produkte → Sicherheitsereignisse → Übersicht** ist die Seite, mit der das Produkt öffnet:
 
 - Die offenen Fälle, die Ihnen zugewiesen sind, die offenen Fälle, die noch niemand übernommen hat, und die Playbook-Schritte, die auf Genehmigung warten; jede Zahl öffnet die Seite, die sie auflistet.
-- **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn aus „Neu“ herausholt), bis „Contained“ und bis „Geschlossen“. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
+- **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn in einen Status setzt, der als bestätigt zählt), bis zu einem Status, der als eingedämmt zählt, und bis zu einem, der als geschlossen zählt. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
 - Die pro Tag eröffneten Fälle über 30 Tage, nach Priorität, und die pro Tag ausgelösten Erkennungen über 14 Tage, nach Quelle.
 - Die offenen Fälle nach Priorität und nach Status, die Bewertungen der letzten 30 Tage, die ATT&CK-Taktiken hinter den Fällen, die am häufigsten ausgelösten Erkennungen und die Entitäten, die in den meisten Befunden vorkommen.
 
@@ -286,15 +327,16 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 
 ## Bedrohungen finden
 
-- **Entitäten** ordnet die Benutzer, Hosts, Adressen und Hashes, die Ihre Befunde am häufigsten nennen, über den letzten Tag, die letzte Woche oder den letzten Monat, und schlägt jeden Wert in den Ereignissen von 30 Tagen nach.
+- **Entitäten** ordnet die Benutzer, Hosts, Adressen und Hashes, die Ihre Befunde am häufigsten nennen, über den letzten Tag, die letzte Woche oder den letzten Monat, und schlägt jeden Wert in den Ereignissen von 30 Tagen nach. Wählen Sie eine Entität, um sie in **Korrelieren** zu öffnen.
 - **Rule Library** enthält fertige Erkennungsregeln für Bedrohungen rund um Identität, Endpunkte, Cloud, Netzwerk, Web und Kubernetes. Jede ist eine Sigma-Regel, geschrieben für die Felder, auf die jede verbundene Quelle normalisiert wird. Ihre Zeile nennt, was sie findet, die MITRE-ATT&CK-Taktiken und -Techniken, denen sie zugeordnet ist, die Ereignisse, die sie liest, und ob in den letzten 7 Tagen welche eingegangen sind (**Empfangen** oder **Nicht empfangen**), sowie ihren Schweregrad. Grenzen Sie die Liste nach Kategorie, nach den Daten, die die Regeln lesen, und danach ein, ob Sie sie hinzugefügt haben, oder durchsuchen Sie sie nach Name, ATT&CK-Technik oder Schweregrad; die Adresse der Seite behält die Filter. Wählen Sie eine Regel für ihre Details: wie Sie anfangen, die Ereignisse zu senden, die sie liest, wie sie läuft, und ihre Sigma-Regel. **Hinzufügen** legt sie als Ihre eigene Erkennungsregel an, eingeschaltet und so eingestellt, dass sie Fälle statt Warnungen eröffnet; ändern Sie sie unter **Erkennungsregeln** wie jede andere. Die mit **Empfohlen** markierten Regeln finden Bedrohungen in Daten, die OneUptime bereits hat, und eine Schaltfläche fügt die hinzu, die Ihnen noch fehlen.
-- **ATT&CK Coverage** zeichnet die Matrix von MITRE ATT&CK, hebt die Techniken hervor, die Ihre aktivierten Regeln abdecken, und umrandet die, die eine Regel aus der Bibliothek abdecken würde. Wählen Sie eine Technik, um die Regeln aus der Bibliothek zu sehen, die sie abdecken, und die **Rule Library** mit ihnen zu öffnen.
+- **ATT&CK Coverage** listet die Taktiken von MITRE ATT&CK, jede damit, wie viele ihrer Techniken Ihre aktivierten Regeln abdecken und für wie viele weitere die **Rule Library** Regeln hat. Öffnen Sie eine Taktik für ihre Techniken, oder wechseln Sie zu **Matrix** für die ganze Matrix. Wählen Sie eine Technik, um die Regeln aus der Bibliothek zu sehen, die sie abdecken, und die **Rule Library** mit ihnen zu öffnen.
 
 ## Automatisieren
 
 - **Arbeitsabläufe**: Ein Fall oder eine Notiz kann einen Workflow starten, wenn er oder sie erstellt, aktualisiert oder gelöscht wird. Ein Schritt **Run a workflow** startet einen Workflow, dessen Trigger ein Webhook ist.
-- **API**: Fälle, Notizen, Erkennungen, Playbooks, Ausführungen und geschützte Entitäten haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` und `/security-protected-entity`. Siehe [API-Referenz](/docs/api-reference/api-reference).
-- KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Erkennungen und Playbooks. Siehe [MCP-Server](/docs/ai/mcp-server).
+- **API**: Fälle, Notizen, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
+- KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Erkennungen, Playbooks sowie Fallprioritäten und Fallstatus. Siehe [MCP-Server](/docs/ai/mcp-server).
+- Terraform: Die Ressourcen `oneuptime_security_case_priority` und `oneuptime_security_case_status` halten die Prioritäten und Status eines Projekts als Code fest.
 
 ## Fehlerbehebung
 
@@ -303,7 +345,7 @@ Prüfen Sie **Open a Case on Match** im Schritt **Bei Treffer** der Regel. Eine 
 :::
 
 :::details Niemand wurde über einen Fall informiert
-Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und Kritisch** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
+Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und höher** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
 :::
 
 :::details Ein Playbook ist nicht gelaufen
@@ -316,6 +358,10 @@ Prüfen Sie, dass es aktiviert ist, dass sein **Auslöser** passt (Case Opened l
 
 :::details Ein Eindämmungsschritt wurde übersprungen
 Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, oder jeder Benutzer oder Host, um den es darin geht, ist geschützt. Öffnen Sie die Ausführung am Fall: Der Schritt sagt, was davon zutrifft.
+:::
+
+:::details Ein Status oder eine Priorität lässt sich nicht löschen oder archivieren
+Ein vordefinierter Wert lässt sich umbenennen und umfärben, aber nie löschen oder archivieren: Sein **Archivieren** ist gesperrt, mit dem Grund. Einen eigenen Wert können Sie nicht löschen, solange Fälle ihn haben oder ein Playbook ab ihm läuft: Setzen Sie die Fälle zuerst auf einen anderen, oder archivieren Sie ihn.
 :::
 
 ## Nächste Schritte

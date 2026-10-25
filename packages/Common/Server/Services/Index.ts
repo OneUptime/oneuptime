@@ -379,16 +379,22 @@ import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
 import AuditLogExportService from "./AuditLogExportService";
+import BackupSettingService from "./BackupSettingService";
+import BackupRunService from "./BackupRunService";
 import SecurityLogSourceService from "./SecurityLogSourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
+import SecurityCasePriorityService from "./SecurityCasePriorityService";
+import SecurityCaseStatusService from "./SecurityCaseStatusService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityEntityRiskService from "./SecurityEntityRiskService";
+import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -883,15 +889,21 @@ const services: Array<BaseService> = [
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,
   AuditLogExportService,
+  BackupSettingService,
+  BackupRunService,
   SecurityLogSourceService,
   ThreatIntelFeedService,
   SecurityCaseService,
   SecurityCaseFeedService,
   SecurityCaseNoteService,
+  SecurityCasePriorityService,
+  SecurityCaseStatusService,
   SecurityDetectionService,
   SecurityPlaybookService,
   SecurityPlaybookRunService,
   SecurityProtectedEntityService,
+  SecurityEntityRiskService,
+  SecurityEntityCriticalityService,
   AlertNoteTemplateService,
   AlertFeedService,
 

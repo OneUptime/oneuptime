@@ -333,6 +333,10 @@ describe("the Alerts group in the docs", () => {
 
 describe("the overview's side menu table is the Alerts side menu", () => {
   const overview: string = english(ALERTS_OVERVIEW);
+  // The moves every incident, alert, episode and maintenance list offers.
+  const stateEngine: string = readDashboardSource(
+    "Components/EventView/useEventStateActions.tsx",
+  );
   const table: string = section(
     overview,
     "## Where alerts live in the dashboard",
@@ -449,22 +453,53 @@ describe("the overview's side menu table is the Alerts side menu", () => {
       "**Affected Resources** (the alert's monitor first)",
     );
 
+    // In the order the list offers them (RowActionsAudit).
     expect(boldNames(actionsPart || "")).toEqual([
+      "Acknowledge",
+      "Resolve",
       "Change State",
-      "Add Labels",
-      "Remove Labels",
+      "Change Severity",
+      "Assign to Me",
       "Add Owner",
       "Remove Owner",
+      "Add Labels",
+      "Remove Labels",
       "Link to Incident",
       "Declare Incident",
     ]);
-    expect(alertsTable).toContain('title: "Change State"');
+    const bulk: string = alertsTable.slice(
+      alertsTable.indexOf("bulkActions={{"),
+      alertsTable.indexOf("actionButtons={["),
+    );
+    const order: Array<number> = [
+      "...stateBulkActions",
+      "...severityBulkActions",
+      "...ownerBulkActions",
+      "...labelBulkActions",
+      "...incidentLinkBulkActions",
+    ].map((name: string): number => {
+      return bulk.indexOf(name);
+    });
+
+    expect(order[0]).toBeGreaterThan(-1);
+    expect(order).toEqual(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    );
+    expect(stateEngine).toContain('return "Acknowledge";');
+    expect(stateEngine).toContain('return "Resolve";');
+    expect(stateEngine).toContain('title: "Change State",');
+    expect(alertsTable).toContain('title: "Change Severity",');
     expect(
       readCommonSource("UI/Components/BulkUpdate/BulkLabelActions.tsx"),
     ).toContain('title: "Add Labels"');
     expect(
       readCommonSource("UI/Components/BulkUpdate/BulkOwnerActions.tsx"),
     ).toContain('title: "Remove Owner"');
+    expect(
+      readCommonSource("UI/Components/BulkUpdate/BulkOwnerActions.tsx"),
+    ).toContain('ASSIGN_TO_ME_TITLE: string = translationKey("Assign to Me");');
     expect(bulkLinks).toContain(
       'LINK_TO_INCIDENT_ACTION_TITLE: string = "Link to Incident"',
     );
@@ -472,6 +507,38 @@ describe("the overview's side menu table is the Alerts side menu", () => {
       'DECLARE_INCIDENT_ACTION_TITLE: string = "Declare Incident"',
     );
     expect(alertsTable).toContain("ModalTableBulkDefaultActions.Delete");
+  });
+
+  it("names each row's ⋯ menu as the alerts table draws it: the state moves, severity and owners", () => {
+    const alertsTable: string = readDashboardSource(
+      "Components/Alert/AlertsTable.tsx",
+    );
+    const rowSentence: string = paragraphAfter(
+      table,
+      "Each alert's **⋯** menu, at the end of its row,",
+    );
+
+    expect(boldNames(rowSentence)).toEqual([
+      "⋯",
+      "Acknowledge",
+      "Resolve",
+      "Change State",
+      "Change Severity",
+      "Assign to Me",
+      "Add Owner",
+    ]);
+    // The row's actions, in that order, through the shared engine.
+    expect(alertsTable).toContain(
+      "actionButtons={[\n          ...stateRowActions,\n          ...severityRowActions,\n          ...ownerRowActions,\n        ]}",
+    );
+    // Acknowledge and Resolve only while the alert can make the move.
+    expect(stateEngine).toContain("return isQuickMoveOffered({");
+    // Assign to Me only on an alert the viewer does not own.
+    expect(alertsTable).toContain("isOwnedByMe: (alert: Alert)");
+    expect(rowSentence).toContain(
+      "**Acknowledge** and **Resolve** while the alert can make that move",
+    );
+    expect(rowSentence).toContain("**Assign to Me** until you own it");
   });
 
   it("says Affected Resources names the alert's monitor first, as the list draws it", () => {
@@ -1680,17 +1747,33 @@ describe("alert states and severities", () => {
     const alertsTable: string = readDashboardSource(
       "Components/Alert/AlertsTable.tsx",
     );
+    const stateKinds: string = readDashboardSource(
+      "Components/EventView/EventStateKinds.ts",
+    );
 
     expect(changeState).toContain('translationKey("Acknowledge Alert")');
     expect(changeState).toContain('translationKey("Resolve Alert")');
     expect(changeState).toContain(
       'translator.translateTemplate("Mark Alert as {{state}}", {',
     );
-    expect(alertsTable).toContain(
-      'description="Select the state to change alerts to. Alerts already at or past the selected state will be skipped."',
+    // The list's Change State, from the alerts' entry in the state engine.
+    expect(stateKinds).toContain(
+      '"Select the state to change alerts to. Alerts already at or past the selected state will be skipped.",',
     );
+    expect(alertsTable).toContain("kind: EventStateKind.Alert,");
     expect(page).toContain(
       "**Acknowledge Alert**, **Resolve Alert** or **Mark Alert as {{state}}**",
+    );
+    // A row's ⋯ menu asks the header's question, and a selection the list's.
+    expect(stateKinds).toContain(
+      'rowTitle: translationKey("Acknowledge Alert"),',
+    );
+    expect(stateKinds).toContain('rowTitle: translationKey("Resolve Alert"),');
+    expect(page).toContain(
+      "| **List row** | The **⋯** menu on an alert's row in the alerts list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the alert.",
+    );
+    expect(page).toContain(
+      "**Acknowledge**, **Resolve** or **Change State** on a selection in the alerts list",
     );
     expect(page).toContain("Alerts already at or past the state are skipped.");
   });

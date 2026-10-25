@@ -142,22 +142,72 @@ describe("the English upgrade note on the redirects of requests that carry a key
     ).toBe(true);
   });
 
+  /*
+   * Since #5244 the agent makes every client in one place, newHTTPClient
+   * (client.go), which also gives each request a deadline. So: every client
+   * literal in the agent's code checks its redirects, nothing sends through
+   * Go's default client (http.Get and the rest skip the check), and both of
+   * the agent's requests go through newHTTPClient.
+   */
   it("holds the infrastructure agent to it: every request it sends checks its redirects", () => {
-    const agent: string = fs.readFileSync(
-      path.join(REPO_ROOT, AGENT_DIRECTORY, "agent.go"),
-      "utf8",
-    );
-    const redirect: string = fs.readFileSync(
-      path.join(REPO_ROOT, AGENT_DIRECTORY, "redirect.go"),
-      "utf8",
-    );
+    const directory: string = path.join(REPO_ROOT, AGENT_DIRECTORY);
+    const sources: Array<{ file: string; text: string }> = fs
+      .readdirSync(directory)
+      .filter((file: string): boolean => {
+        return file.endsWith(".go") && !file.endsWith("_test.go");
+      })
+      .map((file: string): { file: string; text: string } => {
+        return {
+          file,
+          text: fs.readFileSync(path.join(directory, file), "utf8"),
+        };
+      });
 
-    // Its two requests each make a client, and one more behind a proxy.
-    expect(agent.split("&http.Client{").length - 1).toBe(4);
+    const clientLiterals: Array<{ file: string; checksRedirects: boolean }> =
+      sources.flatMap(
+        (source: {
+          file: string;
+          text: string;
+        }): Array<{ file: string; checksRedirects: boolean }> => {
+          return source.text
+            .split("&http.Client{")
+            .slice(1)
+            .map((rest: string): { file: string; checksRedirects: boolean } => {
+              return {
+                file: source.file,
+                checksRedirects: rest
+                  .slice(0, rest.indexOf("}"))
+                  .includes("CheckRedirect: sameServerRedirectsOnly"),
+              };
+            });
+        },
+      );
+
+    expect(clientLiterals).toEqual([
+      { file: "client.go", checksRedirects: true },
+    ]);
+
+    // Go's default client and the helpers that send through it.
+    const defaultClientUse: RegExp =
+      /http\.(DefaultClient|Get\(|Post\(|PostForm\(|Head\()/;
+
+    for (const source of sources) {
+      expect({
+        file: source.file,
+        defaultClient: defaultClientUse.test(source.text),
+      }).toEqual({ file: source.file, defaultClient: false });
+    }
+
+    // Its two requests: the secret key's check, and each report.
+    const agent: string = fs.readFileSync(
+      path.join(directory, "agent.go"),
+      "utf8",
+    );
+    expect(agent.split("newHTTPClient(proxyUrl).Do(").length - 1).toBe(2);
+
     expect(
-      agent.split("CheckRedirect: sameServerRedirectsOnly").length - 1,
-    ).toBe(4);
-    expect(redirect).toContain("func sameServerRedirectsOnly(");
+      fs.readFileSync(path.join(directory, "redirect.go"), "utf8"),
+    ).toContain("func sameServerRedirectsOnly(");
   });
 
   it("carries its code and no link", () => {

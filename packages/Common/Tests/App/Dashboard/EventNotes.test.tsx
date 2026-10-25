@@ -2692,6 +2692,27 @@ describe("event notes: the page header", () => {
       within(header).getByText(/about this alert\. They are never shown/),
     ).toBeVisible();
   });
+
+  test("a kind of note with words of its own says what its notes are for in place of the visibility's sentence", async () => {
+    // A security case's: it has no status page or subscribers to promise anything about.
+    await renderPrivate({
+      eventNoun: "case",
+      description:
+        "Notes for the team working this case: what you found, what you decided and what comes next.",
+    });
+
+    const description: HTMLElement = screen.getByTestId("notes-description");
+
+    expect(description).toHaveTextContent(
+      "Notes for the team working this case: what you found, what you decided and what comes next.",
+    );
+    expect(description.textContent).not.toContain("status page");
+    expect(description.textContent).not.toContain("subscribers");
+    // Still the private notes, named and read as any are.
+    expect(
+      within(screen.getByTestId("notes-header")).getByText("Private notes"),
+    ).toBeVisible();
+  });
 });
 
 /*

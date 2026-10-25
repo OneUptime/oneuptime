@@ -27,6 +27,7 @@ import {
 import RuleAddsNothingPill from "./RuleAddsNothingPill";
 import {
   RULE_ENABLED_COLUMN,
+  hasRuleEnabledColumn,
   withRuleEnabledOnEditOnly,
 } from "./RuleEnabledField";
 import RuleView from "./RuleView";
@@ -257,12 +258,24 @@ const RuleTable: <TBaseModel extends BaseModel>(
     };
   }
 
-  // Every rule starts on: its create form leaves the Enabled switch out.
+  /*
+   * Every rule starts on: its create form leaves the Enabled switch out.
+   * Turning one off or on again is each row's Enable or Disable - the
+   * shared row switch (ModelTable's rowSwitch), for a rule that has the
+   * switch - with no Edit, flip, Save.
+   */
   const ruleTableProps: ModelTableComponentProps<TBaseModel> = {
     ...tableProps,
     formFields: tableProps.formFields
       ? withRuleEnabledOnEditOnly<TBaseModel>(tableProps.formFields)
       : tableProps.formFields,
+    rowSwitch:
+      tableProps.rowSwitch ||
+      (hasRuleEnabledColumn(model)
+        ? {
+            column: RULE_ENABLED_COLUMN as keyof TBaseModel & string,
+          }
+        : undefined),
   };
 
   if (readsRuleAction) {

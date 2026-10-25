@@ -376,7 +376,7 @@ const AlertEpisodeView: FunctionComponent<
 
   /*
    * Who owns the episode, teams first, first in its header. Add owners is
-   * offered only while the episode is open.
+   * offered only while the episode is open, to a reader who may add one.
    */
   const peopleFacts: Array<EventStatusFact> = [];
   const ownersFact: EventStatusFact | null = getOwnersFact({
@@ -385,7 +385,7 @@ const AlertEpisodeView: FunctionComponent<
       RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !timing.isResolved,
+    canAddOwners: !timing.isResolved && owners.canAddOwners,
   });
 
   if (ownersFact) {

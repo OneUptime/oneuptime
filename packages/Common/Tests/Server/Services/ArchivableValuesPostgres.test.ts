@@ -25,6 +25,10 @@ import {
 } from "../../../Types/ArchivableValue/ArchivableValueUsage";
 import ObjectID from "../../../Types/ObjectID";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "../../../Utils/ArchivableValues";
+import {
+  ARCHIVABLE_VALUES_CREATED_LATER,
+  ArchivableValueCreatedLater,
+} from "../../Helpers/ArchivableValuesCreatedLater";
 import { DataSource, QueryRunner } from "typeorm";
 
 /*
@@ -124,11 +128,17 @@ const clone: (
 
 /*
  * The value tables the two archive migrations alter: every archivable value
- * but those created archivable later by their own migration - the
- * postmortem statuses (1805900000000-AddIncidentPostmortemStatus).
- * AddArchiveToValuesMigration.test.ts holds the split.
+ * but those created archivable later by their own migration
+ * (Tests/Helpers/ArchivableValuesCreatedLater - the postmortem statuses, the
+ * security case statuses and priorities). AddArchiveToValuesMigration.test.ts
+ * holds that list to ARCHIVABLE_VALUE_TABLE_NAMES.
  */
-const CREATED_ARCHIVABLE_LATER: Array<string> = ["IncidentPostmortemStatus"];
+const CREATED_ARCHIVABLE_LATER: Array<string> =
+  ARCHIVABLE_VALUES_CREATED_LATER.map(
+    (later: ArchivableValueCreatedLater): string => {
+      return later.table;
+    },
+  );
 
 const MIGRATED_VALUE_TABLE_NAMES: Array<string> =
   ARCHIVABLE_VALUE_TABLE_NAMES.filter((table: string): boolean => {

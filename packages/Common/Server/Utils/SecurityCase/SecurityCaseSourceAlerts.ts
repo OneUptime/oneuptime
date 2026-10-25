@@ -5,7 +5,8 @@ import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEven
 import { Green500, Red500, Yellow500 } from "../../../Types/BrandColors";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import SecurityCaseStatus from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import SecurityCaseValues from "./SecurityCaseValues";
 import SecurityCaseVerdict, {
   isSecurityCaseVerdict,
 } from "../../../Types/SecurityCase/SecurityCaseVerdict";
@@ -392,7 +393,7 @@ export default class SecurityCaseSourceAlerts {
         },
         select: {
           _id: true,
-          status: true,
+          securityCaseStatusId: true,
           verdict: true,
           closingNote: true,
           caseNumberWithPrefix: true,
@@ -400,7 +401,15 @@ export default class SecurityCaseSourceAlerts {
         props: { isRoot: true },
       });
 
-    return securityCase && securityCase.status === SecurityCaseStatus.Closed
+    if (!securityCase) {
+      return null;
+    }
+
+    // Closed: its status is the project's closed one, or one after it.
+    return SecurityCaseStatuses.isClosed(
+      await SecurityCaseValues.getStatuses(data.projectId),
+      securityCase.securityCaseStatusId,
+    )
       ? securityCase
       : null;
   }

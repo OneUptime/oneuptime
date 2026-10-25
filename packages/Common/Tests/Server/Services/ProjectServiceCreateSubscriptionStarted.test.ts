@@ -141,6 +141,8 @@ describe("ProjectService project creation - subscription_started", () => {
     "addDefaultIncidentRoles",
     "addDefaultNetworkSiteTypes",
     "addDefaultNetworkDeviceRoles",
+    "addDefaultSecurityCasePriorities",
+    "addDefaultSecurityCaseStatuses",
   ];
 
   function setup(data?: {

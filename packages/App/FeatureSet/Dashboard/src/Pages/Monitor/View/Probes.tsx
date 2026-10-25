@@ -21,8 +21,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -101,12 +103,14 @@ const MonitorProbes: FunctionComponent<
    * again, without opening each row's Edit. The rows are Monitor Probes
    * here, as the selection bar, the result and Delete call them.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<MonitorProbe>> =
-    useBulkSwitchActions<MonitorProbe>({
-      modelType: MonitorProbe,
-      column: "isEnabled",
-      getItemName: getProbeName,
-    });
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<MonitorProbe> = useSwitchActions<MonitorProbe>({
+    modelType: MonitorProbe,
+    column: "isEnabled",
+    getItemName: getProbeName,
+  });
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     const read: number = readRef.current + 1;
@@ -210,6 +214,8 @@ const MonitorProbes: FunctionComponent<
           isEnabled: true,
         }}
         actionButtons={[
+          // Enable or Disable: the one that changes the row.
+          ...switchRowActions,
           {
             title: "View Summary",
             buttonStyleType: ButtonStyleType.NORMAL,

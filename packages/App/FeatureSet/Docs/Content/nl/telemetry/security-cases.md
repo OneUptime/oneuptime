@@ -3,8 +3,9 @@
 Security Events maakt zaken van wat je detectieregels, je threat intelligence en je gekoppelde beveiligingsproducten vinden: één zaak voor alles wat het onderzoeken waard is, waarin elke detectie over dezelfde gebruiker, dezelfde host of hetzelfde adres wordt gebundeld. Analisten handelen de zaken af in een wachtrij, en playbooks reageren erop, vanzelf of met één klik.
 
 :::cards
-- [Waar zaken vandaan komen](#waar-zaken-vandaan-komen): Detectieregels, threat intelligence, gekoppelde producten en mensen.
+- [Waar zaken vandaan komen](#waar-zaken-vandaan-komen): Detectieregels, threat intelligence, gekoppelde producten, entiteitrisico en mensen.
 - [Een zaak afhandelen](#een-zaak-afhandelen): Toewijzen, de entiteiten onderzoeken en sluiten met een oordeel.
+- [Zaakprioriteiten en zaakstatussen](#zaakprioriteiten-en-zaakstatussen): Hernoem ze, geef ze een andere kleur en volgorde, en voeg je eigen toe.
 - [Meldingen](#meldingen): Wie hoort over een nieuwe zaak, een toewijzing en een stap die op goedkeuring wacht.
 - [Playbooks](#playbooks): Stappen die op een zaak draaien, met goedkeuring waar het ertoe doet.
 - [Het overzicht](#het-overzicht): Wat nu aandacht nodig heeft, en hoe snel zaken worden afgehandeld.
@@ -48,9 +49,10 @@ Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van
 | Detectieregels | Een regel matcht | **Open a Case on Match**, in de stap **Bij overeenkomst** van de regel |
 | Dreigingsinformatie | Een gebeurtenis een bekende indicator noemt | **Open a Case on Match**, in de stap **Bij overeenkomst** van de feed |
 | Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Open Cases From** op **Nooit** gezet, in de stap **Polling** van de verbinding |
+| Entiteitrisico | Het risico van een gebruiker, host of adres de drempel van het project haalt | **Risicozaken**, onder **Instellingen → Risicoscoring** |
 | Mensen | Iemand er een opent vanuit **Beveiligingszaken**, of met **Open Case** in het paneel van een gebeurtenis | Niet uit te zetten |
 
-Elke bron staat standaard aan. Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd.
+Elke bron opent standaard zaken, behalve entiteitrisico in projecten die zijn aangemaakt voordat het bestond: zet daar eerst **Risicozaken** aan ([Entiteitrisico](/docs/telemetry/security-entity-risk)). Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd.
 
 ### Hoe detecties worden gegroepeerd
 
@@ -60,7 +62,7 @@ Een detectie gaat over een entiteit: de waarde waarop haar regel groepeert, zoal
 - Is er geen, dan wordt er een nieuwe zaak geopend, vernoemd naar de detectie en met de prioriteit van de detectie.
 - Een detectie die opnieuw afgaat, telt op in haar rij in plaats van er een toe te voegen.
 
-De prioriteit van een zaak volgt uit de ernst van de detectie:
+De prioriteit van een zaak volgt uit de ernst van de detectie, als de ingebouwde prioriteit van het project voor dat niveau, hoe je die ook hebt genoemd:
 
 | Ernst | Prioriteit |
 | --- | --- |
@@ -72,7 +74,7 @@ De prioriteit van een zaak volgt uit de ernst van de detectie:
 
 ## Een zaak afhandelen
 
-Een zaak doorloopt vier statussen. Ze kan er een overslaan, bijvoorbeeld een false positive die rechtstreeks vanuit Nieuw wordt gesloten, en ze kan worden heropend.
+De zaken van een nieuw project doorlopen vier statussen, die je kunt hernoemen en aanvullen (zie [Zaakprioriteiten en zaakstatussen](#zaakprioriteiten-en-zaakstatussen)). Een zaak kan er een overslaan, bijvoorbeeld een false positive die rechtstreeks vanuit Nieuw wordt gesloten, en ze kan worden heropend.
 
 | Status | Betekenis |
 | --- | --- |
@@ -81,17 +83,35 @@ Een zaak doorloopt vier statussen. Ze kan er een overslaan, bijvoorbeeld een fal
 | Contained | De dreiging kan geen schade meer aanrichten; het opruimen moet nog gebeuren |
 | Gesloten | Klaar, met een oordeel over wat het was |
 
-De pagina van de zaak heeft alles om haar af te handelen:
+Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is een eigen pagina:
 
-- Bovenaan: **Assign to Me**, **Run Playbook**, **Incident melden** en **Close Case**, de statusstappen, en de prioriteit onder het menu ernaast.
-- **OneUptime AI**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+| Sectie van het zijmenu | Pagina's |
+| --- | --- |
+| **Overzicht** | **Overzicht**, **Tijdlijn** |
+| **Onderzoek** | **Detections**, **Entiteiten**, **Playbook-uitvoeringen** |
+| **Notities** | **Privénotities** |
+| **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
+
+Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en titel, **Aan mij toewijzen**, **Run Playbook**, **Incident melden** en **Close Case**, en in het menu ⋯ ernaast **Prioriteit instellen**, **Aan iemand anders toewijzen**, **Status wijzigen**, **Zaak bewerken** en **Zaak verwijderen**. Zo handel je de zaak af vanaf elk van haar pagina's, en een link naar de zaak opent nog steeds haar **Overzicht**.
+
+- **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was.
+- **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
+- **Tijdlijn**: alles wat er met de zaak gebeurde, met wie het deed.
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
-- **MITRE ATT&CK**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
-- **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten.
-- **Notities** en **Tijdlijn**: wat het team schreef, en alles wat er gebeurde, met wie het deed.
+- **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbook-uitvoeringen**.
+- **Privénotities**: wat het team over de zaak schreef.
+- **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
+- **Zaak verwijderen**: verwijdert de zaak voorgoed, met haar detecties, notities, tijdlijn en playbook-uitvoeringen. Wil je haar als verslag bewaren, sluit haar dan met een oordeel.
 
-Om meerdere zaken tegelijk af te handelen, selecteer je ze in de wachtrij en gebruik je **Assign to Me**, **Change Status** of **Change Priority**.
+### Zaken afhandelen vanuit de wachtrij
+
+Je hoeft een zaak niet te openen om ermee aan de slag te gaan. In de lijsten van de wachtrij heeft het menu ⋯ in de rij van een zaak **Aan mij toewijzen**, **Aan iemand anders toewijzen**, **Status wijzigen** en **Prioriteit wijzigen**. Om meerdere zaken tegelijk af te handelen, selecteer je ze en gebruik je dezelfde acties onder **Bulkacties**: die laten zien welke zaken zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
+
+- Om een zaak aan iemand anders te geven, gebruik je **Aan iemand anders toewijzen** en kies je één persoon of een team. Een zaak van een team wacht onder **Niet toegewezen** tot iemand van het team hem oppakt.
+- Een status die een zaak sluit, vraagt om een oordeel en een afsluitende notitie, zoals **Close Case** doet.
+- Een gesloten zaak wordt aan niemand toegewezen. Om er weer mee aan de slag te gaan, heropen je hem met **Status wijzigen**.
 
 ### Een zaak sluiten
 
@@ -111,6 +131,25 @@ Een zaak die uit Google SecOps-waarschuwingen is geopend, sluit die ook in Googl
 ### Een incident melden
 
 **Incident melden** opent een OneUptime-incident voor de zaak, met de ernst die je kiest, en koppelt de twee in beide richtingen: de beschrijving van het incident noemt de zaak, en de kop van de zaak linkt naar het incident. On-call, statuspagina's en de postmortem nemen het vanaf daar over. Daarvoor is een rol nodig die zowel zaken mag afhandelen als incidenten mag aanmaken.
+
+## Zaakprioriteiten en zaakstatussen
+
+Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Security Events → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack en Microsoft Teams, en in playbookberichten.
+
+Sommige zijn ingebouwd, omdat OneUptime leest wat ze betekenen. Je kunt ze hernoemen en een andere kleur geven, maar niet verwijderen of archiveren, en ze houden hun volgorde:
+
+| Ingebouwd | Wat OneUptime ermee doet |
+| --- | --- |
+| De nieuwe status | Nieuwe zaken beginnen erin |
+| De bevestigde status | Bereikt een zaak hem, dan wordt vastgelegd wanneer ze is bevestigd, en **Reopen** zet een gesloten zaak erop terug |
+| De ingeperkte status | Bereikt een zaak hem, dan wordt vastgelegd wanneer ze is ingeperkt |
+| De gesloten status | **Close Case** zet een zaak erop, met een oordeel |
+| De prioriteiten Kritiek, High, Medium, Low en Informatief | Een detectie opent haar zaak met de prioriteit van haar ernst, en een zaak die iemand opent, begint op Medium |
+
+- Waar een status staat, bepaalt hoe een zaak erin telt, zoals de kolom **Telt als** laat zien: vanaf de bevestigde status omlaag als bevestigd, vanaf de ingeperkte status omlaag als ingeperkt, vanaf de gesloten status omlaag als gesloten. Een status die je toevoegt, komt net boven de gesloten status, en wie een zaak in een status zet die haar sluit, wordt eerst om een oordeel gevraagd.
+- De rang van een prioriteit is hoe dringend ze is, de dringendste eerst: **For Cases At Least**, de keuzes bij meldingen en de regels voor Slack en Microsoft Teams lezen deze volgorde. Een prioriteit die je toevoegt, komt achteraan, en de kolom **Ernst van de detectie** laat zien welke detecties hun zaken met welke ingebouwde prioriteit openen.
+
+Wil je een eigen status of prioriteit niet meer gebruiken, gebruik dan **Archiveren** in de rij ervan. Niemand kan hem dan nog kiezen, en de API, Terraform en MCP weigeren hem, maar de zaken die hem hebben, houden hem, en je kunt er nog steeds op filteren. Gearchiveerde waarden staan in de ingeklapte sectie **Gearchiveerde zaakstatussen** of **Gearchiveerde zaakprioriteiten** onder de tabel, waar **Uit archief halen** er een terugzet. **Verwijderen** wordt geweigerd zolang zaken de waarde hebben of een playbook vanaf de prioriteit draait.
 
 ## Meldingen
 
@@ -136,10 +175,12 @@ Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstel
 | Keuze | Meldt zaken met |
 | --- | --- |
 | Alleen Kritiek | Kritiek |
-| Hoog en Kritiek | High en Kritiek (de standaard) |
+| Hoog en hoger | Kritiek en High (de standaard) |
 | Gemiddeld en hoger | Kritiek, High en Medium |
 | Laag en hoger | Elke prioriteit behalve Informatief |
 | Elke zaak | Elke prioriteit |
+
+De keuzes volgen de zaakprioriteiten van het project, onder hun eigen namen: dit zijn die van een nieuw project.
 
 Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de OneUptime-app, en de link erin opent de zaak in de browser.
 
@@ -149,17 +190,17 @@ Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Securi
 
 | Voorwaarde | Matcht op |
 | --- | --- |
-| Prioriteit van beveiligingszaak | Kritiek, High, Medium, Low of Informatief |
+| Prioriteit van beveiligingszaak | Een van de zaakprioriteiten van het project, zoals Kritiek of High |
 | Titel van beveiligingszaak, Beschrijving van beveiligingszaak | Tekst die de titel of de beschrijving van de zaak bevat, waarmee die begint of waarmee die eindigt |
-| Status van beveiligingszaak | Nieuw, Onderzoeken, Contained of Gesloten |
-| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product of Manual |
+| Status van beveiligingszaak | Een van de zaakstatussen van het project, zoals Nieuw of Gesloten |
+| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product, Entiteitrisico of Manual |
 | Labels van beveiligingszaak | De labels van de zaak |
 
 De drie meldingen worden elk geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **High** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
 
 ## Playbooks
 
-Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Security Events → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan.
+Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Security Events → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan. Een project zonder playbooks ziet de sjablonen in plaats van een lege lijst; zodra er playbooks zijn, opent **Maken op basis van sjabloon** bij de lijst ze, met **Toegevoegd** bij de sjablonen die het project al heeft.
 
 ### Wanneer een playbook draait
 
@@ -184,7 +225,7 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | --- | --- | --- |
 | Zaak | Assign the case | Geeft de zaak aan een persoon, een team of beide |
 | Zaak | Set the priority | Verhoogt of verlaagt de prioriteit van de zaak |
-| Zaak | Set the status | Zet de zaak op Onderzoeken, Contained of Gesloten, met het oordeel dat je kiest |
+| Zaak | Set the status | Zet de zaak op een andere status van het project, met het oordeel dat je kiest als die status haar sluit |
 | Zaak | Add a note | Schrijft een notitie bij de zaak, zoals een checklist voor de analist |
 | Zaak | Add labels | Voorziet de zaak van labels |
 | Onderzoeken | Check entities against threat intel | Zoekt elke entiteit op in je threat intelligence, en kan bij een match de prioriteit verhogen |
@@ -247,8 +288,8 @@ Een notitie, een e-mail, een Slack-bericht en een Teams-bericht kunnen de waarde
 | --- | --- |
 | `{{case.number}}` | Het zaaknummer, zoals CASE-42 |
 | `{{case.title}}` | De titel van de zaak |
-| `{{case.priority}}` | Critical, High, Medium, Low of Informational |
-| `{{case.status}}` | New, Investigating, Contained of Closed |
+| `{{case.priority}}` | De prioriteit van de zaak, zoals je project die noemt, bijvoorbeeld High |
+| `{{case.status}}` | De status van de zaak, zoals je project die noemt, bijvoorbeeld Investigating |
 | `{{case.assignee}}` | Aan wie de zaak is toegewezen |
 | `{{case.url}}` | Een link naar de zaak in OneUptime |
 | `{{case.entities}}` | De gebruikers, hosts en adressen waar de zaak over gaat |
@@ -269,7 +310,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
-Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. **Wacht op goedkeuring**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Playbook-uitvoeringen** toont elke uitvoering.
+Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. **Wacht op goedkeuring**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Playbook-uitvoeringen** toont elke uitvoering. Op **Playbook-uitvoeringen** en op de pagina van een playbook is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open.
 
 Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstart, wordt weer opgepakt: een uitvoering in de wachtrij wordt na 2 minuten opnieuw in de wachtrij gezet, en een uitvoering die 30 minuten niets heeft gemeld, wordt als mislukt gemarkeerd.
 
@@ -278,7 +319,7 @@ Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstar
 **Producten → Security Events → Overzicht** is de pagina waarop het product opent:
 
 - De open zaken die aan jou zijn toegewezen, de open zaken die nog niemand heeft opgepakt, en de playbookstappen die op goedkeuring wachten; elk getal opent de pagina die ze toont.
-- **Gemiddelde tijd tot bevestiging**, **Gemiddelde tijd tot indamming** en **Gemiddelde tijd tot sluiting**, over de zaken die in de afgelopen 30 dagen zijn geopend: van het openen van een zaak tot iemand haar oppakt (een persoon toewijst, of haar uit Nieuw haalt), tot Contained, en tot Gesloten. Een zaak die nog wacht, telt niet mee in een gemiddelde.
+- **Gemiddelde tijd tot bevestiging**, **Gemiddelde tijd tot indamming** en **Gemiddelde tijd tot sluiting**, over de zaken die in de afgelopen 30 dagen zijn geopend: van het openen van een zaak tot iemand haar oppakt (een persoon toewijst, of haar in een status zet die als bevestigd telt), tot een status die als ingeperkt telt, en tot een die als gesloten telt. Een zaak die nog wacht, telt niet mee in een gemiddelde.
 - De zaken die per dag zijn geopend, over 30 dagen, per prioriteit, en de detecties die per dag zijn opgeworpen, over 14 dagen, per bron.
 - De open zaken per prioriteit en per status, de oordelen van de afgelopen 30 dagen, de ATT&CK-tactieken achter de zaken, de detecties die het vaakst afgingen, en de entiteiten die in de meeste bevindingen voorkomen.
 
@@ -286,15 +327,16 @@ Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, 
 
 ## Dreigingen vinden
 
-- **Entiteiten** rangschikt de gebruikers, hosts, adressen en hashes die je bevindingen het vaakst noemen, over de afgelopen dag, week of maand, en zoekt elke waarde op in 30 dagen aan gebeurtenissen.
+- **Entiteiten** rangschikt de gebruikers, hosts, adressen en hashes die je bevindingen het vaakst noemen, over de afgelopen dag, week of maand, en zoekt elke waarde op in 30 dagen aan gebeurtenissen. Selecteer een entiteit om haar te openen in **Correleren**.
 - **Rule Library** bevat kant-en-klare detectieregels voor dreigingen rond identiteit, endpoints, cloud, netwerk, web en Kubernetes. Elke regel is een Sigma-regel, geschreven voor de velden waarnaar elke gekoppelde bron wordt genormaliseerd. De rij van een regel toont wat hij vindt, de MITRE ATT&CK-tactieken en -technieken waarmee hij is gelabeld, de gebeurtenissen die hij leest en of daarvan in de afgelopen 7 dagen iets is binnengekomen (**Ontvangen** of **Niet ontvangen**), en zijn ernst. Beperk de lijst op categorie, op de gegevens die de regels lezen en op of u ze hebt toegevoegd, of doorzoek hem op naam, ATT&CK-techniek of ernst; het adres van de pagina bewaart de filters. Selecteer een regel voor de details: hoe u begint met het verzenden van de gebeurtenissen die hij leest, hoe hij draait en zijn Sigma-regel. **Toevoegen** maakt hem aan als een eigen detectieregel, ingeschakeld en zo ingesteld dat hij zaken opent in plaats van waarschuwingen; wijzig hem onder **Detection Rules** zoals elke andere. De regels die als **Aanbevolen** zijn gemarkeerd, vinden bedreigingen in gegevens die OneUptime al heeft, en één knop voegt de regels toe die u nog niet hebt.
-- **ATT&CK Coverage** tekent de matrix van MITRE ATT&CK, licht de technieken op die je ingeschakelde regels dekken, en omlijnt de technieken die een regel uit de bibliotheek zou dekken. Selecteer een techniek om de regels uit de bibliotheek te zien die hem dekken, en open de **Rule Library** op die regels.
+- **ATT&CK Coverage** toont de tactieken van MITRE ATT&CK, elk met hoeveel van haar technieken je ingeschakelde regels dekken en voor hoeveel meer de **Rule Library** regels heeft. Open een tactiek voor haar technieken, of schakel over naar **Matrix** voor de hele matrix. Selecteer een techniek om de regels uit de bibliotheek te zien die hem dekken, en open de **Rule Library** op die regels.
 
 ## Automatiseren
 
 - **Workflows**: een zaak of een notitie kan een workflow starten wanneer ze wordt aangemaakt, bijgewerkt of verwijderd. Een stap **Run a workflow** start een workflow waarvan de trigger een webhook is.
-- **API**: zaken, notities, detecties, playbooks, uitvoeringen en beschermde entiteiten hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` en `/security-protected-entity`. Zie [API-referentie](/docs/api-reference/api-reference).
-- AI-agents: de MCP-server heeft tools voor zaken, notities, detecties en playbooks. Zie [MCP-server](/docs/ai/mcp-server).
+- **API**: zaken, notities, detecties, playbooks, uitvoeringen, beschermde entiteiten en zaakprioriteiten en zaakstatussen hebben dezelfde REST API als de rest van OneUptime, onder `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` en `/security-case-status`. Zie [API-referentie](/docs/api-reference/api-reference).
+- AI-agents: de MCP-server heeft tools voor zaken, notities, detecties, playbooks en zaakprioriteiten en zaakstatussen. Zie [MCP-server](/docs/ai/mcp-server).
+- Terraform: de resources `oneuptime_security_case_priority` en `oneuptime_security_case_status` leggen de prioriteiten en statussen van een project vast als code.
 
 ## Probleemoplossing
 
@@ -303,7 +345,7 @@ Controleer **Open a Case on Match** in de stap **Bij overeenkomst** van de regel
 :::
 
 :::details Niemand hoorde over een zaak
-Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een melding **Nieuwe beveiligingszaak** gaat naar de mensen van wie de zaak de gekozen prioriteit haalt, dus een zaak met Medium geeft geen melding aan wie de standaard, **Hoog en Kritiek**, heeft gehouden. Controleer of de mensen die het zouden moeten horen beveiligingszaken kunnen zien (een Security-rol, of Project Owner of Project Admin), en of de melding voor hen aanstaat onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**.
+Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een melding **Nieuwe beveiligingszaak** gaat naar de mensen van wie de zaak de gekozen prioriteit haalt, dus een zaak met Medium geeft geen melding aan wie de standaard, **Hoog en hoger**, heeft gehouden. Controleer of de mensen die het zouden moeten horen beveiligingszaken kunnen zien (een Security-rol, of Project Owner of Project Admin), en of de melding voor hen aanstaat onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**.
 :::
 
 :::details Een playbook draaide niet
@@ -316,6 +358,10 @@ Open de uitvoering op de zaak: de stap meldt voor elke gebruiker of host of het 
 
 :::details Een inperkingsstap is overgeslagen
 De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een adres, of elke gebruiker of host waar ze over gaat, is beschermd. Open de uitvoering op de zaak: de stap meldt welke van de twee.
+:::
+
+:::details Een status of prioriteit kan niet worden verwijderd of gearchiveerd
+Een ingebouwde kun je hernoemen en een andere kleur geven, maar nooit verwijderen of archiveren: het **Archiveren** ervan is vergrendeld, met de reden. Een eigen kun je niet verwijderen zolang zaken hem hebben of een playbook vanaf hem draait: zet de zaken eerst op een andere, of archiveer hem.
 :::
 
 ## Volgende stappen

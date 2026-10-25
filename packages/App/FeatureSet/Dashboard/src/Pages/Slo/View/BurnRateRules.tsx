@@ -274,6 +274,8 @@ const SloBurnRateRules: FunctionComponent<
       <SloNoticeBanner sloId={modelId} />
       <ModelTable<ServiceLevelObjectiveBurnRateRule>
         modelType={ServiceLevelObjectiveBurnRateRule}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         id="slo-burn-rate-rules-table"
         name="SLO > Burn Rate Rules"
         userPreferencesKey="slo-burn-rate-rules-table"

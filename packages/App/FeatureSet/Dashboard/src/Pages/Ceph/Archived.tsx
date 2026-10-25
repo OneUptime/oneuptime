@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const CephArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<CephCluster>({
-    modelType: CephCluster,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<CephCluster>({
+      modelType: CephCluster,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const CephArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<CephCluster>
         modelType={CephCluster}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="ceph-archived-table"
         userPreferencesKey="ceph-archived-table"
         topContent={filterBar}

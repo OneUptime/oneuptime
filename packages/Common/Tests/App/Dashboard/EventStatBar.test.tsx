@@ -1,4 +1,5 @@
 import EventStatBar, {
+  EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME,
   EventStatBarColumns,
   getEventStatBarColumnClassName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatBar";
@@ -549,5 +550,123 @@ describe("EventStatTile in the reader's language", () => {
     render(<EventStatTile variant="segment" label="Declared" value="18:01" />);
 
     expect(screen.getByText("Declared")).toBeInTheDocument();
+  });
+});
+
+/*
+ * A bar beside a side menu whose width the window does not tell (a security
+ * case's figures, beside the case's own menu): isLaidOutByOwnWidth keys its
+ * columns to the bar's own width. At a 1024px window the case's four tiles
+ * sat four to a row in 684px, "TIME TO ACKNOWLEDGE" wrapped onto a second
+ * line, and two of the figures dropped a line below the other two.
+ */
+describe("EventStatBar laid out by its own width", () => {
+  const VIEWPORT_VARIANT: RegExp = /^(sm|md|lg|xl|2xl):/;
+
+  function drawFourTiles(isLaidOutByOwnWidth?: boolean): HTMLElement {
+    const { container } = render(
+      <EventStatBar
+        columns={4}
+        ariaLabel="Case figures"
+        {...(isLaidOutByOwnWidth === undefined ? {} : { isLaidOutByOwnWidth })}
+      >
+        <EventStatTile variant="segment" label="Detections" value="3" />
+        <EventStatTile variant="segment" label="Open For" value="3h 12min" />
+        <EventStatTile
+          variant="segment"
+          label="Time to Acknowledge"
+          value="14 min"
+        />
+        <EventStatTile variant="segment" label="Time to Contain" value="-" />
+      </EventStatBar>,
+    );
+
+    return container;
+  }
+
+  test("each count's own-width classes: never the window's breakpoints, a cell keeping 14rem whenever more share a row", () => {
+    const CONTAINER_COLUMNS: RegExp =
+      /^\[@container\(min-width:(\d+)rem\)\]:grid-cols-(\d+)$/;
+
+    for (const columns of [1, 2, 3, 4] as Array<EventStatBarColumns>) {
+      const classNames: Array<string> = getEventStatBarColumnClassName(
+        columns,
+        columns,
+        true,
+      )
+        .split(" ")
+        .filter((name: string): boolean => {
+          return name.length > 0;
+        });
+
+      expect(
+        classNames.filter((name: string): boolean => {
+          return VIEWPORT_VARIANT.test(name);
+        }),
+      ).toEqual([]);
+
+      for (const name of classNames) {
+        const match: RegExpMatchArray | null = name.match(CONTAINER_COLUMNS);
+
+        expect(match).not.toBeNull();
+        expect(Number(match![1]) / Number(match![2])).toBeGreaterThanOrEqual(
+          14,
+        );
+        expect(Number(match![2])).toBeLessThanOrEqual(columns);
+      }
+    }
+  });
+
+  test("four cells go through a 2 x 2 grid from 28rem, and into one row only from 56rem", () => {
+    expect(getEventStatBarColumnClassName(4, 4, true)).toBe(
+      "[@container(min-width:28rem)]:grid-cols-2 [@container(min-width:56rem)]:grid-cols-4",
+    );
+    // A cell left out never leaves an empty track, by width as by window.
+    expect(getEventStatBarColumnClassName(4, 3, true)).toBe(
+      "[@container(min-width:42rem)]:grid-cols-3",
+    );
+    expect(getEventStatBarColumnClassName(4, 1, true)).toBe("");
+  });
+
+  test("the bar sits in a size container of its own, the group and its cells unchanged inside it", () => {
+    const container: HTMLElement = drawFourTiles(true);
+    const wrapper: HTMLElement = container.firstElementChild as HTMLElement;
+    const bar: HTMLElement = screen.getByRole("group", {
+      name: "Case figures",
+    });
+
+    expect(wrapper.className).toBe(
+      EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME,
+    );
+    expect(EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME).toBe(
+      "[container-type:inline-size]",
+    );
+    expect(bar.parentElement).toBe(wrapper);
+    expect(bar).toHaveClass(
+      "grid",
+      "grid-cols-1",
+      "gap-px",
+      "rounded-xl",
+      "[@container(min-width:28rem)]:grid-cols-2",
+      "[@container(min-width:56rem)]:grid-cols-4",
+    );
+    expect(bar).not.toHaveClass("sm:grid-cols-2", "lg:grid-cols-4");
+    expect(bar.children).toHaveLength(4);
+  });
+
+  test("left out, the bar follows the window's breakpoints as it always has, with no wrapper", () => {
+    for (const isLaidOutByOwnWidth of [undefined, false]) {
+      const container: HTMLElement = drawFourTiles(isLaidOutByOwnWidth);
+      const bar: HTMLElement = screen.getByRole("group", {
+        name: "Case figures",
+      });
+
+      expect(container.firstElementChild).toBe(bar);
+      expect(bar).toHaveClass("sm:grid-cols-2", "lg:grid-cols-4");
+      expect(getEventStatBarColumnClassName(4, 4, isLaidOutByOwnWidth)).toBe(
+        "sm:grid-cols-2 lg:grid-cols-4",
+      );
+      cleanup();
+    }
   });
 });

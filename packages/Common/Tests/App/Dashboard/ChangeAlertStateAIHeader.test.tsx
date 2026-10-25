@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { allowStateChanges } from "./StateChangePermission";
 import {
   afterEach,
   beforeEach,
@@ -354,6 +355,8 @@ beforeEach(() => {
   project.id = new ObjectID(PROJECT_ID);
 
   jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+  // These drive the buttons, not who may press them.
+  allowStateChanges();
 });
 
 afterEach(() => {
@@ -573,9 +576,9 @@ describe.each([
       expect(screen.queryByText("Resolved in")).toBeNull();
       expect(screen.queryByText("Ongoing for")).toBeNull();
       // START -> the current resolution 40 minutes later, not the first at 10.
-      expect(screen.getByText("Lasted").parentElement).toHaveTextContent(
-        "40 minutes",
-      );
+      expect(
+        screen.getByText("Lasted").closest("div")?.querySelector("dd"),
+      ).toHaveTextContent("40 minutes");
       expect(document.getElementById(headerCase.resolveId)).toBeNull();
     });
 
@@ -657,7 +660,7 @@ describe.each([
       );
     });
 
-    test("renders no facts row when the page has none", async () => {
+    test("says only how long when the page has no facts of its own", async () => {
       respondWith(headerCase);
 
       render(
@@ -666,7 +669,34 @@ describe.each([
 
       await waitForHeader();
 
-      expect(screen.queryByTestId("event-status-facts")).toBeNull();
+      const facts: HTMLElement = screen.getByTestId("event-status-facts");
+
+      expect(facts.children).toHaveLength(1);
+      expect(facts.querySelector("dt")).toHaveTextContent("Ongoing for");
+      expect(facts.querySelector("dd")).toContainElement(
+        screen.getByTestId("event-header-duration"),
+      );
+    });
+
+    test("puts how long before the page's own facts", async () => {
+      respondWith(headerCase);
+
+      render(
+        headerCase.renderHeader({
+          onActionComplete: jest.fn(),
+          facts: [{ label: "Monitor", value: "checkout-api" }],
+        }),
+      );
+
+      await waitForHeader();
+
+      const labels: Array<string> = Array.from(
+        screen.getByTestId("event-status-facts").querySelectorAll("dt"),
+      ).map((term: Element): string => {
+        return term.textContent || "";
+      });
+
+      expect(labels).toEqual(["Ongoing for", "Monitor"]);
     });
   });
 

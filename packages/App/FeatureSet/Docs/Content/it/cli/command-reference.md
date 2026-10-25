@@ -194,7 +194,7 @@ I record accettano `list`, `get`, `create`, `update`, `delete` e `count`:
 | Pagine di stato | `status-page`, `status-page-announcement` |
 | Manutenzione programmata | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Team e reperibilità | `team`, `on-call-policy` |
-| Sicurezza | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
+| Sicurezza | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
 | Etichette | `label` |
 
 La telemetria accetta `list`, `create` e `count`:

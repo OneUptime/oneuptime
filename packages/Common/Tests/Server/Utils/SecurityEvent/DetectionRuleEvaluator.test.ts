@@ -70,6 +70,10 @@ import { getJestSpyOn } from "../../../Spy";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import SecurityEntityRiskRecorder from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { SecurityRiskFinding } from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
+import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import {
   SQL,
   Statement,
@@ -379,6 +383,11 @@ describe("DetectionRuleEvaluator", () => {
       casesOpened: 0,
       detectionsAdded: 0,
       detectionsRepeated: 0,
+    } as never);
+    // So is entity risk (SecurityEntityRiskRecorder has its own suite).
+    getJestSpyOn(SecurityEntityRiskRecorder, "record").mockResolvedValue({
+      entitiesUpdated: 0,
+      riskCasesRaised: 0,
     } as never);
   });
 
@@ -1346,6 +1355,21 @@ describe("DetectionRuleEvaluator", () => {
 
       expect(select["distinctCountField"]).toBe(true);
       expect(select["matchCountThreshold"]).toBe(true);
+    });
+
+    test("selects the rule's own Risk Points so they never silently read as its level's", async () => {
+      const rulesFindBy: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findBy",
+      ).mockResolvedValue([] as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      const select: JSONObject = (
+        rulesFindBy.mock.calls[0]?.[0] as { select: JSONObject }
+      ).select;
+
+      expect(select["riskScore"]).toBe(true);
     });
   });
 
@@ -2638,6 +2662,157 @@ describe("DetectionRuleEvaluator", () => {
         .calls[0]![0] as Array<SecurityDetectionSignal>;
 
       expect(signals[0]!.isSetupTest).toBeUndefined();
+    });
+
+    test("adds no risk: a test, nothing else is told of it", async () => {
+      installSpies({ groups: [setupTestGroup()] });
+      const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule(), {
+        setupTest: {
+          restrictTo: RESTRICT_TO,
+          startTime: TEST_START,
+          endTime: TEST_END,
+        },
+      });
+
+      expect(risk).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Every group a run opens adds to the risk of the entity it is about
+   * (SecurityEntityRiskRecorder): after the run's cases, whether the rule
+   * opens cases or not, at the rule's own Risk Points or its level's.
+   */
+  describe("entity risk", () => {
+    function riskFindings(risk: Spy): Array<SecurityRiskFinding> {
+      return risk.mock.calls[0]?.[0] as Array<SecurityRiskFinding>;
+    }
+
+    test("each group's entity, at the level's points, after the run's cases", async () => {
+      installSpies({
+        groups: [buildGroup("alice", 3), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "High")],
+      });
+
+      const order: Array<string> = [];
+
+      getJestSpyOn(SecurityCaseIngest, "recordDetections").mockImplementation(
+        async () => {
+          order.push("cases");
+          return {
+            casesOpened: 2,
+            detectionsAdded: 2,
+            detectionsRepeated: 0,
+          } as never;
+        },
+      );
+
+      const risk: Spy = getJestSpyOn(
+        SecurityEntityRiskRecorder,
+        "record",
+      ).mockImplementation(async () => {
+        order.push("risk");
+        return { entitiesUpdated: 2, riskCasesRaised: 0 } as never;
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ level: "high", shouldWriteDetectionFinding: false }),
+      );
+
+      expect(order).toEqual(["cases", "risk"]);
+
+      const findings: Array<SecurityRiskFinding> = riskFindings(risk);
+
+      expect(findings).toHaveLength(2);
+      expect(findings[0]).toMatchObject({
+        source: SecurityDetectionSource.DetectionRule,
+        sourceKey: `rule:${RULE_ID.toString()}`,
+        sourceName: "Brute Force Watch",
+        points: 50,
+        entities: [{ type: SecurityEntityType.User, value: "alice" }],
+        mitreTactics: ["TA0006"],
+        mitreTechniques: ["T1110"],
+      });
+      expect(findings[0]!.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(findings[0]!.detectionRuleId?.toString()).toBe(RULE_ID.toString());
+    });
+
+    test("a rule that opens no cases still adds risk, at its own Risk Points", async () => {
+      installSpies({ groups: [buildGroup("alice", 3)] });
+
+      const rule: DetectionRule = buildRule({
+        shouldCreateCase: false,
+        shouldCreateAlert: false,
+        shouldWriteDetectionFinding: false,
+      });
+      rule.riskScore = 15;
+
+      const cases: Spy = getJestSpyOn(SecurityCaseIngest, "recordDetections");
+      const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(cases).not.toHaveBeenCalled();
+      expect(riskFindings(risk)[0]).toMatchObject({ points: 15 });
+    });
+
+    test("a rule whose Risk Points are 0 adds none", async () => {
+      installSpies({ groups: [buildGroup("alice", 3)] });
+
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+      rule.riskScore = 0;
+
+      const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(riskFindings(risk)).toEqual([]);
+    });
+
+    test("only the groups the run opens add risk, not its overflow", async () => {
+      const groups: Array<DetectionMatchGroup> = [];
+
+      for (
+        let index: number = 0;
+        index < DETECTION_MAX_GROUPS_PER_EVALUATION + 7;
+        index++
+      ) {
+        groups.push(
+          buildGroup(
+            `user-${index}`,
+            DETECTION_MAX_GROUPS_PER_EVALUATION + 7 - index,
+          ),
+        );
+      }
+
+      installSpies({ groups });
+
+      const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({
+          shouldCreateAlert: false,
+          shouldWriteDetectionFinding: false,
+        }),
+      );
+
+      expect(riskFindings(risk)).toHaveLength(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      );
+    });
+
+    test("a run that matched nothing adds nothing", async () => {
+      installSpies({ groups: [] });
+
+      const risk: Spy = getJestSpyOn(SecurityEntityRiskRecorder, "record");
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule());
+
+      expect(risk).not.toHaveBeenCalled();
     });
   });
 });

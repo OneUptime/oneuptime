@@ -164,12 +164,141 @@ where <verdict> is exactly one of: code-fault, user-error, expected-denial, infr
 - unknown: the evidence does not support a confident verdict.
 user-error and expected-denial do not apply to tracing findings: do not use them.`;
 
+/*
+ * The Exceptions product's AI section's finding that is not about one
+ * exception (Utils/Exceptions/ExceptionInsight): a service whose exceptions
+ * carry no stack trace. New and rising exceptions keep the preventive
+ * framing above - it is the exceptions' own - whichever works on them.
+ */
+const EXCEPTION_STACK_TRACE_TRIAGE_FRAMING: string = `IMPORTANT — this is OBSERVABILITY TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's exceptions and found that it records them without a stack trace, so nobody can tell which of its code raised them. Your job:
+- Establish how the service raises and records its exceptions: read its code with the code tools when a repository holds it, and its exceptions with the exception tools.
+- Say why they carry no stack trace: errors raised as strings or plain objects, errors created without a stack (as Go's are unless wrapped), or exceptions recorded by message rather than with the error itself.
+- Recommend exactly ONE change that makes the next exception carry its stack trace, naming the file it goes in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the code raises or records its exceptions in a way a code change should fix.
+- infrastructure: the stack traces are lost outside this code (an agent, a collector, a log shipper or the SDK's configuration) and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to this finding: do not use them.`;
+
+/*
+ * The Logs product's AI section's three kinds of problem (Utils/Logs/
+ * LogInsight), each framed for what is to be established: why a service
+ * logs an error again and again - whose verdict decides whether its pull
+ * request may open on its own - what its logs fail to say, and why one line
+ * floods them. Every message reaches the triage as its pattern, never as a
+ * line was logged.
+ */
+const LOG_ERROR_TRIAGE_FRAMING: string = `IMPORTANT — this is PREVENTIVE TRIAGE of an error log, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's logs and found the error message described below logged again and again over the last hour, with the numbers it computed. The message is its pattern: every value that changes from line to line is masked (<num>, <uuid>, <url>...). Your job:
+- Establish why the code logs it: find the log statement with the code tools when a repository holds it (search for the message's own words), and read the requests it was logged in with the trace and log tools.
+- Say whether it is a defect in the code, a condition the code means to report (input it refuses correctly, an intentional denial - logged at the wrong level when it is not an error), or the environment (a dependency down, a timeout, a misconfiguration).
+- Recommend exactly ONE next action, naming the file it is in when it is a code change.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none. Never repeat personal data or secrets you read in a log line.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: a defect in the service's code makes it fail and log this, and a code change should fix it.
+- user-error: the callers send input the code refuses, correctly.
+- expected-denial: an intentional check doing its job — authentication or authorization failures, plan or paywall rejections, rate limits.
+- infrastructure: an environmental condition (a dependency outage, a network timeout, resource exhaustion, configuration) rather than a logic defect.
+- unknown: the evidence does not support a confident verdict.
+This verdict gates automation: ONLY code-fault findings may get an automatic fix pull request, so classify conservatively — when torn between code-fault and anything else, pick the other one.`;
+
+const LOG_MISSING_TRIAGE_FRAMING: string = `IMPORTANT — this is OBSERVABILITY TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's logs and traces and found that its logs cannot tell what happened: requests of the operation described below fail without writing a single log line, or its logs carry no trace context, so a request's logs cannot be read beside its trace. Your job:
+- Establish what the code does where the logging is missing: read it with the code tools when a repository holds it, and its failed requests with the trace tools.
+- Say which log record, or which wiring of its logger to OpenTelemetry, would let the next failure or request be read in its logs.
+- Recommend exactly ONE logging change, naming the file it goes in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the code lacks logging that a code change should add.
+- infrastructure: the logging is set up outside this code (an agent, a collector, a log shipper, a proxy) and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to logging findings: do not use them.`;
+
+const LOG_NOISY_TRIAGE_FRAMING: string = `IMPORTANT — this is LOG HYGIENE TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read a sample of this service's logs and found the message described below - below Error severity - making up a large share of its lines, with the numbers it computed. The message is its pattern: every value that changes from line to line is masked. Your job:
+- Establish why the code logs it so often: find the log statement with the code tools when a repository holds it (search for the message's own words).
+- Say what someone reading the logs needs of it, and whether it can be logged less - at Debug, once per batch or at an interval, or not at all - without losing that.
+- Recommend exactly ONE change, naming the file it is in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none. Never repeat personal data or secrets you read in a log line.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the service's own code logs this line more than anyone needs, and a code change should turn it down.
+- infrastructure: the line is written by a library, a framework, an agent or the platform, and the change belongs in its configuration.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to log hygiene findings: do not use them.`;
+
+/*
+ * The Metrics product's AI section's three kinds of problem (Utils/Metrics/
+ * MetricInsight), each framed for what is to be established: where the code
+ * puts a value with too many values on a metric (or an id into its name),
+ * why a histogram's buckets do not fit its values, and where a busy service
+ * would record the metrics it does not send.
+ */
+const METRIC_CARDINALITY_TRIAGE_FRAMING: string = `IMPORTANT — this is METRICS TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's metrics and found the metric described below recording a value with far too many values - an attribute that took thousands of values in an hour, or an id written into the metric's name - so every value is a series of its own, with the numbers it computed. Your job:
+- Find where the code records this metric and sets that attribute (or builds that name): read it with the code tools when a repository holds it, and the metric with the metric tools.
+- Say what the value is (an id, a full URL, a timestamp, free text) and what bounded value could take its place, if any.
+- Recommend exactly ONE change, naming the file it is in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the application's code records the value on the metric, and a code change should stop it.
+- infrastructure: a library, an agent or a collector outside this code adds the value, and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to metrics findings: do not use them.`;
+
+const METRIC_HISTOGRAM_TRIAGE_FRAMING: string = `IMPORTANT — this is METRICS TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's metrics and found the histogram described below putting nearly all of its values in one end bucket - at or below its smallest bound, or above its largest - or recording no buckets at all, so its percentiles cannot be told apart, with the numbers it computed. Your job:
+- Find where the code creates this histogram, and the view or the SDK setting that gives it its buckets: read them with the code tools when a repository holds them.
+- Say why the buckets do not fit: the values are recorded in another unit than the buckets were made for (seconds against the SDKs' default millisecond buckets), or the buckets were never set for this metric.
+- Recommend exactly ONE change - the bucket boundaries, or the unit - naming the file it is in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the application's code (or its metrics setup in this repository) gives the histogram buckets that do not fit, and a code change should fix them.
+- infrastructure: a library, an agent or a collector outside this code records the histogram, and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to metrics findings: do not use them.`;
+
+const METRIC_MISSING_TRIAGE_FRAMING: string = `IMPORTANT — this is OBSERVABILITY TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) found that the service described below sends many spans but has never sent a single metric, so nothing charts or alerts on its request rate, errors or latency over time without reading every span, with the numbers it computed. Your job:
+- Establish how the service's telemetry is set up: read its OpenTelemetry setup with the code tools when a repository holds it, and its busiest operations with the trace tools.
+- Say which metrics it should record first (request count, error count, request duration) and where: the framework instrumentation that would record them, or the code paths to instrument.
+- Recommend exactly ONE change, naming the file it goes in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the code sets up no metrics, and a code change should add them.
+- infrastructure: the service's metrics are recorded or exported outside this code (an agent, a collector, a sidecar, a scrape that names no service), and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to observability findings: do not use them.`;
+
 // The framing an insight's triage is given, by what kind of finding it is.
 const TRIAGE_FRAMING_BY_TYPE: Partial<Record<AIInsightType, string>> = {
   [AIInsightType.ProfileHotspot]: PROFILE_TRIAGE_FRAMING,
   [AIInsightType.TraceSlowOperation]: TRACE_SLOW_TRIAGE_FRAMING,
   [AIInsightType.TraceFailingOperation]: TRACE_FAILING_TRIAGE_FRAMING,
   [AIInsightType.TraceMissingTracing]: TRACE_TRACING_TRIAGE_FRAMING,
+  [AIInsightType.ExceptionMissingStackTrace]:
+    EXCEPTION_STACK_TRACE_TRIAGE_FRAMING,
+  [AIInsightType.LogErrorPattern]: LOG_ERROR_TRIAGE_FRAMING,
+  [AIInsightType.LogMissingLogging]: LOG_MISSING_TRIAGE_FRAMING,
+  [AIInsightType.LogNoisyPattern]: LOG_NOISY_TRIAGE_FRAMING,
+  [AIInsightType.MetricHighCardinality]: METRIC_CARDINALITY_TRIAGE_FRAMING,
+  [AIInsightType.MetricHistogramBuckets]: METRIC_HISTOGRAM_TRIAGE_FRAMING,
+  [AIInsightType.MetricMissingMetrics]: METRIC_MISSING_TRIAGE_FRAMING,
 };
 
 export default class InsightTriageRunner {
@@ -310,8 +439,9 @@ export default class InsightTriageRunner {
    * What a telemetry lane's problem may be investigated with: the code
    * repositories and MCP servers its lane's AI rules allow for it
    * (Types/AI/TelemetryAi). Null for every other insight - triaged as it
-   * always was. Rules that cannot be read allow nothing beyond OneUptime's
-   * own data.
+   * always was - and for a kind a lane shares with AI Insights while the
+   * lane's switch is off (AI Insights' then). Rules that cannot be read
+   * allow nothing beyond OneUptime's own data.
    */
   private static async getTelemetryAiScope(data: {
     insight: AIInsight;
@@ -327,6 +457,13 @@ export default class InsightTriageRunner {
       select: TELEMETRY_AI_PROJECT_SELECT,
       props: { isRoot: true },
     });
+
+    if (
+      project &&
+      !TelemetryAiRules.getLaneWorkingOn(data.insight.insightType, project)
+    ) {
+      return null;
+    }
 
     const work: TelemetryAiWork | null = project
       ? await TelemetryAiRules.decideForInsight({
@@ -516,8 +653,7 @@ export default class InsightTriageRunner {
     const project: Project | null = await ProjectService.findOneById({
       id: insight.projectId,
       select: {
-        _id: true,
-        enableAi: true,
+        ...TELEMETRY_AI_PROJECT_SELECT,
         enableInsightFixTasks: true,
         autoArchiveNonActionableExceptions: true,
       },
@@ -537,8 +673,11 @@ export default class InsightTriageRunner {
      */
     const isVerdictGatedInsight: boolean =
       insight.insightType !== AIInsightType.TraceLatencyRegression &&
-      // A telemetry lane's rules decide its fixes (TelemetryAiRouting).
-      !getTelemetryAiLaneOfInsightType(insight.insightType);
+      /*
+       * A telemetry lane's rules decide its fixes (TelemetryAiRouting) - a
+       * kind it shares with AI Insights only while its switch is on.
+       */
+      !TelemetryAiRules.getLaneWorkingOn(insight.insightType, project);
 
     if (
       classification === ExceptionAIClassification.CodeFault &&
@@ -674,6 +813,9 @@ export default class InsightTriageRunner {
       "metricDrift",
       "profile",
       "trace",
+      "exceptionStackTrace",
+      "log",
+      "metric",
     ];
 
     for (const section of sections) {

@@ -647,25 +647,60 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
     ).filter((title: string): boolean => {
       return title.endsWith("Labels") && title !== "Select Labels";
     });
-    const ownerActions: Array<string> = quotedTitles(
-      readCommonSource("UI/Components/BulkUpdate/BulkOwnerActions.tsx"),
-    ).filter((title: string): boolean => {
-      return title.endsWith("Owner");
-    });
+    // Once each: a row's Add Owner and its dialog are titled alike.
+    const ownerActions: Array<string> = [
+      ...new Set(
+        quotedTitles(
+          readCommonSource("UI/Components/BulkUpdate/BulkOwnerActions.tsx"),
+        ).filter((title: string): boolean => {
+          return title.endsWith("Owner");
+        }),
+      ),
+    ];
 
-    expect(bulk).toContain("getBulkChangeStateAction(),");
-    expect(bulk.indexOf("...labelBulkActions")).toBeLessThan(
+    const stateEngine: string = readDashboardSource(
+      "Components/EventView/useEventStateActions.tsx",
+    );
+    const stateKinds: string = readDashboardSource(
+      "Components/EventView/EventStateKinds.ts",
+    );
+
+    // The state moves, then the owners (Assign to Me first), then labels.
+    expect(bulk).toContain("...stateBulkActions,");
+    expect(bulk.indexOf("...stateBulkActions")).toBeLessThan(
       bulk.indexOf("...ownerBulkActions"),
     );
+    expect(bulk.indexOf("...ownerBulkActions")).toBeLessThan(
+      bulk.indexOf("...labelBulkActions"),
+    );
     expect(bulk).toContain("ModalTableBulkDefaultActions.Delete");
-    expect(LIST_TABLE).toContain('title: "Change State",');
+    expect(LIST_TABLE).toContain("kind: EventStateKind.ScheduledMaintenance,");
+    expect(LIST_TABLE).toContain("offerAssignToMeInBulk: true,");
+    expect(stateEngine).toContain('title: "Change State",');
+    expect(stateKinds).toContain(
+      'export const MARK_AS_STATE: string = translationKey("Mark as {{state}}");',
+    );
     expect(labelActions).toEqual(["Add Labels", "Remove Labels"]);
     expect(ownerActions).toEqual(["Add Owner", "Remove Owner"]);
     expect(where).toContain(
       `Select events to act on several at once: ${listed(
-        ["Change State", ...labelActions, ...ownerActions, "Delete"],
+        [
+          "Mark as {{state}}",
+          "Change State",
+          "Assign to Me",
+          ...ownerActions,
+          ...labelActions,
+          "Delete",
+        ],
         "or",
       )}.`,
+    );
+    // Each row's ⋯ menu: the same moves, and owners, for one event.
+    expect(LIST_TABLE).toContain(
+      "actionButtons={[...stateRowActions, ...ownerRowActions]}",
+    );
+    expect(where).toContain(
+      "Each event's **⋯** menu, at the end of its row, does the same for that event alone: the **Mark as {{state}}** moves while the event can make them, **Change State**, **Assign to Me** until you own it, and **Add Owner**.",
     );
   });
 
@@ -1326,14 +1361,25 @@ describe("what moves an event", () => {
   });
 
   it("changes the state of a selection with one public note, skipping events already at or past it", () => {
-    expect(LIST_TABLE).toContain(
-      'description="Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped."',
+    // The list's Change State, from the events' entry in the state engine.
+    const stateKinds: string = readDashboardSource(
+      "Components/EventView/EventStateKinds.ts",
     );
-    expect(LIST_TABLE).toContain(
-      'noteDescription="Post a public note about this state change to the status page. The same note is added to every event you selected."',
+
+    expect(stateKinds).toContain(
+      '"Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",',
+    );
+    expect(stateKinds).toContain(
+      '"Post a public note about this state change to the status page. The same note is added to every event you selected.",',
     );
     expect(moves).toContain(
       "The state, and one public note added to every event. Events already at or past the state are skipped.",
+    );
+    expect(moves).toContain(
+      "**Mark as {{state}}** or **Change State** on a selection in the list of events",
+    );
+    expect(moves).toContain(
+      "| **A list row** | The **⋯** menu on an event's row in the list of events: the **Mark as {{state}}** moves and **Change State** | The header's dialog, naming the event.",
     );
   });
 
@@ -1622,11 +1668,31 @@ describe("the header's clock", () => {
 
   it("calls the two warnings what the header calls them, in amber, with the planned time and the state not reached", () => {
     expect(CHANGE_STATE).toContain(
-      '<span>{isStartOverdue ? "Start overdue" : "Overrunning"}</span>',
+      'export const START_OVERDUE_TEXT: string = translationKey("Start overdue");',
     );
-    expect(CHANGE_STATE).toContain("bg-amber-50");
     expect(CHANGE_STATE).toContain(
-      '{isStartOverdue ? "Planned to start at " : "Planned to end at "}',
+      'export const OVERRUNNING_TEXT: string = translationKey("Overrunning");',
+    );
+    expect(CHANGE_STATE).toContain(
+      "isStartOverdue ? START_OVERDUE_TEXT : OVERRUNNING_TEXT,",
+    );
+    // An amber notice: the header's amber band, its words in amber.
+    expect(CHANGE_STATE).toContain('headerNoticeTone="warning"');
+    expect(CHANGE_STATE).toContain(
+      '<p className="text-sm font-semibold text-amber-800">',
+    );
+    expect(
+      readDashboardSource("Components/EventView/EventHeaderLayout.ts"),
+    ).toContain("border-amber-200 bg-amber-50/70");
+    // The planned time, and the state the event has not reached yet.
+    expect(CHANGE_STATE).toContain(
+      '"Planned to start at {{time}}, but it has not been marked as {{state}} yet.",',
+    );
+    expect(CHANGE_STATE).toContain(
+      '"Planned to end at {{time}}, but it has not been marked as {{state}} yet.",',
+    );
+    expect(CHANGE_STATE).toContain(
+      "values={{ state: translatableTerm(props.nextStateName) }}",
     );
     expect(clock).toContain(
       "- **Start overdue**: the event is still waiting after its **Starts At**.",

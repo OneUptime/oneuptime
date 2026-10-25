@@ -2,9 +2,11 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { LOG_INSIGHT_WINDOW_MINUTES } from "Common/Utils/Logs/LogInsight";
 import MetricExplorerUrl, {
   SerializedMetricQuery,
 } from "Common/Utils/Metrics/MetricExplorerUrl";
+import { METRIC_INSIGHT_WINDOW_MINUTES } from "Common/Utils/Metrics/MetricInsight";
 import type {
   AIInsightExplorerLink,
   AIInsightExplorerLinkInput,
@@ -158,6 +160,19 @@ describe("getInsightDetectionWindow", () => {
       {
         insightType: AIInsightType.DeployRegression,
         expectedStart: "2026-08-14T08:00:00.000Z",
+      },
+      // Logs' findings read one hour.
+      {
+        insightType: AIInsightType.LogErrorPattern,
+        expectedStart: "2026-08-14T09:00:00.000Z",
+      },
+      {
+        insightType: AIInsightType.LogMissingLogging,
+        expectedStart: "2026-08-14T09:00:00.000Z",
+      },
+      {
+        insightType: AIInsightType.LogNoisyPattern,
+        expectedStart: "2026-08-14T09:00:00.000Z",
       },
     ];
 
@@ -703,6 +718,78 @@ describe("buildInsightInvestigationLink — tilde-bearing content", () => {
 });
 
 /*
+ * A service's exceptions with no stack trace (ExceptionMissingStackTrace,
+ * Exceptions' AI section): its unresolved exceptions over the day the
+ * finding read - what the finding counted.
+ */
+describe("buildInsightInvestigationLink — ExceptionMissingStackTrace", () => {
+  test("opens the service's unresolved exceptions over the day the finding read", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ExceptionMissingStackTrace,
+          serviceId: SERVICE_ID,
+          serviceName: "checkout",
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("exceptions");
+    expect(link!.label).toBe("Open in Exceptions");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe(
+      "/dashboard/:projectId/exceptions/unresolved",
+    );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe("2026-08-13T10:00:00.000Z");
+    expect(query.get("end")).toBe("2026-08-14T10:00:00.000Z");
+    // The unresolved ones: what the finding counted.
+    expect(query.get("status")).toBeNull();
+  });
+
+  test("a service name that never resolved to an id is reported dropped", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ExceptionMissingStackTrace,
+          serviceName: "checkout",
+        }),
+      );
+
+    expect(queryOf(link!.route).get("filters")).toBeNull();
+    expect(link!.dropped).toEqual(["serviceIds"]);
+  });
+
+  test("with no window anchor the list link still builds, with no range", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        serviceId: SERVICE_ID,
+      });
+
+    expect(link).not.toBeNull();
+    expect(queryOf(link!.route).get("range")).toBeNull();
+  });
+
+  test("its window is a day back from when the finding was last seen", () => {
+    const window: InsightDetectionWindow | null =
+      Links.getInsightDetectionWindow({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        lastSeenAt: LAST_SEEN,
+      });
+
+    expect(window!.startTime.toISOString()).toBe("2026-08-13T10:00:00.000Z");
+    expect(window!.endTime.toISOString()).toBe(LAST_SEEN.toISOString());
+  });
+});
+
+/*
  * Slow code a service's profiles show (ProfileHotspot): the Profiler on the
  * function, in the window it was found in.
  */
@@ -917,6 +1004,405 @@ describe("buildInsightInvestigationLink — Traces' findings", () => {
   });
 });
 
+/*
+ * Logs' findings (LogErrorPattern, LogMissingLogging, LogNoisyPattern): the
+ * logs explorer on the service, in the hour the finding was read in, with
+ * the message's own words as a contains-match chip - at Error and Fatal for
+ * an error log, at the severities it was logged at for a noisy one. A
+ * failure that writes no log line has no lines to show: it opens the
+ * operation's failed spans in the traces explorer.
+ */
+describe("buildInsightInvestigationLink — Logs' findings", () => {
+  const LOG_WINDOW: {
+    windowStartTime: string;
+    windowEndTime: string;
+  } = {
+    windowStartTime: "2026-08-14T09:00:00.000Z",
+    windowEndTime: "2026-08-14T10:00:00.000Z",
+  };
+
+  test("an error log: the service's Error and Fatal lines holding the message's words, in its hour", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "Error",
+            searchText: "Payment provider returned",
+            severities: ["Error"],
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("logs");
+    expect(link!.label).toBe("Open in Logs");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/logs");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["severityText", ["Error", "Fatal"]],
+      ["primaryEntityId", [SERVICE_ID]],
+      ["body", ["Payment provider returned"]],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe(LOG_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(LOG_WINDOW.windowEndTime);
+  });
+
+  test("a noisy log: its lines at the severities it was logged at", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogNoisyPattern,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "Noisy",
+            searchText: "cache hit for key",
+            severities: ["Debug", "Information"],
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["severityText", ["Debug", "Information"]],
+      ["primaryEntityId", [SERVICE_ID]],
+      ["body", ["cache hit for key"]],
+    ]);
+  });
+
+  test("no words to search by: the service's lines of the hour, at its severities", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceId: SERVICE_ID,
+          log: { kind: "Error", ...LOG_WINDOW },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["severityText", ["Error", "Fatal"]],
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+  });
+
+  test("logs with no trace context: the service's logs of the hour, nothing else", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogMissingLogging,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "MissingLogging",
+            gap: "NoTraceContext",
+            // Never searched for: there is no message.
+            searchText: "anything",
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(link!.target).toBe("logs");
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+  });
+
+  test("a failure that writes no log line: its failed spans, in Traces", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogMissingLogging,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "MissingLogging",
+            gap: "SilentFailures",
+            operationName: "POST /checkout",
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Open in Traces");
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+      ["name", "POST /checkout"],
+      ["statusCode", "2"],
+    ]);
+    expect(query.get("start")).toBe(LOG_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(LOG_WINDOW.windowEndTime);
+  });
+
+  test("without its evidence (a list row), the hour before it was last seen", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogNoisyPattern,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(link!.target).toBe("logs");
+    expect(query.get("start")).toBe("2026-08-14T09:00:00.000Z");
+    expect(query.get("end")).toBe(LAST_SEEN.toISOString());
+  });
+
+  test("a window that does not hold together falls back to the detection hour", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceId: SERVICE_ID,
+          log: {
+            windowStartTime: "2026-08-14T10:00:00.000Z",
+            windowEndTime: "2026-08-14T09:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(queryOf(link!.route).get("start")).toBe("2026-08-14T09:00:00.000Z");
+  });
+
+  test("a service whose id is unknown rides as its resource.service.name chip", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceName: "checkout",
+          log: { searchText: "card declined", ...LOG_WINDOW },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["severityText", ["Error", "Fatal"]],
+      ["attributes.resource.service.name", ["checkout"]],
+      ["body", ["card declined"]],
+    ]);
+  });
+
+  test("the hour of a look is Logs' own (LOG_INSIGHT_WINDOW_MINUTES)", () => {
+    expect(Links.LOG_FINDING_WINDOW_MINUTES).toBe(LOG_INSIGHT_WINDOW_MINUTES);
+  });
+});
+
+describe("buildInsightInvestigationLink — Metrics' findings", () => {
+  const METRIC_WINDOW: {
+    windowStartTime: string;
+    windowEndTime: string;
+  } = {
+    windowStartTime: "2026-08-14T09:00:00.000Z",
+    windowEndTime: "2026-08-14T10:00:00.000Z",
+  };
+
+  test("a metric recording too many values, or with buckets that do not fit: the metric for its service, in its hour", () => {
+    for (const insightType of [
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+    ]) {
+      const link: AIInsightExplorerLink | null =
+        Links.buildInsightInvestigationLink(
+          input({
+            insightType,
+            serviceId: SERVICE_ID,
+            metric: {
+              metricName: "http.server.request.count",
+              shape: "Attribute",
+              ...METRIC_WINDOW,
+            },
+          }),
+        );
+
+      expect(link).not.toBeNull();
+      expect(link!.target).toBe("metrics");
+      expect(link!.label).toBe("Open in Metrics");
+      expect(pathOf(link!.route)).toBe("/dashboard/:projectId/metrics/view");
+
+      const query: URLSearchParams = queryOf(link!.route);
+      const queries: Array<SerializedMetricQuery> =
+        MetricExplorerUrl.parseMetricQueriesParam(query.get("metricQueries")!);
+
+      expect(queries[0]!.metricName).toBe("http.server.request.count");
+      expect(JSON.parse(query.get("services") || "[]")).toEqual([SERVICE_ID]);
+      expect(new Date(query.get("startTime") || "").toISOString()).toBe(
+        METRIC_WINDOW.windowStartTime,
+      );
+      expect(new Date(query.get("endTime") || "").toISOString()).toBe(
+        METRIC_WINDOW.windowEndTime,
+      );
+    }
+  });
+
+  test("metric names with ids: the service's metric list, searched for what the names share", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricHighCardinality,
+          serviceId: SERVICE_ID,
+          metric: {
+            shape: "Name",
+            namePattern: "job.{id}.duration",
+            ...METRIC_WINDOW,
+          },
+        }),
+      );
+
+    expect(link!.label).toBe("Open in Metrics");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/metrics");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("search")).toBe(".duration");
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe(METRIC_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(METRIC_WINDOW.windowEndTime);
+  });
+
+  test("metric names with ids, of a service whose id is unknown: the search alone, the service said dropped", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricHighCardinality,
+          serviceName: "worker",
+          metric: { shape: "Name", namePattern: "job.{id}.duration" },
+        }),
+      );
+
+    expect(link!.dropped).toEqual(["serviceIds"]);
+    expect(queryOf(link!.route).get("filters")).toBeNull();
+  });
+
+  test("a service with no metrics: its spans in Traces, in the hour it was found in", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricMissingMetrics,
+          serviceId: SERVICE_ID,
+          metric: { kind: "MissingMetrics", ...METRIC_WINDOW },
+        }),
+      );
+
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Open in Traces");
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("start")).toBe(METRIC_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(METRIC_WINDOW.windowEndTime);
+  });
+
+  test("without its evidence (a list row), the hour before it was last seen", () => {
+    expect(Links.METRIC_INSIGHT_WINDOW_MINUTES).toBe(
+      METRIC_INSIGHT_WINDOW_MINUTES,
+    );
+
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricMissingMetrics,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("start")).toBe("2026-08-14T09:00:00.000Z");
+    expect(query.get("end")).toBe(LAST_SEEN.toISOString());
+  });
+
+  test("a metric finding with no metric name to open is no action", () => {
+    expect(
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricHistogramBuckets,
+          serviceId: SERVICE_ID,
+          metric: { metricName: "  ", ...METRIC_WINDOW },
+        }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("getMetricNamePatternSearch", () => {
+  test("the longest stretch between the ids, separators kept", () => {
+    expect(Links.getMetricNamePatternSearch("job.{id}.duration")).toBe(
+      ".duration",
+    );
+    expect(Links.getMetricNamePatternSearch("orders_{id}_total")).toBe(
+      "orders_",
+    );
+    expect(
+      Links.getMetricNamePatternSearch("service.{id}.request.{id}.count"),
+    ).toBe(".request.");
+  });
+
+  test("nothing long enough to find the names by: no search", () => {
+    for (const pattern of [
+      "{id}",
+      "a.{id}",
+      "{id}.x",
+      "{id}{id}",
+      "",
+      undefined,
+    ]) {
+      expect(Links.getMetricNamePatternSearch(pattern)).toBeNull();
+    }
+  });
+});
+
+describe("getEvidenceWindow", () => {
+  test("the hour the evidence was read in, when it says a whole one", () => {
+    const window: InsightDetectionWindow | null = Links.getEvidenceWindow({
+      windowStartTime: "2026-08-14T09:00:00.000Z",
+      windowEndTime: "2026-08-14T10:00:00.000Z",
+    });
+
+    expect(window?.startTime.toISOString()).toBe("2026-08-14T09:00:00.000Z");
+    expect(window?.endTime.toISOString()).toBe("2026-08-14T10:00:00.000Z");
+  });
+
+  test("none when it does not hold together", () => {
+    for (const evidence of [
+      {},
+      { windowStartTime: "2026-08-14T09:00:00.000Z" },
+      {
+        windowStartTime: "2026-08-14T10:00:00.000Z",
+        windowEndTime: "2026-08-14T09:00:00.000Z",
+      },
+      {
+        windowStartTime: "2026-08-14T10:00:00.000Z",
+        windowEndTime: "2026-08-14T10:00:00.000Z",
+      },
+      {
+        windowStartTime: "not a date",
+        windowEndTime: "2026-08-14T10:00:00.000Z",
+      },
+    ]) {
+      expect(Links.getEvidenceWindow(evidence)).toBeNull();
+    }
+  });
+});
+
 describe("buildInsightInvestigationLink — URL-hostile character sweep", () => {
   test("every hostile value builds a usable link for every insight type — never a throw", () => {
     Object.values(AIInsightType).forEach((insightType: AIInsightType) => {
@@ -942,7 +1428,14 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
         const query: URLSearchParams = queryOf(link!.route);
 
         switch (insightType) {
-          case AIInsightType.MetricDrift: {
+          /*
+           * Metrics' findings open the metric explorer as a drift does: the
+           * metric, and the service as its resource.service.name attribute
+           * while its id is unknown.
+           */
+          case AIInsightType.MetricDrift:
+          case AIInsightType.MetricHighCardinality:
+          case AIInsightType.MetricHistogramBuckets: {
             const queries: Array<SerializedMetricQuery> =
               MetricExplorerUrl.parseMetricQueriesParam(
                 query.get("metricQueries")!,
@@ -955,7 +1448,10 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
             break;
           }
 
-          case AIInsightType.ErrorLogSpike: {
+          case AIInsightType.ErrorLogSpike:
+          case AIInsightType.LogErrorPattern:
+          case AIInsightType.LogMissingLogging:
+          case AIInsightType.LogNoisyPattern: {
             const filters: Array<[string, Array<string>]> = JSON.parse(
               query.get("filters")!,
             );
@@ -986,8 +1482,12 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
           case AIInsightType.DeployRegression:
           case AIInsightType.TraceSlowOperation:
           case AIInsightType.TraceFailingOperation:
-          case AIInsightType.TraceMissingTracing: {
+          case AIInsightType.TraceMissingTracing:
+          case AIInsightType.MetricMissingMetrics: {
             /*
+             * (A service with no metrics opens its spans: what they would
+             * measure.)
+             *
              * The traces grammar carries the value in `search`, escaped
              * where a character would otherwise read as an operator, and
              * quarantines anything it still cannot express in `filters`.
@@ -1034,6 +1534,20 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
             expect(link!.label).toBe("Open in Profiler");
             expect(link!.target).toBe("profiles");
             expect(query.get("serviceId")).toBeNull();
+            expect(link!.dropped).toEqual(["serviceIds"]);
+            break;
+          }
+
+          case AIInsightType.ExceptionMissingStackTrace: {
+            /*
+             * A service's exceptions with no stack trace: the list scoped
+             * by the service's id, which a name never becomes - a name
+             * with no id is reported dropped, not compiled into a dead
+             * filter.
+             */
+            expect(link!.label).toBe("Open in Exceptions");
+            expect(link!.target).toBe("exceptions");
+            expect(query.get("filters")).toBeNull();
             expect(link!.dropped).toEqual(["serviceIds"]);
             break;
           }

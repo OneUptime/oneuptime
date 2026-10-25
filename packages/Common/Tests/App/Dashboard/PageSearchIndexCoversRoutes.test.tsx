@@ -108,6 +108,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.ACTIVE_INCIDENT_EPISODES]:
     "across all projects, from the header; each project's Active Episodes is offered",
   [PageMap.METRIC_VIEW]: "one metric's chart: it needs the metric to show",
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]:
+    "one entity's risk: it needs the user, host or address to show; Security Events > Entity Risk is offered",
   [PageMap.EXCEPTIONS_RESOLVED]:
     "an old address of the Exceptions list, which has a status filter now",
   [PageMap.EXCEPTIONS_ARCHIVED]:

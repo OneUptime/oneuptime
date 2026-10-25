@@ -29,6 +29,17 @@ export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
   [AIInsightType.TraceSlowOperation]: translationKey("Slow Operation"),
   [AIInsightType.TraceFailingOperation]: translationKey("Failing Operation"),
   [AIInsightType.TraceMissingTracing]: translationKey("Missing Tracing"),
+  [AIInsightType.ExceptionMissingStackTrace]: translationKey(
+    "Missing Stack Trace",
+  ),
+  [AIInsightType.LogErrorPattern]: translationKey("Error Log"),
+  [AIInsightType.LogMissingLogging]: translationKey("Missing Logging"),
+  [AIInsightType.LogNoisyPattern]: translationKey("Noisy Log"),
+  [AIInsightType.MetricHighCardinality]: translationKey("High Cardinality"),
+  [AIInsightType.MetricHistogramBuckets]: translationKey(
+    "Wrong Histogram Buckets",
+  ),
+  [AIInsightType.MetricMissingMetrics]: translationKey("Missing Metrics"),
 };
 
 // Human labels for the wire-contract status values (e.g. "ActionRequired").
@@ -132,6 +143,13 @@ const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
   [AIInsightType.TraceSlowOperation]: IconProp.Waterfall,
   [AIInsightType.TraceFailingOperation]: IconProp.XCircle,
   [AIInsightType.TraceMissingTracing]: IconProp.EyeSlash,
+  [AIInsightType.ExceptionMissingStackTrace]: IconProp.EyeSlash,
+  [AIInsightType.LogErrorPattern]: IconProp.ExclaimationCircle,
+  [AIInsightType.LogMissingLogging]: IconProp.DocumentMinus,
+  [AIInsightType.LogNoisyPattern]: IconProp.SpeakerWave,
+  [AIInsightType.MetricHighCardinality]: IconProp.Squares,
+  [AIInsightType.MetricHistogramBuckets]: IconProp.ChartBar,
+  [AIInsightType.MetricMissingMetrics]: IconProp.EyeSlash,
 };
 
 export function getInsightTypeLabel(

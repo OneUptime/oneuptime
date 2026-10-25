@@ -76,11 +76,15 @@ describe("Exceptions landing navigation", () => {
     ["/dashboard/project-id/exceptions/resolved", "exceptions"],
     ["/dashboard/project-id/exceptions/archived", "exceptions"],
     ["/dashboard/project-id/exceptions/documentation", "setup"],
+    ["/dashboard/project-id/exceptions/ai/insights", "ai"],
+    ["/dashboard/project-id/exceptions/ai/insights/finding-id", "ai"],
+    ["/dashboard/project-id/exceptions/ai/logs", "ai"],
+    ["/dashboard/project-id/exceptions/ai/settings", "ai"],
   ])("selects the %s route's %s tab", (route: string, tab: string) => {
     expect(getActiveExceptionsTab(route)).toBe(tab);
   });
 
-  test("shows only Exceptions, Insights, and Setup Guide in the top menu", () => {
+  test("shows only Exceptions, Insights, AI and Setup Guide in the top menu", () => {
     const source: string = readSquashed(
       "Components/Exceptions/ExceptionsNavTabs.tsx",
     );
@@ -93,6 +97,7 @@ describe("Exceptions landing navigation", () => {
     expect(getTabDefinitions(tabs)).toEqual([
       { key: "exceptions", label: "Exceptions" },
       { key: "overview", label: "Insights" },
+      { key: "ai", label: "AI" },
       { key: "setup", label: "Setup Guide" },
     ]);
 
@@ -112,6 +117,12 @@ describe("Exceptions landing navigation", () => {
 
     expect(insightsTab).toContain("IconProp.ChartBar");
     expect(insightsTab).toContain("PageMap.EXCEPTIONS_OVERVIEW");
+
+    // The AI section opens on what OneUptime found.
+    const aiTab: string = sectionBetween(tabs, 'key: "ai",', 'key: "setup",');
+
+    expect(aiTab).toContain("IconProp.Sparkles");
+    expect(aiTab).toContain("PageMap.EXCEPTIONS_AI_INSIGHTS");
   });
 
   test("makes the primary Exceptions route unresolved while preserving the Overview URL", () => {

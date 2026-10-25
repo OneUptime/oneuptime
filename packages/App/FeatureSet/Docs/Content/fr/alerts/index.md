@@ -64,7 +64,9 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. La liste
 
 **Alertes** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** commencent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. La configuration des alertes se trouve ici, pas dans les **Paramètres du projet**.
 
-La liste affiche **Numéro d'alerte**, **Titre**, **État**, **Gravité**, **Ressources affectées** (le moniteur de l'alerte en premier), **Créé**, **Durée**, **Étiquettes** et **Propriétaires**. Sélectionnez des alertes pour agir sur plusieurs à la fois : **Modifier l'état**, **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner**, **Lier à un incident**, **Déclarer un incident** ou les supprimer.
+La liste affiche **Numéro d'alerte**, **Titre**, **État**, **Gravité**, **Ressources affectées** (le moniteur de l'alerte en premier), **Créé**, **Durée**, **Étiquettes** et **Propriétaires**. Sélectionnez des alertes pour agir sur plusieurs à la fois : **Prendre en compte**, **Résoudre**, **Modifier l'état**, **Modifier la gravité**, **M'attribuer**, **Ajouter un propriétaire**, **Remove Owner**, **Ajouter des étiquettes**, **Remove Labels**, **Lier à un incident**, **Déclarer un incident** ou les supprimer.
+
+Le menu **⋯** au bout de la ligne de chaque alerte fait de même pour cette seule alerte : **Prendre en compte** et **Résoudre** tant que l'alerte peut franchir cette étape, **Modifier l'état**, **Modifier la gravité**, **M'attribuer** tant que vous n'en êtes pas propriétaire, et **Ajouter un propriétaire** pour la confier à quelqu'un d'autre.
 
 ## Créer une alerte à la main
 
@@ -114,7 +116,7 @@ Ses règles, ses propriétaires, son fil d'activité et son premier état s'appl
 
 ## Répondre à une alerte
 
-Ouvrez l'alerte. Son en-tête affiche son état, sa gravité, sa date de création, ainsi que le moniteur et l'épisode auxquels elle appartient, avec les boutons dont votre prochaine étape a besoin :
+Ouvrez l'alerte. Son en-tête affiche son état, sa gravité, sa durée, ses propriétaires, ainsi que le moniteur et l'épisode auxquels elle appartient, avec les boutons dont votre prochaine étape a besoin :
 
 - **Prendre en compte** indique que quelqu'un s'en occupe. Cela empêche les politiques d'astreinte de l'alerte d'alerter le niveau suivant.
 - **Résoudre** la clôt. L'alerte quitte les **Alertes actives**, et ses rappels s'arrêtent.
@@ -139,7 +141,7 @@ Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes pri
 
 **Vue d'ensemble**, **Investigation**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
-- **Vue d'ensemble** — l'en-tête nomme les **Propriétaires** de l'alerte, équipes d'abord, à côté de son moniteur et de son épisode. La tuile **Créé** indique quand et par quoi elle a été créée, deux autres le temps qu'il a fallu pour la prendre en compte et la résoudre ; sa durée figure à côté de son état. La carte **Ce qui s'est passé** ouvre la page — la description de l'alerte et sa **Cause racine** — puis la carte **Investigation IA**, avec **Ask OneUptime AI** en bas, et le **Fil d'activité de l'alerte** consigne tout ce qui est arrivé à l'alerte. À côté se trouvent la carte **Ressources affectées**, la carte **Détails de l'alerte** et les mesures de l'alerte.
+- **Vue d'ensemble** — l'en-tête nomme les **Propriétaires** de l'alerte, équipes d'abord, à côté de son moniteur et de son épisode. La tuile **Créé** indique quand et par quoi elle a été créée, deux autres le temps qu'il a fallu pour la prendre en compte et la résoudre ; sa durée est la première information de l'en-tête. La carte **Ce qui s'est passé** ouvre la page — la description de l'alerte et sa **Cause racine** — puis la carte **Investigation IA**, avec **Ask OneUptime AI** en bas, et le **Fil d'activité de l'alerte** consigne tout ce qui est arrivé à l'alerte. À côté se trouvent la carte **Ressources affectées**, la carte **Détails de l'alerte** et les mesures de l'alerte.
 - **Chronologie d'état** — chaque état dans lequel l'alerte a été, quand et pendant combien de temps. Voir [La chronologie d'état](/docs/alerts/states-and-severities#la-chronologie-détat).
 - **Incidents liés** — les incidents dont cette alerte fait partie, avec **Lier l'incident** et **Déclarer un incident**.
 - **Paramètres** — **Qui peut voir cette alerte**, avec l'interrupteur **Alerte privée**, et **Rappels**, avec **Envoyer des rappels**. Chaque interrupteur enregistre dès que vous le basculez.

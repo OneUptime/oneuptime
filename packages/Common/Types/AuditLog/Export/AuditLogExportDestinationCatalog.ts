@@ -529,10 +529,12 @@ export function readAuditLogExportConfigValue(
 /*
  * Whether a field applies to this config: always, unless it names another
  * field (showWhen) whose value - or that field's default - is not one of
- * the values it waits for.
+ * the values it waits for. Only the definition's config fields are read,
+ * so a backup destination (BackupDestinationCatalog), whose fields have
+ * this shape, is asked the same way.
  */
 export function isAuditLogExportFieldShown(data: {
-  definition: AuditLogExportDestinationDefinition;
+  definition: Pick<AuditLogExportDestinationDefinition, "configFields">;
   field: AuditLogExportDestinationField;
   config: JSONObject | undefined | null;
 }): boolean {

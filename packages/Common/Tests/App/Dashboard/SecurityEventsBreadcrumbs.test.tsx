@@ -11,6 +11,7 @@ import RouteMap, {
 import {
   getSecurityEventsBreadcrumbPages,
   getSecurityEventsBreadcrumbs,
+  nameEntityInTrail,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SecurityEventsBreadcrumbs";
 import {
   SECURITY_EVENTS_DETAIL_PAGES,
@@ -19,6 +20,7 @@ import {
 import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
 import Page from "../../../UI/Components/Page/Page";
+import { nameRecordInTrail } from "../../../UI/Components/Page/RecordNameInTrail";
 import Navigation from "../../../UI/Utils/Navigation";
 import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
 
@@ -166,10 +168,48 @@ describe("each trail names the page as the menu does", () => {
       PageMap.SECURITY_CASE_VIEW,
       ["Security Events", "Security Cases", "View Case"],
     ],
+    // A case's pages: the case, then the page as its side menu names it.
+    [
+      PageMap.SECURITY_CASE_VIEW_TIMELINE,
+      ["Security Events", "Security Cases", "View Case", "Timeline"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_DETECTIONS,
+      ["Security Events", "Security Cases", "View Case", "Detections"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_ENTITIES,
+      ["Security Events", "Security Cases", "View Case", "Entities"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
+      ["Security Events", "Security Cases", "View Case", "Playbook Runs"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_NOTES,
+      ["Security Events", "Security Cases", "View Case", "Private Notes"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS,
+      ["Security Events", "Security Cases", "View Case", "Audit Logs"],
+    ],
+    [
+      PageMap.SECURITY_CASE_VIEW_DELETE,
+      ["Security Events", "Security Cases", "View Case", "Delete Case"],
+    ],
     [PageMap.SECURITY_EVENTS, ["Security Events", "Events"]],
     [
       PageMap.SECURITY_EVENTS_ENTITIES,
       ["Security Events", "Events", "Entities"],
+    ],
+    [
+      PageMap.SECURITY_EVENTS_ENTITY_RISK,
+      ["Security Events", "Events", "Entity Risk"],
+    ],
+    // An entity's page, under the list it opens from.
+    [
+      PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+      ["Security Events", "Events", "Entity Risk", "Entity"],
     ],
     [
       PageMap.SECURITY_EVENTS_CORRELATE,
@@ -226,6 +266,10 @@ describe("each trail names the page as the menu does", () => {
       PageMap.SECURITY_EVENTS_DOCUMENTATION,
       ["Security Events", "Connections", "Setup Guide"],
     ],
+    [
+      PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
+      ["Security Events", "Settings", "Risk Scoring"],
+    ],
   ])("%s: Project > %s", (page: string, titles: Array<string>) => {
     expect(
       trailOf(page).map(([title]: [string, string]): string => {
@@ -279,6 +323,32 @@ describe("each crumb opens what its name says", () => {
     expect(trailOf(PageMap.SECURITY_EVENTS_DOCUMENTATION)[2]).toEqual([
       "Connections",
       routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
+    ]);
+  });
+
+  /*
+   * An entity's page sits under Entity Risk, which is not a part of its
+   * address the trail can find by walking up it (Events, the section, is no
+   * part of the address): the crumb opens the list all the same.
+   */
+  test("on an entity's page, Entity Risk opens the list, and Events the section's first page", () => {
+    const trail: Array<[string, string]> = trailOf(
+      PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+    );
+
+    expect(trail.slice(1, 4)).toEqual([
+      ["Security Events", routeFor(PageMap.SECURITY_EVENTS_OVERVIEW)],
+      ["Events", routeFor(PageMap.SECURITY_EVENTS)],
+      ["Entity Risk", routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK)],
+    ]);
+    expect(trail[4]).toEqual([
+      "Entity",
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW),
+    ]);
+    // On the list itself, its crumb is the page it is on.
+    expect(trailOf(PageMap.SECURITY_EVENTS_ENTITY_RISK)[3]).toEqual([
+      "Entity Risk",
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
     ]);
   });
 
@@ -338,5 +408,143 @@ describe("each crumb opens what its name says", () => {
       "View Case",
       `${PRODUCT}/cases/${CASE_ID}`,
     ]);
+  });
+
+  test.each([
+    [PageMap.SECURITY_CASE_VIEW_TIMELINE, "timeline"],
+    [PageMap.SECURITY_CASE_VIEW_DETECTIONS, "detections"],
+    [PageMap.SECURITY_CASE_VIEW_ENTITIES, "entities"],
+    [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, "playbook-runs"],
+    [PageMap.SECURITY_CASE_VIEW_NOTES, "notes"],
+    [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, "audit-logs"],
+    [PageMap.SECURITY_CASE_VIEW_DELETE, "delete"],
+  ])(
+    "on %s, the case's crumb opens its Overview and Security Cases the open cases",
+    (page: string, segment: string) => {
+      const trail: Array<[string, string]> = trailOf(page);
+
+      expect(trail[1]).toEqual([
+        "Security Events",
+        routeFor(PageMap.SECURITY_EVENTS_OVERVIEW),
+      ]);
+      expect(trail[2]).toEqual([
+        "Security Cases",
+        routeFor(PageMap.SECURITY_CASES),
+      ]);
+      expect(trail[3]).toEqual(["View Case", `${PRODUCT}/cases/${CASE_ID}`]);
+      // The page itself, which is not a link.
+      expect(trail[4]![1]).toBe(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
+    },
+  );
+
+  /*
+   * An entity's page is about one entity, as a case's is about one case:
+   * the trail and the browser's tab name it - "Entity Risk >
+   * k.morgan@acme-commerce.example" - not "Entity Risk > Entity" for every
+   * one of them. The value is in the page's query, written out as it is.
+   */
+  test("an entity's page names its entity in the trail and the tab; nothing else is renamed", () => {
+    const path: string = visit(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW);
+    const routePath: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+    const value: string = "k.morgan@acme-commerce.example";
+
+    const links: Array<Link> = nameEntityInTrail({
+      links: getSecurityEventsBreadcrumbs(routePath),
+      path: routePath,
+      entityValue: `  ${value}  `,
+    })!;
+
+    expect(
+      links.map((link: Link): string | undefined => {
+        return link.recordName;
+      }),
+    ).toEqual([undefined, undefined, undefined, undefined, value]);
+    // Its crumb still stands for its page, and Entity Risk still opens the list.
+    expect(links[4]!.to.toString()).toBe(path);
+    expect(links[3]!.to.toString()).toBe(
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
+    );
+
+    render(
+      <Page breadcrumbLinks={links}>
+        <div>Page content</div>
+      </Page>,
+    );
+
+    const trail: HTMLElement = screen.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+
+    expect(within(trail).getByText(value)).toBeInTheDocument();
+    expect(within(trail).queryByText("Entity")).toBeNull();
+    expect(document.title).toContain(value);
+
+    // A link that names no entity keeps "Entity"; so does a value of spaces.
+    for (const entityValue of [null, undefined, "", "   "]) {
+      expect(
+        nameEntityInTrail({
+          links: getSecurityEventsBreadcrumbs(routePath),
+          path: routePath,
+          entityValue,
+        })!.map((link: Link): string | undefined => {
+          return link.recordName;
+        }),
+      ).toEqual([undefined, undefined, undefined, undefined, undefined]);
+    }
+
+    // Any other page's trail is left as it is, whatever its query holds.
+    visit(PageMap.SECURITY_EVENTS_ENTITY_RISK);
+    const listPath: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+    const listLinks: Array<Link> | undefined =
+      getSecurityEventsBreadcrumbs(listPath);
+
+    expect(
+      nameEntityInTrail({
+        links: listLinks,
+        path: listPath,
+        entityValue: value,
+      }),
+    ).toBe(listLinks);
+    expect(
+      nameEntityInTrail({
+        links: undefined,
+        path: routePath,
+        entityValue: value,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("the case's crumb takes the case's number once the case is read, in the trail and the tab", () => {
+    visit(PageMap.SECURITY_CASE_VIEW_DETECTIONS);
+
+    const links: Array<Link> = nameRecordInTrail({
+      links: getSecurityEventsBreadcrumbs(
+        Navigation.getRoutePath(RouteUtil.getRoutes()),
+      ),
+      recordId: CASE_ID,
+      recordName: "CASE-142",
+    })!;
+
+    expect(
+      links.map((link: Link): string | undefined => {
+        return link.recordName;
+      }),
+    ).toEqual([undefined, undefined, undefined, "CASE-142", undefined]);
+
+    render(
+      <Page breadcrumbLinks={links}>
+        <div>Page content</div>
+      </Page>,
+    );
+
+    const trail: HTMLElement = screen.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+
+    expect(
+      within(trail).getByRole("link", { name: "CASE-142" }),
+    ).toHaveAttribute("href", `${PRODUCT}/cases/${CASE_ID}`);
+    expect(document.title).toContain("CASE-142");
+    expect(document.title).toContain("Detections");
   });
 });

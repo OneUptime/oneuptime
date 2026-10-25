@@ -29,6 +29,14 @@ import { FRONTEND_ENVIRONMENT_CACHE_CONTROL } from "../../Server/Utils/FrontendE
  *   3. More generally, no strategy writes a response the server marked
  *      Cache-Control: no-store to a cache.
  *
+ *   4. A new version of the Dashboard reaches a browser the worker controls.
+ *      The bundle's entry (/dist/Index.js) has the same name in every build,
+ *      so it is network first (cache first, a reload after a deploy still
+ *      ran the build the worker had cached); build.json, which says which
+ *      build the server serves, is network only; the content-hashed chunks
+ *      stay cache first; and a page the server answers in place of a chunk a
+ *      deploy removed is never kept under the chunk's name.
+ *
  * The generator runs in a node subprocess, the way the build runs it. The
  * generated worker then runs for real in a vm context against fake caches and
  * a fake network, so the caching assertions are about behaviour, not text.
@@ -799,7 +807,7 @@ describe("generate-service-worker.js", () => {
         const started: StartedWorker = startEnterpriseWorker();
         const worker: RunningWorker = started.worker;
         const cacheVersion: string = started.cacheVersion;
-        const url: string = `${ORIGIN}/dashboard/dist/Index.js`;
+        const url: string = `${ORIGIN}/dashboard/dist/chunk-6LQ2TM4N.js`;
         await seedCache(
           worker,
           `${cacheVersion}-static`,
@@ -859,17 +867,153 @@ describe("generate-service-worker.js", () => {
       expect(cachesHolding(worker, url)).toEqual([]);
     });
 
-    test("still serves bundles cache-first (the cache version is what invalidates them)", async () => {
+    test("still serves content-hashed chunks cache-first (their name changes with their content)", async () => {
+      const started: StartedWorker = startEnterpriseWorker();
+      const worker: RunningWorker = started.worker;
+      const cacheVersion: string = started.cacheVersion;
+
+      for (const url of [
+        `${ORIGIN}/dashboard/dist/chunk-6LQ2TM4N.js`,
+        `${ORIGIN}/dashboard/dist/MonitorsRoutes-ABCDEFGH.js`,
+        `${ORIGIN}/dashboard/dist/Theme-Z9Y8X7W6V5.css`,
+      ]) {
+        await seedCache(worker, `${cacheVersion}-static`, url, "cached chunk");
+
+        const response: FakeResponse = await fetchThroughWorker(worker, url);
+
+        expect([url, response.body]).toEqual([url, "cached chunk"]);
+      }
+
+      expect(worker.network.requests).toEqual([]);
+    });
+
+    test("serves the bundle's entry from the network: a reload after a deploy runs the new Dashboard", async () => {
       const started: StartedWorker = startEnterpriseWorker();
       const worker: RunningWorker = started.worker;
       const cacheVersion: string = started.cacheVersion;
       const url: string = `${ORIGIN}/dashboard/dist/Index.js`;
-      await seedCache(worker, `${cacheVersion}-static`, url, "cached bundle");
+      await seedCache(
+        worker,
+        `${cacheVersion}-static`,
+        url,
+        "the build before the deploy",
+      );
+
+      const response: FakeResponse = await fetchThroughWorker(worker, url);
+      await settle();
+
+      expect(response.body).toBe(`network:${url}`);
+      expect(worker.network.requests).toEqual([url]);
+      // ...and keeps the new copy for offline use.
+      expect(
+        worker.caches.stores.get(`${cacheVersion}-static`)?.get(url)?.body,
+      ).toBe(`network:${url}`);
+    });
+
+    test("offline, the entry comes from the copy it kept", async () => {
+      const started: StartedWorker = startEnterpriseWorker();
+      const worker: RunningWorker = started.worker;
+      const cacheVersion: string = started.cacheVersion;
+      const url: string = `${ORIGIN}/dashboard/dist/Index.js`;
+      await seedCache(worker, `${cacheVersion}-static`, url, "kept entry");
+      worker.network.online = false;
 
       const response: FakeResponse = await fetchThroughWorker(worker, url);
 
-      expect(response.body).toBe("cached bundle");
-      expect(worker.network.requests).toEqual([]);
+      expect(response.body).toBe("kept entry");
+    });
+
+    test.each<[string, string]>([
+      ["the Dashboard's", "/dashboard/dist/build.json"],
+      ["another frontend's", "/status-page/dist/build.json"],
+    ])(
+      "asks the network for %s build.json every time, and never keeps it",
+      async (_label: string, pathname: string) => {
+        const started: StartedWorker = startEnterpriseWorker();
+        const worker: RunningWorker = started.worker;
+        const cacheVersion: string = started.cacheVersion;
+        const url: string = `${ORIGIN}${pathname}`;
+        await seedCache(
+          worker,
+          `${cacheVersion}-static`,
+          url,
+          '{"buildId":"the build before the deploy"}',
+        );
+
+        const first: FakeResponse = await fetchThroughWorker(worker, url);
+        const second: FakeResponse = await fetchThroughWorker(worker, url);
+        await settle();
+
+        expect(first.body).toBe(`network:${url}`);
+        expect(second.body).toBe(`network:${url}`);
+        expect(worker.network.requests).toEqual([url, url]);
+        // Only the seeded copy: nothing the worker fetched was kept.
+        expect(
+          worker.caches.stores.get(`${cacheVersion}-static`)?.get(url)?.body,
+        ).toBe('{"buildId":"the build before the deploy"}');
+      },
+    );
+
+    test("offline, build.json is not answered from a copy: a copy would claim the version it was cached in", async () => {
+      const started: StartedWorker = startEnterpriseWorker();
+      const worker: RunningWorker = started.worker;
+      const cacheVersion: string = started.cacheVersion;
+      const url: string = `${ORIGIN}/dashboard/dist/build.json`;
+      await seedCache(worker, `${cacheVersion}-static`, url, "old manifest");
+      worker.network.online = false;
+
+      const response: FakeResponse = await fetchThroughWorker(worker, url);
+
+      expect(response.body).not.toBe("old manifest");
+      expect(response.status).toBe(503);
+    });
+
+    test("a page the server answers in place of a chunk a deploy removed is served, never kept under the chunk's name", async () => {
+      const worker: RunningWorker = startEnterpriseWorker().worker;
+      const url: string = `${ORIGIN}/dashboard/dist/MonitorsRoutes-ABCDEFGH.js`;
+      worker.network.headersByUrl.set(url, {
+        "content-type": "text/html; charset=utf-8",
+      });
+
+      const response: FakeResponse = await fetchThroughWorker(worker, url);
+      await settle();
+
+      expect(response.body).toBe(`network:${url}`);
+      expect(cachesHolding(worker, url)).toEqual([]);
+
+      // Negative control: the real chunk, as JavaScript, is kept.
+      const real: string = `${ORIGIN}/dashboard/dist/IncidentsRoutes-HGFEDCBA.js`;
+      worker.network.headersByUrl.set(real, {
+        "content-type": "application/javascript; charset=UTF-8",
+      });
+      await fetchThroughWorker(worker, real);
+      await settle();
+      expect(cachesHolding(worker, real)).toHaveLength(1);
+    });
+
+    test("refreshing a stale chunk never replaces it with the page the server answers", async () => {
+      const started: StartedWorker = startEnterpriseWorker();
+      const worker: RunningWorker = started.worker;
+      const cacheVersion: string = started.cacheVersion;
+      const url: string = `${ORIGIN}/dashboard/dist/chunk-6LQ2TM4N.js`;
+      await seedCache(
+        worker,
+        `${cacheVersion}-static`,
+        url,
+        "the real chunk",
+        EIGHT_DAYS_AGO,
+      );
+      worker.network.headersByUrl.set(url, { "content-type": "text/html" });
+
+      expect((await fetchThroughWorker(worker, url)).body).toBe(
+        "the real chunk",
+      );
+      await settle();
+
+      expect(worker.network.requests).toEqual([url]);
+      expect(
+        worker.caches.stores.get(`${cacheVersion}-static`)?.get(url)?.body,
+      ).toBe("the real chunk");
     });
 
     test("drops the other edition's caches on activate", async () => {

@@ -18,6 +18,19 @@ import {
  * fields.
  */
 
+/*
+ * One frame of an exception's stack trace in the application's own code -
+ * not a library's, a framework's or the runtime's (StackTraceParser's
+ * inApp) - as the Exceptions product's AI section reads it: where the code
+ * a pull request would change is.
+ */
+export interface ExceptionInsightFrameEvidence {
+  functionName: string;
+  fileName: string;
+  // 0 when the stack trace named no line.
+  lineNumber: number;
+}
+
 // Evidence for NewException and ExceptionSpike insights.
 export interface ExceptionInsightEvidence {
   exceptionMessage?: string | undefined;
@@ -38,6 +51,62 @@ export interface ExceptionInsightEvidence {
   distinctExceptionGroupCount?: number | undefined;
   // ISO-8601 — when the exception was first ever seen.
   firstSeenAt?: string | undefined;
+  /*
+   * The service the exception was raised in, when its telemetry names one
+   * (the exception's primary entity is a service): what an AI rule matches.
+   */
+  serviceId?: string | undefined;
+  /*
+   * How many frames its stack trace has: 0 when it was recorded without
+   * one. Absent on findings filed before the Exceptions AI section read it.
+   */
+  stackFrameCount?: number | undefined;
+  /*
+   * The innermost frames of its stack trace in the application's own code,
+   * at most a few (Utils/Exceptions/ExceptionInsight): an empty list is a
+   * stack trace of library and runtime frames only. Absent on findings
+   * filed before the Exceptions AI section read it.
+   */
+  ownCodeFrames?: Array<ExceptionInsightFrameEvidence> | undefined;
+}
+
+// One exception of a service recorded with no stack trace.
+export interface ExceptionStackTraceGroupEvidence {
+  telemetryExceptionId: string;
+  // Sanitized (ExceptionSanitizer): written by the service, not OneUptime.
+  exceptionType: string;
+  exceptionMessage: string;
+  // Lifetime occurrences.
+  occurrenceCount: number;
+  // ISO-8601.
+  lastSeenAt: string;
+}
+
+/*
+ * Evidence for ExceptionMissingStackTrace insights: a service whose
+ * exceptions over the last day were recorded with no stack trace, so no
+ * frame says which of its code raised them (Utils/Exceptions/
+ * ExceptionInsight).
+ */
+export interface ExceptionStackTraceInsightEvidence {
+  serviceId: string;
+  // ISO-8601: the day read.
+  windowStartTime: string;
+  windowEndTime: string;
+  // The loudest of them, loudest first.
+  exceptions: Array<ExceptionStackTraceGroupEvidence>;
+  /*
+   * All of them: how many kinds of exception, and how often they happened
+   * since each was first seen (their lifetime occurrence counts, summed).
+   */
+  exceptionCount: number;
+  occurrenceCount: number;
+  /*
+   * The service's exceptions of the same day that did carry a stack trace:
+   * 0 when none did - its exceptions are recorded without one - else only
+   * some places in its code raise exceptions without one.
+   */
+  withStackTraceCount: number;
 }
 
 // Evidence for ErrorLogSpike insights.
@@ -213,6 +282,138 @@ export interface TraceInsightEvidence {
   codeLocations?: Array<PerformanceCodeLocation> | undefined;
 }
 
+/*
+ * Evidence for the Logs product's insights (LogErrorPattern,
+ * LogMissingLogging, LogNoisyPattern): one service's logs over the hour they
+ * were read in, and what was found in them (Utils/Logs/LogInsight). `kind`
+ * says which of the three it is; `gap` says, for missing logging, what the
+ * logs lack. A message is kept as its pattern - every value that changes
+ * from line to line masked (Utils/Telemetry/LogErrorPattern), then
+ * sanitized - never as a line was logged: a log line may hold whatever the
+ * code put in it.
+ */
+export interface LogInsightEvidence {
+  serviceId: string;
+  // "Error", "MissingLogging" or "Noisy" (Utils/Logs/LogInsight).
+  kind: string;
+  // MissingLogging only: "SilentFailures" or "NoTraceContext".
+  gap?: string | undefined;
+  // ISO-8601: the hour it was read in.
+  windowStartTime: string;
+  windowEndTime: string;
+  // The service's logs in the window, at every severity.
+  logCount: number;
+  // Of them, the ones at Error or Fatal severity.
+  errorLogCount?: number | undefined;
+  // Error and Noisy: the message's pattern, and its lines in the window.
+  pattern?: string | undefined;
+  patternCount?: number | undefined;
+  // The severities its lines were logged at.
+  severities?: Array<string> | undefined;
+  /*
+   * A run of the message's own words, found as written in a line it was
+   * logged in: what the Logs viewer and a Logs monitor search the body for.
+   */
+  searchText?: string | undefined;
+  // Noisy: its share of the lines read, and how many were read.
+  patternPercent?: number | undefined;
+  sampledLogCount?: number | undefined;
+  // Error: the traces its lines were logged in, and a few of them.
+  traceCount?: number | undefined;
+  sampleTraceIds?: Array<string> | undefined;
+  // NoTraceContext: the logs that carried a trace id, and the service's spans.
+  tracedLogCount?: number | undefined;
+  serviceSpanCount?: number | undefined;
+  // SilentFailures: the operation, its spans and failed spans in the window.
+  operationName?: string | undefined;
+  operationSpanCount?: number | undefined;
+  failedSpanCount?: number | undefined;
+  // SilentFailures: the most recent failed requests read, none of which logged.
+  failedSampleSize?: number | undefined;
+  sampleTraceId?: string | undefined;
+  // SilentFailures: what the failed spans recorded, when they recorded it.
+  error?: TraceInsightErrorEvidence | undefined;
+  // code.* attribute locations, to find the repository that holds the code.
+  codeLocations?: Array<PerformanceCodeLocation> | undefined;
+}
+
+// Another attribute of the same metric that also took many values.
+export interface MetricInsightAttributeEvidence {
+  key: string;
+  valueCount: number;
+}
+
+/*
+ * Evidence for the Metrics product's insights (MetricHighCardinality,
+ * MetricHistogramBuckets, MetricMissingMetrics): one service's metric - or
+ * the service itself, for missing metrics - over the hour it was read in,
+ * and what was found. `kind` says which of the three it is; `shape` says,
+ * for a high-cardinality metric, whether an attribute or the metric names
+ * carry the values (Utils/Metrics/MetricInsight). No attribute value is
+ * ever stored: only its key, how many values it took and what they look
+ * like - the values are whatever the code put there, ids and addresses
+ * among them.
+ */
+export interface MetricInsightEvidence {
+  serviceId: string;
+  // "HighCardinality", "HistogramBuckets" or "MissingMetrics".
+  kind: string;
+  // HighCardinality only: "Attribute" or "Name".
+  shape?: string | undefined;
+  // ISO-8601: the hour it was read in.
+  windowStartTime: string;
+  windowEndTime: string;
+  // The metric (HighCardinality by an attribute, HistogramBuckets).
+  metricName?: string | undefined;
+  // Its unit, as the metric catalog records it, when it has one.
+  unit?: string | undefined;
+  // Its data points in the hour (for metric names: theirs together).
+  dataPointCount?: number | undefined;
+  // HighCardinality by an attribute: the attribute and its values.
+  attributeKey?: string | undefined;
+  attributeValueCount?: number | undefined;
+  /*
+   * What the values look like: "Number", "Uuid", "HexId", "UrlWithIds",
+   * "Email", "Timestamp", "Text" or "Mixed" (MetricValueShape).
+   */
+  valueShape?: string | undefined;
+  // Other attributes of the metric that also took many values, worst first.
+  otherAttributes?: Array<MetricInsightAttributeEvidence> | undefined;
+  /*
+   * The SDK already folds the metric's new series into one overflow series
+   * (otel.metric.overflow): it reached its own cardinality limit.
+   */
+  hasOverflow?: boolean | undefined;
+  // HighCardinality by the names: the names with their ids collapsed.
+  namePattern?: string | undefined;
+  nameCount?: number | undefined;
+  /*
+   * HistogramBuckets: where its values fall - "BelowSmallestBucket",
+   * "AboveLargestBucket" or "NoBuckets" (MetricBucketProblem) - and the
+   * share of them there, 0-100.
+   */
+  bucketProblem?: string | undefined;
+  bucketShare?: number | undefined;
+  // The values it recorded, as the gate counted them.
+  valueCount?: number | undefined;
+  // Its bucket bounds: how many, the smallest above zero and the largest.
+  boundCount?: number | undefined;
+  smallestBound?: number | undefined;
+  largestBound?: number | undefined;
+  // Its bounds are the OpenTelemetry SDKs' default ones.
+  hasDefaultBounds?: boolean | undefined;
+  // The smallest and largest values recorded, when the SDK sent them.
+  minValue?: number | undefined;
+  maxValue?: number | undefined;
+  // MissingMetrics: the service's spans in the hour, and its failed ones.
+  spanCount?: number | undefined;
+  failedSpanCount?: number | undefined;
+  // MissingMetrics: its busiest operations, to start the metrics from.
+  topOperations?: Array<{ name: string; spanCount: number }> | undefined;
+  // MissingMetrics: the language its telemetry SDK reported, when it did.
+  sdkLanguage?: string | undefined;
+}
+
 export interface AIInsightEvidence {
   exception?: ExceptionInsightEvidence | undefined;
   logSpike?: LogSpikeInsightEvidence | undefined;
@@ -221,6 +422,9 @@ export interface AIInsightEvidence {
   deployRegression?: DeployRegressionInsightEvidence | undefined;
   profile?: ProfileInsightEvidence | undefined;
   trace?: TraceInsightEvidence | undefined;
+  exceptionStackTrace?: ExceptionStackTraceInsightEvidence | undefined;
+  log?: LogInsightEvidence | undefined;
+  metric?: MetricInsightEvidence | undefined;
 }
 
 export default AIInsightEvidence;

@@ -37,6 +37,7 @@ flowchart TB
 | **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
 | **Entiteter** | Händelser | Användarna, värdarna och adresserna som dina fynd nämner oftast |
+| **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detection Rules** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
 | **Rule Library** | Detections | Färdiga detektionsregler att lägga till, var och en med händelserna den läser och om de kommer in, med de rekommenderade markerade |
@@ -49,8 +50,11 @@ flowchart TB
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
+| **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
+| **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
 
-**Detections**, **AI** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
+**Detections**, **AI**, **Connections** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 

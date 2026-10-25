@@ -64,7 +64,9 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 
 **Alerts** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. Alert configuration lives here, not in **Project Settings**.
 
-The list shows **Alert Number**, **Title**, **State**, **Severity**, **Affected Resources** (the alert's monitor first), **Created**, **Duration**, **Labels** and **Owners**. Select alerts to act on several at once: **Change State**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Link to Incident**, **Declare Incident** or delete them.
+The list shows **Alert Number**, **Title**, **State**, **Severity**, **Affected Resources** (the alert's monitor first), **Created**, **Duration**, **Labels** and **Owners**. Select alerts to act on several at once: **Acknowledge**, **Resolve**, **Change State**, **Change Severity**, **Assign to Me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Link to Incident**, **Declare Incident** or delete them.
+
+Each alert's **⋯** menu, at the end of its row, does the same for that alert alone: **Acknowledge** and **Resolve** while the alert can make that move, **Change State**, **Change Severity**, **Assign to Me** until you own it, and **Add Owner** to hand it to someone else.
 
 ## Create an alert by hand
 
@@ -114,7 +116,7 @@ Its rules, its owners, its feed and its first state still happen either way. Inc
 
 ## Respond to an alert
 
-Open the alert. Its header shows its state, its severity, when it was created and the monitor and episode it belongs to, with the buttons your next step needs:
+Open the alert. Its header shows its state, its severity, how long it has lasted, its owners and the monitor and episode it belongs to, with the buttons your next step needs:
 
 - **Acknowledge** says someone is on it. It stops the alert's on-call policies from paging the next level.
 - **Resolve** closes it. The alert leaves **Active Alerts**, and its reminders stop.
@@ -139,7 +141,7 @@ While you work it, write down what you learn as **Private Notes**, fill in its *
 
 **Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.
 
-- **Overview** — the header names the alert's **Owners**, teams first, beside its monitor and episode. Three tiles show when it was **Created** and by what, and how long it took to be acknowledged and resolved; how long it has lasted is beside its state. **What happened** leads the page — the alert's description and **Root cause** — then the **AI Investigation** card, with **Ask OneUptime AI** at its foot, and the **Alert Feed** records everything that happened to the alert. Beside them sit the **Affected Resources** card, the **Alert Details** card and the alert's measurements.
+- **Overview** — the header names the alert's **Owners**, teams first, beside its monitor and episode. Three tiles show when it was **Created** and by what, and how long it took to be acknowledged and resolved; how long it has lasted is the header's first fact. **What happened** leads the page — the alert's description and **Root cause** — then the **AI Investigation** card, with **Ask OneUptime AI** at its foot, and the **Alert Feed** records everything that happened to the alert. Beside them sit the **Affected Resources** card, the **Alert Details** card and the alert's measurements.
 - **State Timeline** — every state the alert has been in, when, and for how long. See [The state timeline](/docs/alerts/states-and-severities#the-state-timeline).
 - **Linked Incidents** — the incidents this alert is part of, with **Link Incident** and **Declare Incident**.
 - **Settings** — **Who can see this alert**, with the **Private Alert** switch, and **Reminders**, with **Send reminders**. Each switch saves the moment you flip it.

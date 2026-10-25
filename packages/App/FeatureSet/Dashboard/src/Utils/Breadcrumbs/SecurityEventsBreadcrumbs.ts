@@ -11,6 +11,11 @@ import {
   getSecurityEventsWorkspacePages,
   isSecurityEventsWorkspacePage,
 } from "../SecurityEventsNavigation";
+import {
+  getSecurityCasePageTrail,
+  getSecurityCasePages,
+  isSecurityCasePage,
+} from "../SecurityCaseNavigation";
 import { BuildBreadcrumbLinksByTitles } from "./Helper";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
@@ -31,23 +36,33 @@ import Link from "Common/Types/Link";
  * side. Following the address instead would have sent Security Events to
  * the raw events, and Playbooks on a run's page to the runs waiting for
  * approval. The crumb of the page you are on is not a link.
+ *
+ * A case's pages sit under Security Cases, the case, then the page, as the
+ * case's side menu names it (SecurityCaseNavigation.ts): Project > Security
+ * Events > Security Cases > CASE-142 > Detections. The case's crumb opens
+ * its Overview, and is named for the case once it is read - its layout does
+ * that through nameRecordInTrail, as an incident's ModelPage does. An
+ * entity's page is named for its entity the same way (nameEntityInTrail).
  */
 
-// The two pages that open on their own, under the section their lists are in.
+/*
+ * A playbook's page, which opens on its own, and an entity's page, under the
+ * section their lists are in.
+ */
 const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
-  [
-    PageMap.SECURITY_CASE_VIEW,
-    ["Security Events", "Security Cases", "View Case"],
-  ],
   [
     PageMap.SECURITY_PLAYBOOK_VIEW,
     ["Security Events", "Playbooks", "View Playbook"],
+  ],
+  [
+    PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+    ["Security Events", "Events", "Entity Risk", "Entity"],
   ],
 ];
 
 /*
  * The pages with a trail of their own: every menu page, the Workspace
- * section's, a case and a playbook.
+ * section's, a case's pages and a playbook.
  */
 export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
   return [
@@ -57,10 +72,34 @@ export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
       },
     ),
     ...getSecurityEventsWorkspacePages(),
+    ...getSecurityCasePages(),
     ...DETAIL_TRAILS.map(([page]: [PageMap, Array<string>]): PageMap => {
       return page;
     }),
   ];
+}
+
+/*
+ * The list a detail page is opened from, when its trail names that list
+ * after the section: an entity's page sits under Entity Risk, and that crumb
+ * opens the list. The trail's order is not the address's - Events, the
+ * section, is no part of the address - so it is not found by address.
+ */
+const DETAIL_LISTS: Array<[PageMap, PageMap]> = [
+  [
+    PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW,
+    PageMap.SECURITY_EVENTS_ENTITY_RISK,
+  ],
+];
+
+function getDetailListOf(page: PageMap): PageMap | undefined {
+  const entry: [PageMap, PageMap] | undefined = DETAIL_LISTS.find(
+    ([candidate]: [PageMap, PageMap]): boolean => {
+      return candidate === page;
+    },
+  );
+
+  return entry ? entry[1] : undefined;
 }
 
 // The page a route pattern (as the layout matches it) belongs to.
@@ -72,6 +111,14 @@ function getPageForPath(path: string): PageMap | undefined {
 
 // Where a page's trail says it is, after "Project".
 function getTrail(page: PageMap): Array<string> | undefined {
+  if (isSecurityCasePage(page)) {
+    const caseTrail: Array<string> | undefined = getSecurityCasePageTrail(page);
+
+    return caseTrail
+      ? ["Security Events", "Security Cases", ...caseTrail]
+      : undefined;
+  }
+
   const detail: [PageMap, Array<string>] | undefined = DETAIL_TRAILS.find(
     ([candidate]: [PageMap, Array<string>]): boolean => {
       return candidate === page;
@@ -83,11 +130,17 @@ function getTrail(page: PageMap): Array<string> | undefined {
 
 // The section a page's trail names: its own, or its list's for a case or a playbook.
 function getSectionOf(page: PageMap): SecurityEventsMenuSection | undefined {
+  if (isSecurityCasePage(page)) {
+    return getSecurityEventsMenuSectionFor(PageMap.SECURITY_CASES);
+  }
+
   switch (page) {
-    case PageMap.SECURITY_CASE_VIEW:
-      return getSecurityEventsMenuSectionFor(PageMap.SECURITY_CASES);
     case PageMap.SECURITY_PLAYBOOK_VIEW:
       return getSecurityEventsMenuSectionFor(PageMap.SECURITY_PLAYBOOKS);
+    case PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW:
+      return getSecurityEventsMenuSectionFor(
+        PageMap.SECURITY_EVENTS_ENTITY_RISK,
+      );
     default:
       return getSecurityEventsMenuSectionFor(page);
   }
@@ -111,6 +164,36 @@ function routeOf(page: PageMap): Route {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route);
 }
 
+/*
+ * An entity's page names its entity in the trail and the browser's tab -
+ * "Entity Risk > k.morgan@acme-commerce.example", not "Entity Risk > Entity"
+ * whichever entity it is - as a case's page names its case. The entity is
+ * in the page's query, not its address, so the layout hands it over; the
+ * crumb shows it as written (Link.recordName), never looked up as words.
+ * Any other page's trail, or a page that names no entity, is left as it is.
+ */
+export function nameEntityInTrail(data: {
+  links: Array<Link> | undefined;
+  path: string;
+  entityValue: string | null | undefined;
+}): Array<Link> | undefined {
+  const value: string = (data.entityValue || "").trim();
+  const links: Array<Link> | undefined = data.links;
+
+  if (
+    !links ||
+    links.length === 0 ||
+    !value ||
+    getPageForPath(data.path) !== PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW
+  ) {
+    return links;
+  }
+
+  return links.map((link: Link, index: number): Link => {
+    return index === links.length - 1 ? { ...link, recordName: value } : link;
+  });
+}
+
 export function getSecurityEventsBreadcrumbs(
   path: string,
 ): Array<Link> | undefined {
@@ -132,9 +215,15 @@ export function getSecurityEventsBreadcrumbs(
   }
 
   const sectionLanding: PageMap | undefined = getSectionLandingOf(page);
+  const detailList: PageMap | undefined = getDetailListOf(page);
 
   return links.map((link: Link, index: number): Link => {
     const isLast: boolean = index === links.length - 1;
+
+    // A detail page's list: the crumb before its own, after the section.
+    if (detailList && index === links.length - 2 && index > 2) {
+      return { ...link, to: routeOf(detailList) };
+    }
 
     // "Security Events": the product, where the Products menu opens it.
     if (index === 1 && !isLast) {

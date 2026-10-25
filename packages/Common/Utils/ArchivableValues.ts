@@ -3,8 +3,9 @@
  *
  * A project's incident and alert states and severities, its monitor
  * statuses, its scheduled maintenance states, its labels, its incident
- * roles and its postmortem statuses are values: an incident, an alert, a
- * monitor or a maintenance event picks one, and keeps pointing at it.
+ * roles, its postmortem statuses and its security case statuses and
+ * priorities are values: an incident, an alert, a monitor, a maintenance
+ * event or a security case picks one, and keeps pointing at it.
  * Deleting one used to be the only way
  * to retire it, and a delete reaches every record that ever picked it - the
  * state history of old incidents goes with a state, a label comes off every
@@ -28,7 +29,8 @@
  *
  * Values OneUptime itself moves records into cannot be archived - the
  * created, acknowledged and resolved states, the operational and offline
- * statuses, the primary incident role - and a project keeps at least one
+ * statuses, the primary incident role, a security case's built-in statuses
+ * and the priorities detections open cases at - and a project keeps at least one
  * severity that is not archived, because every new incident and alert needs
  * one.
  *
@@ -46,6 +48,8 @@ export enum ArchivableValueType {
   Label = "Label",
   IncidentRole = "IncidentRole",
   IncidentPostmortemStatus = "IncidentPostmortemStatus",
+  SecurityCaseStatus = "SecurityCaseStatus",
+  SecurityCasePriority = "SecurityCasePriority",
 }
 
 /*
@@ -258,6 +262,77 @@ export const ARCHIVABLE_VALUES: Record<
         value: true,
         reason:
           "Publishing a postmortem on a status page moves it to this status, so it can't be archived.",
+      },
+    ],
+  },
+  [ArchivableValueType.SecurityCaseStatus]: {
+    type: ArchivableValueType.SecurityCaseStatus,
+    tableName: "SecurityCaseStatus",
+    singular: "security case status",
+    plural: "security case statuses",
+    settingsPath: "Security Events > Settings > Case Statuses",
+    protections: [
+      {
+        column: "isNewStatus",
+        value: true,
+        reason: "New cases start in this status, so it can't be archived.",
+      },
+      {
+        column: "isAcknowledgedStatus",
+        value: true,
+        reason:
+          "Reopening a case moves it to this status, so it can't be archived.",
+      },
+      {
+        column: "isContainedStatus",
+        value: true,
+        reason:
+          "The time to contain is measured to this status, so it can't be archived.",
+      },
+      {
+        column: "isClosedStatus",
+        value: true,
+        reason:
+          "Closing a case moves it to this status, so it can't be archived.",
+      },
+    ],
+  },
+  [ArchivableValueType.SecurityCasePriority]: {
+    type: ArchivableValueType.SecurityCasePriority,
+    tableName: "SecurityCasePriority",
+    singular: "security case priority",
+    plural: "security case priorities",
+    settingsPath: "Security Events > Settings > Case Priorities",
+    protections: [
+      {
+        column: "isCriticalPriority",
+        value: true,
+        reason:
+          "Critical detections open their cases at this priority, so it can't be archived.",
+      },
+      {
+        column: "isHighPriority",
+        value: true,
+        reason:
+          "High detections open their cases at this priority, so it can't be archived.",
+      },
+      {
+        column: "isMediumPriority",
+        value: true,
+        reason:
+          "Medium detections and the cases people open start at this priority, so it can't be archived.",
+      },
+      {
+        column: "isLowPriority",
+        value: true,
+        reason:
+          "Low detections open their cases at this priority, so it can't be archived.",
+      },
+      {
+        column: "isInformationalPriority",
+        value: true,
+        reason:
+          "Informational detections open their cases at this priority, so it can't be archived.",
       },
     ],
   },

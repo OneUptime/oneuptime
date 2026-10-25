@@ -189,13 +189,23 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+  buildTestStatus,
+  testPriorityId,
+  testStatusId,
+} from "../../Helpers/SecurityCaseValues";
+import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
 import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ModelListCache from "../../../UI/Utils/ModelListCache";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -214,6 +224,29 @@ const PAGE_PROPS: PageComponentProps = {
 } as unknown as PageComponentProps;
 
 const CLOSED_CASE_ID: string = "20000000-0000-4000-8000-000000000135";
+
+// A new project's priorities and statuses, which the lists are drawn with.
+const PRIORITIES: Array<SecurityCasePriority> = buildDefaultTestPriorities();
+const STATUSES: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
+
+// The project's statuses a case is open in, by id: what every open list asks for.
+const OPEN_STATUS_IDS: Array<string> = [
+  TEST_STATUS_IDS[SecurityCaseStage.New],
+  TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+  TEST_STATUS_IDS[SecurityCaseStage.Contained],
+];
+
+function priorityOf(level: SecurityCasePriorityLevel): SecurityCasePriority {
+  return PRIORITIES.find((priority: SecurityCasePriority): boolean => {
+    return priority.id?.toString() === testPriorityId(level).toString();
+  })!;
+}
+
+function statusOf(stage: SecurityCaseStage): SecurityCaseStatus {
+  return STATUSES.find((status: SecurityCaseStatus): boolean => {
+    return status.id?.toString() === testStatusId(stage).toString();
+  })!;
+}
 
 // The rows the list is answered with, when a test gives it any.
 let listedRows: Array<SecurityCase> = [];
@@ -293,8 +326,10 @@ function closedCase(): SecurityCase {
   row._id = CLOSED_CASE_ID;
   row.caseNumberWithPrefix = "CASE-135";
   row.title = "Repeated MFA push denials for a sales account";
-  row.priority = SecurityCasePriority.Low;
-  row.status = SecurityCaseStatus.Closed;
+  row.securityCasePriorityId = testPriorityId(SecurityCasePriorityLevel.Low);
+  row.securityCasePriority = priorityOf(SecurityCasePriorityLevel.Low);
+  row.securityCaseStatusId = testStatusId(SecurityCaseStage.Closed);
+  row.securityCaseStatus = statusOf(SecurityCaseStage.Closed);
   row.verdict = SecurityCaseVerdict.BenignPositive;
   row.closedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
   row.lastDetectedAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
@@ -314,8 +349,10 @@ function unassignedCase(
   row._id = id;
   row.caseNumberWithPrefix = caseNumber;
   row.title = title;
-  row.priority = SecurityCasePriority.High;
-  row.status = SecurityCaseStatus.New;
+  row.securityCasePriorityId = testPriorityId(SecurityCasePriorityLevel.High);
+  row.securityCasePriority = priorityOf(SecurityCasePriorityLevel.High);
+  row.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
+  row.securityCaseStatus = statusOf(SecurityCaseStage.New);
   row.lastDetectedAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
   row.detectionCount = 1;
   row.entities = [];
@@ -344,6 +381,11 @@ beforeEach(() => {
   listRequests = [];
   goTo(`/dashboard/${PROJECT_ID}/security-events/cases`);
   window.localStorage.clear();
+  // The project's priorities and statuses: a new project's.
+  stubDashboardSecurityCaseValues({
+    priorities: PRIORITIES,
+    statuses: STATUSES,
+  });
 
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -386,32 +428,62 @@ afterEach(() => {
 });
 
 describe("each case page asks for its own cases", () => {
-  test("Open Cases: every status but Closed, in the project", async () => {
+  test("Open Cases: every status of the project's that counts as open, by id", async () => {
     const table: CapturedTable = await capture("open");
-    const status: Includes = table.query["status"] as Includes;
+    const status: Includes = table.query["securityCaseStatusId"] as Includes;
 
     expect(table.query["projectId"]).toEqual(new ObjectID(PROJECT_ID));
     expect(status).toBeInstanceOf(Includes);
-    expect(status.values).toEqual([...OPEN_SECURITY_CASE_STATUSES]);
+    expect(status.values).toEqual(OPEN_STATUS_IDS);
     expect(table.query["assignedToUserId"]).toBeUndefined();
+  });
+
+  test("Open Cases: a status of the project's own before Closed is open; one after it is not", async () => {
+    const statuses: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
+    statuses[3]!.order = 5; // Closed
+    statuses.push(
+      buildTestStatus({
+        id: "c2000000-0000-4000-8000-0000000000a2",
+        name: "Eradicating",
+        order: 4,
+      }),
+      buildTestStatus({
+        id: "c2000000-0000-4000-8000-0000000000a3",
+        name: "Closed - Duplicate",
+        order: 6,
+      }),
+    );
+    stubDashboardSecurityCaseValues({ priorities: PRIORITIES, statuses });
+
+    const open: CapturedTable = await capture("open");
+    const closed: CapturedTable = await capture("closed");
+
+    expect((open.query["securityCaseStatusId"] as Includes).values).toEqual([
+      ...OPEN_STATUS_IDS,
+      "c2000000-0000-4000-8000-0000000000a2",
+    ]);
+    expect((closed.query["securityCaseStatusId"] as Includes).values).toEqual([
+      TEST_STATUS_IDS[SecurityCaseStage.Closed],
+      "c2000000-0000-4000-8000-0000000000a3",
+    ]);
   });
 
   test("Assigned to Me: the open cases of the person signed in", async () => {
     const table: CapturedTable = await capture("mine");
 
     expect(table.query["assignedToUserId"]).toEqual(new ObjectID(ME));
-    expect((table.query["status"] as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect((table.query["securityCaseStatusId"] as Includes).values).toEqual(
+      OPEN_STATUS_IDS,
+    );
   });
 
   test("Unassigned: the open cases with no person on them", async () => {
     const table: CapturedTable = await capture("unassigned");
 
     expect(table.query["assignedToUserId"]).toBeInstanceOf(IsNull);
-    expect((table.query["status"] as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect((table.query["securityCaseStatusId"] as Includes).values).toEqual(
+      OPEN_STATUS_IDS,
+    );
   });
 
   test("Closed Cases: the closed ones; All Cases: every case", async () => {
@@ -420,7 +492,9 @@ describe("each case page asks for its own cases", () => {
 
     expect(closed.query).toEqual({
       projectId: new ObjectID(PROJECT_ID),
-      status: SecurityCaseStatus.Closed,
+      securityCaseStatusId: new Includes([
+        TEST_STATUS_IDS[SecurityCaseStage.Closed],
+      ]),
     });
     expect(all.query).toEqual({ projectId: new ObjectID(PROJECT_ID) });
   });
@@ -429,9 +503,9 @@ describe("each case page asks for its own cases", () => {
     const table: CapturedTable = await capture(undefined);
 
     expect(table.cardProps?.title).toBe("Open Cases");
-    expect((table.query["status"] as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect((table.query["securityCaseStatusId"] as Includes).values).toEqual(
+      OPEN_STATUS_IDS,
+    );
   });
 });
 
@@ -624,16 +698,86 @@ describe("each case page draws the list its question needs", () => {
       );
     };
 
-    expect(statusOptions(await capture("open"))).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
-    expect(statusOptions(await capture("unassigned"))).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect(statusOptions(await capture("open"))).toEqual(OPEN_STATUS_IDS);
+    expect(statusOptions(await capture("unassigned"))).toEqual(OPEN_STATUS_IDS);
     expect(statusOptions(await capture("all"))).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-      SecurityCaseStatus.Closed,
+      ...OPEN_STATUS_IDS,
+      TEST_STATUS_IDS[SecurityCaseStage.Closed],
     ]);
+  });
+
+  test("the Priority and Status filters name the project's own, most urgent first", async () => {
+    const priorities: Array<SecurityCasePriority> =
+      buildDefaultTestPriorities();
+    priorities[0]!.name = "Sev 1";
+    stubDashboardSecurityCaseValues({ priorities, statuses: STATUSES });
+
+    const table: CapturedTable = await capture("all");
+    const labels: (title: string) => Array<string> = (
+      title: string,
+    ): Array<string> => {
+      return (
+        table.filters.find((candidate: CapturedFilter): boolean => {
+          return candidate.title === title;
+        })?.filterDropdownOptions || []
+      ).map((option: { label: string }): string => {
+        return option.label;
+      });
+    };
+
+    expect(labels("Priority")).toEqual([
+      "Sev 1",
+      "High",
+      "Medium",
+      "Low",
+      "Informational",
+    ]);
+    expect(labels("Status")).toEqual([
+      "New",
+      "Investigating",
+      "Contained",
+      "Closed",
+    ]);
+  });
+
+  test("a list whose priorities and statuses cannot be read says why, and tries again", async () => {
+    jest
+      .spyOn(ModelListCache, "getList")
+      .mockRejectedValue(new Error("The server is down.") as never);
+    capturedTables = [];
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <SecurityCasesPage {...PAGE_PROPS} view="open" />
+        </MemoryRouter>,
+      );
+    });
+
+    // No list of every case in their place: no table at all.
+    expect(capturedTables).toEqual([]);
+    expect(await screen.findByText("The server is down.")).toBeVisible();
+
+    // Back up: Refresh reads them again, and the list is drawn.
+    stubDashboardSecurityCaseValues({
+      priorities: PRIORITIES,
+      statuses: STATUSES,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("refresh-button"));
+    });
+
+    await waitFor(() => {
+      expect(capturedTables.length).toBeGreaterThan(0);
+    });
+    expect(
+      (
+        capturedTables[capturedTables.length - 1]!.query[
+          "securityCaseStatusId"
+        ] as Includes
+      ).values,
+    ).toEqual(OPEN_STATUS_IDS);
   });
 
   test("Open Security Case on the lists a new case lands in: Open Cases and All Cases", async () => {
@@ -654,17 +798,49 @@ describe("each case page draws the list its question needs", () => {
     });
   });
 
-  test("bulk actions: Assign to Me only where cases are taken on, not where every case is yours or closed", async () => {
-    for (const key of ["mine", "closed"]) {
-      expect(
-        bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
-      ).toEqual(["Change Status", "Change Priority"]);
-    }
+  test("bulk actions: Assign to Me where cases are taken on, Assign to Someone Else wherever they are worked, never on Closed Cases", async () => {
+    // Every case here is yours: hand them on, move them along.
+    expect(bulkTitles(await capture("mine"))).toEqual([
+      "Assign to Someone Else",
+      "Change Status",
+      "Change Priority",
+    ]);
+    // Nobody works a closed case: reopen it, or set its priority.
+    expect(bulkTitles(await capture("closed"))).toEqual([
+      "Change Status",
+      "Change Priority",
+    ]);
 
     for (const key of ["open", "unassigned", "all"]) {
       expect(
         bulkTitles(await capture(key as SecurityCaseQueueViewKey)),
-      ).toEqual(["Assign to Me", "Change Status", "Change Priority"]);
+      ).toEqual([
+        "Assign to Me",
+        "Assign to Someone Else",
+        "Change Status",
+        "Change Priority",
+      ]);
+    }
+  });
+
+  test("every case page puts each case's moves in its row's ⋯, before the table's own Delete", async () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+      const actions: Array<{ title: string; placement?: string }> = (table[
+        "actionButtons"
+      ] || []) as Array<{ title: string; placement?: string }>;
+
+      expect(titlesOf(actions)).toEqual([
+        "Assign to Me",
+        "Assign to Someone Else",
+        "Change Status",
+        "Change Priority",
+      ]);
+      // In the ⋯ menu: the row's one button stays View.
+      for (const action of actions) {
+        expect(action.placement).toBe("MoreMenu");
+      }
+      expect(table["isDeleteable"]).toBe(true);
     }
   });
 
@@ -960,7 +1136,11 @@ describe("the list a person sees", () => {
 
     await screen.findByText("Repeated MFA push denials for a sales account");
 
-    expect(listRequests[0]?.query["status"]).toBe(SecurityCaseStatus.Closed);
+    expect(listRequests[0]?.query["securityCaseStatusId"]).toEqual(
+      new Includes([TEST_STATUS_IDS[SecurityCaseStage.Closed]]),
+    );
+    // Its priority, as the project names it.
+    expect(screen.getAllByText("Low").length).toBeGreaterThan(0);
     expect(listRequests[0]?.sort).toEqual({ closedAt: SortOrder.Descending });
     expect(screen.getAllByText("Benign Positive").length).toBeGreaterThan(0);
     expect(screen.getByRole("columnheader", { name: /Verdict/ })).toBeVisible();
@@ -977,16 +1157,22 @@ describe("the list a person sees", () => {
     tableMounts = 0;
     tableUnmounts = 0;
 
-    const rendered: ReturnType<typeof render> = render(
-      <MemoryRouter>
-        <SecurityCasesPage {...PAGE_PROPS} view="open" />
-      </MemoryRouter>,
-    );
+    let rendered: ReturnType<typeof render> | null = null;
+
+    // The list is drawn once the project's statuses are read.
+    await act(async () => {
+      rendered = render(
+        <MemoryRouter>
+          <SecurityCasesPage {...PAGE_PROPS} view="open" />
+        </MemoryRouter>,
+      );
+    });
+
     const first: CapturedTable = capturedTables[capturedTables.length - 1]!;
 
     expect([tableMounts, tableUnmounts]).toEqual([1, 0]);
 
-    rendered.rerender(
+    rendered!.rerender(
       <MemoryRouter>
         <SecurityCasesPage {...PAGE_PROPS} view="closed" />
       </MemoryRouter>,
@@ -996,7 +1182,9 @@ describe("the list a person sees", () => {
 
     expect(first.cardProps?.title).toBe("Open Cases");
     expect(second.cardProps?.title).toBe("Closed Cases");
-    expect(second.query["status"]).toBe(SecurityCaseStatus.Closed);
+    expect(second.query["securityCaseStatusId"]).toEqual(
+      new Includes([TEST_STATUS_IDS[SecurityCaseStage.Closed]]),
+    );
 
     await waitFor(() => {
       expect([tableMounts, tableUnmounts]).toEqual([2, 1]);

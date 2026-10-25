@@ -64,7 +64,9 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 
 **Varningar** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
 
-Listan visar **Larmnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser** (larmets monitor först), **Skapad**, **Varaktighet**, **Etiketter** och **Ägare**. Markera larm för att agera på flera samtidigt: **Ändra tillstånd**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Länka till incident**, **Deklarera incident** eller ta bort dem.
+Listan visar **Larmnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser** (larmets monitor först), **Skapad**, **Varaktighet**, **Etiketter** och **Ägare**. Markera larm för att agera på flera samtidigt: **Bekräfta**, **Lös**, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Länka till incident**, **Deklarera incident** eller ta bort dem.
+
+Menyn **⋯** i slutet av varje larms rad gör samma sak för just det larmet: **Bekräfta** och **Lös** så länge larmet kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger det, och **Add Owner** för att lämna över det till någon annan.
 
 ## Skapa ett larm manuellt
 
@@ -114,11 +116,11 @@ Dess regler, ägare, flöde och första tillstånd sker ändå i båda fallen. I
 
 ## Svara på ett larm
 
-Öppna larmet. Dess sidhuvud visar tillståndet, allvarlighetsgraden, när det skapades och vilken monitor och episod det hör till, med knapparna som nästa steg behöver:
+Öppna larmet. Dess sidhuvud visar tillståndet, allvarlighetsgraden, hur länge det har pågått, ägarna och vilken monitor och episod det hör till, med knapparna som nästa steg behöver:
 
 - **Bekräfta** säger att någon tar hand om det. Det hindrar larmets jourpolicyer från att larma nästa nivå.
 - **Lös** stänger det. Larmet lämnar **Aktiva varningar**, och dess påminnelser upphör.
-- **Change state to**, i menyn **⋯** bredvid, flyttar det till ett eget tillstånd, till exempel "Under utredning".
+- **Ändra tillstånd till**, i menyn **⋯** bredvid, flyttar det till ett eget tillstånd, till exempel "Under utredning".
 - **Deklarera incident** öppnar en ny incident, förifylld från larmet, när det visar sig att problemet drabbar användarna. Se [Länkade larm](/docs/incidents/linked-alerts).
 
 Ett byte till ett annat tillstånd ber dig bekräfta, med en valfri privat anteckning hopfälld under **Lägg till en privat anteckning**. Vad varje tillstånd gör står på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities).
@@ -139,7 +141,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
-- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står vid dess tillstånd. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **AI Investigation** med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
+- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **AI Investigation** med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
 - **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.

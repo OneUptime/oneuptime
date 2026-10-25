@@ -43,7 +43,7 @@ flowchart TB
 | ---- | ------------- |
 | **群組導覽器**（左側） | 以樹狀顯示頁面上的所有群組，上方有 **Search groups...** 方塊，下方有計數，例如 `3 groups · 12 resources`。較長的清單末尾有一個 **Show N more of M** 按鈕。 |
 | **Top of page** | 導覽器的第一列：不屬於任何群組的資源，訪客會在所有群組之上最先看到它們。在沒有群組的頁面上，右側窗格的標題改為 **All resources**。 |
-| **資源窗格**（右側） | 所選群組的資源。它的標題列有 **Edit Group**、主要按鈕 **新增監測器** 與 **More actions** 選單。 |
+| **資源窗格**（右側） | 所選群組的資源。它的標題列有 **Edit Group**、主要按鈕 **新增監測器** 與 **更多操作** 選單。 |
 | 卡片標題 | **New Group**，以及包含 **Import groups from CSV** 和 **重新整理** 的三點選單。 |
 
 **空白狀態會告訴您該做什麼。** 空的群組會顯示 **No monitors here yet**，以及 **新增監測器**、**Add Multiple**，並且只在頁面一個群組都沒有時顯示 **Create a Group**。沒有符合結果的搜尋會顯示 **No resources match your search**。
@@ -79,7 +79,7 @@ flowchart TB
 
 ### 一次新增多個
 
-**Add Multiple**（也可以使用 **More actions** 選單中的 **Add multiple monitors**）會開啟 **Add Multiple Monitors**。它同樣只有一頁：一個 **監測器** 多選方塊，然後是同樣摺疊的 **更多欄位**，其中的顯示選項會套用到您選擇的每個監測器。每個資源會從其監測器取得顯示名稱與描述，**新增監測器** 會一次全部新增。這是填滿新頁面最快的方式。
+**Add Multiple**（也可以使用 **更多操作** 選單中的 **Add multiple monitors**）會開啟 **Add Multiple Monitors**。它同樣只有一頁：一個 **監測器** 多選方塊，然後是同樣摺疊的 **更多欄位**，其中的顯示選項會套用到您選擇的每個監測器。每個資源會從其監測器取得顯示名稱與描述，**新增監測器** 會一次全部新增。這是填滿新頁面最快的方式。
 
 多選方塊有一個 **標籤** 分頁：點選一個標籤，帶有該標籤的所有監測器會被一次選取。
 
@@ -153,7 +153,7 @@ flowchart TB
 | 位置 | 動作 |
 | ----- | ------- |
 | 導覽器的列選單 | **Edit group**、**上移**、**下移**、**顯示 ID**、**Delete group** |
-| 窗格的 **More actions** 選單 | **Edit this group**、**Add a sub group**、**Move group up**、**Move group down**、**Show group ID**、**重新整理**、**Delete this group** |
+| 窗格的 **更多操作** 選單 | **Edit this group**、**Add a sub group**、**Move group up**、**Move group down**、**Show group ID**、**重新整理**、**Delete this group** |
 
 沒有名稱就儲存的群組會顯示為 **Untitled group**，這很好地提醒您原本想輸入點什麼。
 
@@ -195,7 +195,7 @@ flowchart TB
 | 對象 | 如何調整順序 |
 | ---- | ----------------- |
 | 群組內的資源 | 拖曳一列。窗格上也會提示：**Drag a row to change the order visitors see**。 |
-| 群組之間 | 導覽器列選單中的 **上移** / **下移**，或 **More actions** 中的 **Move group up** / **Move group down**。 |
+| 群組之間 | 導覽器列選單中的 **上移** / **下移**，或 **更多操作** 中的 **Move group up** / **Move group down**。 |
 | 不屬於任何群組的資源 | 它們在 **Top of page** 中，一律顯示在所有群組之上，所以請把大家最先查看的內容放在這裡。 |
 
 **有兩種情況無法拖曳。** 在 **Search in {group}...** 方塊中搜尋時會關閉排序（窗格會顯示 `N of M shown · drag to reorder is off while filtering`），所以請先清除搜尋。另外，格狀群組從不透過拖曳排序，因為監測器的位置由它的列與欄決定。

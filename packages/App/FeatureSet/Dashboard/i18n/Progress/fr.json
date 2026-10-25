@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 33416,
-    "untranslated": 9582
+    "keys": 34621,
+    "untranslated": 9567
   },
   "sameAsEnglish": [
     " incidents",
@@ -127,6 +127,7 @@
     "Console",
     "Contact (sysContact)",
     "Content Security Policy",
+    "Contributions",
     "Controller Manager",
     "Conversation",
     "Conversation {{id}}",
@@ -328,6 +329,7 @@
     "Pipelines",
     "Pod",
     "Pods",
+    "Points",
     "Port",
     "Ports",
     "Portugal (+351)",

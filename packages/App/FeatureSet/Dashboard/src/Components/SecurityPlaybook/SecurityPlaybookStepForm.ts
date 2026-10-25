@@ -53,11 +53,11 @@ const PLAIN_KEYS_BY_ACTION: Record<
   Array<string>
 > = {
   [SecurityPlaybookActionType.AssignCase]: ["userId", "teamId"],
-  [SecurityPlaybookActionType.SetCasePriority]: ["priority"],
-  [SecurityPlaybookActionType.SetCaseStatus]: ["status", "verdict"],
+  [SecurityPlaybookActionType.SetCasePriority]: ["priorityId"],
+  [SecurityPlaybookActionType.SetCaseStatus]: ["statusId", "verdict"],
   [SecurityPlaybookActionType.AddCaseNote]: ["note"],
   [SecurityPlaybookActionType.AddCaseLabels]: ["labelIds"],
-  [SecurityPlaybookActionType.CheckThreatIntel]: ["raisePriorityTo"],
+  [SecurityPlaybookActionType.CheckThreatIntel]: ["raisePriorityToId"],
   [SecurityPlaybookActionType.LookUpEntityActivity]: ["lookbackInHours"],
   [SecurityPlaybookActionType.EmailPeople]: ["userIds", "teamIds", "message"],
   [SecurityPlaybookActionType.PostToSlack]: ["channelName", "message"],

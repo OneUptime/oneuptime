@@ -61,6 +61,7 @@ Globale Runnere er Runnerne OneUptime kjører for alle prosjekter. Et JavaScript
 | Hva et trinn kan nå | Offentlige internettadresser | Det verten kan nå |
 | Lengste kjøring for et trinn | 5 minutter | 1 time |
 | Hemmelige variabler | De du lar globale Runnere bruke | De som viser den |
+| Bash-kommandoene til OneUptime AI | Aldri | For AI-reglene som velger den |
 
 En global Runner kjører trinnene til mange prosjekter, så hvert trinn holdes atskilt fra alle andre:
 

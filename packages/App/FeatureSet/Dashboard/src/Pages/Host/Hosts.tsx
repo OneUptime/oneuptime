@@ -216,9 +216,11 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "hostId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<Host>({
-    modelType: Host,
-  });
+  const { archiveBulkActions, archiveRowActions } = useBulkArchiveActions<Host>(
+    {
+      modelType: Host,
+    },
+  );
 
   const hostExtraFacets: Array<ResourceFacet> = [
     {
@@ -317,6 +319,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<Host>
         modelType={Host}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="hosts-table"
         userPreferencesKey="hosts-table"

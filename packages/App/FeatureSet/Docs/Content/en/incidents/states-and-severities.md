@@ -173,22 +173,23 @@ Archive a state or severity that your team should stop using, instead of deletin
 
 ## Moving an incident through its states
 
-There are four ways an incident changes state:
+There are five ways an incident changes state:
 
 | Way                 | Where                                                                                       | What it asks                                                                                                                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Header buttons**  | The incident's header: **Acknowledge** and **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation — **Acknowledge Incident** or **Resolve Incident** — with **Notify Status Page Subscribers** and, folded under **Add a public note**, the optional **Public Note** and its **Select Note Template** picker (when the project has note templates). |
 | **State timeline**  | **State Timeline** in the incident side menu                                                | A row added by hand, with **Incident Status**, **Starts At** and **Notify Status Page Subscribers**.                                                                                                        |
-| **Bulk change**     | **Change State** on a selection in the incidents list                                       | One page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.                                                                                                      |
+| **List row** | The **⋯** menu on an incident's row in the incidents list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the incident. An incident another change moved on meanwhile is left alone, and the dialog says why. |
+| **Bulk change**     | **Acknowledge**, **Resolve** or **Change State** on a selection in the incidents list                                       | One page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.                                                                                                      |
 | **Automatically**   | A monitor criterion, or your own code                                                       | A criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met. The API changes the state by creating a row at `/api/incident-state-timeline`.               |
 
-If the current state is before the acknowledged state, the header offers **Acknowledge** and **Resolve**; if it is between the two, only **Resolve**. Acknowledging also stops any on-call escalation for the incident.
+If the current state is before the acknowledged state, the header offers **Acknowledge** and **Resolve**; if it is between the two, only **Resolve**. Acknowledging also stops any on-call escalation for the incident. Someone whose role may not change the incident's state sees them locked, with no menu of other states: pointing at one names the permissions that would let them.
 
 Every one of these writes a timeline row. A state change also does a few things you do not have to ask for: it posts an entry to the incident feed, assigns an Incident Commander if the incident does not have one yet, and updates the SLA clock. Reopening a resolved incident starts a fresh SLA record from the reopen time.
 
 ## What acknowledging does
 
-An incident is acknowledged from the moment it moves into your acknowledged state, into any state after it — a **Mitigated** or **Investigating** state you placed below **Acknowledged** — or into a resolved state, whichever of the four ways above moves it. The **Counts as** column on the state settings page shows which states those are. Once it is acknowledged:
+An incident is acknowledged from the moment it moves into your acknowledged state, into any state after it — a **Mitigated** or **Investigating** state you placed below **Acknowledged** — or into a resolved state, whichever of the five ways above moves it. The **Counts as** column on the state settings page shows which states those are. Once it is acknowledged:
 
 - **Acknowledge is no longer offered.** Not in the incident header, not in the mobile app (its button and its swipe), not in Slack or Microsoft Teams, and not through the OneUptime MCP server's `acknowledge_incident`. Acknowledging it anyway — from an on-call page, Slack or Teams — is refused with "Incident is already acknowledged." (or "Incident is already resolved."), rather than moving it back up its list.
 - **On-call stops paging for it.** A responder who acknowledges their page after a colleague acknowledged the incident, or moved it on, has their page acknowledged and the incident is left where it is.
@@ -200,7 +201,7 @@ Alerts and episodes follow the same rule, with your alert states.
 
 ## What resolving does
 
-An incident is resolved when it moves from a state above your resolved state into the resolved state, or into any state after it — whichever of the four ways above moves it. Each resolve:
+An incident is resolved when it moves from a state above your resolved state into the resolved state, or into any state after it — whichever of the five ways above moves it. Each resolve:
 
 - **Gives back the monitors the incident holds.** An incident declared open holds its monitors: it put them in its **Change Monitor Status to** status, when it names one, and, declared by hand, paused their monitoring. An edit while it is open — adding monitors, or changing that status — makes it hold them too. Resolving resumes their monitoring and returns them to operational, unless another open incident is still on them, and from then on the incident holds nothing. So an incident declared already resolved gives nothing back, and neither does a second resolve after a reopen: a status its monitors got in between — from their probes, from maintenance or set by hand — stays.
 - **Marks the SLA resolved** and, when OneUptime AI postmortem drafts are on, drafts a postmortem.

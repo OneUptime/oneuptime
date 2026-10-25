@@ -62,7 +62,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 
 **Vue d'ensemble** et **Calendrier** sont ouvertes ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **API** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
 
-La liste affiche **Numéro de maintenance planifiée**, **Titre**, **État actuel**, **Ressources affectées**, **Affiché sur la page de statut**, **Commence le**, **Durée**, **Se termine le**, **Étiquettes** et **Propriétaires**. Sélectionnez des événements pour agir sur plusieurs à la fois : **Modifier l'état**, **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner** ou **Supprimer**.
+La liste affiche **Numéro de maintenance planifiée**, **Titre**, **État actuel**, **Ressources affectées**, **Affiché sur la page de statut**, **Commence le**, **Durée**, **Se termine le**, **Étiquettes** et **Propriétaires**. Sélectionnez des événements pour agir sur plusieurs à la fois : **Marquer comme {{state}}**, **Modifier l'état**, **M'attribuer**, **Ajouter un propriétaire**, **Remove Owner**, **Ajouter des étiquettes**, **Remove Labels** ou **Supprimer**. Le menu **⋯** au bout de la ligne de chaque événement fait de même pour ce seul événement : les étapes **Marquer comme {{state}}** tant que l'événement peut les franchir, **Modifier l'état**, **M'attribuer** tant que vous n'en êtes pas propriétaire, et **Ajouter un propriétaire**.
 
 **Calendrier de maintenance**, dans la section **Calendrier**, affiche les mêmes événements sur un mois, une semaine ou un jour, et peut afficher à côté d'eux des calendriers extérieurs au projet. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar).
 
@@ -92,7 +92,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 
 **Vue d'ensemble**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
-- **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
+- **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, ses propriétaires, les pages de statut où il apparaît et qui l'a créé, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
 - **Chronologie d'état** — chaque état dans lequel l'événement a été, quand et pendant combien de temps. Voir [États de la maintenance](/docs/scheduled-maintenance/states#la-chronologie-détat).
 - **Notes publiques** — des mises à jour pour vos pages de statut et leurs abonnés. Les **Notes privées** sont réservées à votre équipe.
 - **Paramètres** — **Visible sur la page de statut**, qui affiche ou masque l'événement sur ses pages de statut, et **Envoyer des rappels**, qui rappelle l'événement à ses propriétaires jusqu'à ce qu'il soit achevé. Chaque interrupteur enregistre dès que vous le basculez.
@@ -100,7 +100,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 ## Dépannage
 
 :::details Un événement n'a pas commencé à son Commence le
-La tâche qui démarre les événements s'exécute chaque minute, laissez donc passer une minute. Si l'en-tête indique **Start overdue**, l'événement a manqué son début de plus de deux minutes : démarrez-le avec le bouton de l'en-tête, qui fait tout ce que fait la tâche, et ouvrez sa **Chronologie d'état** pour voir où il en était.
+La tâche qui démarre les événements s'exécute chaque minute, laissez donc passer une minute. Si l'en-tête indique **Début en retard**, l'événement a manqué son début de plus de deux minutes : démarrez-le avec le bouton de l'en-tête, qui fait tout ce que fait la tâche, et ouvrez sa **Chronologie d'état** pour voir où il en était.
 :::
 
 :::details Un moniteur a encore été vérifié pendant la maintenance

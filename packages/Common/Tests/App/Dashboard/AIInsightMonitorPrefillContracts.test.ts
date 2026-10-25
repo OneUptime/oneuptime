@@ -8,6 +8,7 @@ import {
   ERROR_LOG_SPIKE_MULTIPLIER,
   EXCEPTION_SPIKE_MIN_COUNT,
   EXCEPTION_SPIKE_MULTIPLIER,
+  LOG_ERROR_PATTERN_MIN_COUNT,
   METRIC_DRIFT_RELATIVE_CHANGE,
   NEW_EXCEPTION_MIN_COUNT,
   NEW_EXCEPTION_MONITOR_WINDOW_SECONDS,
@@ -54,6 +55,14 @@ import {
 import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepTraceMonitor";
+import LogProblemDetector from "../../../Server/Utils/AI/SRE/Insights/Detectors/LogProblemDetector";
+import {
+  LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT,
+  LOG_INSIGHT_WINDOW_MINUTES,
+  LogPatternReading,
+  pickErrorPatterns,
+} from "../../../Utils/Logs/LogInsight";
+import { normalizeLogBodyToErrorPattern } from "../../../Utils/Telemetry/LogErrorPattern";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
@@ -208,6 +217,41 @@ const failingOperationInsight: AIInsightMonitorInput = {
   },
 };
 
+/*
+ * An error log Logs' detector filed: one payment error, logged with a new
+ * amount and order each time. Its search words are what the detector takes
+ * from the line as logged (LogProblemDetector.getSearchText).
+ */
+const PAYMENT_ERROR_LINES: Array<string> = [
+  "Payment provider returned 402: card declined for order 9f8b2c1a-77de-4b0e-8a5b-0c9a2f1e4d33",
+  "Payment provider returned 409: card declined for order 1c2d3e4f-0000-4b0e-8a5b-0c9a2f1e4d34",
+  "Payment provider returned 402: card declined for order 2f3e4d5c-1111-4b0e-8a5b-0c9a2f1e4d35",
+];
+
+const errorLogInsight: AIInsightMonitorInput = {
+  insightType: AIInsightType.LogErrorPattern,
+  severity: AIInsightSeverity.High,
+  serviceName: "checkout",
+  telemetryServiceId: SERVICE_ID,
+  evidence: {
+    log: {
+      serviceId: SERVICE_ID,
+      kind: "Error",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      logCount: 18400,
+      errorLogCount: 2100,
+      pattern: normalizeLogBodyToErrorPattern(PAYMENT_ERROR_LINES[0]!),
+      patternCount: 1240,
+      severities: ["Error"],
+      searchText: LogProblemDetector.getSearchText({
+        pattern: normalizeLogBodyToErrorPattern(PAYMENT_ERROR_LINES[0]!),
+        sampleBody: PAYMENT_ERROR_LINES[0]!,
+      }),
+    },
+  },
+};
+
 const newExceptionInsight: AIInsightMonitorInput = {
   ...exceptionSpikeInsight,
   insightType: AIInsightType.NewException,
@@ -292,6 +336,32 @@ describe("parity with the detectors", () => {
 
     expect(pickFailingOperations([operation(threshold)])).toHaveLength(1);
     expect(pickFailingOperations([operation(threshold - 1)])).toHaveLength(0);
+  });
+
+  test("LogErrorPattern: the floor of lines and the hour it reads", () => {
+    expect(LOG_ERROR_PATTERN_MIN_COUNT).toBe(
+      LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT,
+    );
+    expect(SPIKE_MONITOR_WINDOW_SECONDS).toBe(LOG_INSIGHT_WINDOW_MINUTES * 60);
+
+    // The monitor's bar is the count the detector starts filing at.
+    const threshold: number = Number(
+      filterOf(build(errorLogInsight), "unhealthy").value,
+    );
+    const reading: (count: number) => LogPatternReading = (count: number) => {
+      return {
+        pattern: "Payment provider returned <num>: card declined",
+        count,
+        severities: ["Error"],
+        searchText: "Payment provider returned",
+        traceCount: 0,
+        sampleTraceIds: [],
+        hasException: false,
+      };
+    };
+
+    expect(pickErrorPatterns([reading(threshold)])).toHaveLength(1);
+    expect(pickErrorPatterns([reading(threshold - 1)])).toHaveLength(0);
   });
 
   test("the monitor's threshold is exactly where the detector starts calling it a spike", () => {
@@ -449,7 +519,65 @@ describe("the exception message filter matches the raw messages", () => {
   });
 });
 
+/*
+ * An error log's Logs monitor matches its body filter as a case-insensitive
+ * substring of the RAW line (ILIKE '%...%'), while the insight keeps only
+ * the message's pattern. The search words are taken from the pattern and
+ * checked against a line as it was logged, so every line of the failure
+ * mode holds them - whatever amount or order it was logged with.
+ */
+describe("an error log's body filter matches the lines it was found in", () => {
+  test("every line of the failure mode holds the search words, case-insensitively", () => {
+    const words: string = String(errorLogInsight.evidence!.log!.searchText);
+
+    expect(words).toBe("Payment provider returned");
+
+    for (const line of PAYMENT_ERROR_LINES) {
+      expect(line.toLowerCase()).toContain(words.toLowerCase());
+      // One failure mode, one pattern, the same words.
+      expect(
+        LogProblemDetector.getSearchText({
+          pattern: normalizeLogBodyToErrorPattern(line),
+          sampleBody: line,
+        }),
+      ).toBe(words);
+    }
+  });
+
+  test("the built monitor's body filter is those words", () => {
+    expect(stepOf(build(errorLogInsight)).data!.logMonitor!.body).toBe(
+      "Payment provider returned",
+    );
+  });
+});
+
 describe("the step queries the worker compiles", () => {
+  test("an error log's Logs monitor counts the service's Error and Fatal lines holding its words", () => {
+    const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(
+      stepOf(build(errorLogInsight)).data!.logMonitor!,
+    );
+
+    expect((query.severityText as Includes).values).toEqual(["Error", "Fatal"]);
+    expect(query.body).toBeInstanceOf(Search);
+    expect((query.body as Search<string>).toString()).toBe(
+      "Payment provider returned",
+    );
+    expect(
+      ((query.primaryEntityId as Includes).values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([SERVICE_ID]);
+
+    const window: InBetween<Date> = query.time as InBetween<Date>;
+
+    expect(
+      (window.endValue as Date).getTime() -
+        (window.startValue as Date).getTime(),
+    ).toBe(3600 * 1000);
+  });
+
   test("a Logs monitor counts the service's Error and Fatal lines in the past hour", () => {
     const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(
       stepOf(build(errorLogSpikeInsight)).data!.logMonitor!,
@@ -615,6 +743,46 @@ describe("the telemetry worker's criteria fire on the spike and clear below it",
     ).not.toBeNull();
   });
 
+  test("Logs: an error log's monitor fires at the detector's floor and clears one below it", async () => {
+    const prefill: JSONObject = build(errorLogInsight);
+    const threshold: number = Number(filterOf(prefill, "unhealthy").value);
+
+    const response: (logCount: number) => LogMonitorResponse = (
+      logCount: number,
+    ): LogMonitorResponse => {
+      return {
+        projectId: ObjectID.generate(),
+        logCount: logCount,
+        logQuery: {},
+        monitorId: ObjectID.generate(),
+      };
+    };
+
+    expect(threshold).toBe(LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT);
+
+    for (const logCount of [1240, threshold]) {
+      expect(
+        await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: response(logCount),
+          criteriaFilter: filterOf(prefill, "unhealthy"),
+        }),
+      ).not.toBeNull();
+    }
+
+    expect(
+      await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: response(threshold - 1),
+        criteriaFilter: filterOf(prefill, "unhealthy"),
+      }),
+    ).toBeNull();
+    expect(
+      await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: response(threshold - 1),
+        criteriaFilter: filterOf(prefill, "healthy"),
+      }),
+    ).not.toBeNull();
+  });
+
   test("Exceptions: the spike's own count opens the incident; one below the bar is healthy", async () => {
     for (const insight of [exceptionSpikeInsight, newExceptionInsight]) {
       const prefill: JSONObject = build(insight);
@@ -741,6 +909,7 @@ describe("the steps form keeps the prefill as built", () => {
     ["new exception", newExceptionInsight],
     ["metric drift", metricDriftInsight],
     ["failing operation", failingOperationInsight],
+    ["error log", errorLogInsight],
   ];
 
   for (const [name, insight] of insights) {

@@ -2,8 +2,15 @@ import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
 import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import SecurityCasePriorityLevel from "../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../Types/SecurityCase/SecurityCaseStage";
 import { DetectionRuleLibraryEntry } from "../../Types/SecurityEvent/DetectionRuleLibrary";
-import { SecurityPlaybookTemplateDefinition } from "../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import {
+  SecurityPlaybookTemplateDefinition,
+  SecurityPlaybookTemplateValues,
+} from "../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import SecurityCasePriorities from "../SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../SecurityCase/SecurityCaseStatuses";
 
 /*
  * The records OneUptime makes from its own templates - a Rule Library entry
@@ -98,27 +105,70 @@ export function isPlaybookFromTemplate(
 }
 
 /*
+ * The project's built-in case priorities and statuses, as a template names
+ * them: by the level or stage each stands for (SecurityPlaybookTemplates).
+ * An id is "" when the project has none of the kind, which the step's own
+ * check then refuses.
+ */
+export function getSecurityPlaybookTemplateValues(data: {
+  priorities: ReadonlyArray<unknown>;
+  statuses: ReadonlyArray<unknown>;
+}): SecurityPlaybookTemplateValues {
+  return {
+    priorityId: (level: SecurityCasePriorityLevel): string => {
+      const priority: unknown = SecurityCasePriorities.getPriorityOfLevel(
+        data.priorities,
+        level,
+      );
+
+      return priority ? SecurityCasePriorities.toRows([priority])[0]!.id : "";
+    },
+    statusId: (stage: SecurityCaseStage): string => {
+      const status: unknown = SecurityCaseStatuses.getStatusOfStage(
+        data.statuses,
+        stage,
+      );
+
+      return status ? SecurityCaseStatuses.toRows([status])[0]!.id : "";
+    },
+  };
+}
+
+/*
  * A template as a playbook of the project, on and ready to run: its
- * trigger, its conditions and its steps. The name and description are the
- * template's own, or as the reader's language words them.
+ * trigger, its conditions and its steps, naming the project's own case
+ * priorities and statuses (`priorities`, `statuses`). The name and
+ * description are the template's own, or as the reader's language words
+ * them.
  */
 export function buildSecurityPlaybookFromTemplate(data: {
   projectId: ObjectID;
   template: SecurityPlaybookTemplateDefinition;
+  priorities: ReadonlyArray<unknown>;
+  statuses: ReadonlyArray<unknown>;
   name?: string | undefined;
   description?: string | undefined;
 }): SecurityPlaybook {
   const { template } = data;
+  const values: SecurityPlaybookTemplateValues =
+    getSecurityPlaybookTemplateValues({
+      priorities: data.priorities,
+      statuses: data.statuses,
+    });
   const playbook: SecurityPlaybook = new SecurityPlaybook();
   playbook.projectId = data.projectId;
   playbook.name = data.name || template.title;
   playbook.description = data.description || template.description;
   playbook.isEnabled = true;
   playbook.trigger = template.trigger;
-  playbook.steps = template.getSteps() as unknown as JSONArray;
+  playbook.steps = template.getSteps(values) as unknown as JSONArray;
 
-  if (template.minimumPriority) {
-    playbook.minimumPriority = template.minimumPriority;
+  if (template.minimumPriorityLevel) {
+    const minimumId: string = values.priorityId(template.minimumPriorityLevel);
+
+    if (minimumId) {
+      playbook.minimumSecurityCasePriorityId = new ObjectID(minimumId);
+    }
   }
 
   if (template.detectionSource) {

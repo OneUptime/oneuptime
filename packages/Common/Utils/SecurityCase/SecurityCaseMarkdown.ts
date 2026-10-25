@@ -48,13 +48,21 @@ export function statusChangedMarkdown(data: {
   from: string;
   to: string;
   verdict?: string | undefined;
+  /*
+   * The case was closed and now is open (SecurityCaseStatuses'
+   * getStatusChange): read off where the statuses sit in the project's
+   * list, so leaving a closing status of the project's own ("Closed -
+   * Duplicate") reads as a reopen too. Left out, a move from a status named
+   * Closed is one.
+   */
+  reopens?: boolean | undefined;
   playbookName?: string | undefined;
 }): MarkdownText {
   if (data.verdict) {
     return mdText`✅ Closed as **${data.verdict}**${byPlaybook(data.playbookName)}.`;
   }
 
-  if (data.from === "Closed") {
+  if (data.reopens ?? data.from === "Closed") {
     return mdText`↩️ Reopened as **${data.to}**${byPlaybook(data.playbookName)}.`;
   }
 
@@ -226,13 +234,15 @@ export const SECURITY_CASE_TEMPLATE_PLACEHOLDERS: ReadonlyArray<{
     description: "The case number, like CASE-42",
   },
   { placeholder: "{{case.title}}", description: "The case title" },
+  // The case's priority and status are the project's own, named as it names them.
   {
     placeholder: "{{case.priority}}",
-    description: "Critical, High, Medium, Low or Informational",
+    description: "The case's priority, as your project names it, such as High",
   },
   {
     placeholder: "{{case.status}}",
-    description: "New, Investigating, Contained or Closed",
+    description:
+      "The case's status, as your project names it, such as Investigating",
   },
   {
     placeholder: "{{case.assignee}}",
@@ -517,6 +527,68 @@ export function detectionOverflowMarkdown(data: {
           return FeedMarkdown.code(value);
         }),
       )}`,
+    );
+  }
+
+  return FeedMarkdown.join(parts, "\n\n");
+}
+
+// The most sources a risk detection lists; the entity's page has them all.
+export const ENTITY_RISK_MARKDOWN_SOURCE_LIMIT: number = 10;
+
+/*
+ * What an entity's risk detection says, on the case it opens or joins (and
+ * in the case's email): the entity, what its risk reached and the level
+ * that reads as against the project's threshold, and each source that added
+ * to it - its points, how often it fired, when it last did. The entity's
+ * value comes from events and a source's name can be a connected product's
+ * own rule name, so each is code or escaped text.
+ */
+export function entityRiskMarkdown(data: {
+  entityValue: string;
+  entityType: string;
+  score: number;
+  level: string;
+  threshold: number;
+  windowInDays: number;
+  // Its criticality and that criticality's weight, when the project set one.
+  criticality?: { name: string; weight: number } | undefined;
+  sources: Array<{
+    name: string;
+    source: string;
+    severity: string;
+    points: number;
+    hits: number;
+    // When it last named the entity, formatted.
+    lastSeen: string;
+  }>;
+}): MarkdownText {
+  const parts: Array<MarkdownValue> = [
+    mdText`The risk of ${FeedMarkdown.code(data.entityValue)} (${data.entityType}) reached **${String(data.score)}**, ${data.level} against the project's threshold of ${String(data.threshold)}. ${String(data.sources.length)} source${data.sources.length === 1 ? "" : "s"} found it in the last ${String(data.windowInDays)} days:`,
+  ];
+
+  const shown: typeof data.sources = data.sources.slice(
+    0,
+    ENTITY_RISK_MARKDOWN_SOURCE_LIMIT,
+  );
+
+  parts.push(
+    FeedMarkdown.bulletList(
+      shown.map((source: (typeof data.sources)[number]): MarkdownText => {
+        return mdText`**${source.name}** (${source.source}, ${source.severity}): ${String(source.points)} point${source.points === 1 ? "" : "s"}, fired ${source.hits === 1 ? "once" : `${String(source.hits)} times`}, last ${source.lastSeen}`;
+      }),
+    ),
+  );
+
+  if (data.sources.length > shown.length) {
+    parts.push(
+      mdText`And ${String(data.sources.length - shown.length)} more, on the entity's page.`,
+    );
+  }
+
+  if (data.criticality) {
+    parts.push(
+      mdText`Its criticality, ${data.criticality.name}, weighs its risk ×${String(data.criticality.weight)}.`,
     );
   }
 

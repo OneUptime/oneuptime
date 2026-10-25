@@ -7,6 +7,20 @@ import SecurityCaseNote from "../../../../Models/DatabaseModels/SecurityCaseNote
 import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "../../../../Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityEntityRisk from "../../../../Models/DatabaseModels/SecurityEntityRisk";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import {
+  ENTITY_RISK_WINDOW_IN_DAYS,
+  SecurityEntityRiskContribution,
+} from "../../../../Types/SecurityCase/SecurityEntityRisk";
+import {
+  getEntityRiskKey,
+  getEntityRiskLevel,
+  getRiskEntities,
+  readRiskContributions,
+} from "../../../../Utils/SecurityCase/SecurityEntityRiskScore";
+import SecurityEntityRiskService from "../../../Services/SecurityEntityRiskService";
+import SecurityEntityRiskRecorder from "../../SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
 import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
@@ -72,6 +86,9 @@ export const MAX_TRIAGE_PLAYBOOKS: number = 25;
 export const MAX_TRIAGE_LINKED_HOSTS: number = 10;
 // The most of the case's addresses looked up as OneUptime hosts.
 export const MAX_TRIAGE_ADDRESS_LOOKUPS: number = 10;
+// The most of the case's entities whose risk is read, and sources said for each.
+export const MAX_TRIAGE_ENTITY_RISKS: number = 10;
+export const MAX_TRIAGE_RISK_SOURCES: number = 8;
 
 const TITLE_LENGTH: number = 300;
 const MESSAGE_LENGTH: number = 600;
@@ -105,6 +122,20 @@ export interface TriageNote {
   postedAt?: Date | undefined;
 }
 
+/*
+ * The risk of one of the case's users, hosts or addresses: what every rule,
+ * feed and product found about it this week adds up to
+ * (Types/SecurityCase/SecurityEntityRisk), against the project's threshold.
+ */
+export interface TriageEntityRisk {
+  type: string;
+  value: string;
+  score: number;
+  threshold: number;
+  criticality?: string | undefined;
+  sources: Array<SecurityEntityRiskContribution>;
+}
+
 export interface SecurityCaseTriageData {
   securityCase: SecurityCase;
   detections: Array<SecurityDetection>;
@@ -114,6 +145,8 @@ export interface SecurityCaseTriageData {
   protectedEntities: Array<ProtectedEntityRule>;
   playbooks: Array<TriagePlaybook>;
   notes: Array<TriageNote>;
+  // The risk of its users, hosts and addresses; empty when none has any.
+  entityRisks?: Array<TriageEntityRisk> | undefined;
 }
 
 export interface SecurityCaseTriageContext {
@@ -209,8 +242,9 @@ export default class SecurityCaseAIContextBuilder {
           caseNumberWithPrefix: true,
           title: true,
           description: true,
-          status: true,
-          priority: true,
+          // The project's own names for them, read like any text it wrote.
+          securityCaseStatus: { name: true },
+          securityCasePriority: { name: true },
           source: true,
           entities: true,
           mitreTactics: true,
@@ -322,7 +356,85 @@ export default class SecurityCaseAIContextBuilder {
           return this.readNotes(data);
         },
       ),
+      entityRisks: await this.readEnrichment(
+        "the risk of its entities",
+        data.securityCaseId,
+        [],
+        (): Promise<Array<TriageEntityRisk>> => {
+          return this.readEntityRisks({
+            projectId: data.projectId,
+            entities,
+          });
+        },
+      ),
     };
+  }
+
+  /*
+   * How risky the case's users, hosts and addresses are across everything
+   * the project found about them this week - often more than the case's own
+   * detections say: three other rules may have flagged the same account.
+   */
+  private static async readEntityRisks(data: {
+    projectId: ObjectID;
+    entities: Array<SecurityEntity>;
+  }): Promise<Array<TriageEntityRisk>> {
+    const keys: Array<string> = getRiskEntities(data.entities)
+      .map((entity: SecurityEntity): string => {
+        return getEntityRiskKey(entity.value);
+      })
+      .slice(0, MAX_TRIAGE_ENTITY_RISKS);
+
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const rows: Array<SecurityEntityRisk> =
+      await SecurityEntityRiskService.findBy({
+        query: {
+          projectId: data.projectId,
+          entityKey: new Includes(keys),
+        },
+        select: {
+          entityType: true,
+          entityValue: true,
+          riskScore: true,
+          criticality: true,
+          contributions: true,
+        },
+        sort: { riskScore: SortOrder.Descending },
+        limit: MAX_TRIAGE_ENTITY_RISKS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const scored: Array<SecurityEntityRisk> = rows.filter(
+      (row: SecurityEntityRisk): boolean => {
+        return (row.riskScore || 0) > 0;
+      },
+    );
+
+    if (scored.length === 0) {
+      return [];
+    }
+
+    const { threshold } = await SecurityEntityRiskRecorder.getSettings(
+      data.projectId,
+    );
+
+    return scored.map((row: SecurityEntityRisk): TriageEntityRisk => {
+      return {
+        type: row.entityType || "Entity",
+        value: row.entityValue || "",
+        score: row.riskScore || 0,
+        threshold,
+        criticality: row.criticality || undefined,
+        sources: readRiskContributions(row.contributions).slice(
+          0,
+          MAX_TRIAGE_RISK_SOURCES,
+        ),
+      };
+    });
   }
 
   private static async readEnrichment<T>(
@@ -644,7 +756,7 @@ export default class SecurityCaseAIContextBuilder {
     );
     lines.push(`- Title: ${value(securityCase.title, TITLE_LENGTH)}`);
     lines.push(
-      `- Status: ${securityCase.status || "unknown"} · Priority: ${securityCase.priority || "unknown"} · Opened by: ${securityCase.source || "unknown"}`,
+      `- Status: ${securityCase.securityCaseStatus?.name ? value(securityCase.securityCaseStatus.name, TITLE_LENGTH) : "unknown"} · Priority: ${securityCase.securityCasePriority?.name ? value(securityCase.securityCasePriority.name, TITLE_LENGTH) : "unknown"} · Opened by: ${securityCase.source || "unknown"}`,
     );
     lines.push(
       `- Opened ${isoOrUnknown(securityCase.createdAt)}; ${triage.detectionTotal} detection(s), first ${isoOrUnknown(securityCase.firstDetectedAt)}, last ${isoOrUnknown(securityCase.lastDetectedAt)}`,
@@ -722,6 +834,29 @@ export default class SecurityCaseAIContextBuilder {
         }
       },
     );
+
+    if (triage.entityRisks && triage.entityRisks.length > 0) {
+      lines.push("");
+      lines.push(
+        `## The risk of its entities (everything found about each in the last ${ENTITY_RISK_WINDOW_IN_DAYS} days)`,
+      );
+
+      for (const risk of triage.entityRisks) {
+        lines.push(
+          `- ${risk.type} ${value(risk.value, TITLE_LENGTH)}: risk ${risk.score}, ${getEntityRiskLevel(risk.score, risk.threshold)} (a case opens at ${risk.threshold})${
+            risk.criticality ? `, criticality ${risk.criticality}` : ""
+          }. From: ${
+            risk.sources.length > 0
+              ? risk.sources
+                  .map((source: SecurityEntityRiskContribution): string => {
+                    return `${value(source.sourceName, TITLE_LENGTH)} (${source.source}, ${source.severity}, ${source.points} points, ${source.hits} time(s))`;
+                  })
+                  .join("; ")
+              : "nothing that still counts"
+          }`,
+        );
+      }
+    }
 
     lines.push("");
     lines.push("## The OneUptime hosts its entities are");

@@ -1,6 +1,8 @@
 import Incident from "./Incident";
 import Label from "./Label";
 import Project from "./Project";
+import SecurityCasePriority from "./SecurityCasePriority";
+import SecurityCaseStatus from "./SecurityCaseStatus";
 import Team from "./Team";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -25,8 +27,6 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SecurityCaseAiVerdict from "../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -42,7 +42,11 @@ import {
 /*
  * A security case is the unit of work of a security team: one threat, made
  * of the detections that point at it, with somebody on it, a status, and in
- * the end a verdict. Detection rules, threat-intel matches and the products
+ * the end a verdict. Its status and its priority are among its project's own
+ * (SecurityCaseStatus, SecurityCasePriority), read by what they mean - which
+ * status is the new, the contained, the closed one; which priority each
+ * detection severity opens a case at - never by their names. Detection
+ * rules, threat-intel matches and the products
  * a project connects all raise detections; detections about the same thing
  * (the same user, host or address) gather in one open case instead of
  * paging an analyst once per rule per minute.
@@ -135,7 +139,7 @@ const serverWrittenColumnAccess: {
     delete: true,
   },
 })
-@Index(["projectId", "status"])
+@Index(["projectId", "securityCaseStatusId"])
 @Index(["projectId", "groupingKey"])
 export default class SecurityCase extends BaseModel {
   @ColumnAccessControl({
@@ -253,29 +257,38 @@ export default class SecurityCase extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * Where the case stands: one of the project's case statuses. A case
+   * created without one starts in the project's new status; one in a
+   * status that counts as closed carries a verdict
+   * (Common/Utils/SecurityCase/SecurityCaseStatuses). A status cases are in
+   * cannot be deleted (the key refuses it, NO ACTION).
+   */
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,
     update: updatePermissions,
   })
-  @Index()
   @TableColumn({
-    required: true,
-    type: TableColumnType.ShortText,
-    canReadOnRelationQuery: true,
+    manyToOneRelationColumn: "securityCaseStatusId",
+    type: TableColumnType.Entity,
+    modelType: SecurityCaseStatus,
     title: "Status",
     description:
-      "New, Investigating, Contained or Closed. Every case starts New; closing it records a verdict.",
-    defaultValue: SecurityCaseStatus.New,
-    isDefaultValueColumn: true,
+      "Where the case stands: one of the project's case statuses. Every case starts in the new status; closing it records a verdict.",
   })
-  @Column({
-    nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    default: SecurityCaseStatus.New,
-  })
-  public status?: SecurityCaseStatus = undefined;
+  @ManyToOne(
+    () => {
+      return SecurityCaseStatus;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "securityCaseStatusId" })
+  public securityCaseStatus?: SecurityCaseStatus = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,
@@ -284,22 +297,75 @@ export default class SecurityCase extends BaseModel {
   })
   @Index()
   @TableColumn({
-    required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.ObjectID,
+    required: false,
     canReadOnRelationQuery: true,
-    title: "Priority",
+    title: "Status ID",
     description:
-      "Critical, High, Medium, Low or Informational. A case opened by a detection starts at the detection's severity and rises when a more severe one joins it.",
-    defaultValue: SecurityCasePriority.Medium,
-    isDefaultValueColumn: true,
+      "ID of the case's status. Optional on create: a new case starts in the project's new status.",
+    example: "d4e5f6a7-b8c9-4123-8def-456789012345",
   })
   @Column({
+    type: ColumnType.ObjectID,
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    default: SecurityCasePriority.Medium,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public priority?: SecurityCasePriority = undefined;
+  public securityCaseStatusId?: ObjectID = undefined;
+
+  /*
+   * How urgent the case is: one of the project's case priorities, ranked by
+   * their order. A case opened by a detection starts at the priority of the
+   * detection's severity and rises when a more severe one joins it; one a
+   * person opens starts at the medium priority
+   * (Common/Utils/SecurityCase/SecurityCasePriorities).
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "securityCasePriorityId",
+    type: TableColumnType.Entity,
+    modelType: SecurityCasePriority,
+    title: "Priority",
+    description:
+      "How urgent the case is: one of the project's case priorities. A detection's case starts at its severity's priority and rises with worse ones.",
+  })
+  @ManyToOne(
+    () => {
+      return SecurityCasePriority;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "securityCasePriorityId" })
+  public securityCasePriority?: SecurityCasePriority = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Priority ID",
+    description:
+      "ID of the case's priority. Optional on create: a case opened by hand starts at the project's medium priority.",
+    example: "e5f6a7b8-c9d0-4234-9efa-567890123456",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public securityCasePriorityId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,
@@ -438,7 +504,7 @@ export default class SecurityCase extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Source",
     description:
-      "What opened the case: a Detection Rule, Threat Intel, a Connected Product, or a person (Manual).",
+      "What opened the case: a Detection Rule, Threat Intel, a Connected Product, Entity Risk, or a person (Manual).",
   })
   @Column({
     nullable: true,
@@ -656,22 +722,23 @@ export default class SecurityCase extends BaseModel {
    * again only when the case rises above it, and then only to the people
    * whose chosen priority it now reaches. Empty until the case first reaches
    * somebody's priority. Written by OneUptime in one compare-and-set, so two
-   * workers handed the same rise tell people once.
+   * workers handed the same rise tell people once. A plain id: the rank it
+   * is compared by is the priority's place in the project's list now.
    */
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.ObjectID,
     computed: true,
-    title: "Notified Priority",
+    title: "Notified Priority ID",
     description:
-      "The highest priority people have been told about this case at. They are told again only when it rises above it.",
+      "ID of the highest priority people have been told about this case at. They are told again only when it rises above it.",
   })
   @Column({
+    type: ColumnType.ObjectID,
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public notifiedPriority?: SecurityCasePriority = undefined;
+  public notifiedSecurityCasePriorityId?: ObjectID = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
@@ -733,20 +800,25 @@ export default class SecurityCase extends BaseModel {
   })
   public aiVerdict?: SecurityCaseAiVerdict = undefined;
 
+  /*
+   * The priority OneUptime AI suggested: the project's priority of the level
+   * the triage named (Critical, High, Medium, Low or Informational), kept
+   * by id so it reads with the name the project gives it.
+   */
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.ObjectID,
     computed: true,
-    title: "AI Suggested Priority",
+    title: "AI Suggested Priority ID",
     description:
-      "The priority OneUptime AI suggested when it triaged the case. The case's own priority changes only when a person sets it.",
+      "ID of the priority OneUptime AI suggested when it triaged the case. The case's own priority changes only when a person sets it.",
   })
   @Column({
+    type: ColumnType.ObjectID,
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public aiSuggestedPriority?: SecurityCasePriority = undefined;
+  public aiSuggestedSecurityCasePriorityId?: ObjectID = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

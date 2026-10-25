@@ -8,6 +8,7 @@ L'explorateur de journaux est l'endroit où vous cherchez et lisez les journaux 
 - [Suivre les journaux en direct](#suivre-les-journaux-en-direct): De nouvelles lignes toutes les 10 secondes.
 - [Enregistrer une vue](#enregistrer-une-vue): Garder une recherche, ses filtres et ses colonnes pour tout le monde.
 - [Analyses des journaux](#analyses-des-journaux): Erreurs principales, gravités et qui journalise quoi.
+- [Trouver et corriger avec l'IA les journaux d'erreur, manquants ou bruyants](#trouver-et-corriger-avec-lia-les-journaux-derreur-manquants-ou-bruyants): Des pull requests qui corrigent les erreurs, journalisent ce qui ne l'est pas et font taire les lignes bruyantes.
 :::
 
 ## Comment l'explorateur réduit vos journaux
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Un journal : détails<br/>et contexte"]
 ```
 
-L'explorateur a quatre onglets :
+L'explorateur a cinq onglets :
 
 | Onglet | À quoi il sert |
 | --- | --- |
 | **Lecteur** | Chercher, filtrer et lire les journaux. Il s'ouvre sur la dernière heure, les plus récents d'abord, 100 journaux par page. |
 | **Analyses** | Ce que vos services ont journalisé sur une plage de temps, et ce qui a mal tourné. |
+| **IA** | Les journaux d'erreur, la journalisation manquante et les journaux bruyants qu'OneUptime trouve dans vos journaux, et ce qu'OneUptime AI en a fait. Voir [Trouver et corriger avec l'IA les journaux d'erreur, manquants ou bruyants](#trouver-et-corriger-avec-lia-les-journaux-derreur-manquants-ou-bruyants). |
 | **Guide de configuration** | Comment envoyer des journaux avec OpenTelemetry, Fluent Bit ou Fluentd, avec l'une de vos [clés d'ingestion](/docs/telemetry/ingestion-keys). |
 | **Paramètres** | Ce qui arrive aux journaux à leur arrivée : **Pipelines**, **Filtres de suppression**, **Règles de masquage** et **Règles d'enregistrement**. |
 
@@ -129,6 +131,46 @@ L'onglet **Analyses** montre ce que vos services ont journalisé sur une plage d
 | **Sources reporting logs** | Le volume et le signal d'erreur de chaque service, hôte ou autre source. |
 
 Sélectionnez une erreur principale pour voir ce qui se passait autour : quand elle s'est produite, ce que ses occurrences ont en commun, où elle se produit, les traces qui la portent et ses lignes les plus récentes. **Ouvrir les journaux correspondants** les ouvre dans le **Lecteur**, et **Explain with AI** ouvre [Ask AI](/docs/ai/ask-ai) avec l'erreur et ses éléments de preuve comme invite modifiable.
+
+## Trouver et corriger avec l'IA les journaux d'erreur, manquants ou bruyants
+
+Chaque heure, OneUptime parcourt les journaux de la dernière heure de chaque service à la recherche d'erreurs qu'il journalise encore et encore, d'échecs qu'il ne journalise pas et de lignes qui inondent ses journaux, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+
+OneUptime enregistre trois types de constats :
+
+| Constat | Quand OneUptime l'enregistre | La pull request |
+| --- | --- | --- |
+| **Journal d'erreur** | Un service a journalisé un même message en Error ou Fatal 20 fois ou plus dans l'heure, un message avec des mots à lui et sans exception. Un message journalisé avec une exception, ou contenant une trace de pile, est suivi dans le [Suivi des exceptions](/docs/telemetry/exceptions) à la place. | Corrige la raison pour laquelle l'erreur est journalisée, ou la journalise au niveau qu'elle mérite. |
+| **Journalisation manquante** | Au moins 20 spans d'une opération ont échoué dans l'heure, 5 % ou plus d'entre eux, alors qu'au moins 100 journaux du service portent un identifiant de trace, et aucune des 20 requêtes en échec les plus récentes de l'opération n'a écrit de ligne de journal. Ou un service a envoyé 500 journaux ou plus et 100 spans ou plus dans l'heure, et moins de 1 % de ses journaux portent un identifiant de trace. | Journalise l'échec là où il se produit, ou fait porter l'identifiant de trace aux journaux du service. |
+| **Journal bruyant** | Un message journalisé sous Error représente 25 % ou plus des lignes d'un service dans l'heure, soit quelque 10 000 lignes ou plus. | Journalise la ligne moins souvent : en Debug, une fois par lot, ou plus du tout. |
+
+Un constat garde un message sous forme de modèle : les parties qui changent d'une ligne à l'autre, comme les nombres et les identifiants, sont masquées. La pull request est demandée avec ce modèle, jamais avec une ligne telle qu'elle a été journalisée, et OneUptime AI a pour consigne de ne jamais journaliser de secrets ni de données personnelles, ni de copier des lignes de journal dans la pull request.
+
+OneUptime AI n'ouvre de lui-même la pull request d'un journal d'erreur qu'une fois qu'il a trouvé le code en cause. Une erreur qui vient d'ailleurs, comme une dépendance en panne, n'obtient aucune pull request, sauf si quelqu'un en demande une avec **Corriger avec l'IA**.
+
+### L'activer
+
+**Journaux → IA → Paramètres** contient l'interrupteur **Trouver et corriger les journaux d'erreur, manquants ou bruyants**, activé pour les nouveaux projets. Avec **Activer l'IA** désactivé, les journaux d'erreur, manquants ou bruyants sont toujours trouvés, mais OneUptime AI n'en fait rien. Pour ouvrir des pull requests, OneUptime AI a besoin d'un dépôt connecté dans [Code](/docs/ai/ai-agent) : la page indique d'abord ce qui manque. Le code de chaque dépôt est modifié sur le Runner que le dépôt choisit dans Code.
+
+OneUptime AI ouvre de lui-même au plus 5 pull requests par jour (UTC), pour toute la télémétrie qu'il corrige, une par constat, et jamais plus que la limite de pull requests IA ouvertes d'un dépôt.
+
+### Règles IA
+
+Sans règle, OneUptime AI examine immédiatement chaque problème qu'il trouve dans vos journaux et ouvre une pull request pour chacun de ceux qu'il peut corriger. Les **Règles IA** sous **Plus de paramètres** restreignent cela, en trois étapes :
+
+| Étape | Ce qu'elle décide |
+| --- | --- |
+| **Correspondance** | Quels services : ceux choisis, ceux qui portent certaines étiquettes, ou ceux dont le nom correspond à un motif. |
+| **Investiguer** | **Immédiatement**, ou **Seulement s'il est encore trouvé après une attente** : un problème qui disparaît pendant l'attente n'est pas examiné. |
+| **Correction** | **Ne pas corriger**, **Demander avant de corriger** ou **Corriger sans demander**. Demander d'abord laisse la pull request à une personne : le constat propose **Corriger avec l'IA**. |
+
+Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs MCP et le fournisseur de LLM qu'OneUptime AI peut utiliser pour elle. Si rien n'est choisi, il peut tous les utiliser, ainsi que le fournisseur de LLM par défaut du projet.
+
+### Voir ce qu'il a fait
+
+- **Journaux → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Journaux**, qui ouvre les lignes concernées, de l'heure où il a été trouvé, dans le **Lecteur**. Un échec qui n'écrit aucune ligne de journal n'a pas de lignes à ouvrir : **Ouvrir dans Traces** ouvre plutôt ses spans en échec. Sur un journal d'erreur, **Créer un moniteur** configure un moniteur de journaux qui compte les lignes du message.
+- **Journaux → IA → Activité** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune. Une investigation terminée dit aussi ce qu'OneUptime AI a trouvé, par exemple la cause d'une erreur en dehors du code, ce qui explique que ce journal d'erreur n'ait reçu aucune pull request de lui-même.
+- Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Ce qui arrive aux journaux à leur arrivée
 

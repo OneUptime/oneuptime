@@ -592,6 +592,12 @@ import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinat
 import AuditLogExportService, {
   Service as AuditLogExportServiceType,
 } from "Common/Server/Services/AuditLogExportService";
+import BackupSettingService, {
+  Service as BackupSettingServiceType,
+} from "Common/Server/Services/BackupSettingService";
+import BackupRunService, {
+  Service as BackupRunServiceType,
+} from "Common/Server/Services/BackupRunService";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
 } from "Common/Server/Services/SecurityLogSourceService";
@@ -618,6 +624,18 @@ import SecurityPlaybookService, {
 import SecurityProtectedEntityService, {
   Service as SecurityProtectedEntityServiceType,
 } from "Common/Server/Services/SecurityProtectedEntityService";
+import SecurityEntityRiskService, {
+  Service as SecurityEntityRiskServiceType,
+} from "Common/Server/Services/SecurityEntityRiskService";
+import SecurityEntityCriticalityService, {
+  Service as SecurityEntityCriticalityServiceType,
+} from "Common/Server/Services/SecurityEntityCriticalityService";
+import SecurityCasePriorityService, {
+  Service as SecurityCasePriorityServiceType,
+} from "Common/Server/Services/SecurityCasePriorityService";
+import SecurityCaseStatusService, {
+  Service as SecurityCaseStatusServiceType,
+} from "Common/Server/Services/SecurityCaseStatusService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -1628,11 +1646,17 @@ import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEve
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
+import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
+import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
+import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -3975,6 +3999,29 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * The instance's backups (Admin Dashboard > Settings > Backups): their
+     * settings, and each backup and restore. Master admins only; the
+     * settings are enterprise configuration (EditionPermission), and only
+     * OneUptime writes a run - backing up, restoring and deleting are the
+     * Enterprise Edition's routes (ee/Server/Backup).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<BackupSetting, BackupSettingServiceType>(
+        BackupSetting,
+        BackupSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<BackupRun, BackupRunServiceType>(
+        BackupRun,
+        BackupRunService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<SecurityLogSource, SecurityLogSourceServiceType>(
@@ -4031,6 +4078,43 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
         SecurityProtectedEntity,
         SecurityProtectedEntityService,
+      ).getRouter(),
+    );
+
+    // Each user's, host's and address's risk, and how much each matters.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityEntityRisk, SecurityEntityRiskServiceType>(
+        SecurityEntityRisk,
+        SecurityEntityRiskService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityEntityCriticality,
+        SecurityEntityCriticalityServiceType
+      >(
+        SecurityEntityCriticality,
+        SecurityEntityCriticalityService,
+      ).getRouter(),
+    );
+
+    // A project's own case priorities and statuses (Security Events > Settings).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCasePriority, SecurityCasePriorityServiceType>(
+        SecurityCasePriority,
+        SecurityCasePriorityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseStatus, SecurityCaseStatusServiceType>(
+        SecurityCaseStatus,
+        SecurityCaseStatusService,
       ).getRouter(),
     );
 

@@ -130,10 +130,11 @@ Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Schaltflächen im Kopfbereich** | Der Kopfbereich der Warnung: **Bestätigen**, **Beheben** und **Status ändern in** in seinem Menü **⋯** | Eine kurze Bestätigung, **Warnung bestätigen**, **Warnung beheben** oder **Warnung als {{state}} markieren**, mit einer optionalen Notiz unter **Private Notiz hinzufügen**. |
 | **Statuszeitachse**  | **Zustands-Zeitachse** im Seitenmenü der Warnung                                         | Eine Zeile, die Sie von Hand hinzufügen, mit **Warnungsstatus** und **Beginnt am**.                                                    |
-| **Massenänderung**   | **Status ändern** für eine Auswahl in der Warnungsliste                                   | Der Status und eine private Notiz, die jeder Warnung hinzugefügt wird. Warnungen, die schon in diesem Status oder danach sind, werden übersprungen. |
+| **Listenzeile** | Das Menü **⋯** in der Zeile einer Warnung in der Warnungsliste: **Bestätigen**, **Beheben** und **Status ändern** | Die Bestätigung aus dem Kopfbereich, mit dem Namen der Warnung. Eine Warnung, die eine andere Änderung inzwischen weiterbewegt hat, bleibt unverändert, und der Dialog sagt, warum. |
+| **Massenänderung**   | **Bestätigen**, **Beheben** oder **Status ändern** für eine Auswahl in der Warnungsliste                                   | Der Status und eine private Notiz, die jeder Warnung hinzugefügt wird. Warnungen, die schon in diesem Status oder danach sind, werden übersprungen. |
 | **Automatisch**      | Ein Monitor, eine Episode, ein verknüpfter Vorfall oder Ihr eigener Code                  | **Warnung automatisch beheben** in den Kriterien eines Monitors, ein Statuswechsel der Episode, die Vorfallschalter auf [Verknüpfte Warnungen](/docs/incidents/linked-alerts) oder eine Zeile, die unter `/api/alert-state-timeline` angelegt wird. |
 
-Der Kopfbereich bietet **Bestätigen** und **Beheben** an, solange die Warnung noch nicht bestätigt ist, danach nur noch **Beheben**. Eine behobene Warnung zeigt keine von beiden.
+Der Kopfbereich bietet **Bestätigen** und **Beheben** an, solange die Warnung noch nicht bestätigt ist, danach nur noch **Beheben**. Eine behobene Warnung zeigt keine von beiden. Wer den Status der Warnung mit seiner Rolle nicht ändern darf, sieht die Schaltflächen gesperrt und kein Menü weiterer Status; zeigt man auf eine, nennt sie die Berechtigungen, die das erlauben würden.
 
 ## Was Bestätigen bewirkt
 

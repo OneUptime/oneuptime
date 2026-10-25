@@ -100,7 +100,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Innsamlerkonfigurasjoner | `Collector Config` |
 | vCenter-servere | `vCenter` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
-| Sikkerhetssaker, playbooks og kjøringene deres, og beskyttede enheter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Sikkerhetssaker og prioritetene og statusene deres, playbooks og kjøringene deres, beskyttede enheter, entitetskritikalitet, og risikoen for en entitet når noen tilbakestiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Eksporter av revisjonsloggen | `Audit Log Export` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.

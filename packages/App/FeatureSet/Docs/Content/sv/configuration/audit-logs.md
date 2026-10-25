@@ -100,7 +100,7 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | Insamlarkonfigurationer | `Collector Config` |
 | vCenter-servrar | `vCenter` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
-| Säkerhetsärenden, playbooks och deras körningar samt skyddade entiteter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Säkerhetsärenden och deras prioriteter och statusar, playbooks och deras körningar, skyddade entiteter, entitetskritikalitet samt en entitets risk när någon återställer den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Exporter av granskningsloggen | `Audit Log Export` |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.

@@ -5,9 +5,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -22,6 +20,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * breadcrumbs and Search, and a list that fits its question: the columns
  * and filters that mean something for those cases, sorted the way they are
  * read, and an empty state that says what an empty list means.
+ *
+ * Open and closed are what the project's own statuses count as
+ * (Security Events > Settings > Case Statuses): every status above its
+ * closed status is open, the closed status and every one after it closed
+ * (Common/Utils/SecurityCase/SecurityCaseStatuses). So the lists ask for the
+ * project's statuses first, and a status renamed or added counts at once.
  *
  * React-free so each page's query and list are pinned in a plain test.
  */
@@ -105,6 +109,13 @@ export interface SecurityCaseQueueView {
    * yours already, nor Closed Cases, where nobody works a case any more.
    */
   canAssignToMe: boolean;
+  /*
+   * Whether Assign to Someone Else is among the actions on the cases
+   * selected: every list cases are worked from, Assigned to Me among them -
+   * handing your cases on is what it is for there. Not Closed Cases, where
+   * nobody works a case any more.
+   */
+  canAssignToSomeoneElse: boolean;
   columns: ReadonlyArray<SecurityCaseQueueColumn>;
   // Columns the list draws only once someone turns them on.
   hiddenColumns: ReadonlyArray<SecurityCaseQueueColumn>;
@@ -163,6 +174,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: true,
     canOpenCase: true,
     canAssignToMe: true,
+    canAssignToSomeoneElse: true,
     columns: OPEN_COLUMNS,
     hiddenColumns: ["labels"],
     filters: OPEN_FILTERS,
@@ -182,6 +194,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: false,
     canOpenCase: false,
     canAssignToMe: false,
+    canAssignToSomeoneElse: true,
     // Every case here is yours: no Assignee column saying so on each row.
     columns: withoutColumn(OPEN_COLUMNS, "assignee"),
     hiddenColumns: ["labels"],
@@ -202,6 +215,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canOpenCase: false,
     // Taking a case on is what this page is for.
     canAssignToMe: true,
+    canAssignToSomeoneElse: true,
     /*
      * No case here has a person on it, so an Assignee column would say
      * Unassigned on every row. A case handed to a team waits here too, and
@@ -231,6 +245,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: false,
     canOpenCase: false,
     canAssignToMe: false,
+    canAssignToSomeoneElse: false,
     columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
     hiddenColumns: ["labels"],
     filters: [
@@ -258,6 +273,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     isEmptyGoodNews: false,
     canOpenCase: true,
     canAssignToMe: true,
+    canAssignToSomeoneElse: true,
     columns: [
       "case",
       "priority",
@@ -324,12 +340,19 @@ export function getSecurityCaseAssigneeForMe(
   return currentUserId;
 }
 
+/*
+ * A page's query: its cases, by the project's statuses (`statuses`, models
+ * or their JSON) - the open ones, the closed ones, or any.
+ */
 export function getSecurityCaseQueueQuery(
   view: SecurityCaseQueueViewKey,
   currentUserId: ObjectID | undefined,
+  statuses: ReadonlyArray<unknown>,
 ): Query<SecurityCase> {
   const open: Query<SecurityCase> = {
-    status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
+    securityCaseStatusId: new Includes(
+      SecurityCaseStatuses.getOpenStatusIds(statuses),
+    ),
   } as Query<SecurityCase>;
 
   switch (view) {
@@ -346,7 +369,11 @@ export function getSecurityCaseQueueQuery(
         assignedToUserId: new IsNull(),
       } as Query<SecurityCase>;
     case "closed":
-      return { status: SecurityCaseStatus.Closed } as Query<SecurityCase>;
+      return {
+        securityCaseStatusId: new Includes(
+          SecurityCaseStatuses.getClosedStatusIds(statuses),
+        ),
+      } as Query<SecurityCase>;
     case "all":
     default:
       return {};
@@ -354,15 +381,17 @@ export function getSecurityCaseQueueQuery(
 }
 
 /*
- * The statuses a list's Status filter offers: an open list only the open
- * ones, so it never offers Closed, which would empty it.
+ * The statuses a list's Status filter offers, in the project's order: an
+ * open list only the open ones, so it never offers a closed one, which would
+ * empty it.
  */
-export function getSecurityCaseQueueStatusOptions(
+export function getSecurityCaseQueueStatusOptions<T>(
   view: SecurityCaseQueueViewKey,
-): ReadonlyArray<SecurityCaseStatus> {
+  statuses: ReadonlyArray<T>,
+): Array<T> {
   if (view === "open" || view === "mine" || view === "unassigned") {
-    return OPEN_SECURITY_CASE_STATUSES;
+    return SecurityCaseStatuses.getOpenStatuses(statuses);
   }
 
-  return [...OPEN_SECURITY_CASE_STATUSES, SecurityCaseStatus.Closed];
+  return SecurityCaseStatuses.sort(statuses);
 }

@@ -59,13 +59,14 @@ De vier gemarkeerde statussen dragen het label **Ingebouwd** op de instellingenp
 | Manier           | Waar                                                                                        | Wat het vraagt                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **De klok**      | Een taak die elke minuut draait                                                             | Niets: op **Begint op** zet ze een wachtende gebeurtenis op **Lopend**, en op **Eindigt op** een lopende op **Beëindigd**. |
-| **De kop**       | Het **Overzicht** van de gebeurtenis: de knoppen **Markeren als {{state}}**, en **Change state to** in het menu **⋯** | Een kort dialoogvenster, **Gepland onderhoud markeren als {{state}}**, met **Statuspagina-abonnees op de hoogte stellen** en een optionele notitie onder **Openbare notitie toevoegen**. |
+| **De kop**       | Het **Overzicht** van de gebeurtenis: de knoppen **Markeren als {{state}}**, en **Status wijzigen naar** in het menu **⋯** | Een kort dialoogvenster, **Gepland onderhoud markeren als {{state}}**, met **Statuspagina-abonnees op de hoogte stellen** en een optionele notitie onder **Openbare notitie toevoegen**. |
 | **De tijdlijn**  | **Statustijdlijn** in het zijmenu van de gebeurtenis                                        | Een rij die je met de hand toevoegt, met **Status van geplande onderhoud** en **Begint op**.                    |
-| **Bulkwijziging** | **Status wijzigen** op een selectie in de lijst met gebeurtenissen                         | De status, en één openbare notitie die aan elke gebeurtenis wordt toegevoegd. Gebeurtenissen die al op die status of verder staan, worden overgeslagen. |
+| **Een rij in de lijst** | Het menu **⋯** op de rij van een gebeurtenis in de lijst met gebeurtenissen: de stappen **Markeren als {{state}}** en **Status wijzigen** | Het dialoogvenster uit de kop, met de naam van de gebeurtenis. Een gebeurtenis die een andere wijziging intussen verder heeft gezet, blijft zoals ze is, en het venster zegt waarom. |
+| **Bulkwijziging** | **Markeren als {{state}}** of **Status wijzigen** op een selectie in de lijst met gebeurtenissen                         | De status, en één openbare notitie die aan elke gebeurtenis wordt toegevoegd. Gebeurtenissen die al op die status of verder staan, worden overgeslagen. |
 | **Chat**         | De knoppen in de Slack- en Microsoft Teams-berichten van de gebeurtenis                     | Dezelfde wijziging, uitgevoerd als jij. Zie [Slack](/docs/workspace-connections/slack#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-slack). |
 | **De API**       | Een rij aangemaakt op `/api/scheduled-maintenance-state-timeline`                           | De status, en of abonnees bericht krijgen.                                                                      |
 
-De knoppen van de kop zijn naar je statussen genoemd. Zolang de gebeurtenis wacht, biedt de kop er twee: één die haar start, genoemd naar je lopende status, en één die haar beëindigt, genoemd naar je beëindigde status. Zolang de gebeurtenis loopt, alleen de tweede. Het menu **⋯** toont elke andere status na de huidige.
+De knoppen van de kop zijn naar je statussen genoemd. Zolang de gebeurtenis wacht, biedt de kop er twee: één die haar start, genoemd naar je lopende status, en één die haar beëindigt, genoemd naar je beëindigde status. Zolang de gebeurtenis loopt, alleen de tweede. Het menu **⋯** toont elke andere status na de huidige. Wie met zijn rol de status van de gebeurtenis niet mag wijzigen, ziet de knoppen vergrendeld en geen menu met andere statussen: wijs er een aan en je ziet welke rechten dat zouden toestaan.
 
 ## Wat starten en beëindigen doen
 
@@ -83,8 +84,8 @@ Doorgaan van **Lopend** naar 'Controleren', of van **Beëindigd** naar **Voltooi
 
 Vóór de start telt de kop af; terwijl de gebeurtenis loopt, telt hij hoe lang ze al loopt; zodra ze voorbij is, zegt hij hoe lang ze duurde. Wanneer de gebeurtenis een grens met meer dan twee minuten mist, zegt een oranje melding dat:
 
-- **Start overdue**: de gebeurtenis wacht na haar **Begint op** nog steeds.
-- **Overrunning**: de gebeurtenis loopt na haar **Eindigt op** nog steeds.
+- **Start te laat**: de gebeurtenis wacht na haar **Begint op** nog steeds.
+- **Uitgelopen**: de gebeurtenis loopt na haar **Eindigt op** nog steeds.
 
 De melding noemt de geplande tijd en de status die de gebeurtenis nog niet heeft bereikt. Vlak na een grens heeft de taak die gebeurtenissen verplaatst misschien nog niet gedraaid, dus de kop controleert de volgende minuten vanzelf opnieuw en toont de nieuwe status zonder te herladen.
 
@@ -125,7 +126,7 @@ Een status die je toevoegt, heeft geen vlag, dus zijn plaats is wat hij betekent
 | Tussen **Beëindigd** en **Voltooid**    | Is voorbij, maar nog niet voltooid: herinneringen die tot de voltooiing lopen, gaan door.                        |
 | Onder **Voltooid**                      | Is voltooid, zoals in **Voltooid**.                                                                              |
 
-Houd je statussen onder **Gepland**: elke nieuwe gebeurtenis begint daar, en een gebeurtenis gaat nooit terug omhoog in de lijst, dus een status erboven wordt nooit bereikt. Je zet een gebeurtenis in een eigen status via het menu **⋯** in haar kop, onder **Change state to**.
+Houd je statussen onder **Gepland**: elke nieuwe gebeurtenis begint daar, en een gebeurtenis gaat nooit terug omhoog in de lijst, dus een status erboven wordt nooit bereikt. Je zet een gebeurtenis in een eigen status via het menu **⋯** in haar kop, onder **Status wijzigen naar**.
 
 > [!NOTE]
 > In OneUptime Cloud vraagt het toevoegen of wijzigen van onderhoudsstatussen het abonnement **Growth** of hoger. Elk abonnement kan ze lezen, gebruiken en een status die je hebt toegevoegd verwijderen.
@@ -159,7 +160,7 @@ Statussen gaan alleen omlaag in de lijst. Verwijder op de pagina **Statustijdlij
 :::
 
 :::details De voltooide status ontbreekt bij de knoppen van de kop
-De knoppen van de kop starten en beëindigen de gebeurtenis. Voltooien staat in het menu **⋯**, onder **Change state to**.
+De knoppen van de kop starten en beëindigen de gebeurtenis. Voltooien staat in het menu **⋯**, onder **Status wijzigen naar**.
 :::
 
 ## Volgende stappen

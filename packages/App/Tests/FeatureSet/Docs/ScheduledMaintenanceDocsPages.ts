@@ -85,7 +85,7 @@ export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [MAINTENANCE_OVERVIEW]: ["Create One Scheduled Maintenance Event"],
+    [MAINTENANCE_OVERVIEW]: ["Create One Scheduled Maintenance Event", "⋯"],
     [CREATING_EVENTS]: [
       ...ROLE_NAMES,
       "Create Scheduled Maintenance",
@@ -157,6 +157,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "The clock",
     "The header",
     "The timeline",
+    "A list row",
     "Bulk change",
     "Chat",
     "The API",

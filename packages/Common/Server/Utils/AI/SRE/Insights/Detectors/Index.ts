@@ -6,11 +6,22 @@ import TraceLatencyRegressionDetector from "./TraceLatencyRegressionDetector";
 import MetricDriftDetector from "./MetricDriftDetector";
 import DeployRegressionDetector from "./DeployRegressionDetector";
 import ProfileHotspotDetector from "./ProfileHotspotDetector";
+import ExceptionMissingStackTraceDetector from "./ExceptionMissingStackTraceDetector";
 import {
   TraceFailingOperationDetector,
   TraceMissingTracingDetector,
   TraceSlowOperationDetector,
 } from "./TraceProblemDetector";
+import {
+  LogErrorPatternDetector,
+  LogMissingLoggingDetector,
+  LogNoisyPatternDetector,
+} from "./LogProblemDetector";
+import {
+  MetricHighCardinalityDetector,
+  MetricHistogramBucketsDetector,
+  MetricMissingMetricsDetector,
+} from "./MetricProblemDetector";
 import { TelemetryAiLane } from "../../../../../../Types/AI/TelemetryAi";
 
 /*
@@ -40,7 +51,15 @@ export default class InsightDetectors {
    * "Watch telemetry for problems" - and file what the lane's AI rules then
    * decide about. Profiles: slow code. Traces: slow operations, failing
    * operations and missing tracing - one detector each, sharing one look at
-   * the project's traces (TraceProblemDetector).
+   * the project's traces (TraceProblemDetector). Exceptions: new and rising
+   * exceptions - AI Insights' own two detectors, which the scanner runs
+   * once a look when both are on (InsightScanner.getDetectorsForProject) -
+   * and the services whose exceptions carry no stack trace. Logs: error,
+   * missing and noisy logs - one detector each, sharing one look at the
+   * project's logs (LogProblemDetector). Metrics: high
+   * cardinality, histogram buckets that do not fit and missing metrics -
+   * one detector each, sharing one look at the project's metrics
+   * (MetricProblemDetector).
    */
   public static getTelemetryAiDetectors(
     lane: TelemetryAiLane,
@@ -53,6 +72,25 @@ export default class InsightDetectors {
           new TraceFailingOperationDetector(),
           new TraceSlowOperationDetector(),
           new TraceMissingTracingDetector(),
+        ];
+      case TelemetryAiLane.Exception:
+        return [
+          new NewExceptionDetector(),
+          new ExceptionSpikeDetector(),
+          new ExceptionMissingStackTraceDetector(),
+        ];
+      // Logs: one detector each, sharing one look (LogProblemDetector).
+      case TelemetryAiLane.Log:
+        return [
+          new LogErrorPatternDetector(),
+          new LogMissingLoggingDetector(),
+          new LogNoisyPatternDetector(),
+        ];
+      case TelemetryAiLane.Metric:
+        return [
+          new MetricHighCardinalityDetector(),
+          new MetricHistogramBucketsDetector(),
+          new MetricMissingMetricsDetector(),
         ];
       default:
         return [];

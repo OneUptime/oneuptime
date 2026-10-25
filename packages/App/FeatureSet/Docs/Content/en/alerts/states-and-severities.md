@@ -130,10 +130,11 @@ Archive a state or severity that your team should stop using, instead of deletin
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Header buttons**   | The alert's header: **Acknowledge**, **Resolve**, and **Change state to** in its **⋯** menu | A short confirmation, **Acknowledge Alert**, **Resolve Alert** or **Mark Alert as {{state}}**, with an optional note under **Add a private note**. |
 | **State timeline**   | **State Timeline** in the alert's side menu                                               | A row you add by hand, with **Alert Status** and **Starts At**.                                                                       |
-| **Bulk change**      | **Change State** on a selection in the alerts list                                        | The state, and one private note added to every alert. Alerts already at or past the state are skipped.                               |
+| **List row** | The **⋯** menu on an alert's row in the alerts list: **Acknowledge**, **Resolve** and **Change State** | The header's confirmation, naming the alert. An alert another change moved on meanwhile is left alone, and the dialog says why. |
+| **Bulk change**      | **Acknowledge**, **Resolve** or **Change State** on a selection in the alerts list                                        | The state, and one private note added to every alert. Alerts already at or past the state are skipped.                               |
 | **Automatically**    | A monitor, an episode, a linked incident or your own code                                 | **Auto Resolve Alert** on a monitor's criteria, an episode's state change, the incident switches on [Linked Alerts](/docs/incidents/linked-alerts), or a row created at `/api/alert-state-timeline`. |
 
-The header offers **Acknowledge** and **Resolve** while the alert is not acknowledged yet, and only **Resolve** once it is. A resolved alert shows neither.
+The header offers **Acknowledge** and **Resolve** while the alert is not acknowledged yet, and only **Resolve** once it is. A resolved alert shows neither. Someone whose role may not change the alert's state sees them locked, with no menu of other states: pointing at one names the permissions that would let them.
 
 ## What acknowledging does
 

@@ -170,7 +170,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in ten groups
+  # own fixture server on its own port - so they run here in eleven groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite fill a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
@@ -232,7 +232,13 @@ jobs:
           # finding's evidence, Fix with AI, Create Monitor and Open in
           # Traces, Logs and Settings - at 1280 and 390 pixels, light and
           # dark) joined them on 2026-10-24, when this group took 14.9 minutes
-          # and group 8 22.4: about 16.5.
+          # and group 8 22.4: about 16.5. Metrics AI (1.5 minutes with its
+          # bundle locally, Chromium only: Metrics' AI tab - Insights, a
+          # finding's evidence, Fix with AI, Open in Metrics and Open in
+          # Traces, Logs and Settings - at 1280 and 390 pixels, light and dark)
+          # joined them on 2026-10-25, when this group took 18.5 and 19.1
+          # minutes on master's last two runs with Traces AI, and group 9,
+          # where Exceptions AI was going, 16.3 to 18.4: about 20.5.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
@@ -241,6 +247,7 @@ jobs:
               test-snmp-walk-ui
               test-asset-details-ui
               test-traces-ai-ui
+              test-metrics-ai-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -427,7 +434,14 @@ jobs:
           # role's API keys, at 1280 and 390 pixels, dark): 4.1 minutes with
           # its bundle locally, about 1.2 more. This group had taken 21.5
           # minutes on master without them, so Archivable Values moved on to
-          # group 9 the same day: about 21 for the seven.
+          # group 9 the same day: about 21 for the seven. Logs AI (1.7 minutes
+          # locally, about 2.5 with its bundle, Chromium only: Logs' AI tab -
+          # Insights, a finding's evidence, Fix with AI, Create Monitor, Open
+          # in Logs and Open in Traces, Activity with what each investigation
+          # found, and Settings - at 1280 and 390 pixels, light and dark)
+          # joined it beside Profiles on 2026-10-25, when this group took 14.0
+          # minutes on master's run of 2026-10-24 15:00, the lightest of the
+          # ten (group 2, where it was first placed, took 21.2): about 16.5.
           - group: 7
             browsers: chromium
             suites: >-
@@ -438,6 +452,7 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+              test-logs-ai-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -478,7 +493,15 @@ jobs:
           # offer at a flows page's foot the same day (2.2 minutes for its 40
           # tests locally, from 1.3): about 19.5 for the nine. It took 22.4
           # minutes on master's run of 2026-10-24 10:57, so Traces AI went to
-          # group 1 instead.
+          # group 1 instead. Security Operations moved on to a group of its
+          # own (11) on 2026-10-25, when this group took 26.1 and 26.7 minutes
+          # on master's runs of the day before: about 14 for the eight. New
+          # Version (about 1.7 minutes locally with its two builds, Chromium
+          # only: a deploy under an open tab - the notice, the next page loading
+          # the new version, a page whose code is gone updating into the same
+          # address, unsaved changes, offline, a server restarting, a part gone
+          # for good - at 1280 and 390 pixels, dark, German and Persian) joined
+          # them the same day, the lightest group: about 16.
           - group: 8
             browsers: chromium
             suites: >-
@@ -487,10 +510,10 @@ jobs:
               test-cloud-connect-ui
               test-host-collectors-ui
               test-vmware-host-page-ui
-              test-security-operations-ui
               test-public-addresses-ui
               test-security-events-empty-states-ui
               test-meraki-traffic-ui
+              test-new-version-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -513,7 +536,14 @@ jobs:
           # locally, Chromium only) moved here from group 7 on 2026-10-23,
           # when the Custom Roles specs for API keys would have taken that
           # group past 22: this group had taken 18.9 to 19.4, so about 21.5
-          # for the eight.
+          # for the eight. Exceptions AI (2.4 minutes locally with its bundle,
+          # Chromium only: Exceptions' AI tab - Insights, a finding's evidence
+          # with the frames of your own code, Fix with AI saying which pull
+          # request it opens, View Exception Group, Open in Exceptions and
+          # Create Monitor, Logs and Settings - at 1280 and 390 pixels, light
+          # and dark) joined them on 2026-10-24, when this group's run step
+          # took 16.7 and 17.1 minutes on master's two runs that day, the most
+          # steady of the lightest: about 19.5.
           - group: 9
             browsers: chromium
             suites: >-
@@ -525,6 +555,7 @@ jobs:
               test-postmortems-ui
               test-acknowledgement-timeout-ui
               test-archivable-values-ui
+              test-exceptions-ai-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -544,6 +575,19 @@ jobs:
               test-navigation-search-ui
               test-owner-filters-ui
               test-bulk-actions-ui
+          # Security Operations on its own, Chromium only, from 2026-10-25. In
+          # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
+          # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
+          # runs of the day before, against the 28 minutes the run step has.
+          # The same day #5243 gave a security case its own pages and grew the
+          # suite to 115 tests (about 13 minutes locally), with the case
+          # actions, the Security Events pass and the SIEM and SOAR work still
+          # to add theirs: alone, about 15 minutes with the setup, it has room
+          # for them.
+          - group: 11
+            browsers: chromium
+            suites: >-
+              test-security-operations-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -734,6 +778,14 @@ jobs:
             output/playwright/profiles-ui/test-results
             output/playwright/traces-ai-ui/*.png
             output/playwright/traces-ai-ui/test-results
+            output/playwright/exceptions-ai-ui/*.png
+            output/playwright/exceptions-ai-ui/test-results
+            output/playwright/logs-ai-ui/*.png
+            output/playwright/logs-ai-ui/test-results
+            output/playwright/new-version-ui/*.png
+            output/playwright/new-version-ui/test-results
+            output/playwright/metrics-ai-ui/*.png
+            output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
             output/playwright/dashboard-templates-ui/test-results
             output/playwright/dashboard-time-range-ui/*.png

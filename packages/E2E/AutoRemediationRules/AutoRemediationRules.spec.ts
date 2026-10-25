@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * AI rules - which new incidents (or alerts) OneUptime AI investigates, and
@@ -41,9 +42,15 @@ import path from "path";
  * Later, the maintainer again: "why does it see an AI agent on the cluster
  * or host? That doesn't make any sense because it's an AI agent that runs
  * the commands ... Here, we could pick which runner the remediation would
- * actually run on." So the Runner picker lists the project's own Runners
- * only - its default first, and picked for a new rule - and a rule that
- * picks none reads "No Runner". "Both of these toggles should be inside of
+ * actually run on." So the Runner picker lists the project's own Runners -
+ * its default first, and picked for a new rule. And: "If there are no
+ * runners, it should use the global runner by default." So a rule that
+ * picks none shows the Global Runner wherever the project uses global
+ * Runners and the server has one, with a line that says OneUptime AI runs
+ * no Bash commands there - a shell never runs on a Runner every project
+ * shares - and how to have them run: pick one of your Runners, or add one.
+ * Where there is no Global Runner to show, it reads "No Runner". "Both of
+ * these toggles should be inside of
  * Remediation Rule, inside of More, and they should be checked by default":
  * the fix and telemetry pull requests. And "there should be a dropdown here
  * to select the code repo for remediation and also investigation rules, if
@@ -129,12 +136,27 @@ const INVESTIGATE_TOO: string = "Investigate too";
 const RUNBOOKS_DESCRIPTION: string =
   "OneUptime AI may run any of your runbooks. Pick some to let it run only those.";
 const RUNNER_DESCRIPTION: string =
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.";
-// What the Runner picker reads while a rule picks none.
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.";
+/*
+ * What the Runner picker shows while a rule picks none, where the project
+ * uses global Runners and the server has one (?globalRunners=, and
+ * ?useGlobalRunners=0 for a project that turned them off).
+ */
+const GLOBAL_RUNNER: string = "Global Runner · Connected";
+// Under it in the menu: what it is, and what OneUptime AI does not do there.
+const GLOBAL_RUNNER_DESCRIPTION: string =
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.";
+// Under the picker on it, in a project with Runners of its own.
+const GLOBAL_RUNNER_PICK_HELP: string =
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.";
+// The same, in a project with none of its own.
+const GLOBAL_RUNNER_ADD_HELP: string =
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under Runbooks › Runners to run them.";
+// What the Runner picker reads while a rule picks none, with no Global Runner.
 const NO_RUNNER: string = "No Runner";
 // The choice the picker no longer offers: that agent is not a Runner.
 const RETIRED_RUNNER_CHOICE: string = "AI agent on the cluster or host";
-// Under the picker only in a project with no Runner of its own.
+// Under it only in a project with no Runner of its own, and no Global Runner.
 const ADD_RUNNER_HELP: string =
   "Add a Runner under Runbooks › Runners for OneUptime AI to run commands on, then pick it here.";
 const RUNNER_HELP_TEST_ID: string = "auto-remediation-runner-picker-help";
@@ -573,7 +595,7 @@ test.describe("the Fix step", () => {
     await screenshot(page, "fix-step-folded");
   });
 
-  test("More fields holds the runbooks OneUptime AI may run - none is any - and the Runner - none is No Runner", async ({
+  test("More fields holds the runbooks OneUptime AI may run - none is any - and the Runner - none is the Global Runner, where no Bash command runs", async ({
     page,
   }: {
     page: Page;
@@ -595,22 +617,42 @@ test.describe("the Fix step", () => {
     await expect(everyTimeSwitch(dialog)).toHaveCount(0);
 
     /*
-     * Runner: none picked reads No Runner, and the field's line says that
-     * commands on the affected cluster or host go through its AI agent.
-     * With Runners to pick from, no line under it repeats what it says.
+     * Runner: none picked shows the Global Runner - "If there are no
+     * runners, it should use the global runner by default" - and the line
+     * under it says OneUptime AI runs no Bash commands there, and how to
+     * have them run. The field's own line says that commands on the
+     * affected cluster or host go through its AI agent.
      */
     await expect(dialog).toContainText(RUNNER_DESCRIPTION);
     await expect(runnerPicker(dialog)).toBeVisible();
-    await expect(dialog).toContainText(NO_RUNNER);
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__single-value"),
+    ).toHaveText(GLOBAL_RUNNER);
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveText(
+      GLOBAL_RUNNER_PICK_HELP,
+    );
+    await expect(
+      dialog.getByTestId("auto-remediation-runner-picker"),
+    ).not.toContainText(NO_RUNNER);
     await expect(dialog).not.toContainText(RETIRED_RUNNER_CHOICE);
-    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
     await expect(dialog).not.toContainText(ADD_RUNNER_HELP);
-    await expect(dialog).not.toContainText("Global Runner");
+    // Nothing of a step's: nothing of the rule's waits on the Global Runner.
+    await expect(
+      dialog.getByTestId("auto-remediation-runner-picker-global-waiting"),
+    ).toHaveCount(0);
+    // Picking the Global Runner is how none is picked: nothing to clear.
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__clear-indicator"),
+    ).toHaveCount(0);
 
     await screenshot(page, "fix-step-more-fields");
   });
 
-  test("the Runner's choices: the project's own Runners with how each is doing - no AI agent, and never the Kubernetes agent's in-cluster Runner", async ({
+  test("the Runner's choices: the Global Runner, then the project's own Runners with how each is doing - no AI agent, and never the Kubernetes agent's in-cluster Runner", async ({
     page,
   }: {
     page: Page;
@@ -628,11 +670,20 @@ test.describe("the Fix step", () => {
     });
 
     expect(options).toEqual([
+      `${GLOBAL_RUNNER} ${GLOBAL_RUNNER_DESCRIPTION}`,
       "office-runner · Never connected",
       "prod-eu-runner · Connected",
     ]);
     expect(options.join(" ")).not.toContain("kubernetes-agent/prod-us");
     expect(options.join(" ")).not.toContain(RETIRED_RUNNER_CHOICE);
+    // The global Runners are read from their own route, as a step's are.
+    expect(
+      (await page.evaluate(() => {
+        return (
+          window as unknown as { __fixture: { globalRunnerReads: number } }
+        ).__fixture.globalRunnerReads;
+      })) > 0,
+    ).toBe(true);
 
     await screenshot(page, "runner-choices");
   });
@@ -661,9 +712,12 @@ test.describe("the Fix step", () => {
     });
     expect(options).toEqual([
       "prod-eu-runner · Project default · Connected",
+      `${GLOBAL_RUNNER} ${GLOBAL_RUNNER_DESCRIPTION}`,
       "office-runner · Never connected",
     ]);
     await page.keyboard.press("Escape");
+    // An own Runner picked: the field's line says it all, nothing under it.
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
     await screenshot(page, "runner-project-default");
 
     /*
@@ -682,7 +736,7 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["runnerId"]).toBe(RUNNER_IDS["prodEu"]);
   });
 
-  test("folded, a rule with No Runner names no Runner, and one picked is named - one not connected says so", async ({
+  test("folded, a rule on the Global Runner names no Runner, and one picked is named - one not connected says so", async ({
     page,
   }: {
     page: Page;
@@ -701,9 +755,9 @@ test.describe("the Fix step", () => {
     };
 
     /*
-     * No Runner is the field's empty answer, never named with one; the
-     * line lists the fields in their order, so it may leave the field to
-     * its "more".
+     * The Global Runner is the field's default, on which no command runs:
+     * never named; the line lists the fields in their order, so it may
+     * leave the field to its "more".
      */
     expect((await foldedItems()).join(" ")).not.toContain("Runner:");
 
@@ -717,7 +771,7 @@ test.describe("the Fix step", () => {
     );
   });
 
-  test("a rule's pick can be cleared back to No Runner", async ({
+  test("a rule's pick goes back to none by picking the Global Runner, which saves no Runner", async ({
     page,
   }: {
     page: Page;
@@ -728,16 +782,97 @@ test.describe("the Fix step", () => {
     const dialog: Locator = await openFixStep(page, card);
     await openMoreFields(dialog);
 
+    // A new rule starts on the project's default; no clear control beside it.
+    await expect(dialog).toContainText(
+      "prod-eu-runner · Project default · Connected",
+    );
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__clear-indicator"),
+    ).toHaveCount(0);
+
+    await pickOption(page, runnerPicker(dialog), /^Global Runner/);
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__single-value"),
+    ).toHaveText(GLOBAL_RUNNER);
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveText(
+      GLOBAL_RUNNER_PICK_HELP,
+    );
+
+    await create(page, dialog);
+
+    // None, as a rule that picked none always saved: never "global", never an id.
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
+  });
+
+  test("a project that turned global Runners off reads No Runner, and a pick clears back to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "defaultRunner=prod&useGlobalRunners=0",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await runnerPicker(dialog).click();
+    const options: Array<string> = (
+      await page.getByRole("option").allInnerTexts()
+    ).map((text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    });
+    expect(options).toEqual([
+      "prod-eu-runner · Project default · Connected",
+      "office-runner · Never connected",
+    ]);
+    await page.keyboard.press("Escape");
+
     await dialog
       .getByTestId("auto-remediation-runner-picker")
       .locator(".ou-select__clear-indicator")
       .click();
     await expect(dialog).toContainText(NO_RUNNER);
+    // The project said no to global Runners: nothing names one here.
+    await expect(
+      dialog.getByTestId("auto-remediation-runner-picker"),
+    ).not.toContainText("Global Runner");
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
+    await screenshot(page, "runner-global-runners-off");
 
     await create(page, dialog);
 
     const sent: Recorded = await recorded(page);
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
+  });
+
+  test("a Global Runner not heard from lately is shown so, and nothing of the rule's waits on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "globalRunners=disconnected",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__single-value"),
+    ).toHaveText("Global Runner · Disconnected");
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveText(
+      GLOBAL_RUNNER_PICK_HELP,
+    );
+    // A step on it would wait in the queue; a rule runs nothing there.
+    await expect(
+      dialog.getByTestId("auto-remediation-runner-picker-global-waiting"),
+    ).toHaveCount(0);
   });
 
   test("a rule made without opening More fields investigates right away and asks before fixing, with any runbook, no Runner, every repository and both pull requests", async ({
@@ -882,12 +1017,53 @@ test.describe("the Fix step", () => {
     expect((await recorded(page)).creates).toEqual([]);
   });
 
-  test("with no Runner of its own, a rule reads No Runner, has nothing to pick, and is told where to add one", async ({
+  /*
+   * The screenshot the maintainer attached: a project with no Runner of its
+   * own read "No Runner" and "Add a Runner ... for OneUptime AI to run
+   * commands on". Now it reads the Global Runner, and says no Bash command
+   * runs there, and where to add a Runner that will.
+   */
+  test("with no Runner of its own, a rule shows the Global Runner - its one choice - and is told where to add a Runner for Bash commands", async ({
     page,
   }: {
     page: Page;
   }) => {
     const card: Locator = await openRulesCard(page, { query: "runners=0" });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__single-value"),
+    ).toHaveText(GLOBAL_RUNNER);
+    const help: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);
+    await expect(help).toHaveText(GLOBAL_RUNNER_ADD_HELP);
+    // Where a Runner is added, in a new tab, so the rule being made stays.
+    await expect(
+      help.getByRole("link", { name: "Runbooks › Runners" }),
+    ).toHaveAttribute("target", "_blank");
+    await expect(dialog).not.toContainText(ADD_RUNNER_HELP);
+    // A menu with one choice to read, not a box that cannot open.
+    await runnerPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await screenshot(page, "no-runners-global-runner");
+
+    // The rule still saves: it runs no command of its own.
+    await create(page, dialog);
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
+  });
+
+  test("with no Runner of its own and no global Runner, a rule reads No Runner, has nothing to pick, and is told where to add one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "runners=0&globalRunners=0",
+    });
     const dialog: Locator = await openFixStep(page, card);
     await openMoreFields(dialog);
 
@@ -1308,7 +1484,7 @@ test.describe("rules saved before", () => {
     ]);
   });
 
-  test("a OneUptime AI rule opens with its runbooks and its Runner, and can go back to no Runner", async ({
+  test("a OneUptime AI rule opens with its runbooks and its Runner, and goes back to none by picking the Global Runner", async ({
     page,
   }: {
     page: Page;
@@ -1327,12 +1503,16 @@ test.describe("rules saved before", () => {
     await expect(dialog).toContainText("prod-eu-runner · Connected");
     await screenshot(page, "edit-ai-with-runner");
 
-    await dialog
-      .getByTestId("auto-remediation-runner-picker")
-      .locator(".ou-select__clear-indicator")
-      .click();
-    await expect(dialog).toContainText(NO_RUNNER);
-    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
+    // The Global Runner stands for none: picked, it says no Bash command runs there.
+    await pickOption(page, runnerPicker(dialog), /^Global Runner/);
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__single-value"),
+    ).toHaveText(GLOBAL_RUNNER);
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveText(
+      GLOBAL_RUNNER_PICK_HELP,
+    );
 
     await dialog.getByRole("button", { name: "Save Changes" }).click();
     await expect(dialog).toBeHidden();
@@ -1737,7 +1917,9 @@ test.describe("people and screens", () => {
       await expect(dialog).toContainText(GERMAN[english]!);
     }
 
-    await expect(dialog).toContainText(GERMAN[NO_RUNNER]!);
+    // A rule that picks none shows the Global Runner, in German.
+    await expect(dialog).toContainText(GERMAN["Global Runner"]!);
+    await expect(dialog).toContainText(GERMAN[GLOBAL_RUNNER_PICK_HELP]!);
     // The repositories box's placeholder, as the MCP servers box draws its own.
     await expect(
       dialog.getByRole("combobox", { name: GERMAN["Code Repositories"]! }),
@@ -1938,7 +2120,8 @@ test.describe("code repositories and pull requests", () => {
    * code repositories - are one kind of field, so they look alike: a search
    * box of one height with the picks as chips over it, and no chevron (that
    * is the single-pick Runner's). And a line under a box belongs to it: it
-   * sits close under its own box, a field's gap above the next field.
+   * sits close under its own box, a field's gap above the next field - the
+   * Runner's line too, drawn like the hints under the other pickers.
    */
   test("the repositories picker looks like the Runbooks and MCP Servers pickers, and each hint sits under its own field", async ({
     page,
@@ -1995,6 +2178,11 @@ test.describe("code repositories and pull requests", () => {
         mcpServersPicker(dialog),
         dialog.locator("label").filter({ hasText: /^LLM Provider\s*$/ }),
       ],
+      [
+        RUNNER_HELP_TEST_ID,
+        runnerPicker(dialog),
+        pullRequestSwitch(dialog, FIX_PULL_REQUESTS),
+      ],
     ];
 
     for (const [hintTestId, box, next] of nextFields) {
@@ -2006,6 +2194,14 @@ test.describe("code repositories and pull requests", () => {
       // A field's gap: as wide as the one between two fields with no hint.
       expect(aboveTheNext).toBeGreaterThanOrEqual(16);
     }
+
+    // The Runner's line is drawn as the hints are: their size and colour.
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveText(
+      GLOBAL_RUNNER_PICK_HELP,
+    );
+    expect(await textStyleOf(dialog.getByTestId(RUNNER_HELP_TEST_ID))).toEqual(
+      await textStyleOf(dialog.getByTestId("rule-code-repositories-hint")),
+    );
 
     await dialogScreenshot(
       dialog,
@@ -3285,4 +3481,308 @@ test.describe("a rule's AI context", () => {
     await expect(dialog).toContainText(GERMAN[AI_CONTEXT_DESCRIPTION]!);
     await expect(aiContextLength(dialog)).toContainText("von 5.000 Zeichen");
   });
+});
+
+/*
+ * "If there are no runners, it should use the global runner by default" -
+ * the maintainer, of a rule's Runner that read "No Runner". The field, open,
+ * as a person sees it: 1280px and a phone's 390px, light and dark - in a
+ * project with Runners of its own and in one with none - showing the Global
+ * Runner, with the line that OneUptime AI runs no Bash commands there and
+ * how to have them run, and nothing running off the screen; then in German
+ * and in Persian, right to left, in the Dashboard's own words.
+ */
+const runnerField: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByTestId("auto-remediation-runner-picker");
+};
+
+const runnerShown: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return runnerField(dialog).locator(".ou-select__single-value");
+};
+
+// How a line of text is drawn: its size, its line height and its colour.
+const textStyleOf: (locator: Locator) => Promise<{
+  fontSize: string;
+  lineHeight: string;
+  color: string;
+}> = async (
+  locator: Locator,
+): Promise<{ fontSize: string; lineHeight: string; color: string }> => {
+  return locator.evaluate(
+    (
+      element: Element,
+    ): { fontSize: string; lineHeight: string; color: string } => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      return {
+        fontSize: style.fontSize,
+        lineHeight: style.lineHeight,
+        color: style.color,
+      };
+    },
+  );
+};
+
+/*
+ * Where each word of the picked value is drawn, from the left: a Persian
+ * page reads the Global Runner's label right to left, its first word
+ * rightmost.
+ */
+const wordLefts: (
+  locator: Locator,
+  words: Array<string>,
+) => Promise<Array<number>> = async (
+  locator: Locator,
+  words: Array<string>,
+): Promise<Array<number>> => {
+  return locator.evaluate(
+    (element: Element, wordList: Array<string>): Array<number> => {
+      const text: string = element.textContent || "";
+      const node: ChildNode | null = element.firstChild;
+
+      return wordList.map((word: string): number => {
+        const start: number = text.indexOf(word);
+        if (!node || start < 0) {
+          return Number.NaN;
+        }
+        const range: Range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + word.length);
+        return range.getBoundingClientRect().left;
+      });
+    },
+    words,
+  );
+};
+
+// Whether a box ends inside another, on both sides.
+const isInside: (
+  inner: { x: number; width: number },
+  outer: { x: number; width: number },
+) => boolean = (
+  inner: { x: number; width: number },
+  outer: { x: number; width: number },
+): boolean => {
+  return (
+    inner.x >= outer.x - 1 && inner.x + inner.width <= outer.x + outer.width + 1
+  );
+};
+
+test.describe("the Runner field on the Global Runner, at 1280px and 390px, light and dark", () => {
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${width}px, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width, height: 900 });
+
+        for (const [state, query, help] of [
+          ["runners", "", GLOBAL_RUNNER_PICK_HELP],
+          ["no-runners", "runners=0", GLOBAL_RUNNER_ADD_HELP],
+        ] as Array<[string, string, string]>) {
+          const card: Locator = await openRulesCard(page, {
+            query: [query, theme === "dark" ? "theme=dark" : ""]
+              .filter(Boolean)
+              .join("&"),
+          });
+          if (theme === "dark") {
+            await expect(page.locator("html")).toHaveClass(/dark/);
+          }
+
+          const dialog: Locator = await openFixStep(page, card);
+          await openMoreFields(dialog);
+
+          await expect(runnerShown(dialog)).toHaveText(GLOBAL_RUNNER);
+          const line: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);
+          await expect(line).toHaveText(help);
+          await line.scrollIntoViewIfNeeded();
+          // A quiet line, drawn as the hints under the rule's other pickers.
+          expect(await textStyleOf(line)).toEqual(
+            await textStyleOf(
+              dialog.getByTestId("rule-code-repositories-hint"),
+            ),
+          );
+
+          // Nothing runs off the screen, and the field and its line fit the dialog.
+          expect(
+            await page.evaluate(() => {
+              return document.documentElement.scrollWidth;
+            }),
+          ).toBeLessThanOrEqual(width);
+          const dialogBox: { x: number; width: number } =
+            (await dialog.boundingBox())!;
+          expect(
+            isInside((await runnerPicker(dialog).boundingBox())!, dialogBox),
+          ).toBe(true);
+          expect(isInside((await line.boundingBox())!, dialogBox)).toBe(true);
+
+          await dialogScreenshot(
+            dialog,
+            line,
+            `runner-global-${state}-${width}-${theme}`,
+          );
+
+          // The menu, open: the Global Runner first, saying what it is.
+          await runnerPicker(dialog).click();
+          const options: Locator = page.getByRole("option");
+          await expect(options).toHaveCount(state === "runners" ? 3 : 1);
+          await expect(options.first()).toContainText(GLOBAL_RUNNER);
+          await expect(options.first()).toContainText(
+            GLOBAL_RUNNER_DESCRIPTION,
+          );
+          const firstOption: { x: number; width: number } = (await options
+            .first()
+            .boundingBox())!;
+          expect(firstOption.x).toBeGreaterThanOrEqual(0);
+          expect(firstOption.x + firstOption.width).toBeLessThanOrEqual(width);
+          await dialogScreenshot(
+            dialog,
+            options.first(),
+            `runner-global-${state}-menu-${width}-${theme}`,
+          );
+          await page.keyboard.press("Escape");
+        }
+      });
+    }
+  }
+});
+
+// The Dashboard's Persian words, as the fixture draws them with ?lang=fa.
+const PERSIAN: Record<string, string> = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../App/FeatureSet/Dashboard/src/Locales/fa.json",
+    ),
+    "utf8",
+  ),
+) as Record<string, string>;
+
+test.describe("the Runner field on the Global Runner, in German and Persian", () => {
+  for (const [language, words, direction] of [
+    ["de", GERMAN, "ltr"],
+    ["fa", PERSIAN, "rtl"],
+  ] as Array<[string, Record<string, string>, string]>) {
+    test(`${language}: the Global Runner and its lines are the Dashboard's ${language} words, ${direction}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const word: (english: string) => string = (english: string): string => {
+        expect({ english, translated: Boolean(words[english]) }).toEqual({
+          english,
+          translated: true,
+        });
+        return words[english]!;
+      };
+
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto(
+        `/dashboard/${PROJECT_ID}/incidents/ai/settings?lang=${language}&runners=0`,
+      );
+      await expect(page.locator("html")).toHaveAttribute("dir", direction);
+      await expect(advancedSection(page, "incident")).toBeVisible();
+
+      const fold: Locator = advancedSection(page, "incident").getByRole(
+        "button",
+        { name: new RegExp(`^${escapeRegExp(word("More settings"))}`) },
+      );
+      await fold.click();
+      await expect(fold).toHaveAttribute("aria-expanded", "true");
+
+      const card: Locator = page
+        .locator("[data-card-surface='section']")
+        .filter({
+          has: page.getByRole("heading", {
+            name: word(CARD_TITLE),
+            exact: true,
+          }),
+        });
+      await expect(card).toBeVisible();
+
+      const create: string = word("Create {{itemName}}").replace(
+        "{{itemName}}",
+        word("AI Rule"),
+      );
+      const dialog: Locator = await openDialogWith(
+        page,
+        card.getByRole("button", { name: create, exact: true }).first(),
+      );
+
+      // Match, Investigate, then the Fix step, which names the rule.
+      await dialog.getByRole("button", { name: word("Next") }).click();
+      await dialog.getByRole("button", { name: word("Next") }).click();
+      await dialog.getByRole("textbox").first().fill("checkout");
+      await dialog
+        .getByRole("button", {
+          name: new RegExp(escapeRegExp(word("More fields"))),
+        })
+        .click();
+
+      await expect(dialog).toContainText(word(RUNNER_DESCRIPTION));
+      await expect(runnerShown(dialog)).toHaveText(
+        `${word("Global Runner")} · ${word("Connected")}`,
+      );
+
+      /*
+       * The box lays the label out the page's way: in Persian, "Runner
+       * سراسری · متصل" starts with a Latin word, and read by its own
+       * direction it was drawn left to right, "Runner" stuck after
+       * "Connected". Right to left, the words follow each other from the
+       * right, as the menu draws them.
+       */
+      const valueLabel: Locator = runnerField(dialog).getByTestId(
+        "dropdown-value-label",
+      );
+      expect(
+        await valueLabel.evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+      ).toBe(direction);
+      const lefts: Array<number> = await wordLefts(
+        valueLabel,
+        `${word("Global Runner")} ${word("Connected")}`.split(" "),
+      );
+      for (const left of lefts) {
+        expect(Number.isNaN(left)).toBe(false);
+      }
+      for (let index: number = 1; index < lefts.length; index++) {
+        if (direction === "rtl") {
+          expect(lefts[index]!).toBeLessThan(lefts[index - 1]!);
+        } else {
+          expect(lefts[index]!).toBeGreaterThan(lefts[index - 1]!);
+        }
+      }
+
+      // The line, with Runbooks › Runners in the reader's words as its link.
+      const line: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);
+      const addTemplate: string = word(
+        "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.",
+      );
+      await expect(line).toHaveText(
+        addTemplate.replace("{{location}}", word("Runbooks › Runners")),
+      );
+      await expect(
+        line.getByRole("link", { name: word("Runbooks › Runners") }),
+      ).toHaveAttribute("target", "_blank");
+
+      await runnerPicker(dialog).click();
+      await expect(page.getByRole("option").first()).toContainText(
+        word(GLOBAL_RUNNER_DESCRIPTION),
+      );
+      await dialogScreenshot(
+        dialog,
+        page.getByRole("option").first(),
+        `runner-global-${language}`,
+      );
+      await page.keyboard.press("Escape");
+
+      expect(
+        await page.evaluate(() => {
+          return document.documentElement.scrollWidth;
+        }),
+      ).toBeLessThanOrEqual(1280);
+    });
+  }
 });

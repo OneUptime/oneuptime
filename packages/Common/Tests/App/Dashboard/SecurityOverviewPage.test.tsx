@@ -56,7 +56,25 @@ import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel, {
+  SECURITY_CASE_PRIORITY_LEVEL_FLAGS,
+} from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage, {
+  SECURITY_CASE_STAGE_FLAGS,
+} from "../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  DEFAULT_SECURITY_CASE_PRIORITIES,
+  DefaultSecurityCasePriority,
+} from "../../../Utils/SecurityCase/SecurityCasePriorities";
+import {
+  DEFAULT_SECURITY_CASE_STATUSES,
+  DefaultSecurityCaseStatus,
+} from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import { SecurityOverviewValue } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApiTypes";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+} from "../../Helpers/SecurityCaseValues";
 import PermissionGate, {
   ModelAction,
   PermissionCheckableModel,
@@ -84,6 +102,40 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
 const CASE_ID: string = "44444444-4444-4444-8444-444444444444";
+
+// A new project's case priorities and statuses, as the overview sends them.
+const PRIORITY_VALUES: Array<SecurityOverviewValue> =
+  DEFAULT_SECURITY_CASE_PRIORITIES.map(
+    (priority: DefaultSecurityCasePriority): SecurityOverviewValue => {
+      return {
+        _id: TEST_PRIORITY_IDS[priority.level],
+        name: priority.name,
+        color: priority.color.toString(),
+        order: priority.order,
+        isArchived: false,
+        [SECURITY_CASE_PRIORITY_LEVEL_FLAGS[priority.level]]: true,
+      };
+    },
+  );
+
+const STATUS_VALUES: Array<SecurityOverviewValue> =
+  DEFAULT_SECURITY_CASE_STATUSES.map(
+    (status: DefaultSecurityCaseStatus): SecurityOverviewValue => {
+      return {
+        _id: TEST_STATUS_IDS[status.stage],
+        name: status.name,
+        color: status.color.toString(),
+        order: status.order,
+        isArchived: false,
+        [SECURITY_CASE_STAGE_FLAGS[status.stage]]: true,
+      };
+    },
+  );
+
+// The id of a new project's priority of a level: what the counts are keyed by.
+function priorityId(level: SecurityCasePriorityLevel): string {
+  return TEST_PRIORITY_IDS[level];
+}
 
 function status(
   overrides: Partial<SecuritySetupStatus> = {},
@@ -128,6 +180,8 @@ function overview(
       unassignedOpenCases: 0,
       openByPriority: {},
       openByStatus: {},
+      criticalOpenCases: 0,
+      highOpenCases: 0,
       casesOpenedInWindow: 0,
       casesClosedInWindow: 0,
       verdictsInWindow: {},
@@ -141,6 +195,8 @@ function overview(
       topTactics: [],
       ...overrides,
     },
+    priorities: PRIORITY_VALUES,
+    statuses: STATUS_VALUES,
     ...top,
   };
 }
@@ -1339,7 +1395,7 @@ describe("a project with Security set up", () => {
           unassignedOpenCases: 2,
           casesOpenedInWindow: 5,
           detectionsInWindow: 9,
-          openByPriority: { [SecurityCasePriority.Medium]: 3 },
+          openByPriority: { [priorityId(SecurityCasePriorityLevel.Medium)]: 3 },
         },
         { myOpenCases: 1, runsWaitingForApproval: 1 },
       ),
@@ -1398,7 +1454,7 @@ describe("a project with Security set up", () => {
           unassignedOpenCases: 2,
           casesOpenedInWindow: 5,
           detectionsInWindow: 9,
-          openByPriority: { [SecurityCasePriority.Medium]: 3 },
+          openByPriority: { [priorityId(SecurityCasePriorityLevel.Medium)]: 3 },
         },
         { myOpenCases: 1, runsWaitingForApproval: 1 },
       ),
@@ -1436,10 +1492,13 @@ describe("a project with Security set up", () => {
         unassignedOpenCases: 1,
         casesOpenedInWindow: 4,
         openByPriority: {
-          [SecurityCasePriority.Critical]: 2,
-          [SecurityCasePriority.High]: 1,
-          [SecurityCasePriority.Low]: 1,
+          [priorityId(SecurityCasePriorityLevel.Critical)]: 2,
+          [priorityId(SecurityCasePriorityLevel.High)]: 1,
+          [priorityId(SecurityCasePriorityLevel.Low)]: 1,
         },
+        // As the server counts them, by the project's priorities.
+        criticalOpenCases: 2,
+        highOpenCases: 1,
       }),
     );
     await renderPage();
@@ -1477,6 +1536,63 @@ describe("a project with Security set up", () => {
     await renderPage();
 
     expect(screen.queryByTestId("security-pipeline-destinations")).toBeNull();
+  });
+});
+
+describe("the charts below the card", () => {
+  test("every card fills its row, so each row of cards ends on one line", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview({
+        openCases: 3,
+        casesOpenedInWindow: 5,
+        detectionsInWindow: 9,
+        topTactics: [{ tacticId: "TA0006", count: 4 }],
+      }),
+    );
+    await renderPage();
+
+    for (const title of [
+      "Cases Opened",
+      "Detections",
+      "Open Cases",
+      "Verdicts",
+      "MITRE ATT&CK Tactics",
+      "Top Detections",
+      "Riskiest Entities",
+    ]) {
+      const heading: HTMLElement | undefined = screen
+        .getAllByText(title)
+        .find((candidate: HTMLElement): boolean => {
+          return Boolean(candidate.closest('[data-testid="card"]'));
+        });
+      const card: HTMLElement = heading!.closest(
+        '[data-testid="card"]',
+      ) as HTMLElement;
+
+      expect([title, card.className.includes("h-full")]).toEqual([title, true]);
+    }
+  });
+
+  test("a tactic behind the cases opens ATT&CK Coverage on that tactic", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview({
+        openCases: 3,
+        casesOpenedInWindow: 5,
+        detectionsInWindow: 9,
+        topTactics: [{ tacticId: "TA0006", count: 4 }],
+      }),
+    );
+    await renderPage();
+
+    const tactic: HTMLElement = screen
+      .getByText("TA0006 Credential Access")
+      .closest("a") as HTMLElement;
+
+    expect(tactic.getAttribute("href")).toContain(
+      "/security-events/attack-coverage?tactic=TA0006",
+    );
   });
 });
 
@@ -1525,7 +1641,8 @@ describe("a server that cannot answer the set-up figures", () => {
         openCases: 2,
         unassignedOpenCases: 2,
         casesOpenedInWindow: 2,
-        openByPriority: { [SecurityCasePriority.High]: 2 },
+        openByPriority: { [priorityId(SecurityCasePriorityLevel.High)]: 2 },
+        highOpenCases: 2,
       }),
     );
     await renderPage();
@@ -1543,14 +1660,83 @@ describe("a server that cannot answer the set-up figures", () => {
         unassignedOpenCases: 0,
         casesOpenedInWindow: 2500,
         openByPriority: {
-          [SecurityCasePriority.Critical]: 1500,
-          [SecurityCasePriority.High]: 1000,
+          [priorityId(SecurityCasePriorityLevel.Critical)]: 1500,
+          [priorityId(SecurityCasePriorityLevel.High)]: 1000,
         },
+        criticalOpenCases: 1500,
+        highOpenCases: 1000,
       }),
     );
     await renderPage();
 
     expect(figures()).toHaveTextContent("1,500 critical · 1,000 high");
+  });
+
+  test("draws the open cases by the project's own priorities and statuses, as it names them", async () => {
+    answerStatus(new Error("Not found"));
+    answerOverview(
+      overview(
+        {
+          openCases: 3,
+          unassignedOpenCases: 0,
+          casesOpenedInWindow: 3,
+          openByPriority: {
+            [priorityId(SecurityCasePriorityLevel.Critical)]: 1,
+            "c1000000-0000-4000-8000-0000000000e1": 2,
+          },
+          openByStatus: {
+            [TEST_STATUS_IDS[SecurityCaseStage.New]]: 1,
+            "c2000000-0000-4000-8000-0000000000a2": 2,
+          },
+          criticalOpenCases: 3,
+        },
+        {
+          priorities: [
+            {
+              _id: "c1000000-0000-4000-8000-0000000000e1",
+              name: "Emergency",
+              color: "#000000",
+              order: 0,
+              isArchived: false,
+            },
+            ...PRIORITY_VALUES.map((value: SecurityOverviewValue) => {
+              return value._id ===
+                priorityId(SecurityCasePriorityLevel.Critical)
+                ? { ...value, name: "Sev 1" }
+                : value;
+            }),
+          ],
+          statuses: [
+            ...STATUS_VALUES.map((value: SecurityOverviewValue) => {
+              return value._id === TEST_STATUS_IDS[SecurityCaseStage.Closed]
+                ? { ...value, order: 5 }
+                : value;
+            }),
+            {
+              _id: "c2000000-0000-4000-8000-0000000000a2",
+              name: "Eradicating",
+              color: "#123456",
+              order: 4,
+              isArchived: false,
+            },
+          ],
+        },
+      ),
+    );
+    await renderPage();
+
+    const openCases: HTMLElement = screen
+      .getByRole("heading", { name: "Open Cases" })
+      .closest("section, div[class*='rounded']") as HTMLElement;
+    const text: string = openCases.textContent || "";
+
+    // The project's own names, most urgent first.
+    expect(text.indexOf("Emergency")).toBeGreaterThanOrEqual(0);
+    expect(text.indexOf("Emergency")).toBeLessThan(text.indexOf("Sev 1"));
+    // Its own open status among the open ones; a closed one never drawn.
+    expect(text).toContain("Eradicating");
+    expect(text).not.toContain("Closed");
+    expect(figures()).toHaveTextContent("3 critical · 0 high");
   });
 });
 
@@ -1694,7 +1880,7 @@ describe("the top card", () => {
         {
           openCases: 3,
           casesOpenedInWindow: 3,
-          openByPriority: { [SecurityCasePriority.Medium]: 3 },
+          openByPriority: { [priorityId(SecurityCasePriorityLevel.Medium)]: 3 },
         },
         { myOpenCases: 0, runsWaitingForApproval: 0 },
       ),
@@ -1754,7 +1940,7 @@ describe("the top card", () => {
         openCases: 1,
         unassignedOpenCases: 1,
         casesOpenedInWindow: 1,
-        openByPriority: { [SecurityCasePriority.Medium]: 1 },
+        openByPriority: { [priorityId(SecurityCasePriorityLevel.Medium)]: 1 },
       }),
     );
     await renderPage();

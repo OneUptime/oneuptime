@@ -908,6 +908,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/security-cases",
       },
       {
+        title: "Entity Risk (Risk-Based Alerting)",
+        url: "/docs/telemetry/security-entity-risk",
+      },
+      {
         title: "Threat Intelligence (STIX/TAXII)",
         url: "/docs/telemetry/threat-intelligence",
       },
@@ -1486,6 +1490,11 @@ const DocsNav: NavGroup[] = [
       {
         title: "Upgrading",
         url: "/docs/installation/upgrading",
+      },
+      // The Enterprise Edition's backups of PostgreSQL and ClickHouse, set up in the Admin Dashboard.
+      {
+        title: "Backups",
+        url: "/docs/installation/backups",
       },
       {
         title: "Kubernetes and Helm",

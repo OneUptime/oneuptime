@@ -22,6 +22,12 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import {
+  SecurityCaseValueLists,
+  getSecurityCaseValues,
+} from "../SecurityCase/SecurityCaseValues";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -31,7 +37,8 @@ export interface ComponentProps {
 /*
  * Opens a security case about one event, for the thing an analyst spots
  * that no rule caught: the case names the event's users, hosts and
- * addresses, takes its severity as its priority, and opens on its own page.
+ * addresses, opens at the project's priority for its severity - whatever
+ * the project calls it - and opens on its own page.
  */
 const OpenCaseFromEventButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,11 +74,23 @@ const OpenCaseFromEventButton: FunctionComponent<ComponentProps> = (
             const draft: SecurityCaseDraft = buildCaseFromSecurityEvent(
               props.securityEvent,
             );
+            const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+            const values: SecurityCaseValueLists =
+              await getSecurityCaseValues(projectId);
+            const priority: SecurityCasePriority | null =
+              SecurityCasePriorities.getPriorityOfLevel(
+                values.priorities,
+                draft.priorityLevel,
+              );
             const securityCase: SecurityCase = new SecurityCase();
-            securityCase.projectId = ProjectUtil.getCurrentProjectId()!;
+            securityCase.projectId = projectId;
             securityCase.title = draft.title;
             securityCase.description = draft.description;
-            securityCase.priority = draft.priority;
+
+            if (priority?.id) {
+              securityCase.securityCasePriorityId = priority.id;
+            }
+
             securityCase.entities = draft.entities as unknown as JSONArray;
             securityCase.mitreTactics = draft.mitreTactics;
             securityCase.mitreTechniques = draft.mitreTechniques;

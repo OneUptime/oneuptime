@@ -74,6 +74,57 @@ enum AIInsightType {
    * message nor an exception.
    */
   TraceMissingTracing = "TraceMissingTracing",
+  /*
+   * Exceptions without a stack trace: a service whose exceptions over the
+   * last day were recorded with no stack trace at all, so nobody - and no
+   * AI - can tell which of its code raised them (Utils/Exceptions/
+   * ExceptionInsight's gates). Filed for the Exceptions product's AI
+   * section (Types/AI/TelemetryAi), whose pull request makes the service
+   * record a stack trace with each exception.
+   */
+  ExceptionMissingStackTrace = "ExceptionMissingStackTrace",
+  /*
+   * An error log: one message a service logged again and again at Error or
+   * Fatal severity over the last hour (Utils/Logs/LogInsight's gates) that
+   * carries no exception - an error that does is the Exceptions product's.
+   * Filed for the Logs product's AI section (Types/AI/TelemetryAi), with the
+   * message's pattern as its evidence.
+   */
+  LogErrorPattern = "LogErrorPattern",
+  /*
+   * Missing logging: what a service's logs do not say - requests that fail
+   * without writing a single log line, or logs that carry no trace context,
+   * so a request's logs cannot be read beside its trace.
+   */
+  LogMissingLogging = "LogMissingLogging",
+  /*
+   * A noisy log: one message below Error severity that makes up a large
+   * share of a service's logs - it costs storage and buries the lines that
+   * matter.
+   */
+  LogNoisyPattern = "LogNoisyPattern",
+  /*
+   * A high-cardinality metric: an attribute a service's code puts on one of
+   * its metrics took so many values over the last hour (ids, full URLs,
+   * timestamps) that every value is a series of its own - or a service's
+   * metric names carry an id, so each id is a metric of its own (Utils/
+   * Metrics/MetricInsight's gates). Filed for the Metrics product's AI
+   * section (Types/AI/TelemetryAi), with the attribute or the name pattern
+   * as its evidence.
+   */
+  MetricHighCardinality = "MetricHighCardinality",
+  /*
+   * A histogram whose buckets do not fit the values it records: nearly all
+   * of them fall in its smallest bucket or above its largest one (or it
+   * has no buckets at all), so none of its percentiles can be read.
+   */
+  MetricHistogramBuckets = "MetricHistogramBuckets",
+  /*
+   * Missing metrics: a busy service that sends traces but has never sent a
+   * metric, so nothing charts or alerts on its request rate, errors or
+   * latency over time without reading every span.
+   */
+  MetricMissingMetrics = "MetricMissingMetrics",
 }
 
 export default AIInsightType;

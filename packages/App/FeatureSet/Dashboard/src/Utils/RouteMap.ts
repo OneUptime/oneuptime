@@ -756,6 +756,10 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
   [PageMap.LOGS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.LOGS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.LOGS_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.LOGS_AI_ACTIVITY]: "ai/activity",
+  [PageMap.LOGS_AI_SETTINGS]: "ai/settings",
 };
 
 // Security Events product routes
@@ -769,6 +773,12 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_DOCUMENTATION]: "documentation",
   [PageMap.SECURITY_EVENTS_OVERVIEW]: "overview",
   [PageMap.SECURITY_EVENTS_ENTITIES]: "entities",
+  /*
+   * An entity's page is one level under the list, its value in the query
+   * (?value=): any user, host or address, whatever it holds.
+   */
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK]: "entity-risk",
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]: "entity-risk/entity",
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY]: "rule-library",
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]: "attack-coverage",
   /*
@@ -782,6 +792,18 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_CASES_CLOSED]: "cases/closed",
   [PageMap.SECURITY_CASES_ALL]: "cases/all",
   [PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,
+  /*
+   * A case's own pages, one level under it, as an incident's are under
+   * incidents/:id. The case's address stays its Overview, so every link
+   * to a case lands where it always did.
+   */
+  [PageMap.SECURITY_CASE_VIEW_TIMELINE]: `cases/${RouteParams.ModelID}/timeline`,
+  [PageMap.SECURITY_CASE_VIEW_DETECTIONS]: `cases/${RouteParams.ModelID}/detections`,
+  [PageMap.SECURITY_CASE_VIEW_ENTITIES]: `cases/${RouteParams.ModelID}/entities`,
+  [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: `cases/${RouteParams.ModelID}/playbook-runs`,
+  [PageMap.SECURITY_CASE_VIEW_NOTES]: `cases/${RouteParams.ModelID}/notes`,
+  [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: `cases/${RouteParams.ModelID}/audit-logs`,
+  [PageMap.SECURITY_CASE_VIEW_DELETE]: `cases/${RouteParams.ModelID}/delete`,
   [PageMap.SECURITY_PLAYBOOKS]: "playbooks",
   [PageMap.SECURITY_PLAYBOOK_VIEW]: `playbooks/${RouteParams.ModelID}`,
   /*
@@ -799,6 +821,11 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   // AI, at the address Incidents' and Alerts' AI settings pages have.
   [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
+  // Settings, at the addresses every product's settings pages have.
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]:
+    "settings/case-priorities",
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
+  [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
 };
 
 // Metrics product routes
@@ -809,6 +836,10 @@ export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
   [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: "settings/pipeline-rules",
   [PageMap.METRICS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.METRICS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.METRICS_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.METRICS_AI_LOGS]: "ai/logs",
+  [PageMap.METRICS_AI_SETTINGS]: "ai/settings",
 };
 
 // Traces product routes
@@ -888,6 +919,14 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE]: `${RouteParams.ModelID}/ai-assistance`,
   [PageMap.EXCEPTIONS_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.EXCEPTIONS_DOCUMENTATION]: "documentation",
+  /*
+   * The AI section: static paths, so they outrank an exception's own pages
+   * (`:id/logs`, `:id/settings`) when a route is matched.
+   */
+  [PageMap.EXCEPTIONS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.EXCEPTIONS_AI_LOGS]: "ai/logs",
+  [PageMap.EXCEPTIONS_AI_SETTINGS]: "ai/settings",
 };
 
 export const LlmRoutePath: Dictionary<string> = {
@@ -6728,6 +6767,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.LOGS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_ACTIVITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_ACTIVITY]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_SETTINGS]
+    }`,
+  ),
+
   // Security Events Product Routes
   [PageMap.SECURITY_EVENTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/*`,
@@ -6833,6 +6896,48 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_CASE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_DETECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_DETECTIONS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_ENTITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_NOTES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_NOTES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_DELETE]
+    }`,
+  ),
+
   [PageMap.SECURITY_PLAYBOOKS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOKS]
@@ -6893,6 +6998,36 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW]
+    }`,
+  ),
+
   // Metrics Product Routes
   [PageMap.METRICS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/*`,
@@ -6927,6 +7062,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.METRICS_SETTINGS_RECORDING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
       MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_SETTINGS]
     }`,
   ),
 
@@ -8102,6 +8261,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.EXCEPTIONS_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_AI_SETTINGS]
     }`,
   ),
 };

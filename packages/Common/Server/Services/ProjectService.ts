@@ -47,6 +47,7 @@ import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
 import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
+import SecurityCaseDefaultValues from "../Utils/SecurityCase/SecurityCaseDefaultValues";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -109,6 +110,7 @@ import ProjectAiDailyLimits, {
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
+import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -234,7 +236,12 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * turned on by default" - the maintainer (Types/AI/TelemetryAi). So does
  * finding and fixing slow and failing operations in traces
  * (enableAutomaticTraceRemediation, Traces → AI → Settings), for the same
- * reason.
+ * reason, finding and fixing new and rising exceptions
+ * (enableAutomaticExceptionRemediation, Exceptions → AI → Settings),
+ * finding and fixing error, missing and noisy logs
+ * (enableAutomaticLogRemediation, Logs → AI → Settings), and improving
+ * metrics and adding missing ones (enableAutomaticMetricRemediation,
+ * Metrics → AI → Settings).
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -245,6 +252,9 @@ export type NewProjectAiDefaultColumn =
   | "enableInsightFixTasks"
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
+  | "enableAutomaticExceptionRemediation"
+  | "enableAutomaticLogRemediation"
+  | "enableAutomaticMetricRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -257,6 +267,9 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableInsightFixTasks",
     "enableAutomaticProfileRemediation",
     "enableAutomaticTraceRemediation",
+    "enableAutomaticExceptionRemediation",
+    "enableAutomaticLogRemediation",
+    "enableAutomaticMetricRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 
@@ -622,6 +635,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * someone never wrote. A blank one is stored as null, as clearing the
    * field means.
    */
+  /*
+   * The risk threshold a project sets (Security Events > Settings > Risk
+   * Scoring): a whole number from 10 to 10000, written as a number. Anything
+   * else is refused with the reason, never stored and read as a bound later.
+   */
+  public applySecurityRiskRules(data: {
+    securityRiskCaseThreshold?: unknown;
+  }): void {
+    if (data.securityRiskCaseThreshold === undefined) {
+      return;
+    }
+
+    const value: unknown = coerceNumericColumnValue(
+      data.securityRiskCaseThreshold,
+    );
+    const error: string | null = getRiskCaseThresholdError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    data.securityRiskCaseThreshold = value;
+  }
+
   public applyAiContextRules(data: { aiContext?: unknown }): void {
     if (data.aiContext === undefined) {
       return;
@@ -656,6 +693,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
     this.applyAiContextRules(data.data as { aiContext?: unknown });
+    this.applySecurityRiskRules(
+      data.data as { securityRiskCaseThreshold?: unknown },
+    );
 
     if (data.props.userId) {
       RelationIdUtil.stamp(
@@ -905,6 +945,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     this.applyNewProjectAiDefaults(data.data);
+    this.applyNewProjectSecurityDefaults(data.data);
 
     const carryForward: ProjectCreateCarryForward = {
       isCreatorMasterAdmin: user.isMasterAdmin === true,
@@ -1034,6 +1075,25 @@ export class ProjectService extends ProjectReferencesService<Model> {
       if (data[column] === undefined || data[column] === null) {
         data[column] = true;
       }
+    }
+  }
+
+  /*
+   * A new project opens security cases from entity risk: when what its
+   * rules, threat intel and connected products found about one user, host or
+   * address adds up to its threshold (Types/SecurityCase/SecurityEntityRisk).
+   * On unless the create request set it itself. The column's database
+   * default stays false, so a project that existed before opens no case
+   * from risk until someone turns it on.
+   */
+  public applyNewProjectSecurityDefaults(data: {
+    enableSecurityRiskCases?: boolean | null | undefined;
+  }): void {
+    if (
+      data.enableSecurityRiskCases === undefined ||
+      data.enableSecurityRiskCases === null
+    ) {
+      data.enableSecurityRiskCases = true;
     }
   }
 
@@ -1276,6 +1336,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
+    this.applySecurityRiskRules(
+      updateBy.data as { securityRiskCaseThreshold?: unknown },
+    );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,
@@ -2830,6 +2893,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
       this.addDefaultIncidentRoles(createdItem),
       this.addDefaultNetworkSiteTypes(createdItem),
       this.addDefaultNetworkDeviceRoles(createdItem),
+      this.addDefaultSecurityCasePriorities(createdItem),
+      this.addDefaultSecurityCaseStatuses(createdItem),
     ]);
 
     if (createdItem.createdOwnerEmail) {
@@ -3034,6 +3099,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
         },
       });
     }
+
+    return createdItem;
+  }
+
+  /*
+   * The project's security case priorities and statuses (Security Events >
+   * Settings): the five priorities and four statuses every case had before
+   * they became the project's own, each the built-in one of its detection
+   * severity or stage (SecurityCaseDefaultValues). Idempotent.
+   */
+  @CaptureSpan()
+  public async addDefaultSecurityCasePriorities(
+    createdItem: Model,
+  ): Promise<Model> {
+    await SecurityCaseDefaultValues.addDefaultPriorities(createdItem.id!);
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  public async addDefaultSecurityCaseStatuses(
+    createdItem: Model,
+  ): Promise<Model> {
+    await SecurityCaseDefaultValues.addDefaultStatuses(createdItem.id!);
 
     return createdItem;
   }

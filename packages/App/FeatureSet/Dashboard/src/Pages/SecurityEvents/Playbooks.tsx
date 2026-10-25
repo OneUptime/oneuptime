@@ -1,235 +1,107 @@
 import PageComponentProps from "../PageComponentProps";
+import SecurityPlaybookTemplatePicker, {
+  getPlaybookViewRoute,
+} from "../../Components/SecurityPlaybook/SecurityPlaybookTemplatePicker";
 import {
-  SECURITY_PLAYBOOK_TEMPLATES,
-  SecurityPlaybookTemplate,
-} from "../../Components/SecurityPlaybook/SecurityPlaybookTemplates";
-import {
-  TurnOnRecommendedProblem,
-  describeAddFailure,
-} from "../../Components/SecurityOverview/SecuritySetupModel";
-import SecurityTurnOnProblems, {
-  bringProblemsIntoView,
-} from "../../Components/SecurityOverview/SecurityTurnOnProblems";
+  CREATE_FROM_TEMPLATE,
+  PLAYBOOK_TEMPLATES_DESCRIPTION,
+} from "../../Components/SecurityPlaybook/SecurityPlaybookTemplateModel";
+import { getSecurityCasePriorityOptions } from "../../Components/SecurityCase/SecurityCaseValueOptions";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import Route from "Common/Types/API/Route";
+import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
+import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Gray500 } from "Common/Types/BrandColors";
+import { Green, Red } from "Common/Types/BrandColors";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
-import {
-  TurnOnRecommendedAction,
-  TurnOnRecommendedPart,
-} from "Common/Types/SecurityEvent/TurnOnRecommended";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Icon from "Common/UI/Components/Icon/Icon";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionGate, {
-  ModelAction,
-  PermissionGateResult,
-} from "Common/UI/Utils/PermissionGate";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { buildSecurityPlaybookFromTemplate } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
   getSecurityPlaybookTriggerOptions,
 } from "../../Components/SecurityPlaybook/SecurityPlaybookTriggerOptions";
 import useAiOffered from "../../Utils/UseAiOffered";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
-// What the templates say when the one a reader picked could not be added (SecurityTurnOnProblems).
-export const PLAYBOOK_NOT_ADDED_TITLE: string = translationKey(
-  "The playbook could not be added",
-);
-
-function getPlaybookViewRoute(id: ObjectID): Route {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.SECURITY_PLAYBOOK_VIEW] as Route,
-    { modelId: id },
-  );
-}
+// The list's own names: "Create Playbook", "4 playbooks" - not the model's "Security Playbook".
+export const PLAYBOOK_SINGULAR_NAME: string = translationKey("Playbook");
+export const PLAYBOOK_PLURAL_NAME: string = translationKey("Playbooks");
 
 /*
  * The project's playbooks: what each does when it runs by itself. A new one
  * starts from a template or blank, and opens on its own page to add steps.
+ * The templates are the empty list's, and Create from Template's once there
+ * are playbooks (SecurityPlaybookTemplatePicker).
  */
 const SecurityPlaybooksPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
-  // Why the template picked last could not become a playbook, as the Rule Library says a rule's.
-  const [failure, setFailure] = useState<TurnOnRecommendedProblem | null>(null);
-  const [creatingKey, setCreatingKey] = useState<string>("");
-  const failureRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
-
-  // On a phone the tile picked can sit a screen below the box that says why.
-  useEffect(() => {
-    if (failure) {
-      bringProblemsIntoView(failureRef.current, "nearest");
-    }
-  }, [failure]);
+  // The project's case priorities, which a playbook's minimum is one of.
+  const { values } = useSecurityCaseValues();
+  const [showTemplates, setShowTemplates] = useState<boolean>(false);
+  // The blank playbook's form, opened from the empty list's templates.
+  const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
 
   /*
    * Enable and Disable in Bulk Actions: a disabled playbook stops running on
    * its own, and can still be run by hand from a case.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<SecurityPlaybook>> =
-    useBulkSwitchActions<SecurityPlaybook>({
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<SecurityPlaybook> = useSwitchActions<SecurityPlaybook>(
+    {
       modelType: SecurityPlaybook,
       column: "isEnabled",
-    });
-
-  const createGate: PermissionGateResult = PermissionGate.check(
-    new SecurityPlaybook(),
-    ModelAction.Create,
+    },
   );
 
-  const createFromTemplate: (
-    template: SecurityPlaybookTemplate,
-  ) => Promise<void> = async (
-    template: SecurityPlaybookTemplate,
-  ): Promise<void> => {
-    setCreatingKey(template.key);
-    setFailure(null);
-
-    const name: string =
-      translator.translateText(template.name) || template.name;
-
-    try {
-      /*
-       * The record Turn on recommended makes from a template too
-       * (SecurityTemplateRecords), named as the reader's language words
-       * it - which SecurityTemplatesCreatable holds to the name's width in
-       * every language.
-       */
-      const playbook: SecurityPlaybook = buildSecurityPlaybookFromTemplate({
-        projectId: ProjectUtil.getCurrentProjectId()!,
-        template: template.definition,
-        name,
-        description:
-          translator.translateText(template.description) ||
-          template.description,
-      });
-
-      const response: { data: unknown } =
-        await ModelAPI.create<SecurityPlaybook>({
-          model: playbook,
-          modelType: SecurityPlaybook,
-        });
-
-      const created: { _id?: string } = response.data as { _id?: string };
-
-      if (created?._id) {
-        Navigation.navigate(getPlaybookViewRoute(new ObjectID(created._id)));
-      }
-    } catch (err) {
-      /*
-       * Why, in the product's words - the role, the plan, a record OneUptime
-       * would not save, or a failure on its side - never a server's raw
-       * sentence in grey.
-       */
-      setFailure({
-        part: TurnOnRecommendedPart.Playbook,
-        action: TurnOnRecommendedAction.Add,
-        name,
-        ...describeAddFailure(err),
-      });
-    }
-
-    setCreatingKey("");
-  };
+  /*
+   * Create from Template, beside Create Playbook: the templates, each
+   * Added or one click from a working playbook, in a dialog.
+   */
+  const templatesButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: CREATE_FROM_TEMPLATE,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        icon: IconProp.Template,
+        onClick: (): void => {
+          setShowTemplates(true);
+        },
+      },
+      new SecurityPlaybook(),
+      ModelAction.Create,
+    );
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">
-          {translator.translateText("Start from a template")}
-        </h2>
-        <p className="mt-1 text-sm text-gray-600">
-          {translator.translateText(
-            "Each template is a working playbook you can save as it is and change later.",
-          )}
-        </p>
-        {failure ? (
-          <div className="mt-4" ref={failureRef}>
-            <SecurityTurnOnProblems
-              problems={[failure]}
-              title={
-                translator.translateText(PLAYBOOK_NOT_ADDED_TITLE) ||
-                PLAYBOOK_NOT_ADDED_TITLE
-              }
-              dataTestId="security-playbook-template-problems"
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          {SECURITY_PLAYBOOK_TEMPLATES.map(
-            (template: SecurityPlaybookTemplate): ReactElement => {
-              const isCreating: boolean = creatingKey === template.key;
-
-              return (
-                <button
-                  key={template.key}
-                  type="button"
-                  data-testid={`security-playbook-template-${template.key}`}
-                  disabled={!createGate.isAllowed || Boolean(creatingKey)}
-                  title={
-                    createGate.isAllowed ? undefined : createGate.disabledReason
-                  }
-                  className="group flex flex-col rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/40 disabled:cursor-not-allowed disabled:opacity-60"
-                  onClick={() => {
-                    void createFromTemplate(template);
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                      <Icon icon={template.icon} className="h-4 w-4" />
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {translator.translateText(template.name)}
-                    </span>
-                  </span>
-                  <span className="mt-2 text-sm text-gray-600">
-                    {translator.translateText(template.description)}
-                  </span>
-                  <span className="mt-3 text-xs font-medium text-indigo-600">
-                    {isCreating
-                      ? translator.translateText("Creating…")
-                      : translator.translateText(template.trigger) ||
-                        template.trigger}
-                  </span>
-                </button>
-              );
-            },
-          )}
-        </div>
-      </div>
-
       <ModelTable<SecurityPlaybook>
         modelType={SecurityPlaybook}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        actionButtons={[...switchRowActions]}
         id="security-playbooks-table"
         name="Security Events > Playbooks"
         userPreferencesKey="security-playbooks-table"
@@ -258,12 +130,27 @@ const SecurityPlaybooksPage: FunctionComponent<
 
           return Promise.resolve(item);
         }}
+        singularName={PLAYBOOK_SINGULAR_NAME}
+        pluralName={PLAYBOOK_PLURAL_NAME}
         cardProps={{
           title: "Playbooks",
           description:
             "Responses that run on a case, such as notifying, paging on-call or containing a host. They run when a case opens or grows, or by hand.",
+          buttons: templatesButton ? [templatesButton] : [],
         }}
-        noItemsMessage="No playbooks yet. Start from a template above, or create one."
+        // An empty list offers the templates, and a blank playbook.
+        noItemsMessage={
+          <SecurityPlaybookTemplatePicker
+            showIntro={true}
+            onCreateBlank={(): void => {
+              setShowCreateForm(true);
+            }}
+          />
+        }
+        showCreateForm={showCreateForm}
+        onCreateEditModalClose={(): void => {
+          setShowCreateForm(false);
+        }}
         createInitialValues={{
           isEnabled: true,
           trigger: SecurityPlaybookTrigger.CaseOpened,
@@ -302,13 +189,14 @@ const SecurityPlaybooksPage: FunctionComponent<
             required: true,
           },
           {
-            field: { minimumPriority: true },
+            field: { minimumSecurityCasePriorityId: true },
             stepId: "when",
             title: "For Cases At Least",
-            description: "Optional. Only cases of this priority or higher.",
+            description: "Only cases of this priority or higher.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority),
+            dropdownOptions: getSecurityCasePriorityOptions(
+              values?.priorities || [],
+            ),
             required: false,
           },
           {
@@ -316,7 +204,7 @@ const SecurityPlaybooksPage: FunctionComponent<
             stepId: "when",
             title: "Only For Detections From",
             description:
-              "Optional. Only when the detection behind the case came from this source.",
+              "Only when the detection behind the case came from this source.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               SecurityDetectionSource,
@@ -349,7 +237,12 @@ const SecurityPlaybooksPage: FunctionComponent<
             ),
           },
         ]}
-        selectMoreFields={{ description: true, steps: true, isEnabled: true }}
+        selectMoreFields={{
+          description: true,
+          steps: true,
+          isEnabled: true,
+          minimumSecurityCasePriority: { name: true },
+        }}
         columns={[
           {
             field: { name: true },
@@ -383,10 +276,11 @@ const SecurityPlaybooksPage: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             getElement: (item: SecurityPlaybook): ReactElement => {
+              // As every list of the Dashboard draws a switch: Enabled green, Disabled red.
               return item.isEnabled ? (
                 <Pill color={Green} text="Enabled" />
               ) : (
-                <Pill color={Gray500} text="Disabled" />
+                <Pill color={Red} text="Disabled" />
               );
             },
           },
@@ -401,12 +295,13 @@ const SecurityPlaybooksPage: FunctionComponent<
                     {translator.translateText(item.trigger || "") ||
                       item.trigger}
                   </div>
-                  {item.minimumPriority ? (
+                  {item.minimumSecurityCasePriority?.name ? (
                     <div className="text-xs text-gray-500">
                       {translator.translateTemplate("{{priority}} and up", {
                         priority:
-                          translator.translateText(item.minimumPriority) ||
-                          item.minimumPriority,
+                          translator.translateText(
+                            item.minimumSecurityCasePriority.name,
+                          ) || item.minimumSecurityCasePriority.name,
                       })}
                     </div>
                   ) : (
@@ -450,6 +345,23 @@ const SecurityPlaybooksPage: FunctionComponent<
           },
         ]}
       />
+
+      {showTemplates ? (
+        <Modal
+          title={CREATE_FROM_TEMPLATE}
+          description={PLAYBOOK_TEMPLATES_DESCRIPTION}
+          modalWidth={ModalWidth.Large}
+          // A tile acts at once: nothing waits here to be cancelled.
+          closeButtonText="Close"
+          onClose={(): void => {
+            setShowTemplates(false);
+          }}
+        >
+          <SecurityPlaybookTemplatePicker />
+        </Modal>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

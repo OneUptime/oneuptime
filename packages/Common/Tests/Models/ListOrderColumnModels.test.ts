@@ -220,6 +220,20 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Ascending,
   },
+  /*
+   * A project's security case statuses and priorities: where a status sits
+   * says what a case in it counts as; where a priority ranks is how urgent.
+   */
+  SecurityCaseStatus: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
+  SecurityCasePriority: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
 };
 
 const listModels: Array<ModelType> = (

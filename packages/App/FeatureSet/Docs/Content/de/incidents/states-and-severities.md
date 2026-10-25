@@ -167,22 +167,23 @@ Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden
 
 ## Einen Vorfall durch seine Status bewegen
 
-Es gibt vier Wege, auf denen ein Vorfall seinen Status ändert:
+Es gibt fünf Wege, auf denen ein Vorfall seinen Status ändert:
 
 | Weg                 | Wo | Was gefragt wird |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Schaltflächen der Kopfzeile** | Die Kopfzeile des Vorfalls: **Bestätigen** und **Beheben**, und **Status ändern in** in ihrem Menü **⋯** | Eine kurze Bestätigung – **Vorfall bestätigen** oder **Vorfall beheben** – mit **Statusseiten-Abonnenten benachrichtigen** und, eingeklappt unter **Öffentliche Notiz hinzufügen**, der optionalen **Öffentliche Notiz** und ihrer Auswahl **Notizvorlage auswählen** (wenn das Projekt Notizvorlagen hat). |
 | **Statuszeitachse** | **Zustands-Zeitachse** im Seitenmenü des Vorfalls | Eine von Hand hinzugefügte Zeile mit **Vorfallstatus**, **Beginnt am** und **Statusseiten-Abonnenten benachrichtigen**. |
-| **Massenänderung**  | **Status ändern** für eine Auswahl in der Vorfallliste | Eine Seite mit dem Status, **Statusseiten-Abonnenten benachrichtigen** und demselben eingeklappten **Öffentliche Notiz hinzufügen**. |
+| **Listenzeile** | Das Menü **⋯** in der Zeile eines Vorfalls in der Vorfallliste: **Bestätigen**, **Beheben** und **Status ändern** | Die Bestätigung aus dem Kopfbereich, mit dem Namen des Vorfalls. Ein Vorfall, den eine andere Änderung inzwischen weiterbewegt hat, bleibt unverändert, und der Dialog sagt, warum. |
+| **Massenänderung**  | **Bestätigen**, **Beheben** oder **Status ändern** für eine Auswahl in der Vorfallliste | Eine Seite mit dem Status, **Statusseiten-Abonnenten benachrichtigen** und demselben eingeklappten **Öffentliche Notiz hinzufügen**. |
 | **Automatisch**     | Ein Monitorkriterium oder Ihr eigener Code | Ein Kriterium mit eingeschaltetem **Vorfall automatisch beheben** behebt seinen Vorfall, wenn das Kriterium nicht mehr erfüllt ist. Die API ändert den Status, indem sie eine Zeile unter `/api/incident-state-timeline` anlegt. |
 
-Liegt der aktuelle Status vor dem bestätigten Status, bietet die Kopfzeile **Bestätigen** und **Beheben** an; liegt er zwischen beiden, nur **Beheben**. Das Bestätigen stoppt außerdem jede Bereitschaftseskalation des Vorfalls.
+Liegt der aktuelle Status vor dem bestätigten Status, bietet die Kopfzeile **Bestätigen** und **Beheben** an; liegt er zwischen beiden, nur **Beheben**. Das Bestätigen stoppt außerdem jede Bereitschaftseskalation des Vorfalls. Wer den Status des Vorfalls mit seiner Rolle nicht ändern darf, sieht die Schaltflächen gesperrt und kein Menü weiterer Status; zeigt man auf eine, nennt sie die Berechtigungen, die das erlauben würden.
 
 Jeder dieser Wege schreibt eine Zeitachsenzeile. Ein Statuswechsel tut außerdem einiges, worum Sie nicht bitten müssen: Er postet einen Eintrag in den Vorfall-Feed, ernennt einen Vorfall-Kommandanten, falls der Vorfall noch keinen hat, und aktualisiert die SLA-Uhr. Das Wiedereröffnen eines behobenen Vorfalls startet ab dem Zeitpunkt der Wiedereröffnung einen neuen SLA-Datensatz.
 
 ## Was Bestätigen bewirkt
 
-Ein Vorfall ist bestätigt ab dem Moment, in dem er in Ihren bestätigten Status wechselt, in einen Status danach – einen Status **Mitigated** oder **Investigating**, den Sie unter **Bestätigt** platziert haben – oder in einen behobenen Status, gleich auf welchem der vier Wege oben er bewegt wird. Die Spalte **Zählt als** auf der Statuseinstellungsseite zeigt, welche Status das sind. Ist er bestätigt:
+Ein Vorfall ist bestätigt ab dem Moment, in dem er in Ihren bestätigten Status wechselt, in einen Status danach – einen Status **Mitigated** oder **Investigating**, den Sie unter **Bestätigt** platziert haben – oder in einen behobenen Status, gleich auf welchem der fünf Wege oben er bewegt wird. Die Spalte **Zählt als** auf der Statuseinstellungsseite zeigt, welche Status das sind. Ist er bestätigt:
 
 - **Bestätigen wird nicht mehr angeboten.** Nicht in der Kopfzeile des Vorfalls, nicht in der mobilen App (ihre Schaltfläche und ihre Wischgeste), nicht in Slack oder Microsoft Teams und nicht über `acknowledge_incident` des OneUptime-MCP-Servers. Ihn trotzdem zu bestätigen – von einer Bereitschaftsalarmierung, aus Slack oder Teams – wird mit „Incident is already acknowledged.“ (oder „Incident is already resolved.“) abgelehnt, statt ihn in seiner Liste nach oben zurückzusetzen.
 - **Die Bereitschaft alarmiert für ihn nicht mehr.** Ein Responder, der seine Alarmierung bestätigt, nachdem ein Kollege den Vorfall bestätigt oder weiterbewegt hat, bekommt seine Alarmierung bestätigt, und der Vorfall bleibt, wo er ist.
@@ -194,7 +195,7 @@ Warnungen und Episoden folgen derselben Regel, mit Ihren Warnungsstatus.
 
 ## Was Beheben bewirkt
 
-Ein Vorfall wird behoben, wenn er von einem Status über Ihrem behobenen Status in den behobenen Status oder in einen Status danach wechselt – gleich auf welchem der vier Wege oben. Jedes Beheben:
+Ein Vorfall wird behoben, wenn er von einem Status über Ihrem behobenen Status in den behobenen Status oder in einen Status danach wechselt – gleich auf welchem der fünf Wege oben. Jedes Beheben:
 
 - **Gibt die Monitore frei, die der Vorfall hält.** Ein offen gemeldeter Vorfall hält seine Monitore: Er hat sie in seinen Status **Monitor-Status ändern in** gesetzt, wenn er einen nennt, und – von Hand gemeldet – ihre Überwachung pausiert. Auch eine Bearbeitung, während er offen ist – Monitore hinzufügen oder diesen Status ändern –, lässt ihn sie halten. Das Beheben setzt ihre Überwachung fort und setzt sie auf betriebsbereit zurück, sofern nicht ein anderer offener Vorfall noch auf ihnen liegt, und ab dann hält der Vorfall nichts mehr. Ein bereits behoben gemeldeter Vorfall gibt also nichts frei, ebenso wenig ein zweites Beheben nach einer Wiedereröffnung: Ein Status, den seine Monitore dazwischen bekamen – von ihren Proben, durch Wartung oder von Hand gesetzt –, bleibt.
 - **Markiert das SLA als behoben** und entwirft, wenn KI-Postmortem-Entwürfe von OneUptime eingeschaltet sind, ein Postmortem.

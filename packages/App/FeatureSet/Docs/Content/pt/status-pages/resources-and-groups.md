@@ -43,7 +43,7 @@ A tela é dividida em duas:
 | ---- | ------------- |
 | **Navegador de grupos** (à esquerda) | Todos os grupos da página, em árvore, com uma caixa **Search groups...** acima e uma contagem abaixo, como `3 groups · 12 resources`. Uma lista longa termina com um botão **Show N more of M**. |
 | **Top of page** | A primeira linha do navegador: os recursos sem grupo, que os visitantes veem primeiro, acima de todos os grupos. Em uma página sem grupos, o painel da direita se chama **All resources**. |
-| **Painel de recursos** (à direita) | Os recursos do grupo selecionado. Seu cabeçalho contém **Edit Group**, o botão principal **Adicionar monitor** e um menu **More actions**. |
+| **Painel de recursos** (à direita) | Os recursos do grupo selecionado. Seu cabeçalho contém **Edit Group**, o botão principal **Adicionar monitor** e um menu **Mais ações**. |
 | Cabeçalho do cartão | **New Group** e um menu de três pontos com **Import groups from CSV** e **Atualizar**. |
 
 **Os estados vazios dizem o que fazer.** Um grupo vazio mostra **No monitors here yet** com **Adicionar monitor**, **Add Multiple** e, só enquanto a página não tem nenhum grupo, **Create a Group**. Uma pesquisa sem resultados mostra **No resources match your search**.
@@ -79,7 +79,7 @@ Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que
 
 ### Adicionar vários de uma vez
 
-**Add Multiple** (também **Add multiple monitors** no menu **More actions**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
+**Add Multiple** (também **Add multiple monitors** no menu **Mais ações**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
 
 A seleção múltipla tem uma aba **Rótulos**: clique em um rótulo e cada monitor que o tem é selecionado de uma vez.
 
@@ -153,7 +153,7 @@ Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit gro
 | Onde | Ações |
 | ----- | ------- |
 | O menu da linha do navegador | **Edit group**, **Mover para cima**, **Mover para baixo**, **Mostrar ID**, **Delete group** |
-| O menu **More actions** do painel | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Atualizar**, **Delete this group** |
+| O menu **Mais ações** do painel | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Atualizar**, **Delete this group** |
 
 Um grupo salvo sem nome aparece como **Untitled group**, um bom sinal de que você queria digitar alguma coisa.
 
@@ -195,7 +195,7 @@ A ordem é você quem define, não o alfabeto:
 | O quê | Como reordenar |
 | ---- | ----------------- |
 | Recursos dentro de um grupo | Arraste uma linha. O painel avisa: **Drag a row to change the order visitors see**. |
-| Grupos entre si | **Mover para cima** / **Mover para baixo** no menu da linha do navegador, ou **Move group up** / **Move group down** em **More actions**. |
+| Grupos entre si | **Mover para cima** / **Mover para baixo** no menu da linha do navegador, ou **Move group up** / **Move group down** em **Mais ações**. |
 | Recursos sem grupo | Ficam em **Top of page** e sempre aparecem acima de todos os grupos, então coloque ali a coisa que todo mundo verifica primeiro. |
 
 **Dois casos em que arrastar fica desativado.** Pesquisar na caixa **Search in {group}...** desativa a reordenação (o painel diz `N of M shown · drag to reorder is off while filtering`), então limpe a pesquisa primeiro. E os grupos em grade nunca se reordenam arrastando, porque o lugar de um monitor vem da sua linha e da sua coluna.

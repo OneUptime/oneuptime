@@ -62,7 +62,7 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 
 **Oversigt** og **Kalender** er åbne; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
 
-Listen viser **Nummer for planlagt vedligeholdelse**, **Titel**, **Aktuel tilstand**, **Berørte ressourcer**, **Vist på statusside**, **Begynder den**, **Varighed**, **Slutter den**, **Etiketter** og **Ejere**. Vælg begivenheder for at handle på flere ad gangen: **Skift tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Slet**.
+Listen viser **Nummer for planlagt vedligeholdelse**, **Titel**, **Aktuel tilstand**, **Berørte ressourcer**, **Vist på statusside**, **Begynder den**, **Varighed**, **Slutter den**, **Etiketter** og **Ejere**. Vælg begivenheder for at handle på flere ad gangen: **Markér som {{state}}**, **Skift tilstand**, **Tildel til mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** eller **Slet**. Menuen **⋯** for enden af hver begivenheds række gør det samme for netop den begivenhed: skridtene **Markér som {{state}}**, så længe begivenheden kan tage dem, **Skift tilstand**, **Tildel til mig**, indtil du ejer den, og **Add Owner**.
 
 **Vedligeholdelseskalender** i sektionen **Kalender** viser de samme begivenheder på en måned, en uge eller en dag og kan vise kalendere uden for projektet ved siden af. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar).
 
@@ -92,7 +92,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 
 **Oversigt**, **Team** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Planlagt Vedligeholdelse Feed** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Maintenance Details** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
+- **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, hvem der ejer den, hvilke statussider den vises på, og hvem der oprettede den, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Planlagt Vedligeholdelse Feed** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Maintenance Details** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
 - **Tilstandstidslinje** — hver tilstand, begivenheden har været i, hvornår og hvor længe. Se [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states#tilstandstidslinjen).
 - **Offentlige noter** — opdateringer til dine statussider og deres abonnenter. **Private noter** er kun for dit team.
 - **Indstillinger** — **Synlig på statussiden**, som viser eller skjuler begivenheden på dens statussider, og **Send påmindelser**, som minder dens ejere om den, indtil den er fuldført. Hver kontakt gemmer, så snart du slår den om.
@@ -100,7 +100,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 ## Fejlfinding
 
 :::details En begivenhed startede ikke ved sit Begynder den
-Jobbet, der starter begivenheder, kører hvert minut, så giv det et minut. Hvis headeren viser **Start overdue**, har begivenheden overskredet sin start med mere end to minutter: start den med knappen i headeren, som gør alt, hvad jobbet gør, og åbn dens **Tilstandstidslinje** for at se, hvor den stod.
+Jobbet, der starter begivenheder, kører hvert minut, så giv det et minut. Hvis headeren viser **Start forsinket**, har begivenheden overskredet sin start med mere end to minutter: start den med knappen i headeren, som gør alt, hvad jobbet gør, og åbn dens **Tilstandstidslinje** for at se, hvor den stod.
 :::
 
 :::details En monitor blev stadig kontrolleret under vedligeholdelsen

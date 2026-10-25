@@ -12,19 +12,17 @@ import logger from "../Logger";
 import SecurityPlaybookLauncher from "../SecurityPlaybook/SecurityPlaybookLauncher";
 import SecurityCaseTriage from "../AI/Security/SecurityCaseTriage";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "./SecurityCaseValues";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import SecurityCasePriority, {
-  higherSecurityCasePriority,
-  securityCasePriorityFromSeverity,
-  securityCasePriorityRank,
-} from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import {
   SecurityEntity,
@@ -34,12 +32,14 @@ import OcsfSeverity, {
   OcsfSeverityId,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
-import Crypto from "../../../Utils/Crypto";
+import { getEntityCaseGroupingKey } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import {
   caseOpenedFromDetectionMarkdown,
   detectionAddedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import PartialEntity from "../../../Types/Database/PartialEntity";
+import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
 
 /*
  * One signal a detection source raised: a rule's match for one group, a
@@ -83,9 +83,6 @@ export interface SecurityCaseIngestResult {
   detectionsRepeated: number;
 }
 
-// The longest entity value a grouping key holds as it is; longer ones are hashed.
-const GROUPING_KEY_VALUE_LIMIT: number = 200;
-
 const LONG_TEXT_LIMIT: number = 480;
 
 function clamp(text: string, limit: number): string {
@@ -96,20 +93,19 @@ function clamp(text: string, limit: number): string {
  * What a signal is matched on to join an open case: the entity it is about,
  * so that a brute force, a password spray and a threat-intel hit on the same
  * address land in one case; or, for a signal about no particular entity, its
- * own fingerprint, so the same rule firing again joins its own case.
+ * own fingerprint, so the same rule firing again joins its own case. The
+ * entity's key is the one its risk is kept under (getEntityCaseGroupingKey:
+ * the value case folded, hashed past 200 characters), so an entity's page
+ * finds the case about it, and its risk joins that case.
  */
 export function securityCaseGroupingKey(signal: {
   groupValue?: string | undefined;
   fingerprint: string;
 }): string {
-  const value: string = (signal.groupValue || "").trim().toLowerCase();
+  const value: string = (signal.groupValue || "").trim();
 
   if (value) {
-    return `entity:${
-      value.length > GROUPING_KEY_VALUE_LIMIT
-        ? `sha256:${Crypto.getSha256Hash(value)}`
-        : value
-    }`;
+    return getEntityCaseGroupingKey(value);
   }
 
   return clamp(`detection:${signal.fingerprint}`, LONG_TEXT_LIMIT);
@@ -280,12 +276,20 @@ export default class SecurityCaseIngest {
       ),
     );
 
+    /*
+     * The project's case priorities and statuses, read once for the batch:
+     * a detection opens its case at the priority of its severity, in the
+     * new status, and joins only a case still open.
+     */
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(projectId);
+
     // Every open case a signal could land in: by its detections, or by its grouping key.
     const openCases: Map<string, SecurityCase> = new Map();
 
     const caseSelect: {
       _id: true;
-      priority: true;
+      securityCasePriorityId: true;
       groupingKey: true;
       entities: true;
       mitreTactics: true;
@@ -293,7 +297,7 @@ export default class SecurityCaseIngest {
       firstDetectedAt: true;
     } = {
       _id: true,
-      priority: true,
+      securityCasePriorityId: true,
       groupingKey: true,
       entities: true,
       mitreTactics: true,
@@ -314,7 +318,9 @@ export default class SecurityCaseIngest {
       const cases: Array<SecurityCase> = await SecurityCaseService.findBy({
         query: {
           projectId: projectId,
-          status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
+          securityCaseStatusId: new Includes(
+            SecurityCaseStatuses.getOpenStatusIds(values.statuses),
+          ),
           ...query,
         },
         select: caseSelect,
@@ -351,6 +357,7 @@ export default class SecurityCaseIngest {
             signal,
             detection: repeated,
             securityCase: openCases.get(repeated.securityCaseId!.toString())!,
+            values,
           });
           result.detectionsRepeated++;
           continue;
@@ -368,6 +375,7 @@ export default class SecurityCaseIngest {
             signal,
             securityCase: joined,
             isOpeningDetection: false,
+            values,
           });
           existingDetections.push(detection);
           result.detectionsAdded++;
@@ -390,6 +398,7 @@ export default class SecurityCaseIngest {
         const opened: SecurityCase = await this.openCase({
           signal,
           groupingKey,
+          values,
         });
         openCases.set(opened.id!.toString(), opened);
 
@@ -397,6 +406,7 @@ export default class SecurityCaseIngest {
           signal,
           securityCase: opened,
           isOpeningDetection: true,
+          values,
         });
         existingDetections.push(detection);
         result.casesOpened++;
@@ -443,15 +453,39 @@ export default class SecurityCaseIngest {
   private static async openCase(data: {
     signal: SecurityDetectionSignal;
     groupingKey: string;
+    values: ProjectSecurityCaseValues;
   }): Promise<SecurityCase> {
     const { signal } = data;
+
+    /*
+     * At the project's priority for the detection's severity - whatever it
+     * calls it - and in its new status. The case service gives a case it
+     * is handed none of the two its defaults.
+     */
+    const priority: SecurityCasePriority | null =
+      SecurityCasePriorities.getPriorityForSeverity(
+        data.values.priorities,
+        signal.severity,
+      );
+    const status: SecurityCaseStatus | null =
+      SecurityCaseStatuses.getStatusOfStage(
+        data.values.statuses,
+        SecurityCaseStage.New,
+      );
 
     const securityCase: SecurityCase = new SecurityCase();
     securityCase.projectId = signal.projectId;
     securityCase.title = clamp(signal.title, LONG_TEXT_LIMIT);
     securityCase.description = signal.description || "";
-    securityCase.priority = securityCasePriorityFromSeverity(signal.severity);
-    securityCase.status = SecurityCaseStatus.New;
+
+    if (priority?.id) {
+      securityCase.securityCasePriorityId = priority.id;
+    }
+
+    if (status?.id) {
+      securityCase.securityCaseStatusId = status.id;
+    }
+
     securityCase.source = signal.source;
     securityCase.entities = mergeSecurityEntities(
       signal.entities,
@@ -497,6 +531,7 @@ export default class SecurityCaseIngest {
     signal: SecurityDetectionSignal;
     securityCase: SecurityCase;
     isOpeningDetection: boolean;
+    values: ProjectSecurityCaseValues;
   }): Promise<SecurityDetection> {
     const { signal, securityCase } = data;
 
@@ -578,7 +613,7 @@ export default class SecurityCaseIngest {
         displayColor: Blue500,
       });
 
-      await this.widenCase({ securityCase, signal });
+      await this.widenCase({ securityCase, signal, values: data.values });
     }
 
     return created;
@@ -593,6 +628,7 @@ export default class SecurityCaseIngest {
   private static async widenCase(data: {
     securityCase: SecurityCase;
     signal: SecurityDetectionSignal;
+    values: ProjectSecurityCaseValues;
   }): Promise<void> {
     const { securityCase, signal } = data;
 
@@ -609,11 +645,22 @@ export default class SecurityCaseIngest {
       "technique",
     );
 
-    const signalPriority: SecurityCasePriority =
-      securityCasePriorityFromSeverity(signal.severity);
-    const priority: SecurityCasePriority = higherSecurityCasePriority(
-      securityCase.priority || SecurityCasePriority.Informational,
-      signalPriority,
+    /*
+     * The priority of the detection's severity, when it ranks above the
+     * case's in the project's list: a case only ever rises with a detection.
+     */
+    const signalPriority: SecurityCasePriority | null =
+      SecurityCasePriorities.getPriorityForSeverity(
+        data.values.priorities,
+        signal.severity,
+      );
+    const raisesPriority: boolean = Boolean(
+      signalPriority?.id &&
+        SecurityCasePriorities.isMoreUrgent(
+          data.values.priorities,
+          signalPriority.id,
+          securityCase.securityCasePriorityId,
+        ),
     );
 
     // Typed as the update's own payload type, which the compiler need not unfold.
@@ -641,11 +688,8 @@ export default class SecurityCaseIngest {
       update.mitreTechniques = mitreTechniques;
     }
 
-    if (
-      securityCasePriorityRank(priority) >
-      securityCasePriorityRank(securityCase.priority)
-    ) {
-      update.priority = priority;
+    if (raisesPriority && signalPriority?.id) {
+      update.securityCasePriorityId = signalPriority.id;
     }
 
     if (Object.keys(update).length === 0) {
@@ -664,13 +708,17 @@ export default class SecurityCaseIngest {
     securityCase.entities = entities as unknown as JSONArray;
     securityCase.mitreTactics = mitreTactics;
     securityCase.mitreTechniques = mitreTechniques;
-    securityCase.priority = priority;
+
+    if (raisesPriority && signalPriority?.id) {
+      securityCase.securityCasePriorityId = signalPriority.id;
+    }
   }
 
   private static async recordRepeat(data: {
     signal: SecurityDetectionSignal;
     detection: SecurityDetection;
     securityCase: SecurityCase;
+    values: ProjectSecurityCaseValues;
   }): Promise<void> {
     const { signal, detection } = data;
 
@@ -712,6 +760,10 @@ export default class SecurityCaseIngest {
       },
     });
 
-    await this.widenCase({ securityCase: data.securityCase, signal });
+    await this.widenCase({
+      securityCase: data.securityCase,
+      signal,
+      values: data.values,
+    });
   }
 }

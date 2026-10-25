@@ -1,6 +1,9 @@
+import MetricInsightFix from "./MetricInsightFix";
 import AIInsightService from "../../../Services/AIInsightService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ExceptionInsightFix from "./ExceptionInsightFix";
 import TraceInsightFix from "./TraceInsightFix";
+import LogInsightFix from "./LogInsightFix";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import {
   TelemetryAiLane,
@@ -67,6 +70,65 @@ export const TELEMETRY_AI_PERSON_FIX_PLANNERS: Readonly<
       repositoryId?: ObjectID | undefined;
     }): Promise<{ taskId: string }> => {
       return TraceInsightFix.createFixTask(data);
+    },
+  },
+  /*
+   * Exceptions: a new or rising exception's own AI task - a fix, or better
+   * handling of an expected error - and a request in Code for a service's
+   * missing stack traces (ExceptionInsightFix).
+   */
+  [TelemetryAiLane.Exception]: {
+    getSuggestion: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<TelemetryAiFixSuggestion> => {
+      return ExceptionInsightFix.getSuggestion(data);
+    },
+    createFixTask: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      repositoryId?: ObjectID | undefined;
+    }): Promise<{ taskId: string }> => {
+      return ExceptionInsightFix.createFixTask(data);
+    },
+  },
+  [TelemetryAiLane.Log]: {
+    getSuggestion: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<TelemetryAiFixSuggestion> => {
+      return LogInsightFix.getSuggestion(data);
+    },
+    createFixTask: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      repositoryId?: ObjectID | undefined;
+    }): Promise<{ taskId: string }> => {
+      return LogInsightFix.createFixTask(data);
+    },
+  },
+  [TelemetryAiLane.Metric]: {
+    getSuggestion: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<TelemetryAiFixSuggestion> => {
+      return MetricInsightFix.getSuggestion(data);
+    },
+    createFixTask: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      repositoryId?: ObjectID | undefined;
+    }): Promise<{ taskId: string }> => {
+      return MetricInsightFix.createFixTask(data);
     },
   },
 };

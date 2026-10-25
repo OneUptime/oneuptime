@@ -37,6 +37,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
 | **Entiteiten** | Gebeurtenissen | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
+| **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
 | **Detection Rules** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
 | **Rule Library** | Detections | Kant-en-klare detectieregels om toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen, met de aanbevolen regels gemarkeerd |
@@ -49,8 +50,11 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
+| **Zaakprioriteiten** | Instellingen | Hoe dringend een zaak is: de eigen prioriteiten van het project, de dringendste eerst |
+| **Zaakstatussen** | Instellingen | De stappen die een zaak doorloopt, en hoe een zaak in elke stap telt |
+| **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
 
-**Detections**, **AI** en **Connections**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
+**Detections**, **AI**, **Connections** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
 ## Voordat je begint
 

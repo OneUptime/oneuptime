@@ -110,6 +110,8 @@ enum EmailTemplateType {
   ClickhouseCapacityWarning = "ClickhouseCapacityWarning.hbs",
   RedisHealthWarning = "RedisHealthWarning.hbs",
   PostgresHealthWarning = "PostgresHealthWarning.hbs",
+  // A backup or a restore of the instance failed (Enterprise, ee/Server/Backup).
+  BackupFailed = "BackupFailed.hbs",
 
   EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",

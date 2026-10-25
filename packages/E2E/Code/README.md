@@ -72,7 +72,8 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   the Runner card's Edit, a project that turned global Runners off
   (`?uses=0`), a server with none (`?global=0`) or one not heard from
   (`?gstatus=disconnected`), and a pick the page is not shown
-  (`?runner=gone`);
+  (`?runner=gone`); in dark mode too, the field on the Global Runner, saying
+  it does not build or test the change, with its menu on the screen;
 - a task's conversation: its header (state, repository, the branch it started
   from, lines changed, Pull request), the reply box held at the bottom of the
   window, a reply continuing the same task on the same pull request, a

@@ -2,6 +2,35 @@ import { ButtonStyleType } from "../Button/Button";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import type { ReactElement } from "react";
+
+/*
+ * What a list hands a row action as it runs it, for an action that changes
+ * the row it was taken on - its state, a switch, an owner - and wants the
+ * list to show the change: `refresh` reads the list's rows again, keeping
+ * its page, sort and filters. ModelTable passes it; a list that does not
+ * passes nothing, and the action carries on without it.
+ */
+export interface RowActionContext {
+  refresh: () => void;
+}
+
+/*
+ * The question a row action asks before it runs (getConfirmation): the
+ * dialog's words, English or already in the reader's language. The submit
+ * runs the action, and the dialog stays open, its button busy, until the
+ * action says it is done (onCompleteAction) - or says why not (onError),
+ * which the dialog shows in place, so nobody has to start again.
+ */
+export interface RowActionConfirmation {
+  title: string;
+  description: string | ReactElement;
+  submitButtonText: string;
+  // PRIMARY when left out. DANGER for an action that destroys something.
+  submitButtonType?: ButtonStyleType | undefined;
+  // Drawn under the description: what the action does, say.
+  details?: ReactElement | undefined;
+}
 
 /*
  * A row shows one action as a button and puts every other action in a ⋯ menu
@@ -54,10 +83,32 @@ interface ActionButtonSchema<T extends GenericObject> {
    */
   getDisabledReason?: ((item: T) => string | undefined) | undefined;
   placement?: ActionButtonPlacement | undefined;
+  /*
+   * The kind of action this is (ActionMenuGroup, or a list's own kind): the
+   * ⋯ menu draws a gap where one kind ends and the next begins, so a long
+   * menu reads in short runs. Left out, the action sits with its unnamed
+   * neighbours, as every action always has.
+   */
+  menuGroup?: string | undefined;
+  /*
+   * The question to ask before the action runs on this row, or undefined to
+   * run it at once - Disable on a workflow says what a disabled workflow
+   * stops doing, as the bulk Disable does; Enable needs no question. The
+   * row draws the dialog (RowActions), so a list asks with no state of its
+   * own.
+   */
+  getConfirmation?:
+    | ((item: T) => RowActionConfirmation | undefined)
+    | undefined;
+  /*
+   * `context` is the list's (RowActionContext): an action that changed the
+   * row calls its refresh once the change is saved.
+   */
   onClick: (
     item: T,
     onCompleteAction: VoidFunction,
     onError: ErrorFunction,
+    context?: RowActionContext | undefined,
   ) => void;
 }
 

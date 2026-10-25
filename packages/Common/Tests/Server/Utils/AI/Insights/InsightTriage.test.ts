@@ -308,3 +308,108 @@ describe("InsightTriage.enqueueInsightTriage - a telemetry lane's problem", () =
     expect(enqueue).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * New and spiking exceptions are shared by Exceptions' AI section and AI
+ * Insights: while the section's switch is on, it is the one that counts;
+ * while it is off, AI Insights' own switch counts, as it always did. A
+ * service's missing stack traces are the section's only.
+ */
+describe("InsightTriage.enqueueInsightTriage - a kind Exceptions' AI section shares with AI Insights", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function exceptionFinding(insightType: AIInsightType): AIInsight {
+    return { id: insightId, projectId, insightType } as unknown as AIInsight;
+  }
+
+  async function isEnqueued(data: {
+    insightType: AIInsightType;
+    enableAiInsights: boolean;
+    enableAutomaticExceptionRemediation: boolean;
+  }): Promise<boolean> {
+    jest.restoreAllMocks();
+    const findProject: jest.SpyInstance = mockProject({
+      enableAiInsights: data.enableAiInsights,
+      enableAutomaticExceptionRemediation:
+        data.enableAutomaticExceptionRemediation,
+    });
+    mockProvider(true);
+    mockNonTerminalTriageRunCount(0);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "enqueue")
+      .mockResolvedValue(triageRunId);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+
+    await InsightTriage.enqueueInsightTriage({
+      insight: exceptionFinding(data.insightType),
+    });
+
+    // Read with both switches: either may be the one that counts.
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          enableAiInsights: true,
+          enableAutomaticExceptionRemediation: true,
+        }),
+      }),
+    );
+
+    return enqueue.mock.calls.length === 1;
+  }
+
+  test("the section's switch on: it counts, whatever AI Insights says", async () => {
+    for (const insightType of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ]) {
+      expect(
+        await isEnqueued({
+          insightType,
+          enableAiInsights: false,
+          enableAutomaticExceptionRemediation: true,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("the section's switch off: AI Insights' switch counts, as it always did", async () => {
+    for (const insightType of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ]) {
+      expect(
+        await isEnqueued({
+          insightType,
+          enableAiInsights: true,
+          enableAutomaticExceptionRemediation: false,
+        }),
+      ).toBe(true);
+      expect(
+        await isEnqueued({
+          insightType,
+          enableAiInsights: false,
+          enableAutomaticExceptionRemediation: false,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("missing stack traces are the section's only: AI Insights' switch never triages them", async () => {
+    expect(
+      await isEnqueued({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        enableAiInsights: true,
+        enableAutomaticExceptionRemediation: false,
+      }),
+    ).toBe(false);
+    expect(
+      await isEnqueued({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        enableAiInsights: false,
+        enableAutomaticExceptionRemediation: true,
+      }),
+    ).toBe(true);
+  });
+});

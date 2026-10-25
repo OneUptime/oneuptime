@@ -1,8 +1,7 @@
-import SecurityCasePriority, {
-  isPriorityAtLeast,
-} from "../../../Types/SecurityCase/SecurityCasePriority";
+import ObjectID from "../../../Types/ObjectID";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
 
 /*
  * Whether a playbook runs on its own for a case: pure, so the rule a
@@ -11,20 +10,24 @@ import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPla
  * The conditions read the detection that triggered the run (the one that
  * opened the case, or the one that just joined it) where they name a
  * detection - its source, its rule - and the case's priority as it is now,
- * after the detection raised it. A case opened by hand has no detection, so
- * a playbook limited to a source or to rules does not run on it.
+ * after the detection raised it, ranked by its place in the project's list
+ * (SecurityCasePriorities). A case opened by hand has no detection, so a
+ * playbook limited to a source or to rules does not run on it.
  */
 export interface PlaybookConditions {
   isEnabled: boolean;
   trigger: SecurityPlaybookTrigger | string | undefined;
-  minimumPriority?: SecurityCasePriority | string | null | undefined;
+  // One of the project's priorities; empty runs on every priority.
+  minimumPriorityId?: ObjectID | string | null | undefined;
   detectionSource?: SecurityDetectionSource | string | null | undefined;
   detectionRuleIds?: Array<string> | null | undefined;
 }
 
 export interface PlaybookTriggerEvent {
   trigger: SecurityPlaybookTrigger;
-  casePriority: SecurityCasePriority | string | undefined;
+  // The project's case priorities, which the minimum is compared through.
+  priorities: ReadonlyArray<unknown>;
+  casePriorityId: ObjectID | string | null | undefined;
   // The detection behind the event; undefined for a case opened by hand.
   detection?:
     | {
@@ -50,7 +53,13 @@ export function doesPlaybookMatch(
     return false;
   }
 
-  if (!isPriorityAtLeast(event.casePriority, playbook.minimumPriority)) {
+  if (
+    !SecurityCasePriorities.isAtLeast(
+      event.priorities,
+      event.casePriorityId,
+      playbook.minimumPriorityId,
+    )
+  ) {
     return false;
   }
 

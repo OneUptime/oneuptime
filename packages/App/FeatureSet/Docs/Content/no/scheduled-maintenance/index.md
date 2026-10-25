@@ -62,7 +62,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 
 **Oversikt** og **Kalender** er åpne; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **API** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.
 
-Listen viser **Nummer for planlagt vedlikehold**, **Tittel**, **Nåværende tilstand**, **Berørte ressurser**, **Vist på statussiden**, **Begynner den**, **Varighet**, **Slutter den**, **Etiketter** og **Eiere**. Velg hendelser for å handle på flere samtidig: **Endre tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Slett**.
+Listen viser **Nummer for planlagt vedlikehold**, **Tittel**, **Nåværende tilstand**, **Berørte ressurser**, **Vist på statussiden**, **Begynner den**, **Varighet**, **Slutter den**, **Etiketter** og **Eiere**. Velg hendelser for å handle på flere samtidig: **Merk som {{state}}**, **Endre tilstand**, **Tildel til meg**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** eller **Slett**. Menyen **⋯** på slutten av raden til hver hendelse gjør det samme for bare den hendelsen: stegene **Merk som {{state}}** så lenge hendelsen kan ta dem, **Endre tilstand**, **Tildel til meg** til du eier den, og **Add Owner**.
 
 **Vedlikeholdskalender** i delen **Kalender** viser de samme hendelsene på en måned, en uke eller en dag, og kan vise kalendere utenfor prosjektet ved siden av. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar).
 
@@ -92,7 +92,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 
 **Oversikt**, **Team** og **Notater** er åpne; de andre seksjonene forblir sammenslått til du klikker på dem.
 
-- **Oversikt** — overskriften viser hendelsens nummer, tittel og tilstand, hvor lenge det er til den starter eller hvor lenge den har pågått, og knappene som flytter den videre. Under den viser **Starter**, **Slutter** og **Varighet** det planlagte vinduet i tidssonen din. **Planlagt Vedlikehold Feed** registrerer alt som har skjedd med hendelsen, ved siden av kortene **Maintenance Details** og **Berørte ressurser**, og kortene **Målinger** og **Egendefinerte felt** når prosjektet ditt har noen.
+- **Oversikt** — overskriften viser hendelsens nummer, tittel og tilstand, hvor lenge det er til den starter eller hvor lenge den har pågått, hvem som eier den, hvilke statussider den vises på og hvem som opprettet den, og knappene som flytter den videre. Under den viser **Starter**, **Slutter** og **Varighet** det planlagte vinduet i tidssonen din. **Planlagt Vedlikehold Feed** registrerer alt som har skjedd med hendelsen, ved siden av kortene **Maintenance Details** og **Berørte ressurser**, og kortene **Målinger** og **Egendefinerte felt** når prosjektet ditt har noen.
 - **Tilstandstidslinje** — hver tilstand hendelsen har vært i, når og hvor lenge. Se [Vedlikeholdstilstander](/docs/scheduled-maintenance/states#tilstandstidslinjen).
 - **Offentlige notater** — oppdateringer til statussidene dine og abonnentene deres. **Private notater** er bare for teamet ditt.
 - **Innstillinger** — **Synlig på statussiden**, som viser eller skjuler hendelsen på statussidene dens, og **Send påminnelser**, som minner eierne om den til den er fullført. Hver bryter lagrer i det øyeblikket du slår den om.
@@ -100,7 +100,7 @@ Mens en hendelse pågår, behandler OneUptime avbruddet den planlegger, som forv
 ## Feilsøking
 
 :::details En hendelse startet ikke ved sitt Begynner den
-Jobben som starter hendelser, kjører hvert minutt, så gi den et minutt. Hvis overskriften viser **Start overdue**, har hendelsen gått glipp av starten med mer enn to minutter: start den med knappen i overskriften, som gjør alt jobben gjør, og åpne **Tilstandstidslinje** for den for å se hvor den sto.
+Jobben som starter hendelser, kjører hvert minutt, så gi den et minutt. Hvis overskriften viser **Start forsinket**, har hendelsen gått glipp av starten med mer enn to minutter: start den med knappen i overskriften, som gjør alt jobben gjør, og åpne **Tilstandstidslinje** for den for å se hvor den sto.
 :::
 
 :::details En monitor ble fortsatt sjekket under vedlikeholdet

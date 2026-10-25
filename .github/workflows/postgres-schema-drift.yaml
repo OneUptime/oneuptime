@@ -2178,13 +2178,34 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddLabelNameSortKeyPostgres.test.ts
           --forceExit
 
+      # A security case's priority and status became the project's own.
+      # Builds the tables as they were before AddSecurityCasePrioritiesAnd
+      # Statuses in an isolated schema, seeds every old priority and status
+      # on cases, playbooks, runs, notification settings, Slack and Teams
+      # rules and saved views (and text that names none of them), and runs
+      # the migration and its online keys: every project gets the scale it
+      # had, every reference names the project's own by id, and down()
+      # gives the text back.
+      - name: Test security case priorities and statuses on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_CASE_VALUES_TESTS: "true"
+          SECURITY_CASE_VALUES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_CASE_VALUES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_CASE_VALUES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddSecurityCasePrioritiesAndStatusesPostgres.test.ts
+          --forceExit
+
       # Security's Turn on recommended through its route, on copies of the
-      # migrated DetectionRule, SecurityPlaybook and SecurityLogSource tables:
-      # from nothing, twice (nothing written twice), with one write the
-      # database refuses part way (the rest written, the answer naming it),
-      # with rules added by hand, on a name column still 50 wide (and
-      # WidenDetectionRuleName widening it in place), and every Rule Library
-      # entry and playbook template created as it is.
+      # migrated DetectionRule, SecurityPlaybook, SecurityLogSource,
+      # SecurityCasePriority and SecurityCaseStatus tables: from nothing,
+      # twice (nothing written twice), with one write the database refuses
+      # part way (the rest written, the answer naming it), with rules added
+      # by hand, on a name column still 50 wide (and WidenDetectionRuleName
+      # widening it in place), and every Rule Library entry and playbook
+      # template created as it is.
       - name: Test Turn on recommended on migrated Postgres
         working-directory: packages/Common
         env:
@@ -2195,6 +2216,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/SecurityEvent/TurnOnRecommendedPostgres.test.ts
+          --forceExit
+
+      # Entity risk on copies of the migrated User, Project,
+      # SecurityEntityRisk and SecurityEntityCriticality tables, through the
+      # real services: a finding writes one row and the next about the same
+      # entity (whatever its case) adds to it, its sources and history as
+      # jsonb; the unique (projectId, entityKey) index; criticality read from
+      # its table; the refresh's riskExpiresAt <= now and forgetting a month
+      # quiet; Reset Risk's delete. The lock and the case ingest stood in.
+      - name: Test entity risk on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_ENTITY_RISK_TESTS: "true"
+          SECURITY_ENTITY_RISK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_ENTITY_RISK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_ENTITY_RISK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskPostgres.test.ts
           --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
@@ -2235,4 +2275,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest
           Tests/Server/AuditLogExport/AuditLogExporterPostgres.test.ts
+          --selectProjects server --runInBand --forceExit
+
+      # Backups (Enterprise): PostgreSQL's half with the real pg_dump and
+      # pg_restore on this job's server - a database dumped while in use,
+      # streamed into a storage, read back, restored beside the live one
+      # byte for byte, switched in with the connections to it ended, and
+      # dropped - in databases of its own. The runner image carries the
+      # PostgreSQL client tools; they are installed if it ever does not.
+      - name: Make sure pg_dump and pg_restore are here
+        run: command -v pg_dump || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Test backing up and restoring PostgreSQL on a real server (Enterprise)
+        working-directory: ee
+        env:
+          RUN_POSTGRES_BACKUP_TESTS: "true"
+          BACKUP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          BACKUP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/Backup/PostgresBackupEnginePostgres.test.ts
           --selectProjects server --runInBand --forceExit

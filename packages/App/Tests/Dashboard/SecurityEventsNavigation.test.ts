@@ -9,6 +9,7 @@ import {
   SECURITY_EVENTS_WORKSPACE_SECTION_TITLE,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
+  getSecurityEventsMenuDetailPages,
   getSecurityEventsMenuItemFor,
   getSecurityEventsMenuItems,
   getSecurityEventsMenuSectionFor,
@@ -128,7 +129,7 @@ function sectionTitled(title: string): SecurityEventsMenuSection {
 }
 
 describe("the Security Events menu", () => {
-  test("is seven sections, in the order Security works: overview, cases, events, detections, playbooks, AI, connections", () => {
+  test("is eight sections, in the order Security works: overview, cases, events, detections, playbooks, AI, connections, settings", () => {
     expect(
       SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
         return section.title;
@@ -141,6 +142,8 @@ describe("the Security Events menu", () => {
       "Playbooks",
       "AI",
       "Connections",
+      // Last, as Settings closes the Incidents' and Alerts' menus.
+      "Settings",
     ]);
   });
 
@@ -163,7 +166,8 @@ describe("the Security Events menu", () => {
           "All Cases",
         ],
       ],
-      ["Events", ["Events", "Entities", "Correlate"]],
+      // Who is riskiest, from everything found about each, beside who is named.
+      ["Events", ["Events", "Entities", "Entity Risk", "Correlate"]],
       [
         "Detections",
         ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
@@ -180,6 +184,8 @@ describe("the Security Events menu", () => {
       // What OneUptime AI does on its own; the triage is on each case.
       ["AI", ["Settings"]],
       ["Connections", ["Connections", "Setup Guide"]],
+      // The project's own scales, as Incidents and Alerts keep theirs.
+      ["Settings", ["Case Priorities", "Case Statuses", "Risk Scoring"]],
     ]);
   });
 
@@ -199,6 +205,7 @@ describe("the Security Events menu", () => {
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
       ["Entities", "SECURITY_EVENTS_ENTITIES"],
+      ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
       ["Rule Library", "SECURITY_EVENTS_RULE_LIBRARY"],
@@ -211,7 +218,29 @@ describe("the Security Events menu", () => {
       ["Settings", "SECURITY_EVENTS_SETTINGS_AI"],
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
+      ["Case Priorities", "SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
+      ["Case Statuses", "SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
+      ["Risk Scoring", "SECURITY_EVENTS_SETTINGS_RISK_SCORING"],
     ]);
+  });
+
+  test("lights Entity Risk on an entity's page, the one page in its layout no entry names", () => {
+    expect(getSecurityEventsMenuDetailPages()).toEqual([
+      "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+    ]);
+    expect(
+      getSecurityEventsMenuItems()
+        .filter((item: SecurityEventsMenuItem): boolean => {
+          return Boolean(item.detailPages && item.detailPages.length > 0);
+        })
+        .map((item: SecurityEventsMenuItem): string => {
+          return item.title;
+        }),
+    ).toEqual(["Entity Risk"]);
+    // Not one of the pages that open on their own, outside the menu.
+    expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
+      "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+    );
   });
 
   test("reaches every routed page from exactly one entry or the Workspace section, except the pages that open on their own and the old addresses", () => {
@@ -226,13 +255,14 @@ describe("the Security Events menu", () => {
       [
         ...reachable,
         ...getSecurityEventsWorkspacePages(),
+        ...getSecurityEventsMenuDetailPages(),
         ...SECURITY_EVENTS_DETAIL_PAGES,
         ...SECURITY_EVENTS_REDIRECTED_PAGES,
       ].sort(),
     ).toEqual(Object.keys(SecurityEventsRoutePath).sort());
   });
 
-  test("folds the sections set up once - Detections, AI and Connections - and keeps the everyday ones open", () => {
+  test("folds the sections set up once - Detections, AI, Connections and Settings - and keeps the everyday ones open", () => {
     expect(
       SECURITY_EVENTS_MENU.map(
         (section: SecurityEventsMenuSection): [string, boolean] => {
@@ -248,6 +278,7 @@ describe("the Security Events menu", () => {
       ["Playbooks", false],
       ["AI", true],
       ["Connections", true],
+      ["Settings", true],
     ]);
   });
 
@@ -467,6 +498,18 @@ describe("the pages' addresses", () => {
     ]);
   });
 
+  test("put the case settings at the addresses every product's settings pages have", () => {
+    expect(
+      SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES"],
+    ).toBe("settings/case-priorities");
+    expect(
+      SecurityEventsRoutePath["SECURITY_EVENTS_SETTINGS_CASE_STATUSES"],
+    ).toBe("settings/case-statuses");
+    expect(routeFor("SECURITY_EVENTS_SETTINGS_CASE_STATUSES")).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/settings/case-statuses`,
+    );
+  });
+
   test("keep the case queue's address on what it opened on, the open cases, with each other case page under it", () => {
     expect(SecurityEventsRoutePath["SECURITY_CASES"]).toBe("cases");
     expect(SecurityEventsRoutePath["SECURITY_CASES_ASSIGNED_TO_ME"]).toBe(
@@ -535,6 +578,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
       ["Security Events", "Events", "Entities"],
+      ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],
       ["Security Events", "Detections", "Rule Library"],
@@ -547,6 +591,9 @@ describe("where each page says it is", () => {
       ["Security Events", "AI", "Settings"],
       ["Security Events", "Connections"],
       ["Security Events", "Connections", "Setup Guide"],
+      ["Security Events", "Settings", "Case Priorities"],
+      ["Security Events", "Settings", "Case Statuses"],
+      ["Security Events", "Settings", "Risk Scoring"],
     ]);
   });
 

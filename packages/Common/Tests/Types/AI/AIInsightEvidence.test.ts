@@ -2,9 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import AIInsightEvidence, {
   DeployRegressionInsightEvidence,
   ExceptionInsightEvidence,
+  ExceptionStackTraceInsightEvidence,
   LatencyInsightEvidence,
+  LogInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
+  MetricInsightEvidence,
   ProfileInsightEvidence,
   TraceInsightEvidence,
 } from "../../../Types/AI/AIInsightEvidence";
@@ -37,6 +40,13 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.TraceSlowOperation]: "trace",
   [AIInsightType.TraceFailingOperation]: "trace",
   [AIInsightType.TraceMissingTracing]: "trace",
+  [AIInsightType.ExceptionMissingStackTrace]: "exceptionStackTrace",
+  [AIInsightType.LogErrorPattern]: "log",
+  [AIInsightType.LogMissingLogging]: "log",
+  [AIInsightType.LogNoisyPattern]: "log",
+  [AIInsightType.MetricHighCardinality]: "metric",
+  [AIInsightType.MetricHistogramBuckets]: "metric",
+  [AIInsightType.MetricMissingMetrics]: "metric",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -47,6 +57,9 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "deployRegression",
   "profile",
   "trace",
+  "exceptionStackTrace",
+  "log",
+  "metric",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -72,6 +85,31 @@ const exceptionEvidence: ExceptionInsightEvidence = {
   totalOccurrenceCount: 1200,
   distinctExceptionGroupCount: 3,
   firstSeenAt: "2026-09-18T10:00:00.000Z",
+  // Read by the Exceptions AI section: where the application's own code is.
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  stackFrameCount: 12,
+  ownCodeFrames: [
+    { functionName: "getOrder", fileName: "src/orders.ts", lineNumber: 42 },
+    { functionName: "", fileName: "src/routes.ts", lineNumber: 0 },
+  ],
+};
+
+const exceptionStackTraceEvidence: ExceptionStackTraceInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  windowStartTime: "2026-10-23T09:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  exceptions: [
+    {
+      telemetryExceptionId: "8f0e1d2c-3b4a-4596-8877-665544332211",
+      exceptionType: "TimeoutError",
+      exceptionMessage: "context deadline exceeded",
+      occurrenceCount: 900,
+      lastSeenAt: "2026-10-24T08:55:00.000Z",
+    },
+  ],
+  exceptionCount: 3,
+  occurrenceCount: 1240,
+  withStackTraceCount: 0,
 };
 
 const logSpikeEvidence: LogSpikeInsightEvidence = {
@@ -204,6 +242,38 @@ const traceEvidence: TraceInsightEvidence = {
   ],
 };
 
+const logEvidence: LogInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  kind: "Noisy",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  logCount: 48000,
+  errorLogCount: 12,
+  pattern: "cache hit for key <uuid>",
+  patternCount: 29760,
+  patternPercent: 62.5,
+  sampledLogCount: 48000,
+  severities: ["Debug", "Information"],
+  searchText: "cache hit for key",
+};
+
+// An attribute's values are never stored: its key, its count, its shape.
+const metricEvidence: MetricInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  kind: "HighCardinality",
+  shape: "Attribute",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  metricName: "http.server.duration",
+  unit: "s",
+  dataPointCount: 1204800,
+  attributeKey: "user.id",
+  attributeValueCount: 47912,
+  valueShape: "Number",
+  otherAttributes: [{ key: "url.full", valueCount: 12034 }],
+  hasOverflow: true,
+};
+
 describe("AIInsightEvidence", () => {
   test("every insight type maps to a known evidence section", () => {
     for (const type of Object.values(AIInsightType)) {
@@ -230,6 +300,12 @@ describe("AIInsightEvidence", () => {
     ["deployRegression", { deployRegression: deployRegressionEvidence }],
     ["profile", { profile: profileEvidence }],
     ["trace", { trace: traceEvidence }],
+    [
+      "exceptionStackTrace",
+      { exceptionStackTrace: exceptionStackTraceEvidence },
+    ],
+    ["log", { log: logEvidence }],
+    ["metric", { metric: metricEvidence }],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {
@@ -243,6 +319,47 @@ describe("AIInsightEvidence", () => {
   test("exception evidence fields are all optional", () => {
     const minimal: ExceptionInsightEvidence = {};
     expect(roundTrip({ exception: minimal })).toEqual({ exception: {} });
+  });
+
+  /*
+   * A finding filed before the Exceptions AI section read its stack trace
+   * has neither field: absent says "not read", which an empty list (a stack
+   * of library frames only) must stay told apart from.
+   */
+  test("an exception's own code frames: absent, empty and read stay three answers", () => {
+    const legacy: AIInsightEvidence = roundTrip({
+      exception: { exceptionType: "TypeError" },
+    });
+    const libraryOnly: AIInsightEvidence = roundTrip({
+      exception: { stackFrameCount: 8, ownCodeFrames: [] },
+    });
+    const ownCode: AIInsightEvidence = roundTrip({
+      exception: exceptionEvidence,
+    });
+
+    expect(legacy.exception?.ownCodeFrames).toBeUndefined();
+    expect(libraryOnly.exception?.ownCodeFrames).toEqual([]);
+    expect(libraryOnly.exception?.stackFrameCount).toBe(8);
+    expect(ownCode.exception?.ownCodeFrames?.[0]).toEqual({
+      functionName: "getOrder",
+      fileName: "src/orders.ts",
+      lineNumber: 42,
+    });
+  });
+
+  test("missing stack trace evidence keeps its counts and exceptions exactly", () => {
+    const restored: AIInsightEvidence = roundTrip({
+      exceptionStackTrace: exceptionStackTraceEvidence,
+    });
+
+    expect(restored.exceptionStackTrace?.occurrenceCount).toBe(1240);
+    expect(restored.exceptionStackTrace?.withStackTraceCount).toBe(0);
+    expect(restored.exceptionStackTrace?.exceptions[0]?.occurrenceCount).toBe(
+      900,
+    );
+    expect(restored.exceptionStackTrace?.exceptions[0]?.lastSeenAt).toBe(
+      "2026-10-24T08:55:00.000Z",
+    );
   });
 
   test("undefined optional fields are dropped by serialisation", () => {
@@ -326,6 +443,42 @@ describe("AIInsightEvidence", () => {
     expect(Object.keys(roundTrip({ trace: service }).trace!)).not.toContain(
       "operationName",
     );
+  });
+
+  test("log evidence keeps its message's pattern, its share and its severities exactly", () => {
+    const restored: AIInsightEvidence = roundTrip({ log: logEvidence });
+
+    expect(restored.log?.pattern).toBe("cache hit for key <uuid>");
+    expect(restored.log?.patternPercent).toBe(62.5);
+    expect(restored.log?.severities).toEqual(["Debug", "Information"]);
+    expect(restored.log?.searchText).toBe("cache hit for key");
+  });
+
+  test("a missing-logging finding needs no message, and a silent failure keeps its error", () => {
+    const silent: LogInsightEvidence = {
+      serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+      kind: "MissingLogging",
+      gap: "SilentFailures",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      logCount: 18400,
+      tracedLogCount: 17000,
+      operationName: "POST /checkout",
+      operationSpanCount: 2600,
+      failedSpanCount: 312,
+      failedSampleSize: 20,
+      sampleTraceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+      error: {
+        exceptionType: "TimeoutError",
+        sampleMatches: 18,
+        sampleSize: 20,
+      },
+    };
+    const restored: AIInsightEvidence = roundTrip({ log: silent });
+
+    expect(Object.keys(restored.log!)).not.toContain("pattern");
+    expect(restored.log?.error?.sampleMatches).toBe(18);
+    expect(restored.log?.failedSampleSize).toBe(20);
   });
 
   test("log spike topServices preserves order", () => {

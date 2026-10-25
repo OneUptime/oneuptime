@@ -5,9 +5,9 @@ import {
   entitiesFromObservables,
   mergeSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import SecurityCasePriority, {
-  securityCasePriorityFromSeverity,
-} from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel, {
+  securityCasePriorityLevelFromSeverity,
+} from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -48,7 +48,8 @@ export interface SecurityEventForCase {
 export interface SecurityCaseDraft {
   title: string;
   description: string;
-  priority: SecurityCasePriority;
+  // The level its severity reads as; the project's priority of it is set on the case.
+  priorityLevel: SecurityCasePriorityLevel;
   entities: Array<SecurityEntity>;
   mitreTactics: Array<string>;
   mitreTechniques: Array<string>;
@@ -179,7 +180,7 @@ export function buildCaseFromSecurityEvent(
   return {
     title,
     description: description.toString(),
-    priority: securityCasePriorityFromSeverity(event.severityName),
+    priorityLevel: securityCasePriorityLevelFromSeverity(event.severityName),
     entities: getEventEntities(event),
     mitreTactics: [...(event.mitreTactics || [])],
     mitreTechniques: [...(event.mitreTechniques || [])],

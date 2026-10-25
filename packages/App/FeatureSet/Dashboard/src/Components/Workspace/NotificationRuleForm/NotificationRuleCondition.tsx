@@ -20,6 +20,8 @@ import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -38,6 +40,9 @@ export interface ComponentProps {
   incidentSeverities: Array<IncidentSeverity>;
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  // A security case rule's: the project's own case priorities and statuses.
+  securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+  securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -196,6 +201,8 @@ const NotificationRuleConditionFormElement: FunctionComponent<
                       incidentStates: props.incidentStates,
                       scheduledMaintenanceStates:
                         props.scheduledMaintenanceStates,
+                      securityCasePriorities: props.securityCasePriorities,
+                      securityCaseStatuses: props.securityCaseStatuses,
                       monitorStatus: props.monitorStatus,
                       alertSeverities: props.alertSeverities,
                       incidentSeverities: props.incidentSeverities,
@@ -210,6 +217,8 @@ const NotificationRuleConditionFormElement: FunctionComponent<
                       incidentStates: props.incidentStates,
                       scheduledMaintenanceStates:
                         props.scheduledMaintenanceStates,
+                      securityCasePriorities: props.securityCasePriorities,
+                      securityCaseStatuses: props.securityCaseStatuses,
                       monitorStatus: props.monitorStatus,
                       alertSeverities: props.alertSeverities,
                       incidentSeverities: props.incidentSeverities,

@@ -71,7 +71,7 @@ L'onglet **Astreinte** parle de vous, pas des éléments dont vous êtes propri�
 
 L'onglet **Sécurité** parle des dossiers de sécurité que vous pouvez voir :
 
-- **Nouveau dossier de sécurité** a une priorité sous son nom : la priorité minimale des dossiers qui vous sont notifiés. Elle vaut **Élevé et Critique**, sauf si vous choisissez **Critique uniquement**, **Moyen et au-dessus**, **Faible et au-dessus** ou **Tous les dossiers**.
+- **Nouveau dossier de sécurité** a une priorité sous son nom : la priorité minimale des dossiers qui vous sont notifiés. Elle vaut **Élevé et au-dessus**, sauf si vous choisissez **Critique uniquement**, **Moyen et au-dessus**, **Faible et au-dessus** ou **Tous les dossiers**.
 - **Dossier de sécurité qui m'est attribué** suit les dossiers qui vous sont attribués, à vous ou aux équipes dont vous faites partie.
 - **Étape de playbook en attente de mon approbation** vous demande d'approuver ou de rejeter une étape de playbook sur un dossier où vous pouvez donner votre approbation.
 

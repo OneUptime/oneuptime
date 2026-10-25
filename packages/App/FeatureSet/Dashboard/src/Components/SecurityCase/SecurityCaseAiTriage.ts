@@ -9,9 +9,6 @@ import SecurityCaseAiVerdict, {
   getSecurityCaseAiVerdictDescription,
   isSecurityCaseAiVerdict,
 } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority, {
-  isSecurityCasePriority,
-} from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityPlaybookRunStatus, {
   isFinishedSecurityPlaybookRunStatus,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
@@ -100,7 +97,8 @@ export interface SecurityCaseTriageStatusView {
 // What the case itself says of its triage (its ai* columns).
 export interface SecurityCaseAiResult {
   verdict?: SecurityCaseAiVerdict | undefined;
-  suggestedPriority?: SecurityCasePriority | undefined;
+  // The id of the project's priority OneUptime AI suggested.
+  suggestedPriorityId?: string | undefined;
   suggestedPlaybookId?: string | undefined;
   report?: string | undefined;
   triagedAt?: Date | undefined;
@@ -204,21 +202,22 @@ export function parseSecurityCaseTriageStatus(
 // A case's ai* columns, as the card reads them.
 export function readSecurityCaseAiResult(securityCase: {
   aiVerdict?: unknown;
-  aiSuggestedPriority?: unknown;
+  aiSuggestedSecurityCasePriorityId?: unknown;
   aiSuggestedPlaybookId?: unknown;
   aiTriageReport?: unknown;
   aiTriagedAt?: unknown;
   aiTriagePromptInjectionSuspected?: unknown;
 }): SecurityCaseAiResult {
   const playbookId: unknown = securityCase.aiSuggestedPlaybookId;
+  const priorityId: unknown = securityCase.aiSuggestedSecurityCasePriorityId;
   const triagedAt: unknown = securityCase.aiTriagedAt;
 
   return {
     verdict: isSecurityCaseAiVerdict(securityCase.aiVerdict)
       ? securityCase.aiVerdict
       : undefined,
-    suggestedPriority: isSecurityCasePriority(securityCase.aiSuggestedPriority)
-      ? securityCase.aiSuggestedPriority
+    suggestedPriorityId: priorityId
+      ? String(priorityId) || undefined
       : undefined,
     suggestedPlaybookId: playbookId
       ? String(playbookId) || undefined
@@ -305,14 +304,19 @@ export function getSecurityCaseAiStage(data: {
 
 /*
  * Whether the card offers the suggested priority as one click: there is
- * one, and the case is at another.
+ * one, the project still has it, and the case is at another.
  */
 export function shouldOfferSuggestedPriority(data: {
-  suggestedPriority?: SecurityCasePriority | undefined;
-  currentPriority?: SecurityCasePriority | string | undefined;
+  suggestedPriorityId?: string | undefined;
+  currentPriorityId?: string | undefined;
+  isSuggestedPriorityKnown: boolean;
 }): boolean {
+  // Ids compared as Postgres compares them: by value, whatever their case.
   return Boolean(
-    data.suggestedPriority && data.suggestedPriority !== data.currentPriority,
+    data.suggestedPriorityId &&
+      data.isSuggestedPriorityKnown &&
+      data.suggestedPriorityId.toLowerCase() !==
+        (data.currentPriorityId || "").toLowerCase(),
   );
 }
 

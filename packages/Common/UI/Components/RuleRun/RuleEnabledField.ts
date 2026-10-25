@@ -1,5 +1,7 @@
 import Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 
 /*
  * Nobody creates a rule in order to have it switched off.
@@ -24,6 +26,22 @@ const SWITCH_FIELD_TYPES: ReadonlySet<FormFieldSchemaType | undefined> =
     FormFieldSchemaType.Toggle,
     FormFieldSchemaType.Checkbox,
   ]);
+
+/*
+ * Whether a rule's model has the switch: a boolean isEnabled column. Its
+ * table then offers Enable or Disable in each row (RuleTable).
+ */
+export function hasRuleEnabledColumn(model: {
+  getTableColumnMetadata: (columnName: string) => unknown;
+}): boolean {
+  const metadata: TableColumnMetadata | null | undefined =
+    model.getTableColumnMetadata(RULE_ENABLED_COLUMN) as
+      | TableColumnMetadata
+      | null
+      | undefined;
+
+  return metadata?.type === TableColumnType.Boolean;
+}
 
 // The switch a rule is turned on and off with.
 export function isRuleEnabledField<TEntity>(field: Field<TEntity>): boolean {

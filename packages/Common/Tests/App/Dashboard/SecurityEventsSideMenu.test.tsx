@@ -11,16 +11,17 @@ import { RenderResult, cleanup, fireEvent } from "@testing-library/react";
 import * as React from "react";
 
 /*
- * The Security Events side menu, rendered against the real RouteMap: seven
- * sections - Overview, Security Cases, Events, Detections, Playbooks,
- * Workspace, Connections - each holding its pages, every page an entry of
- * its own. "Can we create side menu sections instead and have different
+ * The Security Events side menu, rendered against the real RouteMap: nine
+ * sections - Overview, Security Cases, Events, Detections, Playbooks, AI,
+ * Workspace, Connections and Settings (the project's own Case Priorities and
+ * Case Statuses) - each holding its pages, every page an entry of its own. "Can we create side menu sections instead and have different
  * pages for these things?" (the maintainer, of the tabs each page carried
  * and the views along the top of the case queue).
  *
  * Pinned here: the sections and entries in order and where each links, an
- * icon of its own drawn for every entry, Detections, Workspace and
- * Connections folded on the overview and open on their own pages, exactly
+ * icon of its own drawn for every entry, Detections, AI, Workspace,
+ * Connections and Settings folded on the overview and open on their own
+ * pages, exactly
  * the entry of the page you are on lit, the counts beside Open Cases,
  * Assigned to Me and Waiting for Approval (each asking what its page
  * lists), and the phone's "Section / Page" summary.
@@ -72,7 +73,14 @@ import {
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
-import { OPEN_SECURITY_CASE_STATUSES } from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestStatuses,
+  buildTestStatus,
+} from "../../Helpers/SecurityCaseValues";
+import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
+import ModelListCache from "../../../UI/Utils/ModelListCache";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import User from "../../../UI/Utils/User";
@@ -118,6 +126,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     [
       ["Events", PageMap.SECURITY_EVENTS],
       ["Entities", PageMap.SECURITY_EVENTS_ENTITIES],
+      ["Entity Risk", PageMap.SECURITY_EVENTS_ENTITY_RISK],
       ["Correlate", PageMap.SECURITY_EVENTS_CORRELATE],
     ],
   ],
@@ -160,6 +169,15 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     [
       ["Connections", PageMap.SECURITY_EVENTS_CONNECTIONS],
       ["Setup Guide", PageMap.SECURITY_EVENTS_DOCUMENTATION],
+    ],
+  ],
+  // The project's own scales, as Incidents and Alerts keep theirs under Settings.
+  [
+    "Settings",
+    [
+      ["Case Priorities", PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES],
+      ["Case Statuses", PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES],
+      ["Risk Scoring", PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING],
     ],
   ],
 ];
@@ -222,6 +240,8 @@ describe("Security Events side menu", () => {
     countQueries.length = 0;
     jest.spyOn(User, "getUserId").mockReturnValue(new ObjectID(ME));
     goTo(`/dashboard/${PROJECT_ID}/security-events/overview`);
+    // The project's case statuses, which say which cases are open.
+    stubDashboardSecurityCaseValues();
 
     /*
      * A project with Slack and Microsoft Teams both connected, so the
@@ -243,7 +263,7 @@ describe("Security Events side menu", () => {
     ConnectedWorkspaces.reset();
   });
 
-  test("is eight sections, in the order Security works, each holding its pages", async () => {
+  test("is nine sections, in the order Security works, each holding its pages", async () => {
     await renderSecurityMenu();
 
     expect(sectionTitlesInOrder()).toEqual(
@@ -312,7 +332,7 @@ describe("Security Events side menu", () => {
     expect(new Set(drawings).size).toBe(drawings.length);
   });
 
-  test("on the overview, folds Detections, AI, Workspace and Connections and keeps the everyday sections open", async () => {
+  test("on the overview, folds Detections, AI, Workspace, Connections and Settings and keeps the everyday sections open", async () => {
     await renderSecurityMenu();
 
     expect(
@@ -328,6 +348,7 @@ describe("Security Events side menu", () => {
       ["AI", false],
       ["Workspace", false],
       ["Connections", false],
+      ["Settings", false],
     ]);
     expect(sectionBody("Detections")).toHaveClass(
       "max-h-0",
@@ -337,6 +358,7 @@ describe("Security Events side menu", () => {
     expect(sectionBody("AI")).toHaveClass("invisible");
     expect(sectionBody("Workspace")).toHaveClass("invisible");
     expect(sectionBody("Connections")).toHaveClass("invisible");
+    expect(sectionBody("Settings")).toHaveClass("invisible");
   });
 
   test("opens a folded section with one click", async () => {
@@ -361,6 +383,31 @@ describe("Security Events side menu", () => {
       );
     },
   );
+
+  test("on an entity's page, lights Entity Risk, the list it opens from, whatever entity", async () => {
+    for (const query of [
+      "?value=203.0.113.47&type=IP+Address",
+      "?value=k.morgan%40acme-commerce.example",
+      "",
+    ]) {
+      cleanup();
+      goTo(routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW));
+      // The entity is in the query, which the router's location leaves out.
+      window.history.replaceState(
+        {},
+        "",
+        `${routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW)}${query}`,
+      );
+      await renderSecurityMenu();
+
+      expect([query, activeLinkTitles()]).toEqual([query, ["Entity Risk"]]);
+      expect(isExpanded("Events")).toBe(true);
+      // The entry still opens the list, not the entity.
+      expect(entryAnchor("Events", "Entity Risk").getAttribute("href")).toBe(
+        routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
+      );
+    }
+  });
 
   test("lights nothing on a case's own page: it opens outside the menu", async () => {
     goTo(
@@ -427,24 +474,80 @@ describe("Security Events side menu", () => {
       },
     );
 
+    // Open: the project's statuses that count as open, by id.
+    const openStatusIds: Array<string> = [
+      TEST_STATUS_IDS[SecurityCaseStage.New],
+      TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+      TEST_STATUS_IDS[SecurityCaseStage.Contained],
+    ];
+
     expect(open?.["projectId"]).toBe(PROJECT_ID);
-    expect((open?.["status"] as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect((open?.["securityCaseStatusId"] as Includes).values).toEqual(
+      openStatusIds,
+    );
     expect(mine?.["projectId"]).toBe(PROJECT_ID);
     expect(mine?.["assignedToUserId"]).toEqual(new ObjectID(ME));
-    expect((mine?.["status"] as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect((mine?.["securityCaseStatusId"] as Includes).values).toEqual(
+      openStatusIds,
+    );
     // Exactly what Assigned to Me itself asks for.
     expect({ ...mine, projectId: undefined }).toEqual({
-      ...getSecurityCaseQueueQuery("mine", new ObjectID(ME)),
+      ...getSecurityCaseQueueQuery(
+        "mine",
+        new ObjectID(ME),
+        buildDefaultTestStatuses(),
+      ),
       projectId: undefined,
     });
     expect(runs[0]).toEqual({
       projectId: PROJECT_ID,
       status: SecurityPlaybookRunStatus.WaitingForApproval,
     });
+  });
+
+  test("counts a project's own open status among the open cases, and nothing before its statuses are read", async () => {
+    const eradicatingId: string = "c2000000-0000-4000-8000-0000000000a2";
+    const statuses: ReturnType<typeof buildDefaultTestStatuses> =
+      buildDefaultTestStatuses();
+    statuses[3]!.order = 5; // Closed
+    statuses.push(
+      buildTestStatus({ id: eradicatingId, name: "Eradicating", order: 4 }),
+    );
+    stubDashboardSecurityCaseValues({ statuses });
+
+    await renderSecurityMenu();
+
+    const open: Record<string, unknown> | undefined = countQueries
+      .map((entry: { query: unknown }): Record<string, unknown> => {
+        return entry.query as Record<string, unknown>;
+      })
+      .find((query: Record<string, unknown>): boolean => {
+        return (
+          Boolean(query["securityCaseStatusId"]) && !query["assignedToUserId"]
+        );
+      });
+
+    expect((open?.["securityCaseStatusId"] as Includes).values).toEqual([
+      TEST_STATUS_IDS[SecurityCaseStage.New],
+      TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+      TEST_STATUS_IDS[SecurityCaseStage.Contained],
+      eradicatingId,
+    ]);
+    cleanup();
+
+    // Statuses that cannot be read: no case count, never one of every case.
+    countQueries.length = 0;
+    jest
+      .spyOn(ModelListCache, "getList")
+      .mockRejectedValue(new Error("offline") as never);
+    await renderSecurityMenu();
+
+    expect(
+      countQueries.filter((entry: { model: string }): boolean => {
+        return entry.model === "SecurityCase";
+      }),
+    ).toEqual([]);
+    expect(badgeOf("Security Cases", "Open Cases")).toBe("");
   });
 
   test("with nobody signed in, counts no cases of their own", async () => {
@@ -494,6 +597,7 @@ describe("Security Events side menu: the Workspace section", () => {
     goTo(`/dashboard/${PROJECT_ID}/security-events/overview`);
     window.localStorage.clear();
     ConnectedWorkspaces.reset();
+    stubDashboardSecurityCaseValues();
   });
 
   afterEach(() => {
@@ -521,6 +625,7 @@ describe("Security Events side menu: the Workspace section", () => {
         "AI",
         "Workspace",
         "Connections",
+        "Settings",
       ]);
       expect(isExpanded("Workspace")).toBe(false);
 

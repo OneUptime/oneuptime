@@ -36,13 +36,15 @@ export const DASHBOARDS_ARCHIVED_TABLE_ID: string = "dashboards-archived-table";
 const DashboardsArchived: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<Dashboard>({
-    modelType: Dashboard,
-    singularName: DASHBOARD_ARCHIVE_COPY.singularName,
-    pluralName: DASHBOARD_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<Dashboard>({
+      modelType: Dashboard,
+      singularName: DASHBOARD_ARCHIVE_COPY.singularName,
+      pluralName: DASHBOARD_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -71,6 +73,8 @@ const DashboardsArchived: FunctionComponent<
     <Fragment>
       <ModelTable<Dashboard>
         modelType={Dashboard}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id={DASHBOARDS_ARCHIVED_TABLE_ID}
         userPreferencesKey={DASHBOARDS_ARCHIVED_TABLE_ID}
         topContent={filterBar}

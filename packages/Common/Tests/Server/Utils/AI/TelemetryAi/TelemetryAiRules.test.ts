@@ -365,12 +365,33 @@ describe("the lane's switch", () => {
     ]);
   });
 
+  test("Logs' switch is its own too", () => {
+    const logs: Project = new Project();
+    logs.enableAutomaticLogRemediation = true;
+    const all: Project = new Project();
+    all.enableAutomaticProfileRemediation = true;
+    all.enableAutomaticTraceRemediation = true;
+    all.enableAutomaticLogRemediation = true;
+
+    expect(TelemetryAiRules.isLaneOn(logs, TelemetryAiLane.Log)).toBe(true);
+    expect(TelemetryAiRules.isLaneOn(logs, TelemetryAiLane.Trace)).toBe(false);
+    expect(TelemetryAiRules.getLanesOn(logs)).toEqual([TelemetryAiLane.Log]);
+    expect(TelemetryAiRules.getLanesOn(all)).toEqual([
+      TelemetryAiLane.Profile,
+      TelemetryAiLane.Trace,
+      TelemetryAiLane.Log,
+    ]);
+  });
+
   test("the project select reads Enable AI and every lane's switch", () => {
     expect(TELEMETRY_AI_PROJECT_SELECT).toEqual({
       _id: true,
       enableAi: true,
       enableAutomaticProfileRemediation: true,
       enableAutomaticTraceRemediation: true,
+      enableAutomaticExceptionRemediation: true,
+      enableAutomaticLogRemediation: true,
+      enableAutomaticMetricRemediation: true,
     });
   });
 });
@@ -401,6 +422,32 @@ describe("getServiceId", () => {
     };
 
     expect(TelemetryAiRules.getServiceId(traceFinding)).toBe(BILLING);
+  });
+
+  test("a log finding's service, from its evidence when the column is unset", () => {
+    const logFinding: AIInsight = new AIInsight();
+    logFinding.evidence = {
+      log: {
+        serviceId: CHECKOUT.toUpperCase(),
+      } as unknown as NonNullable<AIInsight["evidence"]>["log"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(logFinding)).toBe(CHECKOUT);
+  });
+
+  test("a metric finding's service, from its evidence when the column is unset", () => {
+    const metricFinding: AIInsight = new AIInsight();
+    metricFinding.evidence = {
+      metric: {
+        serviceId: ` ${BILLING.toUpperCase()} `,
+      } as unknown as NonNullable<AIInsight["evidence"]>["metric"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(metricFinding)).toBe(BILLING);
+
+    // The column wins over the evidence, as for every lane.
+    metricFinding.telemetryServiceId = new ObjectID(CHECKOUT);
+    expect(TelemetryAiRules.getServiceId(metricFinding)).toBe(CHECKOUT);
   });
 });
 
@@ -529,5 +576,225 @@ describe("readRules and readServices", () => {
     await expect(
       TelemetryAiRules.decideForInsight({ insight, project: new Project() }),
     ).resolves.toBeNull();
+  });
+});
+
+/*
+ * Exceptions' AI section shares new and rising exceptions with AI Insights:
+ * the section works on them while its switch is on, and AI Insights while
+ * it is off - as it always did. A service's missing stack traces are the
+ * section's alone, switch or not, as every other lane's kinds are.
+ */
+describe("the Exceptions lane, and the kinds it shares with AI Insights", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function exceptionsProject(isOn: boolean | undefined): Project {
+    const project: Project = new Project();
+    project.enableAi = true;
+    if (isOn !== undefined) {
+      project.enableAutomaticExceptionRemediation = isOn;
+    }
+    return project;
+  }
+
+  test("its switch is the project's own column, read strictly", () => {
+    expect(
+      TelemetryAiRules.isLaneOn(
+        exceptionsProject(true),
+        TelemetryAiLane.Exception,
+      ),
+    ).toBe(true);
+    expect(
+      TelemetryAiRules.isLaneOn(
+        exceptionsProject(false),
+        TelemetryAiLane.Exception,
+      ),
+    ).toBe(false);
+    expect(
+      TelemetryAiRules.isLaneOn(
+        exceptionsProject(undefined),
+        TelemetryAiLane.Exception,
+      ),
+    ).toBe(false);
+    expect(TelemetryAiRules.getLanesOn(exceptionsProject(true))).toEqual([
+      TelemetryAiLane.Exception,
+    ]);
+  });
+
+  test("a new or rising exception is the lane's while its switch is on, and AI Insights' while it is off", () => {
+    for (const insightType of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ]) {
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(insightType, exceptionsProject(true)),
+      ).toBe(TelemetryAiLane.Exception);
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(
+          insightType,
+          exceptionsProject(false),
+        ),
+      ).toBeNull();
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(
+          insightType,
+          exceptionsProject(undefined),
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("missing stack traces, and every other lane's kinds, are their lane's whatever the switch", () => {
+    for (const isOn of [true, false]) {
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(
+          AIInsightType.ExceptionMissingStackTrace,
+          exceptionsProject(isOn),
+        ),
+      ).toBe(TelemetryAiLane.Exception);
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(
+          AIInsightType.ProfileHotspot,
+          exceptionsProject(isOn),
+        ),
+      ).toBe(TelemetryAiLane.Profile);
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(
+          AIInsightType.TraceFailingOperation,
+          exceptionsProject(isOn),
+        ),
+      ).toBe(TelemetryAiLane.Trace);
+      expect(
+        TelemetryAiRules.getLaneWorkingOn(
+          AIInsightType.ErrorLogSpike,
+          exceptionsProject(isOn),
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("the kinds the lanes work on - what AI Insights' own sweeps leave alone - follow the switch", () => {
+    const on: Array<AIInsightType> = TelemetryAiRules.getInsightTypesWorkedOn(
+      exceptionsProject(true),
+    );
+    const off: Array<AIInsightType> = TelemetryAiRules.getInsightTypesWorkedOn(
+      exceptionsProject(false),
+    );
+
+    expect(on).toContain(AIInsightType.NewException);
+    expect(on).toContain(AIInsightType.ExceptionSpike);
+    expect(off).not.toContain(AIInsightType.NewException);
+    expect(off).not.toContain(AIInsightType.ExceptionSpike);
+
+    for (const types of [on, off]) {
+      expect(types).toContain(AIInsightType.ExceptionMissingStackTrace);
+      expect(types).toContain(AIInsightType.ProfileHotspot);
+      expect(types).toContain(AIInsightType.TraceSlowOperation);
+      expect(types).not.toContain(AIInsightType.ErrorLogSpike);
+      expect(new Set(types).size).toBe(types.length);
+    }
+  });
+
+  test("an exception finding's service, from its evidence when the column is unset", () => {
+    const newException: AIInsight = new AIInsight();
+    newException.evidence = {
+      exception: {
+        serviceId: CHECKOUT.toUpperCase(),
+      } as unknown as NonNullable<AIInsight["evidence"]>["exception"],
+    };
+    const missingStackTraces: AIInsight = new AIInsight();
+    missingStackTraces.evidence = {
+      exceptionStackTrace: {
+        serviceId: BILLING,
+      } as unknown as NonNullable<AIInsight["evidence"]>["exceptionStackTrace"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(newException)).toBe(CHECKOUT);
+    expect(TelemetryAiRules.getServiceId(missingStackTraces)).toBe(BILLING);
+  });
+
+  test("reads the exception AI rules, as root", async () => {
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> = jest
+      .spyOn(AutoRemediationRuleService, "findBy")
+      .mockResolvedValue([]);
+
+    await TelemetryAiRules.readRules({
+      projectId: PROJECT_ID,
+      lane: TelemetryAiLane.Exception,
+    });
+
+    expect(
+      (findBy.mock.calls[0]![0] as unknown as JSONObject)["query"],
+    ).toEqual({
+      projectId: PROJECT_ID,
+      isEnabled: true,
+      triggerEntityType: AutoRemediationTriggerEntity.Exception,
+    });
+  });
+
+  test("decideForInsight: a new exception's rules while the switch is on; nothing of the lane's while it is off", async () => {
+    const readRules: SpyInstance<typeof AutoRemediationRuleService.findBy> =
+      jest.spyOn(AutoRemediationRuleService, "findBy").mockResolvedValue([
+        rule({
+          services: [relation(Service, CHECKOUT)],
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ]);
+    jest.spyOn(ServiceService, "findBy").mockResolvedValue([]);
+
+    const insight: AIInsight = new AIInsight();
+    insight.projectId = PROJECT_ID;
+    insight.insightType = AIInsightType.NewException;
+    insight.evidence = {
+      exception: {
+        serviceId: CHECKOUT,
+      } as unknown as NonNullable<AIInsight["evidence"]>["exception"],
+    };
+
+    const work: TelemetryAiWork | null =
+      await TelemetryAiRules.decideForInsight({
+        insight,
+        project: exceptionsProject(true),
+      });
+
+    expect(work?.skip).toBeNull();
+    expect(work?.fix).toBe(AiRuleFix.AskFirst);
+    expect(
+      (
+        (readRules.mock.calls[0]![0] as unknown as JSONObject)[
+          "query"
+        ] as JSONObject
+      )["triggerEntityType"],
+    ).toBe(AutoRemediationTriggerEntity.Exception);
+
+    readRules.mockClear();
+
+    await expect(
+      TelemetryAiRules.decideForInsight({
+        insight,
+        project: exceptionsProject(false),
+      }),
+    ).resolves.toBeNull();
+    expect(readRules).not.toHaveBeenCalled();
+  });
+
+  test("decideForInsight: missing stack traces with the switch off are the lane's, and off", async () => {
+    jest.spyOn(AutoRemediationRuleService, "findBy").mockResolvedValue([]);
+    jest.spyOn(ServiceService, "findBy").mockResolvedValue([]);
+
+    const insight: AIInsight = new AIInsight();
+    insight.projectId = PROJECT_ID;
+    insight.insightType = AIInsightType.ExceptionMissingStackTrace;
+    insight.telemetryServiceId = new ObjectID(CHECKOUT);
+
+    const work: TelemetryAiWork | null =
+      await TelemetryAiRules.decideForInsight({
+        insight,
+        project: exceptionsProject(false),
+      });
+
+    expect(work?.skip).toBe(TelemetryAiSkip.LaneOff);
   });
 });

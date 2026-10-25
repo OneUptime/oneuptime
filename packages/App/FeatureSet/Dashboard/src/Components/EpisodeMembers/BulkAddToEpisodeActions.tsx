@@ -65,6 +65,9 @@ export const ADD_TO_EXISTING_EPISODE_ACTION_TITLE: string = translationKey(
 export const ADD_TO_NEW_EPISODE_ACTION_TITLE: string =
   translationKey("Add to New Episode");
 
+// The two sit together in Bulk Actions, a run of their own (ActionMenuGroup).
+export const EPISODE_MENU_GROUP: string = "episodes";
+
 /*
  * The server's reasons, as keys the dashboard translates where the result
  * lists them (BulkUpdateForm translates a reason it has words for). A test
@@ -418,6 +421,7 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
   const addToExistingAction: BulkActionButtonSchema<T> = {
     title: ADD_TO_EXISTING_EPISODE_ACTION_TITLE,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: EPISODE_MENU_GROUP,
     icon: IconProp.Layers,
     resultLabels: {
       succeeded: {
@@ -443,6 +447,7 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
   const addToNewAction: BulkActionButtonSchema<T> = {
     title: ADD_TO_NEW_EPISODE_ACTION_TITLE,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: EPISODE_MENU_GROUP,
     icon: IconProp.PlusCircle,
     resultLabels: {
       succeeded: {

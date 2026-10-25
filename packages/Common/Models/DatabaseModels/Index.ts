@@ -165,12 +165,18 @@ import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityCasePriority from "./SecurityCasePriority";
+import SecurityCaseStatus from "./SecurityCaseStatus";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityEntityRisk from "./SecurityEntityRisk";
+import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
 import AuditLogExport from "./AuditLogExport";
+import BackupSetting from "./BackupSetting";
+import BackupRun from "./BackupRun";
 import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -593,12 +599,18 @@ const AllModelTypes: Array<{
   SecurityCase,
   SecurityCaseFeed,
   SecurityCaseNote,
+  SecurityCasePriority,
+  SecurityCaseStatus,
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,
   SecurityProtectedEntity,
+  SecurityEntityRisk,
+  SecurityEntityCriticality,
   SecurityEventDestination,
   AuditLogExport,
+  BackupSetting,
+  BackupRun,
   SecurityLogSource,
   LogScrubRule,
   MetricPipelineRule,

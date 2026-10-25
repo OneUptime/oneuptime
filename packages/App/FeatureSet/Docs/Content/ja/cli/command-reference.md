@@ -194,7 +194,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | ステータスページ | `status-page`, `status-page-announcement` |
 | 計画メンテナンス | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | チームとオンコール | `team`, `on-call-policy` |
-| セキュリティ | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
+| セキュリティ | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
 | ラベル | `label` |
 
 テレメトリは `list`、`create`、`count` を受け付けます。

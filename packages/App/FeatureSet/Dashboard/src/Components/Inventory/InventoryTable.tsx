@@ -220,10 +220,14 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
     persistKey: tableKey,
   });
 
-  const { archiveBulkActions, unarchiveBulkActions } =
-    useBulkArchiveActions<InventoryItem>({
-      modelType: InventoryItem,
-    });
+  const {
+    archiveBulkActions,
+    unarchiveBulkActions,
+    archiveRowActions,
+    unarchiveRowActions,
+  } = useBulkArchiveActions<InventoryItem>({
+    modelType: InventoryItem,
+  });
 
   const assetColumns: Columns<InventoryItem> = useMemo(() => {
     return getInventoryAssetColumns();
@@ -291,9 +295,11 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
         }}
         /*
          * Inventory follows the same list/detail contract as Services and
-         * Hosts: the row action opens the item, while changes and destructive
-         * operations live in the item's own pages with their full context.
+         * Hosts: the row's button opens the item, and its ⋯ menu holds what
+         * those lists' menus hold - Archive (Unarchive on the Archived page)
+         * and Delete. Every other change lives on the item's own pages.
          */
+        actionButtons={isArchivedView ? unarchiveRowActions : archiveRowActions}
         isDeleteable={true}
         // An archived item is off the main list already.
         deleteConfirmationWarning={

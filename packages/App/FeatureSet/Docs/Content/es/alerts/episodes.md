@@ -160,7 +160,7 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 | **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar episodio** |
 
-**Desarrolladores** y **Avanzado** empiezan plegadas. En la **Vista general**, la cabecera nombra a los **Propietarios** del episodio, primero los equipos, y el primer recuadro, **Creado**, dice cuándo se creó el episodio —**Automáticamente**, cuando lo abrió una regla de agrupación—. La tarjeta **Qué pasó** encabeza la página —la descripción del episodio y su **Causa raíz**—, después **Alertas de este episodio** y el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
+**Desarrolladores** y **Avanzado** empiezan plegadas. En la **Vista general**, la cabecera nombra a los **Propietarios** del episodio, primero los equipos, y el primer recuadro, **Creado**, dice cuándo se creó el episodio —**Automáticamente**, cuando lo abrió una regla de agrupación—. La tarjeta **Qué pasó** encabeza la página —la descripción del episodio y su **Causa raíz**—, después **Alertas de este episodio** y el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Mover el episodio a** en el menú **⋯**.
 
 **Alertas → Episodios activos** muestra los episodios que aún no se han resuelto, y la insignia a su lado los cuenta.
 

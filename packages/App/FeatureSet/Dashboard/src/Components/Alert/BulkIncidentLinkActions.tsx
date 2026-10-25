@@ -49,6 +49,9 @@ import React, { ReactElement, useState } from "react";
 export const LINK_TO_INCIDENT_ACTION_TITLE: string = "Link to Incident";
 export const DECLARE_INCIDENT_ACTION_TITLE: string = "Declare Incident";
 
+// The two sit together in Bulk Actions, a run of their own (ActionMenuGroup).
+export const INCIDENT_LINK_MENU_GROUP: string = "incident-link";
+
 export const LINK_CAP_TOOLTIP: string = `Select ${MAX_ALERTS_PER_INCIDENT_LINK_ACTION} alerts or fewer to link them to an incident.`;
 
 export const DECLARE_CAP_TOOLTIP: string = `Select ${MAX_ALERTS_PER_INCIDENT_LINK_ACTION} alerts or fewer to declare an incident from them.`;
@@ -250,6 +253,7 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
   const linkToIncidentAction: BulkActionButtonSchema<Alert> = {
     title: LINK_TO_INCIDENT_ACTION_TITLE,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: INCIDENT_LINK_MENU_GROUP,
     icon: IconProp.Link,
     onClick: async (
       actionProps: BulkActionOnClickProps<Alert>,
@@ -266,6 +270,7 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
   const declareIncidentAction: BulkActionButtonSchema<Alert> = {
     title: DECLARE_INCIDENT_ACTION_TITLE,
     buttonStyleType: ButtonStyleType.NORMAL,
+    menuGroup: INCIDENT_LINK_MENU_GROUP,
     icon: IconProp.Alert,
     onClick: async (
       actionProps: BulkActionOnClickProps<Alert>,

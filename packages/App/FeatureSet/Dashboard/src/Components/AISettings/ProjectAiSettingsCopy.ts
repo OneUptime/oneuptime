@@ -890,6 +890,21 @@ export enum ProjectAiNoticeContext {
    * traces, still found with AI off.
    */
   Traces = "Traces",
+  /*
+   * Exceptions → AI → Settings: new and rising exceptions OneUptime finds,
+   * still found with AI off.
+   */
+  Exceptions = "Exceptions",
+  /*
+   * Logs → AI → Settings: error, missing and noisy logs OneUptime finds in
+   * logs, still found with AI off.
+   */
+  Logs = "Logs",
+  /*
+   * Metrics → AI → Settings: problems OneUptime finds in metrics, and the
+   * metrics busy services do not send, still found with AI off.
+   */
+  Metrics = "Metrics",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1094,6 +1109,30 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, slow and failing operations are still found, but none are looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Exceptions]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. New and rising exceptions are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, new and rising exceptions are still found, but none are looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Logs]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Error, missing and noisy logs are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, error, missing and noisy logs are still found, but none are looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Metrics]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Problems in your metrics are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, problems in your metrics are still found, but none are looked into or fixed.",
     ),
   },
 };

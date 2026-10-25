@@ -144,10 +144,12 @@ export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {
    * The one line that says the AI agent on the affected cluster or host is
    * not a Runner choice: it is used whatever the rule picks. "Why does it
    * see an AI agent on the cluster or host? That doesn't make any sense" -
-   * the maintainer, of the picker that listed it as a Runner.
+   * the maintainer, of the picker that listed it as a Runner. Not "inside
+   * your network": a rule that picks none shows the Global Runner, and the
+   * line under the picker says no Bash command runs there.
    */
   runnerDescription: translationKey(
-    "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
+    "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.",
   ),
   // The two pull requests an investigation of a match can lead to: both on.
   codeFixTitle: translationKey("Fix pull requests"),

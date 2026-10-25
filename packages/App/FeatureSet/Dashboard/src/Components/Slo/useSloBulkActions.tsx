@@ -4,8 +4,12 @@ import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/Service
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import {
   SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
   SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
@@ -38,6 +42,14 @@ export interface SloBulkActionsResult {
    */
   archiveBulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;
   unarchiveBulkActions: Array<BulkActionButtonSchema<ServiceLevelObjective>>;
+  /*
+   * Each row's ⋯ menu: Enable or Disable (the one that changes the row),
+   * and Archive on the live list or Unarchive on the Archived page - the
+   * same split as the bulk ones.
+   */
+  rowActions: Array<ActionButtonSchema<ServiceLevelObjective>>;
+  archiveRowActions: Array<ActionButtonSchema<ServiceLevelObjective>>;
+  unarchiveRowActions: Array<ActionButtonSchema<ServiceLevelObjective>>;
   modals: ReactElement;
 }
 
@@ -77,28 +89,34 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
      * evaluated, which is how a set of them is paused while their monitors
      * are reworked. Every list reads isEnabled (SLO_TABLE_SELECT_MORE_FIELDS).
      */
-    const switchBulkActions: Array<
-      BulkActionButtonSchema<ServiceLevelObjective>
-    > = useBulkSwitchActions<ServiceLevelObjective>({
-      modelType: ServiceLevelObjective,
-      column: "isEnabled",
-      singularName: "SLO",
-      pluralName: "SLOs",
-    });
+    const {
+      bulkActions: switchBulkActions,
+      rowActions: switchRowActions,
+    }: SwitchActionsResult<ServiceLevelObjective> =
+      useSwitchActions<ServiceLevelObjective>({
+        modelType: ServiceLevelObjective,
+        column: "isEnabled",
+        singularName: "SLO",
+        pluralName: "SLOs",
+      });
 
     /*
      * Plain updates confirmed through the action bar's own dialog, so they
      * bring no modals of their own. The copy is the SLO's: the generic "will
      * keep collecting telemetry" is the opposite of what an archived SLO does.
      */
-    const { archiveBulkActions, unarchiveBulkActions } =
-      useBulkArchiveActions<ServiceLevelObjective>({
-        modelType: ServiceLevelObjective,
-        singularName: "SLO",
-        pluralName: "SLOs",
-        archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
-        unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
-      });
+    const {
+      archiveBulkActions,
+      unarchiveBulkActions,
+      archiveRowActions,
+      unarchiveRowActions,
+    } = useBulkArchiveActions<ServiceLevelObjective>({
+      modelType: ServiceLevelObjective,
+      singularName: "SLO",
+      pluralName: "SLOs",
+      archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
+      unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE,
+    });
 
     return {
       bulkActions: [
@@ -108,6 +126,9 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       ],
       archiveBulkActions: archiveBulkActions,
       unarchiveBulkActions: unarchiveBulkActions,
+      rowActions: switchRowActions,
+      archiveRowActions: archiveRowActions,
+      unarchiveRowActions: unarchiveRowActions,
       modals: (
         <>
           {labelBulkActionModals}

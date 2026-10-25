@@ -6,7 +6,9 @@
  * Pinned here:
  *  - the Profile lane: its insight type, its rules' trigger, its switch and
  *    how often it looks; and the Trace lane's, whose failing operations'
- *    pull requests wait for the investigation's verdict;
+ *    pull requests wait for the investigation's verdict; and the Exception
+ *    lane's, which shares new and spiking exceptions with AI Insights and
+ *    opens a handling fix for an expected error;
  *  - the decision: Enable AI first, then the lane's switch, then the rules -
  *    none is "investigate and fix everything" (the rule turned on by
  *    default), with rules only what they match, the careful Fix answer
@@ -27,6 +29,13 @@ import {
   TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY,
   TELEMETRY_AI_MAX_PROBLEMS_PER_SWEEP,
   TELEMETRY_AI_CODE_FAULT_CLASSIFICATION,
+  doesTelemetryAiFixVerdictOpenFix,
+  getTelemetryAiFixTaskTypes,
+  getTelemetryAiHandlingFixClassifications,
+  getTelemetryAiInsightTypesWorkedOn,
+  getTelemetryAiLaneFixTaskTypes,
+  getTelemetryAiLaneWorkingOn,
+  isTelemetryAiInsightTypeSharedWithAiInsights,
   TelemetryAiFixVerdict,
   TelemetryAiLane,
   TelemetryAiNextSteps,
@@ -49,6 +58,7 @@ import {
   isTelemetryAiWorkToDo,
 } from "../../../Types/AI/TelemetryAi";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
+import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   EVERY_CODE_REPOSITORY,
@@ -119,7 +129,7 @@ describe("the Profile lane", () => {
     ).toBe("/p1/profiles/ai/insights/i1");
 
     for (const insightType of [
-      AIInsightType.NewException,
+      AIInsightType.ErrorLogSpike,
       AIInsightType.TraceLatencyRegression,
       undefined,
       "Unknown",
@@ -172,8 +182,6 @@ describe("the Profile lane", () => {
 
   test("incident and alert AI rules, and AI Insights' own findings, belong to no lane", () => {
     for (const type of [
-      AIInsightType.NewException,
-      AIInsightType.ExceptionSpike,
       AIInsightType.ErrorLogSpike,
       AIInsightType.TraceLatencyRegression,
       AIInsightType.MetricDrift,
@@ -195,6 +203,8 @@ describe("the Profile lane", () => {
   test("isTelemetryAiLane reads exact values only", () => {
     expect(isTelemetryAiLane("Profile")).toBe(true);
     expect(isTelemetryAiLane("Trace")).toBe(true);
+    expect(isTelemetryAiLane("Exception")).toBe(true);
+    expect(isTelemetryAiLane("exception")).toBe(false);
     expect(isTelemetryAiLane("trace")).toBe(false);
     expect(isTelemetryAiLane("profile")).toBe(false);
     expect(isTelemetryAiLane("Incident")).toBe(false);
@@ -260,7 +270,7 @@ describe("the Trace lane", () => {
       AIInsightType.TraceSlowOperation,
       AIInsightType.TraceMissingTracing,
       AIInsightType.ProfileHotspot,
-      AIInsightType.NewException,
+      AIInsightType.ExceptionMissingStackTrace,
       AIInsightType.TraceLatencyRegression,
       undefined,
       "TraceFailingOperation ",
@@ -312,6 +322,527 @@ describe("the Trace lane", () => {
         classification: "infrastructure",
       }),
     ).toBe(TelemetryAiFixVerdict.NotNeeded);
+  });
+});
+
+describe("the Metric lane", () => {
+  const METRIC_TYPES: Array<AIInsightType> = [
+    AIInsightType.MetricHighCardinality,
+    AIInsightType.MetricHistogramBuckets,
+    AIInsightType.MetricMissingMetrics,
+  ];
+
+  test("files high cardinality, histogram buckets that do not fit and missing metrics, decided by metric AI rules, switched by its own column", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Metric]).toEqual({
+      lane: TelemetryAiLane.Metric,
+      triggerEntityType: AutoRemediationTriggerEntity.Metric,
+      insightTypes: METRIC_TYPES,
+      switchColumn: "enableAutomaticMetricRemediation",
+      scanEveryMinutes: 60,
+      dashboardPath: "metrics",
+      fixAfterVerdictInsightTypes: [],
+    });
+  });
+
+  test("its findings open under Metrics' AI section - a drift finding stays AI Insights'", () => {
+    for (const insightType of METRIC_TYPES) {
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/metrics/ai/insights/i1");
+      expect(getTelemetryAiLaneOfInsightType(insightType)).toBe(
+        TelemetryAiLane.Metric,
+      );
+    }
+
+    expect(
+      getAiInsightDashboardPath({
+        projectId: "p1",
+        insightId: "i1",
+        insightType: AIInsightType.MetricDrift,
+      }),
+    ).toBe("/p1/ai/insights/i1");
+    expect(
+      getTelemetryAiLaneOfInsightType(AIInsightType.MetricDrift),
+    ).toBeNull();
+    expect(
+      getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Metric),
+    ).toBe(TelemetryAiLane.Metric);
+    expect(isTelemetryAiLane("Metric")).toBe(true);
+    expect(isTelemetryAiLane("metric")).toBe(false);
+  });
+
+  test("it looks once an hour, on the hour's first look, as Traces does", () => {
+    expect(getStillFoundMinutes(TelemetryAiLane.Metric)).toBe(120);
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Metric)).toBe(60);
+
+    for (let minute: number = 0; minute < 60; minute++) {
+      const now: Date = new Date(Date.UTC(2026, 9, 24, 7, minute, 30));
+
+      expect(isTelemetryAiLaneScanTick(TelemetryAiLane.Metric, now)).toBe(
+        isTelemetryAiLaneScanTick(TelemetryAiLane.Trace, now),
+      );
+    }
+  });
+
+  /*
+   * A metric problem is in how the code records the metric, whatever an
+   * investigation finds about why: no pull request of the lane waits for a
+   * verdict.
+   */
+  test("no metric problem's pull request waits for the investigation's verdict", () => {
+    for (const insightType of METRIC_TYPES) {
+      expect(doesTelemetryAiFixWaitForVerdict(insightType)).toBe(false);
+      expect(
+        getTelemetryAiFixVerdict({
+          insightType,
+          hasTriageCompleted: false,
+          classification: undefined,
+        }),
+      ).toBe(TelemetryAiFixVerdict.NotNeeded);
+    }
+  });
+});
+
+/*
+ * Exceptions: new and rising exceptions - AI Insights' findings before the
+ * lane, still AI Insights' while its switch is off - and the services whose
+ * exceptions carry no stack trace. An exception's fix waits for the
+ * verdict, and an expected error opens one that improves its handling.
+ */
+describe("the Exception lane", () => {
+  test("files new and rising exceptions and missing stack traces, decided by exception AI rules, switched by its own column", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Exception]).toEqual({
+      lane: TelemetryAiLane.Exception,
+      triggerEntityType: AutoRemediationTriggerEntity.Exception,
+      insightTypes: [
+        AIInsightType.NewException,
+        AIInsightType.ExceptionSpike,
+        AIInsightType.ExceptionMissingStackTrace,
+      ],
+      switchColumn: "enableAutomaticExceptionRemediation",
+      scanEveryMinutes: 15,
+      dashboardPath: "exceptions",
+      fixAfterVerdictInsightTypes: [
+        AIInsightType.NewException,
+        AIInsightType.ExceptionSpike,
+      ],
+      handlingFixClassifications: ["user-error", "expected-denial"],
+      sharedWithAiInsightsInsightTypes: [
+        AIInsightType.NewException,
+        AIInsightType.ExceptionSpike,
+      ],
+      fixTaskTypes: [
+        CodeFixTaskType.FixException,
+        CodeFixTaskType.ImproveExceptionHandling,
+        CodeFixTaskType.CodeRequest,
+      ],
+    });
+  });
+
+  test("its findings open under Exceptions' AI section", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Exception]
+      .insightTypes) {
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/exceptions/ai/insights/i1");
+    }
+  });
+
+  test("its insight types and its rules lead back to it", () => {
+    for (const type of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+      AIInsightType.ExceptionMissingStackTrace,
+    ]) {
+      expect(getTelemetryAiLaneOfInsightType(type)).toBe(
+        TelemetryAiLane.Exception,
+      );
+    }
+
+    expect(
+      getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Exception),
+    ).toBe(TelemetryAiLane.Exception);
+  });
+
+  /*
+   * As AI Insights always looked for exceptions: on every look of the
+   * scanner. One missed look is not the exception going away.
+   */
+  test("it looks on every look of the scanner, and a rule's wait starts on one look", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Exception].scanEveryMinutes).toBe(
+      INSIGHT_SCAN_EVERY_MINUTES,
+    );
+    expect(getStillFoundMinutes(TelemetryAiLane.Exception)).toBe(30);
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Exception)).toBe(
+      15,
+    );
+
+    for (let minute: number = 0; minute < 24 * 60; minute += 7) {
+      const now: Date = new Date(
+        Date.UTC(2026, 9, 24, Math.floor(minute / 60), minute % 60, 30),
+      );
+
+      expect(isTelemetryAiLaneScanTick(TelemetryAiLane.Exception, now)).toBe(
+        true,
+      );
+    }
+  });
+
+  test("a new or rising exception's pull request waits for the verdict; missing stack traces do not", () => {
+    expect(doesTelemetryAiFixWaitForVerdict(AIInsightType.NewException)).toBe(
+      true,
+    );
+    expect(doesTelemetryAiFixWaitForVerdict(AIInsightType.ExceptionSpike)).toBe(
+      true,
+    );
+    expect(
+      doesTelemetryAiFixWaitForVerdict(
+        AIInsightType.ExceptionMissingStackTrace,
+      ),
+    ).toBe(false);
+  });
+
+  test("the verdict decides: a fault of the code, an expected error, or no pull request on its own", () => {
+    const verdictOf: (classification: unknown) => TelemetryAiFixVerdict = (
+      classification: unknown,
+    ): TelemetryAiFixVerdict => {
+      return getTelemetryAiFixVerdict({
+        insightType: AIInsightType.NewException,
+        hasTriageCompleted: true,
+        classification,
+      });
+    };
+
+    expect(verdictOf("code-fault")).toBe(TelemetryAiFixVerdict.CodeFault);
+    expect(verdictOf("user-error")).toBe(TelemetryAiFixVerdict.ExpectedError);
+    expect(verdictOf("expected-denial")).toBe(
+      TelemetryAiFixVerdict.ExpectedError,
+    );
+
+    for (const classification of [
+      "infrastructure",
+      "unknown",
+      "USER-ERROR",
+      null,
+      undefined,
+      7,
+    ]) {
+      expect(verdictOf(classification)).toBe(
+        TelemetryAiFixVerdict.NotCodeFault,
+      );
+    }
+
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.ExceptionSpike,
+        hasTriageCompleted: false,
+        classification: "user-error",
+      }),
+    ).toBe(TelemetryAiFixVerdict.Pending);
+  });
+
+  test("only Exceptions opens a handling fix on an expected error: a failing operation's stays code-fault only", () => {
+    expect(
+      getTelemetryAiHandlingFixClassifications(AIInsightType.ExceptionSpike),
+    ).toEqual(["user-error", "expected-denial"]);
+    expect(
+      getTelemetryAiHandlingFixClassifications(
+        AIInsightType.TraceFailingOperation,
+      ),
+    ).toEqual([]);
+    expect(
+      getTelemetryAiHandlingFixClassifications(AIInsightType.ErrorLogSpike),
+    ).toEqual([]);
+
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.TraceFailingOperation,
+        hasTriageCompleted: true,
+        classification: "user-error",
+      }),
+    ).toBe(TelemetryAiFixVerdict.NotCodeFault);
+  });
+
+  test("the verdicts that open a fix on their own", () => {
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.NotNeeded),
+    ).toBe(true);
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.CodeFault),
+    ).toBe(true);
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.ExpectedError),
+    ).toBe(true);
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.Pending),
+    ).toBe(false);
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.NotCodeFault),
+    ).toBe(false);
+  });
+
+  /*
+   * New and spiking exceptions are AI Insights' while the lane's switch is
+   * off - found, triaged and fixed by its own switches, as before the lane -
+   * and the lane's once it is on. Missing stack traces are the lane's alone.
+   */
+  test("new and spiking exceptions are shared with AI Insights; missing stack traces are not", () => {
+    expect(
+      isTelemetryAiInsightTypeSharedWithAiInsights(AIInsightType.NewException),
+    ).toBe(true);
+    expect(
+      isTelemetryAiInsightTypeSharedWithAiInsights(
+        AIInsightType.ExceptionSpike,
+      ),
+    ).toBe(true);
+
+    for (const type of [
+      AIInsightType.ExceptionMissingStackTrace,
+      AIInsightType.ProfileHotspot,
+      AIInsightType.TraceFailingOperation,
+      AIInsightType.ErrorLogSpike,
+      undefined,
+    ]) {
+      expect(isTelemetryAiInsightTypeSharedWithAiInsights(type)).toBe(false);
+    }
+  });
+
+  test("who works on a kind: its lane, but a shared kind only while the lane's switch is on", () => {
+    const allOn: (lane: TelemetryAiLane) => boolean = (): boolean => {
+      return true;
+    };
+    const allOff: (lane: TelemetryAiLane) => boolean = (): boolean => {
+      return false;
+    };
+
+    expect(getTelemetryAiLaneWorkingOn(AIInsightType.NewException, allOn)).toBe(
+      TelemetryAiLane.Exception,
+    );
+    expect(
+      getTelemetryAiLaneWorkingOn(AIInsightType.NewException, allOff),
+    ).toBeNull();
+    expect(
+      getTelemetryAiLaneWorkingOn(AIInsightType.ExceptionSpike, allOff),
+    ).toBeNull();
+
+    // A kind of the lane's alone is the lane's whatever its switch says.
+    expect(
+      getTelemetryAiLaneWorkingOn(
+        AIInsightType.ExceptionMissingStackTrace,
+        allOff,
+      ),
+    ).toBe(TelemetryAiLane.Exception);
+    expect(
+      getTelemetryAiLaneWorkingOn(AIInsightType.TraceFailingOperation, allOff),
+    ).toBe(TelemetryAiLane.Trace);
+    expect(
+      getTelemetryAiLaneWorkingOn(AIInsightType.ProfileHotspot, allOff),
+    ).toBe(TelemetryAiLane.Profile);
+    expect(
+      getTelemetryAiLaneWorkingOn(AIInsightType.ErrorLogSpike, allOn),
+    ).toBeNull();
+
+    // Only the Exceptions switch decides for exceptions.
+    expect(
+      getTelemetryAiLaneWorkingOn(
+        AIInsightType.NewException,
+        (lane: TelemetryAiLane): boolean => {
+          return lane !== TelemetryAiLane.Exception;
+        },
+      ),
+    ).toBeNull();
+  });
+
+  test("the kinds AI Insights' own sweeps leave alone follow the Exceptions switch", () => {
+    const off: Array<AIInsightType> = getTelemetryAiInsightTypesWorkedOn(
+      (): boolean => {
+        return false;
+      },
+    );
+    const on: Array<AIInsightType> = getTelemetryAiInsightTypesWorkedOn(
+      (): boolean => {
+        return true;
+      },
+    );
+
+    expect(off).not.toContain(AIInsightType.NewException);
+    expect(off).not.toContain(AIInsightType.ExceptionSpike);
+    expect(off).toContain(AIInsightType.ExceptionMissingStackTrace);
+    expect(off).toContain(AIInsightType.ProfileHotspot);
+    expect(off).toContain(AIInsightType.TraceSlowOperation);
+    expect([...on].sort()).toEqual([...getTelemetryAiInsightTypes()].sort());
+  });
+
+  test("its pull requests are the exception's own AI tasks, and a request in Code; the other lanes' a request in Code", () => {
+    expect(getTelemetryAiLaneFixTaskTypes(TelemetryAiLane.Exception)).toEqual([
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.CodeRequest,
+    ]);
+    expect(getTelemetryAiLaneFixTaskTypes(TelemetryAiLane.Profile)).toEqual([
+      CodeFixTaskType.CodeRequest,
+    ]);
+    expect(getTelemetryAiLaneFixTaskTypes(TelemetryAiLane.Trace)).toEqual([
+      CodeFixTaskType.CodeRequest,
+    ]);
+    expect([...getTelemetryAiFixTaskTypes()].sort()).toEqual(
+      [
+        CodeFixTaskType.CodeRequest,
+        CodeFixTaskType.FixException,
+        CodeFixTaskType.ImproveExceptionHandling,
+      ].sort(),
+    );
+  });
+});
+
+describe("the Log lane", () => {
+  test("files error logs, missing logging and noisy logs, decided by log AI rules, switched by its own column", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Log]).toEqual({
+      lane: TelemetryAiLane.Log,
+      triggerEntityType: AutoRemediationTriggerEntity.Log,
+      insightTypes: [
+        AIInsightType.LogErrorPattern,
+        AIInsightType.LogMissingLogging,
+        AIInsightType.LogNoisyPattern,
+      ],
+      switchColumn: "enableAutomaticLogRemediation",
+      scanEveryMinutes: 60,
+      dashboardPath: "logs",
+      fixAfterVerdictInsightTypes: [AIInsightType.LogErrorPattern],
+    });
+    expect(isTelemetryAiLane("Log")).toBe(true);
+    expect(isTelemetryAiLane("log")).toBe(false);
+    expect(isTelemetryAiLane("Logs")).toBe(false);
+  });
+
+  test("its findings and its rules lead back to it, and open under Logs' AI section", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Log]
+      .insightTypes) {
+      expect(getTelemetryAiLaneOfInsightType(insightType)).toBe(
+        TelemetryAiLane.Log,
+      );
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/logs/ai/insights/i1");
+    }
+
+    expect(getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Log)).toBe(
+      TelemetryAiLane.Log,
+    );
+    // AI Insights' own error-log spike stays AI Insights'.
+    expect(getTelemetryAiLaneOfInsightType(AIInsightType.ErrorLogSpike)).toBe(
+      null,
+    );
+  });
+
+  test("it looks once an hour, as the other lanes, and its wait starts on one look", () => {
+    expect(getStillFoundMinutes(TelemetryAiLane.Log)).toBe(120);
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Log)).toBe(60);
+
+    for (let minute: number = 0; minute < 60; minute++) {
+      const now: Date = new Date(Date.UTC(2026, 9, 24, 7, minute, 30));
+
+      expect(isTelemetryAiLaneScanTick(TelemetryAiLane.Log, now)).toBe(
+        minute < INSIGHT_SCAN_EVERY_MINUTES,
+      );
+    }
+  });
+
+  /*
+   * An error may be logged on purpose - a refused sign-in at Error - and a
+   * pull request that "fixes" that weakens a check that fired correctly:
+   * its fix waits for the investigation to find the code at fault. Missing
+   * logging and noisy logs change how the code logs, not what it does: they
+   * do not wait.
+   */
+  test("only an error log's pull request waits for the investigation's verdict", () => {
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogErrorPattern),
+    ).toBe(true);
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogMissingLogging),
+    ).toBe(false);
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogNoisyPattern),
+    ).toBe(false);
+
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.LogErrorPattern,
+        hasTriageCompleted: true,
+        classification: "expected-denial",
+      }),
+    ).toBe(TelemetryAiFixVerdict.NotCodeFault);
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.LogErrorPattern,
+        hasTriageCompleted: true,
+        classification: "code-fault",
+      }),
+    ).toBe(TelemetryAiFixVerdict.CodeFault);
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.LogNoisyPattern,
+        hasTriageCompleted: false,
+        classification: undefined,
+      }),
+    ).toBe(TelemetryAiFixVerdict.NotNeeded);
+  });
+
+  test("an error log fixed without asking is investigated first, and opens only on a code-fault verdict", () => {
+    const work: TelemetryAiWork = decideTelemetryAiWork({
+      isAiEnabled: true,
+      isLaneOn: true,
+      rules: {
+        rulesSetUp: true,
+        matchingRules: [rule({ investigates: false })],
+      },
+    });
+    const problem: TelemetryAiProblemState = {
+      firstSeenAt: new Date("2026-10-24T08:00:00.000Z"),
+      lastSeenAt: new Date("2026-10-24T08:59:00.000Z"),
+      hasInvestigation: false,
+      hasFix: false,
+      isClosed: false,
+      fixVerdict: TelemetryAiFixVerdict.Pending,
+    };
+    const now: Date = new Date("2026-10-24T09:00:00.000Z");
+
+    const waiting: TelemetryAiNextSteps = getTelemetryAiNextSteps({
+      lane: TelemetryAiLane.Log,
+      work,
+      problem,
+      now,
+    });
+
+    expect(waiting.startInvestigation).toBe(true);
+    expect(waiting.startFix).toBe(false);
+    expect(waiting.isWaitingForVerdict).toBe(true);
+
+    expect(
+      getTelemetryAiNextSteps({
+        lane: TelemetryAiLane.Log,
+        work,
+        problem: {
+          ...problem,
+          hasInvestigation: true,
+          fixVerdict: TelemetryAiFixVerdict.CodeFault,
+        },
+        now,
+      }).startFix,
+    ).toBe(true);
   });
 });
 
@@ -803,6 +1334,35 @@ describe("getTelemetryAiNextSteps", () => {
       startInvestigation: false,
       startFix: true,
     });
+  });
+
+  test("an expected error's verdict opens its fix on its own, as a fault of the code's does", () => {
+    const work: TelemetryAiWork = decide([], false);
+
+    expect(
+      steps(
+        work,
+        problem({
+          hasInvestigation: true,
+          fixVerdict: TelemetryAiFixVerdict.ExpectedError,
+        }),
+      ),
+    ).toMatchObject({
+      startInvestigation: false,
+      startFix: true,
+      isWaitingForVerdict: false,
+    });
+
+    // Asking first still leaves it to a person.
+    expect(
+      steps(
+        decide([rule({ executionMode: AutoRemediationExecutionMode.Suggest })]),
+        problem({
+          hasInvestigation: true,
+          fixVerdict: TelemetryAiFixVerdict.ExpectedError,
+        }),
+      ),
+    ).toMatchObject({ startFix: false, offerFix: true });
   });
 
   test("ask before fixing waits for no verdict: the person decides", () => {

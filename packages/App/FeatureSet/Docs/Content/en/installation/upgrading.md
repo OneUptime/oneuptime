@@ -2001,10 +2001,11 @@ Every project keeps its choice:
   to open those pull requests.
 - **Open Fix PR from this analysis** on an investigation is unchanged.
 
-A rule's **Runner** lists your own Runners only. **AI agent on the cluster or
-host** is gone from it: commands on the affected cluster or host always go
-through its AI agent, whatever the rule picks. A rule that picked none reads
-**No Runner** and fixes as before.
+A rule's **Runner** lists your own Runners and **Global Runner**.
+**AI agent on the cluster or host** is gone from it: commands on the affected
+cluster or host always go through its AI agent, whatever the rule picks. A
+rule that picked none reads **Global Runner** and fixes as before: OneUptime
+AI runs no Bash commands on a global Runner.
 
 API clients and Terraform configurations lose the project fields
 `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,

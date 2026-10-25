@@ -37,6 +37,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
 | **Entities** | Events | The users, hosts and addresses your findings name most |
+| **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
 | **Rule Library** | Detections | Ready-made detection rules to add, each with the events it reads and whether they arrive, the recommended ones marked |
@@ -49,8 +50,11 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
+| **Case Priorities** | Settings | How urgent a case is: the project's own priorities, most urgent first |
+| **Case Statuses** | Settings | The steps a case moves through, and what a case in each counts as |
+| **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
 
-**Detections**, **AI** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
+**Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 

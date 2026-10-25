@@ -18,6 +18,18 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+  buildTestPriority,
+  buildTestStatus,
+} from "../../Helpers/SecurityCaseValues";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -41,6 +53,10 @@ const NO_OPTIONS: string = "No options";
 
 const PAYMENTS_LABEL_ID: string = "a1a1a1a1a1a1a1a1a1a1a1a1";
 const SEARCH_LABEL_ID: string = "b2b2b2b2b2b2b2b2b2b2b2b2";
+
+// A priority and a status of the project's own, beside a new project's.
+const EMERGENCY_PRIORITY_ID: string = "c1000000-0000-4000-8000-0000000000e1";
+const ERADICATING_STATUS_ID: string = "c2000000-0000-4000-8000-0000000000e2";
 
 function named<T extends { _id?: string; name?: string }>(
   model: T,
@@ -68,8 +84,20 @@ function lookupProps(): {
   incidentSeverities: Array<IncidentSeverity>;
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  securityCasePriorities: Array<SecurityCasePriority>;
+  securityCaseStatuses: Array<SecurityCaseStatus>;
   monitorStatus: Array<MonitorStatus>;
 } {
+  // Most urgent first, as the project ranks them: its own Emergency on top.
+  const priorities: Array<SecurityCasePriority> = buildDefaultTestPriorities();
+  priorities.forEach((priority: SecurityCasePriority): void => {
+    priority.order = (priority.order || 0) + 1;
+  });
+
+  // Its own Eradicating step between Contained and Closed.
+  const statuses: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
+  statuses[3]!.order = 5;
+
   return {
     monitors: [named(new Monitor(), "c7c7c7c7c7c7c7c7c7c7c7c7", "API")],
     labels: projectLabels(),
@@ -91,6 +119,22 @@ function lookupProps(): {
         "c6c6c6c6c6c6c6c6c6c6c6c6",
         "Ongoing",
       ),
+    ],
+    securityCasePriorities: [
+      buildTestPriority({
+        id: EMERGENCY_PRIORITY_ID,
+        name: "Emergency",
+        order: 1,
+      }),
+      ...priorities,
+    ],
+    securityCaseStatuses: [
+      ...statuses,
+      buildTestStatus({
+        id: ERADICATING_STATUS_ID,
+        name: "Eradicating",
+        order: 4,
+      }),
     ],
     monitorStatus: [
       named(new MonitorStatus(), "c4c4c4c4c4c4c4c4c4c4c4c4", "Offline"),
@@ -819,9 +863,10 @@ describe("The saved-rule condition view", () => {
 
 /*
  * A security case rule's conditions (Security Events > Workspace > Slack or
- * Microsoft Teams): the case's title and description as text, its priority,
- * status and source as the fixed scales every project shares, and its
- * labels as the project's own.
+ * Microsoft Teams): the case's title and description as text, its priority
+ * and status as the project's own (Security Events > Settings), by id and in
+ * the project's order, its source as the fixed scale every project shares,
+ * and its labels as the project's own.
  */
 describe("A security case rule's conditions", () => {
   const SECURITY_CASE_FIELDS: Array<NotificationRuleConditionCheckOn> = [
@@ -875,7 +920,7 @@ describe("A security case rule's conditions", () => {
     expect(conditions[0]!.conditionType).toBe(ConditionType.ContainsAny);
   });
 
-  test("priority offers the fixed scale, most urgent first, and records each as written", async () => {
+  test("priority offers the project's priorities, most urgent first, and records each by id", async () => {
     const { onChange } = renderConditions(
       NotificationRuleEventType.SecurityCase,
     );
@@ -884,6 +929,7 @@ describe("A security case rule's conditions", () => {
     await openDropdown(2);
 
     expect(listedOptions()).toEqual([
+      "Emergency",
       "Critical",
       "High",
       "Medium",
@@ -891,8 +937,8 @@ describe("A security case rule's conditions", () => {
       "Informational",
     ]);
 
-    await userEvent.setup().click(screen.getByText("Critical"));
-    await pickFromDropdown({ index: 2, optionLabel: "High" });
+    await userEvent.setup().click(screen.getByText("Emergency"));
+    await pickFromDropdown({ index: 2, optionLabel: "Critical" });
 
     const conditions: Array<NotificationRuleCondition> =
       lastConditionsFrom(onChange);
@@ -900,17 +946,57 @@ describe("A security case rule's conditions", () => {
     expect(conditions[0]!.checkOn).toBe(
       NotificationRuleConditionCheckOn.SecurityCasePriority,
     );
-    expect(conditions[0]!.value).toEqual(["Critical", "High"]);
+    expect(conditions[0]!.value).toEqual([
+      EMERGENCY_PRIORITY_ID,
+      TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+    ]);
+  });
+
+  test("status offers the project's statuses, in the order a case moves through them, and records each by id", async () => {
+    const { onChange } = renderConditions(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await clickAddCondition();
+    await pickFromDropdown({
+      index: 0,
+      optionLabel: NotificationRuleConditionCheckOn.SecurityCaseStatus,
+    });
+    await pickFromDropdown({
+      index: 1,
+      optionLabel: ConditionType.ContainsAny,
+    });
+    await openDropdown(2);
+
+    expect(listedOptions()).toEqual([
+      "New",
+      "Investigating",
+      "Contained",
+      "Eradicating",
+      "Closed",
+    ]);
+
+    await userEvent.setup().click(screen.getByText("Eradicating"));
+
+    const conditions: Array<NotificationRuleCondition> =
+      lastConditionsFrom(onChange);
+
+    expect(conditions[0]!.checkOn).toBe(
+      NotificationRuleConditionCheckOn.SecurityCaseStatus,
+    );
+    expect(conditions[0]!.value).toEqual([ERADICATING_STATUS_ID]);
   });
 
   test.each([
     [
-      NotificationRuleConditionCheckOn.SecurityCaseStatus,
-      ["New", "Investigating", "Contained", "Closed"],
-    ],
-    [
       NotificationRuleConditionCheckOn.SecurityCaseSource,
-      ["Detection Rule", "Threat Intel", "Connected Product", "Manual"],
+      [
+        "Detection Rule",
+        "Threat Intel",
+        "Connected Product",
+        "Manual",
+        "Entity Risk",
+      ],
     ],
   ])(
     "%s offers its own fixed list",
@@ -1018,26 +1104,58 @@ describe("A saved security case condition, on the rule's card", () => {
   test.each([
     [
       NotificationRuleConditionCheckOn.SecurityCasePriority,
-      ["Critical", "High"],
+      [
+        EMERGENCY_PRIORITY_ID,
+        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+      ],
+      ["Emergency", "High"],
     ],
-    [NotificationRuleConditionCheckOn.SecurityCaseStatus, ["New", "Contained"]],
+    [
+      NotificationRuleConditionCheckOn.SecurityCaseStatus,
+      [TEST_STATUS_IDS[SecurityCaseStage.New], ERADICATING_STATUS_ID],
+      ["New", "Eradicating"],
+    ],
   ])(
-    "draws each %s as its own pill",
-    (checkOn: NotificationRuleConditionCheckOn, values: Array<string>) => {
+    "draws each %s as its own pill, named as the project names it",
+    (
+      checkOn: NotificationRuleConditionCheckOn,
+      ids: Array<string>,
+      names: Array<string>,
+    ) => {
       renderView({
         checkOn: checkOn,
         conditionType: ConditionType.ContainsAny,
-        value: values,
+        value: ids,
       });
 
-      for (const value of values) {
-        expect(screen.getByText(value)).toBeInTheDocument();
+      for (const name of names) {
+        expect(screen.getByText(name)).toBeInTheDocument();
       }
 
-      // One pill each, never the values run together.
-      expect(screen.queryByText(values.join(", "))).toBeNull();
+      // Never the ids, and one pill each, never the names run together.
+      for (const id of ids) {
+        expect(screen.queryByText(new RegExp(id))).toBeNull();
+      }
+
+      expect(screen.queryByText(names.join(", "))).toBeNull();
     },
   );
+
+  test("leaves out a priority the project no longer has", () => {
+    renderView({
+      checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
+      conditionType: ConditionType.ContainsAny,
+      value: [
+        "c1000000-0000-4000-8000-0000000000ff",
+        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low],
+      ],
+    });
+
+    expect(screen.getByText("Low")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/c1000000-0000-4000-8000-0000000000ff/),
+    ).toBeNull();
+  });
 
   test("names the sources it is for, as words", () => {
     renderView({

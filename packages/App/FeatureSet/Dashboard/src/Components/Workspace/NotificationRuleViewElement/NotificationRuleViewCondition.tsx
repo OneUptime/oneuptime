@@ -6,6 +6,8 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
@@ -37,6 +39,9 @@ export interface ComponentProps {
   incidentSeverities: Array<IncidentSeverity>;
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  // A security case rule's: the project's own case priorities and statuses.
+  securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+  securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -276,9 +281,9 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * A security case's priority and status are the case's own fixed scales,
-     * stored as they are written: each drawn as the pill the case pages
-     * draw it with, in its colour.
+     * A security case's priority and status are the project's own, matched
+     * by id: each drawn as the pill the case pages draw it with, in its name
+     * and colour, in the project's order.
      */
     if (
       checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority ||
@@ -286,19 +291,26 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       const isPriority: boolean =
         checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority;
+      const values: Array<SecurityCasePriority | SecurityCaseStatus> = (
+        (isPriority
+          ? props.securityCasePriorities
+          : props.securityCaseStatuses) || []
+      ).filter((value: SecurityCasePriority | SecurityCaseStatus) => {
+        return selectedIds.includes(value.id?.toString() || "");
+      });
 
       valueElement = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
-          {selectedIds.map((value: string) => {
+          {values.map((value: SecurityCasePriority | SecurityCaseStatus) => {
             return isPriority ? (
               <SecurityCasePriorityPill
-                key={value}
+                key={value.id?.toString()}
                 value={value}
                 isMinimal={true}
               />
             ) : (
               <SecurityCaseStatusPill
-                key={value}
+                key={value.id?.toString()}
                 value={value}
                 isMinimal={true}
               />

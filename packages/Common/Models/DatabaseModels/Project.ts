@@ -2183,6 +2183,84 @@ export default class Project extends TenantModel {
   public enableAutomaticSecurityCaseTriage?: boolean = undefined;
 
   /*
+   * Opening security cases from entity risk: when what the project's
+   * detection rules, threat intel and connected products found about one
+   * user, host or address in the last week adds up to
+   * securityRiskCaseThreshold, a case opens about it - or the open case
+   * about it takes the risk in (Types/SecurityCase/SecurityEntityRisk). On
+   * for new projects (ProjectService.applyNewProjectSecurityDefaults); a
+   * project that existed before keeps it off until someone turns it on under
+   * Security Events > Settings > Risk Scoring, so an upgrade opens no case
+   * nobody asked for. Risk scores are kept either way.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Open Security Cases From Entity Risk",
+    description:
+      "When on, a security case opens about a user, host or IP address whose risk reaches the threshold. On for new projects.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableSecurityRiskCases?: boolean = undefined;
+
+  /*
+   * The risk at which an entity's case opens (and its level reads High):
+   * 100 by default - two different High findings, or a High and two Medium,
+   * about the same entity within a week. A whole number from 10 to 10000;
+   * the server refuses anything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Security Risk Case Threshold",
+    description:
+      "The risk score at which a case opens about a user, host or IP address: a whole number from 10 to 10000, 100 unless changed.",
+    defaultValue: 100,
+    example: 100,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 100,
+  })
+  public securityRiskCaseThreshold?: number = undefined;
+
+  /*
    * Fixing new incidents and alerts automatically (auto-remediation): the
    * master switches, one per kind of signal, as investigation has. OFF for
    * every project, new ones included, and on purpose not among the switches
@@ -2589,6 +2667,147 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableAutomaticTraceRemediation?: boolean = undefined;
+
+  /*
+   * Exceptions → AI → Settings: "Find and fix new and rising exceptions".
+   * While it is on, OneUptime looks for new and rising exceptions on every
+   * look of its insight scanner (every 15 minutes), and for services whose
+   * exceptions carry no stack trace, files each as an insight, and
+   * OneUptime AI looks into it and opens a pull request: one that fixes the
+   * code when the investigation finds the code at fault, one that improves
+   * how the code handles an expected error, or one that makes a service
+   * record stack traces - in a connected repository, on the Runner that
+   * repository picks, never merged (Utils/Exceptions/ExceptionInsight).
+   * Exception AI rules (AutoRemediationRule with triggerEntityType
+   * Exception), when there are any, narrow which services' exceptions are
+   * worked on and how (Types/AI/TelemetryAi). New and spiking exceptions
+   * were AI Insights' before: while this is off they still are, as AI
+   * Insights' own switches say. On for new projects, off for projects that
+   * existed before, so an upgrade changes nothing about how their
+   * exceptions are handled. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Exception Remediation",
+    description:
+      "When enabled, OneUptime looks every 15 minutes for new exceptions, exceptions that suddenly happen far more often than usual, and services whose exceptions carry no stack trace, and files each as an insight; OneUptime AI looks into it and opens a pull request in a repository connected in Code: one that fixes the code when the investigation finds the code at fault, one that improves how the code handles an expected error such as invalid input, or one that makes the service record stack traces. An exception's pull request opens only for an exception raised in your own code. Pull requests are never merged automatically, and honor the repository's open pull request cap. Exception AI rules, when there are any, choose which services' exceptions are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. While this is off, new and spiking exceptions are handled by AI Insights' own settings. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticExceptionRemediation?: boolean = undefined;
+
+  /*
+   * Logs → AI → Settings: "Find and fix error, missing and noisy logs".
+   * While it is on, OneUptime reads each service's logs once an hour for an
+   * error it logs again and again (with no exception: an error with one is
+   * the Exceptions product's), for requests that fail without writing a log
+   * line, for logs that carry no trace context, and for one line that floods
+   * them (Utils/Logs/LogInsight), files each as an insight, and OneUptime AI
+   * looks into it and opens a pull request that fixes the code behind the
+   * error, logs what is not logged, or logs the noisy line less - in a
+   * connected repository, on the Runner that repository picks, never
+   * merged. An error log's pull request opens on its own only once the
+   * investigation found the code at fault. Log AI rules
+   * (AutoRemediationRule with triggerEntityType Log), when there are any,
+   * narrow which services' problems are worked on and how
+   * (Types/AI/TelemetryAi). On for new projects, off for projects that
+   * existed before, so an upgrade spends no AI credits and opens no pull
+   * request unasked. Enable AI turns it off with everything else.
+   */
+  /*
+   * Metrics → AI → Settings: "Improve metrics and add missing ones". While
+   * it is on, OneUptime reads each hour's metrics for attributes that take
+   * too many values (and metric names with ids in them), for histograms
+   * whose buckets do not fit their values, and for busy services that send
+   * traces but no metrics (Utils/Metrics/MetricInsight), files each as an
+   * insight, and OneUptime AI looks into it and opens a pull request that
+   * improves the metric or adds the missing ones - in a connected
+   * repository, on the Runner that repository picks, never merged. Metric
+   * AI rules (AutoRemediationRule with triggerEntityType Metric), when there
+   * are any, narrow which services' problems are worked on and how
+   * (Types/AI/TelemetryAi). On for new projects, off for projects that
+   * existed before, so an upgrade spends no AI credits and opens no pull
+   * request unasked. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Metric Remediation",
+    description:
+      "When enabled, OneUptime reads each hour's metrics for attributes that take too many values (such as user IDs or full URLs) and metric names with IDs in them, for histograms whose buckets do not fit the values they record, and for busy services that send traces but no metrics, and files each as an insight; OneUptime AI looks into it and opens a pull request that improves the metric or adds the missing metrics, in a repository connected in Code. Pull requests are never merged automatically, and honor the repository's open pull request cap. Metric AI rules, when there are any, choose which services' problems are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticMetricRemediation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Log Remediation",
+    description:
+      "When enabled, OneUptime reads each service's logs once an hour for an error message it logs again and again (one without an exception: errors with an exception are fixed from Exceptions), for requests that fail without writing a log line, for logs that carry no trace context, and for one message that makes up a large share of its logs, and files each as an insight; OneUptime AI looks into it and opens a pull request that fixes the code behind the error, adds the logging that is missing or logs the noisy message less, in a repository connected in Code. An error log's pull request opens on its own only once the investigation finds the code at fault. Pull requests never copy log lines, are never merged automatically, and honor the repository's open pull request cap. Log AI rules, when there are any, choose which services' problems are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticLogRemediation?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],

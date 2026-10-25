@@ -59,13 +59,14 @@ De fyra flaggade tillstånden har märket **Inbyggd** på inställningssidan. Du
 | Sätt             | Var                                                                                         | Vad det frågar efter                                                                                            |
 | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Klockan**      | Ett jobb som körs varje minut                                                               | Ingenting: vid **Börjar den** flyttar det en väntande händelse till **Pågående**, och vid **Slutar den** en pågående till **Avslutad**. |
-| **Sidhuvudet**   | Händelsens **Översikt**: knapparna **Markera som {{state}}**, och **Change state to** i dess meny **⋯** | En kort dialog, **Markera schemalagt underhåll som {{state}}**, med **Meddela statussideprenumeranter** och en valfri anteckning under **Lägg till en offentlig anteckning**. |
+| **Sidhuvudet**   | Händelsens **Översikt**: knapparna **Markera som {{state}}**, och **Ändra tillstånd till** i dess meny **⋯** | En kort dialog, **Markera schemalagt underhåll som {{state}}**, med **Meddela statussideprenumeranter** och en valfri anteckning under **Lägg till en offentlig anteckning**. |
 | **Tidslinjen**   | **Tillståndstidslinje** i händelsens sidomeny                                               | En rad som du lägger till manuellt, med **Status för schemalagt underhåll** och **Börjar den**.                 |
-| **Massändring**  | **Ändra tillstånd** på ett urval i listan över händelser                                    | Tillståndet, och en offentlig anteckning som läggs till varje händelse. Händelser som redan är i tillståndet eller förbi det hoppas över. |
+| **En rad i listan** | Menyn **⋯** på en händelses rad i listan över händelser: stegen **Markera som {{state}}** och **Ändra tillstånd** | Dialogen från sidhuvudet, med händelsens namn. En händelse som en annan ändring har flyttat under tiden lämnas som den är, och dialogen säger varför. |
+| **Massändring**  | **Markera som {{state}}** eller **Ändra tillstånd** på ett urval i listan över händelser                                    | Tillståndet, och en offentlig anteckning som läggs till varje händelse. Händelser som redan är i tillståndet eller förbi det hoppas över. |
 | **Chatt**        | Knapparna på händelsens meddelanden i Slack och Microsoft Teams                             | Samma ändring, gjord som du. Se [Slack](/docs/workspace-connections/slack#agera-på-incidenter-larm-och-händelser-från-slack). |
 | **API:et**       | En rad skapad på `/api/scheduled-maintenance-state-timeline`                                | Tillståndet, och om prenumeranterna får veta.                                                                   |
 
-Sidhuvudets knappar är namngivna efter dina tillstånd. Medan händelsen väntar erbjuder det två: en som startar den, namngiven efter ditt pågående tillstånd, och en som avslutar den, namngiven efter ditt avslutade tillstånd. Medan händelsen pågår, bara den andra. Menyn **⋯** listar varje annat tillstånd efter det nuvarande.
+Sidhuvudets knappar är namngivna efter dina tillstånd. Medan händelsen väntar erbjuder det två: en som startar den, namngiven efter ditt pågående tillstånd, och en som avslutar den, namngiven efter ditt avslutade tillstånd. Medan händelsen pågår, bara den andra. Menyn **⋯** listar varje annat tillstånd efter det nuvarande. Den som med sin roll inte får ändra händelsens tillstånd ser knapparna låsta och ingen meny med andra tillstånd: pekar du på en nämner den behörigheterna som skulle tillåta det.
 
 ## Vad start och avslut gör
 
@@ -83,8 +84,8 @@ Att gå vidare från **Pågående** till "Kontrolleras", eller från **Avslutad*
 
 Före starten räknar sidhuvudet ned till den; medan händelsen pågår räknar det hur länge den har pågått; när den är över säger det hur lång tid den tog. När händelsen missar en gräns med mer än två minuter säger ett gult meddelande det:
 
-- **Start overdue**: händelsen väntar fortfarande efter sitt **Börjar den**.
-- **Overrunning**: händelsen pågår fortfarande efter sitt **Slutar den**.
+- **Start försenad**: händelsen väntar fortfarande efter sitt **Börjar den**.
+- **Drar över tiden**: händelsen pågår fortfarande efter sitt **Slutar den**.
 
 Meddelandet nämner den planerade tiden och det tillstånd händelsen ännu inte har nått. Direkt efter en gräns har jobbet som flyttar händelser kanske inte körts ännu, så de närmaste minuterna kontrollerar sidhuvudet igen av sig självt och visar det nya tillståndet utan att sidan laddas om.
 
@@ -125,7 +126,7 @@ Ett tillstånd som du lägger till har ingen flagga, så dess plats är det som 
 | Mellan **Avslutad** och **Slutförd**    | Är över, men inte slutförd ännu: påminnelser som löper till slutförande fortsätter.                              |
 | Under **Slutförd**                      | Är slutförd, som i **Slutförd**.                                                                                 |
 
-Håll dina tillstånd under **Schemalagd**: varje ny händelse börjar där, och en händelse går aldrig uppåt i listan igen, så ett tillstånd ovanför det nås aldrig. Du flyttar en händelse till ett eget tillstånd från menyn **⋯** i dess sidhuvud, under **Change state to**.
+Håll dina tillstånd under **Schemalagd**: varje ny händelse börjar där, och en händelse går aldrig uppåt i listan igen, så ett tillstånd ovanför det nås aldrig. Du flyttar en händelse till ett eget tillstånd från menyn **⋯** i dess sidhuvud, under **Ändra tillstånd till**.
 
 > [!NOTE]
 > På OneUptime Cloud krävs abonnemanget **Growth** eller högre för att lägga till eller ändra underhållstillstånd. Alla abonnemang kan läsa dem, använda dem och ta bort ett tillstånd du har lagt till.
@@ -159,7 +160,7 @@ Tillstånd rör sig bara nedåt i listan. Ta bort raderna efter det tillstånd d
 :::
 
 :::details Det slutförda tillståndet saknas bland sidhuvudets knappar
-Sidhuvudets knappar startar och avslutar händelsen. Att slutföra den finns i menyn **⋯**, under **Change state to**.
+Sidhuvudets knappar startar och avslutar händelsen. Att slutföra den finns i menyn **⋯**, under **Ändra tillstånd till**.
 :::
 
 ## Nästa steg

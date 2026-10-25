@@ -7,6 +7,7 @@ Mätvärden är siffrorna som dina tjänster och din infrastruktur rapporterar �
 - [Visa ett mätvärde i ett diagram](#visa-ett-mätvärde-i-ett-diagram): Aggregera, filtrera och gruppera en fråga.
 - [Kombinera frågor med en formel](#kombinera-frågor-med-en-formel): Felfrekvenser och andra kvoter.
 - [Använd det du har visat i diagrammet](#använd-det-du-har-visat-i-diagrammet): En monitor, en widget på en instrumentpanel eller en länk.
+- [Förbättra mätvärden och lägg till de som saknas med AI](#förbättra-mätvärden-och-lägg-till-de-som-saknas-med-ai): Pull requests som åtgärdar dina mätvärden och lägger till dem en tjänst saknar.
 :::
 
 ## Så fungerar utforskaren
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["En widget på en<br/>instrumentpanel"]
 ```
 
-Utforskaren har fyra flikar:
+Utforskaren har fem flikar:
 
 | Flik | Vad den är till för |
 | --- | --- |
 | **Tittare** | Listan över mätvärden, vart och ett med ett litet diagram och sitt senaste värde. Den öppnas på den senaste timmen. |
 | **Insikter** | Vilka tjänster som rapporterar mätvärden, och hur många. |
+| **AI** | Problemen som OneUptime hittar i dina mätvärden (för många värden, histogram-buckets som inte passar, saknade mätvärden), och vad OneUptime AI gjorde åt dem. Se [Förbättra mätvärden och lägg till de som saknas med AI](#förbättra-mätvärden-och-lägg-till-de-som-saknas-med-ai). |
 | **Installationsguide** | Hur du skickar mätvärden med OpenTelemetry med en av dina inmatningsnycklar. |
 | **Inställningar** | **Pipelineregler** och **Inspelningsregler**: vad som händer med mätvärden när de kommer in. |
 
@@ -107,6 +109,44 @@ Dra över ett diagram för att zooma in på ett ögonblick, och dubbelklicka fö
 ## Insikter i mätvärden
 
 Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mått**, **Rapporteringstjänster** och genomsnittet per tjänst. Den delar in mätvärdena i kategorier och visar tjänsterna som rapporterar dem.
+
+## Förbättra mätvärden och lägg till de som saknas med AI
+
+Varje timme går OneUptime igenom mätvärdena som dina tjänster skickade under den senaste timmen efter sådana som registrerar för många värden, histogram vars buckets inte passar och hårt belastade tjänster som inte skickar några mätvärden. Det den hittar registrerar den som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som åtgärdar det. Inget slås någonsin ihop: ditt team granskar varje pull request.
+
+OneUptime läser noga de 10 mätvärden som dina tjänster skickade flest datapunkter för under timmen, vart och ett med minst 1 000 av dem, och registrerar tre sorters fynd:
+
+| Fynd | När OneUptime registrerar det | Pull requesten |
+| --- | --- | --- |
+| **Hög kardinalitet** | Ett attribut som koden sätter på ett av de mätvärdena fick 1 000 eller fler värden under timmen, till exempel användar-ID:n eller fullständiga URL:er, så att varje värde blir en egen serie. Eller så är 50 eller fler av en tjänsts mätvärdesnamn ett och samma namn med ett annat ID i. | Slutar registrera värdet på mätvärdet, eller tar bort ID:na ur dess namn. |
+| **Fel histogram-buckets** | Ett av de mätvärdena är ett histogram som registrerade 1 000 eller fler värden, och 90 % eller fler av dem hamnade i dess minsta bucket eller över dess största, eller så har det inga buckets, så att dess percentiler inte går att skilja åt. | Ger histogrammet buckets som passar dess värden, eller rättar dess enhet. |
+| **Saknade mätvärden** | En tjänst skickade 1 000 eller fler spans under timmen och har aldrig skickat ett mätvärde. | Lägger till antalet förfrågningar, felen och varaktigheten för dess mest belastade operationer som mätvärden. |
+
+Ett fynd lagrar aldrig ett attributs värden: bara attributets namn, hur många värden det fick och hur de ser ut.
+
+### Slå på det
+
+**Mått → AI → Inställningar** har reglaget **Förbättra mätvärden och lägg till de som saknas**, som är på för nya projekt. När **Aktivera AI** är av hittas problem i dina mätvärden fortfarande, men OneUptime AI gör ingenting med dem. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+
+OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
+
+### AI-regler
+
+Utan regler undersöker OneUptime AI direkt varje problem den hittar i dina mätvärden och öppnar en pull request för vart och ett den kan åtgärda. **AI-regler** under **Fler inställningar** begränsar det, i tre steg:
+
+| Steg | Vad det avgör |
+| --- | --- |
+| **Matcha** | Vilka tjänster: de valda, de med vissa etiketter eller de vars namn matchar ett mönster. |
+| **Utreda** | **Direkt**, eller **Bara om fortfarande hittad efter en väntetid**: ett problem som försvinner under väntetiden undersöks inte. |
+| **Åtgärd** | **Åtgärda inte**, **Fråga innan något åtgärdas** eller **Åtgärda utan att fråga**. Att fråga först lämnar pull requesten till en person: fyndet erbjuder **Åtgärda med AI**. |
+
+Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LLM-leverantör som OneUptime AI får använda för den. Är inget valt får den använda alla, och projektets standard-LLM-leverantör.
+
+### Se vad den gjorde
+
+- **Mått → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
+- **Mått → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
+- I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Vad som händer med mätvärden när de kommer in
 

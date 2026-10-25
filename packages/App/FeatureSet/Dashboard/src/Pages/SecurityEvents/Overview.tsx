@@ -5,7 +5,9 @@ import SecurityCaseApi, {
   EntityFindingSummary,
   SecurityOverview,
 } from "../../Components/SecurityCase/SecurityCaseApi";
+import { SecurityOverviewValue } from "../../Components/SecurityCase/SecurityCaseApiTypes";
 import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/SecurityEntityChips";
+import { ATTACK_COVERAGE_QUERY_KEYS } from "../../Components/SecurityEvents/AttackCoverageCopy";
 import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
@@ -37,18 +39,19 @@ import { formatCompactDurationInMinutes } from "../../Utils/CompactDuration";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import { Cyan, Gray500, Indigo500, Red } from "Common/Types/BrandColors";
+import {
+  Cyan,
+  Gray500,
+  Indigo500,
+  Orange,
+  Red,
+} from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { describeMitreId } from "Common/Types/SecurityEvent/MitreAttack";
 import { ocsfSeverityFromId } from "Common/Types/SecurityEvent/OcsfSeverity";
-import SecurityCasePriority, {
-  SECURITY_CASE_PRIORITIES,
-  getSecurityCasePriorityColor,
-} from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  getSecurityCaseStatusColor,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import SecurityCaseVerdict, {
   getSecurityCaseVerdictColor,
 } from "Common/Types/SecurityCase/SecurityCaseVerdict";
@@ -77,6 +80,8 @@ export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
     [SecurityDetectionSource.ThreatIntel]: Red.toString(),
     [SecurityDetectionSource.ConnectedProduct]: Cyan.toString(),
     [SecurityDetectionSource.Manual]: Gray500.toString(),
+    // An entity's risk reaching the threshold (Security Events > Entity Risk).
+    [SecurityDetectionSource.EntityRisk]: Orange.toString(),
   };
 
 /*
@@ -242,12 +247,16 @@ const SecurityOverviewPage: FunctionComponent<
     metrics.openCases === 0 &&
     metrics.casesOpenedInWindow === 0 &&
     metrics.detectionsInWindow === 0;
-  // The queue as the card's band and its cases cell read it.
+  /*
+   * The queue as the card's band and its cases cell read it. Critical and
+   * high are counted by the project's priorities: at or above its critical
+   * one, and at or above its high one below that (SecurityCasePriorities),
+   * whatever the project calls them.
+   */
   const queue: SecurityOverviewQueue = {
     openCases: metrics.openCases,
-    criticalOpenCases:
-      metrics.openByPriority[SecurityCasePriority.Critical] || 0,
-    highOpenCases: metrics.openByPriority[SecurityCasePriority.High] || 0,
+    criticalOpenCases: metrics.criticalOpenCases || 0,
+    highOpenCases: metrics.highOpenCases || 0,
     myOpenCases: overview.myOpenCases,
     unassignedOpenCases: metrics.unassignedOpenCases,
     runsWaitingForApproval: overview.runsWaitingForApproval,
@@ -288,12 +297,17 @@ const SecurityOverviewPage: FunctionComponent<
     overview.caseWindowInDays,
   );
 
-  const prioritySeries: Array<StackedSeries> = [...SECURITY_CASE_PRIORITIES]
+  // The project's priorities, most urgent at the top of each bar.
+  const priorities: Array<SecurityOverviewValue> = SecurityCasePriorities.sort(
+    overview.priorities,
+  );
+  const prioritySeries: Array<StackedSeries> = [...priorities]
     .reverse()
-    .map((priority: SecurityCasePriority): StackedSeries => {
+    .map((priority: SecurityOverviewValue): StackedSeries => {
       return {
-        key: priority,
-        color: getSecurityCasePriorityColor(priority).toString(),
+        key: priority._id,
+        label: priority.name,
+        color: priority.color || Gray500.toString(),
       };
     });
 
@@ -303,29 +317,41 @@ const SecurityOverviewPage: FunctionComponent<
     },
   );
 
-  const openByPriority: Array<RankedBarItem> = SECURITY_CASE_PRIORITIES.map(
-    (priority: SecurityCasePriority): RankedBarItem => {
+  /*
+   * The open cases by the project's priorities and by the statuses a case is
+   * open in, in the project's order. An archived one is drawn only while a
+   * case still has it.
+   */
+  const openByPriority: Array<RankedBarItem> = priorities
+    .filter((priority: SecurityOverviewValue): boolean => {
+      return (
+        !priority.isArchived || (metrics.openByPriority[priority._id] || 0) > 0
+      );
+    })
+    .map((priority: SecurityOverviewValue): RankedBarItem => {
       return {
-        key: priority,
-        label: translator.translateText(priority) || priority,
-        count: metrics.openByPriority[priority] || 0,
-        color: getSecurityCasePriorityColor(priority).toString(),
+        key: priority._id,
+        label: translator.translateText(priority.name) || priority.name,
+        count: metrics.openByPriority[priority._id] || 0,
+        color: priority.color || Gray500.toString(),
       };
-    },
-  );
+    });
 
-  const openByStatus: Array<RankedBarItem> = [
-    SecurityCaseStatus.New,
-    SecurityCaseStatus.Investigating,
-    SecurityCaseStatus.Contained,
-  ].map((status: SecurityCaseStatus): RankedBarItem => {
-    return {
-      key: status,
-      label: translator.translateText(status) || status,
-      count: metrics.openByStatus[status] || 0,
-      color: getSecurityCaseStatusColor(status).toString(),
-    };
-  });
+  const openByStatus: Array<RankedBarItem> =
+    SecurityCaseStatuses.getOpenStatuses(overview.statuses)
+      .filter((status: SecurityOverviewValue): boolean => {
+        return (
+          !status.isArchived || (metrics.openByStatus[status._id] || 0) > 0
+        );
+      })
+      .map((status: SecurityOverviewValue): RankedBarItem => {
+        return {
+          key: status._id,
+          label: translator.translateText(status.name) || status.name,
+          count: metrics.openByStatus[status._id] || 0,
+          color: status.color || Gray500.toString(),
+        };
+      });
 
   const verdicts: Array<RankedBarItem> = Object.values(SecurityCaseVerdict).map(
     (verdict: SecurityCaseVerdict): RankedBarItem => {
@@ -358,7 +384,10 @@ const SecurityOverviewPage: FunctionComponent<
         label: describeMitreId(tactic.tacticId),
         count: tactic.count,
         color: "#e11d48",
-        to: route(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE),
+        // ATT&CK Coverage, opened on this tactic.
+        to: route(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE).addQueryParams({
+          [ATTACK_COVERAGE_QUERY_KEYS.tactic]: tactic.tacticId,
+        }),
       };
     },
   );
@@ -514,9 +543,15 @@ const SecurityOverviewPage: FunctionComponent<
             ]}
           </EventStatBar>
 
+          {/*
+           * Every card fills its row (fillHeight), so each row of cards ends
+           * on one line, as Home's do, rather than a short card leaving the
+           * page showing under it beside a tall one.
+           */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <Card
               title="Cases Opened"
+              fillHeight={true}
               description="New cases each day over the last 30 days, by priority."
             >
               <StackedDayBars
@@ -527,6 +562,7 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Detections"
+              fillHeight={true}
               description="New detections each day over the last 14 days, by what raised them."
             >
               <StackedDayBars
@@ -545,6 +581,7 @@ const SecurityOverviewPage: FunctionComponent<
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             <Card
               title="Open Cases"
+              fillHeight={true}
               description="The queue right now, by priority and by where each case stands."
             >
               <div className="space-y-5">
@@ -564,6 +601,7 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Verdicts"
+              fillHeight={true}
               description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
             >
               <RankedBars
@@ -575,6 +613,7 @@ const SecurityOverviewPage: FunctionComponent<
             <div className="md:col-span-2 xl:col-span-1">
               <Card
                 title="MITRE ATT&CK Tactics"
+                fillHeight={true}
                 description="The attacker goals behind the cases of the last 30 days."
               >
                 <RankedBars
@@ -588,6 +627,7 @@ const SecurityOverviewPage: FunctionComponent<
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card
               title="Top Detections"
+              fillHeight={true}
               description="The rules and sources that raised the most detections in the last 14 days."
             >
               <RankedBars
@@ -597,6 +637,7 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
             <Card
               title="Riskiest Entities"
+              fillHeight={true}
               description="The users, hosts and addresses named by the most findings in the last 7 days. Open one to see everything it touched."
             >
               <RankedBars

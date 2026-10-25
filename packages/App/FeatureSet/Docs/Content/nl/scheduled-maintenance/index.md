@@ -62,7 +62,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 
 **Overzicht** en **Agenda** zijn open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
 
-De lijst toont **Nummer van geplande onderhoud**, **Titel**, **Huidige staat**, **Getroffen middelen**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Status wijzigen**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** of **Verwijderen**.
+De lijst toont **Nummer van geplande onderhoud**, **Titel**, **Huidige staat**, **Getroffen middelen**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Markeren als {{state}}**, **Status wijzigen**, **Aan mij toewijzen**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** of **Verwijderen**. Het menu **⋯** aan het eind van de rij van elke gebeurtenis doet hetzelfde voor alleen die gebeurtenis: de stappen **Markeren als {{state}}** zolang de gebeurtenis ze kan zetten, **Status wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Add Owner**.
 
 **Onderhoudsagenda**, in het onderdeel **Agenda**, toont dezelfde gebeurtenissen op een maand, een week of een dag, en kan er agenda's van buiten het project naast tonen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar).
 
@@ -92,7 +92,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 
 **Overzicht**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
-- **Overzicht** — de kop toont het nummer, de titel en de status van de gebeurtenis, hoe lang het nog duurt tot ze begint of hoe lang ze al loopt, en de knoppen die haar verder zetten. Daaronder tonen **Begint**, **Eindigt** en **Duur** het geplande venster in je tijdzone. De **Gepland Onderhoud Feed** legt alles vast wat er met de gebeurtenis is gebeurd, naast de kaarten **Maintenance Details** en **Getroffen resources**, en de kaarten **Metingen** en **Aangepaste velden** als je project die heeft.
+- **Overzicht** — de kop toont het nummer, de titel en de status van de gebeurtenis, hoe lang het nog duurt tot ze begint of hoe lang ze al loopt, wie haar eigenaren zijn, op welke statuspagina's ze verschijnt en wie haar heeft aangemaakt, en de knoppen die haar verder zetten. Daaronder tonen **Begint**, **Eindigt** en **Duur** het geplande venster in je tijdzone. De **Gepland Onderhoud Feed** legt alles vast wat er met de gebeurtenis is gebeurd, naast de kaarten **Maintenance Details** en **Getroffen resources**, en de kaarten **Metingen** en **Aangepaste velden** als je project die heeft.
 - **Statustijdlijn** — elke status waarin de gebeurtenis heeft gestaan, wanneer en hoe lang. Zie [Onderhoudsstatussen](/docs/scheduled-maintenance/states#de-statustijdlijn).
 - **Openbare notities** — updates voor je statuspagina's en hun abonnees. **Privénotities** zijn alleen voor je team.
 - **Instellingen** — **Zichtbaar op statuspagina**, dat de gebeurtenis op haar statuspagina's toont of verbergt, en **Herinneringen sturen**, dat haar eigenaren herinnert tot ze voltooid is. Elke schakelaar slaat op zodra je hem omzet.
@@ -100,7 +100,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 ## Probleemoplossing
 
 :::details Een gebeurtenis is niet op haar Begint op begonnen
-De taak die gebeurtenissen start, draait elke minuut, dus wacht een minuut. Als de kop **Start overdue** toont, heeft de gebeurtenis haar begin met meer dan twee minuten gemist: start haar met de knop in de kop, die alles doet wat de taak doet, en open haar **Statustijdlijn** om te zien waar ze stond.
+De taak die gebeurtenissen start, draait elke minuut, dus wacht een minuut. Als de kop **Start te laat** toont, heeft de gebeurtenis haar begin met meer dan twee minuten gemist: start haar met de knop in de kop, die alles doet wat de taak doet, en open haar **Statustijdlijn** om te zien waar ze stond.
 :::
 
 :::details Een monitor werd tijdens het onderhoud nog gecontroleerd

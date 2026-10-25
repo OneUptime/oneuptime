@@ -61,6 +61,9 @@ const SHARED_PIECE: string = `${DASHBOARD}/Components/EventView/StateChangeFormF
 
 const BULK_DIALOG: string = `${DASHBOARD}/Components/EventView/BulkChangeStateModal.tsx`;
 
+// The lists' one engine of state changes, which draws the bulk dialog.
+const STATE_ACTIONS_ENGINE: string = `${DASHBOARD}/Components/EventView/useEventStateActions.tsx`;
+
 // The single-event dialogs, each in its event's header.
 const STATE_CHANGE_DIALOGS: Array<string> = [
   `${DASHBOARD}/Components/Alert/ChangeState.tsx`,
@@ -146,8 +149,14 @@ describe("state change dialogs", () => {
     expect(found).toEqual([...STATE_CHANGE_DIALOGS].sort());
   });
 
-  test("every event table's bulk Change State is the shared bulk dialog", () => {
-    const tables: Array<string> = dashboardFiles
+  /*
+   * The lists move their records one way (EventView/useEventStateActions):
+   * a row's Acknowledge, Resolve or Change State and the bulk ones alike
+   * open the shared bulk dialog - for one row, its state fixed or picked -
+   * and nothing else in the Dashboard draws it.
+   */
+  test("every event table's Change State, row and bulk, is the shared bulk dialog, drawn by the one engine", () => {
+    const drawing: Array<string> = dashboardFiles
       .map((file: string): string => {
         return toRepositoryPath(REPOSITORY_ROOT, file);
       })
@@ -157,8 +166,28 @@ describe("state change dialogs", () => {
         );
       });
 
+    expect(drawing).toEqual([STATE_ACTIONS_ENGINE]);
+
+    const tables: Array<string> = dashboardFiles
+      .map((file: string): string => {
+        return toRepositoryPath(REPOSITORY_ROOT, file);
+      })
+      .filter((file: string): boolean => {
+        return code(file).includes("useEventStateActions<");
+      })
+      .sort();
+
     // Incidents, alerts, both episode kinds and scheduled maintenance.
-    expect(tables.length).toBeGreaterThanOrEqual(5);
+    expect(tables).toEqual(
+      [
+        `${DASHBOARD}/Components/Alert/AlertsTable.tsx`,
+        `${DASHBOARD}/Components/AlertEpisode/AlertEpisodesTable.tsx`,
+        `${DASHBOARD}/Components/Incident/IncidentsTable.tsx`,
+        `${DASHBOARD}/Components/IncidentEpisode/IncidentEpisodesTable.tsx`,
+        `${DASHBOARD}/Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx`,
+        STATE_ACTIONS_ENGINE,
+      ].sort(),
+    );
   });
 
   test.each(STATE_CHANGE_DIALOGS)(

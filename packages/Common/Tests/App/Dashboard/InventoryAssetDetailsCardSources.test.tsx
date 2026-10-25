@@ -83,13 +83,22 @@ function ago(milliseconds: number): string {
   return new Date(Date.now() - milliseconds).toISOString();
 }
 
-// What the scan "Store subnets" read, a little over two hours ago.
+/*
+ * When the scan "Store subnets" read the switch, a little over two hours
+ * ago: one time for everything one pass of the scan read, as the server
+ * stamps them (NetworkInventoryUtil's one now per pass). The card says a
+ * source once only for readings of the same time, so a time taken per
+ * reading split them whenever the clock ticked between two of them.
+ */
+const SCAN_READ_AT: string = ago(2 * HOUR + 10 * MINUTE);
+
+// What the scan "Store subnets" read.
 function scanReading(value: string, method: string = "snmp"): JSONObject {
   return {
     value: value,
     method: method,
     readBy: { type: "discoveryScan", id: SCAN_ID, name: "Store subnets" },
-    readAt: ago(2 * HOUR + 10 * MINUTE),
+    readAt: SCAN_READ_AT,
   };
 }
 
@@ -104,7 +113,7 @@ function arpReading(value: string): JSONObject {
 
 const FOUND_BY: JSONObject = {
   readBy: { type: "discoveryScan", id: SCAN_ID, name: "Store subnets" },
-  readAt: ago(2 * HOUR + 10 * MINUTE),
+  readAt: SCAN_READ_AT,
 };
 
 /*
@@ -469,7 +478,7 @@ describe("Inventory's Asset Details card says where each detail came from (issue
               id: SCAN_ID,
               name: "Store subnets",
             },
-            readAt: ago(2 * HOUR + 10 * MINUTE),
+            readAt: SCAN_READ_AT,
             netbiosName: "LAPTOP-12",
           },
         },
@@ -740,7 +749,7 @@ describe("the device's own Inventory card says where each value came from (issue
               id: SCAN_ID,
               name: "Store subnets",
             },
-            readAt: ago(2 * HOUR + 10 * MINUTE),
+            readAt: SCAN_READ_AT,
             sysName: "LAPTOP-12",
           },
         },

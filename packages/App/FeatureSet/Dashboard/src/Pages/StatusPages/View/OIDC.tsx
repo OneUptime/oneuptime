@@ -66,6 +66,8 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
       <>
         <ModelTable<StatusPageOIDC>
           modelType={StatusPageOIDC}
+          // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+          rowSwitch={{ column: "isEnabled" }}
           userPreferencesKey={"status-page-oidc-table"}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,

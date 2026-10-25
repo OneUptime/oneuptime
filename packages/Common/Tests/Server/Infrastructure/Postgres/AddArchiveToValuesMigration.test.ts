@@ -6,7 +6,6 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../../Models/DatabaseModels/AlertState";
-import IncidentPostmortemStatus from "../../../../Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
@@ -17,6 +16,10 @@ import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrati
 import { AddArchiveToValues1805800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-AddArchiveToValues";
 import { AddArchiveToValuesUserKeys1805810000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805810000000-AddArchiveToValuesUserKeys";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "../../../../Utils/ArchivableValues";
+import {
+  ARCHIVABLE_VALUES_CREATED_LATER,
+  ArchivableValueCreatedLater,
+} from "../../../Helpers/ArchivableValuesCreatedLater";
 
 /*
  * The two migrations that make the values records pick from archivable:
@@ -91,24 +94,11 @@ const TABLES: Array<ValueTable> = [
 
 /*
  * A value table made after these two migrations is not altered by them: its
- * own migration creates it archivable - the three columns in its CREATE
- * TABLE, the key from who archived a value to the user beside them - as the
- * migration generator wrote it from the model.
+ * own migration creates it archivable (Tests/Helpers/ArchivableValuesCreatedLater,
+ * the list ArchivableValuesPostgres.test.ts leaves out too).
  */
-interface LaterValueTable extends ValueTable {
-  // Its creating migration's file and class name.
-  file: string;
-  migrationName: string;
-}
-
-const CREATED_ARCHIVABLE_LATER: Array<LaterValueTable> = [
-  {
-    table: "IncidentPostmortemStatus",
-    modelType: IncidentPostmortemStatus,
-    file: "1805900000000-AddIncidentPostmortemStatus.ts",
-    migrationName: "AddIncidentPostmortemStatus1805900000000",
-  },
-];
+const CREATED_ARCHIVABLE_LATER: Array<ArchivableValueCreatedLater> =
+  ARCHIVABLE_VALUES_CREATED_LATER;
 
 const COLUMNS: Array<string> = ["isArchived", "archivedAt", "archivedByUserId"];
 
@@ -193,7 +183,7 @@ describe("registration", () => {
 
 describe.each(CREATED_ARCHIVABLE_LATER)(
   "$table, created archivable by its own migration",
-  ({ table, modelType, file, migrationName }: LaterValueTable) => {
+  ({ table, modelType, file, migrationName }: ArchivableValueCreatedLater) => {
     const created: { up: string; down: string; source: string } = read(file);
 
     // The CREATE TABLE statement, as the generator wrote it on one line.

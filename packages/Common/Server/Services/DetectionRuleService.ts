@@ -14,6 +14,10 @@ import {
 } from "../../Types/SecurityEvent/DetectionFindingConstants";
 import { fitDetectionRuleName } from "../../Types/SecurityEvent/DetectionRuleName";
 import {
+  ENTITY_RISK_POINTS_MAX,
+  ENTITY_RISK_POINTS_MIN,
+} from "../../Types/SecurityCase/SecurityEntityRisk";
+import {
   DetectionRuleDefinition,
   SigmaRuleReferenceResolver,
 } from "../../Types/SecurityEvent/SigmaCorrelation";
@@ -157,6 +161,23 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * A rule's own Risk Points: a whole number from 0 to 100, or empty (null)
+   * for the points of its level (Types/SecurityCase/SecurityEntityRisk).
+   */
+  private validateRiskScore(riskScore: unknown): void {
+    if (riskScore === null) {
+      return;
+    }
+
+    this.validateIntegerInRange({
+      value: riskScore as number | undefined,
+      min: ENTITY_RISK_POINTS_MIN,
+      max: ENTITY_RISK_POINTS_MAX,
+      message: `Risk points must be a whole number between ${ENTITY_RISK_POINTS_MIN} and ${ENTITY_RISK_POINTS_MAX}, or empty for the points of the rule's level.`,
+    });
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
@@ -173,6 +194,7 @@ export class Service extends ProjectReferencesService<Model> {
     });
     this.validateEvaluationInterval(createBy.data.evaluationIntervalInMinutes);
     this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
+    this.validateRiskScore(createBy.data.riskScore);
 
     /*
      * groupByField / distinctCountField are looked up verbatim: an
@@ -249,6 +271,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.validateMatchCountThreshold(
       updateBy.data.matchCountThreshold as number | undefined,
+    );
+
+    this.validateRiskScore(
+      (updateBy.data as unknown as { riskScore?: unknown }).riskScore,
     );
 
     // Same trim as onBeforeCreate — see the rationale there.

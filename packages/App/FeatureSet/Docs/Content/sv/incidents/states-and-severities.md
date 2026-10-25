@@ -108,7 +108,7 @@ Du kan inte sätta de tre flaggorna från det här formuläret — de hör till 
 
 - **Var det står avgör vad det räknas som.** Kolumnen **Räknas som** visar det och ändras medan du drar: ovanför det bekräftade tillståndet är en incident i det **Inte bekräftad**; från det bekräftade tillståndet och nedåt räknas den som **Bekräftad**, så jourpolicyerna slutar eskalera den; från det lösta tillståndet och nedåt räknas den som **Löst**, så statussidor slutar visa den som aktiv.
 - **Ovanför det lösta tillståndet håller det incidenten aktiv.** **Aktiva incidenter** innehåller incidenterna vars aktuella tillstånd står ovanför det lösta tillståndet, så ett tillstånd som du lägger till där håller incidenten kvar i den aktiva listan och i räknaren i sidofältet. Ett tillstånd som har dragits under det lösta tillståndet räknas som löst överallt — i de aktiva listorna, på statussidor, i påminnelser och för SLA:n — och att flytta en incident in i det från **Löst** är inte en andra lösning.
-- **Du flyttar in en incident i det från rubrikens meny.** Rubrikens knappar är bara **Bekräfta** och **Lös**; ett eget tillstånd finns under **Change state to** i menyn **⋯** bredvid dem, som visar varje tillstånd efter det aktuella. Dess bekräftelse heter **Markera incident som `<state name>`**, med en skicka-knapp **Markera som `<state name>`**.
+- **Du flyttar in en incident i det från rubrikens meny.** Rubrikens knappar är bara **Bekräfta** och **Lös**; ett eget tillstånd finns under **Ändra tillstånd till** i menyn **⋯** bredvid dem, som visar varje tillstånd efter det aktuella. Dess bekräftelse heter **Markera incident som `<state name>`**, med en skicka-knapp **Markera som `<state name>`**.
 
 > [!TIP]
 > En vanlig form är ett lindringssteg mellan det bekräftade och det lösta tillståndet — skapa "Mitigated", så hamnar det precis ovanför **Löst**, efter **Bekräftad**, och räknas som bekräftat. För ett triagesteg innan någon har bekräftat incidenten drar du det ovanför **Bekräftad**.
@@ -167,22 +167,23 @@ Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använ
 
 ## Flytta en incident genom dess tillstånd
 
-Det finns fyra sätt som en incident byter tillstånd på:
+Det finns fem sätt som en incident byter tillstånd på:
 
 | Sätt                | Var                                                                                         | Vad det frågar efter                                                                                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knappar i rubriken** | Incidentens rubrik: **Bekräfta** och **Lös**, och **Change state to** i dess meny **⋯**  | En kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällt under **Lägg till en offentlig anteckning**, den valfria **Offentlig anteckning** med väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). |
+| **Knappar i rubriken** | Incidentens rubrik: **Bekräfta** och **Lös**, och **Ändra tillstånd till** i dess meny **⋯**  | En kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällt under **Lägg till en offentlig anteckning**, den valfria **Offentlig anteckning** med väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). |
 | **Tillståndstidslinje** | **Tillståndstidslinje** i incidentens sidomeny                                          | En rad som läggs till för hand, med **Incidentstatus**, **Börjar den** och **Meddela statussideprenumeranter**.                                                                                             |
-| **Massändring**     | **Ändra tillstånd** på ett urval i listan över incidenter                                   | En sida med tillståndet, **Meddela statussideprenumeranter** och samma hopfällda **Lägg till en offentlig anteckning**.                                                                                     |
+| **Rad i listan** | Menyn **⋯** på en incidents rad i listan över incidenter: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med incidentens namn. En incident som en annan ändring har flyttat under tiden lämnas som den är, och dialogen säger varför. |
+| **Massändring**     | **Bekräfta**, **Lös** eller **Ändra tillstånd** på ett urval i listan över incidenter                                   | En sida med tillståndet, **Meddela statussideprenumeranter** och samma hopfällda **Lägg till en offentlig anteckning**.                                                                                     |
 | **Automatiskt**     | Ett monitorkriterium eller din egen kod                                                     | Ett kriterium med **Lös incident automatiskt** påslaget löser sin incident när kriteriet inte längre uppfylls. API:t ändrar tillståndet genom att skapa en rad på `/api/incident-state-timeline`.            |
 
-Står det aktuella tillståndet före det bekräftade tillståndet erbjuder rubriken **Bekräfta** och **Lös**; står det mellan de två, bara **Lös**. Bekräftelse stoppar också all eskalering från jouren för incidenten.
+Står det aktuella tillståndet före det bekräftade tillståndet erbjuder rubriken **Bekräfta** och **Lös**; står det mellan de två, bara **Lös**. Bekräftelse stoppar också all eskalering från jouren för incidenten. Den som med sin roll inte får ändra incidentens tillstånd ser knapparna låsta och ingen meny med andra tillstånd: pekar du på en nämner den behörigheterna som skulle tillåta det.
 
 Var och en av dem skriver en tidslinjerad. En tillståndsändring gör också några saker som du inte behöver be om: den skriver en post i incidentens flöde, tilldelar en Incidentansvarig om incidenten inte har någon än, och uppdaterar SLA-klockan. Att öppna en löst incident igen startar en ny SLA-post från tidpunkten då den öppnades igen.
 
 ## Vad bekräftelse gör
 
-En incident är bekräftad från det ögonblick den går in i ditt bekräftade tillstånd, i ett senare tillstånd — ett tillstånd **Mitigated** eller **Investigating** som du har placerat under **Bekräftad** — eller i ett löst tillstånd, vilket av de fyra sätten ovan som än flyttar den. Kolumnen **Räknas som** på inställningssidan för tillstånd visar vilka tillstånd det är. När den är bekräftad:
+En incident är bekräftad från det ögonblick den går in i ditt bekräftade tillstånd, i ett senare tillstånd — ett tillstånd **Mitigated** eller **Investigating** som du har placerat under **Bekräftad** — eller i ett löst tillstånd, vilket av de fem sätten ovan som än flyttar den. Kolumnen **Räknas som** på inställningssidan för tillstånd visar vilka tillstånd det är. När den är bekräftad:
 
 - **Bekräfta erbjuds inte längre.** Inte i incidentens rubrik, inte i mobilappen (dess knapp och dess svepning), inte i Slack eller Microsoft Teams och inte via `acknowledge_incident` på OneUptime MCP-servern. Att bekräfta den ändå — från en larmsida, Slack eller Teams — avvisas med "Incident is already acknowledged." (eller "Incident is already resolved."), i stället för att flytta den uppåt i listan igen.
 - **Jouren slutar larma för den.** En jourhavande som bekräftar sitt larm efter att en kollega har bekräftat incidenten, eller flyttat den vidare, får sitt larm bekräftat, och incidenten stannar där den är.
@@ -194,7 +195,7 @@ Larm och episoder följer samma regel, med dina larmtillstånd.
 
 ## Vad lösning gör
 
-En incident är löst när den går från ett tillstånd ovanför ditt lösta tillstånd in i det lösta tillståndet, eller in i ett senare tillstånd — vilket av de fyra sätten ovan som än flyttar den. Varje lösning:
+En incident är löst när den går från ett tillstånd ovanför ditt lösta tillstånd in i det lösta tillståndet, eller in i ett senare tillstånd — vilket av de fem sätten ovan som än flyttar den. Varje lösning:
 
 - **Släpper monitorerna som incidenten håller.** En incident som deklareras öppen håller sina monitorer: den satte dem i sin status från **Ändra övervakningsstatus till**, när den nämner en, och pausade, när den deklarerades för hand, deras övervakning. En redigering medan den är öppen — att lägga till monitorer eller ändra den statusen — får den också att hålla dem. Lösningen återupptar deras övervakning och sätter tillbaka dem till drift, om inte en annan öppen incident fortfarande ligger på dem, och från och med då håller incidenten ingenting. Så en incident som deklareras redan löst släpper ingenting, och det gör inte heller en andra lösning efter att den öppnats igen: en status som dess monitorer fick under tiden — från sina sonder, från underhåll eller satt för hand — står kvar.
 - **Markerar SLA:n som löst** och skriver, när OneUptime AI:s utkast till efteranalyser är påslagna, ett utkast till en efteranalys.

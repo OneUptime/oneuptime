@@ -870,6 +870,109 @@ describe("InsightScanner — the telemetry AI lanes", () => {
     ]);
   });
 
+  test("Logs' three detectors run on its tick while its switch is on - apart from the other lanes'", () => {
+    const types: (project: Project, now: Date) => Array<AIInsightType> = (
+      project: Project,
+      now: Date,
+    ): Array<AIInsightType> => {
+      return InsightScanner.getDetectorsForProject(project, now).map(
+        (detector: InsightDetector): AIInsightType => {
+          return detector.insightType;
+        },
+      );
+    };
+
+    const logsOnly: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticLogRemediation: true,
+    });
+
+    expect(types(logsOnly, ON_THE_HOUR)).toEqual([
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ]);
+    expect(types(logsOnly, QUARTER_PAST)).toEqual([]);
+
+    expect(
+      types(
+        laneProject({
+          enableAutomaticTraceRemediation: true,
+          enableAutomaticLogRemediation: true,
+        }),
+        ON_THE_HOUR,
+      ),
+    ).toEqual([
+      AIInsightType.ProfileHotspot,
+      AIInsightType.TraceFailingOperation,
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.TraceMissingTracing,
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ]);
+  });
+
+  test("a project with only Logs' switch on is listed, read with every lane's switch", async () => {
+    const logsOnly: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticLogRemediation: true,
+    });
+    const findBy: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findBy")
+      .mockImplementation((args: unknown): Promise<Array<Project>> => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+
+        return Promise.resolve(
+          query["enableAutomaticLogRemediation"] === true ? [logsOnly] : [],
+        );
+      });
+
+    expect(await InsightScanner.listProjectsToScan()).toEqual([logsOnly]);
+    expect(findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { enableAutomaticLogRemediation: true },
+        select: expect.objectContaining({
+          enableAutomaticProfileRemediation: true,
+          enableAutomaticTraceRemediation: true,
+          enableAutomaticLogRemediation: true,
+        }),
+      }),
+    );
+  });
+
+  test("on Logs' tick, Logs' look runs too", async () => {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(ON_THE_HOUR);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(InsightDetectors, "getTelemetryAiDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [] })]);
+    const sweepLane: jest.SpyInstance = jest
+      .spyOn(TelemetryAiRouting, "sweepLane")
+      .mockResolvedValue({
+        problemsRead: 0,
+        investigationsStarted: 0,
+        fixesStarted: 0,
+        waiting: 0,
+        waitingForVerdict: 0,
+      });
+    const project: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticLogRemediation: true,
+    });
+
+    await InsightScanner.scanProjectForInsights(project);
+
+    expect(sweepLane).toHaveBeenCalledTimes(1);
+    expect(sweepLane).toHaveBeenCalledWith({
+      project,
+      lane: TelemetryAiLane.Log,
+      now: ON_THE_HOUR,
+    });
+  });
+
   test("a project with only Traces' switch on is listed, read with every lane's switch", async () => {
     const tracesOnly: Project = laneProject({
       enableAutomaticProfileRemediation: false,
@@ -925,6 +1028,104 @@ describe("InsightScanner — the telemetry AI lanes", () => {
     expect(sweepLane).toHaveBeenCalledWith({
       project,
       lane: TelemetryAiLane.Trace,
+      now: ON_THE_HOUR,
+    });
+  });
+
+  test("Metrics' three detectors run on its tick while its switch is on - apart from the other lanes'", () => {
+    const types: (project: Project, now: Date) => Array<AIInsightType> = (
+      project: Project,
+      now: Date,
+    ): Array<AIInsightType> => {
+      return InsightScanner.getDetectorsForProject(project, now).map(
+        (detector: InsightDetector): AIInsightType => {
+          return detector.insightType;
+        },
+      );
+    };
+
+    const metricsOnly: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticMetricRemediation: true,
+    });
+
+    expect(types(metricsOnly, ON_THE_HOUR)).toEqual([
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ]);
+    expect(types(metricsOnly, QUARTER_PAST)).toEqual([]);
+
+    // AI Insights' own drift detector is its switch's alone.
+    expect(
+      types(
+        laneProject({
+          enableAiInsights: true,
+          enableAutomaticProfileRemediation: false,
+          enableAutomaticMetricRemediation: false,
+        }),
+        ON_THE_HOUR,
+      ),
+    ).not.toContain(AIInsightType.MetricHighCardinality);
+  });
+
+  test("a project with only Metrics' switch on is listed, read with every lane's switch", async () => {
+    const metricsOnly: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticMetricRemediation: true,
+    });
+    const findBy: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findBy")
+      .mockImplementation((args: unknown): Promise<Array<Project>> => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+
+        return Promise.resolve(
+          query["enableAutomaticMetricRemediation"] === true
+            ? [metricsOnly]
+            : [],
+        );
+      });
+
+    expect(await InsightScanner.listProjectsToScan()).toEqual([metricsOnly]);
+    expect(findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { enableAutomaticMetricRemediation: true },
+        select: expect.objectContaining({
+          enableAutomaticTraceRemediation: true,
+          enableAutomaticMetricRemediation: true,
+        }),
+      }),
+    );
+  });
+
+  test("on Metrics' tick, Metrics' look runs too", async () => {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(ON_THE_HOUR);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(InsightDetectors, "getTelemetryAiDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [] })]);
+    const sweepLane: jest.SpyInstance = jest
+      .spyOn(TelemetryAiRouting, "sweepLane")
+      .mockResolvedValue({
+        problemsRead: 0,
+        investigationsStarted: 0,
+        fixesStarted: 0,
+        waiting: 0,
+        waitingForVerdict: 0,
+      });
+    const project: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticMetricRemediation: true,
+    });
+
+    await InsightScanner.scanProjectForInsights(project);
+
+    expect(sweepLane).toHaveBeenCalledTimes(1);
+    expect(sweepLane).toHaveBeenCalledWith({
+      project,
+      lane: TelemetryAiLane.Metric,
       now: ON_THE_HOUR,
     });
   });
@@ -1054,6 +1255,267 @@ describe("InsightScanner — the telemetry AI lanes", () => {
       expect(JSON.stringify(query["insightType"])).toContain(
         AIInsightType.ProfileHotspot,
       );
+    }
+  });
+});
+
+/*
+ * Exceptions' AI section shares new and spiking exceptions with AI
+ * Insights: while its switch is on, the lane files them - with missing
+ * stack traces - on every look and works on them as its rules say; while
+ * it is off, AI Insights files, triages and fixes them as it always did.
+ * Either way each kind is found once a look.
+ */
+describe("InsightScanner — Exceptions' AI section and AI Insights' exceptions", () => {
+  const QUARTER_PAST: Date = new Date("2026-10-24T09:15:04.000Z");
+
+  function exceptionsProject(overrides: Record<string, unknown> = {}): Project {
+    return {
+      id: projectId,
+      enableAiInsights: false,
+      enableInsightFixTasks: true,
+      enableAi: true,
+      enableAutomaticExceptionRemediation: true,
+      ...overrides,
+    } as unknown as Project;
+  }
+
+  function exceptionInsight(): AIInsight {
+    return {
+      id: ObjectID.generate(),
+      projectId,
+      insightType: AIInsightType.NewException,
+      status: AIInsightStatus.Detected,
+      telemetryExceptionId: ObjectID.generate(),
+    } as unknown as AIInsight;
+  }
+
+  function detectorTypes(project: Project, now: Date): Array<AIInsightType> {
+    return InsightScanner.getDetectorsForProject(project, now).map(
+      (detector: InsightDetector): AIInsightType => {
+        return detector.insightType;
+      },
+    );
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a project with only Exceptions' switch on is listed, read with it", async () => {
+    const exceptionsOnly: Project = exceptionsProject();
+    const findBy: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findBy")
+      .mockImplementation((args: unknown): Promise<Array<Project>> => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+
+        return Promise.resolve(
+          query["enableAutomaticExceptionRemediation"] === true
+            ? [exceptionsOnly]
+            : [],
+        );
+      });
+
+    expect(await InsightScanner.listProjectsToScan()).toEqual([exceptionsOnly]);
+    expect(findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { enableAutomaticExceptionRemediation: true },
+        select: expect.objectContaining({
+          enableAutomaticExceptionRemediation: true,
+          enableAiInsights: true,
+        }),
+      }),
+    );
+  });
+
+  test("its three detectors run on every look while its switch is on", () => {
+    for (const now of [
+      new Date("2026-10-24T09:00:04.000Z"),
+      QUARTER_PAST,
+      new Date("2026-10-24T09:47:04.000Z"),
+    ]) {
+      expect(detectorTypes(exceptionsProject(), now)).toEqual([
+        AIInsightType.NewException,
+        AIInsightType.ExceptionSpike,
+        AIInsightType.ExceptionMissingStackTrace,
+      ]);
+    }
+
+    expect(
+      detectorTypes(
+        exceptionsProject({ enableAutomaticExceptionRemediation: false }),
+        QUARTER_PAST,
+      ),
+    ).toEqual([]);
+  });
+
+  test("with AI Insights on too, each kind is found once a look", () => {
+    const types: Array<AIInsightType> = detectorTypes(
+      exceptionsProject({ enableAiInsights: true }),
+      QUARTER_PAST,
+    );
+
+    expect(new Set(types).size).toBe(types.length);
+    expect(types).toContain(AIInsightType.NewException);
+    expect(types).toContain(AIInsightType.ExceptionSpike);
+    expect(types).toContain(AIInsightType.ExceptionMissingStackTrace);
+    expect(types).toContain(AIInsightType.ErrorLogSpike);
+  });
+
+  test("with Exceptions' switch off, AI Insights still finds new and spiking exceptions - and no missing stack traces", () => {
+    const types: Array<AIInsightType> = detectorTypes(
+      exceptionsProject({
+        enableAiInsights: true,
+        enableAutomaticExceptionRemediation: false,
+      }),
+      QUARTER_PAST,
+    );
+
+    expect(types).toContain(AIInsightType.NewException);
+    expect(types).toContain(AIInsightType.ExceptionSpike);
+    expect(types).not.toContain(AIInsightType.ExceptionMissingStackTrace);
+  });
+
+  test("its switch on: a new exception waits, ActionRequired, for the lane - never triaged or fixed by AI Insights", async () => {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(QUARTER_PAST);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
+    jest.spyOn(InsightDetectors, "getTelemetryAiDetectors").mockReturnValue([]);
+    const insight: AIInsight = exceptionInsight();
+    jest
+      .spyOn(InsightStore, "upsertCandidates")
+      .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
+    const updateOneById: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneById")
+      .mockResolvedValue(1);
+    const triage: jest.SpyInstance = jest
+      .spyOn(InsightTriage, "enqueueInsightTriage")
+      .mockResolvedValue({});
+    const fixRouting: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({});
+    const sweepLane: jest.SpyInstance = jest
+      .spyOn(TelemetryAiRouting, "sweepLane")
+      .mockResolvedValue({
+        problemsRead: 0,
+        investigationsStarted: 0,
+        fixesStarted: 0,
+        waiting: 0,
+        waitingForVerdict: 0,
+      });
+
+    const project: Project = exceptionsProject({ enableAiInsights: true });
+
+    await InsightScanner.scanProjectForInsights(project);
+
+    expect(updateOneById).toHaveBeenCalledWith({
+      id: insight.id,
+      data: { status: AIInsightStatus.ActionRequired },
+      props: { isRoot: true },
+    });
+    expect(triage).not.toHaveBeenCalled();
+    expect(fixRouting).not.toHaveBeenCalled();
+    // The lane's own look, on this very look.
+    expect(sweepLane).toHaveBeenCalledWith({
+      project,
+      lane: TelemetryAiLane.Exception,
+      now: QUARTER_PAST,
+    });
+  });
+
+  test("its switch off: a new exception is triaged by AI Insights, as it always was", async () => {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(QUARTER_PAST);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
+    const insight: AIInsight = exceptionInsight();
+    jest
+      .spyOn(InsightStore, "upsertCandidates")
+      .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    const triage: jest.SpyInstance = jest
+      .spyOn(InsightTriage, "enqueueInsightTriage")
+      .mockResolvedValue({});
+    const sweepLane: jest.SpyInstance = jest.spyOn(
+      TelemetryAiRouting,
+      "sweepLane",
+    );
+
+    await InsightScanner.scanProjectForInsights(
+      exceptionsProject({
+        enableAiInsights: true,
+        enableAutomaticExceptionRemediation: false,
+      }),
+    );
+
+    expect(triage).toHaveBeenCalledWith({ insight });
+    expect(sweepLane).not.toHaveBeenCalled();
+  });
+
+  test("AI Insights' re-triage and re-fix sweeps leave exceptions alone while the lane works on them, and sweep them while it does not", async () => {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(QUARTER_PAST);
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [] })]);
+    jest.spyOn(InsightDetectors, "getTelemetryAiDetectors").mockReturnValue([]);
+    jest.spyOn(TelemetryAiRouting, "sweepLane").mockResolvedValue({
+      problemsRead: 0,
+      investigationsStarted: 0,
+      fixesStarted: 0,
+      waiting: 0,
+      waitingForVerdict: 0,
+    });
+
+    const sweptTypes: (project: Project) => Promise<Array<string>> = async (
+      project: Project,
+    ): Promise<Array<string>> => {
+      const findBy: jest.SpyInstance = jest
+        .spyOn(AIInsightService, "findBy")
+        .mockResolvedValue([]);
+
+      await InsightScanner.scanProjectForInsights(project);
+
+      const queries: Array<Record<string, unknown>> = findBy.mock.calls
+        .map((call: Array<unknown>): Record<string, unknown> => {
+          return (call[0] as { query: Record<string, unknown> }).query;
+        })
+        .filter((query: Record<string, unknown>): boolean => {
+          return query["status"] === AIInsightStatus.ActionRequired;
+        });
+
+      findBy.mockRestore();
+
+      expect(queries).toHaveLength(2);
+
+      return queries.map((query: Record<string, unknown>): string => {
+        return JSON.stringify(query["insightType"]);
+      });
+    };
+
+    for (const excluded of await sweptTypes(
+      exceptionsProject({ enableAiInsights: true }),
+    )) {
+      expect(excluded).toContain(AIInsightType.NewException);
+      expect(excluded).toContain(AIInsightType.ExceptionSpike);
+      expect(excluded).toContain(AIInsightType.ExceptionMissingStackTrace);
+    }
+
+    for (const excluded of await sweptTypes(
+      exceptionsProject({
+        enableAiInsights: true,
+        enableAutomaticExceptionRemediation: false,
+      }),
+    )) {
+      expect(excluded).not.toContain(`"${AIInsightType.NewException}"`);
+      expect(excluded).not.toContain(`"${AIInsightType.ExceptionSpike}"`);
+      // The lane's own kind stays the lane's, switch or not.
+      expect(excluded).toContain(AIInsightType.ExceptionMissingStackTrace);
+      expect(excluded).toContain(AIInsightType.ProfileHotspot);
     }
   });
 });

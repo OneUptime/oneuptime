@@ -19,6 +19,7 @@ import CodeFixReadiness from "../Utils/AI/CodeFix/CodeFixReadiness";
 import ServiceService from "./ServiceService";
 import CodeRepositoryService from "./CodeRepositoryService";
 import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
+import { CodeRepositoryAllowance } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import {
   AIFixReadiness,
   AIFixReadinessCheck,
@@ -70,6 +71,31 @@ export interface CreateCodeFixRunForExceptionParams {
   props: DatabaseCommonInteractionProps;
   // Which task recipe to run. Defaults to FixException.
   taskType?: CodeFixTaskType | undefined;
+  /*
+   * The finding the run is for (the Exceptions product's AI section):
+   * stamped on the run as it is created, so the finding links its fix,
+   * Code says what started it, and its pull request says why it opened.
+   */
+  triggeredByAiInsightId?: ObjectID | undefined;
+  /*
+   * The repositories the run may be queued on (the AI rules' that started
+   * it): the exception resolves only to one of them. Left out, to any.
+   */
+  codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
+  /*
+   * The repository a person picked for it, when none was found to hold the
+   * code for certain: the caller checked they may ask AI to work in it.
+   */
+  codeRepositoryId?: ObjectID | undefined;
+  // The LLM provider the AI rules behind the run picked, if any.
+  llmProviderId?: ObjectID | undefined;
+}
+
+// The repository a fix is queued on, as the readiness check names it.
+interface ResolvedFixRepository {
+  codeRepositoryId: string;
+  organizationName: string;
+  repositoryName: string;
 }
 
 export interface DashboardServiceSummary {
@@ -368,6 +394,10 @@ export class Service extends ProjectReferencesService<Model> {
     telemetryExceptionId: ObjectID;
     props: DatabaseCommonInteractionProps;
     billingEnabled?: boolean;
+    // The repositories it may resolve to; left out, any.
+    codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
+    // A repository picked for it: no resolving.
+    codeRepositoryId?: ObjectID | undefined;
   }): Promise<{
     readiness: AIFixReadiness;
     codeRepositoryId: ObjectID | null;
@@ -424,12 +454,17 @@ export class Service extends ProjectReferencesService<Model> {
     let resolvedRepository: CodeRepository | null = null;
 
     try {
-      const resolution: RepoResolution | null =
-        await CodeRepositoryService.resolveRepositoryForException({
-          projectId,
-          stackTrace: telemetryException.stackTrace || null,
-          serviceName: service?.name || null,
-        });
+      const resolution: ResolvedFixRepository | null = params.codeRepositoryId
+        ? await this.getPickedFixRepository({
+            projectId,
+            codeRepositoryId: params.codeRepositoryId,
+          })
+        : await this.resolveFixRepository({
+            projectId,
+            stackTrace: telemetryException.stackTrace || null,
+            serviceName: service?.name || null,
+            allowance: params.codeRepositoryAllowance,
+          });
 
       resolvedRepository = resolution
         ? await CodeRepositoryService.findOneBy({
@@ -494,6 +529,68 @@ export class Service extends ProjectReferencesService<Model> {
         checks,
       },
       codeRepositoryId: resolvedRepository?.id || null,
+    };
+  }
+
+  /*
+   * The repository an exception's code is in - resolved from its stack
+   * trace, else its service's name, else the only one there is - of the
+   * ones the allowance names (any, when it names none).
+   */
+  private async resolveFixRepository(data: {
+    projectId: ObjectID;
+    stackTrace: string | null;
+    serviceName: string | null;
+    allowance?: CodeRepositoryAllowance | undefined;
+  }): Promise<ResolvedFixRepository | null> {
+    const resolution: RepoResolution | null =
+      await CodeRepositoryService.resolveRepositoryForException({
+        projectId: data.projectId,
+        stackTrace: data.stackTrace,
+        serviceName: data.serviceName,
+        ...(data.allowance ? { allowance: data.allowance } : {}),
+      });
+
+    return resolution
+      ? {
+          codeRepositoryId: resolution.codeRepositoryId,
+          organizationName: resolution.organizationName,
+          repositoryName: resolution.repositoryName,
+        }
+      : null;
+  }
+
+  /*
+   * A repository a person picked: one of the project's, read as the system
+   * - the caller checked the person may ask AI to work in it. Null when it
+   * is not the project's.
+   */
+  private async getPickedFixRepository(data: {
+    projectId: ObjectID;
+    codeRepositoryId: ObjectID;
+  }): Promise<ResolvedFixRepository | null> {
+    const repository: CodeRepository | null =
+      await CodeRepositoryService.findOneBy({
+        query: {
+          _id: data.codeRepositoryId.toString(),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          organizationName: true,
+          repositoryName: true,
+        },
+        props: { isRoot: true },
+      });
+
+    if (!repository || !repository.id) {
+      return null;
+    }
+
+    return {
+      codeRepositoryId: repository.id.toString(),
+      organizationName: repository.organizationName || "",
+      repositoryName: repository.repositoryName || "",
     };
   }
 
@@ -611,6 +708,8 @@ export class Service extends ProjectReferencesService<Model> {
       await this.getAIFixReadinessAndRepository({
         telemetryExceptionId,
         props,
+        codeRepositoryAllowance: params.codeRepositoryAllowance,
+        codeRepositoryId: params.codeRepositoryId,
       });
 
     if (!readiness.ready) {
@@ -698,6 +797,15 @@ export class Service extends ProjectReferencesService<Model> {
       // Attribution: the user who clicked "Fix with AI Agent".
       if (props.userId) {
         run.userId = props.userId;
+      }
+
+      // The finding it is for, and the provider its AI rules picked.
+      if (params.triggeredByAiInsightId) {
+        run.triggeredByAiInsightId = params.triggeredByAiInsightId;
+      }
+
+      if (params.llmProviderId) {
+        run.llmProviderId = params.llmProviderId;
       }
 
       /*

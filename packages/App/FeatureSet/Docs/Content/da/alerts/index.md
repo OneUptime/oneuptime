@@ -64,7 +64,9 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
 
-Listen viser **Advarselsnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer** (advarslens monitor først), **Oprettet**, **Varighed**, **Etiketter** og **Ejere**. Vælg advarsler for at handle på flere på én gang: **Skift tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Tilknyt til hændelse**, **Erklær hændelse** eller slet dem.
+Listen viser **Advarselsnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer** (advarslens monitor først), **Oprettet**, **Varighed**, **Etiketter** og **Ejere**. Vælg advarsler for at handle på flere på én gang: **Bekræft**, **Løs**, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Tilknyt til hændelse**, **Erklær hændelse** eller slet dem.
+
+Menuen **⋯** for enden af hver advarsels række gør det samme for netop den advarsel: **Bekræft** og **Løs**, så længe advarslen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Add Owner** for at give den videre til en anden.
 
 ## Opret en advarsel i hånden
 
@@ -114,11 +116,11 @@ Dens regler, dens ejere, dens feed og dens første tilstand sker stadig i begge 
 
 ## Reager på en advarsel
 
-Åbn advarslen. Dens hoved viser dens tilstand, dens alvorsgrad, hvornår den blev oprettet, og den monitor og episode, den hører til, med de knapper, dit næste skridt kræver:
+Åbn advarslen. Dens hoved viser dens tilstand, dens alvorsgrad, hvor længe den har varet, dens ejere og den monitor og episode, den hører til, med de knapper, dit næste skridt kræver:
 
 - **Bekræft** siger, at nogen tager sig af den. Det forhindrer advarslens vagtpolitikker i at tilkalde det næste niveau.
 - **Løs** lukker den. Advarslen forlader **Aktive advarsler**, og dens påmindelser stopper.
-- **Change state to**, i menuen **⋯** ved siden af dem, flytter den til en af dine egne tilstande, som "Under undersøgelse".
+- **Skift tilstand til**, i menuen **⋯** ved siden af dem, flytter den til en af dine egne tilstande, som "Under undersøgelse".
 - **Erklær hændelse** åbner en ny hændelse, udfyldt på forhånd fra advarslen, når det viser sig, at problemet rammer brugerne. Se [Tilknyttede advarsler](/docs/incidents/linked-alerts).
 
 Et skift til en anden tilstand beder dig bekræfte, med en valgfri privat note foldet sammen under **Tilføj en privat note**. Hvad hver tilstand gør, står på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities).
@@ -139,7 +141,7 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 
 **Oversigt**, **Undersøgelse**, **Team** og **Noter** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står ved dens tilstand. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **AI Investigation** med **Ask OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
+- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står først i hovedet. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **AI Investigation** med **Ask OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
 - **Tilstandstidslinje** — hver tilstand, advarslen har været i, hvornår og hvor længe. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hændelser** — de hændelser, advarslen er en del af, med **Tilknyt hændelse** og **Erklær hændelse**.
 - **Indstillinger** — **Hvem kan se denne advarsel** med kontakten **Privat advarsel** og **Påmindelser** med **Send påmindelser**. Hver kontakt gemmer i det øjeblik, du slår den om.

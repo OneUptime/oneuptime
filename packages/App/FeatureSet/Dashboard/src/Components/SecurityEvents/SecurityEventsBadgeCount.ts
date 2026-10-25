@@ -24,9 +24,14 @@ export interface SecurityEventsBadgeCount {
  * playbook runs held for an approval beside Waiting for Approval. They are
  * read with the person's own permissions, so a role that cannot read cases
  * sees no number at all.
+ *
+ * Which cases are open is what the project's statuses count as: the case
+ * counts wait for them (`statuses`, null until read) and are not drawn
+ * before, as the Incidents menu's Active badge waits for its states.
  */
 export function getSecurityEventsBadgeCount(
   badge: SecurityEventsMenuBadge | undefined,
+  statuses: ReadonlyArray<unknown> | null,
 ): SecurityEventsBadgeCount | undefined {
   const projectId: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();
@@ -37,19 +42,7 @@ export function getSecurityEventsBadgeCount(
 
   switch (badge) {
     case "openCases":
-      return {
-        modelType: SecurityCase,
-        countQuery: {
-          projectId: projectId,
-          ...getSecurityCaseQueueQuery("open", undefined),
-        } as Query<BaseModel>,
-        badgeType: BadgeType.DANGER,
-      };
-    case "myOpenCases": {
-      const userId: ObjectID = User.getUserId();
-
-      // Nobody signed in has no cases of their own to count.
-      if (!userId.toString()) {
+      if (!statuses) {
         return undefined;
       }
 
@@ -57,7 +50,23 @@ export function getSecurityEventsBadgeCount(
         modelType: SecurityCase,
         countQuery: {
           projectId: projectId,
-          ...getSecurityCaseQueueQuery("mine", userId),
+          ...getSecurityCaseQueueQuery("open", undefined, statuses),
+        } as Query<BaseModel>,
+        badgeType: BadgeType.DANGER,
+      };
+    case "myOpenCases": {
+      const userId: ObjectID = User.getUserId();
+
+      // Nobody signed in has no cases of their own to count.
+      if (!userId.toString() || !statuses) {
+        return undefined;
+      }
+
+      return {
+        modelType: SecurityCase,
+        countQuery: {
+          projectId: projectId,
+          ...getSecurityCaseQueueQuery("mine", userId, statuses),
         } as Query<BaseModel>,
       };
     }

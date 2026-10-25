@@ -78,7 +78,7 @@ Træk en række i dens greb for at flytte den; den nye rækkefølge gemmes, når
 
 En tilstand, du tilføjer, har intet flag, så dens plads er dens betydning. Sæt et afbødningstrin mellem **Bekræftet** og **Løst** og et triagetrin over **Bekræftet**. En tilstand under **Løst** tæller som løst overalt.
 
-Du flytter en advarsel til en af dine egne tilstande fra menuen **⋯** i advarslens hoved, under **Change state to**, som viser hver tilstand efter den nuværende. Dens bekræftelse har titlen **Markér advarsel som {{state}}**, med tilstandens navn i.
+Du flytter en advarsel til en af dine egne tilstande fra menuen **⋯** i advarslens hoved, under **Skift tilstand til**, som viser hver tilstand efter den nuværende. Dens bekræftelse har titlen **Markér advarsel som {{state}}**, med tilstandens navn i.
 
 > [!NOTE]
 > På OneUptime Cloud kræver det planen **Growth** eller højere at tilføje eller ændre advarselstilstande og alvorsgrader. Alle planer kan læse dem, bruge dem og slette en tilstand, du har tilføjet.
@@ -128,12 +128,13 @@ Arkivér en status eller alvorsgrad, som dit team ikke længere skal bruge, i st
 
 | Måde                 | Hvor                                                                                      | Hvad den spørger om                                                                                                                  |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knapper i hovedet** | Advarslens hoved: **Bekræft**, **Løs** og **Change state to** i dens menu **⋯**          | En kort bekræftelse, **Bekræft advarsel**, **Løs advarsel** eller **Markér advarsel som {{state}}**, med en valgfri note under **Tilføj en privat note**. |
+| **Knapper i hovedet** | Advarslens hoved: **Bekræft**, **Løs** og **Skift tilstand til** i dens menu **⋯**          | En kort bekræftelse, **Bekræft advarsel**, **Løs advarsel** eller **Markér advarsel som {{state}}**, med en valgfri note under **Tilføj en privat note**. |
 | **State timeline**   | **Tilstandstidslinje** i advarslens sidemenu                                              | En række, du tilføjer i hånden, med **Advarselsstatus** og **Begynder den**.                                                          |
-| **Masseskift**       | **Skift tilstand** på et udvalg i listen over advarsler                                   | Tilstanden og én privat note, der føjes til hver advarsel. Advarsler, der allerede er i eller efter tilstanden, springes over.        |
+| **Listens række** | Menuen **⋯** på en advarsels række i listen over advarsler: **Bekræft**, **Løs** og **Skift tilstand** | Hovedets bekræftelse, der nævner advarslen. En advarsel, som en anden ændring har flyttet imens, lades urørt, og dialogen siger hvorfor. |
+| **Masseskift**       | **Bekræft**, **Løs** eller **Skift tilstand** på et udvalg i listen over advarsler                                   | Tilstanden og én privat note, der føjes til hver advarsel. Advarsler, der allerede er i eller efter tilstanden, springes over.        |
 | **Automatisk**       | En monitor, en episode, en tilknyttet hændelse eller din egen kode                        | **Løs advarsel automatisk** i en monitors kriterier, en episodes tilstandsskift, hændelseskontakterne på [Tilknyttede advarsler](/docs/incidents/linked-alerts) eller en række oprettet på `/api/alert-state-timeline`. |
 
-Hovedet tilbyder **Bekræft** og **Løs**, så længe advarslen endnu ikke er bekræftet, og kun **Løs**, når den er det. En løst advarsel viser ingen af dem.
+Hovedet tilbyder **Bekræft** og **Løs**, så længe advarslen endnu ikke er bekræftet, og kun **Løs**, når den er det. En løst advarsel viser ingen af dem. Den, hvis rolle ikke må ændre advarslens tilstand, ser knapperne låst og ingen menu med andre tilstande: peger man på en, nævner den de tilladelser, der ville give lov.
 
 ## Hvad bekræftelse gør
 

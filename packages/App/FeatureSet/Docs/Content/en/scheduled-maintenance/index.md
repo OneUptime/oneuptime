@@ -62,7 +62,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 
 **Overview** and **Calendar** are open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
 
-The list shows **Scheduled Maintenance Number**, **Title**, **Current State**, **Resources Affected**, **Shown on Status Page**, **Starts At**, **Duration**, **Ends At**, **Labels** and **Owners**. Select events to act on several at once: **Change State**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** or **Delete**.
+The list shows **Scheduled Maintenance Number**, **Title**, **Current State**, **Resources Affected**, **Shown on Status Page**, **Starts At**, **Duration**, **Ends At**, **Labels** and **Owners**. Select events to act on several at once: **Mark as {{state}}**, **Change State**, **Assign to Me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** or **Delete**. Each event's **⋯** menu, at the end of its row, does the same for that event alone: the **Mark as {{state}}** moves while the event can make them, **Change State**, **Assign to Me** until you own it, and **Add Owner**.
 
 **Maintenance Calendar**, in the **Calendar** section, shows the same events on a month, a week or a day, and can show calendars from outside the project beside them. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar).
 
@@ -92,7 +92,7 @@ Open an event from the list to see its pages. Its side menu holds:
 
 **Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.
 
-- **Overview** — the header shows the event's number, title and state, how long until it starts or how long it has run, and the buttons that move it on. Under it, **Starts**, **Ends** and **Duration** show the planned window in your time zone. The **Scheduled Maintenance Feed** records everything that happened to the event, beside the **Maintenance Details** and **Affected Resources** cards, and the **Measurements** and **Custom Fields** cards when your project has any.
+- **Overview** — the header shows the event's number, title and state, how long until it starts or how long it has run, who owns it, the status pages it shows on and who created it, and the buttons that move it on. Under it, **Starts**, **Ends** and **Duration** show the planned window in your time zone. The **Scheduled Maintenance Feed** records everything that happened to the event, beside the **Maintenance Details** and **Affected Resources** cards, and the **Measurements** and **Custom Fields** cards when your project has any.
 - **State Timeline** — every state the event has been in, when, and for how long. See [Maintenance States](/docs/scheduled-maintenance/states#the-state-timeline).
 - **Public Notes** — updates for your status pages and their subscribers. **Private Notes** are for your team only.
 - **Settings** — **Visible on Status Page**, which shows or hides the event on its status pages, and **Send reminders**, which reminds its owners until it is completed. Each switch saves the moment you flip it.

@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import AIInsightEvidence from "Common/Types/AI/AIInsightEvidence";
 import { CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
@@ -43,10 +44,11 @@ import {
 } from "./TelemetryAiFixCopy";
 
 /*
- * "FIX WITH AI" ON A FINDING OF A TELEMETRY PRODUCT - Traces' first: the
- * pull request OneUptime AI would open on its own, asked for by a person
- * (an AI rule that asks before fixing leaves it to them, and anyone may ask
- * on an open finding with no fix yet). The server decides what is offered
+ * "FIX WITH AI" ON A FINDING OF A TELEMETRY PRODUCT - Traces' first, then
+ * Exceptions': the pull request OneUptime AI would open on its own, asked
+ * for by a person (an AI rule that asks before fixing leaves it to them,
+ * and anyone may ask on an open finding with no fix yet). The server
+ * decides what is offered
  * (POST /telemetry-ai/fix-suggestion, the gates its create route checks)
  * and the strip draws exactly that:
  *
@@ -68,6 +70,11 @@ export interface ComponentProps {
   insightId: string;
   // Which kind of finding: what Fix with AI does is said for it.
   insightType?: string | undefined;
+  /*
+   * The finding's evidence, when the page has it: a missing-logging
+   * finding's says what its logs lack, and the lead says that fix.
+   */
+  evidence?: AIInsightEvidence | null | undefined;
   // Told once a task has started, with its id.
   onTaskStarted?: ((taskId: string) => void) | undefined;
 }
@@ -323,10 +330,17 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // What Fix with AI does: said while it is offered, not once it is started.
+  /*
+   * What Fix with AI does: said while it is offered, not once it is started
+   * - for the pull request the server says it starts, when it says.
+   */
   const lead: string | null =
     suggestion.offer === SuggestionOffer.Act && !taskId
-      ? getTelemetryAiFixLead(props.insightType)
+      ? getTelemetryAiFixLead(
+          props.insightType,
+          suggestion.recipe,
+          props.evidence,
+        )
       : null;
 
   return (

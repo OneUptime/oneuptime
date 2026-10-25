@@ -506,8 +506,9 @@ describe("episode overview layout", () => {
       expect(ownersFact.slice(0, 300)).toContain(
         `RouteMap[${page.ownersPage}] as Route`,
       );
+      // While it is open, to a reader who may add an owner.
       expect(ownersFact.slice(0, 300)).toContain(
-        "canAddOwners: !timing.isResolved,",
+        "canAddOwners: !timing.isResolved && owners.canAddOwners,",
       );
       expect(source).toContain(
         "<ChangeEpisodeState episodeId={modelId} peopleFacts={peopleFacts}",

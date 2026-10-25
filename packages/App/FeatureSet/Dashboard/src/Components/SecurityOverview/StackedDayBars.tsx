@@ -8,6 +8,19 @@ export interface StackedSeries {
   key: string;
   // A CSS color.
   color: string;
+  /*
+   * What the series is called, when its key is not: a project's case
+   * priority is counted by id and named by its name. Looked up in the
+   * reader's language either way.
+   */
+  label?: string | undefined;
+}
+
+// What a series is called, in the reader's language.
+function seriesName(series: StackedSeries, translator: Translator): string {
+  const name: string = series.label || series.key;
+
+  return translator.translateText(name) || name;
 }
 
 export interface ComponentProps {
@@ -61,7 +74,7 @@ const StackedDayBars: FunctionComponent<ComponentProps> = (
                   return (day.byKey[series.key] || 0) > 0;
                 })
                 .map((series: StackedSeries): string => {
-                  return `${translator.translateText(series.key) || series.key} ${
+                  return `${seriesName(series, translator)} ${
                     day.byKey[series.key] || 0
                   }`;
                 });
@@ -129,7 +142,7 @@ const StackedDayBars: FunctionComponent<ComponentProps> = (
                 className="h-2.5 w-2.5 rounded-sm"
                 style={{ backgroundColor: series.color }}
               />
-              {translator.translateText(series.key) || series.key}
+              {seriesName(series, translator)}
             </span>
           );
         })}
