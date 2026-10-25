@@ -14,6 +14,7 @@ import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ResourceAiAccessService from "../../../Server/Services/ResourceAiAccessService";
 import RunbookService from "../../../Server/Services/RunbookService";
+import RunnerService from "../../../Server/Services/RunnerService";
 import ExternalMcpServerService from "../../../Server/Services/ExternalMcpServerService";
 import Semaphore, {
   SemaphoreMutex,
@@ -2358,6 +2359,49 @@ describe("OneUptime AI picks a runbook, and runs commands on a rule's Runner", (
       await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
 
       expect(compose).not.toHaveBeenCalled();
+    });
+
+    /*
+     * "If there are no runners, it should use the global runner by default"
+     * - the maintainer. A rule that picks none shows the Global Runner in
+     * its form, and is stored as none: the engine reads it as no Runner of
+     * the rule's own, composes no commands - a shell never runs on a host
+     * every project shares - and never so much as asks whether there is a
+     * global Runner, whatever there is. The rule still fixes the rest of
+     * the way it does: OneUptime AI picks a runbook.
+     */
+    it("on the Global Runner - a rule that saved none - composes no commands and never asks for a global Runner", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const compose: SpyInstance<EngineInternals["startAiCommandRun"]> = jest
+        .spyOn(engine, "startAiCommandRun")
+        .mockResolvedValue(true);
+      const globalRunnerReads: Array<SpyInstance<() => Promise<unknown>>> = [
+        jest.spyOn(RunnerService, "hasGlobalRunnerForRunbooks"),
+        jest.spyOn(RunnerService, "findGlobalRunners"),
+      ] as unknown as Array<SpyInstance<() => Promise<unknown>>>;
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            runnerId: null as unknown as ObjectID,
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(compose).not.toHaveBeenCalled();
+      for (const read of globalRunnerReads) {
+        expect(read).not.toHaveBeenCalled();
+      }
+      // The rest of the fix goes on: a runbook is picked, nothing composed.
+      expect(planning).toHaveBeenCalledTimes(1);
+      expect(ruleReasonsOf(harness)).not.toContain(
+        AutoRemediationDecisionReason.RuleAiComposingCommands,
+      );
     });
 
     it("that picks a Runner says so when its commands could not start", async () => {
