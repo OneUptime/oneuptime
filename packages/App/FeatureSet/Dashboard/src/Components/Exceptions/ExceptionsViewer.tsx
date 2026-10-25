@@ -117,6 +117,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
+import { getExceptionRowActions } from "./ExceptionRowActions";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -2306,6 +2308,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </div>
   );
 
+  /*
+   * Resolve or Reopen, Archive or Unarchive in each row's ⋯ menu, as the
+   * exception's page offers them; the list and its chart are read again
+   * after each.
+   */
+  const exceptionRowActions: Array<ActionButtonSchema<TelemetryException>> =
+    getExceptionRowActions({
+      onChanged: (): void => {
+        void fetchExceptions();
+        void fetchHistogram();
+      },
+    });
+
   return (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
@@ -2341,6 +2356,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             onClick={() => {
               handleRowClick(exception);
             }}
+            actionButtons={exceptionRowActions}
           />
         );
       }}

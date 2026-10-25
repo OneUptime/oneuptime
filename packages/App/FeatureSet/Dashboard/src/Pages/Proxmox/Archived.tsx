@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const ProxmoxArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<ProxmoxCluster>({
-    modelType: ProxmoxCluster,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<ProxmoxCluster>({
+      modelType: ProxmoxCluster,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const ProxmoxArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<ProxmoxCluster>
         modelType={ProxmoxCluster}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="proxmox-archived-table"
         userPreferencesKey="proxmox-archived-table"
         topContent={filterBar}

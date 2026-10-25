@@ -37,6 +37,20 @@ export interface ComponentProps<T extends GenericObject> {
   formProps: BasicFormComponentProps<T>;
   description?: string | undefined;
   modalWidth?: ModalWidth | undefined;
+  /*
+   * Drawn under the description, above the fields: which records the form
+   * is about - the row a ⋯ action was taken on, or the rows selected for a
+   * bulk one (DeleteItemNames).
+   */
+  beforeFormElement?: ReactElement | undefined;
+  /*
+   * Set while the dialog's action runs, for a dialog that stays open until
+   * it is done (a row's Acknowledge, Change Severity, Add Owner): the form
+   * stays as it was filled in and the button turns busy, so it is seen to
+   * work and is pressed once. isLoading is for a dialog still reading what
+   * it shows: its fields wait for it.
+   */
+  isSubmitting?: boolean | undefined;
 }
 
 const BasicFormModal: <T extends GenericObject>(
@@ -98,7 +112,7 @@ const BasicFormModal: <T extends GenericObject>(
         openSectionIds: openFormSections.openSectionIds,
       })}
       submitButtonType={ButtonType.Submit}
-      isLoading={isLoading}
+      isLoading={isLoading || Boolean(props.isSubmitting)}
       onSubmit={footer.onSubmit}
       secondaryButton={footer.secondaryButton}
     >
@@ -112,6 +126,14 @@ const BasicFormModal: <T extends GenericObject>(
          * handed to it above): a red alert at the top of the body. It used
          * to be drawn a second time here, as grey text under the alert.
          */}
+
+        {!isLoading && props.beforeFormElement ? (
+          <div className="mb-4" data-testid="form-modal-before-form">
+            {props.beforeFormElement}
+          </div>
+        ) : (
+          <></>
+        )}
 
         {!isLoading && (
           <BasicForm

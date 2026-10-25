@@ -40,6 +40,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ActionMenuGroup } from "Common/UI/Components/ActionButton/ActionMenuGroup";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BULK_ITEM_CHANGED,
@@ -90,6 +91,18 @@ import React, { ReactElement, useState } from "react";
  * as the table's own Delete does. Before the reader's permissions are known
  * they are not shown at all.
  */
+
+/*
+ * Where each sits in its menu (ActionMenuGroup): the case's people, then
+ * its status and priority, each a run of its own, the way an incident's
+ * ⋯ and Bulk Actions read.
+ */
+export const SECURITY_CASE_ACTION_MENU_GROUPS: Record<string, string> = {
+  [ASSIGN_TO_ME]: ActionMenuGroup.People,
+  [ASSIGN_TO_SOMEONE_ELSE]: ActionMenuGroup.People,
+  [CHANGE_STATUS]: ActionMenuGroup.Change,
+  [CHANGE_PRIORITY]: ActionMenuGroup.Change,
+};
 
 export interface SecurityCaseListActionsConfig {
   // The project's priorities and statuses (Security Events > Settings).
@@ -398,7 +411,7 @@ export default function useSecurityCaseListActions(
     icon: ActionButtonSchema<SecurityCase>["icon"],
   ) => Pick<
     ActionButtonSchema<SecurityCase>,
-    "title" | "icon" | "buttonStyleType" | "placement"
+    "title" | "icon" | "buttonStyleType" | "placement" | "menuGroup"
   > = (title: string, icon: ActionButtonSchema<SecurityCase>["icon"]) => {
     return {
       title: title,
@@ -406,6 +419,7 @@ export default function useSecurityCaseListActions(
       buttonStyleType: ButtonStyleType.OUTLINE,
       // In the ⋯ menu: the row's one button stays View.
       placement: ActionButtonPlacement.MoreMenu,
+      menuGroup: SECURITY_CASE_ACTION_MENU_GROUPS[title],
     };
   };
 
@@ -508,6 +522,7 @@ export default function useSecurityCaseListActions(
       title: title,
       icon: icon,
       buttonStyleType: ButtonStyleType.NORMAL,
+      menuGroup: SECURITY_CASE_ACTION_MENU_GROUPS[title],
       resultLabels: resultLabels,
       ...lock,
       onClick: onClick,

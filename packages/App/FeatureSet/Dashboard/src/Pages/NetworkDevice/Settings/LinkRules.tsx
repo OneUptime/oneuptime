@@ -76,6 +76,8 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
   return (
     <ModelTable<NetworkDeviceLinkRule>
       modelType={NetworkDeviceLinkRule}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       id="network-device-link-rules-table"
       name="Settings > Network Device Link Rules"
       userPreferencesKey="network-device-link-rules-table"

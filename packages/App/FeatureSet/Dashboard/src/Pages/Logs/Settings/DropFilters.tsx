@@ -4,8 +4,10 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -121,15 +123,19 @@ const LogDropFilters: FunctionComponent<
    * Enable and Disable in Bulk Actions: a disabled drop filter keeps the logs it
    * would drop - how a set of them is paused while a problem is chased.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<LogDropFilter>> =
-    useBulkSwitchActions<LogDropFilter>({
-      modelType: LogDropFilter,
-      column: "isEnabled",
-    });
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<LogDropFilter> = useSwitchActions<LogDropFilter>({
+    modelType: LogDropFilter,
+    column: "isEnabled",
+  });
 
   return (
     <ModelTable<LogDropFilter>
       modelType={LogDropFilter}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      actionButtons={[...switchRowActions]}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

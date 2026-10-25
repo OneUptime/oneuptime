@@ -167,13 +167,14 @@ Arkiver en status eller alvorlighetsgrad som teamet ditt ikke lenger skal bruke,
 
 ## Flytt en hendelse gjennom tilstandene
 
-Det er fire måter en hendelse skifter tilstand på:
+Det er fem måter en hendelse skifter tilstand på:
 
 | Måte                | Hvor                                                                                        | Hva den spør om                                                                                                                                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Knapper i overskriften** | Hendelsens overskrift: **Bekreft** og **Løs**, og **Change state to** i menyen **⋯** | En kort bekreftelse — **Bekreft hendelse** eller **Løs hendelse** — med **Varsle statussideabonnenter** og, brettet sammen under **Legg til et offentlig notat**, det valgfrie **Offentlig notat** med velgeren **Velg notatmal** (når prosjektet har notatmaler). |
 | **Tilstandstidslinje** | **Tilstandstidslinje** i hendelsens sidemeny                                             | En rad som legges til for hånd, med **Hendelsesstatus**, **Begynner den** og **Varsle statussideabonnenter**.                                                                                               |
-| **Masseendring**    | **Endre tilstand** på et utvalg i listen over hendelser                                     | Én side med tilstanden, **Varsle statussideabonnenter** og det samme sammenbrettede **Legg til et offentlig notat**.                                                                                        |
+| **Rad i listen** | Menyen **⋯** på en hendelses rad i listen over hendelser: **Bekreft**, **Løs** og **Endre tilstand** | Bekreftelsen fra toppen, som nevner hendelsen. En hendelse som en annen endring har flyttet i mellomtiden, blir latt være, og dialogen sier hvorfor. |
+| **Masseendring**    | **Bekreft**, **Løs** eller **Endre tilstand** på et utvalg i listen over hendelser                                     | Én side med tilstanden, **Varsle statussideabonnenter** og det samme sammenbrettede **Legg til et offentlig notat**.                                                                                        |
 | **Automatisk**      | Et monitorkriterium eller din egen kode                                                     | Et kriterium med **Løs hendelse automatisk** slått på løser hendelsen når kriteriet ikke lenger er oppfylt. API-et endrer tilstanden ved å opprette en rad på `/api/incident-state-timeline`.               |
 
 Står den gjeldende tilstanden før den bekreftede tilstanden, tilbyr overskriften **Bekreft** og **Løs**; står den mellom de to, bare **Løs**. Bekreftelse stopper også enhver eskalering fra vakten for hendelsen.
@@ -182,7 +183,7 @@ Hver av dem skriver en tidslinjerad. En tilstandsendring gjør også noen ting d
 
 ## Hva bekreftelse gjør
 
-En hendelse er bekreftet fra det øyeblikket den går inn i den bekreftede tilstanden din, i en senere tilstand — en tilstand **Mitigated** eller **Investigating** du har plassert under **Bekreftet** — eller i en løst tilstand, uansett hvilken av de fire måtene ovenfor som flytter den. Kolonnen **Teller som** på innstillingssiden for tilstander viser hvilke tilstander det er. Når den er bekreftet:
+En hendelse er bekreftet fra det øyeblikket den går inn i den bekreftede tilstanden din, i en senere tilstand — en tilstand **Mitigated** eller **Investigating** du har plassert under **Bekreftet** — eller i en løst tilstand, uansett hvilken av de fem måtene ovenfor som flytter den. Kolonnen **Teller som** på innstillingssiden for tilstander viser hvilke tilstander det er. Når den er bekreftet:
 
 - **Bekreft tilbys ikke lenger.** Ikke i hendelsens overskrift, ikke i mobilappen (knappen og sveipet), ikke i Slack eller Microsoft Teams og ikke via `acknowledge_incident` på OneUptime MCP-serveren. Å bekrefte den likevel — fra en tilkallingsside, Slack eller Teams — avvises med "Incident is already acknowledged." (eller "Incident is already resolved."), i stedet for å flytte den opp i listen igjen.
 - **Vakten slutter å tilkalle for den.** En vakthavende som bekrefter tilkallingen sin etter at en kollega har bekreftet hendelsen eller flyttet den videre, får tilkallingen sin bekreftet, og hendelsen blir værende der den er.
@@ -194,7 +195,7 @@ Varsler og episoder følger samme regel, med varseltilstandene dine.
 
 ## Hva løsning gjør
 
-En hendelse er løst når den går fra en tilstand over den løste tilstanden din inn i den løste tilstanden, eller inn i en senere tilstand — uansett hvilken av de fire måtene ovenfor som flytter den. Hver løsning:
+En hendelse er løst når den går fra en tilstand over den løste tilstanden din inn i den løste tilstanden, eller inn i en senere tilstand — uansett hvilken av de fem måtene ovenfor som flytter den. Hver løsning:
 
 - **Gir fra seg monitorene hendelsen holder.** En hendelse som erklæres åpen, holder monitorene sine: den satte dem i statusen fra **Endre overvåkingsstatus til**, når den nevner en, og satte, når den ble erklært for hånd, overvåkingen deres på pause. En redigering mens den er åpen — å legge til monitorer eller endre den statusen — får den også til å holde dem. Løsningen gjenopptar overvåkingen og setter dem tilbake til operativ, med mindre en annen åpen hendelse fortsatt ligger på dem, og fra da av holder hendelsen ingenting. Så en hendelse som erklæres allerede løst, gir ingenting fra seg, og det gjør heller ikke en ny løsning etter en gjenåpning: en status monitorene fikk i mellomtiden — fra probene, fra vedlikehold eller satt for hånd — blir stående.
 - **Merker SLA-en som løst** og skriver, når OneUptime AIs utkast til etteranalyser er slått på, et utkast til en etteranalyse.

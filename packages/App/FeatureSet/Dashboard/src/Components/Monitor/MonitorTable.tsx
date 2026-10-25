@@ -30,10 +30,14 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
-import useBulkSwitchActions, {
+import {
   DISABLE_SWITCH_ACTION,
   ENABLE_SWITCH_ACTION,
+  SwitchActionsResult,
+  useSwitchActions,
 } from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
+import { getTurnOffMonitoringConfirmation } from "./MonitoringCard";
 import {
   ARCHIVE_INSTEAD_OF_DELETE,
   MONITOR_ARCHIVE_COPY,
@@ -82,7 +86,9 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  RowActionConfirmation,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
@@ -163,14 +169,18 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     isArchived: isArchivedView,
   } as Query<Monitor>;
 
-  const { archiveBulkActions, unarchiveBulkActions } =
-    useBulkArchiveActions<Monitor>({
-      modelType: Monitor,
-      singularName: MONITOR_ARCHIVE_COPY.singularName,
-      pluralName: MONITOR_ARCHIVE_COPY.pluralName,
-      archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-      unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-    });
+  const {
+    archiveBulkActions,
+    unarchiveBulkActions,
+    archiveRowActions,
+    unarchiveRowActions,
+  } = useBulkArchiveActions<Monitor>({
+    modelType: Monitor,
+    singularName: MONITOR_ARCHIVE_COPY.singularName,
+    pluralName: MONITOR_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
 
   /*
    * Enable and Disable (the shared bulk switch, as on every list that turns
@@ -179,15 +189,50 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
    * list reads disableActiveMonitoring (selectMoreFields below), so a
    * monitor already in the state asked for is left alone and listed.
    */
-  const monitorSwitchBulkActions: Array<BulkActionButtonSchema<Monitor>> =
-    useBulkSwitchActions<Monitor>({
-      modelType: Monitor,
-      column: "disableActiveMonitoring",
-      actions: [
-        { ...ENABLE_SWITCH_ACTION, value: false },
-        { ...DISABLE_SWITCH_ACTION, value: true },
-      ],
-    });
+  const {
+    bulkActions: monitorSwitchBulkActions,
+    rowActions: monitorSwitchRowActions,
+  }: SwitchActionsResult<Monitor> = useSwitchActions<Monitor>({
+    modelType: Monitor,
+    column: "disableActiveMonitoring",
+    actions: [
+      { ...ENABLE_SWITCH_ACTION, value: false },
+      { ...DISABLE_SWITCH_ACTION, value: true },
+    ],
+    /*
+     * A row's Disable asks what the monitor's own Monitoring switch asks
+     * before monitoring is turned off (MonitoringCard), naming the monitor;
+     * Enable turns it on at once, as that switch does.
+     */
+    getRowConfirmation: (data: {
+      value: boolean;
+      item: Monitor;
+      name: string;
+    }): RowActionConfirmation | undefined => {
+      // Disable Monitoring on is monitoring turned off.
+      const confirmation: ModelSwitchConfirmation | undefined =
+        getTurnOffMonitoringConfirmation(!data.value);
+
+      if (!confirmation) {
+        return undefined;
+      }
+
+      return {
+        title: confirmation.title,
+        description: confirmation.description,
+        submitButtonText: confirmation.submitButtonText,
+        submitButtonType: confirmation.submitButtonType,
+        details: (
+          <p
+            data-testid="row-switch-name"
+            className="break-words text-sm font-semibold text-gray-900"
+          >
+            {data.name}
+          </p>
+        ),
+      };
+    },
+  });
 
   const monitorTemplateFacet: ResourceFacet = {
     key: MONITOR_TEMPLATE_FACET_KEY,
@@ -684,11 +729,16 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     setBulkActionProps(null);
   };
 
+  // Add Probe and Remove Probe sit together in Bulk Actions (ActionMenuGroup).
+  const PROBE_MENU_GROUP: string = "probes";
+
   const getBulkAddProbesAction: () => BulkActionButtonSchema<Monitor> =
     (): BulkActionButtonSchema<Monitor> => {
       return {
         title: "Add Probe",
         buttonStyleType: ButtonStyleType.NORMAL,
+        // With Remove Probe, a run of its own in Bulk Actions.
+        menuGroup: PROBE_MENU_GROUP,
         icon: IconProp.Signal,
         onClick: async (
           actionProps: BulkActionOnClickProps<Monitor>,
@@ -704,6 +754,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       return {
         title: "Remove Probe",
         buttonStyleType: ButtonStyleType.NORMAL,
+        menuGroup: PROBE_MENU_GROUP,
         icon: IconProp.Close,
         onClick: async (
           actionProps: BulkActionOnClickProps<Monitor>,
@@ -796,7 +847,20 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 ModalTableBulkDefaultActions.Delete,
               ],
         }}
-        actionButtons={props.actionButtons}
+        /*
+         * Each row's ⋯ menu: Enable or Disable (the one that changes the
+         * row), the page's own actions, then Archive - or, on the Archived
+         * page, Unarchive alone.
+         */
+        actionButtons={
+          isArchivedView
+            ? [...(props.actionButtons || []), ...unarchiveRowActions]
+            : [
+                ...monitorSwitchRowActions,
+                ...(props.actionButtons || []),
+                ...archiveRowActions,
+              ]
+        }
         isDeleteable={props.isDeleteable !== false}
         // An archived monitor is off the main list already.
         deleteConfirmationWarning={

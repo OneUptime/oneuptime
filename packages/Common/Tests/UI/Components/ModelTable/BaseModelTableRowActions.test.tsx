@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -83,6 +84,7 @@ import BaseModelTable, {
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import ActionButtonSchema, {
   ActionButtonPlacement,
+  RowActionContext,
 } from "../../../../UI/Components/ActionButton/ActionButtonSchema";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
@@ -118,6 +120,7 @@ type TableOptions = {
 
 describe("BaseModelTable row actions", () => {
   let showCreateEditModalCalls: number = 0;
+  let getListCalls: number = 0;
 
   const makeProps: (options: TableOptions) => BaseModelTableProps<Monitor> = (
     options: TableOptions,
@@ -139,6 +142,8 @@ describe("BaseModelTable row actions", () => {
         skip: number;
         limit: number;
       }): Promise<ListResult<Monitor>> => {
+        getListCalls++;
+
         return {
           data: ROWS as unknown as Array<Monitor>,
           count: ROWS.length,
@@ -236,6 +241,7 @@ describe("BaseModelTable row actions", () => {
   beforeEach(() => {
     permissionsForTest = [Permission.ProjectAdmin];
     showCreateEditModalCalls = 0;
+    getListCalls = 0;
   });
 
   afterEach(() => {
@@ -417,6 +423,85 @@ describe("BaseModelTable row actions", () => {
     expect(
       (onSendTest.mock.calls[0]?.[0] as unknown as Row | undefined)?._id,
     ).toBe("monitor-2");
+  });
+
+  /*
+   * The list's own actions - Enable or Disable, Archive, Acknowledge - are
+   * what its rows are for; Show ID, Edit and Delete every row carries.
+   */
+  test("a table's own actions come first in the menu, ahead of Show ID, Edit and Delete", async () => {
+    renderTable({
+      isViewable: true,
+      isEditable: true,
+      isDeleteable: true,
+      showViewIdButton: true,
+      actionButtons: [
+        {
+          title: "Disable",
+          icon: IconProp.Stop,
+          buttonStyleType: ButtonStyleType.OUTLINE,
+          placement: ActionButtonPlacement.MoreMenu,
+          onClick: () => {
+            return undefined;
+          },
+        },
+      ],
+    });
+
+    const rows: Array<HTMLElement> = await waitForRows();
+
+    expect(rowButtonLabels(rows[0]!)).toEqual(["View Monitor", "More actions"]);
+    expect(menuLabels(openMenuIn(rows[0]!))).toEqual([
+      "Disable",
+      "Show ID",
+      "Edit",
+      "Delete",
+    ]);
+  });
+
+  test("an action that changed its row has the list read again, through the context it is handed", async () => {
+    let given: RowActionContext | undefined = undefined;
+
+    renderTable({
+      isViewable: true,
+      actionButtons: [
+        {
+          title: "Disable",
+          icon: IconProp.Stop,
+          buttonStyleType: ButtonStyleType.OUTLINE,
+          placement: ActionButtonPlacement.MoreMenu,
+          onClick: (
+            _item: Monitor,
+            onCompleteAction: () => void,
+            _onError: (error: Error) => void,
+            context?: RowActionContext,
+          ) => {
+            given = context;
+            onCompleteAction();
+          },
+        },
+      ],
+    });
+
+    const rows: Array<HTMLElement> = await waitForRows();
+    const readsBefore: number = getListCalls;
+
+    fireEvent.click(
+      within(openMenuIn(rows[0]!)).getByRole("menuitem", { name: "Disable" }),
+    );
+
+    expect(given).toBeDefined();
+    // Nothing is read again until the action says its change is saved.
+    expect(getListCalls).toBe(readsBefore);
+
+    act(() => {
+      given!.refresh();
+    });
+
+    await waitFor(() => {
+      expect(getListCalls).toBe(readsBefore + 1);
+    });
+    expect(await waitForRows()).toHaveLength(ROWS.length);
   });
 
   test("a table can keep one of its own actions on the row by marking it Primary", async () => {

@@ -26,9 +26,10 @@ const CloudArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const { unarchiveBulkActions } = useBulkArchiveActions<CloudResource>({
-    modelType: CloudResource,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<CloudResource>({
+      modelType: CloudResource,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -57,6 +58,8 @@ const CloudArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<CloudResource>
         modelType={CloudResource}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="cloud-archived-table"
         userPreferencesKey="cloud-archived-table"
         topContent={filterBar}

@@ -167,13 +167,14 @@ Arquive um estado ou uma severidade que sua equipe não deve mais usar, em vez d
 
 ## Mover um incidente pelos seus estados
 
-Um incidente muda de estado de quatro formas:
+Um incidente muda de estado de cinco formas:
 
 | Forma                     | Onde                                                                                        | O que pede                                                                                                                                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Botões do cabeçalho**   | O cabeçalho do incidente: **Confirmar** e **Resolver**, e **Change state to** no menu **⋯** dele | Uma confirmação curta — **Confirmar incidente** ou **Resolver incidente** — com **Notificar assinantes da página de status** e, recolhida em **Adicionar uma nota pública**, a **Nota pública** opcional e seu seletor **Selecionar Modelo de Nota** (quando o projeto tem modelos de notas). |
 | **Linha do tempo de estado** | **Linha do tempo de estado** no menu lateral do incidente                                | Uma linha adicionada manualmente, com **Status do Incidente**, **Começa em** e **Notificar assinantes da página de status**.                                                                                |
-| **Alteração em massa**    | **Alterar estado** em uma seleção na lista de incidentes                                    | Uma página com o estado, **Notificar assinantes da página de status** e o mesmo **Adicionar uma nota pública** recolhido.                                                                                   |
+| **Linha da lista** | O menu **⋯** na linha de um incidente na lista de incidentes: **Confirmar**, **Resolver** e **Alterar estado** | A confirmação do cabeçalho, com o nome do incidente. Um incidente que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. |
+| **Alteração em massa**    | **Confirmar**, **Resolver** ou **Alterar estado** em uma seleção na lista de incidentes                                    | Uma página com o estado, **Notificar assinantes da página de status** e o mesmo **Adicionar uma nota pública** recolhido.                                                                                   |
 | **Automaticamente**       | Um critério de monitor, ou seu próprio código                                               | Um critério com **Resolver incidente automaticamente** ativado resolve seu incidente quando o critério deixa de ser atendido. A API muda o estado criando uma linha em `/api/incident-state-timeline`.       |
 
 Se o estado atual fica antes do estado confirmado, o cabeçalho oferece **Confirmar** e **Resolver**; se fica entre os dois, só **Resolver**. Confirmar também interrompe qualquer escalonamento de plantão do incidente.
@@ -182,7 +183,7 @@ Cada uma dessas formas grava uma linha na linha do tempo. Uma mudança de estado
 
 ## O que a confirmação faz
 
-Um incidente está confirmado a partir do momento em que passa para o seu estado confirmado, para qualquer estado posterior — um estado **Mitigated** ou **Investigating** que você colocou abaixo de **Confirmado** — ou para um estado resolvido, qualquer que seja a das quatro formas acima que o mova. A coluna **Conta como** da página de configurações de estados mostra quais são esses estados. Depois de confirmado:
+Um incidente está confirmado a partir do momento em que passa para o seu estado confirmado, para qualquer estado posterior — um estado **Mitigated** ou **Investigating** que você colocou abaixo de **Confirmado** — ou para um estado resolvido, qualquer que seja a das cinco formas acima que o mova. A coluna **Conta como** da página de configurações de estados mostra quais são esses estados. Depois de confirmado:
 
 - **Confirmar não é mais oferecido.** Nem no cabeçalho do incidente, nem no aplicativo móvel (o botão e o gesto de deslizar), nem no Slack ou no Microsoft Teams, nem pelo `acknowledge_incident` do servidor MCP do OneUptime. Confirmá-lo mesmo assim — a partir de um acionamento de plantão, do Slack ou do Teams — é recusado com «Incident is already acknowledged.» (ou «Incident is already resolved.»), em vez de fazê-lo voltar na lista.
 - **O plantão para de acionar por ele.** Um respondedor que confirma seu acionamento depois que um colega confirmou o incidente, ou o fez avançar, tem seu acionamento confirmado e o incidente fica onde está.
@@ -194,7 +195,7 @@ Alertas e episódios seguem a mesma regra, com seus estados de alerta.
 
 ## O que a resolução faz
 
-Um incidente é resolvido quando passa de um estado acima do seu estado resolvido para o estado resolvido, ou para qualquer estado posterior — qualquer que seja a das quatro formas acima que o mova. Cada resolução:
+Um incidente é resolvido quando passa de um estado acima do seu estado resolvido para o estado resolvido, ou para qualquer estado posterior — qualquer que seja a das cinco formas acima que o mova. Cada resolução:
 
 - **Devolve os monitores que o incidente retém.** Um incidente declarado aberto retém seus monitores: ele os colocou no status de **Alterar status do monitor para**, quando nomeia um, e, declarado manualmente, pausou o monitoramento deles. Uma edição enquanto ele está aberto — adicionar monitores, ou mudar esse status — também faz com que ele os retenha. Resolver retoma o monitoramento deles e os devolve ao estado operacional, a menos que outro incidente aberto ainda esteja sobre eles, e a partir daí o incidente não retém mais nada. Então um incidente declarado já resolvido não devolve nada, nem uma segunda resolução depois de uma reabertura: um status que seus monitores receberam nesse meio-tempo — das sondas deles, de uma manutenção ou definido manualmente — permanece.
 - **Marca o SLA como resolvido** e, quando os rascunhos de post-mortem do OneUptime AI estão ativados, redige um post-mortem.

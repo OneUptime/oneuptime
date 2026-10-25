@@ -3,9 +3,13 @@ import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   RULE_ENABLED_COLUMN,
+  hasRuleEnabledColumn,
   isRuleEnabledField,
   withRuleEnabledOnEditOnly,
 } from "../../../../UI/Components/RuleRun/RuleEnabledField";
+import IncidentOwnerRule from "../../../../Models/DatabaseModels/IncidentOwnerRule";
+import Label from "../../../../Models/DatabaseModels/Label";
+import MonitorLabelRule from "../../../../Models/DatabaseModels/MonitorLabelRule";
 
 /*
  * Nobody creates a rule in order to have it switched off: a rule's create
@@ -59,6 +63,25 @@ describe("isRuleEnabledField", () => {
     // Writes a value of its own, not the column.
     expect(
       isRuleEnabledField({ ...ENABLED, overrideFieldKey: "enableLater" }),
+    ).toBe(false);
+  });
+});
+
+// A rule's table offers Enable or Disable in each row for one (RuleTable).
+describe("hasRuleEnabledColumn", () => {
+  test("is true of a rule whose model has the boolean isEnabled column", () => {
+    expect(hasRuleEnabledColumn(new MonitorLabelRule())).toBe(true);
+    expect(hasRuleEnabledColumn(new IncidentOwnerRule())).toBe(true);
+  });
+
+  test("is false of a model without it, or with a column of another type", () => {
+    expect(hasRuleEnabledColumn(new Label())).toBe(false);
+    expect(
+      hasRuleEnabledColumn({
+        getTableColumnMetadata: (): unknown => {
+          return { type: "Text" };
+        },
+      }),
     ).toBe(false);
   });
 });

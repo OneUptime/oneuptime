@@ -55,9 +55,10 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "iotFleetId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<IoTFleet>({
-    modelType: IoTFleet,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<IoTFleet>({
+      modelType: IoTFleet,
+    });
 
   const iotExtraFacets: Array<ResourceFacet> = [
     {
@@ -113,6 +114,8 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<IoTFleet>
         modelType={IoTFleet}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         refreshToggle={firstRecordWatch.refreshToken}
         id="iot-fleets-table"
         userPreferencesKey="iot-fleets-table"

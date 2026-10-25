@@ -135,7 +135,7 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkOwnerActions", () => {
   return {
     __esModule: true,
     default: () => {
-      return { bulkActions: [], modals: <></> };
+      return { rowActions: [], bulkActions: [], modals: <></> };
     },
   };
 });
@@ -145,6 +145,8 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkArchiveActions", () => {
     __esModule: true,
     default: () => {
       return {
+        archiveRowActions: [],
+        unarchiveRowActions: [],
         archiveBulkActions: [
           {
             title: "Archive",
