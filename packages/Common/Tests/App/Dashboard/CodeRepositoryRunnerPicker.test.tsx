@@ -43,8 +43,10 @@ import {
   CODE_HIDDEN_RUNNER_LABEL,
   CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_OWN_RUNNER_HELPER_TEXT,
+  CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
+  GLOBAL_RUNNER_PICK_VALUE,
   RunnerPickerModel,
   RunnerPickerOutcome,
   RunnerPickerWork,
@@ -53,6 +55,7 @@ import {
   offersGlobalRunner,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import {
+  CODE_REPOSITORY_RUNNER_DEFAULT_TAG_TEST_ID,
   CODE_REPOSITORY_RUNNER_LOADING_TEST_ID,
   CODE_REPOSITORY_RUNNER_PICKER_TEST_ID,
   CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID,
@@ -621,21 +624,21 @@ describe("the Settings page's Runner field and value", () => {
       .mockResolvedValue(loaded);
   }
 
-  test("the field reads the repository's choices, and stores a Runner's id or nothing for Global Runner", async () => {
+  test("the field reads the repository's choices, and holds a Runner's id or none for Global Runner", async () => {
     const load: jest.SpiedFunction<
       typeof RunnerChoicesLoader.loadForCodeRepository
     > = loads(choices());
-    const picked: Array<string | null> = [];
+    const picked: Array<string> = [];
 
     function Field(): ReactElement {
-      const [value, setValue] = useState<string | null>(STAGING_ID);
+      const [value, setValue] = useState<string>(STAGING_ID);
 
       return (
         <CodeRepositoryRunnerPicker
           value={value}
-          onChange={(runnerId: string | null): void => {
-            picked.push(runnerId);
-            setValue(runnerId);
+          onChange={(choice: string): void => {
+            picked.push(choice);
+            setValue(choice);
           }}
         />
       );
@@ -665,12 +668,96 @@ describe("the Settings page's Runner field and value", () => {
 
     fireEvent.click(openMenu(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)[0]!);
 
-    // Global Runner is stored as no Runner at all.
-    expect(picked).toEqual([null]);
+    /*
+     * Global Runner, with no default Runner in the project, is no Runner at
+     * all - the choice "" (CodeRepositoryRunnerChoice), which follows a
+     * default the project makes later.
+     */
+    expect(picked).toEqual([""]);
 
     fireEvent.click(openMenu(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)[1]!);
 
-    expect(picked).toEqual([null, BASTION_ID]);
+    expect(picked).toEqual(["", BASTION_ID]);
+  });
+
+  test("beside the project's default Runner, the field holds none for the default and the Global Runner's own pick", async () => {
+    loads(
+      choices({
+        projectRunners: [
+          {
+            id: BASTION_ID,
+            name: "prod-bastion",
+            liveStatus: RunnerLiveStatus.Connected,
+            isProjectDefault: true,
+          },
+          {
+            id: STAGING_ID,
+            name: "staging-runner",
+            liveStatus: RunnerLiveStatus.Disconnected,
+          },
+        ],
+      }),
+    );
+    const picked: Array<string> = [];
+
+    function Field(): ReactElement {
+      const [value, setValue] = useState<string>("");
+
+      return (
+        <CodeRepositoryRunnerPicker
+          value={value}
+          onChange={(choice: string): void => {
+            picked.push(choice);
+            setValue(choice);
+          }}
+        />
+      );
+    }
+
+    render(<Field />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID),
+      ).toBeInTheDocument();
+    });
+
+    // Picked none: the default, by name and tagged, which it follows.
+    expect(shown(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)).toBe(
+      "prod-bastion · Project default · Connected",
+    );
+    expect(help(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)).toHaveTextContent(
+      CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
+    );
+
+    const options: Array<HTMLElement> = openMenu(
+      CODE_REPOSITORY_RUNNER_PICKER_TEST_ID,
+    );
+
+    expect(
+      options.map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual([
+      "prod-bastion · Project default · Connected",
+      expect.stringContaining("Global Runner · Connected"),
+      "staging-runner · Disconnected",
+    ]);
+
+    fireEvent.click(options[1]!);
+    expect(picked).toEqual([GLOBAL_RUNNER_PICK_VALUE]);
+    expect(help(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)).toHaveTextContent(
+      CODE_GLOBAL_RUNNER_HELPER_TEXT,
+    );
+
+    fireEvent.click(openMenu(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID)[0]!);
+    expect(picked).toEqual([GLOBAL_RUNNER_PICK_VALUE, ""]);
+  });
+
+  test("the words for a repository that follows the default say it moves with it", () => {
+    expect(CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT).toBe(
+      "AI works on the project's default Runner, and moves with it when another Runner becomes the default. It builds and tests its change there the way the repository's AGENTS.md says.",
+    );
   });
 
   test("the field reads the choices again when the person comes back to the tab", async () => {
@@ -744,6 +831,72 @@ describe("the Settings page's Runner field and value", () => {
     expect(shownValue).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
     expect(within(shownValue).queryByRole("link")).toBeNull();
     expect(statusOf(shownValue)).toBe("Status: Connected");
+  });
+
+  /*
+   * A repository that picks none follows the project's default Runner: the
+   * card names it, linked to its page, tagged as the default, with how it
+   * is doing - and no line about a Runner that does not build or test.
+   */
+  test("a repository that picked none, in a project with a default Runner, names the default - linked, tagged, with its status", async () => {
+    const withDefault: RunnerChoices = choices({
+      projectRunners: [
+        {
+          id: BASTION_ID,
+          name: "prod-bastion",
+          liveStatus: RunnerLiveStatus.Disconnected,
+          isProjectDefault: true,
+        },
+      ],
+    });
+
+    const shownValue: HTMLElement = await value(null, withDefault);
+    const link: HTMLElement = within(shownValue).getByRole("link");
+
+    expect(link).toHaveTextContent("prod-bastion");
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/runbooks/runners/${BASTION_ID}`,
+    );
+    expect(
+      within(shownValue).getByTestId(
+        CODE_REPOSITORY_RUNNER_DEFAULT_TAG_TEST_ID,
+      ),
+    ).toHaveTextContent("Project default");
+    expect(statusOf(shownValue)).toBe("Status: Disconnected");
+    expect(
+      within(shownValue).queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("a repository that picked the Global Runner beside a default shows Global Runner, not the default", async () => {
+    loads(
+      choices({
+        projectRunners: [
+          {
+            id: BASTION_ID,
+            name: "prod-bastion",
+            liveStatus: RunnerLiveStatus.Connected,
+            isProjectDefault: true,
+          },
+        ],
+      }),
+    );
+
+    render(
+      <CodeRepositoryRunnerValue runnerId={null} isGlobalRunnerPicked={true} />,
+    );
+
+    const shownValue: HTMLElement = await screen.findByTestId(
+      CODE_REPOSITORY_RUNNER_VALUE_TEST_ID,
+    );
+
+    expect(shownValue).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+    expect(shownValue).not.toHaveTextContent("prod-bastion");
+    expect(within(shownValue).queryByRole("link")).toBeNull();
+    expect(
+      within(shownValue).getByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toHaveTextContent(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION);
   });
 
   /*

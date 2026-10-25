@@ -1084,15 +1084,29 @@ describe("the Runner card, under More settings", () => {
 
     const props: Record<string, unknown> = card("Repository > Runner");
     const fields: Array<FormField> = props["formFields"] as Array<FormField>;
+    // What the form draws: the picker alone; its two columns are not drawn.
+    const drawn: Array<FormField> = fields.filter((field: FormField) => {
+      return !field.showIf || field.showIf({});
+    });
 
-    expect(fields).toHaveLength(1);
-    expect(columnsOf(fields[0]!)).toEqual(["runnerId"]);
-    expect(fields[0]!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
-    expect(fields[0]!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-    expect(fields[0]!.hideOptionalLabel).toBe(true);
+    expect(drawn).toHaveLength(1);
+    expect(columnsOf(drawn[0]!)).toEqual(["runnerId"]);
+    expect(drawn[0]!.formOnly).toBe(true);
+    expect(drawn[0]!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
+    expect(drawn[0]!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(drawn[0]!.hideOptionalLabel).toBe(true);
     expect(props["isEditable"]).toBe(true);
 
-    const element: ReactElement = fields[0]!.getCustomElement!(
+    // The columns the one choice writes, read and sent but never drawn.
+    expect(
+      fields
+        .filter((field: FormField) => {
+          return field !== drawn[0];
+        })
+        .map(columnsOf),
+    ).toEqual([["runnerId"], ["isGlobalRunnerPicked"]]);
+
+    const element: ReactElement = drawn[0]!.getCustomElement!(
       {},
       { onChange: (): void => {} },
     ) as ReactElement;
@@ -1642,6 +1656,68 @@ describe("the settings' words and rules, as plain functions", () => {
     expect(runnerItem(PROD_RUNNER_ID, choicesWith()).translateValue).toBe(
       undefined,
     );
+  });
+
+  /*
+   * A repository that picks none follows the project's default Runner: the
+   * default state, so its name alone - as on a global Runner. One that
+   * picked the Global Runner itself beside a default says so.
+   */
+  test("the Runner, beside a project default: none is the default, the Global Runner's own pick is said", () => {
+    const withDefault: RunnerChoices = choicesWith({
+      projectRunners: [
+        {
+          id: PROD_RUNNER_ID,
+          name: "prod-eu-west-1",
+          liveStatus: RunnerLiveStatus.Connected,
+          isProjectDefault: true,
+        },
+        {
+          id: OFFICE_RUNNER_ID,
+          name: "office-runner",
+          liveStatus: RunnerLiveStatus.Disconnected,
+        },
+      ],
+    });
+    const runnerItem: (
+      values: Record<string, unknown>,
+      choices?: RunnerChoices,
+    ) => FoldedSectionItem = (
+      values: Record<string, unknown>,
+      choices: RunnerChoices = withDefault,
+    ): FoldedSectionItem => {
+      return getRepositoryMoreSettingsItems(values, english, choices).find(
+        (item: FoldedSectionItem): boolean => {
+          return item.key === "runner";
+        },
+      )!;
+    };
+
+    // Follows the default: the default.
+    expect(runnerItem({ runnerId: "" })).toMatchObject({ isSet: false });
+    expect(
+      runnerItem({ runnerId: "", isGlobalRunnerPicked: false }),
+    ).toMatchObject({ isSet: false });
+
+    // Picked the Global Runner itself: said, in the reader's language.
+    expect(
+      runnerItem({ runnerId: "", isGlobalRunnerPicked: true }),
+    ).toMatchObject({
+      isSet: true,
+      value: "Global Runner",
+      translateValue: true,
+    });
+
+    // With no default, the Global Runner is the default: its name alone.
+    expect(
+      runnerItem({ runnerId: "", isGlobalRunnerPicked: true }, choicesWith()),
+    ).toMatchObject({ isSet: false });
+
+    // A pick of another Runner of the project's own: its name.
+    expect(runnerItem({ runnerId: OFFICE_RUNNER_ID })).toMatchObject({
+      isSet: true,
+      value: "office-runner · Disconnected",
+    });
   });
 
   test("a blocked limit reads as None; commands as Configured", () => {

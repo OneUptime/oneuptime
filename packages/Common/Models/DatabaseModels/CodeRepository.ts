@@ -590,8 +590,12 @@ export default class CodeRepository extends BaseModel {
    * (ProjectReferencesService refuses another project's Runner and a global
    * one; CodeRepositoryService refuses an in-cluster Runner the Kubernetes
    * agent chart installed, which never clones a repository). A Runner that
-   * is deleted leaves the repository on a global Runner (SET NULL), as one
-   * that picks none.
+   * is deleted leaves the repository picking none (SET NULL).
+   *
+   * A repository that picks none follows the project's default Runner
+   * (Runner.isProjectDefault) when it has one - unless it picked the Global
+   * Runner itself (isGlobalRunnerPicked, below) - and otherwise runs on a
+   * global Runner.
    */
   @ColumnAccessControl({
     create: [
@@ -627,7 +631,7 @@ export default class CodeRepository extends BaseModel {
     modelType: Runner,
     title: "Runner",
     description:
-      "The Runner AI works in this repository on. Empty means a global Runner, one OneUptime runs for every project.",
+      "The Runner AI works in this repository on. Empty means the project's default Runner when it has one, and otherwise a global Runner, one OneUptime runs for every project.",
   })
   @ManyToOne(
     () => {
@@ -678,7 +682,7 @@ export default class CodeRepository extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Runner ID",
     description:
-      "ID of the Runner AI works in this repository on: one of the project's own Runners. Empty means a global Runner, one OneUptime runs for every project.",
+      "ID of the Runner AI works in this repository on: one of the project's own Runners. Empty means the project's default Runner when it has one, and otherwise a global Runner, one OneUptime runs for every project.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -686,6 +690,62 @@ export default class CodeRepository extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public runnerId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  /*
+   * Whether the repository picked the Global Runner itself (its Runner
+   * setting in Code), rather than leaving its Runner to the project
+   * (Types/Runner/CodeRepositoryRunner). Read only for a repository that
+   * picks no Runner (runnerId empty): it then runs on a global Runner even
+   * when the project has a default Runner, as a runbook step that picked
+   * the Global Runner does. Unset, it follows the project's default Runner,
+   * and a global Runner while the project has none.
+   *
+   * Repositories that picked none in a project that already had a default
+   * Runner were set to it when it came in
+   * (1807710000000-KeepCodeRepositoriesOnGlobalRunners), so none of them
+   * moved off the global Runner they were on.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Picks Global Runner",
+    description:
+      "Whether this repository runs on a global Runner, one OneUptime runs for every project, even when the project has a default Runner. Read only when the repository picks no Runner of its own. Unset, a repository that picks no Runner follows the project's default Runner, and runs on a global Runner while there is none.",
+    example: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isGlobalRunnerPicked?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

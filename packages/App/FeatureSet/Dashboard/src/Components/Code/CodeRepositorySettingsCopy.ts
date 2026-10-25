@@ -10,8 +10,10 @@ import {
   readProductionReviewContent,
 } from "./CodeProductionReviewCopy";
 import type { RunnerChoices } from "../Runner/RunnerChoices";
+import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
 import {
   CODE_HIDDEN_RUNNER_LABEL,
+  GLOBAL_RUNNER_CHOICE_LABEL,
   RunnerPickerModel,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
@@ -160,9 +162,14 @@ export interface CodeRepositorySettingsValues {
   isProductionReviewEnabled?: boolean | undefined;
   /*
    * The Runner the repository picks, as getRepositoryRunnerId reads it:
-   * empty for none (a global Runner).
+   * empty for none.
    */
   runnerId?: string | undefined;
+  /*
+   * Whether it picked the Global Runner itself; read only when it picks no
+   * Runner (CodeRepositoryRunnerChoice).
+   */
+  isGlobalRunnerPicked?: boolean | undefined;
 }
 
 // The label that hands an issue to the GitHub App when none is set.
@@ -318,14 +325,17 @@ function getSwitchItem(data: {
 
 /*
  * The Runner, as More settings lists it while it is folded: by name alone
- * while the repository works on a global Runner (the default) or while the
- * page has not read where it works yet; otherwise set, with what it works
- * on -
+ * while the repository picks none - it follows the project's default
+ * Runner, or the Global Runner while there is none: the default - or while
+ * the page has not read where it works yet; otherwise set, with what it
+ * works on -
  *
  *   - one of the project's own Runners: its name ("Runner:
  *     prod-eu-west-1"), and how it is doing when it is not connected
  *     ("Runner: office-runner · Disconnected"), as an auto remediation
  *     rule's folded Runner says it;
+ *   - the Global Runner, picked beside the project's default: "Runner:
+ *     Global Runner";
  *   - one the reader does not have access to: says so, never its id;
  *   - none, where there is no global Runner to work on (the project turned
  *     them off, or the server runs none): "Runner: None".
@@ -333,6 +343,7 @@ function getSwitchItem(data: {
 export function getRepositoryRunnerItem(
   data: {
     runnerId: string | undefined;
+    isGlobalRunnerPicked?: boolean | undefined;
     choices: RunnerChoices | null | undefined;
   },
   translator: Translator,
@@ -350,11 +361,27 @@ export function getRepositoryRunnerItem(
   const model: RunnerPickerModel = buildRunnerPickerModel({
     work: RunnerPickerWork.CodeRepository,
     stepType: "",
-    currentRunnerId: data.runnerId,
+    currentRunnerId: getCodeRepositoryRunnerChoice({
+      runnerId: data.runnerId,
+      isGlobalRunnerPicked: data.isGlobalRunnerPicked,
+    }),
     projectRunners: data.choices.projectRunners,
     globalRunners: data.choices.globalRunners,
     projectUsesGlobalRunners: data.choices.projectUsesGlobalRunners,
   });
+
+  // The Global Runner, picked beside the project's default Runner.
+  if (
+    model.outcome === RunnerPickerOutcome.GlobalRunner &&
+    model.pickedGlobalRunner
+  ) {
+    return {
+      ...unset,
+      isSet: true,
+      value: GLOBAL_RUNNER_CHOICE_LABEL,
+      translateValue: true,
+    };
+  }
 
   if (model.selected?.kind === RunnerPickerOptionKind.Project) {
     const liveStatus: RunnerLiveStatus | undefined = model.selected.liveStatus;
@@ -432,7 +459,11 @@ export function getRepositoryMoreSettingsItems(
       isOn: repository?.isProductionReviewEnabled,
     }),
     getRepositoryRunnerItem(
-      { runnerId: repository?.runnerId, choices: runnerChoices },
+      {
+        runnerId: repository?.runnerId,
+        isGlobalRunnerPicked: repository?.isGlobalRunnerPicked,
+        choices: runnerChoices,
+      },
       translator,
     ),
     {

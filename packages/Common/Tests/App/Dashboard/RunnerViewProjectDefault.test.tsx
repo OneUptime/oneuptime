@@ -233,7 +233,7 @@ describe("the Project Default card on a Runner's page", () => {
     // Off: where the steps that pick no Runner run now - on the default, named.
     await waitFor(() => {
       expect(card()).toHaveTextContent(
-        "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+        "Runbook steps and code repositories that pick no Runner run on prod-eu-west-1, the project default.",
       );
     }, WAIT);
     expect(card()).not.toHaveTextContent(
@@ -310,7 +310,7 @@ describe("the Project Default card on a Runner's page", () => {
       "Make office-runner the project default?",
     );
     expect(dialog).toHaveTextContent(
-      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+      "Runbook steps that pick no Runner, and AI in the code repositories that pick none, will run on it instead of prod-eu-west-1.",
     );
     expect(writes).toEqual([]);
 
@@ -462,7 +462,7 @@ describe("the Project Default card on a Runner's page", () => {
         PROJECT_DEFAULT_REFUSAL_TEXT[refusal],
       );
       expect(card()).not.toHaveTextContent(
-        "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+        "Runbook steps and code repositories that pick no Runner run on prod-eu-west-1, the project default.",
       );
     },
   );

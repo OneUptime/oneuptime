@@ -38,6 +38,12 @@ import {
   useCodeRepositoryRunnerChoices,
 } from "../../../Components/Code/CodeRepositoryRunner";
 import { RunnerChoices } from "../../../Components/Runner/RunnerChoices";
+import {
+  CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY,
+  CodeRepositoryRunnerColumns,
+  getCodeRepositoryRunnerChoice,
+  getCodeRepositoryRunnerColumns,
+} from "../../../Components/Code/CodeRepositoryRunnerChoice";
 import CodeRepositoryCommandsCard from "../../../Components/Code/CodeRepositoryCommandsCard";
 import {
   CODE_REPOSITORY_SETTINGS_COPY,
@@ -403,9 +409,14 @@ const CodeRepositorySettings: FunctionComponent<
         )}
 
         {/*
-         * Where AI works in the repository: the one Runner picker, with
-         * Global Runner first (empty), then the project's own Runners. Empty
-         * is Global Runner, an answer of its own, so it is not "(Optional)".
+         * Where AI works in the repository: the one Runner picker, with the
+         * project's default Runner first - the Global Runner while there is
+         * none - stored as no pick (empty), so the repository follows the
+         * default; then the Global Runner as a pick of its own beside a
+         * default, then the project's own Runners. Empty is an answer of its
+         * own, so it is not "(Optional)". One choice
+         * (CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY) writes the two columns
+         * it is stored in (CodeRepositoryRunnerChoice).
          */}
         <CardModelDetail<CodeRepository>
           name="Repository > Runner"
@@ -419,36 +430,98 @@ const CodeRepositorySettings: FunctionComponent<
           editModalTitle={CodeRepositoryRunnerCopy.fieldTitle}
           formFields={[
             {
-              field: {
+              overrideField: {
                 runnerId: true,
               },
+              overrideFieldKey: CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY,
+              formOnly: true,
               title: CodeRepositoryRunnerCopy.fieldTitle,
               description: CodeRepositoryRunnerCopy.fieldDescription,
               fieldType: FormFieldSchemaType.CustomComponent,
               required: false,
               hideOptionalLabel: true,
+              hideColumnDescription: true,
               dataTestId: "code-repository-runner",
+              getDefaultValue: (values: FormValues<CodeRepository>): string => {
+                return getCodeRepositoryRunnerChoice(values);
+              },
+              onChange: (
+                value: unknown,
+                currentValues: FormValues<CodeRepository>,
+                setNewFormValues: (values: FormValues<CodeRepository>) => void,
+              ): void => {
+                const columns: CodeRepositoryRunnerColumns =
+                  getCodeRepositoryRunnerColumns(value);
+
+                setNewFormValues({
+                  ...currentValues,
+                  runnerId: columns.runnerId,
+                  isGlobalRunnerPicked: columns.isGlobalRunnerPicked,
+                } as FormValues<CodeRepository>);
+              },
               getCustomElement: (
                 values: FormValues<CodeRepository>,
                 elementProps: CustomElementProps,
               ): ReactElement => {
+                const choice: unknown = (values as Record<string, unknown>)[
+                  CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY
+                ];
+
                 return (
                   <CodeRepositoryRunnerPicker
-                    value={values.runnerId}
+                    value={
+                      typeof choice === "string"
+                        ? choice
+                        : getCodeRepositoryRunnerChoice(values)
+                    }
                     ariaLabelledby={elementProps.ariaLabelledby}
-                    onChange={(runnerId: string | null): void => {
-                      elementProps.onChange?.(runnerId);
+                    onChange={(picked: string): void => {
+                      elementProps.onChange?.(picked);
                     }}
                   />
                 );
+              },
+            } as ModelField<CodeRepository>,
+            /*
+             * The two columns the choice writes: never drawn, here so that
+             * the form reads them and sends what was picked.
+             */
+            {
+              field: {
+                runnerId: true,
+              },
+              title: CodeRepositoryRunnerCopy.fieldTitle,
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              hideColumnDescription: true,
+              showIf: (): boolean => {
+                return false;
+              },
+            },
+            {
+              field: {
+                isGlobalRunnerPicked: true,
+              },
+              title: CodeRepositoryRunnerCopy.fieldTitle,
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              hideColumnDescription: true,
+              showIf: (): boolean => {
+                return false;
               },
             },
           ]}
           modelDetailProps={{
             modelType: CodeRepository,
             id: "model-detail-code-repository-runner",
+            selectMoreFields: {
+              isGlobalRunnerPicked: true,
+            },
             onItemLoaded: (item: CodeRepository): void => {
-              remember({ runnerId: getRepositoryRunnerId(item.runnerId) });
+              remember({
+                runnerId: getRepositoryRunnerId(item.runnerId),
+                isGlobalRunnerPicked: item.isGlobalRunnerPicked === true,
+              });
             },
             fields: [
               /*
@@ -464,6 +537,7 @@ const CodeRepositorySettings: FunctionComponent<
                   return (
                     <CodeRepositoryRunnerValueView
                       runnerId={item.runnerId}
+                      isGlobalRunnerPicked={item.isGlobalRunnerPicked}
                       choices={runnerChoices}
                     />
                   );

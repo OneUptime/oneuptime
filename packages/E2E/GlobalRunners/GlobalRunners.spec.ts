@@ -929,7 +929,7 @@ test.describe("a project with a default Runner", () => {
       "Make office-runner the project default?",
     );
     await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
-      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+      "Runbook steps that pick no Runner, and AI in the code repositories that pick none, will run on it instead of prod-eu-west-1.",
     );
     // Not connected: a warning of its own, under what moves.
     await expect(
@@ -1017,7 +1017,7 @@ test.describe("a project with a default Runner", () => {
     const control: Locator = page.getByTestId("runner-project-default-switch");
     await expect(control).toHaveAttribute("aria-checked", "false");
     await expect(card(page, "Project Default")).toContainText(
-      "The project's default Runner runs the runbook steps that pick no Runner of their own, in place of the Global Runner.",
+      "The project's default Runner runs the runbook steps and the code repositories that pick no Runner of their own, in place of the Global Runner.",
     );
     // After what the Runner is and how it is doing, before its setup command.
     const titles: Array<string> = await headings(page).allInnerTexts();
@@ -1062,13 +1062,13 @@ test.describe("a project with a default Runner", () => {
     const control: Locator = page.getByTestId("runner-project-default-switch");
     await expect(control).toHaveAttribute("aria-checked", "false");
     await expect(projectDefault).toContainText(
-      "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+      "Runbook steps and code repositories that pick no Runner run on prod-eu-west-1, the project default.",
     );
 
     await control.click();
     const dialog: Locator = page.getByTestId("modal");
     await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
-      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+      "Runbook steps that pick no Runner, and AI in the code repositories that pick none, will run on it instead of prod-eu-west-1.",
     );
     await expect(
       dialog.getByTestId("runner-project-default-switch-confirm-warning"),

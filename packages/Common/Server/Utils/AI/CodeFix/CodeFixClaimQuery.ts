@@ -8,6 +8,7 @@ import {
   CodeWorker,
   CodeWorkerKind,
 } from "../../../../Types/Runner/CodeRepositoryRunner";
+import { KUBERNETES_AGENT_RUNNER_NAME_PREFIX } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 
 /*
  * WHICH QUEUED CODE-FIX RUNS A WORKER MAY TAKE - the repository's Runner
@@ -18,11 +19,21 @@ import {
  * repository's Runner as it is now, not as it was when the run was queued):
  *
  *   - a project's Runner takes the runs of the repositories that pick it,
- *     in its own project;
+ *     in its own project - and, while it is the project's default Runner,
+ *     those of the repositories that follow it (pick no Runner, and not the
+ *     Global Runner);
  *   - an AI agent of a project's own takes its project's runs of
  *     repositories that pick no Runner;
  *   - a global Runner takes the runs of repositories that pick no Runner,
- *     of every project that uses global Runners.
+ *     of every project that uses global Runners - those that picked the
+ *     Global Runner, and those that follow a project default the project
+ *     does not have.
+ *
+ * The project's default Runner is read here as the rule of
+ * Types/Runner/ProjectDefaultRunner reads it (PROJECT_DEFAULT_RUNNER_IS): a
+ * project's Runner marked its default that is not a global Runner, runs
+ * runbooks and is not the in-cluster Runner the Kubernetes agent chart
+ * installed (by its server-owned name).
  *
  * A run whose repository is not known yet (one that finds it as it works,
  * queued before it could be decided) has no Runner to pick, so any worker
@@ -52,6 +63,21 @@ export interface CodeFixClaimStatement {
 
 // The join every statement reads the run's repository through.
 const REPOSITORY_JOIN: string = `LEFT JOIN "CodeRepository" AS "repository" ON "repository"."_id" = "run"."codeRepositoryId" AND "repository"."deletedAt" IS NULL`;
+
+// A repository that follows its project's default Runner.
+const REPOSITORY_FOLLOWS_PROJECT_DEFAULT: string = `"repository"."_id" IS NOT NULL AND "repository"."runnerId" IS NULL AND "repository"."isGlobalRunnerPicked" IS NOT TRUE`;
+
+/*
+ * The Runner row "defaultRunner" is its project's default Runner, by the
+ * rule a default must meet (canBeProjectDefaultRunner). The name prefix is
+ * the statement's parameter `namePattern` names.
+ */
+function getProjectDefaultRunnerIs(namePattern: string): string {
+  return `"defaultRunner"."isProjectDefault" = true AND "defaultRunner"."deletedAt" IS NULL AND "defaultRunner"."isGlobalRunner" IS NOT TRUE AND "defaultRunner"."canRunRunbooks" IS NOT FALSE AND COALESCE(lower(btrim("defaultRunner"."name")), '') NOT LIKE ${namePattern}`;
+}
+
+// What the in-cluster Runner the Kubernetes agent chart installed is named.
+export const KUBERNETES_AGENT_RUNNER_NAME_PATTERN: string = `${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/%`;
 
 export default class CodeFixClaimQuery {
   /*
@@ -102,10 +128,18 @@ export default class CodeFixClaimQuery {
         conditions.push(
           `"run"."projectId" = ${addParameter(facts.projectId.toString())}::uuid`,
         );
+
+        const workerId: string = addParameter(facts.worker.id.toString());
+
+        /*
+         * The repositories that pick it, those that follow the project's
+         * default Runner while it is that Runner, and runs whose
+         * repository is not known yet.
+         */
         conditions.push(
-          `("repository"."runnerId" = ${addParameter(
-            facts.worker.id.toString(),
-          )}::uuid OR "repository"."_id" IS NULL)`,
+          `("repository"."runnerId" = ${workerId}::uuid OR "repository"."_id" IS NULL OR (${REPOSITORY_FOLLOWS_PROJECT_DEFAULT} AND EXISTS (SELECT 1 FROM "Runner" AS "defaultRunner" WHERE "defaultRunner"."_id" = ${workerId}::uuid AND "defaultRunner"."projectId" = "run"."projectId" AND ${getProjectDefaultRunnerIs(
+            addParameter(KUBERNETES_AGENT_RUNNER_NAME_PATTERN),
+          )})))`,
         );
         break;
       }
@@ -125,6 +159,16 @@ export default class CodeFixClaimQuery {
         conditions.push(`"repository"."runnerId" IS NULL`);
         conditions.push(
           `EXISTS (SELECT 1 FROM "Project" AS "project" WHERE "project"."_id" = "run"."projectId" AND "project"."useGlobalRunners" = true AND "project"."deletedAt" IS NULL)`,
+        );
+
+        /*
+         * Never a repository that follows its project's default Runner
+         * while the project has one: that Runner takes it.
+         */
+        conditions.push(
+          `NOT (${REPOSITORY_FOLLOWS_PROJECT_DEFAULT} AND EXISTS (SELECT 1 FROM "Runner" AS "defaultRunner" WHERE "defaultRunner"."projectId" = "run"."projectId" AND ${getProjectDefaultRunnerIs(
+            addParameter(KUBERNETES_AGENT_RUNNER_NAME_PATTERN),
+          )}))`,
         );
         break;
       }

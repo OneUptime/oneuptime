@@ -27,7 +27,6 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import Runner from "../../Models/DatabaseModels/Runner";
 import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
-import GlobalRunnerChoice from "../Utils/Runner/GlobalRunnerChoice";
 import CodeHostAccess, {
   CODE_HOST_REPOSITORY_SELECT,
   CodeHostReader,
@@ -66,13 +65,6 @@ export interface NewRepositoryDefaults {
    * someone turns it off; those connected before keep it off.
    */
   isProductionReviewEnabled: boolean;
-  /*
-   * The project's default Runner (Runner.isProjectDefault), when it has
-   * one: a Runner of the project's own, which builds and tests a change
-   * before its pull request opens. None otherwise: a global Runner takes
-   * the repository's work.
-   */
-  runnerId: ObjectID | null;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -305,8 +297,10 @@ export class Service extends ProjectReferencesService<Model> {
    * teams want (getNewRepositoryDefaults): its main branch is GitHub's
    * default branch, GitHub commands are on, its pull requests are reviewed
    * against production, AI may open fix pull requests without a limit, and
-   * AI works on the project's default Runner when the project has one -
-   * otherwise it picks none, and a global Runner takes its work.
+   * it picks no Runner: AI works in it on the project's default Runner
+   * while the project has one, and on a global Runner while it has none
+   * (Types/Runner/CodeRepositoryRunner) - following the default, so making
+   * another Runner the default moves it too.
    */
   @CaptureSpan()
   public async importReposFromInstallation(data: {
@@ -364,8 +358,8 @@ export class Service extends ProjectReferencesService<Model> {
     let reconnected: number = 0;
     let skipped: number = 0;
 
-    // Read once, and only when there is something to import.
-    let newRepositoryDefaults: NewRepositoryDefaults | null = null;
+    const newRepositoryDefaults: NewRepositoryDefaults =
+      Service.getNewRepositoryDefaults();
 
     for (const repository of installationRepositories) {
       const repositoryKey: string = `${repository.ownerLogin.toLowerCase()}/${repository.name.toLowerCase()}`;
@@ -435,12 +429,6 @@ export class Service extends ProjectReferencesService<Model> {
         suffix++;
       }
 
-      if (!newRepositoryDefaults) {
-        newRepositoryDefaults = await Service.getNewRepositoryDefaults(
-          data.projectId,
-        );
-      }
-
       const codeRepository: Model = new Model();
       codeRepository.projectId = data.projectId;
       codeRepository.name = displayName;
@@ -453,10 +441,6 @@ export class Service extends ProjectReferencesService<Model> {
         newRepositoryDefaults.isGitHubCommandsEnabled;
       codeRepository.isProductionReviewEnabled =
         newRepositoryDefaults.isProductionReviewEnabled;
-
-      if (newRepositoryDefaults.runnerId) {
-        codeRepository.runnerId = newRepositoryDefaults.runnerId;
-      }
 
       if (repository.htmlUrl) {
         codeRepository.repositoryUrl = URL.fromString(repository.htmlUrl);
@@ -492,35 +476,17 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * What a repository the GitHub App imports into the project starts with
-   * (NewRepositoryDefaults). The project's default Runner is read through
-   * GlobalRunnerChoice, the one reader of it, so a repository starts on the
-   * same Runner a runbook step that picks none runs on. A default Runner
-   * that cannot be read leaves the repository on a global Runner: the
-   * import never fails for it.
+   * (NewRepositoryDefaults). It picks no Runner of its own: where AI works
+   * in it is left to the project - its default Runner, the same one a
+   * runbook step that picks none runs on, and a global Runner while it has
+   * none - and follows the project when its default changes
+   * (Types/Runner/CodeRepositoryRunner). It used to start on a copy of the
+   * default Runner, which a later default did not move.
    */
-  public static async getNewRepositoryDefaults(
-    projectId: ObjectID,
-  ): Promise<NewRepositoryDefaults> {
-    let runnerId: ObjectID | null = null;
-
-    try {
-      const defaultRunnerId: string =
-        await GlobalRunnerChoice.findProjectDefaultRunnerId(projectId);
-
-      if (defaultRunnerId && ObjectID.isValidUUID(defaultRunnerId)) {
-        runnerId = new ObjectID(defaultRunnerId);
-      }
-    } catch (error) {
-      logger.error(
-        `Could not read project ${projectId.toString()}'s default Runner for its new repositories; they start on a global Runner:`,
-      );
-      logger.error(error);
-    }
-
+  public static getNewRepositoryDefaults(): NewRepositoryDefaults {
     return {
       isGitHubCommandsEnabled: true,
       isProductionReviewEnabled: true,
-      runnerId,
     };
   }
 

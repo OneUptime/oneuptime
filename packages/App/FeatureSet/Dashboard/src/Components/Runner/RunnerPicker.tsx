@@ -24,6 +24,7 @@ import {
   CODE_HIDDEN_RUNNER_HELPER_TEXT,
   CODE_HIDDEN_RUNNER_LABEL,
   CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
@@ -474,6 +475,17 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       model.outcome === RunnerPickerOutcome.NoGlobalRunner
     ) {
       return translator.translateText(CODE_NO_GLOBAL_RUNNER_HELPER_TEXT);
+    }
+
+    /*
+     * A repository that picked none, on the project's default Runner: it
+     * moves with the default.
+     */
+    if (
+      isForCodeRepository &&
+      model.outcome === RunnerPickerOutcome.ProjectDefaultRunner
+    ) {
+      return translator.translateText(CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT);
     }
 
     return props.ownRunnerHelperText;

@@ -1,6 +1,7 @@
 import { getRepositorySettingsRoute } from "../Code/CodePaths";
 import { CodeRepositorySetting } from "../Code/CodeRepositorySettingsCopy";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import Link from "Common/UI/Components/Link/Link";
@@ -11,13 +12,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * On a Runner's own page, in its Runner Details beside what it may run: the
- * code repositories that pick it - AI works in them on this Runner (their
- * Runner setting in Code). It is what replaced the "Runs AI Code Fixes"
- * switch a Runner had, in the same place: a repository picks its Runner, so
- * the Runner says which do, each a link to the repository's settings that
- * lands on its Runner, where the pick is changed (More settings opens
- * there). With none, one short line says where a repository picks its
- * Runner.
+ * code repositories AI works in on this Runner - the ones that pick it
+ * (their Runner setting in Code) and, while it is the project's default
+ * Runner, the ones that pick none and follow the default
+ * (Common/Types/Runner/CodeRepositoryRunner). It is what replaced the "Runs
+ * AI Code Fixes" switch a Runner had, in the same place: a repository picks
+ * its Runner, so the Runner says which work on it, each a link to the
+ * repository's settings that lands on its Runner, where the pick is changed
+ * (More settings opens there). With none, one short line says where a
+ * repository picks its Runner.
  *
  * The page reads them once (loadRunnerCodeRepositories) and draws the row
  * only when it could: not for someone who may not read code repositories,
@@ -46,12 +49,17 @@ export interface RunnerCodeRepositoryRow {
   name: string;
 }
 
-// The repositories that pick the Runner, or null when they cannot be read.
+/*
+ * The repositories AI works in on the Runner - the ones that pick it and,
+ * while it is the project's default (`isProjectDefault`), the ones that
+ * follow the default - by name, or null when they cannot be read.
+ */
 export async function loadRunnerCodeRepositories(
   runnerId: ObjectID,
+  options?: { isProjectDefault?: boolean | undefined } | undefined,
 ): Promise<Array<RunnerCodeRepositoryRow> | null> {
   try {
-    const result: ListResult<CodeRepository> =
+    const picking: ListResult<CodeRepository> =
       await ModelAPI.getList<CodeRepository>({
         modelType: CodeRepository,
         query: {
@@ -66,12 +74,44 @@ export async function loadRunnerCodeRepositories(
         skip: 0,
       });
 
-    return result.data.map((repository: CodeRepository) => {
-      return {
-        id: repository._id?.toString() || "",
-        name: repository.name || "",
-      };
-    });
+    /*
+     * A repository that picks none follows the default, unless it picked
+     * the Global Runner itself.
+     */
+    const following: Array<CodeRepository> = options?.isProjectDefault
+      ? (
+          await ModelAPI.getList<CodeRepository>({
+            modelType: CodeRepository,
+            query: {
+              runnerId: new IsNull(),
+            },
+            select: {
+              _id: true,
+              name: true,
+              isGlobalRunnerPicked: true,
+            },
+            sort: { name: SortOrder.Ascending },
+            limit: MAX_LISTED_CODE_REPOSITORIES,
+            skip: 0,
+          })
+        ).data.filter((repository: CodeRepository): boolean => {
+          return repository.isGlobalRunnerPicked !== true;
+        })
+      : [];
+
+    return [...picking.data, ...following]
+      .map((repository: CodeRepository): RunnerCodeRepositoryRow => {
+        return {
+          id: repository._id?.toString() || "",
+          name: repository.name || "",
+        };
+      })
+      .sort(
+        (a: RunnerCodeRepositoryRow, b: RunnerCodeRepositoryRow): number => {
+          return a.name.localeCompare(b.name);
+        },
+      )
+      .slice(0, MAX_LISTED_CODE_REPOSITORIES);
   } catch {
     return null;
   }
