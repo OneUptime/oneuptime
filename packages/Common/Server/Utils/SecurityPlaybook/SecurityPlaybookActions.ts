@@ -110,10 +110,8 @@ import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
 import logger from "../Logger";
-import SecurityConnections, {
-  linkIncidentToConnectedRecords,
-} from "../SecurityEvent/Connections/SecurityConnections";
-import { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
+import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
+import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 
@@ -886,10 +884,12 @@ export default class SecurityPlaybookActions {
      * read, the incident is declared without them.
      */
     let linked: Array<SecurityConnectedRecord> = [];
+    const connections: ReturnType<typeof loadSecurityConnections> =
+      loadSecurityConnections();
 
     try {
       linked = data.securityCase.id
-        ? await SecurityConnections.readIncidentLinks({
+        ? await connections.default.readIncidentLinks({
             projectId: data.projectId,
             securityCaseId: data.securityCase.id,
           })
@@ -900,7 +900,7 @@ export default class SecurityPlaybookActions {
       );
     }
 
-    linkIncidentToConnectedRecords(incident, linked);
+    connections.linkIncidentToConnectedRecords(incident, linked);
 
     if (data.userId) {
       incident.createdByUserId = data.userId;

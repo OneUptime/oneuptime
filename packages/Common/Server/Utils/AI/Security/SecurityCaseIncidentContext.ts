@@ -10,7 +10,7 @@ import {
   IncidentSecurityJson,
   SecurityConnectionKind,
 } from "../../../../Types/SecurityCase/SecurityConnection";
-import IncidentSecurity from "../../SecurityEvent/Connections/IncidentSecurity";
+import { loadIncidentSecurity } from "../../SecurityEvent/Connections/ConnectionsLoader";
 import logger from "../../Logger";
 import {
   CONNECTION_KIND_NOUNS,
@@ -80,7 +80,7 @@ export default class SecurityCaseIncidentContext {
     try {
       return (
         (
-          await IncidentSecurity.read({
+          await loadIncidentSecurity().read({
             projectId: data.projectId,
             incidentId: data.incidentId,
             props: { isRoot: true },

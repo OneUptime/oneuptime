@@ -49,10 +49,11 @@ import SecurityPlaybookService from "../../../Services/SecurityPlaybookService";
 import SecurityProtectedEntityService from "../../../Services/SecurityProtectedEntityService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
-import SecurityConnections from "../../SecurityEvent/Connections/SecurityConnections";
-import SecurityConnectedRecords, {
-  SecurityConnectedRecord,
-} from "../../SecurityEvent/Connections/SecurityConnectedRecords";
+import {
+  loadSecurityConnectedRecords,
+  loadSecurityConnections,
+} from "../../SecurityEvent/Connections/ConnectionsLoader";
+import type { SecurityConnectedRecord } from "../../SecurityEvent/Connections/SecurityConnectedRecords";
 import {
   SecurityConnectedResourceJson,
   SecurityConnectionCertainty,
@@ -332,7 +333,7 @@ export default class SecurityCaseAIContextBuilder {
         data.securityCaseId,
         null,
         (): Promise<SecurityConnectionsJson | null> => {
-          return SecurityConnections.forCase({
+          return loadSecurityConnections().default.forCase({
             projectId: data.projectId,
             securityCaseId: data.securityCaseId,
             props: { isRoot: true },
@@ -554,7 +555,7 @@ export default class SecurityCaseAIContextBuilder {
       }
 
       hostRecords = (
-        await SecurityConnectedRecords.resolve({
+        await loadSecurityConnectedRecords().resolve({
           projectId: data.projectId,
           entities: data.entities.slice(
             0,
