@@ -233,6 +233,34 @@ function noHelp(): void {
   ).toBeNull();
 }
 
+/*
+ * A rule's line reads like the hints under the rule's other pickers (Code
+ * Repositories, MCP Servers, LLM Provider: RuleCodeRepositoriesFieldHint):
+ * small, close under its box, a field's gap before the next field, and its
+ * link underlined only - not the size of the field's own description.
+ */
+function expectRuleHint(line: HTMLElement): void {
+  for (const className of ["mt-1.5", "mb-2", "text-xs", "text-gray-500"]) {
+    expect(line.classList.contains(className)).toBe(true);
+  }
+  expect(line).not.toHaveClass("text-sm");
+  expect(line).not.toHaveClass("mt-2");
+
+  const link: HTMLElement | null = line.querySelector("a");
+
+  if (link) {
+    expect(link).toHaveClass("underline");
+    expect(link).not.toHaveClass("font-semibold");
+  }
+}
+
+// The picked value as the box draws it (Dropdown's value label).
+function valueLabel(): HTMLElement {
+  return within(
+    screen.getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID),
+  ).getByTestId("dropdown-value-label");
+}
+
 // Nothing of a step's: a rule never waits on the Global Runner.
 function noStepWarnings(): void {
   expect(
@@ -324,8 +352,9 @@ describe("a rule that picked no Runner, where the project uses a Global Runner",
     // Nothing is wrong with it: a quiet line, never a warning.
     expect(help().querySelector(".text-amber-700")).toBeNull();
     expect(help()).toHaveClass("text-gray-500");
-    // A form's line, at the size of a form's descriptions.
-    expect(help()).toHaveClass("text-sm");
+    expectRuleHint(help());
+    // The Global Runner's name is the product's words: laid out the page's way.
+    expect(valueLabel()).not.toHaveAttribute("dir");
     expect(
       screen.getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID),
     ).not.toHaveTextContent("AI agent");
@@ -362,6 +391,7 @@ describe("a rule that picked no Runner, where the project uses a Global Runner",
     );
     expect(link).toHaveTextContent("Runbooks › Runners");
     expect(link).toHaveAttribute("target", "_blank");
+    expectRuleHint(help());
     // Not "No Runner", and not the add-a-Runner line of a rule with none.
     expect(help()).not.toHaveTextContent("for OneUptime AI to run commands on");
     noStepWarnings();
@@ -467,6 +497,7 @@ describe("a rule that picked no Runner, where the project uses a Global Runner",
       "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.",
     );
     expect(help()).toHaveTextContent(REMEDIATION_GLOBAL_RUNNER_TEXT);
+    expectRuleHint(help());
     expect(help()).not.toHaveTextContent("Add a Runner");
     expect(help()).not.toHaveTextContent("Pick one of your Runners");
   });
@@ -475,6 +506,11 @@ describe("a rule that picked no Runner, where the project uses a Global Runner",
     await renderRunnerField(new ObjectID(PROD_ID));
 
     expect(shown()).toBe("prod-eu-runner · Connected");
+    /*
+     * A Runner's own name reads its own direction, so an English name on a
+     * Persian page keeps its start in view.
+     */
+    expect(valueLabel()).toHaveAttribute("dir", "auto");
     noHelp();
   });
 
@@ -487,6 +523,7 @@ describe("a rule that picked no Runner, where the project uses a Global Runner",
     expect(help()).toHaveTextContent(
       "This rule picks a Runner you do not have access to. Pick another Runner to change it.",
     );
+    expectRuleHint(help());
   });
 
   test("an older rule that composes commands reads No Runner: it runs them on the Command Runners it names", async () => {
@@ -597,6 +634,7 @@ describe("a rule that picked no Runner, with no Global Runner to show", () => {
       );
       expect(link).toHaveTextContent("Runbooks › Runners");
       expect(link).toHaveAttribute("target", "_blank");
+      expectRuleHint(help());
       // Nothing is wrong with a rule that has no Runner: no warning box.
       noStepWarnings();
     });

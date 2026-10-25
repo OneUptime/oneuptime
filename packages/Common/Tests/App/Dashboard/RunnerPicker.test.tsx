@@ -1082,3 +1082,144 @@ describe("in a project with no Runner of its own, every Runner field", () => {
     expect(recordedChanges()).toEqual([]);
   });
 });
+
+/*
+ * How each Runner field draws what it shows and the line under it.
+ *
+ * The Global Runner's label is the product's own words ("Global Runner ·
+ * Connected"), so the box lays it out the page's way: read by its own
+ * direction, the Persian "Runner سراسری · متصل" - which starts with a Latin
+ * word - was laid out left to right, its words out of order. A Runner's own
+ * name keeps reading its own direction, so an English name on a Persian
+ * page keeps its start in view (#5145).
+ *
+ * The line under the box: a step's is the step editor's size, a code
+ * repository's the size of its form's descriptions, and an AI rule's reads
+ * like the hints under the rule's other pickers - small, close under its
+ * box, a field's gap before the next field, its link underlined only.
+ */
+describe("what a Runner field shows, and its line", () => {
+  const PICKER_TEST_ID: string = "runner-field";
+
+  function renderField(data: {
+    work?: RunnerPickerWork | undefined;
+    stepType: string;
+    value?: string | undefined;
+    choices?: RunnerChoices | undefined;
+  }): void {
+    render(
+      <RunnerPicker
+        work={data.work}
+        stepType={data.stepType}
+        value={data.value || ""}
+        onChange={recordChange}
+        choices={data.choices || choices()}
+        isFormField={data.work !== undefined}
+        dataTestId={PICKER_TEST_ID}
+      />,
+    );
+  }
+
+  function valueLabel(): HTMLElement {
+    return within(screen.getByTestId(PICKER_TEST_ID)).getByTestId(
+      "dropdown-value-label",
+    );
+  }
+
+  function fieldLine(): HTMLElement {
+    return screen.getByTestId(`${PICKER_TEST_ID}-help`);
+  }
+
+  function hasClasses(element: HTMLElement, classNames: Array<string>): void {
+    for (const className of classNames) {
+      expect({ className, has: element.classList.contains(className) }).toEqual(
+        { className, has: true },
+      );
+    }
+  }
+
+  for (const [label, work, stepType] of [
+    ["a JavaScript step", undefined, RunbookStepType.JavaScript],
+    ["a code repository", RunnerPickerWork.CodeRepository, ""],
+    ["an AI rule", RunnerPickerWork.AutoRemediation, ""],
+  ] as Array<[string, RunnerPickerWork | undefined, string]>) {
+    test(`${label} on the Global Runner lays its label out the page's way`, () => {
+      renderField({ work, stepType });
+
+      expect(valueLabel()).toHaveTextContent(
+        `${GLOBAL_RUNNER_CHOICE_LABEL} · Connected`,
+      );
+      expect(valueLabel()).not.toHaveAttribute("dir");
+    });
+
+    test(`${label} on one of the project's Runners keeps the name's own direction`, () => {
+      renderField({ work, stepType, value: BASTION_ID });
+
+      expect(valueLabel()).toHaveTextContent("prod-bastion · Connected");
+      expect(valueLabel()).toHaveAttribute("dir", "auto");
+    });
+  }
+
+  test("a step on the project's default Runner keeps the name's own direction", () => {
+    renderField({
+      stepType: RunbookStepType.JavaScript,
+      choices: choicesWithDefault(),
+    });
+
+    expect(valueLabel()).toHaveTextContent("prod-default");
+    expect(valueLabel()).toHaveAttribute("dir", "auto");
+  });
+
+  test("a Bash step that picked the Global Runner, not open to it, shows its name the page's way too", () => {
+    renderField({
+      stepType: RunbookStepType.Bash,
+      value: GLOBAL_RUNNER_CHOICE_ID,
+    });
+
+    expect(valueLabel()).toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+    expect(valueLabel()).not.toHaveAttribute("dir");
+  });
+
+  test("a step's line is the step editor's size, close under the box", () => {
+    renderField({ stepType: RunbookStepType.JavaScript });
+
+    hasClasses(fieldLine(), ["text-xs", "mt-1.5", "text-gray-500"]);
+    expect(fieldLine()).not.toHaveClass("mb-2");
+  });
+
+  test("a code repository's line is the size of its form's descriptions", () => {
+    renderField({ work: RunnerPickerWork.CodeRepository, stepType: "" });
+
+    hasClasses(fieldLine(), ["text-sm", "mt-2", "text-gray-500"]);
+    expect(fieldLine()).not.toHaveClass("text-xs");
+  });
+
+  test("an AI rule's line reads like the hints under the rule's other pickers, its link underlined only", () => {
+    renderField({
+      work: RunnerPickerWork.AutoRemediation,
+      stepType: "",
+      choices: choices({ projectRunners: [] }),
+    });
+
+    hasClasses(fieldLine(), ["text-xs", "mt-1.5", "mb-2", "text-gray-500"]);
+    expect(fieldLine()).not.toHaveClass("text-sm");
+
+    const link: HTMLElement = within(fieldLine()).getByRole("link", {
+      name: "Runbooks › Runners",
+    });
+    expect(link).toHaveClass("underline");
+    expect(link).not.toHaveClass("font-semibold");
+  });
+
+  test("negative control: a step's link to Runbooks › Runners stays bold in its box", () => {
+    renderField({
+      stepType: RunbookStepType.Bash,
+      choices: choices({ projectRunners: [] }),
+    });
+
+    const link: HTMLElement = within(
+      screen.getByTestId(`${PICKER_TEST_ID}-nothing-to-pick`),
+    ).getByRole("link", { name: "Runbooks › Runners" });
+    expect(link).toHaveClass("font-semibold", "underline");
+  });
+});

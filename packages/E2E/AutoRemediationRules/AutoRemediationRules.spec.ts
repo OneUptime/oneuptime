@@ -2120,7 +2120,8 @@ test.describe("code repositories and pull requests", () => {
    * code repositories - are one kind of field, so they look alike: a search
    * box of one height with the picks as chips over it, and no chevron (that
    * is the single-pick Runner's). And a line under a box belongs to it: it
-   * sits close under its own box, a field's gap above the next field.
+   * sits close under its own box, a field's gap above the next field - the
+   * Runner's line too, drawn like the hints under the other pickers.
    */
   test("the repositories picker looks like the Runbooks and MCP Servers pickers, and each hint sits under its own field", async ({
     page,
@@ -2177,6 +2178,11 @@ test.describe("code repositories and pull requests", () => {
         mcpServersPicker(dialog),
         dialog.locator("label").filter({ hasText: /^LLM Provider\s*$/ }),
       ],
+      [
+        RUNNER_HELP_TEST_ID,
+        runnerPicker(dialog),
+        pullRequestSwitch(dialog, FIX_PULL_REQUESTS),
+      ],
     ];
 
     for (const [hintTestId, box, next] of nextFields) {
@@ -2188,6 +2194,14 @@ test.describe("code repositories and pull requests", () => {
       // A field's gap: as wide as the one between two fields with no hint.
       expect(aboveTheNext).toBeGreaterThanOrEqual(16);
     }
+
+    // The Runner's line is drawn as the hints are: their size and colour.
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveText(
+      GLOBAL_RUNNER_PICK_HELP,
+    );
+    expect(await textStyleOf(dialog.getByTestId(RUNNER_HELP_TEST_ID))).toEqual(
+      await textStyleOf(dialog.getByTestId("rule-code-repositories-hint")),
+    );
 
     await dialogScreenshot(
       dialog,
@@ -3490,6 +3504,60 @@ const runnerShown: (dialog: Locator) => Locator = (
   return runnerField(dialog).locator(".ou-select__single-value");
 };
 
+// How a line of text is drawn: its size, its line height and its colour.
+const textStyleOf: (locator: Locator) => Promise<{
+  fontSize: string;
+  lineHeight: string;
+  color: string;
+}> = async (
+  locator: Locator,
+): Promise<{ fontSize: string; lineHeight: string; color: string }> => {
+  return locator.evaluate(
+    (
+      element: Element,
+    ): { fontSize: string; lineHeight: string; color: string } => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      return {
+        fontSize: style.fontSize,
+        lineHeight: style.lineHeight,
+        color: style.color,
+      };
+    },
+  );
+};
+
+/*
+ * Where each word of the picked value is drawn, from the left: a Persian
+ * page reads the Global Runner's label right to left, its first word
+ * rightmost.
+ */
+const wordLefts: (
+  locator: Locator,
+  words: Array<string>,
+) => Promise<Array<number>> = async (
+  locator: Locator,
+  words: Array<string>,
+): Promise<Array<number>> => {
+  return locator.evaluate(
+    (element: Element, wordList: Array<string>): Array<number> => {
+      const text: string = element.textContent || "";
+      const node: ChildNode | null = element.firstChild;
+
+      return wordList.map((word: string): number => {
+        const start: number = text.indexOf(word);
+        if (!node || start < 0) {
+          return Number.NaN;
+        }
+        const range: Range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + word.length);
+        return range.getBoundingClientRect().left;
+      });
+    },
+    words,
+  );
+};
+
 // Whether a box ends inside another, on both sides.
 const isInside: (
   inner: { x: number; width: number },
@@ -3529,6 +3597,12 @@ test.describe("the Runner field on the Global Runner, at 1280px and 390px, light
           const line: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);
           await expect(line).toHaveText(help);
           await line.scrollIntoViewIfNeeded();
+          // A quiet line, drawn as the hints under the rule's other pickers.
+          expect(await textStyleOf(line)).toEqual(
+            await textStyleOf(
+              dialog.getByTestId("rule-code-repositories-hint"),
+            ),
+          );
 
           // Nothing runs off the screen, and the field and its line fit the dialog.
           expect(
@@ -3650,6 +3724,36 @@ test.describe("the Runner field on the Global Runner, in German and Persian", ()
       await expect(runnerShown(dialog)).toHaveText(
         `${word("Global Runner")} · ${word("Connected")}`,
       );
+
+      /*
+       * The box lays the label out the page's way: in Persian, "Runner
+       * سراسری · متصل" starts with a Latin word, and read by its own
+       * direction it was drawn left to right, "Runner" stuck after
+       * "Connected". Right to left, the words follow each other from the
+       * right, as the menu draws them.
+       */
+      const valueLabel: Locator = runnerField(dialog).getByTestId(
+        "dropdown-value-label",
+      );
+      expect(
+        await valueLabel.evaluate((element: Element): string => {
+          return window.getComputedStyle(element).direction;
+        }),
+      ).toBe(direction);
+      const lefts: Array<number> = await wordLefts(
+        valueLabel,
+        `${word("Global Runner")} ${word("Connected")}`.split(" "),
+      );
+      for (const left of lefts) {
+        expect(Number.isNaN(left)).toBe(false);
+      }
+      for (let index: number = 1; index < lefts.length; index++) {
+        if (direction === "rtl") {
+          expect(lefts[index]!).toBeLessThan(lefts[index - 1]!);
+        } else {
+          expect(lefts[index]!).toBeGreaterThan(lefts[index - 1]!);
+        }
+      }
 
       // The line, with Runbooks › Runners in the reader's words as its link.
       const line: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);

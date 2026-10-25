@@ -171,6 +171,11 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   const toDropdownOption: (option: RunnerPickerOption) => DropdownOption = (
     option: RunnerPickerOption,
   ): DropdownOption => {
+    /*
+     * The Global Runner's label is the product's own words, so the box lays
+     * it out the page's way: in Persian, "Runner سراسری · متصل" reads right
+     * to left, as the menu draws it, not by its first, Latin, letter.
+     */
     if (option.kind === RunnerPickerOptionKind.Global) {
       return {
         value: option.value,
@@ -180,6 +185,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           : isForRemediation
             ? REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION
             : GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+        isInPageDirection: true,
       };
     }
 
@@ -199,6 +205,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
             ? GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT
             : GLOBAL_RUNNER_STEP_TYPE_UNAVAILABLE_TEXT,
         isDisabled: true,
+        isInPageDirection: true,
       };
     }
 
@@ -268,7 +275,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
    * edited here stay as they are. The page that shows the picker reads the
    * Runners again when the person comes back to it
    * (useRefreshRunnerChoicesOnFocus), so the one just added can be picked
-   * without a reload.
+   * without a reload. In an AI rule's quiet line it is underlined only, as
+   * the links in the hints under the rule's other pickers are.
    */
   const runnersLocation: ReactElement = (
     <Link
@@ -276,7 +284,11 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
       )}
       openInNewTab={true}
-      className="font-semibold underline underline-offset-2 hover:decoration-2"
+      className={
+        isForRemediation
+          ? "underline"
+          : "font-semibold underline underline-offset-2 hover:decoration-2"
+      }
       dataTestId={`${dataTestId}-runners-link`}
     >
       {translator.translateText("Runbooks › Runners")}
@@ -463,8 +475,21 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     return props.ownRunnerHelperText;
   };
 
-  // A form's lines are its descriptions' size; a step's are smaller.
-  const lineClassName: string = props.isFormField ? "text-sm" : "text-xs";
+  /*
+   * A form's lines are its descriptions' size; a step's are smaller. An AI
+   * rule's line reads like the hints under the rule's other pickers - Code
+   * Repositories, MCP Servers, LLM Provider - small and close under its
+   * box, with a field's gap before the next field (mb-2 on the form's
+   * gap-y-3).
+   */
+  const lineClassName: string =
+    props.isFormField && !isForRemediation ? "text-sm" : "text-xs";
+
+  const helpSpacingClassName: string = isForRemediation
+    ? "mt-1.5 mb-2"
+    : props.isFormField
+      ? "mt-2"
+      : "mt-1.5";
 
   const helperText: ReactNode = renderHelperText();
 
@@ -522,9 +547,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           />
           {helperText ? (
             <p
-              className={`${lineClassName} text-gray-500 ${
-                props.isFormField ? "mt-2" : "mt-1.5"
-              }`}
+              className={`${helpSpacingClassName} ${lineClassName} text-gray-500`}
               data-testid={`${dataTestId}-help`}
             >
               {helperText}
