@@ -175,6 +175,18 @@ describe("ZodError's errors, as zod 3 had it", () => {
     expect(JSON.parse(JSON.stringify(error))).not.toHaveProperty("errors");
   });
 
+  test("errors is not enumerable, as zod 3's getter was not: a for...in over an error does not meet it", () => {
+    const error: z.ZodError | undefined = z.number().safeParse("x").error;
+    const enumerated: Array<string> = [];
+
+    for (const key in error as z.ZodError) {
+      enumerated.push(key);
+    }
+
+    expect(enumerated).not.toContain("errors");
+    expect("errors" in (error as z.ZodError)).toBe(true);
+  });
+
   test("botbuilder's configuration error message lists the issues again", () => {
     /*
      * What ConfigurationBotFrameworkAuthentication does with a ZodError:
