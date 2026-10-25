@@ -10,6 +10,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
+import { allowStateChanges } from "./StateChangePermission";
 import {
   act,
   cleanup,
@@ -350,18 +351,30 @@ interface DurationPill {
 const DURATION_PREFIX_PATTERN: RegExp =
   /^(Starts in|Start overdue by|In progress for|Overrunning by|Completed in|Ongoing for)$/;
 
+/*
+ * How long, as the header says it: the first of its facts, its label (the
+ * prefix) over the duration.
+ */
 function readDuration(): DurationPill | null {
-  const prefix: HTMLElement | null = screen.queryByText(
-    DURATION_PREFIX_PATTERN,
+  const duration: HTMLElement | null = screen.queryByTestId(
+    "event-header-duration",
   );
 
-  if (!prefix) {
+  if (!duration) {
+    expect(screen.queryByText(DURATION_PREFIX_PATTERN)).toBeNull();
     return null;
   }
 
+  const fact: HTMLElement | null = duration.closest("div");
+  const prefix: string = fact?.querySelector("dt")?.textContent || "";
+
+  expect(prefix).toMatch(DURATION_PREFIX_PATTERN);
+  // The first fact, never among the pills.
+  expect(screen.getByTestId("event-status-facts").firstElementChild).toBe(fact);
+
   return {
-    prefix: prefix.textContent || "",
-    value: prefix.nextElementSibling?.textContent || "",
+    prefix: prefix,
+    value: duration.textContent || "",
   };
 }
 
@@ -378,6 +391,8 @@ describe("ChangeScheduledMaintenanceState", () => {
     jest.useFakeTimers({ doNotFake: ["performance"] });
     getListMock.mockReset();
     modalRenderMock.mockReset();
+    // These drive the buttons, not who may press them.
+    allowStateChanges();
   });
 
   afterEach(() => {
@@ -905,12 +920,32 @@ describe("ChangeScheduledMaintenanceState", () => {
           OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(STARTS_AT) +
           ", but it has not been marked as Ongoing yet.",
       );
-      // The label's own span sits inside the amber pill.
+      /*
+       * The band's label: its words in amber and bold, the time in bold,
+       * beside an amber mark.
+       */
+      expect(within(notice).getByText("Start overdue")).toHaveClass(
+        "font-semibold",
+        "text-amber-800",
+      );
       expect(
-        within(notice).getByText("Start overdue").parentElement,
-      ).toHaveClass("bg-amber-50", "text-amber-800", "ring-amber-200");
-      // The notice sits inside the header card, after the pills.
-      expect(notice.parentElement).toHaveClass("mt-3");
+        within(notice).getByText(
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(STARTS_AT),
+        ),
+      ).toHaveClass("font-medium", "text-gray-900");
+      expect(notice.querySelector("[aria-hidden='true']")).toHaveClass(
+        "bg-amber-100",
+        "text-amber-700",
+      );
+      // The header's amber band at its foot holds it.
+      expect(notice.parentElement).toBe(
+        screen.getByTestId("event-header-notice"),
+      );
+      expect(notice.parentElement).toHaveAttribute("data-tone", "warning");
+      expect(notice.parentElement).toHaveClass(
+        "bg-amber-50/70",
+        "border-amber-200",
+      );
     });
 
     test("shows an overdue start straight away when the page is opened late", async () => {

@@ -7,6 +7,9 @@ export interface ComponentProps {
   className?: undefined | string;
   to?: Route;
   onNavigateComplete?: (() => void) | undefined;
+  // Shown under the pointer: a link with no words of its own (an icon) says what it does.
+  title?: string | undefined;
+  dataTestId?: string | undefined;
 }
 
 const ReactDomLink: FunctionComponent<ComponentProps> = (
@@ -29,6 +32,8 @@ const ReactDomLink: FunctionComponent<ComponentProps> = (
       to={props.to?.toString() || ""}
       className={`${cursorClassName} ${props.className || ""}`}
       onClick={props.onNavigateComplete}
+      title={props.title}
+      data-testid={props.dataTestId}
     >
       {children}
     </Link>

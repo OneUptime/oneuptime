@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
 import { StateListType } from "Common/Utils/StateOrder";
@@ -28,6 +29,7 @@ import PublicNoteSubscriberNotificationDefault, {
   ScheduledMaintenanceStateChangeSubscriberNotificationSetting,
 } from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   translatableTerm,
   TranslatableTerm,
@@ -35,6 +37,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import {
   BulkStateChangeNoteType,
   toBulkStateChangeNoteTemplate,
@@ -97,8 +100,19 @@ export interface ComponentProps {
   facts?: Array<EventStatusFact> | undefined;
 }
 
-export const SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT: string =
-  "Loading scheduled maintenance status";
+export const SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT: string = translationKey(
+  "Loading scheduled maintenance status",
+);
+
+// What the header's amber band calls an event that missed a boundary.
+export const START_OVERDUE_TEXT: string = translationKey("Start overdue");
+export const OVERRUNNING_TEXT: string = translationKey("Overrunning");
+export const PLANNED_START_SENTENCE: string = translationKey(
+  "Planned to start at {{time}}, but it has not been marked as {{state}} yet.",
+);
+export const PLANNED_END_SENTENCE: string = translationKey(
+  "Planned to end at {{time}}, but it has not been marked as {{state}} yet.",
+);
 
 type ToTimelineEntriesFunction = (
   timelines: Array<ScheduledMaintenanceStateTimeline>,
@@ -120,42 +134,18 @@ const toTimelineEntries: ToTimelineEntriesFunction = (
 };
 
 /*
- * Sized like the loaded header (EventStatusPanel's titled layout plus its
- * step rail), so the page does not jump when the states arrive.
+ * Drawn as the loaded header is (EventHeaderSkeleton): the two Mark as
+ * buttons, and when, the owners, the status pages and who created it - so
+ * the page does not jump when the states arrive.
  */
 const HeaderPlaceholder: FunctionComponent = (): ReactElement => {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-testid="scheduled-maintenance-state-loading"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <span className="sr-only">
-        {SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT}
-      </span>
-      <div aria-hidden="true" className="motion-safe:animate-pulse">
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="h-5 w-16 rounded-md bg-gray-100" />
-              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-9 w-28 rounded-md bg-gray-100" />
-              <div className="h-9 w-24 rounded-md bg-gray-100" />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <div className="h-5 w-20 rounded-full bg-gray-100" />
-            <div className="h-5 w-32 rounded bg-gray-100" />
-          </div>
-        </div>
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
-        </div>
-      </div>
-    </div>
+    <EventHeaderSkeleton
+      testId="scheduled-maintenance-state-loading"
+      loadingText={SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT}
+      buttonCount={2}
+      factCount={4}
+    />
   );
 };
 
@@ -167,11 +157,16 @@ interface OverdueNoticeProps {
 
 /*
  * The amber warning for an event that has missed a boundary: still
- * scheduled after its start, or still in progress after its end.
+ * scheduled after its start, or still in progress after its end. It is the
+ * words of the header's amber band (EventStatusPanel's "warning" notice),
+ * which paints the band: a mark, what went wrong, and the planned time with
+ * the state the event has not reached - one sentence in the reader's
+ * language, the time in bold wherever the language puts it.
  */
 const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
   props: OverdueNoticeProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isStartOverdue: boolean =
     props.phase === ScheduledMaintenancePhase.StartOverdue;
   const plannedAt: string =
@@ -180,17 +175,34 @@ const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
   return (
     <div
       data-testid="scheduled-maintenance-overdue-notice"
-      className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5"
+      className="flex items-start gap-2.5"
     >
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
-        <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 text-amber-600" />
-        <span>{isStartOverdue ? "Start overdue" : "Overrunning"}</span>
+      <span
+        aria-hidden="true"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700"
+      >
+        <Icon icon={IconProp.Alert} className="h-4 w-4" />
       </span>
-      <span className="min-w-0 text-sm text-gray-600">
-        {isStartOverdue ? "Planned to start at " : "Planned to end at "}
-        <span className="font-medium text-gray-900">{plannedAt}</span>
-        {", but it has not been marked as " + props.nextStateName + " yet."}
-      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-amber-800">
+          {translator.translateText(
+            isStartOverdue ? START_OVERDUE_TEXT : OVERRUNNING_TEXT,
+          )}
+        </p>
+        <p className="mt-0.5 text-sm text-gray-700">
+          <TranslatedSentence
+            template={
+              isStartOverdue ? PLANNED_START_SENTENCE : PLANNED_END_SENTENCE
+            }
+            slots={{
+              time: (
+                <span className="font-medium text-gray-900">{plannedAt}</span>
+              ),
+            }}
+            values={{ state: translatableTerm(props.nextStateName) }}
+          />
+        </p>
+      </div>
     </div>
   );
 };
@@ -677,6 +689,20 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           },
         )}
         stateList={StateListType.ScheduledMaintenanceState}
+        /*
+         * A state change is a new row on the state timeline: someone who
+         * may not add one sees the buttons locked, each saying why - in
+         * the words of what they pressed, not the timeline's.
+         */
+        stateChangeGate={PermissionGate.check(
+          new ScheduledMaintenanceStateTimeline(),
+          ModelAction.Create,
+          {
+            sentence: translationKey(
+              "You do not have permission to change this event's state.",
+            ),
+          },
+        )}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}
@@ -688,6 +714,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         onStateSelect={openModalForState}
         secondaryActions={props.secondaryActions}
         facts={props.facts}
+        headerNoticeTone="warning"
         headerNotice={overdueNotice}
       />
 

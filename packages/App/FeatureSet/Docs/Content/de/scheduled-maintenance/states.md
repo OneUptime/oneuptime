@@ -66,7 +66,7 @@ Die vier markierten Status tragen auf der Einstellungsseite das Etikett **Vordef
 | **Chat**         | Die Schaltflächen in den Slack- und Microsoft-Teams-Nachrichten des Ereignisses             | Dieselbe Änderung, in Ihrem Namen ausgeführt. Siehe [Slack](/docs/workspace-connections/slack#aus-slack-auf-vorfälle-warnungen-und-ereignisse-reagieren). |
 | **Die API**      | Eine Zeile, erstellt unter `/api/scheduled-maintenance-state-timeline`                      | Den Status und ob die Abonnenten informiert werden.                                                              |
 
-Die Schaltflächen der Kopfzeile sind nach Ihren Status benannt. Solange das Ereignis wartet, bietet sie zwei: eine, die es startet, benannt nach Ihrem laufenden Status, und eine, die es beendet, benannt nach Ihrem beendeten Status. Solange das Ereignis läuft, nur die zweite. Das Menü **⋯** listet jeden anderen Status nach dem aktuellen auf.
+Die Schaltflächen der Kopfzeile sind nach Ihren Status benannt. Solange das Ereignis wartet, bietet sie zwei: eine, die es startet, benannt nach Ihrem laufenden Status, und eine, die es beendet, benannt nach Ihrem beendeten Status. Solange das Ereignis läuft, nur die zweite. Das Menü **⋯** listet jeden anderen Status nach dem aktuellen auf. Wer den Status des Ereignisses mit seiner Rolle nicht ändern darf, sieht die Schaltflächen gesperrt und kein Menü weiterer Status; zeigt man auf eine, nennt sie die Berechtigungen, die das erlauben würden.
 
 ## Was Starten und Beenden bewirken
 

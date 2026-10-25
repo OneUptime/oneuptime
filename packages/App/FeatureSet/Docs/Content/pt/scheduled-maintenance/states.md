@@ -59,14 +59,14 @@ Os quatro estados marcados levam a etiqueta **Integrado** na página de configur
 | Forma            | Onde                                                                                        | O que pede                                                                                                      |
 | ---------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **O relógio**    | Uma tarefa que roda a cada minuto                                                           | Nada: no **Começa em** leva um evento em espera para **Em andamento**, e no **Termina em** um evento em andamento para **Encerrado**. |
-| **O cabeçalho**  | A **Visão geral** do evento: os botões **Marcar como {{state}}**, e **Change state to** no menu **⋯** | Uma caixa de diálogo curta, **Marcar a manutenção programada como {{state}}**, com **Notificar assinantes da página de status** e uma nota opcional em **Adicionar uma nota pública**. |
+| **O cabeçalho**  | A **Visão geral** do evento: os botões **Marcar como {{state}}**, e **Alterar estado para** no menu **⋯** | Uma caixa de diálogo curta, **Marcar a manutenção programada como {{state}}**, com **Notificar assinantes da página de status** e uma nota opcional em **Adicionar uma nota pública**. |
 | **A linha do tempo** | **Linha do tempo de estado** no menu lateral do evento                                  | Uma linha que você adiciona à mão, com **Status da manutenção programada** e **Começa em**.                     |
 | **Uma linha da lista** | O menu **⋯** na linha de um evento na lista de eventos: os passos **Marcar como {{state}}** e **Alterar estado** | A caixa de diálogo do cabeçalho, com o nome do evento. Um evento que outra mudança já moveu fica como está, e a caixa de diálogo diz por quê. |
 | **Alteração em massa** | **Marcar como {{state}}** ou **Alterar estado** em uma seleção na lista de eventos                                 | O estado, e uma nota pública adicionada a cada evento. Os eventos que já estão nesse estado ou além são pulados. |
 | **O chat**       | Os botões das mensagens do Slack e do Microsoft Teams do evento                             | A mesma alteração, feita em seu nome. Veja [Slack](/docs/workspace-connections/slack#agir-sobre-incidentes-alertas-e-eventos-pelo-slack). |
 | **A API**        | Uma linha criada em `/api/scheduled-maintenance-state-timeline`                             | O estado, e se os assinantes são avisados.                                                                      |
 
-Os botões do cabeçalho levam o nome dos seus estados. Enquanto o evento espera, ele oferece dois: um que o inicia, com o nome do seu estado em andamento, e um que o encerra, com o nome do seu estado encerrado. Enquanto o evento está em andamento, só o segundo. O menu **⋯** lista todos os outros estados depois do atual.
+Os botões do cabeçalho levam o nome dos seus estados. Enquanto o evento espera, ele oferece dois: um que o inicia, com o nome do seu estado em andamento, e um que o encerra, com o nome do seu estado encerrado. Enquanto o evento está em andamento, só o segundo. O menu **⋯** lista todos os outros estados depois do atual. Quem, pelo seu papel, não pode mudar o estado do evento vê os botões bloqueados e nenhum menu de outros estados: ao apontar para um, aparecem as permissões que permitiriam isso.
 
 ## O que o início e o fim fazem
 
@@ -84,8 +84,8 @@ Passar de **Em andamento** para «Verificando», ou de **Encerrado** para **Conc
 
 Antes do início, o cabeçalho faz uma contagem regressiva; enquanto o evento acontece, conta há quanto tempo ele dura; depois de encerrado, diz quanto tempo levou. Quando o evento perde um limite por mais de dois minutos, um aviso âmbar diz isso:
 
-- **Start overdue**: o evento ainda está esperando depois do seu **Começa em**.
-- **Overrunning**: o evento ainda está em andamento depois do seu **Termina em**.
+- **Início atrasado**: o evento ainda está esperando depois do seu **Começa em**.
+- **Passou do horário**: o evento ainda está em andamento depois do seu **Termina em**.
 
 O aviso mostra o horário planejado e o estado que o evento ainda não alcançou. Logo depois de um limite, a tarefa que move os eventos talvez ainda não tenha rodado, então nos minutos seguintes o cabeçalho verifica de novo sozinho e mostra o novo estado sem recarregar.
 
@@ -126,7 +126,7 @@ Um estado que você adiciona não tem sinalizador, então o lugar dele é o que 
 | Entre **Encerrado** e **Concluído**     | Está encerrado, mas ainda não concluído: os lembretes que duram até a conclusão continuam.                      |
 | Abaixo de **Concluído**                 | Está concluído, como em **Concluído**.                                                                           |
 
-Mantenha seus estados abaixo de **Agendado**: todo evento novo começa ali, e um evento nunca volta a subir na lista, então um estado acima dele nunca é alcançado. Você leva um evento para um estado próprio pelo menu **⋯** do cabeçalho dele, em **Change state to**.
+Mantenha seus estados abaixo de **Agendado**: todo evento novo começa ali, e um evento nunca volta a subir na lista, então um estado acima dele nunca é alcançado. Você leva um evento para um estado próprio pelo menu **⋯** do cabeçalho dele, em **Alterar estado para**.
 
 > [!NOTE]
 > No OneUptime Cloud, adicionar ou alterar estados de manutenção requer o plano **Growth** ou superior. Todos os planos podem lê-los, usá-los e excluir um estado que você adicionou.
@@ -160,7 +160,7 @@ Os estados só descem pela lista. Exclua as linhas depois do estado que você qu
 :::
 
 :::details O estado concluído não aparece entre os botões do cabeçalho
-Os botões do cabeçalho iniciam e encerram o evento. Concluí-lo fica no menu **⋯**, em **Change state to**.
+Os botões do cabeçalho iniciam e encerram o evento. Concluí-lo fica no menu **⋯**, em **Alterar estado para**.
 :::
 
 ## Próximos passos

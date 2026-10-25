@@ -126,15 +126,16 @@ import {
 import {
   EventResponseTimes,
   EventStartedByInput,
-  VisibleItems,
   getAcknowledgedAfterPagingText,
   getEventResponseTimes,
   getEventStartedByText,
   getImpactBeforeStartText,
   getTimeToStateText,
-  splitVisibleItems,
 } from "../../../Utils/EventOverview";
 import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
+import EventFactLinks, {
+  EventFactLinkItem,
+} from "../../../Components/EventView/EventFactLinks";
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import {
   EVENT_ROLES_CARD_ID,
@@ -163,7 +164,6 @@ import {
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
-import AppLink from "../../../Components/AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -963,61 +963,40 @@ const IncidentView: FunctionComponent<
       : undefined;
   };
 
+  // The monitors it is about, each a link to its page, one under another.
   const getMonitorLinks: (monitors: Array<Monitor>) => ReactElement = (
     monitors: Array<Monitor>,
   ): ReactElement => {
-    const monitorsToShow: VisibleItems<Monitor> = splitVisibleItems(
-      monitors,
-      MAX_HEADER_MONITORS,
-    );
-
     return (
-      <span>
-        {monitorsToShow.visible.map((monitor: Monitor, index: number) => {
-          const monitorName: string =
-            monitor.name || translator.translateTerm("Unnamed monitor");
-
-          return (
-            <Fragment key={monitor._id?.toString() || `monitor-${index}`}>
-              {index > 0 ? ", " : ""}
-              {monitor._id ? (
-                <AppLink
-                  className="text-indigo-600 hover:text-indigo-700 hover:underline"
-                  to={RouteUtil.populateRouteParams(
+      <EventFactLinks
+        dataTestId="event-monitor-links"
+        maxVisible={MAX_HEADER_MONITORS}
+        items={monitors.map(
+          (monitor: Monitor, index: number): EventFactLinkItem => {
+            return {
+              key: monitor._id?.toString() || `monitor-${index}`,
+              name: monitor.name || translator.translateTerm("Unnamed monitor"),
+              route: monitor._id
+                ? RouteUtil.populateRouteParams(
                     RouteMap[PageMap.MONITOR_VIEW] as Route,
                     {
                       modelId: new ObjectID(monitor._id.toString()),
                     },
-                  )}
-                >
-                  {monitorName}
-                </AppLink>
-              ) : (
-                <span>{monitorName}</span>
-              )}
-            </Fragment>
-          );
-        })}
-        {monitorsToShow.hiddenCount > 0 ? (
-          <span className="font-normal text-gray-500">
-            {" "}
-            {translator.translatePlural(
-              { one: "+{{count}} more", other: "+{{count}} more" },
-              monitorsToShow.hiddenCount,
-            )}
-          </span>
-        ) : (
-          <></>
+                  )
+                : undefined,
+            };
+          },
         )}
-      </span>
+      />
     );
   };
 
   /*
    * Who runs the response, beside its state and severity: the commander
    * (the project's primary incident role) and the owners, teams first. Assign
-   * and Add owners are offered only while the incident is open; a resolved
-   * one says who held them, or that nobody did.
+   * and Add owners are offered only while the incident is open (Add owners
+   * to a reader who may add one); a resolved one says who held them, or
+   * that nobody did.
    */
   const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
@@ -1044,7 +1023,7 @@ const IncidentView: FunctionComponent<
       RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !isResolved,
+    canAddOwners: !isResolved && owners.canAddOwners,
   });
 
   if (ownersFact) {

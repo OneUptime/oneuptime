@@ -134,7 +134,7 @@ Archivez un état ou une gravité que votre équipe ne doit plus utiliser, au li
 | **Changement groupé**      | **Prendre en compte**, **Résoudre** ou **Modifier l'état** sur une sélection dans la liste des alertes                           | L'état, et une note privée ajoutée à chaque alerte. Les alertes déjà dans cet état ou au-delà sont ignorées.                          |
 | **Automatiquement**        | Un moniteur, un épisode, un incident lié ou votre propre code                             | **Résoudre automatiquement l'alerte** dans les critères d'un moniteur, le changement d'état d'un épisode, les interrupteurs d'incident de [Alertes liées](/docs/incidents/linked-alerts), ou une ligne créée sur `/api/alert-state-timeline`. |
 
-L'en-tête propose **Prendre en compte** et **Résoudre** tant que l'alerte n'est pas encore prise en compte, et seulement **Résoudre** une fois qu'elle l'est. Une alerte résolue n'affiche ni l'un ni l'autre.
+L'en-tête propose **Prendre en compte** et **Résoudre** tant que l'alerte n'est pas encore prise en compte, et seulement **Résoudre** une fois qu'elle l'est. Une alerte résolue n'affiche ni l'un ni l'autre. Une personne dont le rôle ne permet pas de changer l'état de l'alerte voit les boutons verrouillés, sans menu des autres états : en pointant l'un d'eux, elle voit les autorisations qui le lui permettraient.
 
 ## Ce que fait la prise en compte
 

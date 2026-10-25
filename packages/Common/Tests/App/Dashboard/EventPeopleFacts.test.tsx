@@ -37,10 +37,17 @@ jest.mock(
         to?: { toString: () => string };
         children: ReactNode;
         className?: string;
+        title?: string;
+        dataTestId?: string;
       }): ReactElement => {
         return React.createElement(
           "a",
-          { href: props.to?.toString(), className: props.className },
+          {
+            href: props.to?.toString(),
+            className: props.className,
+            title: props.title,
+            "data-testid": props.dataTestId,
+          },
           props.children,
         );
       },
@@ -52,6 +59,7 @@ import {
   CommanderFactValue,
   EVENT_ROLES_CARD_ID,
   OwnersFactValue,
+  PersonFactValue,
   RoleAssignRequestState,
   getCommanderFact,
   getOwnersFact,
@@ -125,12 +133,37 @@ function expectEmptyPlace(control: HTMLElement): void {
   expect(place).toHaveClass(
     "h-6",
     "w-6",
-    "-my-0.5",
     "rounded-full",
     "border",
     "border-dashed",
+    "border-gray-300",
   );
   expect(place.querySelector("svg")).not.toBeNull();
+}
+
+/*
+ * Assign and Add read as something to press, not as a word that happens to
+ * be blue: the place and the word are one rounded control that lights up as
+ * a whole, its circle lined up with the avatars beside it.
+ */
+function expectEmptyPlaceControl(control: HTMLElement): void {
+  expect(control).toHaveClass(
+    "group",
+    "inline-flex",
+    "items-center",
+    "gap-1.5",
+    "rounded-full",
+    "-ms-1",
+    "ps-1",
+    "pe-2.5",
+    "text-gray-700",
+    "hover:bg-indigo-50",
+    "hover:text-indigo-700",
+    "focus-visible:ring-2",
+  );
+  // Not a bare link: no underline, no link blue at rest.
+  expect(control).not.toHaveClass("text-indigo-600", "hover:underline");
+  expect(control.innerHTML).not.toContain("group-hover:underline");
 }
 
 afterEach(() => {
@@ -185,7 +218,7 @@ describe("the commander", () => {
     expect(assign).toHaveTextContent("Assign");
     // The dashed place and the word are one control, laid out like a person.
     expectEmptyPlace(assign);
-    expect(assign).toHaveClass("group", "inline-flex", "gap-1.5");
+    expectEmptyPlaceControl(assign);
     // Said once: the place and its action, not "Not assigned" beside them.
     expect(screen.queryByText("Not assigned")).toBeNull();
     expect(screen.getByTestId("event-commander")).toHaveTextContent(/^Assign$/);
@@ -205,21 +238,39 @@ describe("the commander", () => {
     expect(screen.queryByTestId("event-empty-place")).toBeNull();
   });
 
-  test("sits at the top of its line, so a name is level with its label", () => {
+  test("lists people one a line under the label, as the header lists monitors", () => {
     const people: RenderResult = render(
-      <CommanderFactValue members={[MAYA]} roleName="Incident Commander" />,
+      <CommanderFactValue
+        members={[
+          MAYA,
+          {
+            ...MAYA,
+            userId: "80000000-0000-4000-8000-000000000002",
+            name: "Sam Rivera",
+          },
+        ]}
+        roleName="Incident Commander"
+      />,
     );
 
-    expect(people.getByTestId("event-commander")).toHaveClass(
-      "inline-flex",
-      "align-top",
+    const commander: HTMLElement = people.getByTestId("event-commander");
+
+    expect(commander).toHaveClass(
+      "flex",
+      "max-w-full",
+      "flex-col",
+      "items-start",
+      "gap-2",
     );
-    // The 24px avatar takes a 20px line: the row is as tall as words.
+    // Never side by side, so a list never wraps two to a line and one under.
+    expect(commander).not.toHaveClass("flex-wrap");
+    expect(shownNames(people.container)).toEqual(["Maya Chen", "Sam Rivera"]);
+    // Each person is a line of the list.
     expect(
-      people
-        .getByTestId("event-commander-person")
-        .querySelector("[aria-hidden='true']"),
-    ).toHaveClass("-my-0.5");
+      Array.from(commander.children).map((line: Element): string | null => {
+        return line.getAttribute("data-testid");
+      }),
+    ).toEqual(["event-commander-person", "event-commander-person"]);
     people.unmount();
 
     const open: RenderResult = render(
@@ -230,7 +281,49 @@ describe("the commander", () => {
       />,
     );
 
-    expect(open.getByTestId("event-commander")).toHaveClass("align-top");
+    expect(open.getByTestId("event-commander")).toHaveClass("flex", "flex-col");
+  });
+
+  test("an avatar and the empty place take a text line's 20px in the row, so a name sits level with the words beside it", () => {
+    const people: RenderResult = render(
+      <CommanderFactValue members={[MAYA]} roleName="Incident Commander" />,
+    );
+    const avatar: HTMLElement = people.getByTestId("event-person-name")
+      .previousElementSibling as HTMLElement;
+
+    expect(avatar).toHaveAttribute("aria-hidden", "true");
+    expect(avatar).toHaveClass("-my-0.5");
+    people.unmount();
+
+    render(
+      <CommanderFactValue
+        members={[]}
+        roleName="Incident Commander"
+        onAssign={(): void => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("event-empty-place")).toHaveClass(
+      "-my-0.5",
+      "h-6",
+      "w-6",
+    );
+  });
+
+  test("wraps a long name beside its avatar instead of cutting it short", () => {
+    render(
+      <CommanderFactValue
+        members={[
+          { ...MAYA, name: "Maximiliane Alexandra Rosenthal-Vandenberg" },
+        ]}
+        roleName="Incident Commander"
+      />,
+    );
+
+    const name: HTMLElement = screen.getByTestId("event-person-name");
+
+    expect(name).toHaveClass("min-w-0", "break-words");
+    expect(name).not.toHaveClass("truncate");
   });
 
   test("Assign names the project's own role", () => {
@@ -376,12 +469,16 @@ describe("the owners", () => {
     const add: HTMLElement = screen.getByRole("link", { name: "Add owners" });
 
     expect(add).toHaveAttribute("href", OWNERS_ROUTE.toString());
+    // Shown under the pointer as what it adds, as the Add after owners is.
+    expect(add).toHaveAttribute("title", "Add owners");
     expect(within(add).getByText("Add")).toHaveAttribute("aria-hidden", "true");
     expectEmptyPlace(add);
-    expect(add).toHaveClass("group", "inline-flex", "gap-1.5");
+    expectEmptyPlaceControl(add);
     // Said once: no "None" beside the place that says it.
     expect(screen.queryByText("None")).toBeNull();
-    expect(screen.getByTestId("event-owners")).toHaveClass("align-top");
+    expect(screen.getByTestId("event-owners")).toHaveClass("flex-col");
+    // The one place to add owners: no second one at the end of an empty list.
+    expect(screen.queryByTestId("event-owners-add-more")).toBeNull();
   });
 
   test("a record that is over only says None", () => {
@@ -392,7 +489,7 @@ describe("the owners", () => {
     expect(screen.queryByTestId("event-empty-place")).toBeNull();
   });
 
-  test("owners sit at the top of their line, level with the label", () => {
+  test("owners are listed one a line under the label, as the header lists monitors", () => {
     render(
       <OwnersFactValue
         owners={[team("Checkout SRE", 1), person("Sam Rivera", 2)]}
@@ -400,11 +497,109 @@ describe("the owners", () => {
       />,
     );
 
-    expect(screen.getByTestId("event-owners")).toHaveClass(
-      "inline-flex",
-      "flex-wrap",
-      "align-top",
+    const owners: HTMLElement = screen.getByTestId("event-owners");
+
+    expect(owners).toHaveClass("flex", "flex-col", "items-start", "gap-2");
+    expect(owners).not.toHaveClass("flex-wrap");
+    expect(
+      Array.from(owners.children).map((line: Element): string | null => {
+        return line.getAttribute("data-testid");
+      }),
+    ).toEqual(["event-owner", "event-owner"]);
+  });
+
+  test("an open record's owners end with the empty place, to add more from the Owners page", () => {
+    render(
+      <OwnersFactValue
+        owners={[team("Checkout SRE", 1), person("Sam Rivera", 2)]}
+        ownersRoute={OWNERS_ROUTE}
+        canAddOwners={true}
+      />,
     );
+
+    const addMore: HTMLElement = screen.getByTestId("event-owners-add-more");
+    const owners: HTMLElement = screen.getByTestId("event-owners");
+
+    // Heard and shown under the pointer as what it does.
+    expect(addMore).toBe(screen.getByRole("link", { name: "Add owners" }));
+    expect(addMore).toHaveAttribute("title", "Add owners");
+    expect(addMore).toHaveAttribute("href", OWNERS_ROUTE.toString());
+    /*
+     * The same control as on a record nobody owns: the empty place and the
+     * word "Add", so it reads as one to press on a phone too, where nothing
+     * shows under a pointer.
+     */
+    expectEmptyPlace(addMore);
+    expectEmptyPlaceControl(addMore);
+    expect(within(addMore).getByText("Add")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    // The list's last line, after the people.
+    expect(owners.lastElementChild).toBe(addMore);
+    expect(owners).toHaveClass("flex-col");
+    expect(shownNames(owners)).toEqual(["Checkout SRE", "Sam Rivera"]);
+  });
+
+  test("the place to add more follows +N more on a long list", () => {
+    render(
+      <OwnersFactValue
+        owners={[
+          team("Checkout SRE", 1),
+          team("Database Reliability", 2),
+          team("Platform", 3),
+          person("Alex Kim", 4),
+        ]}
+        ownersRoute={OWNERS_ROUTE}
+        canAddOwners={true}
+      />,
+    );
+
+    const owners: HTMLElement = screen.getByTestId("event-owners");
+    const more: HTMLElement = screen.getByRole("link", { name: "+1 more" });
+    const add: HTMLElement = screen.getByRole("link", { name: "Add owners" });
+
+    expect(screen.getAllByRole("link")).toEqual([more, add]);
+    // Each a line of its own, Add the last.
+    expect(more.parentElement).toBe(owners);
+    expect(owners.lastElementChild).toBe(add);
+  });
+
+  test("a record that is over offers no place to add owners", () => {
+    render(
+      <OwnersFactValue
+        owners={[team("Checkout SRE", 1)]}
+        ownersRoute={OWNERS_ROUTE}
+      />,
+    );
+
+    expect(screen.queryByTestId("event-owners-add-more")).toBeNull();
+    expect(screen.queryByTestId("event-empty-place")).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("a person by name", () => {
+  test("is drawn as the header's other people are: an avatar with initials and the name", () => {
+    render(<PersonFactValue name="Jordan Patel" />);
+
+    const value: HTMLElement = screen.getByTestId("event-person");
+    const entry: HTMLElement = screen.getByTestId("event-person-entry");
+
+    expect(value).toHaveClass("flex", "flex-col");
+    expect(entry).toHaveAttribute("data-kind", "user");
+    expect(shownNames(value)).toEqual(["Jordan Patel"]);
+    // The avatar is decoration: the name is read once.
+    expect(entry.querySelector("[aria-hidden='true']")).not.toBeNull();
+    expect(value).toHaveTextContent(/^JPJordan Patel$/);
+  });
+
+  test("names someone without a name by the email it is given", () => {
+    render(<PersonFactValue name="jordan.patel@acme-commerce.example" />);
+
+    expect(shownNames(screen.getByTestId("event-person"))).toEqual([
+      "jordan.patel@acme-commerce.example",
+    ]);
   });
 });
 

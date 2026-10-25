@@ -56,7 +56,7 @@ Digite um **Nome** — e uma **Descrição** em **Mais campos**, se quiser — e
 ### No painel
 
 :::steps
-1. Abra o monitor. No canto superior direito da visão geral dele, ao lado de **Atualizar**, clique em **More actions** (⋯).
+1. Abra o monitor. No canto superior direito da visão geral dele, ao lado de **Atualizar**, clique em **Mais ações** (⋯).
 2. Em **Alterar status para**, escolha o novo status.
 3. Clique em **Alterar status**. O novo status começa agora e aparece na hora no monitor, e em cada página de status que o lista.
 :::

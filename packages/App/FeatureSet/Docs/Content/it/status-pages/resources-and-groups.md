@@ -43,7 +43,7 @@ La schermata è divisa in due:
 | ---- | ------------- |
 | **Navigatore dei gruppi** (a sinistra) | Tutti i gruppi della pagina, ad albero, con una casella **Search groups...** sopra e un conteggio sotto, come `3 groups · 12 resources`. Un elenco lungo termina con un pulsante **Show N more of M**. |
 | **Top of page** | La prima riga del navigatore: le risorse senza gruppo, che i visitatori vedono per prime, sopra ogni gruppo. Su una pagina senza gruppi, il riquadro di destra si intitola invece **All resources**. |
-| **Riquadro delle risorse** (a destra) | Le risorse del gruppo selezionato. La sua intestazione contiene **Edit Group**, il pulsante principale **Aggiungi monitor** e un menu **More actions**. |
+| **Riquadro delle risorse** (a destra) | Le risorse del gruppo selezionato. La sua intestazione contiene **Edit Group**, il pulsante principale **Aggiungi monitor** e un menu **Altre azioni**. |
 | Intestazione della scheda | **New Group** e un menu a tre puntini con **Import groups from CSV** e **Aggiorna**. |
 
 **Gli stati vuoti vi dicono cosa fare.** Un gruppo vuoto mostra **No monitors here yet** con **Aggiungi monitor**, **Add Multiple** e, solo finché la pagina non ha alcun gruppo, **Create a Group**. Una ricerca senza risultati mostra **No resources match your search**.
@@ -79,7 +79,7 @@ In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna
 
 ### Aggiungerne diversi insieme
 
-**Add Multiple** (anche **Add multiple monitors** nel menu **More actions**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Aggiungi monitor** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
+**Add Multiple** (anche **Add multiple monitors** nel menu **Altre azioni**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Aggiungi monitor** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
 
 La selezione multipla ha una scheda **Etichette**: fate clic su un'etichetta e ogni monitor che la porta viene selezionato in una volta.
 
@@ -153,7 +153,7 @@ Per modificare un gruppo, usate **Edit Group** nell'intestazione del riquadro, o
 | Dove | Azioni |
 | ----- | ------- |
 | Il menu della riga del navigatore | **Edit group**, **Sposta su**, **Sposta giù**, **Mostra ID**, **Delete group** |
-| Il menu **More actions** del riquadro | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Aggiorna**, **Delete this group** |
+| Il menu **Altre azioni** del riquadro | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Aggiorna**, **Delete this group** |
 
 Un gruppo salvato senza nome compare come **Untitled group**, buon segno che volevate scrivere qualcosa.
 
@@ -195,7 +195,7 @@ L'ordine lo decidete voi, non l'alfabeto:
 | Cosa | Come riordinarlo |
 | ---- | ------------------ |
 | Le risorse dentro un gruppo | Trascinate una riga. Il riquadro lo dice: **Drag a row to change the order visitors see**. |
-| I gruppi tra loro | **Sposta su** / **Sposta giù** nel menu della riga del navigatore, oppure **Move group up** / **Move group down** in **More actions**. |
+| I gruppi tra loro | **Sposta su** / **Sposta giù** nel menu della riga del navigatore, oppure **Move group up** / **Move group down** in **Altre azioni**. |
 | Le risorse senza gruppo | Stanno in **Top of page** e compaiono sempre sopra ogni gruppo, quindi mettete lì la cosa che tutti controllano per prima. |
 
 **Due casi in cui il trascinamento è disattivato.** Una ricerca nella casella **Search in {group}...** disattiva il riordino (il riquadro dice `N of M shown · drag to reorder is off while filtering`), quindi svuotate prima la ricerca. E i gruppi a griglia non si riordinano mai trascinando, perché il posto di un monitor deriva dalla sua riga e dalla sua colonna.
