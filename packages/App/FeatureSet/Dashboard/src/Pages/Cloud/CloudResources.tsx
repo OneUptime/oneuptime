@@ -155,7 +155,10 @@ const CloudResources: FunctionComponent<
    */
   return (
     <Fragment>
-      <CloudFleetSummary refreshToken={firstRecordWatch.count} />
+      {/* Counted again for the first environment and for each the Add dialog connects. */}
+      <CloudFleetSummary
+        refreshToken={(firstRecordWatch.count || 0) + connectedCount}
+      />
       <ModelTable<CloudResource>
         modelType={CloudResource}
         // Archive in each row's ⋯ menu, as in Bulk Actions.

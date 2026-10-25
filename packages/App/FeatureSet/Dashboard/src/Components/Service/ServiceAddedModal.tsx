@@ -4,7 +4,10 @@ import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ResourceAddedModal from "../ResourceOnboarding/ResourceAddedModal";
-import TelemetryDocumentation from "../Telemetry/Documentation";
+import TelemetryDocumentation, {
+  canCarryServiceName,
+} from "../Telemetry/Documentation";
+import { SERVICE_NAME_HELP } from "./ServiceListCopy";
 import PageMap from "../../Utils/PageMap";
 
 /*
@@ -12,7 +15,8 @@ import PageMap from "../../Utils/PageMap";
  * and metrics come from the apps, once they are instrumented. So once the
  * form has saved one, the OpenTelemetry guide opens on its own with that
  * service.name in every snippet, and says when the service's first data
- * arrived.
+ * arrived. A name the snippets cannot carry (a quote, a $ in it) leaves
+ * their examples, and the dialog says to use the service's name instead.
  */
 
 export const SERVICE_ADDED_TITLE: string = translationKey(
@@ -42,7 +46,11 @@ const ServiceAddedModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(SERVICE_ADDED_TITLE, {
         name: props.name,
       })}
-      description={SERVICE_ADDED_DESCRIPTION}
+      description={
+        canCarryServiceName(props.name)
+          ? SERVICE_ADDED_DESCRIPTION
+          : SERVICE_NAME_HELP
+      }
       modelType={Service}
       recordId={props.serviceId}
       name={props.name}

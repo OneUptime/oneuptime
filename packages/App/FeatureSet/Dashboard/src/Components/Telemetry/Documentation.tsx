@@ -135,11 +135,20 @@ function replacePlaceholders(
 }
 
 /*
- * A service name every snippet takes as written: inside its quotes, after
- * export OTEL_SERVICE_NAME= and in -Dotel.service.name= alike. Anything
- * else keeps the examples, for the reader to replace.
+ * A service name the snippets can carry: letters, marks and digits of any
+ * script, spaces, and . _ : / @ + , ( ) & -, as names like "User
+ * Authentication API" or "team/orders.v2" have. Every quote in the snippets
+ * takes such a name as it is. Anything else - a quote, a backslash, a $ -
+ * keeps the examples, for the reader to replace.
  */
-const PLAIN_SERVICE_NAME: RegExp = /^[A-Za-z0-9._:/-]+$/;
+const SERVICE_NAME_IN_SNIPPETS: RegExp = /^[\p{L}\p{M}\p{N} ._:/@+,()&-]+$/u;
+
+/*
+ * Where a shell reads the name bare (-Dotel.service.name=my-service,
+ * export PYROSCOPE_APPLICATION_NAME=my-service), one with anything else in
+ * it - a space, a bracket, a non-ASCII letter - goes in double quotes.
+ */
+const BARE_SHELL_WORD: RegExp = /^[A-Za-z0-9._:/@+,-]+$/;
 
 // The names the snippets give the service until it is known.
 const EXAMPLE_SERVICE_NAMES: Array<string> = [
@@ -148,9 +157,21 @@ const EXAMPLE_SERVICE_NAMES: Array<string> = [
   "my-angular-app",
 ];
 
+const EXAMPLE_SERVICE_NAME: RegExp = new RegExp(
+  EXAMPLE_SERVICE_NAMES.join("|"),
+  "g",
+);
+
+// Whether withServiceName writes this name into the snippets.
+export function canCarryServiceName(serviceName: string | undefined): boolean {
+  return SERVICE_NAME_IN_SNIPPETS.test((serviceName || "").trim());
+}
+
 /**
  * A snippet with the service's own name in place of the examples', when
- * the guide knows it and the snippets can carry it as written.
+ * the guide knows it and the snippets can carry it: as it is inside the
+ * snippets' quotes, and in quotes where a shell reads it bare. In one pass,
+ * so a name with an example in it ("my-react-app-web") is not replaced again.
  */
 export function withServiceName(
   code: string,
@@ -158,15 +179,18 @@ export function withServiceName(
 ): string {
   const name: string = (serviceName || "").trim();
 
-  if (!name || !PLAIN_SERVICE_NAME.test(name)) {
+  if (!canCarryServiceName(name)) {
     return code;
   }
 
-  return EXAMPLE_SERVICE_NAMES.reduce(
-    (filled: string, example: string): string => {
-      return filled.split(example).join(name);
+  return code.replace(
+    EXAMPLE_SERVICE_NAME,
+    (_example: string, offset: number): string => {
+      const before: string = code.charAt(offset - 1);
+      const isQuoted: boolean = before === '"' || before === "'";
+
+      return isQuoted || BARE_SHELL_WORD.test(name) ? name : `"${name}"`;
     },
-    code,
   );
 }
 

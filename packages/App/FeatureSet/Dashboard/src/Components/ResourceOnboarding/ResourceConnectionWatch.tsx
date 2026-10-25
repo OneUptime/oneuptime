@@ -10,6 +10,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -28,7 +29,6 @@ import {
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
   RESOURCE_CONNECTION_WAITING,
   RESOURCE_CONNECTION_WAITING_FOR_NAME,
-  getResourceConnectionWatchStart,
   hasReportedSince,
   pickConnectedRecord,
 } from "./ResourceOnboarding";
@@ -41,11 +41,14 @@ import {
  * from OneUptime.
  *
  * Registered, not merely reporting: every connected resource reports, and
- * one already running would read as the one just added. So a resource the
- * project already had under the guide's name counts only once it reports
- * again after the guide looked it up (`existing`), and a record added by a
- * form a moment ago (a database, a queue) counts once its first data is in
- * (`recordId`).
+ * one already running would read as the one just added. And registered
+ * after the guide opened by the server's own clock: the first look notes
+ * the records the project has, and only a newer one counts - so neither one
+ * that registered a minute earlier nor a browser clock that is off can pass
+ * for the resource just added. A resource the project already had under the
+ * guide's name counts once it reports again after the guide looked it up
+ * (`existing`), and a record a form added a moment ago (a database, a
+ * queue) once its first data is in (`recordId`).
  */
 
 export interface ExistingRecordSnapshot {
@@ -56,8 +59,6 @@ export interface ExistingRecordSnapshot {
 
 export interface ComponentProps {
   modelType: { new (): BaseModel };
-  // When the guide opened.
-  since: Date;
   // The name the guide installs with: the record of that name wins.
   name?: string | undefined;
   // The column that name lands in ("clusterIdentifier", "name").
@@ -85,6 +86,37 @@ interface ConnectedResource {
   name: string;
 }
 
+// The project's newest records when the step first looked.
+interface KnownRecords {
+  ids: Set<string>;
+  newestCreatedAt: Date | null;
+}
+
+/*
+ * How many of the newest records the first look notes, and each check
+ * reads: more than register in the seconds between two checks.
+ */
+const RECORDS_PER_CHECK: number = 10;
+
+const getRecordId: (record: BaseModel) => string = (
+  record: BaseModel,
+): string => {
+  return record._id?.toString() || "";
+};
+
+const getRecordDate: (record: BaseModel | undefined) => Date | null = (
+  record: BaseModel | undefined,
+): Date | null => {
+  const value: unknown = record?.getColumnValue("createdAt");
+
+  if (!value) {
+    return null;
+  }
+
+  const date: Date = new Date(value as string | Date);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
 const getRecordName: (
   record: BaseModel,
   field: string | undefined,
@@ -111,6 +143,12 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     ((record: BaseModel) => void) | undefined
   > = useRef<((record: BaseModel) => void) | undefined>(props.onConnected);
   onConnectedRef.current = props.onConnected;
+  /*
+   * Kept across the checks, and across a new name or a new existing record:
+   * what the project had when the step first looked.
+   */
+  const knownRef: MutableRefObject<KnownRecords | null> =
+    useRef<KnownRecords | null>(null);
 
   const existingId: string | undefined = props.existing?.id.toString();
   const existingLastSeenAt: number | undefined =
@@ -124,13 +162,13 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     let isMounted: boolean = true;
     const nameField: string = props.nameField || "name";
     const seenField: string = props.seenField || "lastSeenAt";
-    const start: Date = getResourceConnectionWatchStart(props.since);
 
     const select: Select<BaseModel> = {
       _id: true,
       name: true,
       [nameField]: true,
       lastSeenAt: true,
+      createdAt: true,
     } as Select<BaseModel>;
 
     const found: (record: BaseModel) => void = (record: BaseModel): void => {
@@ -148,7 +186,10 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       onConnectedRef.current?.(record);
     };
 
-    // A record a form added: its first data.
+    /*
+     * A record a form added: its first data. It was saved a moment ago with
+     * nothing seen yet, so any value at all is that data.
+     */
     const checkRecord: (recordId: ObjectID) => Promise<boolean> = async (
       recordId: ObjectID,
     ): Promise<boolean> => {
@@ -156,7 +197,7 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
         modelType: props.modelType,
         query: {
           _id: recordId,
-          [seenField]: new GreaterThanOrEqual<Date>(start),
+          [seenField]: new NotNull(),
         } as Query<BaseModel>,
         select: select,
         sort: {},
@@ -172,28 +213,51 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
       return false;
     };
 
-    // Registered since the guide opened, newest first.
+    /*
+     * Registered since the step first looked, newest first. That first look
+     * only notes what the project has: the newest records, and when the
+     * newest of them was created. Each check after it reads from that
+     * moment on - the server's createdAt against the server's - and leaves
+     * out the records it noted.
+     */
     const checkNew: () => Promise<boolean> = async (): Promise<boolean> => {
+      const known: KnownRecords | null = knownRef.current;
+
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: props.modelType,
         query: {
           ...(props.query || {}),
-          createdAt: new GreaterThanOrEqual<Date>(start),
+          ...(known?.newestCreatedAt
+            ? {
+                createdAt: new GreaterThanOrEqual<Date>(known.newestCreatedAt),
+              }
+            : {}),
         } as Query<BaseModel>,
         select: select,
         sort: {
           createdAt: SortOrder.Descending,
         },
-        limit: 10,
+        limit: RECORDS_PER_CHECK,
         skip: 0,
       });
 
+      if (!known) {
+        knownRef.current = {
+          ids: new Set<string>(result.data.map(getRecordId)),
+          newestCreatedAt: getRecordDate(result.data[0]),
+        };
+        return false;
+      }
+
       const record: BaseModel | undefined = pickConnectedRecord<BaseModel>({
-        records: result.data,
+        records: result.data.filter((item: BaseModel): boolean => {
+          return !known.ids.has(getRecordId(item));
+        }),
         name: nameRef.current,
         getName: (item: BaseModel): string | undefined => {
           return getRecordName(item, nameField);
         },
+        isNameTaken: Boolean(existingId),
       });
 
       if (record) {
@@ -265,7 +329,6 @@ const ResourceConnectionWatch: FunctionComponent<ComponentProps> = (
     };
   }, [
     connected,
-    props.since,
     props.recordId?.toString(),
     props.seenField,
     existingId,

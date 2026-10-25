@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -53,11 +53,6 @@ const ResourceAddedModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  // Data that arrives from now on is the new resource's first.
-  const since: Date = useMemo(() => {
-    return new Date();
-  }, []);
-
   const lastStepTitle: string =
     translator.translateText(RESOURCE_CONNECTION_STEP_TITLE) ||
     RESOURCE_CONNECTION_STEP_TITLE;
@@ -65,7 +60,6 @@ const ResourceAddedModal: FunctionComponent<ComponentProps> = (
   const watch: ReactElement = (
     <ResourceConnectionWatch
       modelType={props.modelType}
-      since={since}
       name={props.name}
       recordId={props.recordId}
       seenField={props.seenField}

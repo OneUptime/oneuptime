@@ -969,6 +969,29 @@ describe("the MQTT endpoint facts match the server", () => {
       ),
     ).toContain('title: "Device Registry"');
   });
+
+  /*
+   * A device credential belongs to a fleet, and a fleet registers itself
+   * from its first reading - the fleets list has no form. So the note says
+   * to send one with the project-wide key first, which step 2 shows (the
+   * key is step 1, then the option's own steps).
+   */
+  test("says how the fleet comes to exist before a device gets its own credential", () => {
+    const note: string =
+      topicTitled(guide.advanced, "Give each device its own credential")
+        ?.markdown || "";
+
+    expect(note).toContain(
+      "The fleet appears with its first reading, so send one with the project-wide key first, as in step 2.",
+    );
+    expect(note).not.toContain("once the fleet exists");
+    expect(guide.steps[0]?.title).toBe("Publish a reading");
+    expect(
+      readRepoFile(
+        "packages/App/FeatureSet/Dashboard/src/Pages/IoT/Fleets.tsx",
+      ),
+    ).toContain("isCreateable={false}");
+  });
 });
 
 describe("the metric conventions", () => {

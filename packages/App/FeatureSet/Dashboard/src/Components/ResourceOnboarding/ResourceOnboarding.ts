@@ -1,4 +1,3 @@
-import OneUptimeDate from "Common/Types/Date";
 import {
   getUniqueName,
   normalizeNameForComparison,
@@ -35,20 +34,6 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * report within a minute of starting, and the step says so.
  */
 export const RESOURCE_CONNECTION_POLL_INTERVAL_MS: number = 5000;
-
-/*
- * The browser's clock and the server's can differ a little: a resource
- * that registered this long before the guide opened still counts.
- */
-export const RESOURCE_CONNECTION_CLOCK_MARGIN_MS: number = 2 * 60 * 1000;
-
-// The earliest registration the guide counts as the resource it added.
-export function getResourceConnectionWatchStart(since: Date): Date {
-  return OneUptimeDate.addRemoveSeconds(
-    since,
-    -RESOURCE_CONNECTION_CLOCK_MARGIN_MS / 1000,
-  );
-}
 
 // ---- the name the commands carry -------------------------------------------
 
@@ -171,13 +156,17 @@ export function isSameResourceName(
 }
 
 /**
- * Of the records that connected since the guide opened (newest first), the
- * one it was waiting for: the one with the guide's name, else the newest.
+ * Of the records that registered since the guide opened (newest first), the
+ * one it was waiting for: the one with the guide's name, else the newest -
+ * the command may have been edited. Not when the project already has a
+ * resource of the guide's name (`isNameTaken`): the agent's data goes to
+ * that one, so another one registering is someone else's.
  */
 export function pickConnectedRecord<TRecord>(data: {
   records: Array<TRecord>;
   name?: string | undefined;
   getName: (record: TRecord) => string | null | undefined;
+  isNameTaken?: boolean | undefined;
 }): TRecord | undefined {
   if (data.name) {
     const named: TRecord | undefined = data.records.find(
@@ -191,14 +180,19 @@ export function pickConnectedRecord<TRecord>(data: {
     }
   }
 
-  return data.records[0];
+  return data.isNameTaken ? undefined : data.records[0];
 }
 
 /**
  * A resource that was in the project under the guide's name before it
  * opened: it has connected once it reports again - its lastSeenAt is later
  * than the one it had when the guide looked it up. Both are the server's
- * clock, so no margin is needed.
+ * clock, so a browser clock that is off changes nothing.
+ *
+ * Whether or not it was reporting then: one that stopped minutes ago still
+ * reads as connected for a while (its lastSeenAt can lag five minutes behind
+ * live data, and it is marked disconnected after fifteen), and a reinstall
+ * under its name is what it is waiting for.
  */
 export function hasReportedSince(data: {
   lastSeenAtThen: Date | string | null | undefined;

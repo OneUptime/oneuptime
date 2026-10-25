@@ -67,7 +67,11 @@ import DatabaseAddedModal from "../../../../App/FeatureSet/Dashboard/src/Compone
 import MessageQueueAddedModal from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueAddedModal";
 import RumApplicationAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumApplicationAddedModal";
 import ServiceAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/Service/ServiceAddedModal";
-import { withServiceName } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation";
+import { SERVICE_NAME_HELP } from "../../../../App/FeatureSet/Dashboard/src/Components/Service/ServiceListCopy";
+import {
+  canCarryServiceName,
+  withServiceName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -81,7 +85,13 @@ import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunctio
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
+import Wildcard from "../../../Types/BaseDatabase/Wildcard";
+import {
+  hasWildcard,
+  unescapeWildcards,
+} from "../../../Types/BaseDatabase/WildcardPattern";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -138,6 +148,27 @@ function matches(row: Row, query: Record<string, unknown>): boolean {
         typeof value !== "string" ||
         !value.toLowerCase().includes(String(wanted.value).toLowerCase())
       ) {
+        return false;
+      }
+      continue;
+    }
+
+    // A glob with no wildcard in it: that text exactly, case aside (ILIKE).
+    if (wanted instanceof Wildcard) {
+      if (hasWildcard(wanted.value)) {
+        throw new Error(`Only exact Wildcards are modelled: ${wanted.value}`);
+      }
+      if (
+        typeof value !== "string" ||
+        value.toLowerCase() !== unescapeWildcards(wanted.value).toLowerCase()
+      ) {
+        return false;
+      }
+      continue;
+    }
+
+    if (wanted instanceof NotNull) {
+      if (value === null || value === undefined) {
         return false;
       }
       continue;
@@ -410,6 +441,42 @@ describe("the Add guide's name", () => {
       `/dashboard/${PROJECT_ID.toString()}/kubernetes/${idOf(91)}`,
     );
   });
+
+  /*
+   * A substring search, ten rows at a time and newest first, would return
+   * only the newer look-alikes. The lookup asks for the name itself.
+   */
+  test("finds a name the project has among many newer ones like it", async () => {
+    for (let i: number = 1; i <= 12; i++) {
+      rowsOf(KubernetesCluster).push({
+        _id: idOf(100 + i),
+        name: `prod-${i}`,
+        clusterIdentifier: `prod-${i}`,
+        otelCollectorStatus: "connected",
+      });
+    }
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(99),
+      name: "Prod",
+      clusterIdentifier: "Prod",
+      otelCollectorStatus: "disconnected",
+    });
+
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await typeName("prod");
+
+    expect(screen.getByTestId("resource-name-taken")).toHaveTextContent(
+      "Prod is already in this project, so the agent's data goes to it.",
+    );
+    expect(
+      reads.some((read: { table: string; query: Record<string, unknown> }) => {
+        return (
+          read.table === "KubernetesCluster" &&
+          read.query["clusterIdentifier"] instanceof Wildcard
+        );
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("the Add guide's last step", () => {
@@ -502,6 +569,74 @@ describe("the Add guide's last step", () => {
     );
   });
 
+  /*
+   * The first-run card saw my-cluster connect, and the Add dialog opened a
+   * minute later: my-cluster is not the one it is adding.
+   */
+  test("does not take one that registered a moment before the guide opened for the one it added", async () => {
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(92),
+      name: "my-cluster",
+      clusterIdentifier: "my-cluster",
+      otelCollectorStatus: "connected",
+      createdAt: new Date(Date.now() - 60 * 1000),
+      lastSeenAt: new Date(),
+    });
+
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
+
+    expect(screen.queryByTestId("resource-connection-connected")).toBeNull();
+    expect(screen.getByTestId("resource-connection-waiting")).toHaveTextContent(
+      "Waiting for my-cluster-2 to connect.",
+    );
+
+    arrive({
+      modelType: KubernetesCluster,
+      id: 93,
+      name: "my-cluster-2",
+      nameField: "clusterIdentifier",
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
+      "my-cluster-2",
+    );
+  });
+
+  /*
+   * The server's clock ten minutes behind the browser's: the new cluster's
+   * createdAt reads as before the guide opened, by the browser's clock.
+   */
+  test("sees the new resource whatever the browser's clock says", async () => {
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(94),
+      name: "old-cluster",
+      clusterIdentifier: "old-cluster",
+      otelCollectorStatus: "connected",
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      lastSeenAt: new Date(),
+    });
+
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const serverNow: Date = new Date(Date.now() - 10 * 60 * 1000);
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(95),
+      name: "my-cluster",
+      clusterIdentifier: "my-cluster",
+      otelCollectorStatus: "connected",
+      createdAt: serverNow,
+      lastSeenAt: serverNow,
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
+      "my-cluster",
+    );
+  });
+
   test("sees one the project had, never connected, report under the guide's name", async () => {
     rowsOf(KubernetesCluster).push({
       _id: idOf(91),
@@ -520,6 +655,68 @@ describe("the Add guide's last step", () => {
 
     rowsOf(KubernetesCluster)[0]!["lastSeenAt"] = new Date();
     rowsOf(KubernetesCluster)[0]!["otelCollectorStatus"] = "connected";
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
+      "Legacy East",
+    );
+  });
+
+  /*
+   * Its agent stopped five minutes ago: the cluster still reads as
+   * connected (that takes fifteen minutes of silence to change), and a
+   * reinstall under its name is what the guide is waiting for.
+   */
+  test("sees one the project had report again, though it still read as connected", async () => {
+    const stoppedAt: Date = new Date(Date.now() - 5 * 60 * 1000);
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(96),
+      name: "Legacy East",
+      clusterIdentifier: "legacy-east",
+      otelCollectorStatus: "connected",
+      createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      lastSeenAt: stoppedAt,
+    });
+
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await typeName("legacy-east");
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.queryByTestId("resource-connection-connected")).toBeNull();
+
+    rowsOf(KubernetesCluster)[0]!["lastSeenAt"] = new Date();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
+      "Legacy East",
+    );
+  });
+
+  test("with a name the project has, another one registering is not the one it added", async () => {
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(97),
+      name: "Legacy East",
+      clusterIdentifier: "legacy-east",
+      otelCollectorStatus: "disconnected",
+      createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      lastSeenAt: null,
+    });
+
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await typeName("legacy-east");
+
+    // A colleague's install, somewhere else.
+    arrive({
+      modelType: KubernetesCluster,
+      id: 98,
+      name: "staging",
+      nameField: "clusterIdentifier",
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+    expect(screen.queryByTestId("resource-connection-connected")).toBeNull();
+
+    rowsOf(KubernetesCluster)[0]!["lastSeenAt"] = new Date();
     await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
 
     expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
@@ -768,6 +965,41 @@ describe("the guide that opens once a form has added a resource", () => {
     );
   });
 
+  // The server's clock ten minutes behind the browser's.
+  test("sees the first data whatever the browser's clock says", async () => {
+    const id: string = idOf(61);
+    rowsOf(MessageQueue).push({
+      _id: id,
+      name: "payments.settled",
+      destinationName: "payments.settled",
+      messagingSystem: "kafka",
+      queueIdentifier: "kafka|payments.settled",
+      createdAt: new Date(Date.now() - 10 * 60 * 1000),
+      lastSeenAt: null,
+    });
+
+    await show(
+      <MessageQueueAddedModal
+        queueId={new ObjectID(id)}
+        name="payments.settled"
+        onClose={() => {}}
+      />,
+    );
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.queryByTestId("resource-connection-connected")).toBeNull();
+
+    rowsOf(MessageQueue)[0]!["lastSeenAt"] = new Date(
+      Date.now() - 10 * 60 * 1000,
+    );
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByRole("link", { name: "View queue" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/queues/${id}`,
+    );
+  });
+
   test("a RUM application's: its name in the snippet as service.name", async () => {
     const id: string = idOf(70);
     rowsOf(RumApplication).push({
@@ -840,6 +1072,58 @@ describe("the guide that opens once Create Service has saved a service", () => {
       `/dashboard/${PROJECT_ID.toString()}/service/${id}`,
     );
   });
+
+  test("names a service with spaces in it too, in quotes where a shell reads it bare", async () => {
+    const id: string = idOf(81);
+    rowsOf(Service).push({
+      _id: id,
+      name: "User Authentication API",
+      createdAt: new Date(),
+      lastSeenAt: null,
+    });
+
+    await show(
+      <ServiceAddedModal
+        serviceId={new ObjectID(id)}
+        name="User Authentication API"
+        onClose={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Instrument the service with OpenTelemetry. Every snippet below already carries its service.name.",
+      ),
+    ).toBeInTheDocument();
+    expect(pageText()).toContain("serviceName: 'User Authentication API'");
+    expect(pageText()).not.toContain("my-service");
+  });
+
+  /*
+   * A quote or a $ in the name: no snippet can carry it as written, so they
+   * keep their examples, and the dialog does not say they carry it.
+   */
+  test("says to use the service's name where the snippets cannot carry it", async () => {
+    const id: string = idOf(82);
+    rowsOf(Service).push({
+      _id: id,
+      name: 'Bob\'s "API"',
+      createdAt: new Date(),
+      lastSeenAt: null,
+    });
+
+    await show(
+      <ServiceAddedModal
+        serviceId={new ObjectID(id)}
+        name={'Bob\'s "API"'}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(SERVICE_NAME_HELP)).toBeInTheDocument();
+    expect(pageText()).not.toContain("Every snippet below already carries");
+    expect(pageText()).toContain("serviceName: 'my-service'");
+  });
 });
 
 describe("a service name in the telemetry guide's snippets", () => {
@@ -859,8 +1143,24 @@ describe("a service name in the telemetry guide's snippets", () => {
   });
 
   test("keeps the examples for a name the snippets cannot carry as written", () => {
-    for (const name of ["", "  ", "checkout api", "it's", 'say "hi"', "a$b"]) {
-      expect(withServiceName(SNIPPET, name)).toBe(SNIPPET);
+    for (const name of [
+      "",
+      "  ",
+      "it's",
+      'say "hi"',
+      "a$b",
+      "back\\slash",
+      "`tick`",
+      "#{interpolated}",
+    ]) {
+      expect({ name, filled: withServiceName(SNIPPET, name) }).toEqual({
+        name,
+        filled: SNIPPET,
+      });
+      expect({ name, carried: canCarryServiceName(name) }).toEqual({
+        name,
+        carried: false,
+      });
     }
     expect(withServiceName(SNIPPET, undefined)).toBe(SNIPPET);
   });
@@ -869,5 +1169,39 @@ describe("a service name in the telemetry guide's snippets", () => {
     expect(withServiceName("'my-service'", "team/orders.v2:api")).toBe(
       "'team/orders.v2:api'",
     );
+  });
+
+  test("takes a name with spaces: as it is inside the quotes, in quotes where a shell reads it bare", () => {
+    const filled: string = withServiceName(SNIPPET, "User Authentication API");
+
+    expect(filled).toBe(
+      [
+        "serviceName: 'User Authentication API',",
+        'export OTEL_SERVICE_NAME="User Authentication API"',
+        '-Dotel.service.name="User Authentication API"',
+        "'service.name': 'User Authentication API',",
+        "'service.name': 'User Authentication API',",
+      ].join("\n"),
+    );
+  });
+
+  test("takes names in any script", () => {
+    for (const name of ["支付服务", "भुगतान सेवा", "Zahlungsdienst Köln"]) {
+      expect({ name, carried: canCarryServiceName(name) }).toEqual({
+        name,
+        carried: true,
+      });
+      expect(withServiceName("-Dotel.service.name=my-service", name)).toBe(
+        `-Dotel.service.name="${name}"`,
+      );
+    }
+  });
+
+  test("writes a name with one of the examples in it once", () => {
+    const filled: string = withServiceName(SNIPPET, "my-react-app-web");
+
+    expect(filled).not.toContain("my-react-app-web-web");
+    expect(filled.split("my-react-app-web").length - 1).toBe(5);
+    expect(filled).toContain("-Dotel.service.name=my-react-app-web");
   });
 });

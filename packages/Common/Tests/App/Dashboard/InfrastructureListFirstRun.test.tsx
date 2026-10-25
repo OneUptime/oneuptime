@@ -395,22 +395,29 @@ beforeEach(() => {
       async (options: {
         modelType: { new (): BaseModel };
         query?: unknown;
+        select?: unknown;
         skip?: number;
         limit?: number;
       }): Promise<ListResult<BaseModel>> => {
         /*
          * Hosts' guide (AddHostGuide, #5137) waits for a host whose collector
          * registered since it opened, and every other list's Add guide
-         * (Components/ResourceOnboarding) for one created since it opened,
-         * after looking up whether the name it starts with is taken - their
-         * own checks, not the table's. Nothing registers here: the
-         * first-record watch is what finds the first one.
+         * (Components/ResourceOnboarding) for one newer than the newest the
+         * list had then - it reads each record's createdAt, which no table
+         * selects - after looking up whether the name it starts with is
+         * taken (a Search for the suggestion, a Wildcard for the exact
+         * name). Their own checks, not the table's. Nothing registers here:
+         * the first-record watch is what finds the first one.
          */
         const query: string = JSON.stringify(options.query || {});
+        const select: Record<string, unknown> = (options.select ||
+          {}) as Record<string, unknown>;
         if (
           query.includes("collectorRegisteredAt") ||
           query.includes('"createdAt"') ||
-          query.includes('"_type":"Search"')
+          query.includes('"_type":"Search"') ||
+          query.includes('"_type":"Wildcard"') ||
+          select["createdAt"]
         ) {
           return {
             data: [],

@@ -14,10 +14,8 @@ import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction"
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import { getTemplatePlaceholders } from "Common/UI/Utils/TranslateTemplate";
 import {
-  RESOURCE_CONNECTION_CLOCK_MARGIN_MS,
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
   RESOURCE_NAME_MAX_LENGTH,
-  getResourceConnectionWatchStart,
   getSuggestedResourceName,
   hasReportedSince,
   isSameResourceName,
@@ -288,6 +286,27 @@ describe("the resource the last step was waiting for", () => {
       pickConnectedRecord<Row>({ records: [], name: "prod", getName }),
     ).toBeUndefined();
   });
+
+  test("is none of the others when the project has one of the guide's name: the agent's data goes to that one", () => {
+    const rows: Array<Row> = [{ id: "1", name: "a-colleagues-cluster" }];
+
+    expect(
+      pickConnectedRecord({
+        records: rows,
+        name: "legacy-east",
+        getName,
+        isNameTaken: true,
+      }),
+    ).toBeUndefined();
+    expect(
+      pickConnectedRecord({
+        records: [...rows, { id: "2", name: "Legacy-East" }],
+        name: "legacy-east",
+        getName,
+        isNameTaken: true,
+      })?.id,
+    ).toBe("2");
+  });
 });
 
 describe("a resource the project had, reporting again", () => {
@@ -338,12 +357,57 @@ describe("the watch's timing", () => {
     expect(RESOURCE_CONNECTION_POLL_INTERVAL_MS).toBe(5000);
   });
 
-  test("counts what registered up to two minutes before the guide opened: the server's clock may be behind", () => {
-    const since: Date = new Date("2026-10-25T10:00:00.000Z");
+  /*
+   * A browser clock minutes off from the server's would hide the resource
+   * the guide added, or count one that registered just before it opened.
+   * So no check compares the browser's time with the server's: a new
+   * record is one newer than the newest the first look noted, a form's
+   * record has connected once its seen field is set at all, and a record
+   * of the guide's name once its lastSeenAt moves.
+   */
+  test("never holds the browser's clock against the server's", () => {
+    const watch: string = code(
+      "Components/ResourceOnboarding/ResourceConnectionWatch.tsx",
+    );
 
-    expect(RESOURCE_CONNECTION_CLOCK_MARGIN_MS).toBe(120000);
-    expect(getResourceConnectionWatchStart(since).toISOString()).toBe(
-      "2026-10-25T09:58:00.000Z",
+    expect(watch).not.toMatch(/new Date\(\s*\)|Date\.now\(\)/);
+    expect(watch).toContain(
+      "createdAt: new GreaterThanOrEqual<Date>(known.newestCreatedAt),",
+    );
+    expect(watch).toContain("[seenField]: new NotNull(),");
+    expect(watch).toContain(
+      "return !known.ids.has(getRecordId(item)); }), name: nameRef.current,",
+    );
+
+    for (const opener of [
+      "Components/ResourceOnboarding/AddResourceGuide.tsx",
+      "Components/ResourceOnboarding/ResourceAddedModal.tsx",
+    ]) {
+      expect({ opener, since: code(opener).includes("since") }).toEqual({
+        opener,
+        since: false,
+      });
+    }
+  });
+
+  test("an unrelated registration is not taken for the one of a name the project has", () => {
+    expect(
+      code("Components/ResourceOnboarding/ResourceConnectionWatch.tsx"),
+    ).toContain("isNameTaken: Boolean(existingId),");
+  });
+
+  test("the name's lookup finds that name exactly, case aside, as ingest does", () => {
+    const guide: string = code(
+      "Components/ResourceOnboarding/AddResourceGuide.tsx",
+    );
+
+    expect(guide).toContain(
+      "[nameConfig.field]: new Wildcard<string>( escapeWildcards(resolvedName), ),",
+    );
+    // A record of that name is watched whether or not it was reporting.
+    expect(guide).not.toContain("otelCollectorStatus");
+    expect(guide).toContain(
+      'snapshot: { id: id, lastSeenAt: toDate(match.getColumnValue("lastSeenAt")), },',
     );
   });
 
@@ -546,6 +610,12 @@ describe("the cloud environments the guide waits for", () => {
   test("are environments, not the resources a cloud's monitoring API reports", () => {
     expect(code("Components/Cloud/CloudEnvironmentOnboarding.tsx")).toContain(
       "query: { cloudResourceKind: CloudResourceKind.Environment, } as Query<BaseModel>,",
+    );
+  });
+
+  test("the summary above the list counts again when the Add dialog connects one", () => {
+    expect(code("Pages/Cloud/CloudResources.tsx")).toContain(
+      "<CloudFleetSummary refreshToken={(firstRecordWatch.count || 0) + connectedCount} />",
     );
   });
 });

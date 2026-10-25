@@ -4,7 +4,6 @@ import React, {
   ReactElement,
   ReactNode,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -13,6 +12,8 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Select from "Common/Types/BaseDatabase/Select";
+import Wildcard from "Common/Types/BaseDatabase/Wildcard";
+import { escapeWildcards } from "Common/Types/BaseDatabase/WildcardPattern";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -106,8 +107,8 @@ export const RESOURCE_NAME_LOOKUP_DELAY_MS: number = 400;
 
 interface ExistingLookup {
   resource: ExistingResource;
-  // Only for one that was not reporting: the watch waits for it to report.
-  snapshot?: ExistingRecordSnapshot | undefined;
+  // The watch waits for it to report again.
+  snapshot: ExistingRecordSnapshot;
 }
 
 const getColumnText: (
@@ -137,11 +138,6 @@ const AddResourceGuide: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const onboarding: ResourceOnboarding = props.onboarding;
   const nameConfig: ResourceOnboardingName | undefined = onboarding.name;
-
-  // Resources that register from now on are the ones this guide added.
-  const since: Date = useMemo(() => {
-    return new Date();
-  }, []);
 
   const [typed, setTyped] = useState<string>(nameConfig?.example || "");
   const [suggestion, setSuggestion] = useState<string>(
@@ -205,7 +201,12 @@ const AddResourceGuide: FunctionComponent<ComponentProps> = (
     ? toResourceName(typed) || suggestion
     : undefined;
 
-  // Whether the project already has a resource of that name.
+  /*
+   * Whether the project already has a resource of that name. Exactly that
+   * name, case aside, as ingest finds one (findWithSameText): a Wildcard of
+   * the escaped name is a case-insensitive exact match, where a Search
+   * would be a substring one that newer look-alikes can crowd out.
+   */
   useEffect(() => {
     if (!nameConfig || !resolvedName) {
       setExisting(null);
@@ -219,17 +220,18 @@ const AddResourceGuide: FunctionComponent<ComponentProps> = (
         modelType: onboarding.modelType,
         query: {
           ...(onboarding.query || {}),
-          [nameConfig.field]: new Search(resolvedName),
+          [nameConfig.field]: new Wildcard<string>(
+            escapeWildcards(resolvedName),
+          ),
         } as Query<BaseModel>,
         select: {
           _id: true,
           name: true,
           [nameConfig.field]: true,
           lastSeenAt: true,
-          otelCollectorStatus: true,
         } as Select<BaseModel>,
         sort: {},
-        limit: 10,
+        limit: 2,
         skip: 0,
       })
         .then((result: ListResult<BaseModel>) => {
@@ -252,20 +254,16 @@ const AddResourceGuide: FunctionComponent<ComponentProps> = (
           }
 
           const id: ObjectID = new ObjectID(match._id as string);
-          const isReporting: boolean =
-            getColumnText(match, "otelCollectorStatus") === "connected";
 
           setExisting({
             resource: {
               id: id,
               name: getColumnText(match, "name") || resolvedName,
             },
-            snapshot: isReporting
-              ? undefined
-              : {
-                  id: id,
-                  lastSeenAt: toDate(match.getColumnValue("lastSeenAt")),
-                },
+            snapshot: {
+              id: id,
+              lastSeenAt: toDate(match.getColumnValue("lastSeenAt")),
+            },
           });
         })
         .catch(() => {
@@ -307,7 +305,6 @@ const AddResourceGuide: FunctionComponent<ComponentProps> = (
     content: (
       <ResourceConnectionWatch
         modelType={onboarding.modelType}
-        since={since}
         name={resolvedName}
         nameField={nameConfig?.field}
         query={onboarding.query}

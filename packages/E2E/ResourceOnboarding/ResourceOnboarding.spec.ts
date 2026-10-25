@@ -274,6 +274,21 @@ test("a new project's Kubernetes list: its first-run guide names the cluster, wr
   await expect(page.getByTestId("setup-guide")).toHaveCount(0);
 
   await screenshot(page, "kubernetes-first-cluster-connected");
+
+  /*
+   * Add Kubernetes Cluster a moment later is about the next cluster: the
+   * one that just registered is not taken for it.
+   */
+  await headerButton(page, "Add Kubernetes Cluster").click();
+  const dialog: Locator = page.getByTestId("add-resource-modal");
+  await expect(nameInput(dialog)).toHaveValue("my-cluster");
+  await page.clock.runFor(WATCH_MS * 2 + 1);
+  await expect(dialog.getByTestId("resource-connection-waiting")).toHaveText(
+    "Waiting for my-cluster to connect. This step updates by itself.",
+  );
+  await expect(dialog.getByTestId("resource-connection-connected")).toHaveCount(
+    0,
+  );
 });
 
 test("Add Kubernetes Cluster on a project with clusters: a name it has not used, a warning for one it has, and the cluster it had reporting again", async ({

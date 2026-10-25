@@ -77,7 +77,13 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
+import Wildcard from "Common/Types/BaseDatabase/Wildcard";
+import {
+  hasWildcard,
+  unescapeWildcards,
+} from "Common/Types/BaseDatabase/WildcardPattern";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
@@ -331,8 +337,10 @@ function asTime(value) {
 
 /*
  * The query, matched as the server would: plain values must be equal, a
- * Search is a case-insensitive "contains", a GreaterThanOrEqual compares
- * dates. The facet chips' richer filters are not set by any test.
+ * Search is a case-insensitive "contains", a Wildcard with no wildcard in
+ * it is that text exactly, case aside (ILIKE), NotNull is any value, and a
+ * GreaterThanOrEqual compares dates. The facet chips' richer filters are
+ * not set by any test.
  */
 function matches(record, query) {
   for (const [field, wanted] of Object.entries(query || {})) {
@@ -341,6 +349,27 @@ function matches(record, query) {
     }
 
     const value = record[field];
+
+    if (wanted instanceof Wildcard) {
+      if (hasWildcard(wanted.value)) {
+        fixture.unhandled.push({ kind: "wildcard", field, glob: wanted.value });
+        return false;
+      }
+      if (
+        typeof value !== "string" ||
+        value.toLowerCase() !== unescapeWildcards(wanted.value).toLowerCase()
+      ) {
+        return false;
+      }
+      continue;
+    }
+
+    if (wanted instanceof NotNull) {
+      if (value === null || value === undefined) {
+        return false;
+      }
+      continue;
+    }
 
     if (wanted instanceof Search) {
       if (
