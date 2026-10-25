@@ -397,7 +397,7 @@ npm start
 
 ## 備份與還原
 
-PostgreSQL 保存你設定的一切：監控、事件、狀態頁面、使用者。`npm run backup` 會把它傾印到 `Backups` 資料夾中的一個檔案。
+PostgreSQL 保存你設定的一切：監控、事件、狀態頁面、使用者。`npm run backup` 會把它傾印到 `Backups` 資料夾中的一個檔案。Enterprise Edition 還可以在 Admin Dashboard 中依排程將 PostgreSQL 與 ClickHouse 備份到你自己的儲存空間：請參閱[備份](/docs/installation/backups)。
 
 :::steps
 ### 為備份指令碼提供資料庫密碼

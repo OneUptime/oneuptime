@@ -397,7 +397,7 @@ Si vous avez défini `DATABASE_BACKUP_PASSWORD` et `DATABASE_RESTORE_PASSWORD`, 
 
 ## Sauvegarder et restaurer
 
-PostgreSQL contient tout ce que vous configurez : moniteurs, incidents, pages de statut, utilisateurs. `npm run backup` le vide dans un fichier du dossier `Backups`.
+PostgreSQL contient tout ce que vous configurez : moniteurs, incidents, pages de statut, utilisateurs. `npm run backup` le vide dans un fichier du dossier `Backups`. L'Enterprise Edition peut aussi sauvegarder PostgreSQL et ClickHouse selon un planning, vers un stockage qui vous appartient, depuis l'Admin Dashboard : voir [Sauvegardes](/docs/installation/backups).
 
 :::steps
 ### Donner au script de sauvegarde le mot de passe de la base
