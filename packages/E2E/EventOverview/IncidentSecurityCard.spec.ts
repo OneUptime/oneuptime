@@ -217,6 +217,7 @@ test.describe("an incident's Security card", () => {
     page: Page;
   }) => {
     await open(page);
+    // Read (again whenever the page refreshes its feed), and nothing drawn.
     await expect
       .poll(
         (): Promise<number> => {
@@ -224,7 +225,7 @@ test.describe("an incident's Security card", () => {
         },
         { timeout: 30000 },
       )
-      .toBe(1);
+      .toBeGreaterThan(0);
     await expect(card(page)).toHaveCount(0);
   });
 
