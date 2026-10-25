@@ -36,12 +36,13 @@ import (
 //   - a value DERIVED from a secret, above all an error. net/http returns a
 //     *url.Error whose text embeds the requested URL, so logging that error
 //     discloses the secret path segment with no secret-named identifier
-//     anywhere in the logging call. agent.go's two transport-error paths are
-//     exactly this shape: they pass the error through utils.RedactSecret, and
-//     if that wrapper were dropped this guard would stay green. They are
-//     covered instead by the behavioural tests
-//     TestCollectMetricsJobTransportErrorLogsNoSecret and
-//     TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret in agent_test.go.
+//     anywhere in the logging call. agent.go's transport-error and
+//     unparsable-URL paths are exactly this shape: they pass the error through
+//     utils.RedactSecret, and if that wrapper were dropped this guard would
+//     stay green. They are covered instead by the behavioural tests
+//     TestCollectMetricsJobTransportErrorLogsNoSecret,
+//     TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret and their
+//     ...UnparsableURLLogsNoSecret siblings in agent_test.go.
 //
 // Closing those gaps properly needs types and dataflow
 // (golang.org/x/tools/go/analysis), which the module cannot take on as a
@@ -138,7 +139,7 @@ var guardBuiltinSinks = map[string]bool{
 
 const (
 	// guardMinSlogCallSites is the anti-vacuity floor. The walker sees 81
-	// slog.<verb>(...) call sites across the 23 scanned files today, so the
+	// slog.<verb>(...) call sites across the 26 scanned files today, so the
 	// floor is set just under 80% of that: close enough that a matcher which
 	// quietly stops recognising a callee shape, an import alias or a whole file
 	// is caught, far enough that ordinary churn does not trip it. A floor of 20
@@ -438,7 +439,7 @@ func TestGuardNoSecretIsPassedToALoggerUnredacted(t *testing.T) {
 		"agent.go",
 		"main.go",
 		"config.go",
-		"shutdown.go",
+		"client.go",
 		"utils/logger.go",
 		"utils/redact.go",
 		"model/server_monitor_report.go",
