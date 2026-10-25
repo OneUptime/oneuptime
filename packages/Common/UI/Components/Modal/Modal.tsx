@@ -373,7 +373,17 @@ const Modal: FunctionComponent<ComponentProps> = (
       });
 
     if (isTopmostDialog()) {
-      (initialFocusElement || modal).focus();
+      /*
+       * Without scrolling the page behind the dialog. The Dashboard draws its
+       * Tailwind as classes first appear, so the first dialog a page opens
+       * can be focused before its overlay is styled as fixed: for that
+       * moment the panel sits at the foot of the page, and a plain focus()
+       * scrolled the whole page down to it - the Rule Library's Add 17
+       * Recommended Rules left the reader 4,500px down the list, behind the
+       * dialog, and still there once it closed. Styled, the overlay is the
+       * window's size: there is nothing to scroll to.
+       */
+      (initialFocusElement || modal).focus({ preventScroll: true });
     }
 
     const handleKeyDown: (event: KeyboardEvent) => void = (

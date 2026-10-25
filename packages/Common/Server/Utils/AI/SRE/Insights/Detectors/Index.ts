@@ -6,6 +6,11 @@ import TraceLatencyRegressionDetector from "./TraceLatencyRegressionDetector";
 import MetricDriftDetector from "./MetricDriftDetector";
 import DeployRegressionDetector from "./DeployRegressionDetector";
 import ProfileHotspotDetector from "./ProfileHotspotDetector";
+import {
+  TraceFailingOperationDetector,
+  TraceMissingTracingDetector,
+  TraceSlowOperationDetector,
+} from "./TraceProblemDetector";
 import { TelemetryAiLane } from "../../../../../../Types/AI/TelemetryAi";
 
 /*
@@ -33,7 +38,9 @@ export default class InsightDetectors {
    * The detectors of a telemetry product's AI section (Types/AI/
    * TelemetryAi): they run while the lane's own switch is on - not with
    * "Watch telemetry for problems" - and file what the lane's AI rules then
-   * decide about. Profiles: slow code.
+   * decide about. Profiles: slow code. Traces: slow operations, failing
+   * operations and missing tracing - one detector each, sharing one look at
+   * the project's traces (TraceProblemDetector).
    */
   public static getTelemetryAiDetectors(
     lane: TelemetryAiLane,
@@ -41,6 +48,12 @@ export default class InsightDetectors {
     switch (lane) {
       case TelemetryAiLane.Profile:
         return [new ProfileHotspotDetector()];
+      case TelemetryAiLane.Trace:
+        return [
+          new TraceFailingOperationDetector(),
+          new TraceSlowOperationDetector(),
+          new TraceMissingTracingDetector(),
+        ];
       default:
         return [];
     }

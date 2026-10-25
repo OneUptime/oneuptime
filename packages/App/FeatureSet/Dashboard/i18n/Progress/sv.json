@@ -15,6 +15,7 @@
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Container {{container}}: {{reason}}",
+    "Data",
     "Diagram",
     "Embedding",
     "Failover",

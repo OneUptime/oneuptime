@@ -8,6 +8,14 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityPlaybookActionType } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import { SecurityPlaybookStepStatus } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import SecurityCasePriorityLevel from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
+import {
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+  testPriorityId,
+  testStatusId,
+} from "Common/Tests/Helpers/SecurityCaseValues";
 import {
   afterAll,
   beforeAll,
@@ -136,6 +144,18 @@ async function startWorkflowService(): Promise<WorkflowService> {
           );
         }) as never);
 
+      // The project's case priorities and statuses, which the payload names the case's by.
+      const SecurityCaseValues: AnyModule = require_(
+        "Common/Server/Utils/SecurityCase/SecurityCaseValues",
+      ).default;
+
+      jest
+        .spyOn(SecurityCaseValues, "getPriorities")
+        .mockResolvedValue(buildDefaultTestPriorities() as never);
+      jest
+        .spyOn(SecurityCaseValues, "getStatuses")
+        .mockResolvedValue(buildDefaultTestStatuses() as never);
+
       const WebhookTrigger: AnyModule = require_(
         "Common/Server/Types/Workflow/Components/Webhook",
       ).default;
@@ -195,8 +215,8 @@ function runWorkflowStep(): PlaybookStepContext {
     caseNumberWithPrefix: "SC-12",
     title: "Impossible travel for alice",
     description: "Sign-ins from two countries ten minutes apart.",
-    priority: "High",
-    status: "Open",
+    securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
+    securityCaseStatusId: testStatusId(SecurityCaseStage.Acknowledged),
     source: "Detection Rule",
     detectionCount: 2,
     entities: [{ type: "user", value: "alice@example.com" }],
@@ -258,6 +278,12 @@ describe("a security playbook's Run Workflow step", () => {
 
     expect(run.workflowId).toBe(WORKFLOW_ID);
     expect((body["case"] as JSONObject)["number"]).toBe("SC-12");
+    // The case's priority and status as the project names them, and by id.
+    expect((body["case"] as JSONObject)["priority"]).toBe("High");
+    expect((body["case"] as JSONObject)["status"]).toBe("Investigating");
+    expect((body["case"] as JSONObject)["priorityId"]).toBe(
+      testPriorityId(SecurityCasePriorityLevel.High).toString(),
+    );
     expect((body["playbook"] as JSONObject)["name"]).toBe(
       "Escalate travel anomalies",
     );

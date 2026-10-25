@@ -7,6 +7,7 @@ De traceverkenner vindt de verzoeken die door uw services zijn gegaan: de trage,
 - [Een trace lezen](#een-trace-lezen): Waar de tijd bleef, en welke stap mislukte.
 - [Uw spans in grafieken zetten](#uw-spans-in-grafieken-zetten): Aantallen verzoeken en responstijden, gegroepeerd zoals u wilt.
 - [Inzichten in traces](#inzichten-in-traces): Foutpercentages, latentie en de traagste verzoeken.
+- [Trage en falende bewerkingen vinden en oplossen met AI](#trage-en-falende-bewerkingen-vinden-en-oplossen-met-ai): Pull requests die ze oplossen en de tracing toevoegen die een trace mist.
 :::
 
 ## Traces en spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Elke rij van de verkenner is een span, dus een drukke service vult de lijst met zijn databasequery's en interne aanroepen. Om één rij per verzoek te tonen, kiest u in de zijbalk **Root spans** onder **Span-type**.
 
-De verkenner heeft vier tabbladen:
+De verkenner heeft vijf tabbladen:
 
 | Tabblad | Waarvoor het dient |
 | --- | --- |
 | **Kijker** | Spans zoeken en filteren, en hun traces openen. Opent op het afgelopen uur, nieuwste eerst, 50 spans per pagina. |
 | **Inzichten** | Verzoekaantallen, foutpercentages en latentie per service, en de verzoeken die een blik waard zijn. |
+| **AI** | De trage en falende bewerkingen en de ontbrekende tracing die OneUptime in uw traces vindt, en wat OneUptime AI eraan deed. Zie [Trage en falende bewerkingen vinden en oplossen met AI](#trage-en-falende-bewerkingen-vinden-en-oplossen-met-ai). |
 | **Installatiegids** | Hoe u traces verstuurt met OpenTelemetry, met een van uw [ingestiesleutels](/docs/telemetry/ingestion-keys). |
 | **Instellingen** | Wat er met spans gebeurt als ze binnenkomen: **Pipelines**, **Drop-filters**, **Scrub-regels** en **Opnameregels**. |
 
@@ -112,6 +114,44 @@ Het tabblad **Inzichten** vat de verzoeken in een tijdsbereik samen:
 - de meest recente mislukte verzoeken, en de traagste.
 
 Beperk het tot bepaalde services met de keuzelijst naast de tijdkiezer.
+
+## Trage en falende bewerkingen vinden en oplossen met AI
+
+Elk uur doorzoekt OneUptime de traces van het afgelopen uur van elke service op bewerkingen die traag zijn, die mislukken of waarvan de traces niet zeggen waarom, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+
+Een bewerking zijn de spans met dezelfde naam in een service, zoals `GET /orders`. OneUptime leest een service zodra die in het afgelopen uur minstens 100 spans heeft verstuurd, en legt drie soorten bevindingen vast:
+
+| Bevinding | Wanneer OneUptime die vastlegt | De pull request |
+| --- | --- | --- |
+| **Trage bewerking** | De P99 van de bewerking is 1 seconde of meer over minstens 20 spans, en het traagste verzoek herhaalt een patroon dat echt tijd kost: dezelfde aanroep steeds opnieuw, aanroepen na elkaar die parallel zouden kunnen lopen, of één aanroep die het grootste deel van het verzoek kost. | Maakt de bewerking sneller. |
+| **Falende bewerking** | Minstens 20 spans van de bewerking zijn mislukt, 5% of meer ervan, en de meest recente fouten zeggen waarom, met een exceptie of een foutmelding. | Lost op waarom ze mislukt. |
+| **Ontbrekende tracing** | De traces zeggen niet waarom: elk van de 500 of meer spans van een service was de wortel van zijn trace, zonder span van de service eronder, een traag verzoek bracht 60% of meer van zijn tijd (en 500 ms of meer) door in één span waaronder niets is getraceerd, of de fouten van een bewerking legden geen foutmelding en geen exceptie vast. | Voegt de ontbrekende tracing toe. |
+
+OneUptime AI opent de pull request voor een falende bewerking pas zelf als het de schuldige code vindt. Een fout die van elders komt, zoals een afhankelijkheid die plat ligt, krijgt geen pull request, tenzij iemand er een vraagt met **Oplossen met AI**.
+
+### Inschakelen
+
+**Traces → AI → Instellingen** bevat de schakelaar **Trage en falende bewerkingen vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan worden trage en falende bewerkingen nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+
+OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
+
+### AI-regels
+
+Zonder regel onderzoekt OneUptime AI elk probleem dat het in uw traces vindt meteen en opent een pull request voor elk probleem dat het kan oplossen. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
+
+| Stap | Wat die beslist |
+| --- | --- |
+| **Overeenkomst** | Welke services: de gekozen services, die met bepaalde labels of die waarvan de naam bij een patroon past. |
+| **Onderzoeken** | **Meteen**, of **Alleen als het na een wachttijd nog gevonden wordt**: een probleem dat tijdens de wachttijd verdwijnt, wordt niet onderzocht. |
+| **Herstel** | **Niet herstellen**, **Eerst om goedkeuring vragen** of **Herstellen zonder te vragen**. Eerst vragen laat de pull request aan een persoon over: de bevinding biedt **Oplossen met AI** aan. |
+
+Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de LLM-provider die OneUptime AI ervoor mag gebruiken. Is er niets gekozen, dan mag het ze allemaal gebruiken, en de standaard-LLM-provider van het project.
+
+### Zien wat het deed
+
+- **Traces → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Traces**, dat de spans waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Bij een falende bewerking stelt **Monitor maken** een tracesmonitor in op haar mislukte spans.
+- **Traces → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met spans gebeurt als ze binnenkomen
 

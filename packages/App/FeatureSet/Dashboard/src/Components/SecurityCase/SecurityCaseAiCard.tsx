@@ -66,7 +66,8 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   ParsedInvestigationReport,
@@ -121,6 +122,8 @@ export const SECURITY_CASE_AI_STEPS_SHOWN: number = 5;
 
 export interface ComponentProps {
   securityCase: SecurityCase;
+  // The project's case priorities: the suggested one is drawn as it names it.
+  priorities: ReadonlyArray<SecurityCasePriority>;
   /*
    * Bumped by the page when a playbook run starts or moves on, so whether
    * the suggested playbook is already running on the case is read again.
@@ -188,7 +191,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     return readSecurityCaseAiResult(props.securityCase);
   }, [
     props.securityCase.aiVerdict,
-    props.securityCase.aiSuggestedPriority,
+    props.securityCase.aiSuggestedSecurityCasePriorityId?.toString(),
     props.securityCase.aiSuggestedPlaybookId?.toString(),
     props.securityCase.aiTriageReport,
     props.securityCase.aiTriagedAt?.toString(),
@@ -666,18 +669,22 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   };
 
   const renderSuggestions: () => ReactElement = (): ReactElement => {
+    // The suggested priority as the project names it; none it no longer has.
+    const suggestedPriority: SecurityCasePriority | null =
+      SecurityCasePriorities.find(props.priorities, result.suggestedPriorityId);
     const offerPriority: boolean = shouldOfferSuggestedPriority({
-      suggestedPriority: result.suggestedPriority,
-      currentPriority: props.securityCase.priority,
+      suggestedPriorityId: result.suggestedPriorityId,
+      currentPriorityId: props.securityCase.securityCasePriorityId?.toString(),
+      isSuggestedPriorityKnown: Boolean(suggestedPriority),
     });
 
-    if (!result.suggestedPriority && !playbookName) {
+    if (!suggestedPriority && !playbookName) {
       return <></>;
     }
 
     return (
       <dl className="divide-y divide-gray-100 border-y border-gray-100">
-        {result.suggestedPriority ? (
+        {suggestedPriority ? (
           <div
             className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
             data-testid="security-case-ai-suggested-priority"
@@ -686,7 +693,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
               {translator.translateText(SecurityCaseAiCopy.suggestedPriority)}
             </dt>
             <dd className="flex items-center gap-3">
-              <SecurityCasePriorityPill value={result.suggestedPriority} />
+              <SecurityCasePriorityPill value={suggestedPriority} />
               {offerPriority && updateGate.isAllowed ? (
                 <Button
                   title={SecurityCaseAiCopy.setPriorityButton}
@@ -695,9 +702,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
                   className={CARD_BUTTON_CLASS_NAME}
                   disabled={props.isWorking}
                   onClick={() => {
-                    if (result.suggestedPriority) {
-                      props.onSetPriority(result.suggestedPriority);
-                    }
+                    props.onSetPriority(suggestedPriority);
                   }}
                   dataTestId="security-case-ai-set-priority"
                 />

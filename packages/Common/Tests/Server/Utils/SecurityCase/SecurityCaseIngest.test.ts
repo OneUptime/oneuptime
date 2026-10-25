@@ -12,13 +12,23 @@ import SecurityPlaybookLauncher from "../../../../Server/Utils/SecurityPlaybook/
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import ObjectID from "../../../../Types/ObjectID";
-import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { getJestSpyOn } from "../../../Spy";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestPriorities,
+  buildTestPriority,
+  testPriorityId,
+  testStatusId,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
   beforeEach,
@@ -67,8 +77,10 @@ function storedCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   const securityCase: SecurityCase = new SecurityCase();
   securityCase._id = ObjectID.generate().toString();
   securityCase.projectId = PROJECT_ID;
-  securityCase.priority = SecurityCasePriority.Medium;
-  securityCase.status = SecurityCaseStatus.New;
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Medium,
+  );
+  securityCase.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
   securityCase.groupingKey = "entity:203.0.113.7";
   securityCase.entities = [];
   securityCase.mitreTactics = [];
@@ -166,6 +178,8 @@ function install(data: {
 }
 
 beforeEach(() => {
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
   install({});
 });
 
@@ -230,8 +244,13 @@ describe("SecurityCaseIngest.recordDetections", () => {
       }
     ).data;
 
-    expect(created.priority).toBe(SecurityCasePriority.High);
-    expect(created.status).toBe(SecurityCaseStatus.New);
+    // At the project's high priority, for a High detection, in its new status.
+    expect(created.securityCasePriorityId?.toString()).toBe(
+      testPriorityId(SecurityCasePriorityLevel.High).toString(),
+    );
+    expect(created.securityCaseStatusId?.toString()).toBe(
+      testStatusId(SecurityCaseStage.New).toString(),
+    );
     expect(created.source).toBe(SecurityDetectionSource.DetectionRule);
     expect(created.groupingKey).toBe("entity:203.0.113.7");
     expect(created.mitreTactics).toEqual(["TA0006"]);
@@ -307,7 +326,7 @@ describe("SecurityCaseIngest.recordDetections", () => {
 
   test("joins a new signal about the same entity to its open case, raising the priority", async () => {
     const securityCase: SecurityCase = storedCase({
-      priority: SecurityCasePriority.Low,
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Low),
     });
 
     install({ openCases: [securityCase] });
@@ -339,7 +358,9 @@ describe("SecurityCaseIngest.recordDetections", () => {
     expect(stubs.updateCase).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          priority: SecurityCasePriority.Critical,
+          securityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
           mitreTactics: ["TA0011"],
         }),
       }),
@@ -355,7 +376,13 @@ describe("SecurityCaseIngest.recordDetections", () => {
 
   test("never lowers a case's priority for a milder detection", async () => {
     install({
-      openCases: [storedCase({ priority: SecurityCasePriority.Critical })],
+      openCases: [
+        storedCase({
+          securityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
+        }),
+      ],
     });
 
     await SecurityCaseIngest.recordDetections([
@@ -368,7 +395,75 @@ describe("SecurityCaseIngest.recordDetections", () => {
 
     for (const call of stubs.updateCase.mock.calls) {
       expect(
-        (call[0] as { data: Partial<SecurityCase> }).data.priority,
+        (call[0] as { data: Partial<SecurityCase> }).data
+          .securityCasePriorityId,
+      ).toBeUndefined();
+    }
+  });
+
+  test("opens at the priority of the detection's level, whatever the project renamed it", async () => {
+    const priorities: Array<SecurityCasePriority> =
+      buildDefaultTestPriorities();
+    priorities[1]!.name = "P2";
+    stubSecurityCaseValues({ priorities });
+
+    await SecurityCaseIngest.recordDetections([signal()]);
+
+    const created: SecurityCase = (
+      stubs.createCase.mock.calls[0]![0] as { data: SecurityCase }
+    ).data;
+
+    expect(created.securityCasePriorityId?.toString()).toBe(
+      priorities[1]!.id?.toString(),
+    );
+  });
+
+  test("looks for the open case among the project's open statuses only", async () => {
+    await SecurityCaseIngest.recordDetections([signal()]);
+
+    const query: Record<string, unknown> = (
+      stubs.findCases.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["securityCaseStatusId"]).toBeInstanceOf(Includes);
+    expect(
+      (query["securityCaseStatusId"] as Includes).values.map(
+        (value: unknown): string => {
+          return String(value);
+        },
+      ),
+    ).toEqual([
+      TEST_STATUS_IDS[SecurityCaseStage.New],
+      TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+      TEST_STATUS_IDS[SecurityCaseStage.Contained],
+    ]);
+  });
+
+  test("never lowers a case at the project's own Emergency, above Critical", async () => {
+    const emergency: SecurityCasePriority = buildTestPriority({
+      id: "c1000000-0000-4000-8000-0000000000e1",
+      name: "Emergency",
+      order: 0,
+    });
+    stubSecurityCaseValues({
+      priorities: [emergency, ...buildDefaultTestPriorities()],
+    });
+    install({
+      openCases: [storedCase({ securityCasePriorityId: emergency.id! })],
+    });
+
+    await SecurityCaseIngest.recordDetections([
+      signal({
+        fingerprint: "other",
+        severity: OcsfSeverity.Critical,
+        mitreTactics: [],
+      }),
+    ]);
+
+    for (const call of stubs.updateCase.mock.calls) {
+      expect(
+        (call[0] as { data: Partial<SecurityCase> }).data
+          .securityCasePriorityId,
       ).toBeUndefined();
     }
   });

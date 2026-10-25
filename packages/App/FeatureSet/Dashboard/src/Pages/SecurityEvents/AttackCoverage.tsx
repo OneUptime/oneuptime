@@ -11,6 +11,7 @@ import {
   countCoveredTechniques,
   summarizeTacticCoverage,
 } from "../../Components/SecurityEvents/AttackCoverage";
+import { RULE_LIBRARY_QUERY_KEYS } from "../../Components/SecurityEvents/RuleLibraryUtil";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -399,12 +400,16 @@ const AttackCoveragePage: FunctionComponent<
                     );
                   })}
                 </ul>
+                {/*
+                 * The library opens on this technique: its search holds the
+                 * technique's id, which finds its rules (sub-techniques too).
+                 */}
                 <AppLink
-                  to={
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.SECURITY_EVENTS_RULE_LIBRARY] as Route,
-                    ) as Route
-                  }
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SECURITY_EVENTS_RULE_LIBRARY] as Route,
+                  ).addQueryParams({
+                    [RULE_LIBRARY_QUERY_KEYS.search]: selected.id,
+                  })}
                   className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:underline"
                 >
                   {translator.translateText("Open the rule library") || ""}

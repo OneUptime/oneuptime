@@ -39,7 +39,7 @@ flowchart TB
 | **Entiteter** | Begivenheder | De brugere, værter og adresser, dine fund nævner oftest |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detection Rules** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
-| **Rule Library** | Detections | Færdige detektionsregler at tilføje, med de anbefalede markeret |
+| **Rule Library** | Detections | Færdige detektionsregler at tilføje, hver med de hændelser, den læser, og om de kommer ind, med de anbefalede markeret |
 | **Threat Intel** | Detections | STIX/TAXII-feeds med kendte ondsindede indikatorer |
 | **ATT&CK Coverage** | Detections | De MITRE ATT&CK-teknikker, dine regler dækker |
 | **Playbooks** | Playbooks | Trin, der kører på sager, af sig selv eller manuelt |
@@ -49,8 +49,10 @@ flowchart TB
 | **Indstillinger** | AI | Om OneUptime AI vurderer hver ny sag |
 | **Connections** | Connections | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og de SIEM'er, det sender til |
 | **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
+| **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
+| **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
 
-**Detections**, **AI** og **Connections**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.
+**Detections**, **AI**, **Connections** og **Indstillinger**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.
 
 ## Før du begynder
 

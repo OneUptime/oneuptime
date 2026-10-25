@@ -277,13 +277,15 @@ const SENSITIVITY_SHORT: Array<string> = Object.keys(SENSITIVITY_OPTIONS);
  */
 const PROSE: Record<string, Array<string>> = {
   /*
-   * "| **Agent** | ... |": the comparison table's row heads; "- **CPU** is
+   * "| **Agent** | ... |": the comparison table's row heads (Data is a
+   * label too since #5233, the Rule Library's Data filter); "- **CPU** is
    * busy time": the template notes' leads, which name a template, not a
    * screen.
    */
   [HOST]: [
     "Agent",
     "Criteria",
+    "Data",
     "Setup",
     "CPU",
     "Memory",
@@ -315,7 +317,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "host's",
   ],
   [HOST]: [
-    "Data",
     "Run an OpenTelemetry Collector on the host",
     "Turn on the utilization metrics.",
     "Check the host is registered.",

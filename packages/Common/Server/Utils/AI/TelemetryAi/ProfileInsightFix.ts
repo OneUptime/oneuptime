@@ -1,7 +1,5 @@
-import AIRunService from "../../../Services/AIRunService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ProjectService, { CurrentPlan } from "../../../Services/ProjectService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
 import SourceLocator, {
   LocatableRepository,
   LocatableRepositoryWithTree,
@@ -16,12 +14,11 @@ import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import ProfileFixTaskTrigger from "../SRE/ProfileFixTaskTrigger";
+import TelemetryAiFix, { TelemetryAiFixResult } from "./TelemetryAiFix";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import { ProfileInsightEvidence } from "../../../../Types/AI/AIInsightEvidence";
-import AIRunType from "../../../../Types/AI/AIRunType";
-import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import {
   CodeTaskBlocker,
   CodeTaskContextItem,
@@ -36,7 +33,6 @@ import {
   CodeRepositoryAllowance,
   isCodeRepositoryAllowed,
 } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
-import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -78,12 +74,8 @@ export enum ProfileInsightFixSkip {
   Failed = "the task could not be created",
 }
 
-export interface ProfileInsightFixResult {
-  // The task started - or, already on its way, the one that is the fix.
-  taskId?: ObjectID | undefined;
+export interface ProfileInsightFixResult extends TelemetryAiFixResult {
   skip?: ProfileInsightFixSkip | undefined;
-  // Code's own words for a Blocked skip.
-  detail?: string | undefined;
 }
 
 export default class ProfileInsightFix {
@@ -102,25 +94,13 @@ export default class ProfileInsightFix {
     }
   }
 
-  // The tasks OneUptime started on its own in the project since UTC midnight.
-  @CaptureSpan()
+  /*
+   * The tasks OneUptime started on its own in the project since UTC
+   * midnight, every lane together (TelemetryAiFix: the day's share is the
+   * project's, not a lane's).
+   */
   public static async countStartedToday(projectId: ObjectID): Promise<number> {
-    return (
-      await AIRunService.countBy({
-        query: {
-          projectId,
-          runType: AIRunType.CodeFix,
-          codeFixTaskType: CodeFixTaskType.CodeRequest,
-          userId: QueryHelper.isNull(),
-          codeTaskId: QueryHelper.isNull(),
-          triggeredByAiInsightId: QueryHelper.notNull(),
-          createdAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate(), "UTC"),
-          ),
-        },
-        props: { isRoot: true },
-      })
-    ).toNumber();
+    return TelemetryAiFix.countStartedToday(projectId);
   }
 
   /*

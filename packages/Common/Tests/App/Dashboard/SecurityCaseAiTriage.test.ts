@@ -27,7 +27,8 @@ import {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import { TEST_PRIORITY_IDS } from "../../Helpers/SecurityCaseValues";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../Utils/AI/InvestigationReport";
 import { describe, expect, test } from "@jest/globals";
@@ -369,22 +370,45 @@ describe("what the card offers", () => {
     expect(getSuggestedPlaybookRunInProgress("Paused")).toBeNull();
   });
 
-  test("the suggested priority is one click only when the case is at another", () => {
+  test("the suggested priority is one click only when the project still has it and the case is at another", () => {
+    const critical: string =
+      TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical];
+    const high: string = TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High];
+
     expect(
       shouldOfferSuggestedPriority({
-        suggestedPriority: SecurityCasePriority.Critical,
-        currentPriority: SecurityCasePriority.High,
+        suggestedPriorityId: critical,
+        currentPriorityId: high,
+        isSuggestedPriorityKnown: true,
       }),
     ).toBe(true);
     expect(
       shouldOfferSuggestedPriority({
-        suggestedPriority: SecurityCasePriority.High,
-        currentPriority: SecurityCasePriority.High,
+        suggestedPriorityId: high,
+        currentPriorityId: high,
+        isSuggestedPriorityKnown: true,
+      }),
+    ).toBe(false);
+    // One id in two cases is one priority.
+    expect(
+      shouldOfferSuggestedPriority({
+        suggestedPriorityId: high.toUpperCase(),
+        currentPriorityId: high,
+        isSuggestedPriorityKnown: true,
       }),
     ).toBe(false);
     expect(
       shouldOfferSuggestedPriority({
-        currentPriority: SecurityCasePriority.High,
+        currentPriorityId: high,
+        isSuggestedPriorityKnown: false,
+      }),
+    ).toBe(false);
+    // A priority the project has since deleted: nothing to set it to.
+    expect(
+      shouldOfferSuggestedPriority({
+        suggestedPriorityId: critical,
+        currentPriorityId: high,
+        isSuggestedPriorityKnown: false,
       }),
     ).toBe(false);
   });
@@ -479,7 +503,11 @@ describe("readSecurityCaseAiResult", () => {
     expect(
       readSecurityCaseAiResult({
         aiVerdict: "Likely Benign",
-        aiSuggestedPriority: "Low",
+        aiSuggestedSecurityCasePriorityId: {
+          toString: () => {
+            return TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low];
+          },
+        },
         aiSuggestedPlaybookId: {
           toString: () => {
             return "pb-id";
@@ -491,7 +519,7 @@ describe("readSecurityCaseAiResult", () => {
       }),
     ).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyBenign,
-      suggestedPriority: SecurityCasePriority.Low,
+      suggestedPriorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low],
       suggestedPlaybookId: "pb-id",
       report: "Report.",
       triagedAt: new Date("2026-10-14T11:00:00.000Z"),
@@ -503,14 +531,14 @@ describe("readSecurityCaseAiResult", () => {
     expect(
       readSecurityCaseAiResult({
         aiVerdict: "Safe",
-        aiSuggestedPriority: "Urgent",
+        aiSuggestedSecurityCasePriorityId: "",
         aiTriageReport: "   ",
         aiTriagedAt: "not a date",
         aiTriagePromptInjectionSuspected: "true",
       }),
     ).toEqual({
       verdict: undefined,
-      suggestedPriority: undefined,
+      suggestedPriorityId: undefined,
       suggestedPlaybookId: undefined,
       report: undefined,
       triagedAt: undefined,

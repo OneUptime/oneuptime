@@ -10,6 +10,12 @@ import {
 import SecurityTurnOnProblems, {
   bringProblemsIntoView,
 } from "../../Components/SecurityOverview/SecurityTurnOnProblems";
+import {
+  SecurityCaseValueLists,
+  getSecurityCaseValues,
+} from "../../Components/SecurityCase/SecurityCaseValues";
+import { getSecurityCasePriorityOptions } from "../../Components/SecurityCase/SecurityCaseValueOptions";
+import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
@@ -18,7 +24,6 @@ import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Gray500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import {
   TurnOnRecommendedAction,
@@ -77,6 +82,8 @@ const SecurityPlaybooksPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
+  // The project's case priorities, which a playbook's minimum is one of.
+  const { values } = useSecurityCaseValues();
   // Why the template picked last could not become a playbook, as the Rule Library says a rule's.
   const [failure, setFailure] = useState<TurnOnRecommendedProblem | null>(null);
   const [creatingKey, setCreatingKey] = useState<string>("");
@@ -117,6 +124,11 @@ const SecurityPlaybooksPage: FunctionComponent<
       translator.translateText(template.name) || template.name;
 
     try {
+      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+      // The priorities and statuses the template's steps name, as the project has them.
+      const caseValues: SecurityCaseValueLists =
+        values || (await getSecurityCaseValues(projectId));
+
       /*
        * The record Turn on recommended makes from a template too
        * (SecurityTemplateRecords), named as the reader's language words
@@ -124,8 +136,10 @@ const SecurityPlaybooksPage: FunctionComponent<
        * every language.
        */
       const playbook: SecurityPlaybook = buildSecurityPlaybookFromTemplate({
-        projectId: ProjectUtil.getCurrentProjectId()!,
+        projectId: projectId,
         template: template.definition,
+        priorities: caseValues.priorities,
+        statuses: caseValues.statuses,
         name,
         description:
           translator.translateText(template.description) ||
@@ -302,13 +316,14 @@ const SecurityPlaybooksPage: FunctionComponent<
             required: true,
           },
           {
-            field: { minimumPriority: true },
+            field: { minimumSecurityCasePriorityId: true },
             stepId: "when",
             title: "For Cases At Least",
             description: "Optional. Only cases of this priority or higher.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority),
+            dropdownOptions: getSecurityCasePriorityOptions(
+              values?.priorities || [],
+            ),
             required: false,
           },
           {
@@ -349,7 +364,12 @@ const SecurityPlaybooksPage: FunctionComponent<
             ),
           },
         ]}
-        selectMoreFields={{ description: true, steps: true, isEnabled: true }}
+        selectMoreFields={{
+          description: true,
+          steps: true,
+          isEnabled: true,
+          minimumSecurityCasePriority: { name: true },
+        }}
         columns={[
           {
             field: { name: true },
@@ -401,12 +421,13 @@ const SecurityPlaybooksPage: FunctionComponent<
                     {translator.translateText(item.trigger || "") ||
                       item.trigger}
                   </div>
-                  {item.minimumPriority ? (
+                  {item.minimumSecurityCasePriority?.name ? (
                     <div className="text-xs text-gray-500">
                       {translator.translateTemplate("{{priority}} and up", {
                         priority:
-                          translator.translateText(item.minimumPriority) ||
-                          item.minimumPriority,
+                          translator.translateText(
+                            item.minimumSecurityCasePriority.name,
+                          ) || item.minimumSecurityCasePriority.name,
                       })}
                     </div>
                   ) : (

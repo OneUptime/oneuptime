@@ -110,7 +110,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.SetCaseStatus,
       title: "Set the status",
       description:
-        "Move the case to Investigating, Contained or Closed. Closing sets the verdict you choose.",
+        "Move the case to one of the project's statuses, such as Investigating, Contained or Closed. Closing sets the verdict you choose.",
       category: SecurityPlaybookActionCategory.Case,
       icon: IconProp.CheckCircle,
       isDisruptive: false,

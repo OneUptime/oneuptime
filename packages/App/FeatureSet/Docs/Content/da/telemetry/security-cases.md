@@ -5,6 +5,7 @@ Security Events gør det, som dine detektionsregler, din trusselsintelligens og 
 :::cards
 - [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter og personer.
 - [Behandl en sag](#behandl-en-sag): Tildel den, undersøg dens entiteter, og luk den med en konklusion.
+- [Sagsprioriteter og sagsstatusser](#sagsprioriteter-og-sagsstatusser): Omdøb dem, giv dem en anden farve og rækkefølge, og tilføj dine egne.
 - [Notifikationer](#notifikationer): Hvem der får besked om en ny sag, en tildeling og et trin, der venter på godkendelse.
 - [Playbooks](#playbooks): Trin, der kører på en sag, med godkendelse, hvor det betyder noget.
 - [Oversigten](#oversigten): Det, der kræver nogens indsats nu, og hvor hurtigt sager bliver håndteret.
@@ -60,7 +61,7 @@ En detektion handler om en entitet: den værdi, dens regel grupperer efter, f.ek
 - Når ingen åben sag gør det, åbnes en ny sag, opkaldt efter detektionen, med detektionens prioritet.
 - En detektion, der udløses igen, tæller op på sin række i stedet for at tilføje en ny.
 
-En sags prioritet kommer fra detektionens alvorlighed:
+En sags prioritet kommer fra detektionens alvorlighed, som projektets indbyggede prioritet for det niveau, uanset hvad du har kaldt den:
 
 | Alvorlighed | Prioritet |
 | --- | --- |
@@ -72,7 +73,7 @@ En sags prioritet kommer fra detektionens alvorlighed:
 
 ## Behandl en sag
 
-En sag bevæger sig gennem fire statusser. Den kan springe en over, f.eks. en false positive, der lukkes direkte fra Ny, og den kan genåbnes.
+Et nyt projekts sager bevæger sig gennem fire statusser, som du kan omdøbe og supplere (se [Sagsprioriteter og sagsstatusser](#sagsprioriteter-og-sagsstatusser)). En sag kan springe en over, f.eks. en false positive, der lukkes direkte fra Ny, og den kan genåbnes.
 
 | Status | Betyder |
 | --- | --- |
@@ -112,6 +113,25 @@ En sag, der er åbnet fra Google SecOps-advarsler, lukker dem også i Google Sec
 
 **Erklær hændelse** åbner en OneUptime-hændelse for sagen med den alvorlighed, du vælger, og forbinder de to begge veje: hændelsens beskrivelse nævner sagen, og sagens hoved linker til hændelsen. Vagtordningen, statussider og postmortem tager over derfra. Det kræver en rolle, der både kan behandle sager og oprette hændelser.
 
+## Sagsprioriteter og sagsstatusser
+
+Hvert projekt har sine egne sagsprioriteter og sagsstatusser, under **Produkter → Security Events → Indstillinger → Sagsprioriteter** og **Sagsstatusser**. Omdøb dem, giv dem en anden farve, træk dem i en anden rækkefølge, og tilføj dine egne, f.eks. en status "Triage" eller en prioritet "Nødsituation" over **Kritisk**. Et nyt navn vises alle steder på én gang: i køen, på sagssiderne og oversigten, i notifikationer, i Slack og Microsoft Teams og i playbook-beskeder.
+
+Nogle er indbyggede, fordi OneUptime læser, hvad de betyder. De kan omdøbes og få en anden farve, men ikke slettes eller arkiveres, og de beholder deres rækkefølge:
+
+| Indbygget | Hvad OneUptime gør med den |
+| --- | --- |
+| Den nye status | Nye sager starter i den |
+| Den kvitterede status | Når en sag når den, registreres det, hvornår sagen blev kvitteret, og **Reopen** flytter en lukket sag tilbage til den |
+| Den inddæmmede status | Når en sag når den, registreres det, hvornår sagen blev inddæmmet |
+| Den lukkede status | **Close Case** flytter en sag til den, med en konklusion |
+| Prioriteterne Kritisk, High, Medium, Low og Til orientering | En detektion åbner sin sag med prioriteten for sin alvorlighed, og en sag, som nogen åbner, starter på Medium |
+
+- Hvor en status står, afgør, hvad en sag i den tæller som, som kolonnen **Tæller som** viser: fra den kvitterede status og ned som kvitteret, fra den inddæmmede status og ned som inddæmmet, fra den lukkede status og ned som lukket. En status, du tilføjer, kommer lige over den lukkede status, og når du flytter en sag til en status, der lukker den, bliver du først bedt om en konklusion.
+- En prioritets plads er dens hastegrad, den mest presserende først: **For Cases At Least**, valgene for notifikationer og reglerne for Slack og Microsoft Teams læser denne rækkefølge. En prioritet, du tilføjer, kommer sidst, og kolonnen **Detekteringens alvorlighed** viser, hvilke detektioner der åbner deres sager med hver indbygget prioritet.
+
+For at holde op med at bruge en status eller prioritet, du selv har lavet, skal du bruge **Arkiver** i dens række. Ingen kan vælge den igen, og API'et, Terraform og MCP afviser den, men de sager, der har den, beholder den, og du kan stadig filtrere på den. Arkiverede værdier står i den foldede sektion **Arkiverede sagsstatusser** eller **Arkiverede sagsprioriteter** under tabellen, hvor **Fjern fra arkiv** henter en tilbage. **Slet** afvises, så længe sager har værdien, eller en playbook kører fra prioriteten.
+
 ## Notifikationer
 
 OneUptime giver folk besked om tre ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
@@ -136,10 +156,12 @@ Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillin
 | Valg | Giver besked om sager med |
 | --- | --- |
 | Kun Kritisk | Kritisk |
-| Høj og Kritisk | High og Kritisk (standard) |
+| Høj og højere | Kritisk og High (standard) |
 | Mellem og højere | Kritisk, High og Medium |
 | Lav og højere | Alle prioriteter undtagen Til orientering |
 | Alle sager | Alle prioriteter |
+
+Valgene følger projektets sagsprioriteter under deres egne navne: dette er et nyt projekts valg.
 
 Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner OneUptime-appen, og dens link åbner sagen i browseren.
 
@@ -149,9 +171,9 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Security E
 
 | Betingelse | Matcher på |
 | --- | --- |
-| Prioritet for sikkerhedssag | Kritisk, High, Medium, Low eller Til orientering |
+| Prioritet for sikkerhedssag | En af projektets sagsprioriteter, f.eks. Kritisk eller High |
 | Titel på sikkerhedssag, Beskrivelse af sikkerhedssag | Tekst, som sagens titel eller beskrivelse indeholder, starter med eller slutter med |
-| Status for sikkerhedssag | Ny, Undersøger, Contained eller Lukket |
+| Status for sikkerhedssag | En af projektets sagsstatusser, f.eks. Ny eller Lukket |
 | Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product eller Manual |
 | Etiketter på sikkerhedssag | Sagens etiketter |
 
@@ -184,7 +206,7 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | --- | --- | --- |
 | Case | Assign the case | Giver sagen til en person, et team eller begge |
 | Case | Set the priority | Hæver eller sænker sagens prioritet |
-| Case | Set the status | Flytter sagen til Undersøger, Contained eller Lukket med den konklusion, du vælger |
+| Case | Set the status | Flytter sagen til en anden af projektets statusser, med den konklusion, du vælger, når den status lukker den |
 | Case | Add a note | Skriver en note på sagen, f.eks. en tjekliste til analytikeren |
 | Case | Add labels | Mærker sagen med etiketter |
 | Investigate | Check entities against threat intel | Slår hver entitet op i din trusselsintelligens og kan hæve prioriteten ved et match |
@@ -247,8 +269,8 @@ En note, en e-mail, et Slack-opslag og et Teams-opslag kan bruge sagens værdier
 | --- | --- |
 | `{{case.number}}` | Sagsnummeret, f.eks. CASE-42 |
 | `{{case.title}}` | Sagens titel |
-| `{{case.priority}}` | Critical, High, Medium, Low eller Informational |
-| `{{case.status}}` | New, Investigating, Contained eller Closed |
+| `{{case.priority}}` | Sagens prioritet, som dit projekt kalder den, f.eks. High |
+| `{{case.status}}` | Sagens status, som dit projekt kalder den, f.eks. Investigating |
 | `{{case.assignee}}` | Hvem sagen er tildelt |
 | `{{case.url}}` | Et link til sagen i OneUptime |
 | `{{case.entities}}` | De brugere, værter og adresser, sagen handler om |
@@ -278,7 +300,7 @@ En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart,
 **Produkter → Security Events → Oversigt** er der, hvor produktet åbner:
 
 - De åbne sager, der er tildelt dig, de åbne sager, som ingen har taget, og de playbook-trin, der venter på godkendelse; hvert tal åbner siden, der viser dem.
-- **Gennemsnitlig tid til kvittering**, **Gennemsnitlig tid til inddæmning** og **Gennemsnitlig tid til lukning** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den ud af Ny), til Contained og til Lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
+- **Gennemsnitlig tid til kvittering**, **Gennemsnitlig tid til inddæmning** og **Gennemsnitlig tid til lukning** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den til en status, der tæller som kvitteret), til en status, der tæller som inddæmmet, og til en, der tæller som lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
 - De sager, der er åbnet hver dag i 30 dage, efter prioritet, og de detektioner, der er rejst hver dag i 14 dage, efter kilde.
 - De åbne sager efter prioritet og efter status, konklusionerne fra de seneste 30 dage, ATT&CK-taktikkerne bag sagerne, de detektioner, der blev udløst oftest, og de entiteter, som flest fund nævner.
 
@@ -287,14 +309,15 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 ## Find trusler
 
 - **Entiteter** rangerer de brugere, værter, adresser og hashes, som dine fund nævner oftest, over det seneste døgn, den seneste uge eller måned, og slår enhver værdi op på tværs af 30 dages begivenheder.
-- **Rule Library** har færdige detektionsregler til trusler mod identitet, endpoints, cloud, netværk, web og Kubernetes. Hver er en Sigma-regel, skrevet til de felter, som alle forbundne kilder normaliseres til. **Tilføj regel** opretter den som din egen detektionsregel, slået til, og den åbner sager i stedet for advarsler; du ændrer den under **Detection Rules** som enhver anden. Reglerne markeret **Anbefalet** finder trusler i data, OneUptime allerede har, og én knap tilføjer dem, du ikke har endnu.
-- **ATT&CK Coverage** tegner MITRE ATT&CK-matricen, fremhæver de teknikker, dine aktiverede regler dækker, og sætter en ramme om dem, en regel fra biblioteket ville dække.
+- **Rule Library** har færdige detektionsregler til trusler mod identitet, endpoints, cloud, netværk, web og Kubernetes. Hver er en Sigma-regel, skrevet til de felter, som alle forbundne kilder normaliseres til. Dens række viser, hvad den finder, de MITRE ATT&CK-taktikker og -teknikker, den er mærket med, de hændelser, den læser, og om der er kommet nogen inden for de seneste 7 dage (**Modtages** eller **Modtages ikke**), samt dens alvorlighed. Afgræns listen efter kategori, efter de data, reglerne læser, og efter om du har tilføjet dem, eller søg i den efter navn, ATT&CK-teknik eller alvorlighed; sidens adresse husker filtrene. Vælg en regel for at se detaljerne: hvordan du begynder at sende de hændelser, den læser, hvordan den kører, og dens Sigma-regel. **Tilføj** opretter den som din egen detektionsregel, slået til, og den åbner sager i stedet for advarsler; du ændrer den under **Detection Rules** som enhver anden. Reglerne markeret **Anbefalet** finder trusler i data, OneUptime allerede har, og én knap tilføjer dem, du ikke har endnu.
+- **ATT&CK Coverage** tegner MITRE ATT&CK-matricen, fremhæver de teknikker, dine aktiverede regler dækker, og sætter en ramme om dem, en regel fra biblioteket ville dække. Vælg en teknik for at se de regler fra biblioteket, der dækker den, og åbne **Rule Library** på dem.
 
 ## Automatisér
 
 - **Arbejdsgange**: en sag eller en note kan starte et workflow, når den oprettes, opdateres eller slettes. Et trin **Run a workflow** starter et workflow, hvis trigger er en webhook.
-- **API**: sager, noter, detektioner, playbooks, kørsler og beskyttede entiteter har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` og `/security-protected-entity`. Se [API-reference](/docs/api-reference/api-reference).
-- AI-agenter: MCP-serveren har værktøjer til sager, noter, detektioner og playbooks. Se [MCP-server](/docs/ai/mcp-server).
+- **API**: sager, noter, detektioner, playbooks, kørsler, beskyttede entiteter samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
+- AI-agenter: MCP-serveren har værktøjer til sager, noter, detektioner, playbooks samt sagsprioriteter og sagsstatusser. Se [MCP-server](/docs/ai/mcp-server).
+- Terraform: ressourcerne `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder et projekts prioriteter og statusser som kode.
 
 ## Fejlfinding
 
@@ -303,7 +326,7 @@ Tjek **Open a Case on Match** i regelens trin **Ved match**. En detektion om en 
 :::
 
 :::details Ingen fik besked om en sag
-Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikation om **Ny sikkerhedssag** går til de personer, hvis valgte prioritet sagen når, så en sag med Medium giver ikke besked til nogen, der har beholdt standarden, **Høj og Kritisk**. Tjek, at de personer, der burde få besked, kan se sikkerhedssager (en Security-rolle, Project Owner eller Project Admin), og at notifikationen er slået til for dem under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**.
+Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikation om **Ny sikkerhedssag** går til de personer, hvis valgte prioritet sagen når, så en sag med Medium giver ikke besked til nogen, der har beholdt standarden, **Høj og højere**. Tjek, at de personer, der burde få besked, kan se sikkerhedssager (en Security-rolle, Project Owner eller Project Admin), og at notifikationen er slået til for dem under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**.
 :::
 
 :::details En playbook kørte ikke
@@ -316,6 +339,10 @@ Tjek, at den er aktiveret, at dens indstilling **Trigger** passer (Case Opened k
 
 :::details Et Contain-trin blev sprunget over
 Sagen handler ikke om nogen bruger eller vært, f.eks. kun om en adresse, eller alle de brugere eller værter, den handler om, er beskyttede. Åbn kørslen på sagen: trinnet fortæller, hvilken af de to det er.
+:::
+
+:::details En status eller prioritet kan ikke slettes eller arkiveres
+En indbygget kan omdøbes og få en anden farve, men aldrig slettes eller arkiveres: dens **Arkiver** er låst, med begrundelsen. En af dine egne kan ikke slettes, så længe sager har den, eller en playbook kører fra den: flyt først sagerne til en anden, eller arkiver den.
 :::
 
 ## Næste trin

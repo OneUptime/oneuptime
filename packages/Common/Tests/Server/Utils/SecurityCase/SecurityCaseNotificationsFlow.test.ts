@@ -47,8 +47,8 @@ import NotificationSettingEventType from "../../../../Types/NotificationSetting/
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
@@ -69,6 +69,12 @@ import WorkspaceMessagePayload, {
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { getJestSpyOn } from "../../../Spy";
+import {
+  TEST_PRIORITY_IDS,
+  testPriorityId,
+  testStatusId,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
   beforeEach,
@@ -194,7 +200,9 @@ function seedDefaults(): void {
       ANALYST_ID,
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
     ),
-  )!.minimumSecurityCasePriority = SecurityCasePriority.Medium;
+  )!.minimumSecurityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Medium,
+  );
 }
 
 function propsFor(member: Person): DatabaseCommonInteractionProps {
@@ -227,7 +235,11 @@ function slackRule(): WorkspaceNotificationRule {
       {
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCasePriority.Critical, SecurityCasePriority.High],
+        // The project's own priorities, by id.
+        value: [
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+        ],
       },
     ],
     shouldPostToExistingChannel: true,
@@ -237,6 +249,8 @@ function slackRule(): WorkspaceNotificationRule {
 }
 
 beforeEach(() => {
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
   settingRows = new Map();
   run = null;
   jobs = [];
@@ -253,8 +267,10 @@ beforeEach(() => {
   securityCase.title = "Credential dumping on web-01";
   securityCase.description =
     "Detection rule **Credential dumping tool** matched.";
-  securityCase.priority = SecurityCasePriority.Medium;
-  securityCase.status = SecurityCaseStatus.New;
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Medium,
+  );
+  securityCase.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
   securityCase.source = SecurityDetectionSource.DetectionRule;
   securityCase.entities = [
     { type: SecurityEntityType.Host, value: "web-01" },
@@ -286,16 +302,20 @@ beforeEach(() => {
       expectedData: JSONObject;
     };
 
-    if (
-      (securityCase.notifiedPriority || null) !==
-      (expectedData["notifiedPriority"] || null)
-    ) {
+    const current: string = securityCase.notifiedSecurityCasePriorityId
+      ? securityCase.notifiedSecurityCasePriorityId.toString()
+      : "";
+    const expected: string = expectedData["notifiedSecurityCasePriorityId"]
+      ? String(expectedData["notifiedSecurityCasePriorityId"])
+      : "";
+
+    if (current !== expected) {
       return false;
     }
 
-    securityCase.notifiedPriority = data[
-      "notifiedPriority"
-    ] as SecurityCasePriority;
+    securityCase.notifiedSecurityCasePriorityId = data[
+      "notifiedSecurityCasePriorityId"
+    ] as unknown as ObjectID;
     return true;
   });
   getJestSpyOn(
@@ -569,8 +589,8 @@ async function changeCase(data: {
           {
             id: CASE_ID.toString(),
             projectId: PROJECT_ID,
-            status: before.status,
-            priority: before.priority,
+            statusId: before.securityCaseStatusId?.toString(),
+            priorityId: before.securityCasePriorityId?.toString(),
             verdict: undefined,
             assignedToUserId: before.assignedToUserId?.toString(),
             assignedToTeamId: before.assignedToTeamId?.toString(),
@@ -629,7 +649,13 @@ describe("a security case from opening to approval", () => {
     feed = [];
 
     // A more severe detection joined: the ingest raises the case as root.
-    await changeCase({ change: { priority: SecurityCasePriority.Critical } });
+    await changeCase({
+      change: {
+        securityCasePriorityId: testPriorityId(
+          SecurityCasePriorityLevel.Critical,
+        ),
+      },
+    });
     await runQueuedJobs();
 
     expect(
@@ -656,8 +682,12 @@ describe("a security case from opening to approval", () => {
   });
 
   test("moved to the Blue Team by the owner: its members who can see it are told, the owner is not", async () => {
-    securityCase.priority = SecurityCasePriority.High;
-    securityCase.notifiedPriority = SecurityCasePriority.High;
+    securityCase.securityCasePriorityId = testPriorityId(
+      SecurityCasePriorityLevel.High,
+    );
+    securityCase.notifiedSecurityCasePriorityId = testPriorityId(
+      SecurityCasePriorityLevel.High,
+    );
 
     await changeCase({
       change: { assignedToTeamId: BLUE_TEAM_ID },
@@ -684,8 +714,12 @@ describe("a security case from opening to approval", () => {
   });
 
   test("a containment step waiting for approval asks the analyst on the case", async () => {
-    securityCase.priority = SecurityCasePriority.Critical;
-    securityCase.notifiedPriority = SecurityCasePriority.Critical;
+    securityCase.securityCasePriorityId = testPriorityId(
+      SecurityCasePriorityLevel.Critical,
+    );
+    securityCase.notifiedSecurityCasePriorityId = testPriorityId(
+      SecurityCasePriorityLevel.Critical,
+    );
     securityCase.assignedToTeamId = BLUE_TEAM_ID;
 
     const steps: Array<SecurityPlaybookStep> = [

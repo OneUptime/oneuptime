@@ -3,9 +3,9 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InsightTriage, { InsightTriageResult } from "../SRE/Insights/Triage";
-import ProfileInsightFix, {
-  ProfileInsightFixResult,
-} from "./ProfileInsightFix";
+import ProfileInsightFix from "./ProfileInsightFix";
+import { TelemetryAiFixResult } from "./TelemetryAiFix";
+import TraceInsightFix from "./TraceInsightFix";
 import TelemetryAiRules, { TelemetryAiRuleService } from "./TelemetryAiRules";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
@@ -19,6 +19,7 @@ import {
   TelemetryAiNextSteps,
   TelemetryAiWork,
   getStillFoundMinutes,
+  getTelemetryAiFixVerdict,
   getTelemetryAiNextSteps,
 } from "../../../../Types/AI/TelemetryAi";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -41,7 +42,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * A fix that cannot start yet (no repository connected, a Runner offline,
  * the day's share opened) is simply looked at again on the next scan, while
  * the problem is still being found; "ask before fixing" leaves the fix to a
- * person, on the insight.
+ * person, on the insight. A kind of problem whose fix waits for the
+ * investigation's verdict (a failing operation) opens its pull request on
+ * its own only once the investigation found the code at fault.
  *
  * Never throws: one problem's failure is logged and the look goes on.
  */
@@ -52,13 +55,15 @@ export interface TelemetryAiSweepResult {
   investigationsStarted: number;
   fixesStarted: number;
   waiting: number;
+  // Problems whose pull request waits for the investigation's verdict.
+  waitingForVerdict: number;
 }
 
 // The fix starter of each lane: the pull request for one problem.
 export type TelemetryAiFixStarter = (data: {
   insight: AIInsight;
   work: TelemetryAiWork;
-}) => Promise<ProfileInsightFixResult>;
+}) => Promise<TelemetryAiFixResult>;
 
 export const TELEMETRY_AI_FIX_STARTERS: Record<
   TelemetryAiLane,
@@ -67,8 +72,14 @@ export const TELEMETRY_AI_FIX_STARTERS: Record<
   [TelemetryAiLane.Profile]: (data: {
     insight: AIInsight;
     work: TelemetryAiWork;
-  }): Promise<ProfileInsightFixResult> => {
+  }): Promise<TelemetryAiFixResult> => {
     return ProfileInsightFix.start(data);
+  },
+  [TelemetryAiLane.Trace]: (data: {
+    insight: AIInsight;
+    work: TelemetryAiWork;
+  }): Promise<TelemetryAiFixResult> => {
+    return TraceInsightFix.start(data);
   },
 };
 
@@ -84,6 +95,7 @@ export default class TelemetryAiRouting {
       investigationsStarted: 0,
       fixesStarted: 0,
       waiting: 0,
+      waitingForVerdict: 0,
     };
 
     const projectId: ObjectID | undefined = data.project.id || undefined;
@@ -131,6 +143,9 @@ export default class TelemetryAiRouting {
           lastSeenAt: true,
           triageAiRunId: true,
           fixAiRunId: true,
+          // What the investigation concluded, for a fix that waits on it.
+          classification: true,
+          triageCompletedAt: true,
         },
         sort: { lastSeenAt: SortOrder.Descending },
         limit: TELEMETRY_AI_MAX_PROBLEMS_PER_SWEEP,
@@ -211,7 +226,7 @@ export default class TelemetryAiRouting {
     }
 
     logger.debug(
-      `AI: ${data.lane} look for project ${projectId.toString()}: ${result.problemsRead} open, ${result.investigationsStarted} investigations and ${result.fixesStarted} fixes started, ${result.waiting} waiting.`,
+      `AI: ${data.lane} look for project ${projectId.toString()}: ${result.problemsRead} open, ${result.investigationsStarted} investigations and ${result.fixesStarted} fixes started, ${result.waiting} waiting, ${result.waitingForVerdict} waiting for a verdict.`,
     );
 
     return result;
@@ -239,6 +254,11 @@ export default class TelemetryAiRouting {
         hasInvestigation: Boolean(problem.triageAiRunId),
         hasFix: Boolean(problem.fixAiRunId),
         isClosed: false,
+        fixVerdict: getTelemetryAiFixVerdict({
+          insightType: problem.insightType,
+          hasTriageCompleted: Boolean(problem.triageCompletedAt),
+          classification: problem.classification,
+        }),
       },
       now: data.now,
     });
@@ -246,6 +266,10 @@ export default class TelemetryAiRouting {
     if (steps.isWaiting) {
       data.result.waiting++;
       return;
+    }
+
+    if (steps.isWaitingForVerdict) {
+      data.result.waitingForVerdict++;
     }
 
     if (steps.startInvestigation) {
@@ -261,7 +285,7 @@ export default class TelemetryAiRouting {
     }
 
     if (steps.startFix) {
-      const fix: ProfileInsightFixResult = await TELEMETRY_AI_FIX_STARTERS[
+      const fix: TelemetryAiFixResult = await TELEMETRY_AI_FIX_STARTERS[
         data.lane
       ]({ insight: problem, work: data.work });
 

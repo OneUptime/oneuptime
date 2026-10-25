@@ -5,9 +5,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -22,6 +20,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * breadcrumbs and Search, and a list that fits its question: the columns
  * and filters that mean something for those cases, sorted the way they are
  * read, and an empty state that says what an empty list means.
+ *
+ * Open and closed are what the project's own statuses count as
+ * (Security Events > Settings > Case Statuses): every status above its
+ * closed status is open, the closed status and every one after it closed
+ * (Common/Utils/SecurityCase/SecurityCaseStatuses). So the lists ask for the
+ * project's statuses first, and a status renamed or added counts at once.
  *
  * React-free so each page's query and list are pinned in a plain test.
  */
@@ -324,12 +328,19 @@ export function getSecurityCaseAssigneeForMe(
   return currentUserId;
 }
 
+/*
+ * A page's query: its cases, by the project's statuses (`statuses`, models
+ * or their JSON) - the open ones, the closed ones, or any.
+ */
 export function getSecurityCaseQueueQuery(
   view: SecurityCaseQueueViewKey,
   currentUserId: ObjectID | undefined,
+  statuses: ReadonlyArray<unknown>,
 ): Query<SecurityCase> {
   const open: Query<SecurityCase> = {
-    status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
+    securityCaseStatusId: new Includes(
+      SecurityCaseStatuses.getOpenStatusIds(statuses),
+    ),
   } as Query<SecurityCase>;
 
   switch (view) {
@@ -346,7 +357,11 @@ export function getSecurityCaseQueueQuery(
         assignedToUserId: new IsNull(),
       } as Query<SecurityCase>;
     case "closed":
-      return { status: SecurityCaseStatus.Closed } as Query<SecurityCase>;
+      return {
+        securityCaseStatusId: new Includes(
+          SecurityCaseStatuses.getClosedStatusIds(statuses),
+        ),
+      } as Query<SecurityCase>;
     case "all":
     default:
       return {};
@@ -354,15 +369,17 @@ export function getSecurityCaseQueueQuery(
 }
 
 /*
- * The statuses a list's Status filter offers: an open list only the open
- * ones, so it never offers Closed, which would empty it.
+ * The statuses a list's Status filter offers, in the project's order: an
+ * open list only the open ones, so it never offers a closed one, which would
+ * empty it.
  */
-export function getSecurityCaseQueueStatusOptions(
+export function getSecurityCaseQueueStatusOptions<T>(
   view: SecurityCaseQueueViewKey,
-): ReadonlyArray<SecurityCaseStatus> {
+  statuses: ReadonlyArray<T>,
+): Array<T> {
   if (view === "open" || view === "mine" || view === "unassigned") {
-    return OPEN_SECURITY_CASE_STATUSES;
+    return SecurityCaseStatuses.getOpenStatuses(statuses);
   }
 
-  return [...OPEN_SECURITY_CASE_STATUSES, SecurityCaseStatus.Closed];
+  return SecurityCaseStatuses.sort(statuses);
 }

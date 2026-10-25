@@ -39,7 +39,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Entités** | Événements | Les utilisateurs, hôtes et adresses que vos constats nomment le plus |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
-| **Rule Library** | Détections | Des règles de détection prêtes à ajouter, les recommandées étant signalées |
+| **Rule Library** | Détections | Des règles de détection prêtes à ajouter, chacune avec les événements qu'elle lit et s'ils arrivent, les recommandées étant signalées |
 | **Threat Intel** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
 | **ATT&CK Coverage** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
@@ -49,8 +49,10 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
+| **Priorités des dossiers** | Paramètres | L'urgence d'un dossier : les priorités propres au projet, la plus urgente en premier |
+| **Statuts des dossiers** | Paramètres | Les étapes par lesquelles passe un dossier, et ce que compte un dossier dans chacune |
 
-**Détections**, **IA** et **Connexions**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
+**Détections**, **IA**, **Connexions** et **Paramètres**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
 
 ## Avant de commencer
 

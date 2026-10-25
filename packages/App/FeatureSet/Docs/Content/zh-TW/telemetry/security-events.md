@@ -39,7 +39,7 @@ flowchart TB
 | **實體** | 事件 | 你的偵測結果中最常提到的使用者、主機和位址 |
 | **關聯分析** | 事件 | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
 | **Detection Rules** | Detections | 依排程執行並開啟案件的 Sigma 規則 |
-| **Rule Library** | Detections | 可直接新增的現成偵測規則，建議的規則會加上標記 |
+| **Rule Library** | Detections | 可直接新增的現成偵測規則，每條都會顯示它讀取的事件以及這些事件是否送達，建議的規則會加上標記 |
 | **Threat Intel** | Detections | 已知惡意指標的 STIX/TAXII 情資來源 |
 | **ATT&CK Coverage** | Detections | 你的規則涵蓋的 MITRE ATT&CK 技術 |
 | **Playbooks** | Playbooks | 在案件上自動或手動執行的步驟 |
@@ -49,8 +49,10 @@ flowchart TB
 | **設定** | 人工智慧 | OneUptime AI 是否研判每個新案件 |
 | **Connections** | Connections | 您的日誌、OneUptime 輪詢的安全產品，以及它傳送到的 SIEM |
 | **設定指南** | Connections | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
+| **案例優先順序** | 設定 | 案件有多緊急：專案自己的優先順序，最緊急的在前 |
+| **案例狀態** | 設定 | 案件經歷的各個步驟，以及每個步驟中的案件被視為什麼 |
 
-只需設定一次的 **Detections**、**人工智慧** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
+只需設定一次的 **Detections**、**人工智慧**、**Connections** 和 **設定** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
 
 ## 開始之前
 

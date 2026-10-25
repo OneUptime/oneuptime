@@ -3,6 +3,7 @@ import {
   StateSettingsSharedCopy,
 } from "./StateSettingsCopy";
 import {
+  getStateSettingsBuiltInColumnText,
   getStateSettingsBuiltInTooltip,
   getStateSettingsCountsAs,
 } from "./StateSettingsRows";
@@ -104,13 +105,20 @@ export const StateSettingsNameCell: FunctionComponent<
 
 export interface StateSettingsTextCellProps {
   text: string | null;
-  // Translate the text: it is OneUptime's own words, not the project's.
+  /*
+   * Look the text up in the reader's language: OneUptime's own words - a
+   * column's label, or the description a new project's built-in values
+   * start with (a security case status's, a case priority's). Words the
+   * project wrote match no entry, and read as written.
+   */
   isOwnCopy?: boolean | undefined;
   /*
    * A short label ("Acknowledged") reads at the table's weight; prose (a
    * description) is set lighter, so the names stay what the eye lands on.
    */
   isProse?: boolean | undefined;
+  // A value that says there is none ("None"), drawn as an empty value is.
+  isMuted?: boolean | undefined;
   testId?: string | undefined;
 }
 
@@ -126,9 +134,11 @@ export const StateSettingsTextCell: FunctionComponent<
   return (
     <span
       className={
-        props.isProse
-          ? "text-sm font-normal text-gray-600"
-          : "text-sm font-medium text-gray-700"
+        props.isMuted
+          ? "text-sm font-normal text-gray-400"
+          : props.isProse
+            ? "text-sm font-normal text-gray-600"
+            : "text-sm font-medium text-gray-700"
       }
       data-testid={props.testId}
     >
@@ -211,6 +221,42 @@ export const getStateSettingsColumns: <T extends BaseModel>(data: {
     });
   }
 
+  if (data.copy.builtInColumn) {
+    const otherwise: string = data.copy.builtInColumn.otherwise;
+    const builtInText: (item: T) => string = (item: T): string => {
+      return (
+        getStateSettingsBuiltInColumnText({
+          definition: data.definition,
+          copy: data.copy,
+          item: item,
+        }) || ""
+      );
+    };
+
+    columns.push({
+      // Read off the row's own built-in flag.
+      field: selectField<T>("_id"),
+      id: "built-in",
+      title: data.copy.builtInColumn.title,
+      headerTooltip: data.copy.builtInColumn.tooltip,
+      type: FieldType.Text,
+      getExportValue: builtInText,
+      getElement: (item: T): ReactElement => {
+        const text: string = builtInText(item);
+
+        return (
+          <StateSettingsTextCell
+            text={text}
+            isOwnCopy={true}
+            // A row of the project's own: no detection opens a case at it.
+            isMuted={text === otherwise}
+            testId="state-settings-built-in-column"
+          />
+        );
+      },
+    });
+  }
+
   columns.push({
     field: selectField<T>("description"),
     title: StateSettingsSharedCopy.descriptionColumnTitle,
@@ -226,6 +272,8 @@ export const getStateSettingsColumns: <T extends BaseModel>(data: {
             ] as string) || null
           }
           isProse={true}
+          // A built-in value's description reads in the reader's language.
+          isOwnCopy={true}
           testId="state-settings-description"
         />
       );
@@ -248,6 +296,8 @@ export const getStateSettingsFormFields: <T extends BaseModel>(
     {
       field: selectField<T>("name"),
       title: StateSettingsSharedCopy.nameFieldTitle,
+      // Said in the reader's language, where the page has its own words for it.
+      ...(copy.nameDescription ? { description: copy.nameDescription } : {}),
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: copy.namePlaceholder,
@@ -258,6 +308,9 @@ export const getStateSettingsFormFields: <T extends BaseModel>(
     {
       field: selectField<T>("description"),
       title: StateSettingsSharedCopy.descriptionFieldTitle,
+      ...(copy.descriptionDescription
+        ? { description: copy.descriptionDescription }
+        : {}),
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: copy.descriptionPlaceholder,

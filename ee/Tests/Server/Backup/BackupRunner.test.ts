@@ -227,7 +227,7 @@ describe("BackupRunner", () => {
         database: "oneuptimedb",
         serverVersion: "16.4",
         toolVersion: "16.4",
-        lastMigration: "AddBackups1807120000000",
+        lastMigration: "AddBackups1807220000000",
         counts: { projects: 2, users: 1, monitors: 3, statusPages: 1 },
       });
       expect(manifest.clickhouse).toEqual({

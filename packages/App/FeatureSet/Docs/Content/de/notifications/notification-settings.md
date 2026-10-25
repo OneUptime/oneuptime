@@ -71,7 +71,7 @@ Der Tab **Bereitschaft** handelt von Ihnen, nicht von Datensätzen, die Ihnen ge
 
 Der Tab **Sicherheit** handelt von den Sicherheitsfällen, die Sie sehen können:
 
-- **Neuer Sicherheitsfall** hat unter seinem Namen eine Priorität: die niedrigste Priorität, ab der ein Fall Sie benachrichtigt. Sie steht auf **Hoch und Kritisch**, sofern Sie nicht **Nur Kritisch**, **Mittel und höher**, **Niedrig und höher** oder **Jeder Fall** wählen.
+- **Neuer Sicherheitsfall** hat unter seinem Namen eine Priorität: die niedrigste Priorität, ab der ein Fall Sie benachrichtigt. Sie steht auf **Hoch und höher**, sofern Sie nicht **Nur Kritisch**, **Mittel und höher**, **Niedrig und höher** oder **Jeder Fall** wählen.
 - **Mir zugewiesener Sicherheitsfall** folgt den Fällen, die Ihnen und den Teams, in denen Sie sind, zugewiesen sind.
 - **Playbook-Schritt wartet auf meine Genehmigung** bittet Sie, einen Playbook-Schritt an einem Fall zu genehmigen oder abzulehnen, bei dem Sie genehmigen dürfen.
 

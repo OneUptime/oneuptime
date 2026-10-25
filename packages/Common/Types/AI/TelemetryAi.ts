@@ -12,6 +12,7 @@ import {
 } from "./InvestigationRuleWait";
 import { getRulesLlmProviderId } from "./LlmProviderChoice";
 import AutoRemediationTriggerEntity from "../AutoRemediation/AutoRemediationTriggerEntity";
+import ErrorClass from "../Telemetry/ErrorClass";
 import {
   CodeRepositoryAllowance,
   EVERY_CODE_REPOSITORY,
@@ -37,13 +38,15 @@ import {
  * Remediate performance issues with these code repos on these runners ...
  * OneUptime would create PRs for you for that code repo" - the maintainer.
  *
- * Each telemetry product is a lane (TelemetryAiLane): Profiles first; Traces,
- * Exceptions, Logs and Metrics follow the same way. A lane has:
+ * Each telemetry product is a lane (TelemetryAiLane): Profiles first, then
+ * Traces; Exceptions, Logs and Metrics follow the same way. A lane has:
  *
  *   - the problems OneUptime finds in its data, filed as AI insights of the
  *     lane's own types (insightTypes) by deterministic detectors - no LLM
  *     decides what is a problem (Server/Utils/AI/SRE/Insights/Detectors).
- *     For Profiles: slow code (AIInsightType.ProfileHotspot);
+ *     For Profiles: slow code (AIInsightType.ProfileHotspot). For Traces:
+ *     slow operations, failing operations, and the ones whose traces cannot
+ *     say why (Utils/Traces/TraceInsight);
  *   - one project switch (switchColumn), on for new projects: while it is on
  *     OneUptime looks for those problems and OneUptime AI works on them;
  *   - AI rules of its own: the one AI rule (AutoRemediationRule) with the
@@ -75,16 +78,26 @@ import {
  *     problem was first found, and only while it is still being found;
  *   - with the LLM provider of the first of them by name that picks one.
  *
+ * A kind of problem whose fix is only as good as the verdict on it - a
+ * failing operation may fail on purpose (a refused sign-in recorded as an
+ * error) - waits for its investigation before OneUptime AI opens a pull
+ * request on its own (fixAfterVerdictInsightTypes): only a problem the
+ * investigation classified as a fault of the code is fixed without asking,
+ * and a person can still ask for the fix from the insight.
+ *
  * Enable AI, the project's one AI switch, comes first: with it off, nothing
  * here runs. Pure, so the server and the Dashboard import it alike.
  */
 
 export enum TelemetryAiLane {
   Profile = "Profile",
+  Trace = "Trace",
 }
 
 // The project switch of each lane.
-export type TelemetryAiSwitchColumn = "enableAutomaticProfileRemediation";
+export type TelemetryAiSwitchColumn =
+  | "enableAutomaticProfileRemediation"
+  | "enableAutomaticTraceRemediation";
 
 export interface TelemetryAiLaneDefinition {
   lane: TelemetryAiLane;
@@ -105,6 +118,12 @@ export interface TelemetryAiLaneDefinition {
    * section is <dashboardPath>/ai/insights, /ai/logs and /ai/settings.
    */
   dashboardPath: string;
+  /*
+   * Its insight types whose pull request OneUptime AI opens on its own only
+   * once the investigation classified the problem as a fault of the code
+   * (see the module comment).
+   */
+  fixAfterVerdictInsightTypes: ReadonlyArray<AIInsightType>;
 }
 
 export const TELEMETRY_AI_LANES: Readonly<
@@ -117,6 +136,20 @@ export const TELEMETRY_AI_LANES: Readonly<
     switchColumn: "enableAutomaticProfileRemediation",
     scanEveryMinutes: 60,
     dashboardPath: "profiles",
+    fixAfterVerdictInsightTypes: [],
+  },
+  [TelemetryAiLane.Trace]: {
+    lane: TelemetryAiLane.Trace,
+    triggerEntityType: AutoRemediationTriggerEntity.Trace,
+    insightTypes: [
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.TraceFailingOperation,
+      AIInsightType.TraceMissingTracing,
+    ],
+    switchColumn: "enableAutomaticTraceRemediation",
+    scanEveryMinutes: 60,
+    dashboardPath: "traces",
+    fixAfterVerdictInsightTypes: [AIInsightType.TraceFailingOperation],
   },
 };
 
@@ -174,6 +207,70 @@ export function getTelemetryAiDefaultWaitMinutes(
   lane: TelemetryAiLane,
 ): number {
   return TELEMETRY_AI_LANES[lane].scanEveryMinutes;
+}
+
+/*
+ * The triage verdict that lets a waiting fix open, as the triage writes it
+ * onto the insight (ExceptionAIClassification, the same vocabulary).
+ */
+export const TELEMETRY_AI_CODE_FAULT_CLASSIFICATION: string =
+  ErrorClass.CodeFault;
+
+/*
+ * Whether OneUptime AI opens the pull request for an insight of this type on
+ * its own only after the investigation's verdict (the lane's
+ * fixAfterVerdictInsightTypes). False for a type no lane works on.
+ */
+export function doesTelemetryAiFixWaitForVerdict(
+  insightType: unknown,
+): boolean {
+  const lane: TelemetryAiLane | null =
+    getTelemetryAiLaneOfInsightType(insightType);
+
+  return Boolean(
+    lane &&
+      (
+        TELEMETRY_AI_LANES[lane]
+          .fixAfterVerdictInsightTypes as ReadonlyArray<unknown>
+      ).includes(insightType),
+  );
+}
+
+/*
+ * Where a problem's automatic fix stands with the investigation's verdict:
+ * it needs none (NotNeeded), the verdict is not in yet (Pending), or the
+ * investigation classified the problem as a fault of the code (CodeFault)
+ * or as anything else (NotCodeFault - a person may still ask for the fix).
+ */
+export enum TelemetryAiFixVerdict {
+  NotNeeded = "NotNeeded",
+  Pending = "Pending",
+  CodeFault = "CodeFault",
+  NotCodeFault = "NotCodeFault",
+}
+
+/*
+ * The verdict a problem's fix waits on, from its type and what its
+ * investigation concluded: the triage's classification (ExceptionAI
+ * Classification - "code-fault" is the one that lets the fix open), or none
+ * while the triage has not completed.
+ */
+export function getTelemetryAiFixVerdict(data: {
+  insightType: unknown;
+  hasTriageCompleted: boolean;
+  classification: unknown;
+}): TelemetryAiFixVerdict {
+  if (!doesTelemetryAiFixWaitForVerdict(data.insightType)) {
+    return TelemetryAiFixVerdict.NotNeeded;
+  }
+
+  if (!data.hasTriageCompleted) {
+    return TelemetryAiFixVerdict.Pending;
+  }
+
+  return data.classification === TELEMETRY_AI_CODE_FAULT_CLASSIFICATION
+    ? TelemetryAiFixVerdict.CodeFault
+    : TelemetryAiFixVerdict.NotCodeFault;
 }
 
 // What every lane's rules match on: the service the problem is in.
@@ -435,6 +532,11 @@ export interface TelemetryAiProblemState {
   hasFix: boolean;
   // Resolved or dismissed by a person: never worked on again.
   isClosed: boolean;
+  /*
+   * Where its automatic fix stands with the investigation's verdict
+   * (getTelemetryAiFixVerdict); absent is NotNeeded.
+   */
+  fixVerdict?: TelemetryAiFixVerdict | undefined;
 }
 
 export interface TelemetryAiNextSteps {
@@ -448,6 +550,11 @@ export interface TelemetryAiNextSteps {
   isWaiting: boolean;
   // The problem is no longer being found: nothing starts for it.
   isNoLongerFound: boolean;
+  /*
+   * The pull request OneUptime AI would open on its own waits for the
+   * investigation's verdict: looked at again on a later scan.
+   */
+  isWaitingForVerdict: boolean;
 }
 
 const NO_STEPS: TelemetryAiNextSteps = {
@@ -456,6 +563,7 @@ const NO_STEPS: TelemetryAiNextSteps = {
   offerFix: false,
   isWaiting: false,
   isNoLongerFound: false,
+  isWaitingForVerdict: false,
 };
 
 // The minutes after which a problem not found again is no longer found.
@@ -466,7 +574,10 @@ export function getStillFoundMinutes(lane: TelemetryAiLane): number {
 /*
  * What to do for one problem now, from the work its rules decided and what
  * was already done: one triage and one fix per problem, ever - a problem
- * found again refreshes its insight and changes nothing else.
+ * found again refreshes its insight and changes nothing else. A fix that
+ * waits for the investigation's verdict opens on its own only once the
+ * verdict says the code is at fault, and is investigated for that verdict
+ * even when its rules would only fix.
  */
 export function getTelemetryAiNextSteps(data: {
   lane: TelemetryAiLane;
@@ -492,11 +603,24 @@ export function getTelemetryAiNextSteps(data: {
     return { ...NO_STEPS, isWaiting: true };
   }
 
+  const verdict: TelemetryAiFixVerdict =
+    data.problem.fixVerdict || TelemetryAiFixVerdict.NotNeeded;
+  const wantsFixWithoutAsking: boolean =
+    data.work.fix === AiRuleFix.WithoutAsking && !data.problem.hasFix;
+  const needsVerdict: boolean =
+    wantsFixWithoutAsking && verdict !== TelemetryAiFixVerdict.NotNeeded;
+
   return {
-    startInvestigation: data.work.investigate && !data.problem.hasInvestigation,
-    startFix: data.work.fix === AiRuleFix.WithoutAsking && !data.problem.hasFix,
+    startInvestigation:
+      (data.work.investigate || needsVerdict) && !data.problem.hasInvestigation,
+    startFix:
+      wantsFixWithoutAsking &&
+      (verdict === TelemetryAiFixVerdict.NotNeeded ||
+        verdict === TelemetryAiFixVerdict.CodeFault),
     offerFix: data.work.fix === AiRuleFix.AskFirst && !data.problem.hasFix,
     isWaiting: false,
     isNoLongerFound: false,
+    isWaitingForVerdict:
+      wantsFixWithoutAsking && verdict === TelemetryAiFixVerdict.Pending,
   };
 }

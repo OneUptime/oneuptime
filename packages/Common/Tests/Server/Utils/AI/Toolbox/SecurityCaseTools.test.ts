@@ -44,9 +44,17 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
 import SecurityCaseAiVerdict from "../../../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "../../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../../../Types/SecurityCase/SecurityCaseStage";
+import SecurityCaseStatus from "../../../../../Models/DatabaseModels/SecurityCaseStatus";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestStatuses,
+  buildTestStatus,
+  testPriorityId,
+  testStatusId,
+} from "../../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesStub";
 import { SecurityPlaybookActionType } from "../../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -109,6 +117,8 @@ function callArg(spy: jest.SpyInstance, index: number = 0): JSONObject {
 
 beforeEach(() => {
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
 });
 
 afterEach(() => {
@@ -124,8 +134,8 @@ describe("query_security_cases", () => {
         id: caseId,
         caseNumberWithPrefix: "CASE-42",
         title: "Brute force from 203.0.113.9",
-        status: SecurityCaseStatus.New,
-        priority: "High",
+        securityCaseStatusId: testStatusId(SecurityCaseStage.New),
+        securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
         entities: [
           { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
         ],
@@ -159,6 +169,9 @@ describe("query_security_cases", () => {
     expect(result.dataForLlm).toContain("alice@example.com");
     expect(result.dataForLlm).not.toContain("supersecretvalue1234");
     expect(result.dataForLlm).toContain("Likely Malicious");
+    // Its status and priority as the project names them.
+    expect(result.dataForLlm).toContain("New");
+    expect(result.dataForLlm).toContain("High");
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.SecurityCaseView,
       params: { securityCaseId: caseId.toString() },
@@ -225,8 +238,11 @@ describe("query_security_cases", () => {
     expect(call["props"]).toBe(ctx.props);
     expect(call["limit"]).toBe(25);
     expect(query["projectId"]).toBe(projectId);
-    expect((query["status"] as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
+    // Open by what the project's statuses count as, by id.
+    expect((query["securityCaseStatusId"] as Includes).values).toEqual([
+      TEST_STATUS_IDS[SecurityCaseStage.New],
+      TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+      TEST_STATUS_IDS[SecurityCaseStage.Contained],
     ]);
   });
 
@@ -241,16 +257,46 @@ describe("query_security_cases", () => {
       context(),
     );
 
-    expect((callArg(findBy, 0)["query"] as JSONObject)["status"]).toBe(
-      SecurityCaseStatus.Closed,
-    );
+    expect(
+      (
+        (callArg(findBy, 0)["query"] as JSONObject)[
+          "securityCaseStatusId"
+        ] as unknown as Includes
+      ).values,
+    ).toEqual([TEST_STATUS_IDS[SecurityCaseStage.Closed]]);
 
     const all: JSONObject = callArg(findBy, 1)["query"] as JSONObject;
 
-    expect(all["status"]).toBeUndefined();
+    expect(all["securityCaseStatusId"]).toBeUndefined();
     expect(all["groupingKey"]).toBe(
       securityCaseGroupingKey({ groupValue: "203.0.113.9", fingerprint: "" }),
     );
+  });
+
+  test("closed is every status that closes a case, the project's own after Closed among them", async () => {
+    const duplicateId: string = "c2000000-0000-4000-8000-0000000000a3";
+    const statuses: Array<SecurityCaseStatus> = [
+      ...buildDefaultTestStatuses(),
+      buildTestStatus({
+        id: duplicateId,
+        name: "Closed - Duplicate",
+        order: 5,
+      }),
+    ];
+    stubSecurityCaseValues({ statuses });
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SecurityCaseService, "findBy")
+      .mockResolvedValue([]);
+
+    await QuerySecurityCasesTool.execute({ status: "closed" }, context());
+
+    expect(
+      (
+        (callArg(findBy)["query"] as JSONObject)[
+          "securityCaseStatusId"
+        ] as unknown as Includes
+      ).values,
+    ).toEqual([TEST_STATUS_IDS[SecurityCaseStage.Closed], duplicateId]);
   });
 
   test("arguments never move the read to another project", async () => {

@@ -9,8 +9,14 @@ import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+  testPriorityId,
+  testStatusId,
+} from "../../Helpers/SecurityCaseValues";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import {
@@ -35,7 +41,8 @@ jest.mock("../../../Server/Utils/Logger");
  *
  * A project's Security Case rules name the channels (and Teams chats) its
  * cases are posted to, and the cases they are for. Matching reads the case's
- * title, description, priority, status, source and labels; posting goes to
+ * title, description, priority, status, source and labels - the priority
+ * and status as the project's own, by id; posting goes to
  * the existing channels of the rules that match the case as it is, and never
  * opens a channel of its own.
  */
@@ -80,8 +87,10 @@ beforeEach(() => {
   securityCase.id = CASE_ID;
   securityCase.title = "Brute force against admin";
   securityCase.description = "Ten failed sign-ins in a minute.";
-  securityCase.priority = SecurityCasePriority.Critical;
-  securityCase.status = SecurityCaseStatus.New;
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Critical,
+  );
+  securityCase.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
   securityCase.source = SecurityDetectionSource.DetectionRule;
   const label: Label = new Label();
   label._id = LABEL_ID.toString();
@@ -130,7 +139,10 @@ describe("a security case's workspace rules match", () => {
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCasePriority.Critical, SecurityCasePriority.High],
+        value: [
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+        ],
         channel: "by-priority",
       }),
       rule({
@@ -148,7 +160,7 @@ describe("a security case's workspace rules match", () => {
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCaseStatus,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCaseStatus.New],
+        value: [TEST_STATUS_IDS[SecurityCaseStage.New]],
         channel: "by-status",
       }),
       rule({
@@ -166,7 +178,7 @@ describe("a security case's workspace rules match", () => {
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCasePriority.Low],
+        value: [TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low]],
         channel: "low-only",
       }),
     ];
@@ -221,19 +233,19 @@ describe("a security case posted to its channels", () => {
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCasePriority.Critical],
+        value: [TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical]],
         channel: "soc",
       }),
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCasePriority.Low],
+        value: [TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low]],
         channel: "noise",
       }),
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [SecurityCasePriority.Critical],
+        value: [TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical]],
         channel: "Security",
         workspaceType: WorkspaceType.MicrosoftTeams,
       }),

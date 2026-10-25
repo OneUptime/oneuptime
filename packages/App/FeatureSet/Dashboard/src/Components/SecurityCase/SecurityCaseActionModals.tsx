@@ -3,6 +3,7 @@ import { SecurityCaseAiCopy } from "./SecurityCaseAiTriage";
 import useAiOffered from "../../Utils/UseAiOffered";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -13,7 +14,6 @@ import SecurityCaseAiVerdict, {
   getSuggestedCloseVerdict,
   isSecurityCaseAiVerdict,
 } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict, {
   SECURITY_CASE_VERDICTS,
   SecurityCaseVerdictDescription,
@@ -28,6 +28,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -109,13 +110,28 @@ export function getCloseVerdictAiRead(
     : undefined;
 }
 
+// Said in the close dialog when it closes the case into a status of the project's own.
+export const CLOSE_INTO_STATUS: string = translationKey(
+  "The case moves to {{status}}.",
+);
+
+export interface CloseCaseModalProps extends CaseModalProps {
+  /*
+   * The status the case closes into: the project's closed status (Close
+   * Case), or another status that closes - one picked on the status steps.
+   */
+  closeToStatus: SecurityCaseStatus;
+  // Whether that is the project's own closed status, which needs no saying.
+  isProjectClosedStatus: boolean;
+}
+
 /*
  * Closing a case asks what it turned out to be. The verdict is what the
  * overview counts and what tunes detections: a rule whose cases keep closing
  * as False Positive is a rule to fix.
  */
-export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
-  props: CaseModalProps,
+export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
+  props: CloseCaseModalProps,
 ): ReactElement => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -125,6 +141,29 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
     props.securityCase,
     isAiOffered,
   );
+
+  /*
+   * What the verdict's field says first: closing into a status of the
+   * project's own, not its closed one, the status the case moves to - what
+   * the dialog does comes first - then OneUptime AI's read of the case,
+   * which ends on what to do: "Pick what you found." Both, when both apply.
+   */
+  const closeHints: Array<string> = [
+    ...(!props.isProjectClosedStatus
+      ? [
+          translator.translateTemplate(CLOSE_INTO_STATUS, {
+            status: translatableTerm(props.closeToStatus.name || ""),
+          }),
+        ]
+      : []),
+    ...(aiRead
+      ? [
+          translator.translateTemplate(SecurityCaseAiCopy.closeVerdictHint, {
+            read: translatableTerm(aiRead),
+          }),
+        ]
+      : []),
+  ];
 
   return (
     <BasicFormModal<JSONObject>
@@ -144,13 +183,8 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
           {
             field: { verdict: true },
             title: "Verdict",
-            ...(aiRead
-              ? {
-                  description: translator.translateTemplate(
-                    SecurityCaseAiCopy.closeVerdictHint,
-                    { read: translatableTerm(aiRead) },
-                  ),
-                }
+            ...(closeHints.length > 0
+              ? { description: closeHints.join(" ") }
               : {}),
             fieldType: FormFieldSchemaType.CardSelect,
             required: true,
@@ -184,7 +218,7 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
             modelType: SecurityCase,
             id: new ObjectID(props.securityCase._id!.toString()),
             data: {
-              status: SecurityCaseStatus.Closed,
+              securityCaseStatusId: props.closeToStatus.id!.toString(),
               verdict:
                 (values["verdict"] as string) ||
                 SecurityCaseVerdict.Undetermined,

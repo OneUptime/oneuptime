@@ -318,6 +318,26 @@ export interface ServiceLatencyProfile {
   isPartial: boolean;
 }
 
+/*
+ * Per-service span counts over a whole window - every span, the failed ones
+ * (an error status) and the root ones - from the proj_hist_by_minute
+ * aggregate projection (getServiceSpanHealth).
+ */
+export interface ServiceSpanHealthRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  // Services returned, busiest first.
+  limit: number;
+}
+
+export interface ServiceSpanHealthRow {
+  primaryEntityId: string;
+  spanCount: number;
+  failedSpanCount: number;
+  rootSpanCount: number;
+}
+
 export interface FacetValue {
   value: string;
   count: number;
@@ -1949,6 +1969,147 @@ export class TraceAggregationService {
         }),
       isPartial,
     };
+  }
+
+  /*
+   * The most rows the span health read groups: a service's spans fall in at
+   * most six (three statuses, root or not), so this bounds it to some
+   * thousand services and resources.
+   */
+  private static readonly SPAN_HEALTH_MAX_ROWS: number = 6000;
+
+  /**
+   * Per-service span counts over the whole window - every span, the failed
+   * ones (statusCode 2, an error) and the root ones - served by the
+   * proj_hist_by_minute aggregate projection (projectId, minute,
+   * primaryEntityId, statusCode, isRootSpan -> count()): the Traces
+   * product's AI section reads every service's at once, once an hour,
+   * unattended (Utils/Traces/TraceInsight).
+   *
+   * The same rules hold as for getServiceLatencyProfile, for the same
+   * reason - each one, broken, silently reverts this to a full scan: the
+   * time predicates are written over toStartOfMinute(startTime), the
+   * aggregate is the stored count(), the GROUP BY is a subset of the
+   * projection's keys, and every predicate is on a projection column (no
+   * retention filter). It stops with an error at its time limit rather
+   * than answer with part of the counts: a share computed over part of the
+   * window is wrong, not smaller.
+   */
+  @CaptureSpan()
+  public static async getServiceSpanHealth(
+    request: ServiceSpanHealthRequest,
+  ): Promise<Array<ServiceSpanHealthRow>> {
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT primaryEntityId, statusCode, isRootSpan, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+
+    // Half-open window, as the latency profile's.
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }}) AND toStartOfMinute(startTime) < toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }})`,
+    );
+
+    statement.append(
+      SQL` GROUP BY primaryEntityId, statusCode, isRootSpan LIMIT ${{
+        type: TableColumnType.Number,
+        value: TraceAggregationService.SPAN_HEALTH_MAX_ROWS,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds:
+          TraceAggregationService.LATENCY_PROFILE_MAX_EXECUTION_SECONDS,
+        timeoutOverflowMode: "throw",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
+    );
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return TraceAggregationService.toServiceSpanHealth(
+      response.data || [],
+      request.limit,
+    );
+  }
+
+  /*
+   * The grouped rows, summed per service - busiest first, then by id - and
+   * cut to the limit. Pure.
+   */
+  public static toServiceSpanHealth(
+    rows: Array<JSONObject>,
+    limit: number,
+  ): Array<ServiceSpanHealthRow> {
+    const byService: Map<string, ServiceSpanHealthRow> = new Map<
+      string,
+      ServiceSpanHealthRow
+    >();
+
+    for (const row of rows) {
+      const entityId: string = String(row["primaryEntityId"] ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (!entityId) {
+        continue;
+      }
+
+      const count: number = Number(row["cnt"] || 0);
+
+      if (!Number.isFinite(count) || count <= 0) {
+        continue;
+      }
+
+      const health: ServiceSpanHealthRow = byService.get(entityId) || {
+        primaryEntityId: entityId,
+        spanCount: 0,
+        failedSpanCount: 0,
+        rootSpanCount: 0,
+      };
+
+      const rawRoot: unknown = row["isRootSpan"];
+      // ClickHouse Bool may serialize as true/false, 1/0, or "1"/"true".
+      const isRoot: boolean =
+        rawRoot === true ||
+        rawRoot === 1 ||
+        rawRoot === "1" ||
+        rawRoot === "true";
+
+      health.spanCount += count;
+
+      if (Number(row["statusCode"]) === 2) {
+        health.failedSpanCount += count;
+      }
+
+      if (isRoot) {
+        health.rootSpanCount += count;
+      }
+
+      byService.set(entityId, health);
+    }
+
+    return Array.from(byService.values())
+      .sort((a: ServiceSpanHealthRow, b: ServiceSpanHealthRow): number => {
+        return (
+          b.spanCount - a.spanCount ||
+          a.primaryEntityId.localeCompare(b.primaryEntityId)
+        );
+      })
+      .slice(0, Math.max(0, limit));
   }
 
   private static groupByAlias(key: string, index: number): string {

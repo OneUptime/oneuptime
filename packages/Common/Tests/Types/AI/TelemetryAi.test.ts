@@ -5,7 +5,8 @@
  *
  * Pinned here:
  *  - the Profile lane: its insight type, its rules' trigger, its switch and
- *    how often it looks;
+ *    how often it looks; and the Trace lane's, whose failing operations'
+ *    pull requests wait for the investigation's verdict;
  *  - the decision: Enable AI first, then the lane's switch, then the rules -
  *    none is "investigate and fix everything" (the rule turned on by
  *    default), with rules only what they match, the careful Fix answer
@@ -25,6 +26,8 @@ import {
   TELEMETRY_AI_LANE_LIST,
   TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY,
   TELEMETRY_AI_MAX_PROBLEMS_PER_SWEEP,
+  TELEMETRY_AI_CODE_FAULT_CLASSIFICATION,
+  TelemetryAiFixVerdict,
   TelemetryAiLane,
   TelemetryAiNextSteps,
   TelemetryAiProblemState,
@@ -32,9 +35,11 @@ import {
   TelemetryAiSkip,
   TelemetryAiWork,
   decideTelemetryAiWork,
+  doesTelemetryAiFixWaitForVerdict,
   getAiInsightDashboardPath,
   getStillFoundMinutes,
   getTelemetryAiDefaultWaitMinutes,
+  getTelemetryAiFixVerdict,
   getTelemetryAiInsightTypes,
   getTelemetryAiLaneOfInsightType,
   getTelemetryAiLaneOfTrigger,
@@ -100,6 +105,7 @@ describe("the Profile lane", () => {
       switchColumn: "enableAutomaticProfileRemediation",
       scanEveryMinutes: 60,
       dashboardPath: "profiles",
+      fixAfterVerdictInsightTypes: [],
     });
   });
 
@@ -150,6 +156,18 @@ describe("the Profile lane", () => {
     expect(
       getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Profile),
     ).toBe(TelemetryAiLane.Profile);
+
+    for (const type of [
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.TraceFailingOperation,
+      AIInsightType.TraceMissingTracing,
+    ]) {
+      expect(getTelemetryAiLaneOfInsightType(type)).toBe(TelemetryAiLane.Trace);
+    }
+
+    expect(
+      getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Trace),
+    ).toBe(TelemetryAiLane.Trace);
   });
 
   test("incident and alert AI rules, and AI Insights' own findings, belong to no lane", () => {
@@ -176,9 +194,124 @@ describe("the Profile lane", () => {
 
   test("isTelemetryAiLane reads exact values only", () => {
     expect(isTelemetryAiLane("Profile")).toBe(true);
+    expect(isTelemetryAiLane("Trace")).toBe(true);
+    expect(isTelemetryAiLane("trace")).toBe(false);
     expect(isTelemetryAiLane("profile")).toBe(false);
     expect(isTelemetryAiLane("Incident")).toBe(false);
     expect(isTelemetryAiLane(null)).toBe(false);
+  });
+});
+
+describe("the Trace lane", () => {
+  test("files slow operations, failing operations and missing tracing, decided by trace AI rules, switched by its own column", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Trace]).toEqual({
+      lane: TelemetryAiLane.Trace,
+      triggerEntityType: AutoRemediationTriggerEntity.Trace,
+      insightTypes: [
+        AIInsightType.TraceSlowOperation,
+        AIInsightType.TraceFailingOperation,
+        AIInsightType.TraceMissingTracing,
+      ],
+      switchColumn: "enableAutomaticTraceRemediation",
+      scanEveryMinutes: 60,
+      dashboardPath: "traces",
+      fixAfterVerdictInsightTypes: [AIInsightType.TraceFailingOperation],
+    });
+  });
+
+  test("its findings open under Traces' AI section", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Trace]
+      .insightTypes) {
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/traces/ai/insights/i1");
+    }
+  });
+
+  test("it looks once an hour, as the profiles lane, and its wait starts on one look", () => {
+    expect(getStillFoundMinutes(TelemetryAiLane.Trace)).toBe(120);
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Trace)).toBe(60);
+
+    for (let minute: number = 0; minute < 60; minute++) {
+      const now: Date = new Date(Date.UTC(2026, 9, 24, 7, minute, 30));
+
+      expect(isTelemetryAiLaneScanTick(TelemetryAiLane.Trace, now)).toBe(
+        minute < INSIGHT_SCAN_EVERY_MINUTES,
+      );
+    }
+  });
+
+  /*
+   * A failing operation may fail on purpose - a refused sign-in recorded
+   * as an error - and a pull request that "fixes" that weakens a check
+   * that fired correctly: its fix waits for the investigation to find the
+   * code at fault. Slow operations and missing tracing do not wait.
+   */
+  test("only a failing operation's pull request waits for the investigation's verdict", () => {
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.TraceFailingOperation),
+    ).toBe(true);
+
+    for (const type of [
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.TraceMissingTracing,
+      AIInsightType.ProfileHotspot,
+      AIInsightType.NewException,
+      AIInsightType.TraceLatencyRegression,
+      undefined,
+      "TraceFailingOperation ",
+    ]) {
+      expect(doesTelemetryAiFixWaitForVerdict(type)).toBe(false);
+    }
+  });
+
+  test("a waiting fix reads the triage's verdict: code-fault lets it open", () => {
+    expect(TELEMETRY_AI_CODE_FAULT_CLASSIFICATION).toBe("code-fault");
+
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.TraceFailingOperation,
+        hasTriageCompleted: false,
+        classification: undefined,
+      }),
+    ).toBe(TelemetryAiFixVerdict.Pending);
+
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.TraceFailingOperation,
+        hasTriageCompleted: true,
+        classification: "code-fault",
+      }),
+    ).toBe(TelemetryAiFixVerdict.CodeFault);
+
+    for (const classification of [
+      "user-error",
+      "expected-denial",
+      "infrastructure",
+      "unknown",
+      null,
+    ]) {
+      expect(
+        getTelemetryAiFixVerdict({
+          insightType: AIInsightType.TraceFailingOperation,
+          hasTriageCompleted: true,
+          classification,
+        }),
+      ).toBe(TelemetryAiFixVerdict.NotCodeFault);
+    }
+
+    // A fix that waits for nothing needs no verdict, whatever the triage said.
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.TraceSlowOperation,
+        hasTriageCompleted: true,
+        classification: "infrastructure",
+      }),
+    ).toBe(TelemetryAiFixVerdict.NotNeeded);
   });
 });
 
@@ -477,6 +610,7 @@ describe("getTelemetryAiNextSteps", () => {
       offerFix: false,
       isWaiting: false,
       isNoLongerFound: false,
+      isWaitingForVerdict: false,
     });
   });
 
@@ -525,6 +659,7 @@ describe("getTelemetryAiNextSteps", () => {
       offerFix: false,
       isWaiting: false,
       isNoLongerFound: false,
+      isWaitingForVerdict: false,
     });
   });
 
@@ -569,6 +704,7 @@ describe("getTelemetryAiNextSteps", () => {
       offerFix: false,
       isWaiting: false,
       isNoLongerFound: true,
+      isWaitingForVerdict: false,
     });
   });
 
@@ -590,6 +726,7 @@ describe("getTelemetryAiNextSteps", () => {
       offerFix: false,
       isWaiting: true,
       isNoLongerFound: false,
+      isWaitingForVerdict: false,
     });
     expect(
       steps(
@@ -602,6 +739,83 @@ describe("getTelemetryAiNextSteps", () => {
       startInvestigation: true,
       startFix: true,
       isWaiting: false,
+    });
+  });
+
+  test("a fix that waits for a verdict: investigated, then opened only on code-fault", () => {
+    const work: TelemetryAiWork = decide([], false);
+
+    expect(
+      steps(work, problem({ fixVerdict: TelemetryAiFixVerdict.Pending })),
+    ).toEqual({
+      startInvestigation: true,
+      startFix: false,
+      offerFix: false,
+      isWaiting: false,
+      isNoLongerFound: false,
+      isWaitingForVerdict: true,
+    });
+
+    expect(
+      steps(
+        work,
+        problem({
+          hasInvestigation: true,
+          fixVerdict: TelemetryAiFixVerdict.CodeFault,
+        }),
+      ),
+    ).toMatchObject({
+      startInvestigation: false,
+      startFix: true,
+      isWaitingForVerdict: false,
+    });
+
+    // Anything else: never opened on its own - a person may still ask.
+    expect(
+      steps(
+        work,
+        problem({
+          hasInvestigation: true,
+          fixVerdict: TelemetryAiFixVerdict.NotCodeFault,
+        }),
+      ),
+    ).toMatchObject({
+      startFix: false,
+      offerFix: false,
+      isWaitingForVerdict: false,
+    });
+  });
+
+  test("a waiting fix is investigated for its verdict even when its rules only fix", () => {
+    const work: TelemetryAiWork = decide([rule({ investigates: false })]);
+
+    expect(work.investigate).toBe(false);
+    expect(
+      steps(work, problem({ fixVerdict: TelemetryAiFixVerdict.Pending })),
+    ).toMatchObject({
+      startInvestigation: true,
+      startFix: false,
+      isWaitingForVerdict: true,
+    });
+
+    // A fix that waits for nothing is not investigated the rules' way.
+    expect(steps(work, problem())).toMatchObject({
+      startInvestigation: false,
+      startFix: true,
+    });
+  });
+
+  test("ask before fixing waits for no verdict: the person decides", () => {
+    const work: TelemetryAiWork = decide([
+      rule({ executionMode: AutoRemediationExecutionMode.Suggest }),
+    ]);
+
+    expect(
+      steps(work, problem({ fixVerdict: TelemetryAiFixVerdict.Pending })),
+    ).toMatchObject({
+      startFix: false,
+      offerFix: true,
+      isWaitingForVerdict: false,
     });
   });
 

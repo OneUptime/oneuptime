@@ -38,6 +38,8 @@ import SecurityEventsWorkspaceConnectionSlackPage from "../Pages/SecurityEvents/
 import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
 import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 import SecurityEventsAISettingsPage from "../Pages/SecurityEvents/AISettings";
+import SecurityCasePrioritiesPage from "../Pages/SecurityEvents/Settings/CasePriorities";
+import SecurityCaseStatusesPage from "../Pages/SecurityEvents/Settings/CaseStatuses";
 
 /*
  * Every page under the product's side menu renders inside its layout; a
@@ -298,6 +300,40 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityEventsAISettingsPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_EVENTS_SETTINGS_AI] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES
+            ] || ""
+          }
+          element={
+            <SecurityCasePrioritiesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES
+            ] || ""
+          }
+          element={
+            <SecurityCaseStatusesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES
+                ] as Route
+              }
             />
           }
         />

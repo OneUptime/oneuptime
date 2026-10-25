@@ -3311,6 +3311,26 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/insights",
+    titles: ["Project", "Traces", "AI", "Insights"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/insights/:id",
+    titles: ["Project", "Traces", "AI", "Insights", "Insight"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/logs",
+    titles: ["Project", "Traces", "AI", "Logs"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/settings",
+    titles: ["Project", "Traces", "AI", "Settings"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/traces/documentation",
     titles: ["Project", "Traces", "Setup Guide"],
   },

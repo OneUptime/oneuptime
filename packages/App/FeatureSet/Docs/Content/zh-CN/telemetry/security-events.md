@@ -39,7 +39,7 @@ flowchart TB
 | **实体** | 事件 | 你的检测结果中最常提及的用户、主机和地址 |
 | **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
 | **Detection Rules** | Detections | 按计划运行并打开案例的 Sigma 规则 |
-| **Rule Library** | Detections | 可直接添加的现成检测规则，推荐的规则带有标记 |
+| **Rule Library** | Detections | 可直接添加的现成检测规则，每条都显示它读取的事件以及这些事件是否到达，推荐的规则带有标记 |
 | **Threat Intel** | Detections | 已知恶意指标的 STIX/TAXII 源 |
 | **ATT&CK Coverage** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
 | **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
@@ -49,8 +49,10 @@ flowchart TB
 | **设置** | 人工智能 | OneUptime AI 是否研判每个新案例 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
+| **案例优先级** | 设置 | 案例有多紧急：项目自己的优先级，最紧急的在前 |
+| **案例状态** | 设置 | 案例经历的各个步骤，以及每个步骤中的案例被视为什么 |
 
-只需设置一次的 **Detections**、**人工智能** 和 **Connections** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
+只需设置一次的 **Detections**、**人工智能**、**Connections** 和 **设置** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
 
 ## 开始之前
 

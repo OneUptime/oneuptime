@@ -71,7 +71,7 @@ La scheda **Reperibilità** riguarda voi, non gli elementi vostri:
 
 La scheda **Sicurezza** riguarda i casi di sicurezza che potete vedere:
 
-- **Nuovo caso di sicurezza** ha una priorità sotto il suo nome: la priorità minima dei casi che vi vengono notificati. È **Alta e Critica**, a meno che non scegliate **Solo Critica**, **Media e superiori**, **Bassa e superiori** o **Ogni caso**.
+- **Nuovo caso di sicurezza** ha una priorità sotto il suo nome: la priorità minima dei casi che vi vengono notificati. È **Alta e superiori**, a meno che non scegliate **Solo Critica**, **Media e superiori**, **Bassa e superiori** o **Ogni caso**.
 - **Caso di sicurezza assegnato a me** segue i casi assegnati a voi e ai team di cui fate parte.
 - **Passaggio di playbook in attesa della mia approvazione** vi chiede di approvare o rifiutare un passo di playbook su un caso in cui potete approvare.
 

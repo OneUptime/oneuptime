@@ -1551,6 +1551,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.TRACES_AI_INSIGHTS,
+        logs: PageMap.TRACES_AI_LOGS,
+        settings: PageMap.TRACES_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "slow operations",
+            "failing operations",
+            "slow endpoints",
+            "missing tracing",
+            "n+1 queries",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "find and fix slow and failing operations",
+            "performance remediation",
+            "auto fix",
+          ],
+        },
+      }),
     ],
   },
   {
@@ -1914,6 +1936,33 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           setupGuide(PageMap.SECURITY_EVENTS_DOCUMENTATION),
+        ],
+      },
+      {
+        title: "Settings",
+        pages: [
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES,
+            title: "Case Priorities",
+            icon: IconProp.Signal,
+            keywords: [
+              "security case priority",
+              "case severity",
+              "p1",
+              "rename priorities",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES,
+            title: "Case Statuses",
+            icon: IconProp.ArrowCircleRight,
+            keywords: [
+              "security case status",
+              "case states",
+              "custom case status",
+              "case workflow",
+            ],
+          },
         ],
       },
     ],

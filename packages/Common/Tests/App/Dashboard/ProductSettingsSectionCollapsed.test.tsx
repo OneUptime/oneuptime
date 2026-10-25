@@ -111,6 +111,8 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "Rum",
   "Runbook",
   "ScheduledMaintenanceEvents",
+  // Case Priorities and Case Statuses.
+  "SecurityEvents",
   "Serverless",
   "Service",
   "Slo",

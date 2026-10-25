@@ -39,7 +39,7 @@ flowchart TB
 | **Entiteter** | Händelser | Användarna, värdarna och adresserna som dina fynd nämner oftast |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detection Rules** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
-| **Rule Library** | Detections | Färdiga detektionsregler att lägga till, med de rekommenderade markerade |
+| **Rule Library** | Detections | Färdiga detektionsregler att lägga till, var och en med händelserna den läser och om de kommer in, med de rekommenderade markerade |
 | **Threat Intel** | Detections | STIX/TAXII-flöden med kända skadliga indikatorer |
 | **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikerna som dina regler täcker |
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
@@ -49,8 +49,10 @@ flowchart TB
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
+| **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
 
-**Detections**, **AI** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
+**Detections**, **AI**, **Connections** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 

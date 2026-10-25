@@ -39,7 +39,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Entities** | Events | The users, hosts and addresses your findings name most |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
-| **Rule Library** | Detections | Ready-made detection rules to add, the recommended ones marked |
+| **Rule Library** | Detections | Ready-made detection rules to add, each with the events it reads and whether they arrive, the recommended ones marked |
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
@@ -49,8 +49,10 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
+| **Case Priorities** | Settings | How urgent a case is: the project's own priorities, most urgent first |
+| **Case Statuses** | Settings | The steps a case moves through, and what a case in each counts as |
 
-**Detections**, **AI** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
+**Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 

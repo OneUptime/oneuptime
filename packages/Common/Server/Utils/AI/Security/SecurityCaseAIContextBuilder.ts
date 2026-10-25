@@ -209,8 +209,9 @@ export default class SecurityCaseAIContextBuilder {
           caseNumberWithPrefix: true,
           title: true,
           description: true,
-          status: true,
-          priority: true,
+          // The project's own names for them, read like any text it wrote.
+          securityCaseStatus: { name: true },
+          securityCasePriority: { name: true },
           source: true,
           entities: true,
           mitreTactics: true,
@@ -644,7 +645,7 @@ export default class SecurityCaseAIContextBuilder {
     );
     lines.push(`- Title: ${value(securityCase.title, TITLE_LENGTH)}`);
     lines.push(
-      `- Status: ${securityCase.status || "unknown"} · Priority: ${securityCase.priority || "unknown"} · Opened by: ${securityCase.source || "unknown"}`,
+      `- Status: ${securityCase.securityCaseStatus?.name ? value(securityCase.securityCaseStatus.name, TITLE_LENGTH) : "unknown"} · Priority: ${securityCase.securityCasePriority?.name ? value(securityCase.securityCasePriority.name, TITLE_LENGTH) : "unknown"} · Opened by: ${securityCase.source || "unknown"}`,
     );
     lines.push(
       `- Opened ${isoOrUnknown(securityCase.createdAt)}; ${triage.detectionTotal} detection(s), first ${isoOrUnknown(securityCase.firstDetectedAt)}, last ${isoOrUnknown(securityCase.lastDetectedAt)}`,

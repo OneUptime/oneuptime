@@ -19,7 +19,8 @@ import SecurityPlaybookRun from "../../../../Models/DatabaseModels/SecurityPlayb
 import { SecurityCaseFeedEventType } from "../../../../Models/DatabaseModels/SecurityCaseFeed";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
-import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import { testPriorityId } from "../../../Helpers/SecurityCaseValues";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus, {
@@ -224,7 +225,9 @@ beforeEach(() => {
       const securityCase: SecurityCase = new SecurityCase();
       securityCase._id = CASE_ID.toString();
       securityCase.projectId = PROJECT_ID;
-      securityCase.priority = SecurityCasePriority.High;
+      securityCase.securityCasePriorityId = testPriorityId(
+        SecurityCasePriorityLevel.High,
+      );
       return securityCase as never;
     },
   );

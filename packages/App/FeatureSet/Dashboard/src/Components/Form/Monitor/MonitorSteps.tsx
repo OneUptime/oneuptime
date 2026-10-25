@@ -164,8 +164,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     const keptArchivedIds: (values: Array<BaseModel>) => Array<string> = (
       values: Array<BaseModel>,
     ): Array<string> => {
+      /*
+       * Read as text, whatever shape the steps arrived in: a saved monitor's
+       * are a MonitorSteps (JSON.stringify calls its toJSON), and a prefilled
+       * one's - Create Monitor from an AI insight, a link or a template -
+       * are plain JSON, which has no toJSON() to call: calling it threw, and
+       * the form drew "props.initialValue.toJSON is not a function" with no
+       * statuses to pick from.
+       */
       return ArchivedValuePicker.getIdsNamedIn(
-        props.initialValue ? props.initialValue.toJSON() : null,
+        props.initialValue || null,
         values
           .filter((value: BaseModel): boolean => {
             return ArchivedValuePicker.isArchived(value);

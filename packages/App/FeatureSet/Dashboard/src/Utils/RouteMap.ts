@@ -799,6 +799,10 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   // AI, at the address Incidents' and Alerts' AI settings pages have.
   [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
+  // Settings, at the addresses every product's settings pages have.
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]:
+    "settings/case-priorities",
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
 };
 
 // Metrics product routes
@@ -823,6 +827,10 @@ export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.TRACES_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
   [PageMap.TRACES_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.TRACES_AI_INSIGHTS]: "ai/insights",
+  [PageMap.TRACES_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.TRACES_AI_LOGS]: "ai/logs",
+  [PageMap.TRACES_AI_SETTINGS]: "ai/settings",
 };
 
 // Profiles product routes
@@ -6889,6 +6897,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]
+    }`,
+  ),
+
   // Metrics Product Routes
   [PageMap.METRICS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/*`,
@@ -6984,6 +7004,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TRACES_SETTINGS_RECORDING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
       TracesRoutePath[PageMap.TRACES_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_SETTINGS]
     }`,
   ),
 

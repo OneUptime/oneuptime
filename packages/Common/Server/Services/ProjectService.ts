@@ -47,6 +47,7 @@ import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
 import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
+import SecurityCaseDefaultValues from "../Utils/SecurityCase/SecurityCaseDefaultValues";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -231,7 +232,10 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * Finding and fixing slow code (enableAutomaticProfileRemediation, Profiles
  * → AI → Settings) starts on: its fix is a pull request in a repository,
  * which changes no infrastructure and is never merged - "a rule that is
- * turned on by default" - the maintainer (Types/AI/TelemetryAi).
+ * turned on by default" - the maintainer (Types/AI/TelemetryAi). So does
+ * finding and fixing slow and failing operations in traces
+ * (enableAutomaticTraceRemediation, Traces → AI → Settings), for the same
+ * reason.
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -241,6 +245,7 @@ export type NewProjectAiDefaultColumn =
   | "enableAiInsights"
   | "enableInsightFixTasks"
   | "enableAutomaticProfileRemediation"
+  | "enableAutomaticTraceRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -252,6 +257,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAiInsights",
     "enableInsightFixTasks",
     "enableAutomaticProfileRemediation",
+    "enableAutomaticTraceRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 
@@ -2825,6 +2831,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
       this.addDefaultIncidentRoles(createdItem),
       this.addDefaultNetworkSiteTypes(createdItem),
       this.addDefaultNetworkDeviceRoles(createdItem),
+      this.addDefaultSecurityCasePriorities(createdItem),
+      this.addDefaultSecurityCaseStatuses(createdItem),
     ]);
 
     if (createdItem.createdOwnerEmail) {
@@ -3029,6 +3037,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
         },
       });
     }
+
+    return createdItem;
+  }
+
+  /*
+   * The project's security case priorities and statuses (Security Events >
+   * Settings): the five priorities and four statuses every case had before
+   * they became the project's own, each the built-in one of its detection
+   * severity or stage (SecurityCaseDefaultValues). Idempotent.
+   */
+  @CaptureSpan()
+  public async addDefaultSecurityCasePriorities(
+    createdItem: Model,
+  ): Promise<Model> {
+    await SecurityCaseDefaultValues.addDefaultPriorities(createdItem.id!);
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  public async addDefaultSecurityCaseStatuses(
+    createdItem: Model,
+  ): Promise<Model> {
+    await SecurityCaseDefaultValues.addDefaultStatuses(createdItem.id!);
 
     return createdItem;
   }

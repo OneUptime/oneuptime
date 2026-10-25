@@ -39,7 +39,7 @@ flowchart TB
 | **엔티티** | 이벤트 | 탐지 결과에 가장 많이 등장하는 사용자, 호스트, 주소 |
 | **상관 분석** | 이벤트 | 같은 호스트, 사용자, IP 주소를 공유하는 이벤트의 그래프 |
 | **Detection Rules** | Detections | 일정에 따라 실행되어 케이스를 여는 Sigma 규칙 |
-| **Rule Library** | Detections | 추가할 수 있는 기성 탐지 규칙. 권장 규칙에 표시가 붙습니다 |
+| **Rule Library** | Detections | 추가할 수 있는 기성 탐지 규칙. 각 규칙이 읽는 이벤트와 그 이벤트가 들어오는지 보여 주며, 권장 규칙에 표시가 붙습니다 |
 | **Threat Intel** | Detections | 알려진 악성 지표의 STIX/TAXII 피드 |
 | **ATT&CK Coverage** | Detections | 규칙이 다루는 MITRE ATT&CK 기법 |
 | **Playbooks** | Playbooks | 케이스에 대해 자동으로 또는 직접 실행되는 단계 |
@@ -49,8 +49,10 @@ flowchart TB
 | **설정** | AI | OneUptime AI가 새 케이스마다 트리아지할지 여부 |
 | **Connections** | Connections | 로그, OneUptime이 가져오는 보안 제품, 그리고 이벤트를 보내는 SIEM |
 | **설정 가이드** | Connections | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
+| **케이스 우선순위** | 설정 | 케이스의 긴급도. 가장 긴급한 것부터 정한 프로젝트 자체의 우선순위 |
+| **케이스 상태** | 설정 | 케이스가 거치는 단계와, 각 단계의 케이스를 무엇으로 간주하는지 |
 
-한 번 설정하면 되는 **Detections**, **AI** 와 **Connections** 는 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
+한 번 설정하면 되는 **Detections**, **AI**, **Connections** 와 **설정** 은 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
 
 ## 시작하기 전에
 

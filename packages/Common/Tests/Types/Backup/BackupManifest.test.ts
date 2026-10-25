@@ -38,7 +38,7 @@ function manifest(
       database: "oneuptimedb",
       serverVersion: "16.4",
       toolVersion: "16.4",
-      lastMigration: "AddBackups1807120000000",
+      lastMigration: "AddBackups1807220000000",
       counts: {
         projects: 3,
         users: 12,
@@ -81,7 +81,7 @@ describe("parseBackupManifest", () => {
         database: "oneuptimedb",
         serverVersion: "16.4",
         toolVersion: "16.4",
-        lastMigration: "AddBackups1807120000000",
+        lastMigration: "AddBackups1807220000000",
         counts: {
           projects: 3,
           users: 12,

@@ -7,7 +7,8 @@
  * updating isArchived, can list only the values that are still live, and
  * never says when or by whom a value was archived - OneUptime stamps those
  * from the switch. Postmortem statuses too: an agent moves a postmortem to a
- * live one. Incident roles are not on MCP at all.
+ * live one. And a project's security case statuses and priorities, which an
+ * agent sets on a case. Incident roles are not on MCP at all.
  */
 
 import { describe, expect, it, jest } from "@jest/globals";
@@ -26,6 +27,8 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import {
   ARCHIVABLE_VALUE_DEFINITIONS,
   ArchivableValueDefinition,
@@ -95,6 +98,20 @@ const VALUES: Array<ArchivableValueTools> = [
     update: "update_postmortem_status",
     create: "create_postmortem_status",
     list: "list_postmortem_statuses",
+  },
+  {
+    table: "SecurityCaseStatus",
+    modelType: SecurityCaseStatus,
+    update: "update_security_case_status",
+    create: "create_security_case_status",
+    list: "list_security_case_statuses",
+  },
+  {
+    table: "SecurityCasePriority",
+    modelType: SecurityCasePriority,
+    update: "update_security_case_priority",
+    create: "create_security_case_priority",
+    list: "list_security_case_priorities",
   },
 ];
 

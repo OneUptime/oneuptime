@@ -1,4 +1,17 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
+import { getSecurityPlaybookTemplateValues } from "../../../../Utils/SecurityEvent/SecurityTemplateRecords";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityLogSource from "../../../../Models/DatabaseModels/SecurityLogSource";
@@ -75,6 +88,11 @@ const PROPS: DatabaseCommonInteractionProps = {
 const BRUTE_FORCE: DetectionRuleLibraryEntry = getDetectionRuleLibraryEntry(
   SETUP_TEST_DETECTION_RULE_ID,
 )!;
+
+beforeEach(() => {
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
+});
 
 function rule(data: {
   name: string;
@@ -434,7 +452,12 @@ describe("SecuritySetup.turnOnRecommended", () => {
     expect(playbook.isEnabled).toBe(true);
     expect(playbook.trigger).toBe(template!.trigger);
     expect((playbook.steps as Array<unknown>).length).toBe(
-      template!.getSteps().length,
+      template!.getSteps(
+        getSecurityPlaybookTemplateValues({
+          priorities: buildDefaultTestPriorities(),
+          statuses: buildDefaultTestStatuses(),
+        }),
+      ).length,
     );
   });
 

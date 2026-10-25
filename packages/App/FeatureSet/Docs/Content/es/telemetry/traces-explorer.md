@@ -7,6 +7,7 @@ El explorador de trazas encuentra las solicitudes que pasaron por sus servicios:
 - [Leer una traza](#leer-una-traza): Adónde fue el tiempo y qué paso falló.
 - [Representar sus spans en gráficos](#representar-sus-spans-en-gráficos): Recuentos de solicitudes y tiempos de respuesta, agrupados a su manera.
 - [Análisis de trazas](#análisis-de-trazas): Tasas de error, latencia y las solicitudes más lentas.
+- [Encontrar y corregir operaciones lentas o que fallan con IA](#encontrar-y-corregir-operaciones-lentas-o-que-fallan-con-ia): Pull requests que las corrigen y añaden el trazado que le falta a una traza.
 :::
 
 ## Trazas y spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Cada fila del explorador es un span, así que un servicio con mucho trabajo llena la lista con sus consultas a la base de datos y sus llamadas internas. Para listar una fila por solicitud, elija **Root spans** en **Categoría de span** en la barra lateral.
 
-El explorador tiene cuatro pestañas:
+El explorador tiene cinco pestañas:
 
 | Pestaña | Para qué sirve |
 | --- | --- |
 | **Visor** | Buscar y filtrar spans, y abrir sus trazas. Se abre con la última hora, los más recientes primero, 50 spans por página. |
 | **Análisis** | Tasas de solicitudes, tasas de error y latencia por servicio, y las solicitudes que merecen un vistazo. |
+| **IA** | Las operaciones lentas o que fallan y el trazado faltante que OneUptime encuentra en sus trazas, y lo que la IA de OneUptime hizo al respecto. Consulte [Encontrar y corregir operaciones lentas o que fallan con IA](#encontrar-y-corregir-operaciones-lentas-o-que-fallan-con-ia). |
 | **Guía de configuración** | Cómo enviar trazas con OpenTelemetry, usando una de sus [claves de ingesta](/docs/telemetry/ingestion-keys). |
 | **Ajustes** | Lo que les pasa a los spans al llegar: **Canalizaciones**, **Filtros de descarte**, **Reglas de depuración** y **Reglas de grabación**. |
 
@@ -112,6 +114,44 @@ La pestaña **Análisis** resume las solicitudes de un intervalo de tiempo:
 - las solicitudes fallidas más recientes y las más lentas.
 
 Limítela a algunos servicios con la lista desplegable junto al selector de tiempo.
+
+## Encontrar y corregir operaciones lentas o que fallan con IA
+
+Cada hora OneUptime revisa las trazas de la última hora de cada servicio en busca de operaciones lentas, que fallan o cuyas trazas no dicen por qué, y registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
+
+Una operación son los spans de un mismo nombre en un servicio, como `GET /orders`. OneUptime lee un servicio en cuanto envió al menos 100 spans en la última hora, y registra tres tipos de hallazgo:
+
+| Hallazgo | Cuándo lo registra OneUptime | La pull request |
+| --- | --- | --- |
+| **Operación lenta** | El P99 de la operación es de 1 segundo o más en al menos 20 spans, y su solicitud más lenta repite un patrón que cuesta tiempo real: la misma llamada hecha una y otra vez, llamadas hechas una tras otra que podrían ejecutarse en paralelo, o una llamada que ocupa la mayor parte de la solicitud. | Hace la operación más rápida. |
+| **Operación que falla** | Al menos 20 spans de la operación fallaron, el 5 % o más de ellos, y los fallos más recientes dicen por qué, con una excepción o un mensaje de error. | Corrige por qué falla. |
+| **Trazado faltante** | Las trazas no dicen por qué: cada uno de los 500 spans o más de un servicio fue la raíz de su traza, sin ningún span del servicio debajo, una solicitud lenta pasó el 60 % o más de su tiempo (y 500 ms o más) en un span sin nada trazado debajo, o los fallos de una operación no registraron ningún mensaje de error ni ninguna excepción. | Añade el trazado que falta. |
+
+La IA de OneUptime abre por su cuenta la pull request de una operación que falla solo cuando encuentra el código culpable. Un fallo que viene de otra parte, como una dependencia caída, no recibe ninguna pull request a menos que alguien la pida con **Corregir con IA**.
+
+### Activarlo
+
+**Trazas → IA → Ajustes** contiene el interruptor **Encontrar y corregir operaciones lentas o que fallan**, activado en los proyectos nuevos. Con **Habilitar IA** desactivado, las operaciones lentas o que fallan se siguen encontrando, pero la IA de OneUptime no hace nada con ellas. Para abrir pull requests, la IA de OneUptime necesita un repositorio conectado en [Código](/docs/ai/ai-agent): la página indica primero lo que falta. El código de cada repositorio se cambia en el Runner que el repositorio elige en Código.
+
+La IA de OneUptime abre por su cuenta como máximo 5 pull requests al día (UTC), una por hallazgo, y nunca más que el límite de pull requests de IA abiertas de un repositorio.
+
+### Reglas de IA
+
+Sin reglas, la IA de OneUptime analiza de inmediato cada problema que encuentra en sus trazas y abre una pull request para cada uno que pueda corregir. Las **Reglas de IA** de **Más ajustes** lo acotan, en tres pasos:
+
+| Paso | Qué decide |
+| --- | --- |
+| **Coincidencia** | Qué servicios: los elegidos, los que tienen ciertas etiquetas o aquellos cuyo nombre coincide con un patrón. |
+| **Investigar** | **De inmediato**, o **Solo si sigue encontrándose tras una espera**: un problema que desaparece durante la espera no se analiza. |
+| **Corrección** | **No corregir**, **Preguntar antes de corregir** o **Corregir sin preguntar**. Preguntar primero deja la pull request en manos de una persona: el hallazgo ofrece **Corregir con IA**. |
+
+En **Más campos** una regla elige los repositorios de código, los servidores MCP y el proveedor de LLM que la IA de OneUptime puede usar para ella. Si no se elige ninguno, puede usar cualquiera, y el proveedor de LLM predeterminado del proyecto.
+
+### Ver lo que hizo
+
+- **Trazas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Trazas**, que abre los spans de los que trata, de la hora en que se encontró, en el **Visor**. En una operación que falla, **Crear monitor** configura un monitor de trazas sobre sus spans fallidos.
+- **Trazas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una.
+- En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 
 ## Qué les pasa a los spans al llegar
 

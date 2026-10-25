@@ -1,9 +1,10 @@
 /*
  * Offline fixture for the Security Events SOC pages: the overview, the case
  * queue, a case, entities, the detection rules, the rule library, threat
- * intel, ATT&CK coverage, playbooks, a playbook and the playbook runs - the
- * production layout (breadcrumbs and side menu) and pages from this branch,
- * mounted under their real RouteMap patterns.
+ * intel, ATT&CK coverage, playbooks, a playbook, the playbook runs and the
+ * project's case priorities and statuses (Settings) - the production layout
+ * (breadcrumbs and side menu) and pages from this branch, mounted under
+ * their real RouteMap patterns.
  *
  * Only the data boundary is replaced: ModelAPI, AnalyticsModelAPI (the
  * threat-intel indicators) and API answer from the in-memory tables below,
@@ -37,6 +38,14 @@
  *   ?fail=   status or overview: the Overview's set-up figures, or its
  *            overview, cannot be read the first time (a 500); the next
  *            read answers.
+ *   ?data=   none or fail: what the project's events say it sends, as the
+ *            Rule Library reads them - nothing this week, or a read that
+ *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
+ *   ?lang=   de or ja: the Dashboard's German or Japanese locale.
+ *   ?values= custom: the project made its case statuses and priorities its
+ *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
+ *            Eradicating and Closed - Duplicate among the statuses, and
+ *            Emergency above Critical.
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -54,6 +63,8 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import ja from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
@@ -67,6 +78,8 @@ import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/S
 import SecurityPlaybookViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns";
 import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
+import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
+import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -91,9 +104,12 @@ import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventC
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Team from "Common/Models/DatabaseModels/Team";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -119,15 +135,31 @@ import {
   TurnOnRecommendedPart,
   TurnOnRecommendedReason,
 } from "Common/Types/SecurityEvent/TurnOnRecommended";
-import { isRuleFromLibraryEntry } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
+import {
+  getSecurityPlaybookTemplateValues,
+  isRuleFromLibraryEntry,
+} from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import ThreatIntelFeedType, {
   RECOMMENDED_THREAT_INTEL_LISTS,
 } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  isOpenSecurityCaseStatus,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel, {
+  SECURITY_CASE_PRIORITY_LEVEL_FLAGS,
+  SECURITY_CASE_PRIORITY_LEVELS,
+} from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
+import {
+  SECURITY_CASE_STAGE_FLAGS,
+  SECURITY_CASE_STAGES,
+} from "Common/Types/SecurityCase/SecurityCaseStage";
+import { DEFAULT_SECURITY_CASE_PRIORITIES } from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses, {
+  DEFAULT_SECURITY_CASE_STATUSES,
+} from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import Color from "Common/Types/Color";
+import ArchivableValueUsage, {
+  ArchivableValueDeleteEffect,
+  ArchivableValueUsageKind,
+} from "Common/Types/ArchivableValue/ArchivableValueUsage";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
@@ -245,6 +277,34 @@ const READ_FAILURES = ["status", "overview"];
 const readFailure = READ_FAILURES.includes(params.get("fail"))
   ? params.get("fail")
   : "";
+/*
+ * ?data=: what the project's security events say it sends, as the Rule
+ * Library reads them (one grouped count over the last week):
+ *
+ *   (none given)  Okta's sign-ins and account changes, Microsoft Defender
+ *                 XDR's process events and the clusters' Kubernetes audit
+ *                 logs - no sudo, CloudTrail, network or web events
+ *   none          nothing arrived this week (also the empty project)
+ *   fail          the read fails (a 500), every time
+ */
+const DATA_SCENARIOS = ["none", "fail"];
+const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
+  ? params.get("data")
+  : "";
+/*
+ * ?lang=: the Dashboard's German or Japanese locale, loaded and switched to,
+ * for the pages that are checked in other languages (the Rule Library).
+ */
+const LANGUAGES = ["de", "ja"];
+const language = LANGUAGES.includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
+/*
+ * ?values=custom: a project that made its case statuses and priorities its
+ * own (Security Events > Settings), as CUSTOM_STATUSES and the Emergency
+ * priority below lay them out. Its cases sit in some of them.
+ */
+const hasCustomValues = params.get("values") === "custom";
 let statusReads = 0;
 let overviewReads = 0;
 // The recommended rule the partly scenario leaves undone the first time.
@@ -294,7 +354,7 @@ const projectObjectId = new ObjectID(PROJECT_ID);
 
 const fixture = {
   now: NOW.toISOString(),
-  scenario: { empty: isEmpty, quiet: isQuiet, role },
+  scenario: { empty: isEmpty, quiet: isQuiet, role, values: hasCustomValues },
   ids: {
     project: PROJECT_ID,
     sprayCase: ID.case(142),
@@ -308,6 +368,7 @@ const fixture = {
   countRequests: [],
   apiRequests: [],
   realtimeSubscriptions: [],
+  aggregateRequests: [],
   creates: [],
   updates: [],
   deletes: [],
@@ -493,6 +554,183 @@ const PROJECT_RECORD = {
 const project = make(Project, PROJECT_RECORD);
 table(Project).push(PROJECT_RECORD);
 
+/*
+ * ---------------------------------------------------------------------------
+ * The project's case priorities and statuses (Security Events > Settings)
+ * ---------------------------------------------------------------------------
+ *
+ * A new project's - DEFAULT_SECURITY_CASE_PRIORITIES and
+ * DEFAULT_SECURITY_CASE_STATUSES, each the built-in one of its level or
+ * stage - as every project has them from its creation, empty or not.
+ * ?values=custom adds the project's own: an Emergency priority above
+ * Critical, and the statuses of CUSTOM_STATUSES in their places.
+ */
+const VALUE_ID = {
+  priority: (n) => uuid("2b000000", n),
+  status: (n) => uuid("2c000000", n),
+};
+
+// The statuses ?values=custom adds, each after the status it follows.
+const CUSTOM_STATUSES = [
+  {
+    after: "New",
+    name: "Triage",
+    description: "Someone is checking whether the detection is real.",
+    color: "#7c3aed",
+  },
+  {
+    after: "Investigating",
+    name: "Escalated",
+    description:
+      "Handed to the incident team. Retired: the team declares an incident instead.",
+    color: "#64748b",
+    isArchived: true,
+  },
+  {
+    after: "Contained",
+    name: "Eradicating",
+    description:
+      "The threat is contained; the team is removing what it left behind.",
+    color: "#0d9488",
+  },
+  {
+    after: "Closed",
+    name: "Closed - Duplicate",
+    description: "Closed as a duplicate of another case.",
+    color: "#6b7280",
+  },
+];
+
+function priorityFlags(level) {
+  const flags = {};
+  for (const each of SECURITY_CASE_PRIORITY_LEVELS) {
+    flags[SECURITY_CASE_PRIORITY_LEVEL_FLAGS[each]] = each === level;
+  }
+  return flags;
+}
+
+function statusFlags(stage) {
+  const flags = {};
+  for (const each of SECURITY_CASE_STAGES) {
+    flags[SECURITY_CASE_STAGE_FLAGS[each]] = each === stage;
+  }
+  return flags;
+}
+
+{
+  const priorities = DEFAULT_SECURITY_CASE_PRIORITIES.map((value, index) => {
+    return {
+      _id: VALUE_ID.priority(index + 1),
+      name: value.name,
+      description: value.description,
+      color: value.color,
+      isArchived: false,
+      ...priorityFlags(value.level),
+    };
+  });
+  if (hasCustomValues) {
+    priorities.unshift({
+      _id: VALUE_ID.priority(6),
+      name: "Emergency",
+      description: "A confirmed breach in progress. Page the whole team now.",
+      color: new Color("#7f1d1d"),
+      isArchived: false,
+      ...priorityFlags(undefined),
+    });
+  }
+  priorities.forEach((priority, index) => {
+    insert(SecurityCasePriority, {
+      ...priority,
+      order: index + 1,
+      createdAt: ago(60 * DAY),
+    });
+  });
+
+  const statuses = DEFAULT_SECURITY_CASE_STATUSES.map((value, index) => {
+    return {
+      _id: VALUE_ID.status(index + 1),
+      name: value.name,
+      description: value.description,
+      color: value.color,
+      isArchived: false,
+      ...statusFlags(value.stage),
+    };
+  });
+  if (hasCustomValues) {
+    CUSTOM_STATUSES.forEach((custom, index) => {
+      const at = statuses.findIndex((status) => {
+        return status.name === custom.after;
+      });
+      statuses.splice(at + 1, 0, {
+        _id: VALUE_ID.status(index + 5),
+        name: custom.name,
+        description: custom.description,
+        color: new Color(custom.color),
+        isArchived: custom.isArchived === true,
+        // Who retired it, and when, as the server stamps an archive.
+        ...(custom.isArchived
+          ? {
+              archivedAt: ago(9 * DAY),
+              archivedByUser: people.maya,
+              archivedByUserId: new ObjectID(people.maya._id),
+            }
+          : {}),
+        ...statusFlags(undefined),
+      });
+    });
+  }
+  statuses.forEach((status, index) => {
+    insert(SecurityCaseStatus, {
+      ...status,
+      order: index + 1,
+      createdAt: ago(60 * DAY),
+    });
+  });
+}
+
+// The project's priority of a level (the built-in one: Critical, High...).
+function priorityRow(level) {
+  return table(SecurityCasePriority).find((row) => {
+    return row[SECURITY_CASE_PRIORITY_LEVEL_FLAGS[level]] === true;
+  });
+}
+
+function priorityOf(level) {
+  return { securityCasePriorityId: new ObjectID(priorityRow(level)._id) };
+}
+
+// The project's status of this name.
+function statusOf(name) {
+  const row = table(SecurityCaseStatus).find((status) => {
+    return status.name === name;
+  });
+  return { securityCaseStatusId: new ObjectID(row._id) };
+}
+
+// The values as the pages read them: models, in the project's order.
+function caseValues(modelType) {
+  return sortRecords(table(modelType), { order: SortOrder.Ascending }).map(
+    (row) => {
+      return make(modelType, row);
+    },
+  );
+}
+
+/*
+ * Each id the spec may name: the priorities by level, the statuses by
+ * name.
+ */
+fixture.ids.priorities = Object.fromEntries(
+  SECURITY_CASE_PRIORITY_LEVELS.map((level) => {
+    return [level, priorityRow(level)._id];
+  }),
+);
+fixture.ids.statuses = Object.fromEntries(
+  table(SecurityCaseStatus).map((row) => {
+    return [row.name, row._id];
+  }),
+);
+
 function assignee(user) {
   return user
     ? { assignedToUser: user, assignedToUserId: new ObjectID(user._id) }
@@ -602,7 +840,7 @@ const DOMAIN_EVIDENCE = [
 const TRIAGES = {
   142: {
     verdict: SecurityCaseAiVerdict.LikelyMalicious,
-    suggestedPriority: SecurityCasePriority.Critical,
+    suggestedPriority: SecurityCasePriorityLevel.Critical,
     suggestedPlaybookId: ID.playbook(3),
     triagedAt: ago(2 * HOUR + 50 * MINUTE),
     evidence: SPRAY_EVIDENCE,
@@ -618,7 +856,7 @@ const TRIAGES = {
    */
   138: {
     verdict: SecurityCaseAiVerdict.LikelyMalicious,
-    suggestedPriority: SecurityCasePriority.Critical,
+    suggestedPriority: SecurityCasePriorityLevel.Critical,
     suggestedPlaybookId: ID.playbook(1),
     triagedAt: ago(1 * HOUR + 58 * MINUTE),
     evidence: [],
@@ -634,7 +872,7 @@ const TRIAGES = {
   },
   137: {
     verdict: SecurityCaseAiVerdict.LikelyBenign,
-    suggestedPriority: SecurityCasePriority.Low,
+    suggestedPriority: SecurityCasePriorityLevel.Low,
     triagedAt: ago(4 * HOUR + 57 * MINUTE),
     evidence: [],
     report:
@@ -667,7 +905,7 @@ if (triageScenario === "injection") {
  */
 const DOMAIN_TRIAGE = {
   verdict: SecurityCaseAiVerdict.LikelyMalicious,
-  suggestedPriority: SecurityCasePriority.Critical,
+  suggestedPriority: SecurityCasePriorityLevel.Critical,
   suggestedPlaybookId: ID.playbook(2),
   evidence: DOMAIN_EVIDENCE,
   report: triageReport(
@@ -679,7 +917,10 @@ const DOMAIN_TRIAGE = {
 function triageColumns(triage) {
   return {
     aiVerdict: triage.verdict,
-    aiSuggestedPriority: triage.suggestedPriority,
+    // The project's priority of the level the triage named, as the runner keeps it.
+    aiSuggestedSecurityCasePriorityId: triage.suggestedPriority
+      ? new ObjectID(priorityRow(triage.suggestedPriority)._id)
+      : undefined,
     aiSuggestedPlaybookId: triage.suggestedPlaybookId
       ? new ObjectID(triage.suggestedPlaybookId)
       : undefined,
@@ -703,8 +944,9 @@ if (hasHistory) {
     title: `Password spray against Okta from ${SPRAY_IP}`,
     description:
       "A burst of failed Okta sign-ins for many accounts from one address, followed by one success.",
-    status: SecurityCaseStatus.Investigating,
-    priority: SecurityCasePriority.Critical,
+    // ?values=custom: past containment, in the project's own Eradicating.
+    ...statusOf(hasCustomValues ? "Eradicating" : "Investigating"),
+    ...priorityOf(SecurityCasePriorityLevel.Critical),
     ...assignee(people.maya),
     source: SecurityDetectionSource.DetectionRule,
     entities: [
@@ -720,6 +962,8 @@ if (hasHistory) {
     firstDetectedAt: ago(3 * HOUR + 12 * MINUTE),
     lastDetectedAt: ago(9 * MINUTE),
     acknowledgedAt: ago(2 * HOUR + 58 * MINUTE),
+    // ?values=custom: past containment, so its time to contain was recorded.
+    ...(hasCustomValues ? { containedAt: ago(1 * HOUR + 35 * MINUTE) } : {}),
     groupingKey: `rule:okta-password-spray:${SPRAY_IP}`,
     createdAt: ago(3 * HOUR + 12 * MINUTE),
     createdByUser: undefined,
@@ -728,8 +972,8 @@ if (hasHistory) {
     title: "Known-bad domain resolved by build-runner-07",
     description:
       "A build runner looked up a domain on the threat intel feed's command-and-control list.",
-    status: SecurityCaseStatus.New,
-    priority: SecurityCasePriority.High,
+    ...statusOf("New"),
+    ...priorityOf(SecurityCasePriorityLevel.High),
     ...assignee(undefined),
     source: SecurityDetectionSource.ThreatIntel,
     entities: [
@@ -746,8 +990,8 @@ if (hasHistory) {
   });
   addCase(140, {
     title: "CrowdStrike: credential dumping on fin-ws-112",
-    status: SecurityCaseStatus.Contained,
-    priority: SecurityCasePriority.Critical,
+    ...statusOf("Contained"),
+    ...priorityOf(SecurityCasePriorityLevel.Critical),
     ...assignee(people.diego),
     source: SecurityDetectionSource.ConnectedProduct,
     entities: [
@@ -766,8 +1010,9 @@ if (hasHistory) {
   });
   addCase(139, {
     title: "Impossible travel for k.morgan@acme-commerce.example",
-    status: SecurityCaseStatus.Investigating,
-    priority: SecurityCasePriority.Medium,
+    // ?values=custom: still in Escalated, which the project has since archived.
+    ...statusOf(hasCustomValues ? "Escalated" : "Investigating"),
+    ...priorityOf(SecurityCasePriorityLevel.Medium),
     ...assignee(people.priya),
     source: SecurityDetectionSource.DetectionRule,
     entities: [
@@ -784,8 +1029,9 @@ if (hasHistory) {
   });
   addCase(138, {
     title: "Defender XDR: suspicious PowerShell on web-03",
-    status: SecurityCaseStatus.New,
-    priority: SecurityCasePriority.High,
+    // ?values=custom: in the project's own Triage, which counts as new.
+    ...statusOf(hasCustomValues ? "Triage" : "New"),
+    ...priorityOf(SecurityCasePriorityLevel.High),
     ...assignee(undefined),
     // Handed to a team, but nobody on it has picked it up yet.
     assignedToTeam: socTeam,
@@ -804,8 +1050,8 @@ if (hasHistory) {
   });
   addCase(137, {
     title: "Admin API key created outside the change window",
-    status: SecurityCaseStatus.New,
-    priority: SecurityCasePriority.Medium,
+    ...statusOf("New"),
+    ...priorityOf(SecurityCasePriorityLevel.Medium),
     ...assignee(people.maya),
     source: SecurityDetectionSource.DetectionRule,
     entities: [
@@ -820,8 +1066,8 @@ if (hasHistory) {
   });
   addCase(136, {
     title: "S3 bucket policy made public: acme-exports",
-    status: SecurityCaseStatus.Closed,
-    priority: SecurityCasePriority.High,
+    ...statusOf("Closed"),
+    ...priorityOf(SecurityCasePriorityLevel.High),
     verdict: SecurityCaseVerdict.TruePositive,
     closingNote: "Policy reverted, access logs reviewed: no reads.",
     ...assignee(people.sam),
@@ -874,15 +1120,15 @@ if (hasHistory) {
     SecurityCaseVerdict.Undetermined,
   ];
   const PRIORITIES = [
-    SecurityCasePriority.Critical,
-    SecurityCasePriority.High,
-    SecurityCasePriority.High,
-    SecurityCasePriority.Medium,
-    SecurityCasePriority.Medium,
-    SecurityCasePriority.Medium,
-    SecurityCasePriority.Low,
-    SecurityCasePriority.Low,
-    SecurityCasePriority.Informational,
+    SecurityCasePriorityLevel.Critical,
+    SecurityCasePriorityLevel.High,
+    SecurityCasePriorityLevel.High,
+    SecurityCasePriorityLevel.Medium,
+    SecurityCasePriorityLevel.Medium,
+    SecurityCasePriorityLevel.Medium,
+    SecurityCasePriorityLevel.Low,
+    SecurityCasePriorityLevel.Low,
+    SecurityCasePriorityLevel.Informational,
   ];
   const SOURCES = [
     SecurityDetectionSource.DetectionRule,
@@ -900,8 +1146,8 @@ if (hasHistory) {
     const toClose = toContain + (2 + random(30)) * HOUR;
     addCase(number, {
       title: HISTORY_TITLES[index % HISTORY_TITLES.length],
-      status: SecurityCaseStatus.Closed,
-      priority: pick(PRIORITIES),
+      ...statusOf("Closed"),
+      ...priorityOf(pick(PRIORITIES)),
       verdict: pick(VERDICTS),
       ...assignee(pick(ASSIGNEES)),
       source: pick(SOURCES),
@@ -1144,11 +1390,19 @@ if (hasHistory) {
  * Playbooks and their runs
  * ---------------------------------------------------------------------------
  */
+// A template's steps, naming the project's priorities and statuses by id.
 function templateSteps(key) {
   const template = SECURITY_PLAYBOOK_TEMPLATES.find((item) => {
     return item.key === key;
   });
-  return template ? template.getSteps() : [];
+  return template
+    ? template.getSteps(
+        getSecurityPlaybookTemplateValues({
+          priorities: caseValues(SecurityCasePriority),
+          statuses: caseValues(SecurityCaseStatus),
+        }),
+      )
+    : [];
 }
 
 const CONTAIN_STEPS = [
@@ -1214,7 +1468,9 @@ if (!isEmpty) {
       "Raises a case to Critical and moves it to Investigating when its entities are on a threat intel feed.",
     isEnabled: true,
     trigger: SecurityPlaybookTrigger.DetectionAdded,
-    minimumPriority: SecurityCasePriority.High,
+    minimumSecurityCasePriorityId: new ObjectID(
+      priorityRow(SecurityCasePriorityLevel.High)._id,
+    ),
     steps: templateSteps("known-bad"),
     runCount: 17,
     lastRunAt: ago(31 * MINUTE),
@@ -1227,7 +1483,9 @@ if (!isEmpty) {
       "Suspends the case's users in Okta and ends their sessions, after an analyst approves.",
     isEnabled: true,
     trigger: SecurityPlaybookTrigger.CaseOpened,
-    minimumPriority: SecurityCasePriority.Critical,
+    minimumSecurityCasePriorityId: new ObjectID(
+      priorityRow(SecurityCasePriorityLevel.Critical)._id,
+    ),
     detectionSource: SecurityDetectionSource.DetectionRule,
     steps: CONTAIN_STEPS,
     runCount: 6,
@@ -1711,6 +1969,8 @@ insert(WorkspaceProjectAuthToken, { workspaceType: WorkspaceType.Slack });
 
 // Tables the pages may read even when they are empty.
 for (const modelType of [
+  SecurityCasePriority,
+  SecurityCaseStatus,
   SecurityCase,
   SecurityDetection,
   SecurityCaseFeed,
@@ -1733,19 +1993,22 @@ table(Team).push({ ...socTeam, projectId: projectObjectId });
  * The Security product's own routes
  * ---------------------------------------------------------------------------
  */
+// The cases in a status that counts as open, by the project's statuses.
 function openCases() {
+  const statuses = caseValues(SecurityCaseStatus);
   return table(SecurityCase).filter((item) => {
-    return isOpenSecurityCaseStatus(item.status);
+    return SecurityCaseStatuses.isOpen(statuses, item.securityCaseStatusId);
   });
 }
 
 function overviewRow(item) {
   return {
     createdAt: item.createdAt,
-    priority: item.priority,
-    status: item.status,
+    priorityId: item.securityCasePriorityId?.toString(),
+    statusId: item.securityCaseStatusId?.toString(),
     verdict: item.verdict,
     assignedToUserId: item.assignedToUserId?.toString(),
+    assignedToTeamId: item.assignedToTeamId?.toString(),
     acknowledgedAt: item.acknowledgedAt,
     containedAt: item.containedAt,
     closedAt: item.closedAt,
@@ -1757,6 +2020,8 @@ function overview() {
   const windowStart = ago(30 * DAY);
   const detectionWindowStart = ago(14 * DAY);
   const metrics = computeSecurityOverviewMetrics({
+    priorities: caseValues(SecurityCasePriority),
+    statuses: caseValues(SecurityCaseStatus),
     openCases: openCases().map(overviewRow),
     casesInWindow: table(SecurityCase)
       .filter((item) => {
@@ -1793,7 +2058,77 @@ function overview() {
     }).length,
     isTruncated: false,
     metrics: serialize(metrics),
+    // The project's priorities and statuses, as the server hands them over.
+    priorities: caseValues(SecurityCasePriority).map((priority) => {
+      return valueJson(
+        priority,
+        Object.values(SECURITY_CASE_PRIORITY_LEVEL_FLAGS),
+      );
+    }),
+    statuses: caseValues(SecurityCaseStatus).map((status) => {
+      return valueJson(status, Object.values(SECURITY_CASE_STAGE_FLAGS));
+    }),
   };
+}
+
+// A priority or status as the overview hands it over (toSecurityCaseValueJson).
+function valueJson(value, flags) {
+  const json = {
+    _id: value._id?.toString() || "",
+    name: value.name || "",
+    color: value.color?.toString() || "",
+    order: typeof value.order === "number" ? value.order : null,
+    isArchived: value.isArchived === true,
+  };
+  for (const flag of flags) {
+    json[flag] = value[flag] === true;
+  }
+  return json;
+}
+
+/*
+ * What a priority or a status is used by, as the usage route counts it
+ * (ArchivableValueUsage): the cases that have it, and for a priority the
+ * playbooks that run from it.
+ */
+function valueUsage(modelType, valueId) {
+  const isPriority = tableName(modelType) === tableName(SecurityCasePriority);
+  const cases = table(SecurityCase).filter((item) => {
+    return (
+      String(
+        isPriority ? item.securityCasePriorityId : item.securityCaseStatusId,
+      ) === valueId
+    );
+  }).length;
+  const playbooks = isPriority
+    ? table(SecurityPlaybook).filter((item) => {
+        return String(item.minimumSecurityCasePriorityId) === valueId;
+      }).length
+    : 0;
+  const usage = [];
+  if (cases > 0) {
+    usage.push({
+      tableName: "SecurityCase",
+      title: "Security Cases",
+      singularTitle: "Security Case",
+      count: cases,
+      isCountCapped: false,
+      effect: ArchivableValueDeleteEffect.Refused,
+      kind: ArchivableValueUsageKind.Records,
+    });
+  }
+  if (playbooks > 0) {
+    usage.push({
+      tableName: "SecurityPlaybook",
+      title: "Security Playbooks",
+      singularTitle: "Security Playbook",
+      count: playbooks,
+      isCountCapped: false,
+      effect: ArchivableValueDeleteEffect.Refused,
+      kind: ArchivableValueUsageKind.Settings,
+    });
+  }
+  return { usage: ArchivableValueUsage.toJSONArray(usage) };
 }
 
 /*
@@ -1954,8 +2289,8 @@ function runSetupTest() {
       title: `${bruteForce.title} from 203.0.113.77`,
       description:
         "The setup test: twelve failed sign-ins for setup-test-user from one documentation address.",
-      status: SecurityCaseStatus.New,
-      priority: SecurityCasePriority.Medium,
+      ...statusOf("New"),
+      ...priorityOf(SecurityCasePriorityLevel.Medium),
       ...assignee(undefined),
       source: SecurityDetectionSource.DetectionRule,
       entities: [
@@ -2102,6 +2437,47 @@ Realtime.listenToAnalyticsModelEvent = () => {
   return () => {};
 };
 
+/*
+ * The relations the pages select through a record - a case's status and
+ * priority, a playbook's minimum priority - joined at read time from the
+ * value tables, so an edit of either reads back at once.
+ */
+function valueById(modelType, id) {
+  if (!id) {
+    return undefined;
+  }
+  const row = table(modelType).find((item) => {
+    return String(item._id) === String(id);
+  });
+  return row ? make(modelType, row) : undefined;
+}
+
+function withRelations(modelName, record) {
+  if (modelName === tableName(SecurityCase)) {
+    return {
+      ...record,
+      securityCaseStatus: valueById(
+        SecurityCaseStatus,
+        record.securityCaseStatusId,
+      ),
+      securityCasePriority: valueById(
+        SecurityCasePriority,
+        record.securityCasePriorityId,
+      ),
+    };
+  }
+  if (modelName === tableName(SecurityPlaybook)) {
+    return {
+      ...record,
+      minimumSecurityCasePriority: valueById(
+        SecurityCasePriority,
+        record.minimumSecurityCasePriorityId,
+      ),
+    };
+  }
+  return record;
+}
+
 function knownTable(modelType, kind, extra) {
   const name = tableName(modelType);
   if (!tables.has(name)) {
@@ -2119,7 +2495,9 @@ ModelAPI.getItem = async (options) => {
   const record = known?.records.find((item) => {
     return String(item._id) === id;
   });
-  return record ? make(options.modelType, record) : null;
+  return record
+    ? make(options.modelType, withRelations(modelName, record))
+    : null;
 };
 
 ModelAPI.getList = async (options) => {
@@ -2144,7 +2522,7 @@ ModelAPI.getList = async (options) => {
   );
   return {
     data: records.slice(skip, skip + limit).map((record) => {
-      return make(options.modelType, record);
+      return make(options.modelType, withRelations(modelName, record));
     }),
     count: records.length,
     skip,
@@ -2277,6 +2655,67 @@ AnalyticsModelAPI.count = async (modelType, query) => {
     return 0;
   }
   return INDICATORS.length;
+};
+
+/*
+ * What the project's security events say it sends: the Rule Library's one
+ * grouped count of the last week's events by class, vendor and product
+ * (RuleLibraryData), answered as the aggregate route would.
+ */
+const SENT_SECURITY_EVENTS = [
+  {
+    className: "Authentication",
+    vendorName: "Okta",
+    productName: "Okta System Log",
+    value: 4812,
+  },
+  {
+    className: "Account Change",
+    vendorName: "Okta",
+    productName: "Okta System Log",
+    value: 37,
+  },
+  {
+    className: "Process Activity",
+    vendorName: "Microsoft",
+    productName: "Microsoft Defender XDR",
+    value: 1290,
+  },
+  {
+    className: "Detection Finding",
+    vendorName: "Microsoft",
+    productName: "Microsoft Defender XDR",
+    value: 12,
+  },
+  {
+    className: "API Activity",
+    vendorName: "Kubernetes",
+    productName: "Kubernetes audit log",
+    value: 20114,
+  },
+];
+
+AnalyticsModelAPI.aggregate = async (options) => {
+  const modelName = new options.modelType().tableName;
+  fixture.aggregateRequests.push({
+    modelName,
+    aggregateBy: serialize(options.aggregateBy),
+  });
+  if (modelName !== new SecurityEvent().tableName) {
+    fixture.unhandled.push({ kind: "analytics.aggregate", modelName });
+    return { data: [] };
+  }
+  if (dataScenario === "fail") {
+    throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+  }
+  if (isEmpty || dataScenario === "none") {
+    return { data: [] };
+  }
+  return {
+    data: SENT_SECURITY_EVENTS.map((row) => {
+      return { ...row, timestamp: ago(DAY) };
+    }),
+  };
 };
 
 /*
@@ -2659,6 +3098,21 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(200, AI_PROVIDERS, {});
   }
+  const usage = path.match(
+    /\/(security-case-priority|security-case-status)\/([^/]+)\/usage$/,
+  );
+  if (method === "POST" && usage) {
+    return new HTTPResponse(
+      200,
+      valueUsage(
+        usage[1] === "security-case-priority"
+          ? SecurityCasePriority
+          : SecurityCaseStatus,
+        usage[2],
+      ),
+      {},
+    );
+  }
   const decision = path.match(
     /\/security-playbook-run\/([^/]+)\/(approve|reject)$/,
   );
@@ -2681,9 +3135,13 @@ API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
 
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: {
+    en: { translation: {} },
+    de: { translation: de },
+    ja: { translation: ja },
+  },
   interpolation: { escapeValue: false },
 });
 
@@ -2757,6 +3215,11 @@ const PAGES = [
     return [view.page, SecurityPlaybookRunsPage, view.key];
   }),
   [PageMap.SECURITY_EVENTS_SETTINGS_AI, SecurityEventsAISettingsPage],
+  [
+    PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES,
+    SecurityCasePrioritiesPage,
+  ],
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES, SecurityCaseStatusesPage],
 ];
 const STUB_PAGES = [
   [PageMap.SECURITY_EVENTS, "Events"],

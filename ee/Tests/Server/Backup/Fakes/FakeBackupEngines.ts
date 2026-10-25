@@ -60,7 +60,7 @@ export class FakePostgresEngine {
       User: [{ email: "ada@example.com" }],
       Monitor: [{ name: "Home page" }, { name: "API" }, { name: "Checkout" }],
       StatusPage: [{ name: "Status" }],
-      migrations: [{ name: "AddBackups1807120000000" }],
+      migrations: [{ name: "AddBackups1807220000000" }],
     });
     this.serverInfo = {
       versionNum: 160004,

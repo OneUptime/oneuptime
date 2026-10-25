@@ -65,6 +65,8 @@ const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   "SecurityCase.description",
   "SecurityCaseNote.note",
   "SecurityDetection.description",
+  // The AI context an AI rule gives OneUptime AI (#5230) came after it too.
+  "AutoRemediationRule.aiContext",
 ];
 
 async function statementsFor(

@@ -31,10 +31,17 @@ import {
   buildDetectionRuleFromLibrary,
   buildSecurityPlaybookFromTemplate,
   findRuleOfLibraryEntry,
+  getSecurityPlaybookTemplateValues,
   isPlaybookFromTemplate,
   isRuleFromLibraryEntry,
 } from "../../../../Utils/SecurityEvent/SecurityTemplateRecords";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
+import {
+  TEST_PRIORITY_IDS,
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import fs from "fs";
 import path from "path";
 import { getMetadataArgsStorage } from "typeorm";
@@ -168,7 +175,18 @@ function normalized(name: string): string {
 
 beforeEach(() => {
   stubProjectDirectory({});
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
 });
+
+// A new project's priorities and statuses, which a template's steps name by id.
+const VALUES: {
+  priorities: ReturnType<typeof buildDefaultTestPriorities>;
+  statuses: ReturnType<typeof buildDefaultTestStatuses>;
+} = {
+  priorities: buildDefaultTestPriorities(PROJECT_ID),
+  statuses: buildDefaultTestStatuses(PROJECT_ID),
+};
 
 const ENTRIES: Array<[string, DetectionRuleLibraryEntry]> =
   DETECTION_RULE_LIBRARY.map(
@@ -332,6 +350,7 @@ describe("the playbook templates", () => {
         const record: SecurityPlaybook = buildSecurityPlaybookFromTemplate({
           projectId: PROJECT_ID,
           template,
+          ...VALUES,
         });
 
         expect(overWide(record)).toEqual([]);
@@ -345,9 +364,14 @@ describe("the playbook templates", () => {
         expect(checked.isEnabled).toBe(true);
         expect(checked.trigger).toBe(template.trigger);
         expect((checked.steps as Array<unknown>).length).toBe(
-          template.getSteps().length,
+          template.getSteps(getSecurityPlaybookTemplateValues(VALUES)).length,
         );
-        expect(checked.minimumPriority).toBe(template.minimumPriority);
+        // The minimum is the project's priority of the template's level.
+        expect(checked.minimumSecurityCasePriorityId?.toString()).toBe(
+          template.minimumPriorityLevel
+            ? TEST_PRIORITY_IDS[template.minimumPriorityLevel]
+            : undefined,
+        );
         expect(checked.detectionSource).toBe(template.detectionSource);
         expect(overWide(checked)).toEqual([]);
         expect(isPlaybookFromTemplate(checked, template)).toBe(true);
@@ -391,6 +415,7 @@ describe("the playbook templates", () => {
           const record: SecurityPlaybook = buildSecurityPlaybookFromTemplate({
             projectId: PROJECT_ID,
             template,
+            ...VALUES,
             name: name as string,
             description: description as string,
           });

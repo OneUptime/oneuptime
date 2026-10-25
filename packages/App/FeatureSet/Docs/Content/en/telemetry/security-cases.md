@@ -5,6 +5,7 @@ Security Events turns what your detection rules, threat intelligence and connect
 :::cards
 - [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products and people.
 - [Work a case](#work-a-case): Assign it, investigate its entities, close it with a verdict.
+- [Case priorities and statuses](#case-priorities-and-statuses): Rename, recolor and reorder them, and add your own.
 - [Notifications](#notifications): Who is told about a new case, an assignment and a step waiting for approval.
 - [Playbooks](#playbooks): Steps that run on a case, with approval where it matters.
 - [The overview](#the-overview): What needs someone now, and how fast cases are handled.
@@ -60,7 +61,7 @@ A detection is about an entity: the value its rule groups by, such as the IP add
 - When no open case is, a new case opens, named after the detection, at the detection's priority.
 - A detection that fires again counts up on its row instead of adding one.
 
-A case's priority comes from the detection's severity:
+A case's priority comes from the detection's severity, at the project's built-in priority for that level, whatever you have named it:
 
 | Severity | Priority |
 | --- | --- |
@@ -72,7 +73,7 @@ A case's priority comes from the detection's severity:
 
 ## Work a case
 
-A case moves through four statuses. It can skip one, such as a false positive closed straight from New, and it can be reopened.
+A new project's cases move through four statuses, which you can rename and add to (see [Case priorities and statuses](#case-priorities-and-statuses)). A case can skip one, such as a false positive closed straight from New, and it can be reopened.
 
 | Status | Means |
 | --- | --- |
@@ -112,6 +113,25 @@ A case opened from Google SecOps alerts closes them in Google SecOps too, with t
 
 **Declare Incident** opens a OneUptime incident for the case, at the severity you choose, and links the two both ways: the incident's description names the case, and the case's header links to the incident. On-call, status pages and the postmortem take over from there. It takes a role that can both work cases and create incidents.
 
+## Case priorities and statuses
+
+Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**. Rename them, recolor them, drag them into another order, and add your own, such as a "Triage" status or an "Emergency" priority above **Critical**. A new name shows everywhere at once: in the queue, on the case pages and the overview, in notifications, in Slack and Microsoft Teams, and in playbook messages.
+
+Some are built in, because OneUptime reads what they mean. They can be renamed and recolored, but not deleted or archived, and they keep their order:
+
+| Built in | What OneUptime does with it |
+| --- | --- |
+| The new status | New cases start in it |
+| The acknowledged status | Reaching it records when the case was acknowledged, and **Reopen** moves a closed case back to it |
+| The contained status | Reaching it records when the case was contained |
+| The closed status | **Close Case** moves a case to it, with a verdict |
+| The Critical, High, Medium, Low and Informational priorities | A detection opens its case at the one of its severity, and a case someone opens starts at Medium |
+
+- Where a status sits decides what a case in it counts as, as the **Counts as** column shows: from the acknowledged status down, acknowledged; from the contained status down, contained; from the closed status down, closed. A status you add goes just above the closed status, and moving a case into a status that closes it asks for a verdict first.
+- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack and Microsoft Teams rules read this order. A priority you add goes to the end, and the **Detection severity** column shows which detections open their cases at each built-in priority.
+
+To stop using a status or priority of your own, use **Archive** on its row. Nobody can pick it again, and the API, Terraform and MCP refuse it, but the cases that have it keep it, and you can still filter by it. Archived values are listed in the folded **Archived Case Statuses** or **Archived Case Priorities** section under the table, where **Unarchive** puts one back. **Delete** is refused while cases have the value or a playbook runs from the priority.
+
 ## Notifications
 
 OneUptime tells people about three things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
@@ -136,10 +156,12 @@ Each person chooses for themselves, under **User Settings → Notification Setti
 | Choice | Notifies about cases at |
 | --- | --- |
 | Critical only | Critical |
-| High and Critical | High and Critical (the default) |
+| High and above | Critical and High (the default) |
 | Medium and above | Critical, High and Medium |
 | Low and above | Every priority but Informational |
 | Every case | Every priority |
+
+The choices follow the project's case priorities, under their own names: these are a new project's.
 
 WhatsApp messages are not sent for security cases. A push notification opens the OneUptime app, and its link opens the case in the browser.
 
@@ -149,9 +171,9 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 
 | Condition | Matches on |
 | --- | --- |
-| Security Case Priority | Critical, High, Medium, Low or Informational |
+| Security Case Priority | One of the project's case priorities, such as Critical or High |
 | Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
-| Security Case Status | New, Investigating, Contained or Closed |
+| Security Case Status | One of the project's case statuses, such as New or Closed |
 | Security Case Source | Detection Rule, Threat Intel, Connected Product or Manual |
 | Security Case Labels | The case's labels |
 
@@ -184,7 +206,7 @@ A disabled playbook runs neither by itself nor by hand.
 | --- | --- | --- |
 | Case | Assign the case | Gives the case to a person, a team, or both |
 | Case | Set the priority | Raises or lowers the case's priority |
-| Case | Set the status | Moves the case to Investigating, Contained or Closed, with the verdict you choose |
+| Case | Set the status | Moves the case to another of the project's statuses, with the verdict you choose when that status closes it |
 | Case | Add a note | Writes a note on the case, such as a checklist for the analyst |
 | Case | Add labels | Tags the case with labels |
 | Investigate | Check entities against threat intel | Looks each entity up in your threat intelligence, and can raise the priority on a match |
@@ -247,8 +269,8 @@ A note, an email, a Slack post and a Teams post can use the case's values:
 | --- | --- |
 | `{{case.number}}` | The case number, like CASE-42 |
 | `{{case.title}}` | The case title |
-| `{{case.priority}}` | Critical, High, Medium, Low or Informational |
-| `{{case.status}}` | New, Investigating, Contained or Closed |
+| `{{case.priority}}` | The case's priority, as your project names it, such as High |
+| `{{case.status}}` | The case's status, as your project names it, such as Investigating |
 | `{{case.assignee}}` | Who the case is assigned to |
 | `{{case.url}}` | A link to the case in OneUptime |
 | `{{case.entities}}` | The users, hosts and addresses the case is about |
@@ -278,7 +300,7 @@ A run that stops hearing from its worker, after a restart for example, is picked
 **Products → Security Events → Overview** is where the product opens:
 
 - The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval, each opening the page that lists them.
-- **Mean Time to Acknowledge**, **Mean Time to Contain** and **Mean Time to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it out of New), to Contained, and to Closed. A case still waiting is not counted in a mean.
+- **Mean Time to Acknowledge**, **Mean Time to Contain** and **Mean Time to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it to a status that counts as acknowledged), to a status that counts as contained, and to one that counts as closed. A case still waiting is not counted in a mean.
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
 - The open cases by priority and by status, the verdicts of the last 30 days, the ATT&CK tactics behind the cases, the detections that fired most, and the entities named by the most findings.
 
@@ -287,14 +309,15 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Find threats
 
 - **Entities** ranks the users, hosts, addresses and hashes that your findings name most, over the last day, week or month, and looks any value up across 30 days of events.
-- **Rule Library** has ready-made detection rules, for identity, endpoint, cloud, network, web and Kubernetes threats. Each is a Sigma rule written for the fields every connected source is normalized to. **Add Rule** creates it as a detection rule of yours, on, and opening cases rather than alerts; change it under **Detection Rules** like any other. The rules marked **Recommended** find threats in data OneUptime already has, and one button adds the ones you do not have yet.
-- **ATT&CK Coverage** draws the MITRE ATT&CK matrix with the techniques your enabled rules cover lit, and outlines the ones a library rule would cover.
+- **Rule Library** has ready-made detection rules, for identity, endpoint, cloud, network, web and Kubernetes threats. Each is a Sigma rule written for the fields every connected source is normalized to. Its row says what it finds, the MITRE ATT&CK tactics and techniques it is tagged with, the events it reads and whether any arrived in the last 7 days (**Receiving** or **Not receiving**), and its severity. Narrow the list by category, by the data the rules read and by whether you have added them, or search it by name, ATT&CK technique or severity; the page's address keeps the filters. Select a rule for its details: how to start sending the events it reads, how it runs, and its Sigma rule. **Add** creates it as a detection rule of yours, on, and opening cases rather than alerts; change it under **Detection Rules** like any other. The rules marked **Recommended** find threats in data OneUptime already has, and one button adds the ones you do not have yet.
+- **ATT&CK Coverage** draws the MITRE ATT&CK matrix with the techniques your enabled rules cover lit, and outlines the ones a library rule would cover. Select a technique to see the library rules that cover it, and open the **Rule Library** on them.
 
 ## Automate
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
-- **API**: cases, notes, detections, playbooks, runs and protected entities have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` and `/security-protected-entity`. See [API Reference](/docs/api-reference/api-reference).
-- AI agents: the MCP server has tools for cases, notes, detections and playbooks. See [MCP Server](/docs/ai/mcp-server).
+- **API**: cases, notes, detections, playbooks, runs, protected entities, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
+- AI agents: the MCP server has tools for cases, notes, detections, playbooks, and case priorities and statuses. See [MCP Server](/docs/ai/mcp-server).
+- Terraform: the `oneuptime_security_case_priority` and `oneuptime_security_case_status` resources keep a project's priorities and statuses as code.
 
 ## Troubleshooting
 
@@ -303,7 +326,7 @@ Check **Open a Case on Match** on the rule's **On Match** step. A detection abou
 :::
 
 :::details Nobody was told about a case
-Look at the case's **Timeline**, which says who was notified. A **New security case** notification goes to the people whose chosen priority the case reaches, so a Medium case notifies nobody who kept the default, **High and Critical**. Check that the people who should hear can see security cases (a Security role, or Project Owner or Admin), and that the notification is on for them under **User Settings → Notification Settings → Security**.
+Look at the case's **Timeline**, which says who was notified. A **New security case** notification goes to the people whose chosen priority the case reaches, so a Medium case notifies nobody who kept the default, **High and above**. Check that the people who should hear can see security cases (a Security role, or Project Owner or Admin), and that the notification is on for them under **User Settings → Notification Settings → Security**.
 :::
 
 :::details A playbook did not run
@@ -316,6 +339,10 @@ Open the run on the case: the step says, for each user or host, whether the prod
 
 :::details A Contain step was skipped
 The case is about no user or host, only an address for example, or every user or host it is about is protected. Open the run on the case: the step says which.
+:::
+
+:::details A status or priority can't be deleted or archived
+A built-in one can be renamed and recolored, but never deleted or archived: its **Archive** is locked, with the reason. One of your own can't be deleted while cases have it or a playbook runs from it: move the cases to another first, or archive it.
 :::
 
 ## Next steps
