@@ -92,6 +92,7 @@ import useAssigneeActions, {
 import { ASSIGN_TO_ME_TITLE } from "../../../UI/Components/BulkUpdate/BulkOwnerActions";
 import {
   BulkActionOnClickProps,
+  BulkActionUnchanged,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import RowActions from "../../../UI/Components/ActionButton/RowActions";
@@ -497,7 +498,7 @@ describe("Assign to Me in Bulk Actions", () => {
     ]);
     expect(
       (last.unchanged || []).map(
-        (entry: { item: SecurityCase; reason: string }) => {
+        (entry: BulkActionUnchanged<SecurityCase>) => {
           return [entry.item._id, entry.reason];
         },
       ),

@@ -73,6 +73,7 @@ import useBulkOwnerActions, {
 } from "../../../UI/Components/BulkUpdate/BulkOwnerActions";
 import {
   BulkActionOnClickProps,
+  BulkActionUnchanged,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import RowActions from "../../../UI/Components/ActionButton/RowActions";
@@ -498,7 +499,7 @@ describe("Assign to Me in Bulk Actions", () => {
     ).toEqual([INCIDENT_ONE_ID]);
     expect(
       (last.unchanged || []).map(
-        (entry: { item: Incident; reason: string }) => {
+        (entry: BulkActionUnchanged<Incident>) => {
           return [entry.item._id, entry.reason];
         },
       ),

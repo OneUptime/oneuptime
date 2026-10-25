@@ -89,6 +89,7 @@ import useValueChangeActions, {
 } from "../../../UI/Components/BulkUpdate/ValueChangeActions";
 import {
   BulkActionOnClickProps,
+  BulkActionUnchanged,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import RowActions from "../../../UI/Components/ActionButton/RowActions";
@@ -558,7 +559,7 @@ describe("Change Severity in Bulk Actions", () => {
     ]);
     expect(
       (last.unchanged || []).map(
-        (entry: { item: Incident; reason: string }) => {
+        (entry: BulkActionUnchanged<Incident>) => {
           return [entry.item._id, entry.reason];
         },
       ),

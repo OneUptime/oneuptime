@@ -362,11 +362,21 @@ describe("withRowActionContext", () => {
       onClick: (): void => {},
     };
     const [wrapped] = withRowActionContext<Row>([original], context);
-    const { onClick: _wrappedClick, ...rest } = wrapped!;
-    const { onClick: _originalClick, ...expected } = original;
 
-    expect(rest).toEqual(expected);
-    expect(rest.isVisible).toBe(isVisible);
-    expect(rest.getConfirmation).toBe(getConfirmation);
+    // The same keys, and every one but onClick the very same value.
+    expect(Object.keys(wrapped!).sort()).toEqual(Object.keys(original).sort());
+
+    for (const key of Object.keys(original) as Array<
+      keyof ActionButtonSchema<Row>
+    >) {
+      if (key !== "onClick") {
+        expect({ key, same: wrapped![key] === original[key] }).toEqual({
+          key,
+          same: true,
+        });
+      }
+    }
+
+    expect(wrapped!.onClick).not.toBe(original.onClick);
   });
 });

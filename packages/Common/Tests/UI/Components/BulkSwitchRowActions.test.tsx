@@ -630,7 +630,6 @@ describe("Unsubscribe in a subscriber's row", () => {
   ): StatusPageSubscriber => {
     const row: StatusPageSubscriber = new StatusPageSubscriber();
     row._id = SUBSCRIBER_ID;
-    row.subscriberEmail = undefined;
     row.isUnsubscribed = isUnsubscribed;
 
     return row;
