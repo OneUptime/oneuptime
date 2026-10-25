@@ -82,15 +82,27 @@ Ett ärendes prioritet kommer från detektionens allvarlighetsgrad, som projekte
 | Contained | Hotet kan inte längre göra skada; saneringen återstår |
 | Closed | Klart, med en bedömning av vad det var |
 
-Ärendets sida har allt som behövs för att arbeta med det:
+Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet är en egen sida:
 
-- Överst: **Tilldela mig**, **Run Playbook**, **Deklarera incident** och **Close Case**, statusstegen, och prioriteten i menyn bredvid dem.
-- **OneUptime AI**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
+| Avsnitt i sidomenyn | Sidor |
+| --- | --- |
+| **Översikt** | **Översikt**, **Tidslinje** |
+| **Utredning** | **Detections**, **Entiteter**, **Playbook-körningar** |
+| **Anteckningar** | **Privata anteckningar** |
+| **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
+
+Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Run Playbook**, **Deklarera incident** och **Close Case**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**.
+
+- **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det.
+- **OneUptime AI**, på **Översikt**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, på **Översikt**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
+- **Tidslinje**: allt som hände med ärendet, med vem som gjorde det.
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
-- **MITRE ATT&CK**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
-- **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande.
-- **Anteckningar** och **Tidslinje**: vad teamet skrev, och allt som hände, med vem som gjorde det.
+- **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbook-körningar**.
+- **Privata anteckningar**: vad teamet skrev om ärendet.
+- **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
+- **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar, tidslinje och playbook-körningar. För att behålla det som dokumentation, stäng det i stället med en bedömning.
 
 För att arbeta med flera ärenden samtidigt markerar du dem i kön och använder **Tilldela mig**, **Change Status** eller **Change Priority**.
 

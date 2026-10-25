@@ -8,6 +8,7 @@ Loggutforskaren är där du söker i och läser loggarna som dina tjänster, vä
 - [Följ loggar live](#följ-loggar-live): Nya rader var tionde sekund.
 - [Spara en vy](#spara-en-vy): Behåll en sökning, dess filter och dess kolumner för alla.
 - [Insikter i loggar](#insikter-i-loggar): De vanligaste felen, allvarlighetsgrader och vem som loggar vad.
+- [Hitta och åtgärda felloggar, saknade och brusiga loggar med AI](#hitta-och-åtgärda-felloggar-saknade-och-brusiga-loggar-med-ai): Pull requests som åtgärdar fel, loggar det som inte loggas och dämpar brusiga rader.
 :::
 
 ## Så avgränsar utforskaren dina loggar
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["En logg: detaljer<br/>och kontext"]
 ```
 
-Utforskaren har fyra flikar:
+Utforskaren har fem flikar:
 
 | Flik | Vad den är till för |
 | --- | --- |
 | **Tittare** | Sök i, filtrera och läs loggar. Den öppnas på den senaste timmen, nyaste först, 100 loggar per sida. |
 | **Insikter** | Vad dina tjänster har loggat i ett tidsintervall, och vad som gick fel. |
+| **AI** | De felloggar, den saknade loggning och de brusiga loggar som OneUptime hittar i dina loggar, och vad OneUptime AI gjorde åt dem. Se [Hitta och åtgärda felloggar, saknade och brusiga loggar med AI](#hitta-och-åtgärda-felloggar-saknade-och-brusiga-loggar-med-ai). |
 | **Installationsguide** | Hur du skickar loggar med OpenTelemetry, Fluent Bit eller Fluentd med en av dina [inmatningsnycklar](/docs/telemetry/ingestion-keys). |
 | **Inställningar** | Vad som händer med loggar när de kommer in: **Pipelines**, **Drop-filter**, **Scrub-regler** och **Inspelningsregler**. |
 
@@ -129,6 +131,46 @@ Fliken **Insikter** visar vad dina tjänster har loggat i ett tidsintervall, och
 | **Sources reporting logs** | Volymen och felsignalen för varje tjänst, värd eller annan källa. |
 
 Välj ett av de vanligaste felen för att se vad som hände runt det: när det inträffade, vad dess förekomster har gemensamt, var det inträffar, spåren som bär det och dess senaste rader. **Open matching logs** öppnar dem i **Tittare**, och **Explain with AI** öppnar [Fråga AI](/docs/ai/ask-ai) med felet och dess bevis som en prompt du kan redigera.
+
+## Hitta och åtgärda felloggar, saknade och brusiga loggar med AI
+
+Varje timme går OneUptime igenom varje tjänsts loggar från den senaste timmen efter fel som den loggar om och om igen, misslyckanden som den inte loggar och rader som översvämmar dess loggar, och registrerar det den hittar som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som åtgärdar det. Inget slås någonsin ihop: ditt team granskar varje pull request.
+
+OneUptime registrerar tre sorters fynd:
+
+| Fynd | När OneUptime registrerar det | Pull requesten |
+| --- | --- | --- |
+| **Fellogg** | En tjänst loggade samma meddelande med Error eller Fatal 20 gånger eller fler under timmen, ett meddelande med egna ord och utan undantag. Ett meddelande som loggas med ett undantag, eller med en stackspårning i sig, följs i stället i [Undantagsspårning](/docs/telemetry/exceptions). | Åtgärdar orsaken till att felet loggas, eller loggar det på den nivå det förtjänar. |
+| **Saknad loggning** | Minst 20 av en operations spans misslyckades under timmen, 5 % eller fler av dem, medan minst 100 av tjänstens loggar bär ett spår-id, och ingen av operationens 20 senaste misslyckade förfrågningar skrev en loggrad. Eller en tjänst skickade 500 loggar eller fler och 100 spans eller fler under timmen, och färre än 1 % av dess loggar bär ett spår-id. | Loggar misslyckandet där det sker, eller får tjänstens loggar att bära spår-id:t. |
+| **Brusig logg** | Ett meddelande som loggas under Error utgör 25 % eller mer av en tjänsts rader under timmen, omkring 10 000 rader eller fler. | Loggar raden mindre: med Debug, en gång per omgång eller inte alls. |
+
+Ett fynd sparar ett meddelande som dess mönster: de delar som ändras från rad till rad, till exempel tal och id:n, maskeras. Pull requesten begärs med det mönstret, aldrig med en rad som den loggades, och OneUptime AI uppmanas att aldrig logga hemligheter eller personuppgifter, eller kopiera loggrader till pull requesten.
+
+OneUptime AI öppnar bara själv pull requesten för en fellogg när den hittar den skyldiga koden. Ett fel som kommer från något annat håll, till exempel ett beroende som ligger nere, får ingen pull request om inte någon ber om en med **Åtgärda med AI**.
+
+### Slå på det
+
+**Loggar → AI → Inställningar** har reglaget **Hitta och åtgärda felloggar, saknade och brusiga loggar**, som är på för nya projekt. När **Aktivera AI** är av hittas felloggar, saknade och brusiga loggar fortfarande, men OneUptime AI gör ingenting med dem. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+
+OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), för all telemetri den åtgärdar tillsammans, en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
+
+### AI-regler
+
+Utan regler undersöker OneUptime AI direkt varje problem den hittar i dina loggar och öppnar en pull request för vart och ett den kan åtgärda. **AI-regler** under **Fler inställningar** begränsar det, i tre steg:
+
+| Steg | Vad det avgör |
+| --- | --- |
+| **Matcha** | Vilka tjänster: de valda, de med vissa etiketter eller de vars namn matchar ett mönster. |
+| **Utreda** | **Direkt**, eller **Bara om fortfarande hittad efter en väntetid**: ett problem som försvinner under väntetiden undersöks inte. |
+| **Åtgärd** | **Åtgärda inte**, **Fråga innan något åtgärdas** eller **Åtgärda utan att fråga**. Att fråga först lämnar pull requesten till en person: fyndet erbjuder **Åtgärda med AI**. |
+
+Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LLM-leverantör som OneUptime AI får använda för den. Är inget valt får den använda alla, och projektets standard-LLM-leverantör.
+
+### Se vad den gjorde
+
+- **Loggar → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Loggar**, som öppnar de rader det gäller, från timmen då det hittades, i **Tittare**. Ett misslyckande som inte skriver någon loggrad har inga rader att öppna: **Öppna i Spår** öppnar i stället dess misslyckade spans. För en fellogg skapar **Skapa monitor** en loggmonitor som räknar meddelandets rader.
+- **Loggar → AI → Aktivitet** visar varje utredning och varje pull request, nyast först, med hur var och en står. En avslutad utredning säger också vad OneUptime AI hittade, till exempel orsaken till ett fel utanför koden, och därför fick den felloggen ingen pull request av sig själv.
+- I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Vad som händer med loggar när de kommer in
 

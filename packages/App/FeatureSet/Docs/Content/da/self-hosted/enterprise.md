@@ -50,6 +50,7 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 | Administrationens **Health**-dashboards: oversigt over instansen, baggrundskøer, instanslogs, PostgreSQL, Valkey, ClickHouse-klynge, diagnoselogs og telemetri-indtagelse | Nej | Ja | Ikke relevant |
 | Administrationens **Query Console** | Nej | Ja | Ikke tilgængelig |
 | Health-advarsler for PostgreSQL og Valkey (Redis) | Nej | Ja | Ikke relevant |
+| [Sikkerhedskopier](/docs/installation/backups) af PostgreSQL og ClickHouse til dit eget lager, efter en tidsplan, med gendannelse | Nej | Ja | Ikke relevant |
 | Kapacitetsvisning for ClickHouse, kapacitetsadvarsler og automatisk oprydning af disken | Ja | Ja | Ikke relevant |
 | Migreringsstatus, supportpakke og globale prober i Admin-dashboardet | Ja | Ja | Ikke relevant |
 | Administration af Enterprise-licens, pladser og instanser | Nej | Ja | Ikke relevant |
@@ -192,6 +193,7 @@ Hvad der stopper, når en licens udløber:
 - **Auditlogningen holder op med at registrere.** Auditlogs, der er registreret indtil da, bevares.
 - **Tilsidesættelser af opbevaring holder op med at gælde.** Ny telemetri opbevares i projektets standardopbevaring. Telemetri, der allerede er gemt, beholder den opbevaring, den blev skrevet med. Du kan stadig rydde en tilsidesættelse via API'en, men ikke indstille en.
 - **Statussider viser Powered by OneUptime igen.** En side, der skjuler linjen, viser den, indtil en licens aktiveres. Indstillingen bevares.
+- **Planlagte sikkerhedskopier stopper.** Der laves ingen ny sikkerhedskopi. Sikkerhedskopier, der allerede er lavet, bliver på deres destination, og du kan stadig gendanne og slette dem.
 
 Hvad der **ikke** stopper:
 

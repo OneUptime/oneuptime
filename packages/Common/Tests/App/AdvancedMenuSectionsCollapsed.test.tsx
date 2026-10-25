@@ -197,6 +197,17 @@ const RENDERS_SIDE_MENU: RegExp =
 const DECLARES_ADVANCED_SECTION: RegExp =
   /title(?:=|:\s*)(?:"Advanced"|\{?t\("sideMenu\.advanced"\)\}?)/;
 
+/*
+ * Menus drawn from data kept in a module of their own, React-free so plain
+ * tests pin it: their Advanced section is written there, where the pattern
+ * above cannot see it from the menu's file. Each is checked like the rest
+ * (the sweep below renders every menu and holds this list to what it draws).
+ */
+const ADVANCED_DECLARED_IN_DATA: Readonly<Record<string, string>> = {
+  "Dashboard/src/Pages/SecurityEvents/CaseView/SideMenu.tsx":
+    "a security case's sections are SECURITY_CASE_MENU, in Utils/SecurityCaseNavigation.ts",
+};
+
 function sourceFilesUnder(dir: string): Array<string> {
   const files: Array<string> = [];
 
@@ -236,12 +247,17 @@ const MENU_MODULES: ReadonlyArray<MenuModule> = APP_SOURCE_DIRS.flatMap(
     );
   })
   .map((file: string): MenuModule => {
+    const name: string = path
+      .relative(FEATURE_SETS_DIR, file)
+      .split(path.sep)
+      .join("/");
+
     return {
-      name: path.relative(FEATURE_SETS_DIR, file).split(path.sep).join("/"),
+      name,
       file,
-      declaresAdvanced: DECLARES_ADVANCED_SECTION.test(
-        fs.readFileSync(file, "utf8"),
-      ),
+      declaresAdvanced:
+        DECLARES_ADVANCED_SECTION.test(fs.readFileSync(file, "utf8")) ||
+        Boolean(ADVANCED_DECLARED_IN_DATA[name]),
     };
   })
   .sort((a: MenuModule, b: MenuModule): number => {

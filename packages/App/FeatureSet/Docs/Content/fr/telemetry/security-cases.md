@@ -82,15 +82,27 @@ Les dossiers d'un nouveau projet passent par quatre statuts, que vous pouvez ren
 | Confiné | La menace ne peut plus nuire ; le nettoyage reste à faire |
 | Fermé | Terminé, avec un verdict sur ce que c'était |
 
-La page du dossier réunit tout ce qu'il faut pour le traiter :
+Un dossier a son propre menu latéral, comme un incident, et chaque partie du dossier est une page à part :
 
-- En haut : **M'attribuer**, **Run Playbook**, **Déclarer un incident** et **Close Case**, les étapes de statut, et la priorité, dans le menu à côté.
-- **OneUptime AI** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
+| Section du menu latéral | Pages |
+| --- | --- |
+| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
+| **Investigation** | **Détections**, **Entités**, **Exécutions de playbooks** |
+| **Notes** | **Notes privées** |
+| **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
+
+Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Run Playbook**, **Déclarer un incident** et **Close Case**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**.
+
+- **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir.
+- **OneUptime AI**, sur la **Vue d'ensemble** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, sur la **Vue d'ensemble** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
+- **Chronologie** : tout ce qui est arrivé au dossier, avec son auteur.
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
-- **MITRE ATT&CK** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
-- **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation.
-- **Notes** et **Chronologie** : ce que l'équipe a écrit, et tout ce qui s'est passé, avec son auteur.
+- **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Exécutions de playbooks**.
+- **Notes privées** : ce que l'équipe a écrit sur le dossier.
+- **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
+- **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes, sa chronologie et ses exécutions de playbooks. Pour en garder la trace, clôturez-le plutôt avec un verdict.
 
 Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **M'attribuer**, **Change Status** ou **Change Priority**.
 

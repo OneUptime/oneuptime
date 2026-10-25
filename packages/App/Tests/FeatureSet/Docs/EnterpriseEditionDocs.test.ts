@@ -127,6 +127,7 @@ const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
   [EnterpriseFeature.IpAllowlists]: "IP allowlists",
   [EnterpriseFeature.StatusPageAccessControls]: "Status page access controls",
   [EnterpriseFeature.StatusPageBranding]: 'Hiding "Powered by OneUptime"',
+  [EnterpriseFeature.Backups]: "[Backups](/docs/installation/backups)",
 };
 
 /*
@@ -1143,6 +1144,9 @@ describe("Enterprise Edition docs page", () => {
       "**Audit logging stops recording.**",
       "**Retention overrides stop applying.** New telemetry is kept for the project's default retention.",
       "Telemetry already stored keeps the retention it was written with.",
+      // Backups: no new one is made, and the ones made stay restorable.
+      "**Scheduled backups stop.** No new backup is made.",
+      "Backups already made stay at their destination, and you can still restore and delete them.",
       "Enterprise configuration becomes **read-only**",
       // The one change a lapsed install still accepts.
       "One change always works, so you can respond to an incident: replacing a SCIM bearer token.",

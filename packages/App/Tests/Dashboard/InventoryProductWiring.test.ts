@@ -107,7 +107,18 @@ describe("the old Entities product is gone, not merely hidden", () => {
   });
 
   test("RouteMap no longer serves anything under /entities", () => {
-    expect(readSource("Utils", "RouteMap.ts")).not.toContain("/entities");
+    /*
+     * The old product sat right under the project: /dashboard/:projectId/
+     * entities, and the pages under it. Security Events' own entity pages
+     * live under Security Events' address (security-events/entities, and a
+     * case's cases/:id/entities), and are not it.
+     */
+    const routeMap: string = readSource("Utils", "RouteMap.ts");
+
+    expect(routeMap).not.toMatch(
+      /\/dashboard\/\$\{RouteParams\.ProjectID\}\/entities/,
+    );
+    expect(routeMap).not.toMatch(/\/dashboard\/:projectId\/entities/);
   });
 });
 

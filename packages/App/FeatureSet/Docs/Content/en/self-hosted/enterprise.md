@@ -50,6 +50,7 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | Admin **Health** dashboards: instance overview, background queues, instance logs, PostgreSQL, Valkey, ClickHouse cluster, diagnostic logs and telemetry ingestion | No | Yes | Not applicable |
 | Admin **Query Console** | No | Yes | Not available |
 | PostgreSQL and Valkey (Redis) health alerts | No | Yes | Not applicable |
+| [Backups](/docs/installation/backups) of PostgreSQL and ClickHouse to storage you own, on a schedule, with restore | No | Yes | Not applicable |
 | ClickHouse capacity view, capacity alerts and automatic disk pruning | Yes | Yes | Not applicable |
 | Migration status, support bundle and global probes in the Admin Dashboard | Yes | Yes | Not applicable |
 | Enterprise license, seat and instance management | No | Yes | Not applicable |
@@ -192,6 +193,7 @@ What stops when a license lapses:
 - **Audit logging stops recording.** Audit logs recorded so far are kept.
 - **Retention overrides stop applying.** New telemetry is kept for the project's default retention. Telemetry already stored keeps the retention it was written with. You can still clear an override through the API, but not set one.
 - **Status pages show Powered by OneUptime again.** A page that hides the line shows it until a license is activated. The setting is kept.
+- **Scheduled backups stop.** No new backup is made. Backups already made stay at their destination, and you can still restore and delete them.
 
 What does **not** stop:
 

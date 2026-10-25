@@ -191,12 +191,15 @@ const workspaceSection: (pages: {
 /*
  * The AI section of a telemetry product's menu - the Profiler's first
  * (Common/Types/AI/TelemetryAi): what OneUptime found in its data
- * (Insights), what OneUptime AI did with it (Logs), and what it may do on
- * its own (Settings, with its AI rules).
+ * (Insights), what OneUptime AI did with it (Logs - Activity in the Logs
+ * product, where "Logs" would read as log lines), and what it may do on its
+ * own (Settings, with its AI rules).
  */
 const telemetryAiSection: (pages: {
   insights: PageMap;
   logs: PageMap;
+  // What the menu calls the logs page, when not "Logs".
+  logsTitle?: string | undefined;
   settings: PageMap;
   keywords: {
     insights: Array<string>;
@@ -206,6 +209,7 @@ const telemetryAiSection: (pages: {
 }) => PageSearchSection = (pages: {
   insights: PageMap;
   logs: PageMap;
+  logsTitle?: string | undefined;
   settings: PageMap;
   keywords: {
     insights: Array<string>;
@@ -224,7 +228,7 @@ const telemetryAiSection: (pages: {
       },
       {
         page: pages.logs,
-        title: "Logs",
+        title: pages.logsTitle || "Logs",
         icon: IconProp.QueueList,
         keywords: pages.keywords.logs,
       },
@@ -1455,6 +1459,29 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.LOGS_AI_INSIGHTS,
+        logs: PageMap.LOGS_AI_ACTIVITY,
+        logsTitle: "Activity",
+        settings: PageMap.LOGS_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "error logs",
+            "missing logging",
+            "noisy logs",
+            "unlogged failures",
+            "logs without trace id",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "find and fix error, missing and noisy logs",
+            "log remediation",
+            "auto fix",
+          ],
+        },
+      }),
     ],
   },
   {
@@ -1497,6 +1524,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.METRICS_AI_INSIGHTS,
+        logs: PageMap.METRICS_AI_LOGS,
+        settings: PageMap.METRICS_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "high cardinality",
+            "too many series",
+            "histogram buckets",
+            "missing metrics",
+            "metric naming",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "improve metrics and add missing ones",
+            "metrics remediation",
+            "auto fix",
+          ],
+        },
+      }),
     ],
   },
   {

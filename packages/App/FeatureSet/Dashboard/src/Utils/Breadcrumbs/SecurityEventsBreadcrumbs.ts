@@ -11,6 +11,11 @@ import {
   getSecurityEventsWorkspacePages,
   isSecurityEventsWorkspacePage,
 } from "../SecurityEventsNavigation";
+import {
+  getSecurityCasePageTrail,
+  getSecurityCasePages,
+  isSecurityCasePage,
+} from "../SecurityCaseNavigation";
 import { BuildBreadcrumbLinksByTitles } from "./Helper";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
@@ -31,14 +36,16 @@ import Link from "Common/Types/Link";
  * side. Following the address instead would have sent Security Events to
  * the raw events, and Playbooks on a run's page to the runs waiting for
  * approval. The crumb of the page you are on is not a link.
+ *
+ * A case's pages sit under Security Cases, the case, then the page, as the
+ * case's side menu names it (SecurityCaseNavigation.ts): Project > Security
+ * Events > Security Cases > CASE-142 > Detections. The case's crumb opens
+ * its Overview, and is named for the case once it is read - its layout does
+ * that through nameRecordInTrail, as an incident's ModelPage does.
  */
 
-// The two pages that open on their own, under the section their lists are in.
+// A playbook's page, which opens on its own, under the section its list is in.
 const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
-  [
-    PageMap.SECURITY_CASE_VIEW,
-    ["Security Events", "Security Cases", "View Case"],
-  ],
   [
     PageMap.SECURITY_PLAYBOOK_VIEW,
     ["Security Events", "Playbooks", "View Playbook"],
@@ -47,7 +54,7 @@ const DETAIL_TRAILS: Array<[PageMap, Array<string>]> = [
 
 /*
  * The pages with a trail of their own: every menu page, the Workspace
- * section's, a case and a playbook.
+ * section's, a case's pages and a playbook.
  */
 export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
   return [
@@ -57,6 +64,7 @@ export function getSecurityEventsBreadcrumbPages(): Array<PageMap> {
       },
     ),
     ...getSecurityEventsWorkspacePages(),
+    ...getSecurityCasePages(),
     ...DETAIL_TRAILS.map(([page]: [PageMap, Array<string>]): PageMap => {
       return page;
     }),
@@ -72,6 +80,14 @@ function getPageForPath(path: string): PageMap | undefined {
 
 // Where a page's trail says it is, after "Project".
 function getTrail(page: PageMap): Array<string> | undefined {
+  if (isSecurityCasePage(page)) {
+    const caseTrail: Array<string> | undefined = getSecurityCasePageTrail(page);
+
+    return caseTrail
+      ? ["Security Events", "Security Cases", ...caseTrail]
+      : undefined;
+  }
+
   const detail: [PageMap, Array<string>] | undefined = DETAIL_TRAILS.find(
     ([candidate]: [PageMap, Array<string>]): boolean => {
       return candidate === page;
@@ -83,9 +99,11 @@ function getTrail(page: PageMap): Array<string> | undefined {
 
 // The section a page's trail names: its own, or its list's for a case or a playbook.
 function getSectionOf(page: PageMap): SecurityEventsMenuSection | undefined {
+  if (isSecurityCasePage(page)) {
+    return getSecurityEventsMenuSectionFor(PageMap.SECURITY_CASES);
+  }
+
   switch (page) {
-    case PageMap.SECURITY_CASE_VIEW:
-      return getSecurityEventsMenuSectionFor(PageMap.SECURITY_CASES);
     case PageMap.SECURITY_PLAYBOOK_VIEW:
       return getSecurityEventsMenuSectionFor(PageMap.SECURITY_PLAYBOOKS);
     default:

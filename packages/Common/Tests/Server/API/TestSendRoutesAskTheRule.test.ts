@@ -238,6 +238,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     rule: "instance",
     why: "Writes one test entry to the instance's audit log destination, from the Admin Dashboard.",
   },
+  {
+    file: "ee/Server/Backup/API/BackupAPI.ts",
+    path: "/backup/test",
+    rule: "instance",
+    why: "Writes, reads and deletes a test file at the instance's backup destination, and has ClickHouse write a test backup there, from the Admin Dashboard; sends nobody a message.",
+  },
 ];
 
 /*

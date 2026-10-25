@@ -2257,3 +2257,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest
           Tests/Server/AuditLogExport/AuditLogExporterPostgres.test.ts
           --selectProjects server --runInBand --forceExit
+
+      # Backups (Enterprise): PostgreSQL's half with the real pg_dump and
+      # pg_restore on this job's server - a database dumped while in use,
+      # streamed into a storage, read back, restored beside the live one
+      # byte for byte, switched in with the connections to it ended, and
+      # dropped - in databases of its own. The runner image carries the
+      # PostgreSQL client tools; they are installed if it ever does not.
+      - name: Make sure pg_dump and pg_restore are here
+        run: command -v pg_dump || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Test backing up and restoring PostgreSQL on a real server (Enterprise)
+        working-directory: ee
+        env:
+          RUN_POSTGRES_BACKUP_TESTS: "true"
+          BACKUP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          BACKUP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/Backup/PostgresBackupEnginePostgres.test.ts
+          --selectProjects server --runInBand --forceExit

@@ -124,8 +124,8 @@ Cada 15 minutos OneUptime revisa sus excepciones en busca de las nuevas, de las 
 
 | Hallazgo | Cuándo lo registra OneUptime | El pull request |
 | --- | --- | --- |
-| **New Exception** | Una excepción vista por primera vez en las últimas 24 horas que ya ocurrió 3 o más veces. | Corrige la excepción, o la gestiona mejor. |
-| **Exception Spike** | Una excepción que ocurrió 10 o más veces en la última hora, a 5 o más veces su ritmo por hora de las 24 horas anteriores. | Corrige la excepción, o la gestiona mejor. |
+| **Nueva excepción** | Una excepción vista por primera vez en las últimas 24 horas que ya ocurrió 3 o más veces. | Corrige la excepción, o la gestiona mejor. |
+| **Pico de excepciones** | Una excepción que ocurrió 10 o más veces en la última hora, a 5 o más veces su ritmo por hora de las 24 horas anteriores. | Corrige la excepción, o la gestiona mejor. |
 | **Stack trace faltante** | Las excepciones que un servicio registró en el último día no traen stack trace y, en conjunto, ocurrieron 20 o más veces. | Hace que el servicio registre un stack trace con cada excepción. |
 
 El pull request de una excepción nueva o en aumento es la propia tarea de IA de la excepción, la que inicia su página **Asistencia de IA**, y espera a que OneUptime AI analice el hallazgo. Si encuentra el código culpable (`code-fault`), el pull request lo corrige, como hace **Corregir esta excepción con IA**. Si encuentra un error esperado (`user-error` o `expected-denial`), el pull request gestiona mejor el error, como hace **Mejorar el manejo de errores**. Cualquier otro veredicto no abre ningún pull request por su cuenta. Con **Archivar las excepciones esperadas** activado, una denegación esperada se archiva en su lugar y no recibe ningún pull request.

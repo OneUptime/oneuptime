@@ -82,15 +82,27 @@ De zaken van een nieuw project doorlopen vier statussen, die je kunt hernoemen e
 | Contained | De dreiging kan geen schade meer aanrichten; het opruimen moet nog gebeuren |
 | Gesloten | Klaar, met een oordeel over wat het was |
 
-De pagina van de zaak heeft alles om haar af te handelen:
+Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is een eigen pagina:
 
-- Bovenaan: **Aan mij toewijzen**, **Run Playbook**, **Incident melden** en **Close Case**, de statusstappen, en de prioriteit onder het menu ernaast.
-- **OneUptime AI**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+| Sectie van het zijmenu | Pagina's |
+| --- | --- |
+| **Overzicht** | **Overzicht**, **Tijdlijn** |
+| **Onderzoek** | **Detections**, **Entiteiten**, **Playbook-uitvoeringen** |
+| **Notities** | **Privénotities** |
+| **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
+
+Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en titel, **Aan mij toewijzen**, **Run Playbook**, **Incident melden** en **Close Case**, en in het menu ⋯ ernaast **Prioriteit instellen**, **Zaak bewerken** en **Zaak verwijderen**. Zo handel je de zaak af vanaf elk van haar pagina's, en een link naar de zaak opent nog steeds haar **Overzicht**.
+
+- **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was.
+- **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+- **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
+- **Tijdlijn**: alles wat er met de zaak gebeurde, met wie het deed.
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
-- **MITRE ATT&CK**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
-- **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten.
-- **Notities** en **Tijdlijn**: wat het team schreef, en alles wat er gebeurde, met wie het deed.
+- **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbook-uitvoeringen**.
+- **Privénotities**: wat het team over de zaak schreef.
+- **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
+- **Zaak verwijderen**: verwijdert de zaak voorgoed, met haar detecties, notities, tijdlijn en playbook-uitvoeringen. Wil je haar als verslag bewaren, sluit haar dan met een oordeel.
 
 Om meerdere zaken tegelijk af te handelen, selecteer je ze in de wachtrij en gebruik je **Aan mij toewijzen**, **Change Status** of **Change Priority**.
 

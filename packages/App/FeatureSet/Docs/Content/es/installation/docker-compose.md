@@ -397,7 +397,7 @@ Si definiste `DATABASE_BACKUP_PASSWORD` y `DATABASE_RESTORE_PASSWORD`, dales tam
 
 ## Copia de seguridad y restauración
 
-PostgreSQL guarda todo lo que configuras: monitores, incidentes, páginas de estado, usuarios. `npm run backup` lo vuelca en un archivo de la carpeta `Backups`.
+PostgreSQL guarda todo lo que configuras: monitores, incidentes, páginas de estado, usuarios. `npm run backup` lo vuelca en un archivo de la carpeta `Backups`. La Enterprise Edition también puede hacer copias de seguridad de PostgreSQL y ClickHouse según una programación, en un almacenamiento tuyo, desde el Admin Dashboard: consulta [Copias de seguridad](/docs/installation/backups).
 
 :::steps
 ### Dale al script de copia de seguridad la contraseña de la base de datos

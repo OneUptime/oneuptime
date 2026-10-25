@@ -7,6 +7,7 @@ Metriken sind die Zahlen, die Ihre Dienste und Ihre Infrastruktur über die Zeit
 - [Eine Metrik darstellen](#eine-metrik-darstellen): Eine Abfrage aggregieren, filtern und gruppieren.
 - [Abfragen mit einer Formel kombinieren](#abfragen-mit-einer-formel-kombinieren): Fehlerraten und andere Verhältnisse.
 - [Das Dargestellte nutzen](#das-dargestellte-nutzen): Ein Monitor, ein Dashboard-Widget oder ein Link.
+- [Metriken mit KI verbessern und fehlende ergänzen](#metriken-mit-ki-verbessern-und-fehlende-ergänzen): Pull Requests, die Ihre Metriken verbessern und die ergänzen, die einem Dienst fehlen.
 :::
 
 ## Wie der Explorer funktioniert
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["Ein Dashboard-Widget"]
 ```
 
-Der Explorer hat vier Tabs:
+Der Explorer hat fünf Tabs:
 
 | Tab | Wofür er da ist |
 | --- | --- |
 | **Betrachter** | Die Liste der Metriken, jede mit einem kleinen Diagramm und ihrem letzten Wert. Er öffnet mit der letzten Stunde. |
 | **Einblicke** | Welche Dienste Metriken melden, und wie viele. |
+| **KI** | Die Probleme, die OneUptime in Ihren Metriken findet (zu viele Werte, Histogramm-Buckets, die nicht passen, fehlende Metriken), und was OneUptime AI dagegen getan hat. Siehe [Metriken mit KI verbessern und fehlende ergänzen](#metriken-mit-ki-verbessern-und-fehlende-ergänzen). |
 | **Einrichtungsanleitung** | Wie Sie Metriken mit OpenTelemetry senden, mit einem Ihrer Aufnahmeschlüssel. |
 | **Einstellungen** | **Pipeline-Regeln** und **Aufzeichnungsregeln**: was mit Metriken beim Eintreffen geschieht. |
 
@@ -107,6 +109,44 @@ Ziehen Sie über ein Diagramm, um in einen Moment hineinzuzoomen, und doppelklic
 ## Metrik-Einblicke
 
 Der Tab **Einblicke** zählt die Metriken eines Zeitraums: **Aktive Metriken**, **Berichtsdienste** und den Durchschnitt pro Dienst. Er ordnet die Metriken Kategorien zu und listet die Dienste, die sie melden.
+
+## Metriken mit KI verbessern und fehlende ergänzen
+
+Jede Stunde durchsucht OneUptime die Metriken, die Ihre Dienste in der letzten Stunde gesendet haben, nach solchen, die zu viele Werte erfassen, nach Histogrammen, deren Buckets nicht passen, und nach ausgelasteten Diensten, die keine Metriken senden. Seine Befunde legt es mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+
+OneUptime liest die 10 Metriken genau, für die Ihre Dienste in der Stunde die meisten Datenpunkte gesendet haben, jede mit mindestens 1.000 davon, und legt drei Arten von Befunden an:
+
+| Befund | Wann OneUptime ihn anlegt | Der Pull Request |
+| --- | --- | --- |
+| **Hohe Kardinalität** | Ein Attribut, das der Code an eine dieser Metriken hängt, hatte in der Stunde 1.000 oder mehr Werte, etwa Benutzer-IDs oder vollständige URLs, sodass jeder Wert eine eigene Reihe ist. Oder 50 oder mehr Metriknamen eines Dienstes sind ein Name mit jeweils einer anderen ID darin. | Erfasst den Wert nicht mehr an der Metrik oder nimmt die IDs aus ihren Namen. |
+| **Falsche Histogramm-Buckets** | Eine dieser Metriken ist ein Histogramm, das 1.000 oder mehr Werte erfasst hat, und 90 % oder mehr davon fielen in seinen kleinsten Bucket oder über seinen größten, oder es hat keine Buckets, sodass sich seine Perzentile nicht unterscheiden lassen. | Gibt dem Histogramm Buckets, die zu seinen Werten passen, oder korrigiert seine Einheit. |
+| **Fehlende Metriken** | Ein Dienst hat in der Stunde 1.000 oder mehr Spans gesendet und noch nie eine Metrik. | Ergänzt die Anzahl der Anfragen, die Fehler und die Dauer seiner meistgenutzten Vorgänge als Metriken. |
+
+Ein Befund speichert nie die Werte eines Attributs: nur den Namen des Attributs, wie viele Werte es hatte und wie sie aussehen.
+
+### Einschalten
+
+**Metriken → KI → Einstellungen** enthält den Schalter **Metriken verbessern und fehlende ergänzen**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, werden Probleme in Ihren Metriken weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+
+OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
+
+### KI-Regeln
+
+Ohne Regel untersucht OneUptime AI jedes Problem, das es in Ihren Metriken findet, sofort und öffnet für jedes, das es beheben kann, einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
+
+| Schritt | Was er entscheidet |
+| --- | --- |
+| **Übereinstimmung** | Welche Dienste: die ausgewählten, die mit bestimmten Labels oder die, deren Namen zu einem Muster passen. |
+| **Untersuchen** | **Sofort** oder **Nur falls nach einer Wartezeit noch gefunden**: Ein Problem, das während der Wartezeit verschwindet, wird nicht untersucht. |
+| **Behebung** | **Nicht beheben**, **Vor dem Beheben fragen** oder **Ohne Nachfrage beheben**. Wer zuerst fragt, überlässt den Pull Request einer Person: Der Befund bietet **Mit KI beheben** an. |
+
+Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server und den LLM-Anbieter, die OneUptime AI für sie verwenden darf. Ist nichts ausgewählt, darf es alle verwenden, und den Standard-LLM-Anbieter des Projekts.
+
+### Sehen, was es getan hat
+
+- **Metriken → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Metriken öffnen**, das seine Metrik für seinen Dienst aus der Stunde öffnet, in der er gefunden wurde. Ein Dienst ohne Metriken bietet stattdessen **In Traces öffnen** an: die Spans, die seine Metriken messen würden.
+- **Metriken → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
+- In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Was mit Metriken beim Eintreffen geschieht
 

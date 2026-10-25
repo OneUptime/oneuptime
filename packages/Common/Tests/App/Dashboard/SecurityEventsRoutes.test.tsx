@@ -23,6 +23,11 @@ import {
  * level down, beside a case's own page, which still opens for a case id;
  * the runs page's old address opens Waiting for Approval and every run is
  * one level down; Monitors still opens Monitors.
+ *
+ * A case's pages: its address still opens the case - its Overview, now
+ * inside the case's own layout and side menu - and each of its other pages
+ * sits one level under it, in the same layout, outside the product's; going
+ * from page to page of one case keeps that layout (and the case it read).
  */
 
 // The layout: its side menu and breadcrumbs are tested on their own.
@@ -139,8 +144,45 @@ jest.mock(
   },
 );
 
+/*
+ * A case's layout: its side menu, header and breadcrumbs are tested on their
+ * own (SecurityCaseViewLayout.test.tsx). Counted, so a test can tell the
+ * layout kept from page to page of one case.
+ */
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView",
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Layout",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+    const RouterModule: typeof import("react-router-dom") = jest.requireActual(
+      "react-router-dom",
+    ) as typeof import("react-router-dom");
+
+    return {
+      __esModule: true,
+      default: () => {
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseLayout"] = (counts["CaseLayout"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement(
+          "div",
+          { "data-testid": "security-case-layout" },
+          ReactModule.createElement(RouterModule.Outlet),
+        );
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index",
   () => {
     const ReactModule: typeof import("react") = jest.requireActual(
       "react",
@@ -156,12 +198,222 @@ jest.mock(
               securityPageMounts?: Record<string, number>;
             }
           ).securityPageMounts ||= {});
-          counts["CaseView"] = (counts["CaseView"] || 0) + 1;
+          counts["CaseOverview"] = (counts["CaseOverview"] || 0) + 1;
         }, []);
 
         return ReactModule.createElement("div", {
           "data-testid": "security-page",
-          "data-page": "CaseView",
+          "data-page": "CaseOverview",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseTimeline"] = (counts["CaseTimeline"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseTimeline",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseDetections"] = (counts["CaseDetections"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseDetections",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseEntities"] = (counts["CaseEntities"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseEntities",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/PlaybookRuns",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CasePlaybookRuns"] = (counts["CasePlaybookRuns"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CasePlaybookRuns",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseNotes"] = (counts["CaseNotes"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseNotes",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseAuditLogs"] = (counts["CaseAuditLogs"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseAuditLogs",
+          "data-view": props.view || "",
+        });
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Delete",
+  () => {
+    const ReactModule: typeof import("react") = jest.requireActual(
+      "react",
+    ) as typeof import("react");
+
+    return {
+      __esModule: true,
+      default: (props: { view?: string | undefined }) => {
+        // Counted, so a test can tell a page drawn afresh from one kept.
+        ReactModule.useEffect(() => {
+          const counts: Record<string, number> = ((
+            globalThis as unknown as {
+              securityPageMounts?: Record<string, number>;
+            }
+          ).securityPageMounts ||= {});
+          counts["CaseDelete"] = (counts["CaseDelete"] || 0) + 1;
+        }, []);
+
+        return ReactModule.createElement("div", {
+          "data-testid": "security-page",
+          "data-page": "CaseDelete",
           "data-view": props.view || "",
         });
       },
@@ -634,6 +886,15 @@ function drawn(): { page: string; view: string; inLayout: boolean } {
   };
 }
 
+// Whether the page is drawn inside a case's own layout.
+function isInCaseLayout(): boolean {
+  return Boolean(
+    screen
+      .getByTestId("security-page")
+      .closest('[data-testid="security-case-layout"]'),
+  );
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -647,7 +908,14 @@ const ADDRESSES: Array<[string, string, string, boolean]> = [
   ["/cases/unassigned", "Cases", "unassigned", true],
   ["/cases/closed", "Cases", "closed", true],
   ["/cases/all", "Cases", "all", true],
-  [`/cases/${CASE_ID}`, "CaseView", "", false],
+  [`/cases/${CASE_ID}`, "CaseOverview", "", false],
+  [`/cases/${CASE_ID}/timeline`, "CaseTimeline", "", false],
+  [`/cases/${CASE_ID}/detections`, "CaseDetections", "", false],
+  [`/cases/${CASE_ID}/entities`, "CaseEntities", "", false],
+  [`/cases/${CASE_ID}/playbook-runs`, "CasePlaybookRuns", "", false],
+  [`/cases/${CASE_ID}/notes`, "CaseNotes", "", false],
+  [`/cases/${CASE_ID}/audit-logs`, "CaseAuditLogs", "", false],
+  [`/cases/${CASE_ID}/delete`, "CaseDelete", "", false],
   ["/entities", "Entities", "", true],
   ["/correlate", "Correlate", "", true],
   ["/detection-rules", "DetectionRules", "", true],
@@ -708,6 +976,83 @@ describe("every Security Events address", () => {
     },
   );
 
+  test.each(
+    ADDRESSES.filter(
+      ([address]: [string, string, string, boolean]): boolean => {
+        return address.startsWith(`/cases/${CASE_ID}`);
+      },
+    ),
+  )(
+    "%s is a page of the case, inside the case's own layout",
+    async (address: string, page: string) => {
+      await open(`${PRODUCT}${address}`);
+
+      expect(drawn().page).toBe(page);
+      expect(isInCaseLayout()).toBe(true);
+      expect(screen.queryByTestId("security-layout")).toBeNull();
+    },
+  );
+
+  test("the case queue's pages and the product's are never drawn in a case's layout", async () => {
+    for (const address of ["/cases", "/cases/closed", "/overview"]) {
+      cleanup();
+      await open(`${PRODUCT}${address}`);
+
+      expect(isInCaseLayout()).toBe(false);
+      expect(drawn().inLayout).toBe(true);
+    }
+  });
+
+  test("a case's address opens its Overview, where every link to a case has always landed", async () => {
+    await open(`${PRODUCT}/cases/${CASE_ID}`);
+
+    expect(drawn()).toEqual({
+      page: "CaseOverview",
+      view: "",
+      inLayout: false,
+    });
+    expect(isInCaseLayout()).toBe(true);
+  });
+
+  test("going from page to page of one case keeps its layout, and draws each page", async () => {
+    await open(`${PRODUCT}/cases/${CASE_ID}`);
+
+    const layoutsBefore: number = mountsOf("CaseLayout");
+    // Taken once the router has drawn, for the loop below to call.
+    const goTo: (path: string) => void = navigateTo!;
+
+    for (const [segment, page] of [
+      ["detections", "CaseDetections"],
+      ["entities", "CaseEntities"],
+      ["playbook-runs", "CasePlaybookRuns"],
+      ["timeline", "CaseTimeline"],
+      ["notes", "CaseNotes"],
+      ["audit-logs", "CaseAuditLogs"],
+      ["delete", "CaseDelete"],
+    ] as Array<[string, string]>) {
+      await act(async () => {
+        goTo(`${PRODUCT}/cases/${CASE_ID}/${segment}`);
+      });
+
+      expect(drawn().page).toBe(page);
+      expect(isInCaseLayout()).toBe(true);
+    }
+
+    await act(async () => {
+      navigateTo!(`${PRODUCT}/cases/${CASE_ID}`);
+    });
+
+    expect(drawn().page).toBe("CaseOverview");
+    // The same layout all along: the case is read once, not once per page.
+    expect(mountsOf("CaseLayout")).toBe(layoutsBefore);
+  });
+
+  test("an address under a case that is not one of its pages opens nothing", async () => {
+    await open(`${PRODUCT}/cases/${CASE_ID}/not-a-page`);
+
+    expect(screen.queryByTestId("security-page")).toBeNull();
+  });
+
   test("the old Monitors address opens Monitors, where those monitors are listed", async () => {
     await open(`${PRODUCT}/monitors`);
 
@@ -752,6 +1097,28 @@ describe("every Security Events address", () => {
     );
     expect(pageAt(`${PRODUCT}/cases/${CASE_ID}`)).toBe(
       PageMap.SECURITY_CASE_VIEW,
+    );
+    // A case's own pages, one level under it, each by its own key.
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/timeline`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_TIMELINE,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/detections`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_DETECTIONS,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/entities`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_ENTITIES,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/playbook-runs`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/notes`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_NOTES,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/audit-logs`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS,
+    );
+    expect(pageAt(`${PRODUCT}/cases/${CASE_ID}/delete`)).toBe(
+      PageMap.SECURITY_CASE_VIEW_DELETE,
     );
     expect(pageAt(`${PRODUCT}/playbook-runs/all`)).toBe(
       PageMap.SECURITY_PLAYBOOK_RUNS,

@@ -34,6 +34,21 @@ enum AutoRemediationTriggerEntity {
    * code handles an expected error, or makes it record stack traces.
    */
   Exception = "Exception",
+  /*
+   * The error logs, missing logging and noisy logs OneUptime found in a
+   * service's logs (Logs → AI): the rule says which services' problems
+   * OneUptime AI looks into, and whether it opens a pull request that
+   * fixes the code behind an error log, logs what is not logged, or logs a
+   * noisy line less.
+   */
+  Log = "Log",
+  /*
+   * The problems OneUptime found in a service's metrics, and the metrics a
+   * busy service does not send at all (Metrics → AI): the rule says which
+   * services' problems OneUptime AI looks into, and whether it opens a
+   * pull request that improves the metrics or adds the missing ones.
+   */
+  Metric = "Metric",
 }
 
 export default AutoRemediationTriggerEntity;

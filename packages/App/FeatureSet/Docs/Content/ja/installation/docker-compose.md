@@ -397,7 +397,7 @@ npm start
 
 ## バックアップと復元
 
-PostgreSQL には、モニター、インシデント、ステータスページ、ユーザーなど、設定したものがすべて入っています。`npm run backup` はそれを `Backups` フォルダーのファイルにダンプします。
+PostgreSQL には、モニター、インシデント、ステータスページ、ユーザーなど、設定したものがすべて入っています。`npm run backup` はそれを `Backups` フォルダーのファイルにダンプします。Enterprise Edition では、Admin Dashboard から PostgreSQL と ClickHouse を自分のストレージにスケジュールでバックアップすることもできます。[バックアップ](/docs/installation/backups)を参照してください。
 
 :::steps
 ### バックアップスクリプトにデータベースのパスワードを渡す

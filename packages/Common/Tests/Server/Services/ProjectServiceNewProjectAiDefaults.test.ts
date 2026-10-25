@@ -78,15 +78,17 @@ const RETIRED_PULL_REQUEST_SWITCHES: Array<string> = [
 const OFF_FOR_NEW_PROJECTS: Array<string> = [...FIX_SWITCHES];
 
 /*
- * The ten switches, written out so a column dropped from the list fails
+ * The twelve switches, written out so a column dropped from the list fails
  * here. Triaging new security cases is read-only, like investigating new
  * incidents, so it starts on too. Finding and fixing slow code (Profiles ->
  * AI -> Settings) starts on as well: its fix is a pull request, which
  * changes no infrastructure and is never merged - the rule "turned on by
  * default" (Types/AI/TelemetryAi). So does finding and fixing slow and
- * failing operations (Traces -> AI -> Settings), for the same reason, and
+ * failing operations (Traces -> AI -> Settings), for the same reason,
  * finding and fixing new and rising exceptions (Exceptions -> AI ->
- * Settings).
+ * Settings), finding and fixing error, missing and noisy logs (Logs -> AI
+ * -> Settings), and improving metrics and adding missing ones (Metrics ->
+ * AI -> Settings).
  */
 const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
@@ -98,6 +100,8 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticProfileRemediation",
   "enableAutomaticTraceRemediation",
   "enableAutomaticExceptionRemediation",
+  "enableAutomaticLogRemediation",
+  "enableAutomaticMetricRemediation",
   "autoArchiveNonActionableExceptions",
 ];
 

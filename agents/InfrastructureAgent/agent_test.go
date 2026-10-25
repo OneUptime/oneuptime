@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // The agent writes its logs to a world-readable file (see utils.GetLogPath and
@@ -269,7 +271,7 @@ func TestCollectMetricsJobSuccessPath(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newRecordingAgentServer(t, http.StatusOK, "")
 
-	collectMetricsJob(testSecretKey, srv.URL, "")
+	collectMetricsJob(context.Background(), testSecretKey, srv.URL, "")
 
 	request := recorder.only(t)
 	logs := buf.String()
@@ -356,7 +358,7 @@ func TestCollectMetricsJobServerErrorLogsNoSecret(t *testing.T) {
 	// chosen to carry no secret of its own.
 	srv, recorder := newRecordingAgentServer(t, http.StatusInternalServerError, "monitor ingest failed")
 
-	collectMetricsJob(testSecretKey, srv.URL, "")
+	collectMetricsJob(context.Background(), testSecretKey, srv.URL, "")
 
 	request := recorder.only(t)
 	if want := testIngestPath + testSecretKey; request.path != want {
@@ -401,7 +403,7 @@ func TestCollectMetricsJobTransportErrorLogsNoSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newDroppingAgentServer(t)
 
-	collectMetricsJob(testSecretKey, srv.URL, "")
+	collectMetricsJob(context.Background(), testSecretKey, srv.URL, "")
 
 	// Redaction is a logging concern: the request must still be attempted with
 	// the real secret on the error path too.
@@ -436,7 +438,7 @@ func TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newDroppingAgentServer(t)
 
-	if checkIfSecretKeyIsValid(testSecretKey, srv.URL, "") {
+	if checkIfSecretKeyIsValid(context.Background(), testSecretKey, srv.URL, "") {
 		t.Error("a key whose verification request never completed must not be treated as valid")
 	}
 
@@ -456,6 +458,38 @@ func TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret(t *testing.T) {
 		t.Fatalf("expected the transport failure to be logged at ERROR, got:\n%s", logs)
 	}
 
+	assertNoSecretInLogs(t, buf, testSecretKey)
+}
+
+// testUnparsableURL is a OneUptime URL that cannot be parsed: it holds a
+// control character. The request fails before it is sent, and the parse error
+// quotes the whole URL, the secret path segment and all, so both requests
+// redact it as they do a transport error.
+const testUnparsableURL = "http://oneuptime.invalid\x7f"
+
+func TestCheckIfSecretKeyIsValidUnparsableURLLogsNoSecret(t *testing.T) {
+	buf := captureAgentLogs(t)
+
+	if checkIfSecretKeyIsValid(context.Background(), testSecretKey, testUnparsableURL, "") {
+		t.Error("a key whose verification could not be sent must not be treated as valid")
+	}
+
+	logs := buf.String()
+	if lines := agentLogLinesContaining(logs, "invalid control character in URL"); len(lines) != 1 || !strings.Contains(lines[0], "level=ERROR") {
+		t.Fatalf("expected the parse error to be logged once, at ERROR, got:\n%s", logs)
+	}
+	assertNoSecretInLogs(t, buf, testSecretKey)
+}
+
+func TestCollectMetricsJobUnparsableURLLogsNoSecret(t *testing.T) {
+	buf := captureAgentLogs(t)
+
+	collectMetricsJob(context.Background(), testSecretKey, testUnparsableURL, "")
+
+	logs := buf.String()
+	if lines := agentLogLinesContaining(logs, "Failed to send request to server"); len(lines) != 1 || !strings.Contains(lines[0], "invalid control character in URL") {
+		t.Fatalf("expected the parse error to be logged once, as the report's error, got:\n%s", logs)
+	}
 	assertNoSecretInLogs(t, buf, testSecretKey)
 }
 
@@ -482,7 +516,7 @@ func TestCheckIfSecretKeyIsValid(t *testing.T) {
 			buf := captureAgentLogs(t)
 			srv, recorder := newRecordingAgentServer(t, tc.status, "")
 
-			if got := checkIfSecretKeyIsValid(testSecretKey, srv.URL, ""); got != tc.want {
+			if got := checkIfSecretKeyIsValid(context.Background(), testSecretKey, srv.URL, ""); got != tc.want {
 				t.Errorf("checkIfSecretKeyIsValid() = %v for status %d, want %v", got, tc.status, tc.want)
 			}
 
@@ -503,7 +537,7 @@ func TestCheckIfSecretKeyIsValidEmptySecretShortCircuits(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newRecordingAgentServer(t, http.StatusOK, "")
 
-	if checkIfSecretKeyIsValid("", srv.URL, "") {
+	if checkIfSecretKeyIsValid(context.Background(), "", srv.URL, "") {
 		t.Error("an empty secret key must never be treated as valid")
 	}
 	// An empty key must be rejected locally: sending it would make the server
@@ -522,7 +556,7 @@ func TestNewAgentKeepsRealSecretAndLogsMaskedSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newRecordingAgentServer(t, http.StatusOK, "")
 
-	ag := NewAgent(testSecretKey, srv.URL, "")
+	ag := NewAgent(context.Background(), testSecretKey, srv.URL, "")
 	if ag == nil {
 		t.Fatal("NewAgent returned nil for a valid configuration")
 	}
@@ -556,21 +590,33 @@ func TestNewAgentKeepsRealSecretAndLogsMaskedSecret(t *testing.T) {
 // calls os.Exit on its rejection paths, which would kill the test binary, so
 // those paths are exercised in a subprocess.
 const (
-	newAgentExitGuardEnv  = "ONEUPTIME_AGENT_TEST_NEWAGENT_EXIT"
-	newAgentExitSecretEnv = "ONEUPTIME_AGENT_TEST_NEWAGENT_SECRET"
+	newAgentExitGuardEnv          = "ONEUPTIME_AGENT_TEST_NEWAGENT_EXIT"
+	newAgentExitSecretEnv         = "ONEUPTIME_AGENT_TEST_NEWAGENT_SECRET"
+	newAgentExitURLEnv            = "ONEUPTIME_AGENT_TEST_NEWAGENT_URL"
+	newAgentExitRequestTimeoutEnv = "ONEUPTIME_AGENT_TEST_NEWAGENT_REQUEST_TIMEOUT"
 )
 
 // TestNewAgentExitHelperProcess is not a standalone test: it is the child
-// process entry point for TestNewAgentMissingURLExitsWithoutLeakingSecret.
+// process entry point for TestNewAgentMissingURLExitsWithoutLeakingSecret and
+// TestNewAgentExitsWhenTheVerificationIsNeverAnswered.
 func TestNewAgentExitHelperProcess(t *testing.T) {
 	if os.Getenv(newAgentExitGuardEnv) != "1" {
 		t.Skip("helper process, only runs when re-executed by the parent test")
 	}
 
-	// A set secret with a missing URL: NewAgent logs the startup banner and
-	// then calls os.Exit(1), so the line below is unreachable in the child.
-	NewAgent(os.Getenv(newAgentExitSecretEnv), "", "")
-	t.Fatal("NewAgent returned instead of exiting on an incomplete configuration")
+	if timeout := os.Getenv(newAgentExitRequestTimeoutEnv); timeout != "" {
+		parsed, err := time.ParseDuration(timeout)
+		if err != nil {
+			t.Fatalf("could not parse %s=%q: %v", newAgentExitRequestTimeoutEnv, timeout, err)
+		}
+		requestTimeout = parsed
+	}
+
+	// NewAgent logs the startup banner and then calls os.Exit(1) - on a
+	// missing URL, or a key it could not verify - so the line below is
+	// unreachable in the child.
+	NewAgent(context.Background(), os.Getenv(newAgentExitSecretEnv), os.Getenv(newAgentExitURLEnv), "")
+	t.Fatal("NewAgent returned instead of exiting")
 }
 
 func TestNewAgentMissingURLExitsWithoutLeakingSecret(t *testing.T) {

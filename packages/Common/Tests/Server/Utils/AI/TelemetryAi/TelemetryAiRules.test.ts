@@ -365,6 +365,24 @@ describe("the lane's switch", () => {
     ]);
   });
 
+  test("Logs' switch is its own too", () => {
+    const logs: Project = new Project();
+    logs.enableAutomaticLogRemediation = true;
+    const all: Project = new Project();
+    all.enableAutomaticProfileRemediation = true;
+    all.enableAutomaticTraceRemediation = true;
+    all.enableAutomaticLogRemediation = true;
+
+    expect(TelemetryAiRules.isLaneOn(logs, TelemetryAiLane.Log)).toBe(true);
+    expect(TelemetryAiRules.isLaneOn(logs, TelemetryAiLane.Trace)).toBe(false);
+    expect(TelemetryAiRules.getLanesOn(logs)).toEqual([TelemetryAiLane.Log]);
+    expect(TelemetryAiRules.getLanesOn(all)).toEqual([
+      TelemetryAiLane.Profile,
+      TelemetryAiLane.Trace,
+      TelemetryAiLane.Log,
+    ]);
+  });
+
   test("the project select reads Enable AI and every lane's switch", () => {
     expect(TELEMETRY_AI_PROJECT_SELECT).toEqual({
       _id: true,
@@ -372,6 +390,8 @@ describe("the lane's switch", () => {
       enableAutomaticProfileRemediation: true,
       enableAutomaticTraceRemediation: true,
       enableAutomaticExceptionRemediation: true,
+      enableAutomaticLogRemediation: true,
+      enableAutomaticMetricRemediation: true,
     });
   });
 });
@@ -402,6 +422,32 @@ describe("getServiceId", () => {
     };
 
     expect(TelemetryAiRules.getServiceId(traceFinding)).toBe(BILLING);
+  });
+
+  test("a log finding's service, from its evidence when the column is unset", () => {
+    const logFinding: AIInsight = new AIInsight();
+    logFinding.evidence = {
+      log: {
+        serviceId: CHECKOUT.toUpperCase(),
+      } as unknown as NonNullable<AIInsight["evidence"]>["log"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(logFinding)).toBe(CHECKOUT);
+  });
+
+  test("a metric finding's service, from its evidence when the column is unset", () => {
+    const metricFinding: AIInsight = new AIInsight();
+    metricFinding.evidence = {
+      metric: {
+        serviceId: ` ${BILLING.toUpperCase()} `,
+      } as unknown as NonNullable<AIInsight["evidence"]>["metric"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(metricFinding)).toBe(BILLING);
+
+    // The column wins over the evidence, as for every lane.
+    metricFinding.telemetryServiceId = new ObjectID(CHECKOUT);
+    expect(TelemetryAiRules.getServiceId(metricFinding)).toBe(CHECKOUT);
   });
 });
 
