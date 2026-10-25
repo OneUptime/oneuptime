@@ -128,7 +128,7 @@ OneUptime 每 15 分鐘檢查一次你的例外，尋找新出現的例外、突
 | **Exception Spike** | 在最近一小時內發生 10 次或更多次、達到其之前 24 小時每小時發生率 5 倍或更多的例外。 | 修正該例外，或更好地處理它。 |
 | **缺少堆疊追蹤** | 某個服務在最近一天記錄的例外沒有堆疊追蹤，且合計發生 20 次或更多次。 | 讓該服務為每個例外記錄堆疊追蹤。 |
 
-新出現或激增的例外的 pull request 就是該例外自己的 AI 任務，也就是其 **AI Assistance** 頁面啟動的那個任務，它會等待 OneUptime AI 調查完這則發現。如果找到出錯的程式碼（`code-fault`），pull request 會像 **Fix this exception with AI** 那樣修正它。如果發現的是預期內的錯誤（`user-error` 或 `expected-denial`），pull request 會像 **改善錯誤處理** 那樣更好地處理該錯誤。其他任何結論都不會自行開啟 pull request。
+新出現或激增的例外的 pull request 就是該例外自己的 AI 任務，也就是其 **AI Assistance** 頁面啟動的那個任務，它會等待 OneUptime AI 調查完這則發現。如果找到出錯的程式碼（`code-fault`），pull request 會像 **Fix this exception with AI** 那樣修正它。如果發現的是預期內的錯誤（`user-error` 或 `expected-denial`），pull request 會像 **改善錯誤處理** 那樣更好地處理該錯誤。其他任何結論都不會自行開啟 pull request。開啟 **封存預期內的例外** 後，預期內拒絕會改為被封存，不會得到 pull request。
 
 OneUptime AI 只會為在你自己的程式碼中擲回的例外自行開啟 pull request：也就是堆疊追蹤中包含你的程式碼的框架、而不只是函式庫或執行階段的框架的例外。如果有人未合併就關閉了某個 pull request，該例外的自動 pull request 就會暫停。任何人仍可以在這則發現上透過 **用 AI 修正** 要求其中任何一個。
 

@@ -128,7 +128,7 @@ OneUptime 每 15 分钟检查一次你的异常，查找新出现的异常、突
 | **Exception Spike** | 在最近一小时内发生 10 次或更多次、达到其之前 24 小时每小时发生率 5 倍或更多的异常。 | 修复该异常，或更好地处理它。 |
 | **缺少堆栈跟踪** | 某个服务在最近一天记录的异常没有堆栈跟踪，且合计发生 20 次或更多次。 | 让该服务为每个异常记录堆栈跟踪。 |
 
-新出现或激增的异常的 pull request 就是该异常自己的 AI 任务，即其 **AI Assistance** 页面启动的那个任务，它会等待 OneUptime AI 调查完这条发现。如果找到出错的代码（`code-fault`），pull request 会像 **Fix this exception with AI** 那样修复它。如果发现的是预期内的错误（`user-error` 或 `expected-denial`），pull request 会像 **改进错误处理** 那样更好地处理该错误。其他任何结论都不会自行打开 pull request。
+新出现或激增的异常的 pull request 就是该异常自己的 AI 任务，即其 **AI Assistance** 页面启动的那个任务，它会等待 OneUptime AI 调查完这条发现。如果找到出错的代码（`code-fault`），pull request 会像 **Fix this exception with AI** 那样修复它。如果发现的是预期内的错误（`user-error` 或 `expected-denial`），pull request 会像 **改进错误处理** 那样更好地处理该错误。其他任何结论都不会自行打开 pull request。打开 **归档预期内的异常** 后，预期内拒绝会改为被归档，不会得到 pull request。
 
 OneUptime AI 只会为在你自己的代码中抛出的异常自行打开 pull request：即堆栈跟踪中包含你的代码的帧、而不仅仅是库或运行时的帧的异常。如果有人未合并就关闭了某个 pull request，该异常的自动 pull request 就会暂停。任何人仍可以在这条发现上通过 **用 AI 修复** 请求其中任意一个。
 

@@ -232,6 +232,40 @@ describe("the Exception Tracking page's section on finding and fixing new and ri
     );
   });
 
+  /*
+   * "Archive exceptions that are expected" archives an expected denial as
+   * soon as the investigation says so (InsightTriageRunner), and an
+   * exception's own AI task never starts for an archived exception
+   * (ExceptionInsightFix): the page says the denial gets no pull request.
+   */
+  it("says an expected denial that Archive exceptions that are expected archives gets no pull request", () => {
+    const triage: string = readSource(
+      "Common/Server/Utils/AI/SRE/Insights/InsightTriageRunner.ts",
+    );
+    const fix: string = readSource(
+      "Common/Server/Utils/AI/TelemetryAi/ExceptionInsightFix.ts",
+    );
+    const archiving: string = triage.slice(
+      triage.indexOf(
+        "classification === ExceptionAIClassification.ExpectedDenial &&",
+      ),
+    );
+
+    expect(archiving).toContain(
+      "project.autoArchiveNonActionableExceptions === true",
+    );
+    expect(archiving).toContain("isArchived: true");
+    expect(fix).toContain(
+      "if (!exception || exception.isResolved || exception.isArchived) {\n      return { skip: ExceptionInsightFixSkip.ExceptionClosed };",
+    );
+    expect(page).toContain(
+      "With **Archive exceptions that are expected** on, in the settings of AI Insights,",
+    );
+    expect(section).toContain(
+      "With **Archive exceptions that are expected** on, an expected denial is archived instead, and gets no pull request.",
+    );
+  });
+
   it("says one opens on its own only for an exception raised in your own code, and pauses once a person closes one", () => {
     // A frame of the application's own code in the stack trace, or none.
     expect(

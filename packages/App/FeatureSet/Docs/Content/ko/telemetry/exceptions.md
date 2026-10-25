@@ -128,7 +128,7 @@ OneUptime은 15분마다 예외를 살펴 새 예외, 갑자기 훨씬 자주 �
 | **Exception Spike** | 지난 한 시간에 10번 이상 일어났고, 그 전 24시간의 시간당 발생률의 5배 이상인 예외. | 예외를 고치거나 더 잘 처리합니다. |
 | **스택 추적 없음** | 한 서비스가 지난 하루 동안 기록한 예외에 스택 추적이 없고, 합쳐서 20번 이상 일어났습니다. | 서비스가 예외마다 스택 추적을 기록하게 합니다. |
 
-새로 생기거나 늘어나는 예외의 pull request는 그 예외 자신의 AI 작업, 즉 예외의 **AI Assistance** 페이지가 시작하는 작업이며, OneUptime AI가 발견 사항을 살펴볼 때까지 기다립니다. 원인 코드를 찾으면 (`code-fault`) pull request는 **Fix this exception with AI**처럼 그것을 고칩니다. 예상된 오류를 찾으면 (`user-error` 또는 `expected-denial`) pull request는 **오류 처리 개선**처럼 그 오류를 더 잘 처리합니다. 그 밖의 판정으로는 pull request가 스스로 열리지 않습니다.
+새로 생기거나 늘어나는 예외의 pull request는 그 예외 자신의 AI 작업, 즉 예외의 **AI Assistance** 페이지가 시작하는 작업이며, OneUptime AI가 발견 사항을 살펴볼 때까지 기다립니다. 원인 코드를 찾으면 (`code-fault`) pull request는 **Fix this exception with AI**처럼 그것을 고칩니다. 예상된 오류를 찾으면 (`user-error` 또는 `expected-denial`) pull request는 **오류 처리 개선**처럼 그 오류를 더 잘 처리합니다. 그 밖의 판정으로는 pull request가 스스로 열리지 않습니다. **예상된 예외 보관**을 켜 두면 예상된 거부는 대신 보관되며 pull request가 열리지 않습니다.
 
 OneUptime AI는 사용자 자신의 코드에서 발생한 예외에 대해서만 스스로 pull request를 엽니다. 즉 라이브러리나 런타임의 프레임만이 아니라 사용자 코드의 프레임이 스택 추적에 있는 예외입니다. 누군가 병합하지 않고 닫은 pull request가 있으면 그 예외의 자동 pull request는 일시 중지됩니다. 그래도 누구나 발견 사항의 **AI로 수정**으로 어떤 것이든 요청할 수 있습니다.
 
