@@ -232,7 +232,13 @@ jobs:
           # finding's evidence, Fix with AI, Create Monitor and Open in
           # Traces, Logs and Settings - at 1280 and 390 pixels, light and
           # dark) joined them on 2026-10-24, when this group took 14.9 minutes
-          # and group 8 22.4: about 16.5.
+          # and group 8 22.4: about 16.5. Metrics AI (1.5 minutes with its
+          # bundle locally, Chromium only: Metrics' AI tab - Insights, a
+          # finding's evidence, Fix with AI, Open in Metrics and Open in
+          # Traces, Logs and Settings - at 1280 and 390 pixels, light and dark)
+          # joined them on 2026-10-25, when this group took 18.5 and 19.1
+          # minutes on master's last two runs with Traces AI, and group 9,
+          # where Exceptions AI was going, 16.3 to 18.4: about 20.5.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
@@ -241,6 +247,7 @@ jobs:
               test-snmp-walk-ui
               test-asset-details-ui
               test-traces-ai-ui
+              test-metrics-ai-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -513,12 +520,7 @@ jobs:
           # locally, Chromium only) moved here from group 7 on 2026-10-23,
           # when the Custom Roles specs for API keys would have taken that
           # group past 22: this group had taken 18.9 to 19.4, so about 21.5
-          # for the eight. Metrics AI (1.5 minutes with its bundle locally,
-          # Chromium only: Metrics' AI tab - Insights, a finding's evidence,
-          # Fix with AI, Open in Metrics and Open in Traces, Logs and
-          # Settings - at 1280 and 390 pixels, light and dark) joined them on
-          # 2026-10-24, when this group took 18.4 minutes on master's run of
-          # 12:19, the lightest of the Chromium-only groups: about 20.
+          # for the eight.
           - group: 9
             browsers: chromium
             suites: >-
@@ -530,7 +532,6 @@ jobs:
               test-postmortems-ui
               test-acknowledgement-timeout-ui
               test-archivable-values-ui
-              test-metrics-ai-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
