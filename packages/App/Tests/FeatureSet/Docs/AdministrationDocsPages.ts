@@ -1,8 +1,9 @@
 /*
  * The four pages docs overhaul task 39 added to the Administration section -
- * Inviting People, Project Settings, Billing & Usage and Audit Logs - by the
- * paths their suites name them with, where each sits in the nav, and the
- * words a translation keeps as written or words freely.
+ * Inviting People, Project Settings, Billing & Usage and Audit Logs - and
+ * Audit Log Export, which sends the audit log out, by the paths their suites
+ * name them with, where each sits in the nav, and the words a translation
+ * keeps as written or words freely.
  *
  * AdministrationDocsFacts holds the English pages to the Dashboard, the
  * models and the server; AdministrationDocsTranslations holds every
@@ -25,6 +26,7 @@ export const INVITING_PEOPLE: string = "permissions/inviting-people";
 export const PROJECT_SETTINGS: string = "configuration/project-settings";
 export const BILLING: string = "configuration/billing";
 export const AUDIT_LOGS: string = "configuration/audit-logs";
+export const AUDIT_LOG_EXPORT: string = "configuration/audit-log-export";
 
 /*
  * Where a reader meets each page in the Administration section:
@@ -37,7 +39,9 @@ export const AUDIT_LOGS: string = "configuration/audit-logs";
  *     own address opens its first page);
  *   - Billing & Usage and Audit Logs right after it, the two sections of
  *     Project Settings that have a page of their own here, before the
- *     reference pages (IP Addresses, the label rules) that were there first.
+ *     reference pages (IP Addresses, the label rules) that were there first;
+ *   - Audit Log Export right after Audit Logs: what is recorded, then how
+ *     to send it to your own storage or SIEM.
  */
 export const ADMINISTRATION_PAGES: ReadonlyArray<AdministrationDocsPageEntry> =
   [
@@ -67,6 +71,13 @@ export const ADMINISTRATION_PAGES: ReadonlyArray<AdministrationDocsPageEntry> =
       navTitle: "Audit Logs",
       navGroup: "Configuration",
       after: "Billing & Usage",
+      before: "Audit Log Export",
+    },
+    {
+      page: AUDIT_LOG_EXPORT,
+      navTitle: "Audit Log Export",
+      navGroup: "Configuration",
+      after: "Audit Logs",
       before: "IP Addresses",
     },
   ];
@@ -85,6 +96,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     [PROJECT_SETTINGS]: ["⋯"],
     [BILLING]: ["⋯"],
     [AUDIT_LOGS]: ["Edit Audit Log Settings"],
+    [AUDIT_LOG_EXPORT]: [],
   };
 
 /*
@@ -110,6 +122,7 @@ export const PERMISSION_TITLES: Readonly<
     "Edit Invoices",
   ],
   [AUDIT_LOGS]: ["Read Audit Log"],
+  [AUDIT_LOG_EXPORT]: [],
 };
 
 /*
@@ -143,6 +156,19 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "On OneUptime Cloud",
     "When you self-host",
   ],
+  [AUDIT_LOG_EXPORT]: [
+    "One export, one destination.",
+    "A project's, or the instance's.",
+    "From when it is saved.",
+    "On OneUptime Cloud, the Enterprise plan.",
+    "When you self-host, the Enterprise Edition",
+    "Audit logging turned on",
+    "A Project Owner or Project Admin",
+    "Every minute.",
+    "Files are not written for every entry.",
+    "Each entry once, in order.",
+    "A repeat can be recognised.",
+  ],
 };
 
 /*
@@ -175,6 +201,7 @@ export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [PROJECT_SETTINGS]: "flowchart LR",
   [BILLING]: "flowchart TB",
   [AUDIT_LOGS]: "flowchart TB",
+  [AUDIT_LOG_EXPORT]: "flowchart TB",
 };
 
 /*
@@ -191,6 +218,20 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "AWS Marketplace",
   "Microsoft Marketplace",
   "Google Cloud Marketplace",
+  // The destinations Audit Log Export sends to, and the services it names.
+  "Google Cloud Storage",
+  "Azure Blob Storage",
+  "Cloud Storage",
+  "Blob Storage",
+  "Amazon S3",
+  "Cloudflare R2",
+  "MinIO",
+  "Wasabi",
+  "SIEM",
+  "NDJSON",
+  "JSON",
+  "HTTPS",
+  "HMAC-SHA256",
   "Microsoft Teams",
   "Slack",
   "Twilio",

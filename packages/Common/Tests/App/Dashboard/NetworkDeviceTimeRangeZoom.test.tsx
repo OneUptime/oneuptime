@@ -194,6 +194,18 @@ jest.mock("../../../UI/Utils/API/API", () => {
     __esModule: true,
     default: {
       post: (...args: Array<unknown>): unknown => {
+        /*
+         * The Traffic page's read of its Meraki side (issue #5140): no
+         * connection here. These tests count and read the flow reads.
+         */
+        if (
+          String((args[0] as { url?: unknown } | undefined)?.url).includes(
+            "/usage-summary",
+          )
+        ) {
+          return Promise.resolve({ data: { isAvailable: false } });
+        }
+
         return apiPostMock(...args);
       },
       getFriendlyMessage: (error: Error): string => {

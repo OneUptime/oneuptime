@@ -9,9 +9,6 @@ import {
 } from "../EnvironmentConfig";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
-import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
-import MarketplaceUsageReporter from "../Utils/Marketplace/MarketplaceUsageReporter";
-import VercelMarketplaceResources from "../Utils/Marketplace/Vercel/VercelMarketplaceResources";
 import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus, {
   MarketplaceSubscriptionStatusUtil,
@@ -25,6 +22,10 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
+import type {
+  ProjectBillingHooks,
+  ProjectBillingState,
+} from "../Enterprise/EnterpriseServerModule";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil, {
@@ -106,6 +107,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitColumn,
   ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
@@ -225,6 +227,14 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * them on itself. The pull requests OneUptime AI opens are part of fixing:
  * they open only while fixing is on, as each auto remediation rule says -
  * on by default, and on with no rule (Types/AI/AutomaticFixPullRequests).
+ *
+ * Finding and fixing slow code (enableAutomaticProfileRemediation, Profiles
+ * → AI → Settings) starts on: its fix is a pull request in a repository,
+ * which changes no infrastructure and is never merged - "a rule that is
+ * turned on by default" - the maintainer (Types/AI/TelemetryAi). So does
+ * finding and fixing slow and failing operations in traces
+ * (enableAutomaticTraceRemediation, Traces → AI → Settings), for the same
+ * reason.
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -233,6 +243,8 @@ export type NewProjectAiDefaultColumn =
   | "enableAutomaticPostmortemDraft"
   | "enableAiInsights"
   | "enableInsightFixTasks"
+  | "enableAutomaticProfileRemediation"
+  | "enableAutomaticTraceRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -243,6 +255,8 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAutomaticPostmortemDraft",
     "enableAiInsights",
     "enableInsightFixTasks",
+    "enableAutomaticProfileRemediation",
+    "enableAutomaticTraceRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 
@@ -600,6 +614,33 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Runs on every create and update that writes the project's AI context
+   * (Types/AI/AiContext): text, or nothing, and no more than
+   * PROJECT_AI_CONTEXT_MAX_CHARACTERS - the limit the settings card counts
+   * against as it is written. Refused, never cut: a cut would save notes
+   * someone never wrote. A blank one is stored as null, as clearing the
+   * field means.
+   */
+  public applyAiContextRules(data: { aiContext?: unknown }): void {
+    if (data.aiContext === undefined) {
+      return;
+    }
+
+    const problem: string | null = getAiContextProblem({
+      value: data.aiContext,
+      owner: AiContextOwner.Project,
+    });
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    if (typeof data.aiContext === "string" && !data.aiContext.trim()) {
+      data.aiContext = null;
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -614,6 +655,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(data.data);
     this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
+    this.applyAiContextRules(data.data as { aiContext?: unknown });
 
     if (data.props.userId) {
       RelationIdUtil.stamp(
@@ -1233,6 +1275,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(updateBy.data);
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
+    this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,
@@ -1683,14 +1726,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
 
     /*
-     * On Vercel the plan is the resource's billing plan, which the team
-     * sees in its Vercel dashboard: it follows a change made here. Never
-     * fails the change - Vercel is told best effort.
+     * The marketplace billing in the enterprise module hears of it: on
+     * Vercel the plan is the resource's billing plan, which the team sees in
+     * its Vercel dashboard, and it follows a change made here. Never fails
+     * the change - the marketplace is told best effort.
      */
-    if (project.billingMarketplace === CloudMarketplace.Vercel) {
+    const billingHooks: ProjectBillingHooks | null =
+      EnterpriseEdition.getProjectBillingHooks();
+
+    if (billingHooks && project.billingMarketplace) {
       try {
-        await VercelMarketplaceResources.onPlanChanged({
+        await billingHooks.afterMarketplacePlanChange({
           projectId: project.id!,
+          billingMarketplace: project.billingMarketplace,
           paymentProviderPlanId: data.paymentProviderPlanId,
         });
       } catch (err) {
@@ -1701,7 +1749,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
   /*
    * A cloud marketplace now bills this project (a buyer linked their
-   * marketplace purchase to it - MarketplaceSubscriptionService.linkToProject).
+   * marketplace purchase to it - MarketplacePurchases.linkToProject, in the
+   * enterprise module).
    *
    * Its card subscriptions are cancelled with a final invoice, so what they
    * already owe - metered usage not yet invoiced, less the unused part of the
@@ -4099,13 +4148,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
      * what it used since the last hourly report, and the balance top-ups
      * bought since, are billed now, while the project is still here to be
      * priced. Once it is gone its purchase is unlinked (onDeleteSuccess), and
-     * nothing would bill that time. The delete never waits on, or fails
-     * because of, a marketplace (reportFinalUsageOfProject).
+     * nothing would bill that time. The marketplace billing is the
+     * enterprise module's (ProjectBillingHooks); the delete never waits on,
+     * or fails because of, a marketplace.
      */
-    if (IsBillingEnabled) {
-      for (const project of projects) {
-        if (project.id && project.billingMarketplace) {
-          await MarketplaceUsageReporter.reportFinalUsageOfProject(project.id);
+    const projectsBeingDeleted: Array<ProjectBillingState> = projects
+      .filter((project: Model): boolean => {
+        return Boolean(project.id);
+      })
+      .map((project: Model): ProjectBillingState => {
+        return {
+          projectId: project.id!,
+          billingMarketplace: project.billingMarketplace || null,
+        };
+      });
+
+    if (IsBillingEnabled && projectsBeingDeleted.length > 0) {
+      const billingHooks: ProjectBillingHooks | null =
+        EnterpriseEdition.getProjectBillingHooks();
+
+      if (billingHooks) {
+        try {
+          await billingHooks.beforeProjectsDelete(projectsBeingDeleted);
+        } catch (err) {
+          logger.error(err);
         }
       }
     }
@@ -4186,35 +4252,39 @@ export class ProjectService extends ProjectReferencesService<Model> {
       }
 
       /*
-       * A Vercel resource IS its project: deleting the project in OneUptime
-       * deletes the resource on Vercel too, which takes its environment
-       * variables out of the Vercel projects connected to it. One Vercel
-       * deleted itself has ended already, and nothing is sent.
-       */
-      for (const project of onDelete.carryForward) {
-        if (
-          project.id &&
-          deletedProjectIds.has(project.id.toString()) &&
-          project.billingMarketplace === CloudMarketplace.Vercel
-        ) {
-          try {
-            await VercelMarketplaceResources.onProjectDeleted(project.id);
-          } catch (err) {
-            logger.error(err);
-          }
-        }
-      }
-
-      /*
+       * The marketplace billing in the enterprise module hears of every
+       * project that was really deleted (ProjectBillingHooks). A Vercel
+       * resource IS its project, so it is deleted on Vercel too, which takes
+       * its environment variables out of the Vercel projects connected to it.
        * A marketplace purchase that paid for a deleted project stops being
        * reported against it: its last usage was billed before the delete
        * (onBeforeDelete). The purchase itself is the buyer's, on the
        * marketplace: it is cancelled there, or linked to another project
        * from the marketplace's "manage" link.
        */
-      for (const deletedProjectId of itemIdsBeforeDelete) {
+      const billingHooks: ProjectBillingHooks | null =
+        EnterpriseEdition.getProjectBillingHooks();
+
+      if (billingHooks && itemIdsBeforeDelete.length > 0) {
         try {
-          await MarketplaceSubscriptionService.unlinkProject(deletedProjectId);
+          await billingHooks.afterProjectsDelete(
+            itemIdsBeforeDelete.map(
+              (deletedProjectId: ObjectID): ProjectBillingState => {
+                const snapshot: Model | undefined = onDelete.carryForward.find(
+                  (project: Model): boolean => {
+                    return (
+                      project.id?.toString() === deletedProjectId.toString()
+                    );
+                  },
+                );
+
+                return {
+                  projectId: deletedProjectId,
+                  billingMarketplace: snapshot?.billingMarketplace || null,
+                };
+              },
+            ),
+          );
         } catch (err) {
           logger.error(err);
         }
@@ -4333,11 +4403,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     const result: CurrentPlan = {
       plan: plan,
+      /*
+       * Read from the stored statuses alone (SubscriptionStatusUtil), so plan
+       * gating never needs the payment provider - or the enterprise module.
+       */
       isSubscriptionUnpaid:
-        !BillingService.isSubscriptionActive(
+        !SubscriptionStatusUtil.isSubscriptionActive(
           project.paymentProviderSubscriptionStatus!,
         ) ||
-        !BillingService.isSubscriptionActive(
+        !SubscriptionStatusUtil.isSubscriptionActive(
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };

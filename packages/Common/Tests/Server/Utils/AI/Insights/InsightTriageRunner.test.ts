@@ -20,6 +20,9 @@ import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
 import ExceptionAIClassification from "../../../../../Types/AI/ExceptionAIClassification";
 import ObjectID from "../../../../../Types/ObjectID";
+import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRules";
+import { decideTelemetryAiWork } from "../../../../../Types/AI/TelemetryAi";
+import { NO_EXTERNAL_MCP_SERVER } from "../../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
@@ -701,5 +704,308 @@ describe("InsightTriageRunner error-class precedence", () => {
 
     expect(auditWrite).not.toHaveBeenCalled();
     expect(promotion).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Slow code a service's profiles show (a telemetry lane's problem,
+ * Types/AI/TelemetryAi) is triaged as performance - why the function costs
+ * that much, and the one change most likely to win it back - with what its
+ * lane's AI rules allow it to read: their code repositories, and the tools
+ * that read of their MCP servers. Its fix is the lane's own (a pull request,
+ * TelemetryAiRouting): a code-fault verdict routes nothing here.
+ */
+describe("InsightTriageRunner.executeTriage - slow code", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const REPO: string = "5092ffff-0000-4000-8000-0000000000a1";
+
+  function slowCode(): AIInsight {
+    return makeInsight({
+      insightType: AIInsightType.ProfileHotspot,
+      title: "OrderParser.parse takes 18% of the CPU time in checkout",
+      detailMarkdown: "**Slow code in checkout**",
+      evidence: {
+        profile: {
+          serviceId: "5092ffff-0000-4000-8000-000000000002",
+          functionName: "OrderParser.parse",
+          fileName: "src/orders/parser.ts",
+          lineNumber: 42,
+          profileType: "cpu",
+          category: "cpu",
+          reason: "Hot",
+          ownShare: 18,
+          functionSampleCount: 900,
+          windowSampleCount: 5000,
+          windowStartTime: "2026-10-24T08:00:04.000Z",
+          windowEndTime: "2026-10-24T09:00:04.000Z",
+          callers: [],
+          callees: [],
+        },
+      },
+    });
+  }
+
+  function laneProject(): Project {
+    return {
+      id: projectId,
+      enableAi: true,
+      enableAutomaticProfileRemediation: true,
+    } as unknown as Project;
+  }
+
+  test("is framed as performance triage, with the profile evidence, and reads what its rules allow", async () => {
+    jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(slowCode());
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(laneProject());
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue({
+      ...decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: { rulesSetUp: false, matchingRules: [] },
+      }),
+      investigationRepositories: {
+        isEveryRepository: false,
+        repositoryIds: [REPO],
+      },
+      mcpServers: NO_EXTERNAL_MCP_SERVER,
+    });
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    const request: InvestigationRequest = (
+      executeRun.mock.calls[0]![0] as { request: InvestigationRequest }
+    ).request;
+
+    expect(request.contextSummary).toContain("PERFORMANCE TRIAGE");
+    expect(request.contextSummary).not.toContain("PREVENTIVE TRIAGE");
+    expect(request.contextSummary).toContain("ONE change");
+    expect(request.contextSummary).toContain(
+      '"functionName":"OrderParser.parse"',
+    );
+    expect(request.codeRepositoryAllowance).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [REPO],
+    });
+    // No MCP server allowed: no tools beyond OneUptime's own.
+    expect(request.extraTools).toBeUndefined();
+  });
+
+  test("rules that leave it out (or cannot be read) let it read no repository", async () => {
+    jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(slowCode());
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(laneProject());
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(
+      decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: null,
+      }),
+    );
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    const request: InvestigationRequest = (
+      executeRun.mock.calls[0]![0] as { request: InvestigationRequest }
+    ).request;
+
+    expect(request.codeRepositoryAllowance).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [],
+    });
+  });
+
+  test("a code-fault verdict writes the verdict and routes no fix: the lane opens its own pull request", async () => {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockImplementation(async (): Promise<AIInsight> => {
+        const insight: AIInsight = slowCode();
+        insight.status = AIInsightStatus.ActionRequired;
+        return insight;
+      });
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(laneProject());
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(null);
+    const persist: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneById")
+      .mockResolvedValue(1);
+    const routeFix: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({ fixAiRunId: ObjectID.generate() });
+    driveTriageWithAnalysis(
+      "OrderParser.parse re-parses the payload per item.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(persist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          classification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+    expect(routeFix).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Traces' findings (Utils/Traces/TraceInsight) are each triaged for what
+ * there is to establish: why a slow operation repeats costly work, why a
+ * failing one fails - whose verdict decides whether its pull request opens
+ * on its own (Types/AI/TelemetryAi) - and what a trace lacks to say why.
+ * The trace evidence reaches the prompt with the rest of the evidence, and
+ * a code-fault verdict routes nothing here: the lane opens its own pull
+ * request.
+ */
+describe("InsightTriageRunner.executeTriage - Traces' findings", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function traceFinding(insightType: AIInsightType): AIInsight {
+    return makeInsight({
+      insightType,
+      title: "POST /checkout in checkout fails 12% of the time",
+      detailMarkdown: "**Failing operation in checkout**",
+      evidence: {
+        trace: {
+          serviceId: "5229ffff-0000-4000-8000-000000000002",
+          kind: "Failing",
+          operationName: "POST /checkout",
+          windowStartTime: "2026-10-24T08:00:04.000Z",
+          windowEndTime: "2026-10-24T09:00:04.000Z",
+          spanCount: 2800,
+          failedSpanCount: 340,
+        },
+      },
+    });
+  }
+
+  async function contextSummaryFor(
+    insightType: AIInsightType,
+  ): Promise<string> {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(traceFinding(insightType));
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticTraceRemediation: true,
+    } as unknown as Project);
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(
+      decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: { rulesSetUp: false, matchingRules: [] },
+      }),
+    );
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    return (executeRun.mock.calls[0]![0] as { request: InvestigationRequest })
+      .request.contextSummary;
+  }
+
+  test("a slow operation is performance triage", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.TraceSlowOperation,
+    );
+
+    expect(summary).toContain("PERFORMANCE TRIAGE");
+    expect(summary).toContain("read this service's traces");
+    expect(summary).not.toContain("PREVENTIVE TRIAGE,");
+  });
+
+  test("a failing operation is failure triage, whose verdict gates its pull request", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.TraceFailingOperation,
+    );
+
+    expect(summary).toContain("PREVENTIVE TRIAGE of a failing operation");
+    expect(summary).toContain(
+      "ONLY code-fault findings may get an automatic fix pull request",
+    );
+    expect(summary).toContain("expected-denial");
+  });
+
+  test("missing tracing is observability triage", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.TraceMissingTracing,
+    );
+
+    expect(summary).toContain("OBSERVABILITY TRIAGE");
+    expect(summary).toContain("ONE instrumentation change");
+  });
+
+  test("the trace evidence is in the prompt", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.TraceFailingOperation,
+    );
+
+    expect(summary).toContain('- trace: {"serviceId"');
+    expect(summary).toContain('"failedSpanCount":340');
+  });
+
+  test("a code-fault verdict on a failing operation routes nothing here", async () => {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockImplementation(async (): Promise<AIInsight> => {
+        const insight: AIInsight = traceFinding(
+          AIInsightType.TraceFailingOperation,
+        );
+        insight.status = AIInsightStatus.ActionRequired;
+        return insight;
+      });
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticTraceRemediation: true,
+    } as unknown as Project);
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(null);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    const routeFix: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({ fixAiRunId: ObjectID.generate() });
+    driveTriageWithAnalysis(
+      "The payment client never retries.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(routeFix).not.toHaveBeenCalled();
   });
 });

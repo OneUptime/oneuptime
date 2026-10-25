@@ -2032,7 +2032,7 @@ describe("operations", () => {
  * asks the server (POST /ai-investigation/performance-fix-suggestion), which
  * runs the span-tree analysis with the spans' attributes and the same gates
  * the create route enforces, and draws exactly what it answers: the finding
- * in plain words with the fix (Act), a quiet link to connect GitHub
+ * in plain words with the fix (Act), a quiet link to connect a repository
  * (SetUp), a link to the fix already on its way (InProgress) - or nothing
  * at all (None).
  */
@@ -2238,7 +2238,7 @@ describe("performance fix with AI", () => {
         400,
         {
           message:
-            "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+            "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
         },
         {},
       );
@@ -2251,7 +2251,7 @@ describe("performance fix with AI", () => {
     expect(
       await within(strip).findByTestId("trace-fix-performance-error"),
     ).toHaveTextContent(
-      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+      "Could not start the fix: No connected repository exists for this project",
     );
     expect(
       within(strip).getByTestId("trace-fix-performance"),
@@ -2296,7 +2296,7 @@ describe("performance fix with AI", () => {
     expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
   });
 
-  test("refused because the repository was disconnected: the quiet Connect GitHub link takes the button's place", async () => {
+  test("refused because the repository was disconnected: the quiet link to connect a repository takes the button's place", async () => {
     answerSuggestion(
       { offer: "Act", finding: nPlusOneFinding() },
       async () => {
@@ -2304,7 +2304,7 @@ describe("performance fix with AI", () => {
           400,
           {
             message:
-              "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+              "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
           },
           {},
         );
@@ -2318,7 +2318,7 @@ describe("performance fix with AI", () => {
 
     expect(
       await within(strip).findByTestId("trace-fix-performance-connect"),
-    ).toHaveTextContent("Connect GitHub to fix this with AI");
+    ).toHaveTextContent("Connect a repository to fix this with AI");
     expect(strip).toHaveAttribute("data-offer", "SetUp");
     // Said in the strip's own words, not the server's.
     expect(
@@ -2367,7 +2367,7 @@ describe("performance fix with AI", () => {
     ).not.toBeDisabled();
   });
 
-  test("no repository connected: a quiet link to connect GitHub instead of the fix", async () => {
+  test("no repository connected: a quiet link to connect a repository instead of the fix", async () => {
     answerSuggestion({ offer: "SetUp", finding: nPlusOneFinding() });
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();
@@ -2379,7 +2379,9 @@ describe("performance fix with AI", () => {
     const connect: HTMLElement = within(strip).getByTestId(
       "trace-fix-performance-connect",
     );
-    expect(connect).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(connect).toHaveTextContent(
+      "Connect a repository to fix this with AI",
+    );
     expect(connect.closest("a")!.getAttribute("href")).toContain(
       `/dashboard/${PROJECT_ID}/code`,
     );

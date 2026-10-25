@@ -43,6 +43,37 @@ enum AIInsightType {
    * types first seen in the version it shipped (ChangeImpact's thresholds).
    */
   DeployRegression = "DeployRegression",
+  /*
+   * Slow code: a function of a service's own code that takes a large share
+   * of the service's time in its profiles, or whose share grew well beyond
+   * what it took at the same time the day before (Utils/Profiles/
+   * ProfileInsight's gates). Filed for the Profiles product's AI section
+   * (Types/AI/TelemetryAi), with the profile as its evidence.
+   */
+  ProfileHotspot = "ProfileHotspot",
+  /*
+   * A slow operation in a service's traces: its slowest requests over the
+   * last hour repeat a known pattern that costs them real time - the same
+   * call made again and again, calls made one after another that could run
+   * together, or one call that takes most of the request - by the rule the
+   * trace page's "Fix performance with AI" follows (Utils/Traces/
+   * TraceInsight's gates). Filed for the Traces product's AI section
+   * (Types/AI/TelemetryAi), with the request's findings as its evidence.
+   */
+  TraceSlowOperation = "TraceSlowOperation",
+  /*
+   * A failing operation: many of its spans in a service failed over the
+   * last hour (an error status), and they said why - the exception or the
+   * error message they recorded is the evidence.
+   */
+  TraceFailingOperation = "TraceFailingOperation",
+  /*
+   * Missing tracing: a service or an operation whose traces cannot say why
+   * it is slow or why it fails - requests with no spans inside them, slow
+   * time no span accounts for, or failures that record neither an error
+   * message nor an exception.
+   */
+  TraceMissingTracing = "TraceMissingTracing",
 }
 
 export default AIInsightType;

@@ -16,11 +16,34 @@ import AIInvestigationEngine from "../AIInvestigationEngine";
 import AIInvestigationQueue from "../InvestigationQueue";
 import InsightFixRouting, { InsightFixRoutingResult } from "./FixRouting";
 import { ConfidenceSignal } from "../ConfidenceSignal";
-import { ObservabilityAssistantResult } from "../../Chat/ObservabilityAssistant";
+import {
+  ObservabilityAssistantExtraTool,
+  ObservabilityAssistantResult,
+} from "../../Chat/ObservabilityAssistant";
 import ToolResultSerializer from "../../Toolbox/Serializer";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { findLabelledValues } from "../../LabelledAnswerLines";
+import ToolOutputPager from "../../Chat/ToolOutputPager";
+import McpInvestigationTools from "../../Mcp/McpInvestigationTools";
+import McpRunToolkit from "../../Mcp/McpRunToolkit";
+import TelemetryAiRules, {
+  TELEMETRY_AI_PROJECT_SELECT,
+} from "../../TelemetryAi/TelemetryAiRules";
+import {
+  TelemetryAiWork,
+  getTelemetryAiLaneOfInsightType,
+} from "../../../../../Types/AI/TelemetryAi";
+import {
+  CodeRepositoryAllowance,
+  NO_CODE_REPOSITORY,
+} from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
+
+// What a telemetry lane's problem is triaged with (getTelemetryAiScope).
+interface TelemetryAiTriageScope {
+  codeRepositoryAllowance: CodeRepositoryAllowance;
+  extraTools: Array<ObservabilityAssistantExtraTool>;
+}
 
 /*
  * AI SRE — per-insight preventive triage.
@@ -71,6 +94,84 @@ where <verdict> is exactly one of: code-fault, user-error, expected-denial, infr
 - unknown: the evidence does not support a confident verdict.
 This verdict gates automation: ONLY code-fault findings may get an automatic fix pull request, so classify conservatively — when torn between code-fault and anything else, pick the other one.`;
 
+/*
+ * The framing of a telemetry lane's problem - slow code a service's
+ * profiles show - in place of the preventive one: what to establish is why
+ * the code costs that much and whether a change can win it back.
+ */
+const PROFILE_TRIAGE_FRAMING: string = `IMPORTANT — this is PERFORMANCE TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's continuous profiles and found the function described below - part of the application's own code - taking a large or growing share of the service's time, with the numbers it computed. Your job:
+- Establish why that function costs that much: read its code with the code tools when a repository holds it, and its callers and callees with the profile tools.
+- Say whether the cost is avoidable (repeated or unnecessary work, an expensive call inside a loop, a missing cache, a slow algorithm, contention) or inherent to what the service does.
+- Recommend exactly ONE change most likely to win the time back, naming the file it is in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the application's code does avoidable work that a code change should remove.
+- infrastructure: the cost comes from the environment (CPU limits or throttling, garbage collector or runtime settings, a slow dependency) rather than the code.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to performance findings: do not use them.`;
+
+/*
+ * The Traces product's AI section's three kinds of problem (Utils/Traces/
+ * TraceInsight), each framed for what is to be established: why an
+ * operation's requests repeat costly work, why an operation fails - whose
+ * verdict decides whether its pull request may open on its own - and what a
+ * trace lacks to say why.
+ */
+const TRACE_SLOW_TRIAGE_FRAMING: string = `IMPORTANT — this is PERFORMANCE TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's traces and found the operation described below slow, with the pattern its slowest request repeats and the numbers it computed. Your job:
+- Establish why the operation does this work this way: read its code with the code tools when a repository holds it, and its traces with the trace tools.
+- Say whether the cost is avoidable (a query or call made once per item instead of once, calls made one after another that could run together, a slow query missing an index, a missing cache) or inherent to what the operation does.
+- Recommend exactly ONE change most likely to win the time back, naming the file it is in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the application's code does avoidable work that a code change should remove.
+- infrastructure: the time is spent in the environment (a slow dependency, the network, CPU limits) rather than in the code.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to performance findings: do not use them.`;
+
+const TRACE_FAILING_TRIAGE_FRAMING: string = `IMPORTANT — this is PREVENTIVE TRIAGE of a failing operation, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's traces and found the operation described below failing, with the error its most recent failures recorded and the numbers it computed. Your job:
+- Establish why it fails: read the code that raised the error with the code tools when a repository holds it, and the failed requests with the trace tools.
+- Say whether the failures are a defect in the code, a failure the code means (input it refuses correctly, an intentional denial), or the environment (a dependency down, a timeout, a limit).
+- Recommend exactly ONE next action, naming the file it is in when it is a code change.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: a defect in the operation's code that a code change should fix.
+- user-error: the callers send input the operation refuses, correctly.
+- expected-denial: an intentional check doing its job — authentication or authorization failures, plan or paywall rejections, rate limits.
+- infrastructure: an environmental condition (a dependency outage, a network timeout, resource exhaustion) rather than a logic defect.
+- unknown: the evidence does not support a confident verdict.
+This verdict gates automation: ONLY code-fault findings may get an automatic fix pull request, so classify conservatively — when torn between code-fault and anything else, pick the other one.`;
+
+const TRACE_TRACING_TRIAGE_FRAMING: string = `IMPORTANT — this is OBSERVABILITY TRIAGE, not an incident investigation: NO incident or alert exists and nobody has been paged. A deterministic sensor (no AI involved) read this service's traces and found that they cannot say why the service or operation described below is slow or fails: its requests record nothing inside them, or most of a slow request's time has no span under it, or its failures record neither an error message nor an exception. Your job:
+- Establish what the code does where the tracing is missing: read it with the code tools when a repository holds it.
+- Say which spans, attributes or recorded errors would let the next slow or failing request say why.
+- Recommend exactly ONE instrumentation change, naming the file it goes in.
+Cite the evidence for every factual claim. If the telemetry and the code cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: the code lacks instrumentation that a code change should add.
+- infrastructure: the tracing is set up outside this code (an agent, a collector, a proxy, a sampling rule) and the change belongs there.
+- unknown: the evidence does not support a confident verdict.
+user-error and expected-denial do not apply to tracing findings: do not use them.`;
+
+// The framing an insight's triage is given, by what kind of finding it is.
+const TRIAGE_FRAMING_BY_TYPE: Partial<Record<AIInsightType, string>> = {
+  [AIInsightType.ProfileHotspot]: PROFILE_TRIAGE_FRAMING,
+  [AIInsightType.TraceSlowOperation]: TRACE_SLOW_TRIAGE_FRAMING,
+  [AIInsightType.TraceFailingOperation]: TRACE_FAILING_TRIAGE_FRAMING,
+  [AIInsightType.TraceMissingTracing]: TRACE_TRACING_TRIAGE_FRAMING,
+};
+
 export default class InsightTriageRunner {
   /*
    * Execute a claimed triage run: load the insight, build its description
@@ -89,6 +190,7 @@ export default class InsightTriageRunner {
 
     let contextSummary: string;
     let insight: AIInsight | null = null;
+    let scope: TelemetryAiTriageScope | null = null;
     try {
       insight = await AIInsightService.findOneById({
         id: sentinelInsightId,
@@ -118,6 +220,11 @@ export default class InsightTriageRunner {
       }
 
       contextSummary = this.buildInsightSummary(insight);
+      scope = await InsightTriageRunner.getTelemetryAiScope({
+        insight,
+        projectId,
+        aiRunId,
+      });
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
@@ -141,6 +248,14 @@ export default class InsightTriageRunner {
       request: {
         feature: AI_INSIGHT_TRIAGE_FEATURE,
         contextSummary,
+        ...(scope
+          ? {
+              codeRepositoryAllowance: scope.codeRepositoryAllowance,
+              ...(scope.extraTools.length > 0
+                ? { extraTools: scope.extraTools }
+                : {}),
+            }
+          : {}),
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;
@@ -189,6 +304,63 @@ export default class InsightTriageRunner {
         },
       },
     });
+  }
+
+  /*
+   * What a telemetry lane's problem may be investigated with: the code
+   * repositories and MCP servers its lane's AI rules allow for it
+   * (Types/AI/TelemetryAi). Null for every other insight - triaged as it
+   * always was. Rules that cannot be read allow nothing beyond OneUptime's
+   * own data.
+   */
+  private static async getTelemetryAiScope(data: {
+    insight: AIInsight;
+    projectId: ObjectID;
+    aiRunId: ObjectID;
+  }): Promise<TelemetryAiTriageScope | null> {
+    if (!getTelemetryAiLaneOfInsightType(data.insight.insightType)) {
+      return null;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: TELEMETRY_AI_PROJECT_SELECT,
+      props: { isRoot: true },
+    });
+
+    const work: TelemetryAiWork | null = project
+      ? await TelemetryAiRules.decideForInsight({
+          insight: data.insight,
+          project,
+        })
+      : null;
+
+    if (!work || work.skip !== null) {
+      return {
+        codeRepositoryAllowance: NO_CODE_REPOSITORY,
+        extraTools: [],
+      };
+    }
+
+    const extraTools: Array<ObservabilityAssistantExtraTool> = [];
+    const outputPager: ToolOutputPager = new ToolOutputPager();
+    const mcpToolkit: McpRunToolkit | null =
+      await McpInvestigationTools.forTelemetryProblem({
+        projectId: data.projectId,
+        insightId: data.insight.id!,
+        aiRunId: data.aiRunId,
+        outputPager,
+        allowance: work.mcpServers,
+      });
+
+    if (mcpToolkit) {
+      extraTools.push(...mcpToolkit.buildTools(), outputPager.buildReadTool());
+    }
+
+    return {
+      codeRepositoryAllowance: work.investigationRepositories,
+      extraTools,
+    };
   }
 
   /*
@@ -364,7 +536,9 @@ export default class InsightTriageRunner {
      * insights only.
      */
     const isVerdictGatedInsight: boolean =
-      insight.insightType !== AIInsightType.TraceLatencyRegression;
+      insight.insightType !== AIInsightType.TraceLatencyRegression &&
+      // A telemetry lane's rules decide its fixes (TelemetryAiRouting).
+      !getTelemetryAiLaneOfInsightType(insight.insightType);
 
     if (
       classification === ExceptionAIClassification.CodeFault &&
@@ -422,7 +596,10 @@ export default class InsightTriageRunner {
   private static buildInsightSummary(insight: AIInsight): string {
     const lines: Array<string> = [];
 
-    lines.push(PREVENTIVE_TRIAGE_FRAMING);
+    lines.push(
+      TRIAGE_FRAMING_BY_TYPE[insight.insightType as AIInsightType] ||
+        PREVENTIVE_TRIAGE_FRAMING,
+    );
     lines.push("");
     lines.push("# Insight finding");
     lines.push(`Finding type: ${insight.insightType || "N/A"}`);
@@ -495,6 +672,8 @@ export default class InsightTriageRunner {
       "logSpike",
       "latency",
       "metricDrift",
+      "profile",
+      "trace",
     ];
 
     for (const section of sections) {

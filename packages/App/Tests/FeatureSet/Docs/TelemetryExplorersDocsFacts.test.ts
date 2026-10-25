@@ -1961,7 +1961,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "const isPaused: boolean = props.isResolved || props.isArchived;",
     );
     expect(page).toContain(
-      "AI needs three things first: an LLM provider, a GitHub repository connected through the GitHub App, and an AI agent online to run the task.",
+      "AI needs three things first: an LLM provider, a connected repository (on GitHub, GitLab, Forgejo or Gitea, or any Git server), and an AI agent online to run the task.",
     );
     expect(page).toContain(
       "The tasks pause while the exception is resolved or archived.",

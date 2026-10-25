@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.88",
+  "version": "14.0.89",
   "description": "",
   "repository": {
     "type": "git",
@@ -41,6 +41,7 @@
     "test-monitor-overview-ui": "playwright test --config playwright.monitor-overview-ui.config.ts",
     "test-home-overview-ui": "playwright test --config playwright.home-overview-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
+    "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
     "test-infrastructure-first-run-ui": "playwright test --config playwright.infrastructure-first-run-ui.config.ts",
     "test-host-collectors-ui": "playwright test --config playwright.host-collectors-ui.config.ts",
     "test-chart-time-zoom-ui": "playwright test --config playwright.chart-time-zoom-ui.config.ts",
@@ -77,9 +78,11 @@
     "test-rules-menu-section-ui": "playwright test --config playwright.rules-menu-section-ui.config.ts",
     "test-auto-remediation-rules-ui": "playwright test --config playwright.auto-remediation-rules-ui.config.ts",
     "test-external-mcp-servers-ui": "playwright test --config playwright.external-mcp-servers-ui.config.ts",
+    "test-ai-context-ui": "playwright test --config playwright.ai-context-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
     "test-cloud-connect-ui": "playwright test --config playwright.cloud-connect-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
+    "test-traces-ai-ui": "playwright test --config playwright.traces-ai-ui.config.ts",
     "test-dashboard-templates-ui": "playwright test --config playwright.dashboard-templates-ui.config.ts",
     "test-dashboard-time-range-ui": "playwright test --config playwright.dashboard-time-range-ui.config.ts",
     "test-dashboard-widget-sort-ui": "playwright test --config playwright.dashboard-widget-sort-ui.config.ts",

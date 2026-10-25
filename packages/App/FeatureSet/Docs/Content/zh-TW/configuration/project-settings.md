@@ -38,7 +38,7 @@ flowchart LR
 | **進階** | **網域**、**API 金鑰**、**功能旗標**、**從其他工具匯入** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[功能旗標](#功能旗標)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
 | **安全性** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **帳單與發票** | **帳單**、**使用歷程**、**發票** | [帳單與用量](/docs/configuration/billing) |
-| **稽核日誌** | **稽核日誌**、**設定** | [稽核日誌](/docs/configuration/audit-logs) |
+| **稽核日誌** | **稽核日誌**、**設定**、**匯出** | [稽核日誌](/docs/configuration/audit-logs)、[稽核日誌匯出](/docs/configuration/audit-log-export) |
 | **危險區域** | **危險區域** | [刪除專案](#刪除專案) |
 
 **帳單與發票**和**AI 點數**僅存在於 OneUptime Cloud：自行託管的安裝沒有帳單功能。

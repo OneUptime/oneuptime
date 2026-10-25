@@ -45,7 +45,7 @@ interface KnownTestRoute {
   why: string;
 }
 
-const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
+const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
   {
     file: "packages/Common/Server/API/WorkspaceNotificationRuleAPI.ts",
     path: "/test/:workspaceNotifcationRuleId",
@@ -191,6 +191,12 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Reads a few days of an AI provider account's usage, or counts a company AI tool's newest chats, as whoever may change the connection; imports nothing and sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/NetworkControllerConnectionAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Signs in to a Meraki organization with a key and counts its networks, as whoever may edit network controller connections (assertCanOperate), through the data source transport; stores nothing and sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/CloudConnectionAPI.ts",
     path: "/test",
     rule: "check",
@@ -220,7 +226,31 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     rule: "check",
     why: "A probe reports the vCenter connection test it ran, as the probe the test names; sends nobody a message.",
   },
+  {
+    file: "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts",
+    path: "/audit-log-export/test",
+    rule: "check",
+    why: "Writes one test entry to a project's audit log destination (a file in its bucket, a request to its webhook, a syslog message), asking what creating an export asks (checkCallerMayCreate); sends nobody a message.",
+  },
+  {
+    file: "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts",
+    path: "/audit-log-export/instance/test",
+    rule: "instance",
+    why: "Writes one test entry to the instance's audit log destination, from the Admin Dashboard.",
+  },
 ];
+
+/*
+ * The Common Test job runs with ee/ deleted: the routes listed in ee/ are
+ * held to the table only where ee/ is checked out (the Enterprise Edition
+ * Test workflow runs this file with it).
+ */
+const hasEe: boolean = fs.existsSync(path.join(REPO_ROOT, "ee"));
+
+const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> =
+  ALL_KNOWN_TEST_ROUTES.filter((route: KnownTestRoute): boolean => {
+    return hasEe || !route.file.startsWith("ee/");
+  });
 
 // The calls that send a test to the caller's own method.
 const SELF_TEST_SENDS: ReadonlyArray<string> = [

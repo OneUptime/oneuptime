@@ -31,6 +31,8 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
+import { AiContextActivity } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
 
 /*
  * AI SRE — auto-draft postmortem on resolve (Phase 3, "close the loop").
@@ -455,6 +457,29 @@ export default class AIIncidentPostmortemRunner {
     return mdText` It was written with **${choice.provider.name}**, ${used}, because the LLM provider of ${rule} ${why}.`;
   }
 
+  /*
+   * What the draft was written from, as its feed item says it: the
+   * timeline and telemetry always, what was said on the incident's calls
+   * when it read a transcript, and the project's AI context when it read
+   * one.
+   */
+  public static describeDraftSources(data: {
+    callsRead: number;
+    readAiContext: boolean;
+  }): string {
+    const sources: Array<string> = ["the incident timeline", "telemetry"];
+
+    if (data.callsRead > 0) {
+      sources.push("what was said on its calls");
+    }
+
+    if (data.readAiContext) {
+      sources.push("the project's AI context");
+    }
+
+    return `${sources.slice(0, -1).join(", ")} and ${sources[sources.length - 1]}`;
+  }
+
   // A postmortem the draft may be written into: none yet, and not on the status page.
   private static isDraftable(incident: Incident): boolean {
     // Never clobber an existing postmortem (human or previously drafted).
@@ -507,6 +532,16 @@ export default class AIIncidentPostmortemRunner {
       });
 
     /*
+     * The project's AI context (issue #5198): the team's notes on its
+     * systems - who owns what, what depends on what - read first by the
+     * draft, and named in its feed item as one of what it was written
+     * from.
+     */
+    const aiContext: AiContextActivity | null = await AiContextReader.read({
+      projectId,
+    });
+
+    /*
      * The draft is written from the incident's timeline and telemetry,
      * which can carry text meant to steer the model. It is saved on the
      * incident and previewed in its feed as the Markdown the model wrote,
@@ -519,6 +554,7 @@ export default class AIIncidentPostmortemRunner {
         incidentId,
         ...(template ? { template: template.outline } : {}),
         llmProviderId: llmProviderChoice.llmProviderId,
+        aiContext,
       }),
     ).toString();
 
@@ -542,10 +578,10 @@ export default class AIIncidentPostmortemRunner {
       })
     ).toNumber();
 
-    const sources: string =
-      callsRead > 0
-        ? "the incident timeline, telemetry and what was said on its calls"
-        : "the incident timeline and telemetry";
+    const sources: string = AIIncidentPostmortemRunner.describeDraftSources({
+      callsRead,
+      readAiContext: aiContext !== null,
+    });
 
     // The template the draft followed, by name, when it followed one.
     const followed: MarkdownText = template

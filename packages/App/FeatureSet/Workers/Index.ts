@@ -69,12 +69,15 @@ import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/IncomingEmailMonitor/CheckOnlineStatus";
-import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
-// Cloud marketplaces (AWS, Microsoft, Google Cloud): hourly usage, daily status sync.
-import "./Jobs/Marketplace/ReportMarketplaceUsage";
-import "./Jobs/Marketplace/SyncMarketplacePurchases";
-import "./Jobs/Marketplace/BillVercelMarketplace";
+/*
+ * OneUptime Cloud's billing jobs - the cloud marketplace and Vercel
+ * Marketplace jobs (hourly usage, daily status sync, Vercel invoices), the
+ * metered plan usage report and the subscription jobs (subscription status,
+ * plan names, seat counts, overdue reminders) - belong to the enterprise
+ * module and are registered by EnterpriseLoader.registerWorkerJobs() in
+ * init() below.
+ */
 
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
@@ -124,10 +127,6 @@ import "./Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities";
  * WITHOUT being asked, so its silence is indistinguishable from good news.
  */
 import "./Jobs/OnCallDutyPolicy/WeeklyReadinessDigest";
-// Payments.
-import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
-import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
-import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 
 // Scheduled Event
@@ -347,6 +346,8 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
+// Network controller connections (Meraki): traffic read on a schedule.
+import "./Jobs/Network/ReadNetworkControllerConnections";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";
@@ -425,8 +426,6 @@ import "Common/Server/Utils/OnCall/OnCallShiftReminderListener";
  */
 
 import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
-
-import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
 /*
  * Enterprise license jobs (usage reporting, license notification emails,

@@ -15,6 +15,7 @@ import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
 import IncidentAlertAiActivityAPI from "Common/Server/API/IncidentAlertAiActivityAPI";
+import TelemetryAiAPI from "Common/Server/API/TelemetryAiAPI";
 import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
@@ -52,6 +53,7 @@ import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
 import AIAgentTelemetryAPI from "Common/Server/API/AIAgentTelemetryAPI";
 import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
+import CodeRepositoryConnectionAPI from "Common/Server/API/CodeRepositoryConnectionAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -80,8 +82,6 @@ import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
-import MarketplaceAPI from "Common/Server/API/MarketplaceAPI";
-import VercelMarketplaceProviderAPI from "Common/Server/API/VercelMarketplaceProviderAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
@@ -586,8 +586,12 @@ import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
+import AuditLogExportService, {
+  Service as AuditLogExportServiceType,
+} from "Common/Server/Services/AuditLogExportService";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
 } from "Common/Server/Services/SecurityLogSourceService";
@@ -1623,6 +1627,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
@@ -3309,6 +3314,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       new CloudConnectionAPI().getRouter(),
     );
 
+    // Network controller connections: Meraki organizations read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkControllerConnectionAPI().getRouter(),
+    );
+
     // External MCP servers OneUptime AI may use, and their connection test.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -3949,6 +3960,19 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityEventDestinationAPI().getRouter(),
+    );
+
+    /*
+     * Where the audit log is exported. The exports are enterprise
+     * configuration: creating or changing one needs the Enterprise Edition
+     * (EditionPermission), and the exporter and its test route are ee/'s.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AuditLogExport, AuditLogExportServiceType>(
+        AuditLogExport,
+        AuditLogExportService,
+      ).getRouter(),
     );
 
     app.use(
@@ -5682,28 +5706,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       new ResellerPlanAPI().getRouter(),
     );
     /*
-     * AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace:
-     * their landing pages, webhooks and event deliveries, and the purchase
-     * page's routes (OneUptime Cloud only - see MarketplaceAPI).
-     */
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new MarketplaceAPI().getRouter(),
-    );
-    /*
-     * Vercel Marketplace: the provider API Vercel calls when a team installs
-     * OneUptime and adds, changes or deletes a resource, and its webhooks
-     * (OneUptime Cloud only - see VercelMarketplaceProviderAPI).
-     */
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new VercelMarketplaceProviderAPI().getRouter(),
-    );
-    /*
      * Enterprise API routers from the Enterprise Edition module (ee/): the
      * license client (activate / refresh), team compliance status, and - only
      * on the hosted oneuptime.com (billing enabled) - the license server with
-     * its instance usage. The Community Edition mounts none of them.
+     * its instance usage, and the cloud marketplaces' and Vercel
+     * Marketplace's routes (landing pages, webhooks, the provider API Vercel
+     * calls, the purchase page's routes). The Community Edition mounts none
+     * of them.
      */
     const enterpriseApiRouters: Array<ExpressRouter> =
       EnterpriseEdition.getModule()?.getApiRouters() || [];
@@ -5835,6 +5844,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // Code: repositories, their tasks, and asking AI in them.
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new CodeTaskAPI().getRouter());
+
+    // Code: connecting repositories on GitLab, Forgejo, Gitea or a Git server.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CodeRepositoryConnectionAPI().getRouter(),
+    );
 
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(
@@ -6101,6 +6116,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // The AI section of the Incidents and Alerts menus: AI Insights and Logs.
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, IncidentAlertAiActivityAPI);
+
+    // The AI section of the telemetry products' menus: readiness and Logs.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAiAPI);
 
     // AI SRE — the shared conversation in the investigation box
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationConversationAPI);

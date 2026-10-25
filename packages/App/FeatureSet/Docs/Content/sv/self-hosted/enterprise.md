@@ -35,7 +35,7 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | Funktion | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Övervakning, larm, incidenter, jour, statussidor, loggar, mätvärden, spår, undantag, instrumentpaneler, arbetsflöden, AI-funktioner, API och Terraform | Ja | Ja | Alla planer |
-| Inloggning med lösenord, tvåfaktorsautentisering, team, roller och API-nycklar | Ja | Ja | Alla planer |
+| Inloggning med lösenord, tvåfaktorsautentisering, team, inbyggda roller och API-nycklar | Ja | Ja | Alla planer |
 | [SAML-SSO och OpenID Connect](/docs/identity/sso) för inloggning i projekt | Ja | Ja | Planen Scale och högre |
 | SAML-SSO och OpenID Connect för inloggning på privata statussidor | Ja | Ja | Planen Scale och högre |
 | [Global SSO och OIDC (för hela instansen)](/docs/identity/global-sso) | Ja | Ja | Inte tillämpligt |
@@ -43,6 +43,10 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | Inställningar för teamefterlevnad | Nej | Ja | Planen Scale och högre |
 | Granskningsloggar | Nej | Ja | Planen Enterprise |
 | Åsidosättningar av lagringstid: lagringstid per telemetrityp (loggar, spår, mätvärden, profiler, med regler per loggallvarlighet och spårstatus) samt lagringstid per tjänst och per resurs | Nej | Ja | Planen Scale och högre |
+| Anpassade roller: uppsättningar behörigheter som du namnger en gång och ger till team och API-nycklar | Nej | Ja | Planen Scale och högre |
+| IP-tillåtelselistor för statussidor, offentliga instrumentpaneler och formulär | Nej | Ja | Planen Scale och högre |
+| Åtkomstkontroller för statussidor: hur länge läsare av en privat statussida förblir inloggade, och vem som kan prenumerera | Nej | Ja | Planen Scale och högre |
+| Dölja "Powered by OneUptime" på statussidor | Nej | Ja | Planen Scale och högre |
 | Administrationens **Health**-instrumentpaneler: översikt över instansen, bakgrundsköer, instansloggar, PostgreSQL, Valkey, ClickHouse-kluster, diagnostikloggar och telemetriinmatning | Nej | Ja | Inte tillämpligt |
 | Administrationens **Query Console** | Nej | Ja | Inte tillgängligt |
 | Hälsolarm för PostgreSQL och Valkey (Redis) | Nej | Ja | Inte tillämpligt |
@@ -55,6 +59,8 @@ Enkel inloggning omfattar "Require SSO for login" för projekt, privata statussi
 Alla utgåvor har projektets standardlagringstid för telemetri under **Projektinställningar > Telemetri och APM > Datalagring**. Åsidosättningar av lagringstid är det som Enterprise Edition lägger till ovanpå den.
 
 På OneUptime Cloud kan en betald funktion alltid stängas av, på alla planer. En åsidosättning av lagringstid som en provperiod (eller ett byte till en lägre plan) lämnade inställd fortsätter att gälla för ny telemetri, så under planen Scale visar lagringssidorna den under uppgraderingskortet med knappen **Ta bort åsidosättning**. Borttagningen fungerar på alla planer; att ställa in en igen kräver planen Scale. Telemetri som redan har lagrats behåller den lagringstid den lagrades med. På samma sätt visar **Projektinställningar > Säkerhet > SSO** reglaget **Kräv SSO för inloggning** under sitt uppgraderingskort så länge projektet fortfarande kräver SSO, så att det går att stänga av.
+
+Anpassade roller, IP-tillåtelselistor, åtkomstkontroller för statussidor och en dold "Powered by OneUptime"-rad fungerar på samma sätt: det som en provperiod eller en lägre plan lämnade inställt fortsätter att gälla, och inställningarna visar det under uppgraderingskortet med en knapp för att ta bort det.
 
 Rader med "Inte tillämpligt" är funktioner för administration av instansen. På OneUptime Cloud driver OneUptime instansen åt dig.
 
@@ -185,12 +191,14 @@ Vad som stoppas när en licens löper ut:
 - **SCIM-etableringen stoppas.** Din identitetsleverantörs SCIM-begäranden nekas, inklusive avetablering, och SCIM-teamlås hävs, så att team som hanteras av SCIM-pushgrupper kan redigeras för hand.
 - **Granskningsloggningen slutar registrera.** Granskningsloggar som har registrerats hittills behålls.
 - **Åsidosättningar av lagringstid slutar gälla.** Ny telemetri behålls enligt projektets standardlagringstid. Telemetri som redan har lagrats behåller den lagringstid den skrevs med. Du kan fortfarande rensa en åsidosättning via API:t, men inte ställa in en.
+- **Statussidor visar Powered by OneUptime igen.** En sida som döljer raden visar den tills en licens aktiveras. Inställningen behålls.
 
 Vad som **inte** stoppas:
 
 - **Enkel inloggning.** Inloggning med SAML och OIDC för projekt, privata statussidor, hela instansen (global SSO) och mobilapparna, liksom "Require SSO for login", ingår i alla utgåvor. En utgången licens ändrar inget av detta, och konfigurationen för enkel inloggning går fortfarande att redigera.
 - **Grundövervakningen påverkas aldrig**: övervakare, larm, incidenter, jour, statussidor och telemetri fortsätter alla att fungera.
 - **Huvudadministratörer kan alltid logga in med sitt lösenord.**
+- **Anpassade roller, IP-tillåtelselistor och åtkomstkontroller för statussidor fortsätter att gälla.** Du kan ta bort dem, men inte skapa eller ändra dem.
 - **Inget tas bort.** SCIM-konfiguration, granskningsloggar och åsidosättningar av lagringstid förblir som de är.
 
 **Allt fortsätter igen så snart en licens aktiveras**, utan omstart: SCIM-etablering, granskningsloggning och åsidosättningar av lagringstid kommer tillbaka med den konfiguration du har. OneUptime stänger bara av dem när det vet att licensen har löpt ut. Så länge det inte kan läsa licenstillståndet, till exempel en kort stund medan servern startar, förblir SCIM, granskningsloggning och åsidosättningar av lagringstid påslagna.
@@ -206,6 +214,8 @@ Din konfiguration ligger kvar i databasen. Ett byte tillbaka till Enterprise-avb
 - **SCIM-teamlås hävs**, så att team som hanterades av SCIM-pushgrupper kan redigeras för hand. Vid start loggar servern vilka projekt som fick sina SCIM-teamlås hävda.
 - **Granskningsloggningen stoppas.** Granskningsloggar som har registrerats hittills behålls, men sidorna för granskningsloggar visar en uppmaning att uppgradera.
 - **Åsidosättningar av lagringstid slutar gälla.** Ny telemetri behålls enligt projektets standardlagringstid, och lagringskorten under **Projektinställningar > Telemetri och APM > Datalagring** och på inställningssidan för varje tjänst och varje resurs visar en uppmaning att uppgradera. Åsidosättningarna ligger kvar i databasen och gäller igen när du byter tillbaka.
+- **Statussidor visar Powered by OneUptime igen.** Inställningen ligger kvar i databasen och döljer raden igen när du byter tillbaka.
+- **Anpassade roller, IP-tillåtelselistor och åtkomstkontroller för statussidor fortsätter att gälla.** Deras inställningar visar en uppmaning att uppgradera, med det som fortfarande är inställt och en knapp för att ta bort det.
 - **Enterprise-inställningssidor visar en uppmaning att uppgradera.** Via API:t kan du fortfarande läsa och ta bort enterprise-konfiguration och återställa en SCIM-bearer-token, men inte skapa eller ändra något annat. Granskningsloggning kan inte slås på.
 - **Enterprise-instrumentpanelerna under Health, Query Console och hälsolarmen för PostgreSQL och Valkey stoppas.** Kapacitetsövervakning och rensning för ClickHouse, migreringsstatus och supportpaketet fortsätter att fungera.
 

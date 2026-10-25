@@ -50,7 +50,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
   beforeEach(() => {
     aiSwitch(true);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
@@ -117,10 +117,10 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
     ).rejects.toThrow(/not found/);
   });
 
-  test("rejects when no GitHub-App-connected repository exists", async () => {
+  test("rejects when no connected repository exists", async () => {
     mockService();
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     await expect(
@@ -130,7 +130,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
       }),
-    ).rejects.toThrow(/GitHub-App-connected repository/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
   });
 
   test("per-(service, recipe) dedupe: an active run for the service blocks a second one", async () => {
@@ -217,7 +217,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     aiSwitch(false);
     const repository: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
     const run: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
@@ -235,7 +235,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
       .mockResolvedValue(null);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     expect((await suggest()).offer).toBe(SuggestionOffer.None);
@@ -247,7 +247,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
       .mockResolvedValue(null);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
 
     expect(await suggest(CodeFixTaskType.ImproveTracing)).toEqual({
@@ -264,7 +264,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       .mockResolvedValue(activeRun);
     const repository: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     expect(await suggest(CodeFixTaskType.ImproveTracing)).toEqual({
@@ -315,7 +315,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       aiSwitch(isAiOn);
       mockService();
       jest
-        .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+        .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
         .mockResolvedValue(hasRepository);
       jest
         .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")

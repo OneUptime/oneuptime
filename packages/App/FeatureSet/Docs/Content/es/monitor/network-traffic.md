@@ -8,6 +8,8 @@ Hay una página de Tráfico en tres lugares:
 - La página de **Tráfico** de un sitio: los dispositivos de ese sitio.
 - La pestaña **Tráfico** de un dispositivo: ese dispositivo, con sus interfaces. Las capturas de paquetes que se ejecutan en la sonda del dispositivo aparecen bajo los flujos, para cuando necesites los propios paquetes.
 
+Una instalación de Cisco Meraki también se puede leer sin exportar nada: conecta el panel de Meraki y las páginas de Tráfico muestran los uplinks, las aplicaciones y los clientes de sus appliances tal como los informa Meraki. Consulta [Cisco Meraki sin NetFlow](#cisco-meraki-sin-netflow).
+
 ## Qué muestra la página de Tráfico
 
 - Cuatro cifras para el intervalo: **Tráfico** (bytes), la tasa **Promedio** y **Pico**, y **Flujos** (cuántos registros de flujo enviaron los dispositivos).
@@ -53,6 +55,8 @@ El recolector está activado de forma predeterminada. Sus ajustes son variables 
 | PROBE_IPFIX_RECEIVER_PORT           | El puerto de IPFIX; `0` deja de escuchar en él                      | 4739    |
 | PROBE_SFLOW_RECEIVER_PORT           | El puerto de sFlow; `0` deja de escuchar en él                      | 6343    |
 | PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE | Datagramas aceptados por minuto, entre todos los dispositivos y puertos | 6000    |
+
+Esos 6000 datagramas por minuto los comparten todos los dispositivos que exportan a la sonda. Con cientos de dispositivos, aumenta `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` o reparte los dispositivos entre varias sondas: los datagramas que superan el límite se descartan, y el registro de la sonda dice cuántos (consulta [Solución de problemas](#solución-de-problemas)). Una instalación de Meraki no necesita ninguna exportación: consulta [Cisco Meraki sin NetFlow](#cisco-meraki-sin-netflow).
 
 ### Cisco IOS XE (Flexible NetFlow)
 
@@ -113,6 +117,8 @@ Los appliances MX y las pasarelas de teletrabajo de la serie Z exportan NetFlow 
 
 Un MX o un Z solo ve el tráfico que pasa por él. El tráfico que un switch mantiene dentro de una VLAN nunca le llega, así que no está en la exportación.
 
+Para leer cada sede sin configurar cada MX, conecta en su lugar el panel de Meraki: consulta [Cisco Meraki sin NetFlow](#cisco-meraki-sin-netflow). Su tráfico no tiene conversaciones, así que los dos se complementan bien.
+
 ### Juniper (J-Flow en línea)
 
 Exporta IPFIX a UDP 4739 desde routers MX; usa la FPC que lleva las interfaces que muestreas.
@@ -171,6 +177,31 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 
 Envía NetFlow v5, NetFlow v9 o IPFIX a la dirección IP de la sonda en UDP 2055 (o 4739), o sFlow v5 en UDP 6343. Ajusta el tiempo de espera activo de los flujos del dispositivo a 60 segundos y, para NetFlow v9 e IPFIX, envía sus plantillas cada 60 segundos. Las [guías de fabricantes de red](/docs/monitor/network-vendor-guides) cubren Sophos y Extreme Networks.
 
+## Cisco Meraki sin NetFlow
+
+Una instalación de Meraki tiene una segunda vía, sin nada que configurar en los dispositivos y sin sonda en medio: OneUptime lee el tráfico de la organización desde la API del panel de Meraki. Se adapta a cientos o miles de sedes, donde configurar NetFlow en cada MX es la parte difícil.
+
+En **Red** -> **Tráfico**, elige **Conectar Meraki**:
+
+1. **Clave de API.** Crea una en el panel de Meraki en **Organization** > **API & Webhooks** > **API keys and access**. Basta con la clave de un administrador de solo lectura. OneUptime la guarda cifrada, nunca vuelve a mostrarla y solo la envía a la API del panel de Meraki de la región de la clave. Si inicias sesión en Meraki en otro sitio que no sea dashboard.meraki.com, elige la **Región del panel** en **Más campos**: el panel de Canadá, China, India o el panel FedRAMP de Estados Unidos.
+2. **Organización.** La clave se prueba al abrirse el paso: se listan las organizaciones que puede leer y, para la que elijas, el diálogo cuenta las redes y los appliances MX y Z que cubrirá una lectura, antes de guardar nada.
+
+La primera lectura empieza en menos de un minuto y trae el último día. A partir de ahí, las páginas de Tráfico tienen un selector **Flujos** | **Meraki** en su cabecera: una página con registros de flujo se abre en ellos, como antes, y una página con solo tráfico de Meraki se abre en Meraki.
+
+| En la página | Lo que informa Meraki | Con qué frecuencia se lee |
+| --- | --- | --- |
+| Las cuatro cifras, el gráfico, **Redes principales** y **Uplinks** | El uso de los uplinks de cada appliance MX y Z (wan1, wan2, cellular), para toda la organización en una sola llamada | Cada 5 minutos por defecto, hasta cada hora, en ventanas de cinco minutos |
+| **Aplicaciones principales** y **Destinos principales** | Los análisis de tráfico de cada red | Cada dos horas: Meraki los suma en dos horas o más |
+| **Clientes principales** | Los clientes de cada red y lo que usaron | Cada dos horas, con las aplicaciones |
+
+Un clic en una red limita la página a esa red y lista sus uplinks. El tráfico de un appliance pertenece a su dispositivo en OneUptime cuando un dispositivo tiene el número de serie o la dirección MAC del appliance: entonces también aparece en las páginas de Tráfico de ese dispositivo y de su sede. El tráfico de un appliance que no es un dispositivo en OneUptime aparece en la página de la red.
+
+Meraki da a cada organización 10 solicitudes de API por segundo, compartidas por todas las aplicaciones que la leen. OneUptime usa como máximo 3, va más despacio cuando Meraki se lo pide y detiene una lectura tras 900 solicitudes o 6 minutos; la siguiente continúa un minuto después. En una organización de 1200 redes, sus uplinks se leen con una llamada por ventana, y las aplicaciones y clientes de sus redes a lo largo de unas pocas lecturas.
+
+Las conexiones aparecen al pie de la página de Tráfico de la red, en **Meraki**, cada una con su estado y lo que cubrió su última lectura. Cada una tiene un botón para el siguiente paso: **Leer ahora** la lee al instante, **Activar** la vuelve a activar cuando está desactivada, y **Actualizar la clave de API** reemplaza una clave que Meraki rechazó, probando la clave nueva antes de guardarla. Su menú tiene **Editar** (su nombre, cada cuánto leer los uplinks, una clave nueva), **Desactivar** y **Eliminar**. Una lectura que falla dice por qué, ahí y sobre el tráfico: una clave rechazada, una clave que no puede leer la organización, Meraki pidiendo a OneUptime que vaya más despacio, o redes con el análisis de tráfico desactivado. Sobre el tráfico, **Revisar** lleva a la conexión. Solo los propietarios y los administradores del proyecto pueden conectar Meraki y cambiar o leer una conexión.
+
+La API del panel de Meraki informa totales, nunca quién habló con quién, así que el lado de Meraki no tiene conversaciones. Para verlas, envía también NetFlow desde los appliances MX ([Cisco Meraki MX y Z](#cisco-meraki-mx-y-z)): la página tiene entonces las dos cosas, a un selector de distancia.
+
 ## Direcciones que aún no son dispositivos
 
 Los flujos pueden llegar antes de que el dispositivo que los envía se añada a OneUptime. En tu propia sonda se guardan, y la página de Tráfico de la red lista su dirección en **Emisores de flujos**, marcada como **Aún no es un dispositivo**:
@@ -192,7 +223,7 @@ Varios dispositivos detrás de una misma dirección NAT comparten esa dirección
 
 - **Alertas sobre flujos.** Todavía no hay un monitor basado en flujos. Para alertar de un enlace saturado, usa las alertas de utilización de interfaz del [monitor de dispositivos de red](/docs/monitor/network-device-monitor), que leen SNMP.
 - **Nombres de aplicaciones más allá del puerto.** No hay inspección profunda de paquetes, y no se leen los nombres de aplicaciones de Cisco NBAR.
-- **La API del panel de Meraki.** Los análisis de tráfico de Meraki no se importan; los appliances MX y Z envían NetFlow a la sonda en su lugar.
+- **Las conversaciones desde la API del panel de Meraki.** Informa totales, no quién habló con quién: envía también NetFlow desde los appliances MX para ver las conversaciones.
 - **Detección de anomalías** en el tráfico.
 - **Nombres de interfaces desde los registros de flujo.** Los nombres y velocidades de las interfaces vienen del recorrido SNMP del dispositivo; un dispositivo que no se recorre muestra números de interfaz.
 
@@ -205,3 +236,11 @@ Si la página de Tráfico sigue mostrando sus pasos de configuración:
 - **El registro de la sonda.** Una vez por minuto la sonda registra lo que no pudo leer: datagramas en un formato no compatible (NetFlow v1, v6, v7 u v8, o sFlow anterior a la versión 5), datagramas mal formados, datos a la espera de una plantilla y datagramas descartados por encima de `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Plantillas.** NetFlow v9 e IPFIX envían la estructura de sus registros como plantillas. La sonda guarda hasta 10 minutos los datos que llegan antes de su plantilla; configura el dispositivo para que envíe sus plantillas cada 60 segundos y la página se llene en menos de un minuto.
 - **Una sonda global.** Un dispositivo sondeado por una sonda global no puede enviarle flujos desde una red privada. Ejecuta una sonda personalizada en la red del dispositivo y elígela en la configuración del dispositivo.
+
+Si una conexión de Meraki dice que no puede leer:
+
+- **La clave se rechaza.** Cópiala de nuevo desde el panel de Meraki y comprueba la **Región del panel**: una clave solo lee el panel en el que se creó. Pega la clave nueva con **Actualizar la clave de API** en la conexión.
+- **La clave no puede leer la organización.** Activa el acceso a la API de la organización en **Organization** > **API & Webhooks**, o usa la clave de uno de sus administradores.
+- **No hay aplicaciones en algunas redes.** Tienen el análisis de tráfico desactivado: actívalo en **Network-wide** > **General** > **Traffic analysis**.
+- **Meraki pidió a OneUptime que fuera más despacio.** Otras aplicaciones están usando el presupuesto de API de la organización. OneUptime lee más despacio y continúa.
+- **Este OneUptime no llega a la API.** Permite HTTPS (puerto 443) desde los servidores de OneUptime hacia `api.meraki.com`, o el host de API de tu región.

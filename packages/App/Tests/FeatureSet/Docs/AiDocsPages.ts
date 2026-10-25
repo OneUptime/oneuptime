@@ -16,6 +16,8 @@ export interface AiDocsPageEntry {
 
 export const ASK_AI: string = "ai/ask-ai";
 export const AI_SRE: string = "ai/ai-sre";
+// What a project's team writes for OneUptime AI about its own systems (#5198).
+export const AI_CONTEXT: string = "ai/ai-context";
 export const INFRASTRUCTURE_AI_AGENTS: string = "ai/infrastructure-ai-agents";
 export const CODE_PAGE: string = "ai/ai-agent";
 export const GITHUB_APP: string = "ai/github-app";
@@ -45,6 +47,8 @@ export const AI_PAGES: ReadonlyArray<AiDocsPageEntry> = [
   { page: CODE_PAGE, navTitle: "Code" },
   { page: GITHUB_APP, navTitle: "GitHub App" },
   { page: LLM_PROVIDERS, navTitle: "LLM Providers" },
+  // What OneUptime AI knows of the project, after which model it uses.
+  { page: AI_CONTEXT, navTitle: "AI Context" },
   { page: EXTERNAL_MCP_SERVERS, navTitle: "External MCP Servers" },
   { page: MCP_SERVER, navTitle: "MCP Server" },
 ];
@@ -81,6 +85,14 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
       "Create Runbook Execution",
     ],
     [AI_SRE]: ["Manage Billing", "Edit AI Rule"],
+    // Who changes the project's AI context, and who reads it.
+    [AI_CONTEXT]: [
+      "Project Owner",
+      "Project Admin",
+      "Project Member",
+      "Viewer",
+      "Read Project",
+    ],
     [INFRASTRUCTURE_AI_AGENTS]: ["Edit AI Rule"],
     [LLM_PROVIDERS]: [
       "Project Owner",
@@ -345,8 +357,6 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "100,000 output tokens",
     "2",
     "12",
-    "not available today",
-    "GitLab support.",
     // What a fix reads of production, and the rules it reads it by.
     "Exceptions",
     "Traces",
@@ -490,7 +500,13 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "GitHub Copilot",
   "GitHub App",
   "GitHub",
+  "GitLab.com",
   "GitLab",
+  "Forgejo",
+  "Gitea",
+  "Codeberg",
+  "Bitbucket",
+  "Azure DevOps",
   "Slack",
   "Microsoft Teams",
   "Microsoft Foundry",

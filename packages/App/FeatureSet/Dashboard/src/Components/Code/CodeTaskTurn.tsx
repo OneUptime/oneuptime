@@ -4,6 +4,13 @@ import {
   getInitials,
 } from "../AI/InvestigationConversation/InvestigationConversationData";
 import CodeTaskChangesView from "./CodeTaskChanges";
+import CodeHostMark from "./CodeHostMark";
+import {
+  CODE_VIEW_ON_HOST,
+  CodePullRequestCopy,
+  getCodeHostName,
+  getPullRequestCopy,
+} from "./CodeHostCopy";
 import {
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_RECORD_PAGES,
@@ -119,6 +126,17 @@ export interface ComponentProps {
    * turn that waits long for a Runner links to.
    */
   repositorySettingsRoute?: Route | undefined;
+  /*
+   * Where the task's repository is hosted: its pull request's mark, how
+   * the host names it (a merge request, "!12", on GitLab) and where it is
+   * viewed ("View on GitLab"). Unknown is GitHub.
+   */
+  repositoryHost?: CodeTaskTurnHost | undefined;
+}
+
+export interface CodeTaskTurnHost {
+  provider?: string | undefined;
+  hostProduct?: string | undefined;
 }
 
 // The page a context chip opens, when it names a record.
@@ -319,13 +337,16 @@ const OneUptimeMark: FunctionComponent = (): ReactElement => {
 const PullRequestLine: FunctionComponent<{
   pullRequest: CodeTaskPullRequestJSON;
   isUpdate: boolean;
+  host?: CodeTaskTurnHost | undefined;
 }> = (props: {
   pullRequest: CodeTaskPullRequestJSON;
   isUpdate: boolean;
+  host?: CodeTaskTurnHost | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const pullRequest: CodeTaskPullRequestJSON = props.pullRequest;
   const number: string = pullRequest.number?.toString() || "";
+  const copy: CodePullRequestCopy = getPullRequestCopy(props.host?.provider);
 
   /*
    * A pull request is open until someone merges or closes it, so only those
@@ -344,18 +365,20 @@ const PullRequestLine: FunctionComponent<{
         data-testid="code-turn-pull-request"
         className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
       >
-        <Icon icon={IconProp.GitHub} className="h-4 w-4 text-gray-700" />
+        <span className="inline-flex text-gray-700">
+          <CodeHostMark
+            provider={props.host?.provider}
+            hostProduct={props.host?.hostProduct}
+            className="h-4 w-4"
+          />
+        </span>
         <span className="font-medium text-gray-900">
-          {props.isUpdate
-            ? translator.translateTemplate(
-                "Pushed to pull request #{{number}}",
-                {
-                  number,
-                },
-              )
-            : translator.translateTemplate("Opened pull request #{{number}}", {
-                number,
-              })}
+          {translator.translateTemplate(
+            props.isUpdate ? copy.pushed : copy.opened,
+            {
+              number,
+            },
+          )}
         </span>
         {stateText ? (
           <span
@@ -378,7 +401,12 @@ const PullRequestLine: FunctionComponent<{
             className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
           >
             <>
-              {translator.translateText("View on GitHub")}
+              {translator.translateTemplate(CODE_VIEW_ON_HOST, {
+                host: getCodeHostName({
+                  provider: props.host?.provider,
+                  hostProduct: props.host?.hostProduct,
+                }),
+              })}
               <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
             </>
           </Link>
@@ -438,6 +466,20 @@ const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
 };
 
 /*
+ * The page a task's origin opens, for the kinds of record it can name: the
+ * exception, the incident, the alert, or the AI insight OneUptime found the
+ * problem in (AI Insights' view of it, whichever product filed it).
+ */
+export const CODE_TASK_ORIGIN_RECORD_PAGES: Partial<
+  Record<CodeTaskOriginType, PageMap>
+> = {
+  [CodeTaskOriginType.Exception]: PageMap.EXCEPTIONS_VIEW,
+  [CodeTaskOriginType.Incident]: PageMap.INCIDENT_VIEW,
+  [CodeTaskOriginType.Alert]: PageMap.ALERT_VIEW,
+  [CodeTaskOriginType.Insight]: PageMap.AI_INSIGHT_VIEW,
+};
+
+/*
  * One turn of a task's conversation: what the person asked (or what started
  * the task, for one OneUptime started) and the AI's side of it - how it
  * stands, the steps it is taking or took, its reply, the files it changed
@@ -457,53 +499,80 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
     (Date.now() - new Date(turn.createdAt).getTime()) / 60000,
   );
 
+  /*
+   * A request nobody typed - OneUptime wrote it from a problem it found
+   * (CodeTaskOrigin.isStartedByOneUptime): one message of OneUptime's, on
+   * the left as the AI's are, saying what started it and then what it
+   * asked. The right is where people ask: drawn there too, OneUptime
+   * spoke twice in a row, once on each side.
+   */
+  const isRequestByOneUptime: boolean = Boolean(
+    turn.request &&
+      !turn.requestedBy &&
+      props.origin &&
+      props.origin.type !== CodeTaskOriginType.Request,
+  );
+
   const renderAsk: () => ReactElement = (): ReactElement => {
+    if (turn.request && isRequestByOneUptime) {
+      return renderOrigin();
+    }
+
     if (turn.request) {
-      return (
-        <li data-testid="code-turn-request" className="flex flex-col items-end">
-          <div className="flex max-w-full items-center gap-2">
-            <PersonMark
-              name={personName}
-              seed={turn.requestedBy?.id || personName}
-            />
-            <span className="truncate text-xs font-medium text-gray-700">
-              {personName}
-            </span>
-            <CodeTimeAgo
-              date={turn.createdAt}
-              className={`${BYLINE_FACT_CLASS_NAME} whitespace-nowrap`}
-            />
-          </div>
-          <div
-            data-testid="code-turn-request-message"
-            className="mt-1.5 max-w-[88%] rounded-2xl rounded-tr-md bg-white px-4 py-2.5 shadow-sm ring-1 ring-inset ring-gray-200 sm:max-w-[80%]"
-          >
-            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
-              {turn.request.message}
-            </p>
-          </div>
-          <ContextChips items={turn.request.context} isAlignedEnd={true} />
-        </li>
-      );
+      return renderRequest();
     }
 
     if (props.origin) {
+      return renderOrigin();
+    }
+
+    return <></>;
+  };
+
+  const renderRequest: () => ReactElement = (): ReactElement => {
+    if (!turn.request) {
+      return <></>;
+    }
+
+    return (
+      <li data-testid="code-turn-request" className="flex flex-col items-end">
+        <div className="flex max-w-full items-center gap-2">
+          <PersonMark
+            name={personName}
+            seed={turn.requestedBy?.id || personName}
+          />
+          <span className="truncate text-xs font-medium text-gray-700">
+            {personName}
+          </span>
+          <CodeTimeAgo
+            date={turn.createdAt}
+            className={`${BYLINE_FACT_CLASS_NAME} whitespace-nowrap`}
+          />
+        </div>
+        <div
+          data-testid="code-turn-request-message"
+          className="mt-1.5 max-w-[88%] rounded-2xl rounded-tr-md bg-white px-4 py-2.5 shadow-sm ring-1 ring-inset ring-gray-200 sm:max-w-[80%]"
+        >
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+            {turn.request.message}
+          </p>
+        </div>
+        <ContextChips items={turn.request.context} isAlignedEnd={true} />
+      </li>
+    );
+  };
+
+  const renderOrigin: () => ReactElement = (): ReactElement => {
+    if (props.origin) {
       const origin: CodeTaskOriginJSON = props.origin;
+      const recordPage: PageMap | undefined = origin.recordId
+        ? CODE_TASK_ORIGIN_RECORD_PAGES[origin.type]
+        : undefined;
       const recordRoute: Route | null =
-        origin.recordId &&
-        (origin.type === CodeTaskOriginType.Exception ||
-          origin.type === CodeTaskOriginType.Incident ||
-          origin.type === CodeTaskOriginType.Alert)
-          ? RouteUtil.populateRouteParams(
-              RouteMap[
-                origin.type === CodeTaskOriginType.Exception
-                  ? PageMap.EXCEPTIONS_VIEW
-                  : origin.type === CodeTaskOriginType.Incident
-                    ? PageMap.INCIDENT_VIEW
-                    : PageMap.ALERT_VIEW
-              ] as Route,
-              { modelId: new ObjectID(origin.recordId) },
-            )
+        recordPage && origin.recordId
+          ? RouteUtil.populateRouteParams(RouteMap[recordPage] as Route, {
+              modelId: new ObjectID(origin.recordId),
+            })
           : null;
 
       const label: ReactElement = recordRoute ? (
@@ -553,6 +622,25 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 )
               )}
             </p>
+            {/*
+              What OneUptime asked, quoted under why: its own words, as
+              they were sent, with the context it attached.
+            */}
+            {turn.request && isRequestByOneUptime ? (
+              <>
+                <div
+                  data-testid="code-turn-request-message"
+                  className="mt-2 rounded-xl bg-gray-50 px-4 py-2.5 ring-1 ring-inset ring-gray-200"
+                >
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">
+                    {turn.request.message}
+                  </p>
+                </div>
+                <ContextChips items={turn.request.context} />
+              </>
+            ) : (
+              <></>
+            )}
           </div>
         </li>
       );
@@ -701,6 +789,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 key={`${pullRequest.number}-${pullRequest.url}`}
                 pullRequest={pullRequest}
                 isUpdate={false}
+                host={props.repositoryHost}
               />
             );
           })}
@@ -715,6 +804,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 state: "open",
               }}
               isUpdate={turn.outcome.openedPullRequest === false}
+              host={props.repositoryHost}
             />
           ) : (
             <></>

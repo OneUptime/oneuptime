@@ -1880,6 +1880,48 @@ export default class Project extends TenantModel {
   public enableAi?: boolean = undefined;
 
   /*
+   * What the project's team wants OneUptime AI to know about its systems
+   * (issue #5198): how they fit together, which service owns which symptom,
+   * where the logs are, the words the team uses. Markdown, read first in the
+   * system prompt of everything OneUptime AI does for the team - an
+   * investigation, a fix, a postmortem draft, a security case's triage, Ask
+   * AI - and recorded on each run as what it read (Types/AI/AiContext). At
+   * most PROJECT_AI_CONTEXT_MAX_CHARACTERS (ProjectService refuses more).
+   *
+   * Written by a Project Owner or Project Admin, as the project's other AI
+   * settings are. Read by everyone in the project who can see its
+   * settings: a run shows what it read to everyone who can see the run,
+   * so it is the team's reference material, never a place for secrets.
+   * Empty until someone writes it, and a run reads nothing more than it
+   * always did.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "AI Context",
+    description:
+      "Notes for OneUptime AI about your systems: what depends on what, who owns which symptom, where the logs are. Markdown, at most 20,000 characters.",
+    example:
+      "## Services\n- checkout-api owns the checkout page and depends on payments-db.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public aiContext?: string = undefined;
+
+  /*
    * The project's own daily limits on OneUptime AI, a ceiling above the
    * incident and alert limits: see Types/AI/ProjectAiDailyLimits. Both are
    * unset (no limit) until someone sets one, and only the people who may
@@ -2456,6 +2498,97 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableInsightFixTasks?: boolean = undefined;
+
+  /*
+   * Profiles → AI → Settings: "Find and fix slow code". While it is on,
+   * OneUptime reads each service's profiles once an hour for functions of
+   * its own code that take a large or growing share of its time, files each
+   * as an insight, and OneUptime AI looks into it and opens a pull request
+   * that makes it faster - in a connected repository, on the Runner that
+   * repository picks, never merged. Profile AI rules (AutoRemediationRule
+   * with triggerEntityType Profile), when there are any, narrow which
+   * services' slow code is worked on and how (Types/AI/TelemetryAi). On for
+   * new projects - the rule "turned on by default" the maintainer asked for
+   * - and off for projects that existed before, so an upgrade spends no AI
+   * credits and opens no pull request unasked. Enable AI turns it off with
+   * everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Profile Remediation",
+    description:
+      "When enabled, OneUptime reads each service's profiles once an hour for functions of its own code that take a large or growing share of its time and files each as an insight, and OneUptime AI looks into it and opens a pull request that makes it faster, in a repository connected through the GitHub App. Pull requests are never merged automatically, and honor the repository's open pull request cap. Profile AI rules, when there are any, choose which services' slow code is worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticProfileRemediation?: boolean = undefined;
+
+  /*
+   * Traces → AI → Settings: "Find and fix slow and failing operations".
+   * While it is on, OneUptime reads each service's traces once an hour for
+   * operations that are slow (their slowest requests repeat a pattern that
+   * costs them real time), that fail (with the error they fail with), or
+   * whose traces cannot say why (Utils/Traces/TraceInsight), files each as
+   * an insight, and OneUptime AI looks into it and opens a pull request
+   * that fixes the code or adds the tracing it lacks - in a connected
+   * repository, on the Runner that repository picks, never merged. A
+   * failing operation's pull request opens on its own only once the
+   * investigation found the code at fault. Trace AI rules
+   * (AutoRemediationRule with triggerEntityType Trace), when there are any,
+   * narrow which services' problems are worked on and how
+   * (Types/AI/TelemetryAi). On for new projects, off for projects that
+   * existed before, so an upgrade spends no AI credits and opens no pull
+   * request unasked. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Trace Remediation",
+    description:
+      "When enabled, OneUptime reads each service's traces once an hour for operations that are slow (their slowest requests repeat a pattern that costs them real time, such as the same database query run many times), operations that fail, and operations or services whose traces cannot say why, and files each as an insight; OneUptime AI looks into it and opens a pull request that fixes the code or adds the tracing it lacks, in a repository connected in Code. A failing operation's pull request opens on its own only once the investigation finds the code at fault. Pull requests are never merged automatically, and honor the repository's open pull request cap. Trace AI rules, when there are any, choose which services' problems are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticTraceRemediation?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],

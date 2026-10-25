@@ -38,7 +38,7 @@ flowchart LR
 | **Avanzado** | **Dominios**, **Claves de API**, **Feature flags**, **Importar desde otra herramienta** | [Dominios personalizados](/docs/status-pages/branding-and-domains#dominios-personalizados), [Claves de API](/docs/permissions/index#claves-de-api), [Feature flags](#feature-flags), [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie) y las demás guías de migración |
 | **Seguridad** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturación y facturas** | **Facturación**, **Historial de uso**, **Facturas** | [Facturación y uso](/docs/configuration/billing) |
-| **Registros de auditoría** | **Registros de auditoría**, **Ajustes** | [Registros de auditoría](/docs/configuration/audit-logs) |
+| **Registros de auditoría** | **Registros de auditoría**, **Ajustes**, **Exportar** | [Registros de auditoría](/docs/configuration/audit-logs), [Exportación del registro de auditoría](/docs/configuration/audit-log-export) |
 | **Zona de peligro** | **Zona de peligro** | [Eliminar el proyecto](#eliminar-el-proyecto) |
 
 **Facturación y facturas** y **Créditos de IA** solo existen en OneUptime Cloud: una instalación autoalojada no tiene facturación.

@@ -65,17 +65,14 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-`npm start` が **OneUptime is up!** と表示したら、`http://localhost` またはサーバーのアドレスを開いてサインアップします。最初のアカウントがインスタンスの管理者になります。
+`npm start` はサーバーを確認し、`config.env` のすべてのシークレットにそれぞれランダムな値を設定して、OneUptime を起動します。`npm start` が **OneUptime is up!** と表示したら、`http://localhost` またはサーバーのアドレスを開いてサインアップします。最初のアカウントがインスタンスの管理者になります。
 
 サーバーのサイズ、HTTPS、バックアップ、更新については [Docker Compose ガイド](https://oneuptime.com/docs/ja/installation/docker-compose)を参照してください。
 

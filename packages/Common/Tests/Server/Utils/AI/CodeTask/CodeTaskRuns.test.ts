@@ -235,6 +235,132 @@ describe("CodeTaskRuns.start", () => {
   });
 });
 
+/*
+ * A task OneUptime starts on its own, from slow code it found in a
+ * service's profiles (Types/AI/TelemetryAi): an ordinary Code request in
+ * every way but who asked - nobody - and the insight it names.
+ */
+describe("CodeTaskRuns.startForOneUptime", () => {
+  const INSIGHT_ID: ObjectID = new ObjectID(
+    "8d1e2f3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a",
+  );
+  const PROVIDER_ID: ObjectID = new ObjectID(
+    "9e2f3a4b-5c6d-4e7f-8a9b-0c1d2e3f4a5b",
+  );
+
+  test("queues a Code request nobody asked, naming the insight it came from", async () => {
+    await CodeTaskRuns.startForOneUptime({
+      projectId: PROJECT_ID,
+      repository: repository(),
+      message:
+        "Make OrderParser.parse faster\n\nIt takes 18% of checkout's CPU time.",
+      context: CONTEXT,
+      triggeredByAiInsightId: INSIGHT_ID,
+    });
+
+    expect(created).toHaveLength(1);
+
+    const run: AIRun = created[0]!;
+
+    expect(run.runType).toBe(AIRunType.CodeFix);
+    expect(run.codeFixTaskType).toBe(CodeFixTaskType.CodeRequest);
+    expect(run.status).toBe(AIRunStatus.Queued);
+    expect(run.userId).toBeUndefined();
+    expect(run.triggeredByAiInsightId?.toString()).toBe(INSIGHT_ID.toString());
+    expect(run.codeRepositoryId?.toString()).toBe(REPOSITORY_ID.toString());
+    expect(run.title).toBe("Make OrderParser.parse faster");
+    expect(run.llmProviderId).toBeUndefined();
+    expect(run.taskContext).toEqual({
+      request: {
+        message:
+          "Make OrderParser.parse faster\n\nIt takes 18% of checkout's CPU time.",
+        context: CONTEXT,
+      },
+    });
+    expect(
+      (AIRunService.create as unknown as jest.Mock).mock.calls[0]![0],
+    ).toMatchObject({ props: { isRoot: true } });
+  });
+
+  test("the LLM provider the rules pick is the task's", async () => {
+    await CodeTaskRuns.startForOneUptime({
+      projectId: PROJECT_ID,
+      repository: repository(),
+      message: "Make it faster",
+      context: [],
+      triggeredByAiInsightId: INSIGHT_ID,
+      llmProviderId: PROVIDER_ID,
+    });
+
+    expect(created[0]!.llmProviderId?.toString()).toBe(PROVIDER_ID.toString());
+  });
+
+  test("is held to the project's AI run budget, and to what a request may say", async () => {
+    expect(
+      await refusal(() => {
+        return CodeTaskRuns.startForOneUptime({
+          projectId: PROJECT_ID,
+          repository: repository(),
+          message: "   ",
+          context: [],
+          triggeredByAiInsightId: INSIGHT_ID,
+        });
+      }),
+    ).toBe("Write what you want AI to do.");
+
+    (
+      FixRunBudget.assertWithinBudget as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      throw new BadDataException("Daily limit reached.");
+    });
+
+    expect(
+      await refusal(() => {
+        return CodeTaskRuns.startForOneUptime({
+          projectId: PROJECT_ID,
+          repository: repository(),
+          message: "Make it faster",
+          context: [],
+          triggeredByAiInsightId: INSIGHT_ID,
+        });
+      }),
+    ).toBe("Daily limit reached.");
+    expect(created).toHaveLength(0);
+  });
+
+  test("a person's task never names an insight on its own", async () => {
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Add retries",
+      context: [],
+    });
+
+    expect(created[0]!.triggeredByAiInsightId).toBeUndefined();
+    expect(created[0]!.userId?.toString()).toBe(USER_ID.toString());
+  });
+
+  test("a person's task asked from a finding names it, and stays theirs", async () => {
+    const insightId: ObjectID = ObjectID.generate();
+
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Make OrderParser.parse faster",
+      context: [],
+      triggeredByAiInsightId: insightId,
+    });
+
+    expect(created[0]!.triggeredByAiInsightId?.toString()).toBe(
+      insightId.toString(),
+    );
+    expect(created[0]!.userId?.toString()).toBe(USER_ID.toString());
+    expect(created[0]!.codeFixTaskType).toBe(CodeFixTaskType.CodeRequest);
+  });
+});
+
 describe("CodeTaskRuns.reply", () => {
   test("is the task's next turn: same task, same repository, the person's words", async () => {
     latestReply = reply(AIRunStatus.Completed);

@@ -2143,6 +2143,26 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: ["Project", "Profiler", "Profile"],
   },
   {
+    getter: "getProfilesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/profiles/ai/insights",
+    titles: ["Project", "Profiler", "AI", "Insights"],
+  },
+  {
+    getter: "getProfilesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/profiles/ai/insights/:id",
+    titles: ["Project", "Profiler", "AI", "Insights", "Insight"],
+  },
+  {
+    getter: "getProfilesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/profiles/ai/logs",
+    titles: ["Project", "Profiler", "AI", "Logs"],
+  },
+  {
+    getter: "getProfilesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/profiles/ai/settings",
+    titles: ["Project", "Profiler", "AI", "Settings"],
+  },
+  {
     getter: "getProxmoxBreadcrumbs",
     pagePattern: "/dashboard/:projectId/proxmox",
     titles: ["Project", "Proxmox", "Clusters"],
@@ -3288,6 +3308,26 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getTracesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/traces",
     titles: ["Project", "Traces"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/insights",
+    titles: ["Project", "Traces", "AI", "Insights"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/insights/:id",
+    titles: ["Project", "Traces", "AI", "Insights", "Insight"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/logs",
+    titles: ["Project", "Traces", "AI", "Logs"],
+  },
+  {
+    getter: "getTracesBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/traces/ai/settings",
+    titles: ["Project", "Traces", "AI", "Settings"],
   },
   {
     getter: "getTracesBreadcrumbs",

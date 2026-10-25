@@ -39,7 +39,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Entiteiten** | Gebeurtenissen | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
 | **Detection Rules** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
-| **Rule Library** | Detections | Kant-en-klare detectieregels om toe te voegen, met de aanbevolen regels gemarkeerd |
+| **Rule Library** | Detections | Kant-en-klare detectieregels om toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen, met de aanbevolen regels gemarkeerd |
 | **Threat Intel** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
 | **ATT&CK Coverage** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |

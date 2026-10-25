@@ -15,6 +15,14 @@ import InsightFactsList, {
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
 import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
+import ProfileFixStrip from "../../../Components/Profiles/ProfileFixStrip";
+import {
+  doesInsightOfferProfileFix,
+  getProfileInsightFixRequest,
+  getProfileInsightMonitorRoute,
+} from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
+import TelemetryAiFixStrip from "../../../Components/TelemetryAi/TelemetryAiFixStrip";
+import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -31,6 +39,7 @@ import {
   AIInsightMetricShape,
   buildAIInsightMonitorRoute,
   getAIInsightMonitorBlocker,
+  isAIInsightMonitorOffered,
 } from "../../../Utils/AIInsightMonitorPrefill";
 import {
   fetchAIInsightMetricShape,
@@ -535,6 +544,8 @@ const AIInsightViewPage: FunctionComponent<
       metricName: insight.metricName,
       lastSeenAt: insight.lastSeenAt,
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
+      profile: insight.evidence?.profile,
+      trace: insight.evidence?.trace,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
@@ -619,18 +630,30 @@ const AIInsightViewPage: FunctionComponent<
    * it happens. Gated on creating monitors like every other way into Monitor
    * Create — hidden while the permission snapshot cannot say, disabled with
    * the reason when it says no — and disabled with the reason when this
-   * insight cannot become a monitor at all.
+   * insight cannot become a monitor yet. A kind no monitor could ever watch
+   * (missing tracing) draws no button at all.
    */
   const createMonitorGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
     ModelAction.Create,
   );
-  const createMonitorBlocker: string | null = getAIInsightMonitorBlocker(
-    toAIInsightMonitorInput(insight),
-    { metricShape: metricShape },
-  );
+  /*
+   * Slow code becomes the Profiler's own monitor: a Profiles monitor that
+   * alerts when the function's share grows past a threshold
+   * (ProfileMonitorPrefill), as the function panel offers it.
+   */
+  const profileMonitorRoute: Route | null =
+    insightType === AIInsightType.ProfileHotspot
+      ? getProfileInsightMonitorRoute(insight.evidence?.profile)
+      : null;
+  const createMonitorBlocker: string | null = profileMonitorRoute
+    ? null
+    : getAIInsightMonitorBlocker(toAIInsightMonitorInput(insight), {
+        metricShape: metricShape,
+      });
   const isCreateMonitorShown: boolean =
-    createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason);
+    isAIInsightMonitorOffered(insightType) &&
+    (createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason));
   const createMonitorDisabledReason: string | null = createMonitorGate.isAllowed
     ? createMonitorBlocker
     : createMonitorGate.disabledReason || null;
@@ -782,7 +805,12 @@ const AIInsightViewPage: FunctionComponent<
       {/* Overview: what was found, where it stands, and the one-click actions. */}
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="px-5 py-6 md:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          {/*
+           * The actions sit beside the title only on a wide screen: beside
+           * the page's side menu at a laptop's width they left a long title
+           * a column a few words wide.
+           */}
+          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <span
                 className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${getSeverityTileClasses(
@@ -855,11 +883,14 @@ const AIInsightViewPage: FunctionComponent<
                   disabled={Boolean(createMonitorDisabledReason)}
                   tooltip={
                     createMonitorDisabledReason ||
-                    "Opens a new monitor pre-filled from this insight. Review the threshold and save it, and the next time this happens the monitor opens an incident."
+                    (profileMonitorRoute
+                      ? "Opens a monitor on this function's share of the time, set above what it takes now. Save it to be alerted when it grows past that."
+                      : "Opens a new monitor pre-filled from this insight. Review the threshold and save it, and the next time this happens the monitor opens an incident.")
                   }
                   onClick={() => {
                     Navigation.navigate(
-                      buildAIInsightMonitorRoute(modelId.toString()),
+                      profileMonitorRoute ||
+                        buildAIInsightMonitorRoute(modelId.toString()),
                     );
                   }}
                 />
@@ -1065,6 +1096,57 @@ const AIInsightViewPage: FunctionComponent<
         </div>
 
         <div className="min-w-0 space-y-5">
+          {/*
+           * Slow code with no fix yet: "Fix with AI", as the Profiler offers
+           * it for the function - what an AI rule that asks before fixing
+           * leaves to a person. The task names this finding, and the
+           * finding links the task once it starts.
+           */}
+          {doesInsightOfferProfileFix({
+            insightType: insight.insightType,
+            status: status,
+            fixAiRunId: insight.fixAiRunId,
+            evidence: insight.evidence,
+          }) ? (
+            <ProfileFixStrip
+              request={getProfileInsightFixRequest(insight.evidence?.profile)!}
+              insightId={modelId.toString()}
+              // The page already says what was found, twice.
+              isFindingShown={false}
+              onTaskStarted={() => {
+                fetchInsight().catch(() => {
+                  // handled inside fetchInsight
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * A slow, failing or under-traced operation with no fix yet:
+           * "Fix with AI" - the pull request OneUptime AI would open on its
+           * own, what an AI rule that asks before fixing leaves to a person.
+           * The task names this finding, and the finding links the task.
+           */}
+          {doesInsightOfferTelemetryAiFix({
+            insightType: insight.insightType,
+            status: status,
+            fixAiRunId: insight.fixAiRunId,
+          }) ? (
+            <TelemetryAiFixStrip
+              insightId={modelId.toString()}
+              insightType={insight.insightType}
+              onTaskStarted={() => {
+                fetchInsight().catch(() => {
+                  // handled inside fetchInsight
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
           <InsightPanel title="Details" icon={IconProp.List}>
             <InsightFactsList facts={facts} />
           </InsightPanel>

@@ -13,7 +13,8 @@ import path from "path";
  * attack; the
  * runs pages (Waiting for Approval, Playbook Runs), which took the place of
  * the tabs and views along the tops of pages; "Your logs" and "Send to your
- * SIEM" on Connections; the Rule Library's recommended marks - and every
+ * SIEM" on Connections; the Rule Library - its list, filters, a rule's
+ * details and the add dialog - and every
  * component they import from their
  * own folders, and hold every colour class to what Theme.css remaps. The
  * walk follows .ts helpers too: a colour kept in a data module is still
@@ -51,6 +52,14 @@ const MUST_REACH: Array<string> = [
   "Components/SecurityEvents/SecurityEventDestinationFormModal.tsx",
   "Components/SecurityEvents/SecurityEventDestinationTest.tsx",
   "Components/SecurityEvents/SecurityEventDestinationUtil.ts",
+  // The Rule Library: its list, its filters, a rule's details and the add dialog.
+  "Components/SecurityEvents/RuleLibraryTable.tsx",
+  "Components/SecurityEvents/RuleLibraryFilterBar.tsx",
+  "Components/SecurityEvents/RuleLibraryRulePanel.tsx",
+  "Components/SecurityEvents/RuleLibraryAddDialog.tsx",
+  "Components/SecurityEvents/RuleLibraryDataStatus.tsx",
+  "Components/SecurityEvents/RuleLibraryCopy.ts",
+  "Components/SecurityEvents/RuleLibraryUtil.ts",
 ];
 
 // Only the folders this overhaul drew in; older Security pages have guards of their own.
@@ -140,7 +149,11 @@ const THEME_CSS: string = fs
 const COLOR_TOKEN: RegExp =
   /(?<![\w:-])((?:[a-z0-9-]+:)*(?:bg|text|border|ring|divide|from|via|to)-(?:white|black|transparent|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?)(?![\w-])/g;
 
-// Text on a solid fill, and the solid fills themselves, read the same in both themes.
+/*
+ * Text on a solid fill, and the solid fills themselves, read the same in
+ * both themes - as does no fill at all (bg-transparent: the remapped
+ * colour under it shows through, as in every table's search box).
+ */
 const SOLID_FILL: RegExp =
   /^(?:bg|text|border|ring)-(?!gray|slate)[a-z]+-(?:500|600)$/;
 
@@ -164,7 +177,11 @@ const SUBSTRING_VARIANTS: Array<string> = Array.from(
 function isRemapped(token: string): boolean {
   const utility: string = token.slice(token.lastIndexOf(":") + 1);
 
-  if (utility === "text-white" || SOLID_FILL.test(utility)) {
+  if (
+    utility === "text-white" ||
+    utility === "bg-transparent" ||
+    SOLID_FILL.test(utility)
+  ) {
     return true;
   }
 
@@ -270,6 +287,9 @@ describe("Security's set-up and connection pieces in the dark theme", () => {
     expect(isRemapped("bg-white")).toBe(true);
     expect(isRemapped("hover:border-indigo-300")).toBe(true);
     expect(isRemapped("bg-emerald-500")).toBe(true);
+    expect(isRemapped("bg-transparent")).toBe(true);
+    // Only no fill at all: a transparent border or text is not let through.
+    expect(isRemapped("border-transparent")).toBe(false);
     expect(isRemapped("group-hover:bg-white")).toBe(false);
     expect(isRemapped("lg:bg-white")).toBe(false);
     expect(isRemapped("bg-gray-55")).toBe(false);

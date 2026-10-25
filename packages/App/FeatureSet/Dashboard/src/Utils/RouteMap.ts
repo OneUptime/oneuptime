@@ -823,6 +823,10 @@ export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.TRACES_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
   [PageMap.TRACES_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.TRACES_AI_INSIGHTS]: "ai/insights",
+  [PageMap.TRACES_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.TRACES_AI_LOGS]: "ai/logs",
+  [PageMap.TRACES_AI_SETTINGS]: "ai/settings",
 };
 
 // Profiles product routes
@@ -831,6 +835,10 @@ export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES_INSIGHTS]: "insights",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
+  [PageMap.PROFILES_AI_INSIGHTS]: "ai/insights",
+  [PageMap.PROFILES_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.PROFILES_AI_LOGS]: "ai/logs",
+  [PageMap.PROFILES_AI_SETTINGS]: "ai/settings",
 };
 
 /*
@@ -1189,6 +1197,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DANGERZONE]: "danger-zone",
   [PageMap.SETTINGS_AUDIT_LOGS]: "audit-logs",
   [PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]: "audit-logs/settings",
+  [PageMap.SETTINGS_AUDIT_LOGS_EXPORT]: "audit-logs/export",
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
@@ -6982,6 +6991,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.TRACES_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_SETTINGS]
+    }`,
+  ),
+
   // Profiles Product Routes
   [PageMap.PROFILES_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/*`,
@@ -7004,6 +7037,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROFILES_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/${
       ProfilesRoutePath[PageMap.PROFILES_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_SETTINGS]
     }`,
   ),
 
@@ -7247,6 +7304,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AUDIT_LOGS_EXPORT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS_EXPORT]
     }`,
   ),
 

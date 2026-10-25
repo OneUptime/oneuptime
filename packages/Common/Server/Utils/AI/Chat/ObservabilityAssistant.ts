@@ -30,6 +30,9 @@ import AIAgentRunLimitsHelper from "../../../../Types/AI/AIAgentRunLimits";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { AiContextActivity } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
+import { withAiContext } from "../AiContext/AiContextPrompt";
 
 /*
  * A synchronous, self-contained runner for the observability assistant used by
@@ -99,6 +102,15 @@ export interface ObservabilityAssistantRequest {
    * fabrication, read-only). The base prompt's grounding rules always win.
    */
   systemInstructions?: string | undefined;
+  /*
+   * What the project's team wrote for OneUptime AI about its systems
+   * (Types/AI/AiContext), placed first in the system prompt
+   * (AiContextPrompt.withAiContext). Left out, the loop reads the
+   * project's own AI context itself - Slack and Microsoft Teams answers
+   * read it this way; null when the caller already read it and there is
+   * none (an investigation reads, and records, its own).
+   */
+  aiContext?: AiContextActivity | null | undefined;
   /*
    * Optional budget overrides. Autonomous investigations get more room than an
    * interactive chat-ops answer, which must return in a single quick message.
@@ -257,10 +269,16 @@ export default class ObservabilityAssistant {
       systemPromptContent += `\n\n${request.systemInstructions}`;
     }
 
+    // The project's AI context, first: what the caller read, else the project's.
+    const aiContext: AiContextActivity | null =
+      request.aiContext !== undefined
+        ? request.aiContext
+        : await AiContextReader.read({ projectId: request.projectId });
+
     const messages: Array<LLMMessage> = [
       {
         role: "system",
-        content: systemPromptContent,
+        content: withAiContext(systemPromptContent, aiContext),
       },
     ];
 

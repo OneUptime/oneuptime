@@ -85,6 +85,11 @@ export interface ComponentProps {
   // The window the series was fetched over, as the API echoes it back.
   windowStartAt: string;
   windowEndAt: string;
+  /*
+   * What a screen reader hears for a split chart that is not of one
+   * interface (an English key): the Meraki side's uplinks.
+   */
+  splitAriaLabel?: string | undefined;
 }
 
 const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
@@ -223,7 +228,8 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
         role="figure"
         aria-label={translator.translateText(
           isSplit
-            ? "Traffic in and out through the interface over time, in bits per second"
+            ? props.splitAriaLabel ||
+                "Traffic in and out through the interface over time, in bits per second"
             : "Traffic over time, in bits per second",
         )}
         data-testid="traffic-over-time-chart"

@@ -92,12 +92,12 @@ const JSON_WEB_TOKEN: string = "packages/Common/Server/Utils/JsonWebToken.ts";
 
 /*
  * These sign assertions for Google with a service account's own private key
- * (RS256), and check none.
+ * (RS256), and check none. (Google Cloud Marketplace's client, in ee/, signs
+ * its assertions through JsonWebToken.signWithPrivateKey.)
  */
 const GOOGLE_ASSERTION_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/VideoCall/Providers/GoogleMeetClient.ts",
   "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient.ts",
-  "packages/Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI.ts",
   // AI / LLM observability's Google Vertex AI connection (Cloud Monitoring).
   "packages/Common/Server/Utils/LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken.ts",
 ];

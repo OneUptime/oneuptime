@@ -95,7 +95,11 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "monitorDescriptionPattern",
   ],
   AlertReminderRule: ["alertSeverities", "labels"],
-  // The AI rules of incidents and alerts (investigation rules merged in).
+  /*
+   * The AI rules of incidents and alerts (investigation rules merged in),
+   * and of the telemetry products: profile AI rules match the service the
+   * slow code is in (Types/AI/AiRuleCriteria holds each kind to its share).
+   */
   AutoRemediationRule: [
     "monitors",
     "incidentSeverities",
@@ -104,6 +108,9 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "monitorLabels",
     "titlePattern",
     "descriptionPattern",
+    "services",
+    "serviceLabels",
+    "serviceNamePattern",
   ],
   CephClusterLabelRule: [
     "cephClusterLabels",

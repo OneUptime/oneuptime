@@ -38,7 +38,7 @@ flowchart LR
 | **Avançado** | **Domínios**, **Chaves de API**, **Sinalizadores de recursos**, **Importar de outra ferramenta** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Sinalizadores de recursos](#sinalizadores-de-recursos), [Migrar do Opsgenie](/docs/moving-to-oneuptime/opsgenie) e os outros guias de migração |
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Histórico de uso**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
-| **Registros de auditoria** | **Registros de auditoria**, **Configurações** | [Registros de auditoria](/docs/configuration/audit-logs) |
+| **Registros de auditoria** | **Registros de auditoria**, **Configurações**, **Exportar** | [Registros de auditoria](/docs/configuration/audit-logs), [Exportação do registro de auditoria](/docs/configuration/audit-log-export) |
 | **Zona de perigo** | **Zona de perigo** | [Excluir o projeto](#excluir-o-projeto) |
 
 **Cobrança e faturas** e **Créditos de IA** só existem no OneUptime Cloud: uma instalação auto-hospedada não tem cobrança.

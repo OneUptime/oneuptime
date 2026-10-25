@@ -12,7 +12,11 @@ import CodeFixAgentAuth, {
   CodeFixAgentIdentity,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeTaskAgentBrief from "../Utils/AI/CodeTask/CodeTaskAgentBrief";
-import CodeTaskGate from "../Utils/AI/CodeTask/CodeTaskGate";
+import { getRepositoryNotReachableMessage } from "../Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess, {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+} from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIRunType from "../../Types/AI/AIRunType";
@@ -158,24 +162,30 @@ export default class AIAgentCodeTaskAPI {
           }
 
           /*
-           * The binding is checked again here, as for every token: a request
-           * can wait in the queue while the GitHub App is uninstalled.
+           * Reachability is checked again here, as for every token: a
+           * request can wait in the queue while the GitHub App is
+           * uninstalled, or the repository's access token is refused.
            */
-          if (
-            !(await CodeTaskGate.isRepositoryReachable({
+          const connection: CodeHostConnectionSummary | undefined = (
+            await CodeHostAccess.getConnectionSummaries({
               projectId: run.projectId,
-              repositoryId: repository.id!,
-            }))
+              repositoryIds: [repository.id!],
+            })
+          ).get(repository.id!.toString());
+
+          if (
+            !connection ||
+            connection.state !== CodeHostConnectionState.Connected
           ) {
             logger.error(
-              `Refusing code task details for run ${run.id?.toString()}: repository ${repository.id?.toString()} is not reachable through a GitHub App installation bound to its project.`,
+              `Refusing code task details for run ${run.id?.toString()}: repository ${repository.id?.toString()} is not reachable (${connection?.state || "unknown"}).`,
             );
 
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "This repository's GitHub App installation is no longer connected to its project. Connect GitHub again from Code.",
+                getRepositoryNotReachableMessage(connection),
               ),
             );
           }

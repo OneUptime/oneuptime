@@ -17,6 +17,7 @@ import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/Databa
 import Query from "../../../../../Server/Types/Database/Query";
 import logger from "../../../../../Server/Utils/Logger";
 import EnterpriseEdition, {
+  IP_ALLOWLIST_TABLE_NAMES,
   TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES,
 } from "../../../../../Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../../../../../Server/Enterprise/EnterpriseFeature";
@@ -32,6 +33,7 @@ import DockerSwarmCluster from "../../../../../Models/DatabaseModels/DockerSwarm
 import Host from "../../../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../../../Models/DatabaseModels/KubernetesCluster";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import PodmanHost from "../../../../../Models/DatabaseModels/PodmanHost";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster";
@@ -294,9 +296,20 @@ describe("which columns are retention overrides", () => {
     expect(withBothColumns.sort()).toEqual(
       [...TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES].sort(),
     );
+    /*
+     * Every table with enterprise columns: the retention override tables,
+     * and the status page, dashboard and form settings
+     * (EnterpriseSettingColumns.test.ts).
+     */
     expect(
       EnterpriseEdition.getTableNamesWithEnterpriseColumns().sort(),
-    ).toEqual(["Project", ...TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES].sort());
+    ).toEqual(
+      [
+        "Project",
+        ...TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES,
+        ...IP_ALLOWLIST_TABLE_NAMES,
+      ].sort(),
+    );
   });
 
   test("usage billing records are not settings: TelemetryUsageBilling is not gated", () => {
@@ -360,31 +373,31 @@ describe("what counts as setting an override", () => {
 
   test("the features a write sets are named once, and only for columns it sets", () => {
     expect(
-      EditionPermissions.getEnterpriseFeaturesWritten("Service", {
+      EditionPermissions.getEnterpriseFeaturesWritten(Service, {
         retainTelemetryDataForDays: 30,
         telemetryRetentionConfig: A_CONFIG,
         name: "checkout",
       }),
     ).toEqual([EnterpriseFeature.TelemetryRetention]);
     expect(
-      EditionPermissions.getEnterpriseFeaturesWritten("Service", {
+      EditionPermissions.getEnterpriseFeaturesWritten(Service, {
         retainTelemetryDataForDays: null,
         name: "checkout",
       }),
     ).toEqual([]);
     expect(
-      EditionPermissions.getEnterpriseFeaturesWritten("Project", {
+      EditionPermissions.getEnterpriseFeaturesWritten(Project, {
         defaultTelemetryRetentionInDays: 90,
       }),
     ).toEqual([]);
     expect(
-      EditionPermissions.getEnterpriseFeaturesWritten("Service", [30]),
+      EditionPermissions.getEnterpriseFeaturesWritten(Service, [30]),
     ).toEqual([]);
     expect(
-      EditionPermissions.getEnterpriseFeaturesWritten("Service", null),
+      EditionPermissions.getEnterpriseFeaturesWritten(Service, null),
     ).toEqual([]);
     expect(
-      EditionPermissions.getEnterpriseFeaturesWritten("Monitor", {
+      EditionPermissions.getEnterpriseFeaturesWritten(Monitor, {
         retainTelemetryDataForDays: 30,
       }),
     ).toEqual([]);

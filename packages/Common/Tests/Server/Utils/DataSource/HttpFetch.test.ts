@@ -234,6 +234,49 @@ describe("DataSourceHttpFetch.fetch - hardened axios config", () => {
       expect(validateStatus(status)).toBe(false);
     }
   });
+
+  test("acceptAnyStatus answers every status - and still follows no redirect", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ acceptAnyStatus: true }));
+    const config: AxiosRequestConfig = getAxiosConfig();
+    const validateStatus: (status: number) => boolean =
+      config.validateStatus as (status: number) => boolean;
+
+    for (const status of [200, 301, 308, 401, 429, 500, 503]) {
+      expect(validateStatus(status)).toBe(true);
+    }
+    expect(config.maxRedirects).toBe(0);
+  });
+
+  test("acceptAnyStatus hands back a 429 with its headers, for the caller to wait as asked", async () => {
+    axiosMock.mockResolvedValue({
+      status: 429,
+      data: '{"errors":["API rate limit exceeded for organization"]}',
+      headers: {
+        "Retry-After": "2",
+        Link: "<https://api.example.com/next>; rel=next",
+      },
+    });
+
+    const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch(
+      makeRequest({ acceptAnyStatus: true }),
+    );
+
+    expect(response.statusCode).toBe(429);
+    expect(response.bodyJson).toEqual({
+      errors: ["API rate limit exceeded for organization"],
+    });
+    expect(response.headers?.["retry-after"]).toBe("2");
+    expect(response.headers?.["link"]).toBe(
+      "<https://api.example.com/next>; rel=next",
+    );
+  });
+
+  test("acceptAnyStatus is off unless asked for", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ acceptAnyStatus: false }));
+    expect(
+      (getAxiosConfig().validateStatus as (status: number) => boolean)(429),
+    ).toBe(false);
+  });
 });
 
 describe("DataSourceHttpFetch.fetch - pinned socket lookup", () => {
@@ -444,6 +487,57 @@ describe("DataSourceHttpFetch.fetch - headers and body encoding", () => {
     expect((config.headers as Dictionary<string>)["Content-Type"]).toBe(
       "application/json",
     );
+  });
+
+  /*
+   * An object storage upload (an audit log export's gzip file): PUT, its
+   * bytes sent exactly as given, never turned into text.
+   */
+  test("PUT sends a Buffer body as its bytes, as application/octet-stream by default", async () => {
+    const bytes: Buffer = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0x00]);
+
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ method: "PUT", body: bytes }),
+    );
+    const config: AxiosRequestConfig = getAxiosConfig();
+    expect(config.method).toBe("PUT");
+    expect(Buffer.isBuffer(config.data)).toBe(true);
+    expect((config.data as Buffer).equals(bytes)).toBe(true);
+    expect((config.headers as Dictionary<string>)["Content-Type"]).toBe(
+      "application/octet-stream",
+    );
+  });
+
+  test("PUT keeps the caller's Content-Type, and the same egress guard applies", async () => {
+    const egress: RecordingEgress = makeEgress();
+
+    await DataSourceHttpFetch.fetch(
+      makeRequest({
+        method: "PUT",
+        url: "https://bucket.s3.eu-west-1.amazonaws.com/a/b.ndjson.gz",
+        body: Buffer.from("x"),
+        headers: { "Content-Type": "application/gzip" },
+        egressOptions: egress.options,
+      }),
+    );
+    const config: AxiosRequestConfig = getAxiosConfig();
+    expect((config.headers as Dictionary<string>)["Content-Type"]).toBe(
+      "application/gzip",
+    );
+    expect(config.maxRedirects).toBe(0);
+    expect(egress.calls).toEqual(["bucket.s3.eu-west-1.amazonaws.com"]);
+  });
+
+  test("POST takes a Buffer body too (a Cloud Storage upload)", async () => {
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ method: "POST", body: Buffer.from("file") }),
+    );
+    expect(Buffer.isBuffer(getAxiosConfig().data)).toBe(true);
+  });
+
+  test("PUT sends a string body as-is", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ method: "PUT", body: "x" }));
+    expect(getAxiosConfig().data).toBe("x");
   });
 });
 

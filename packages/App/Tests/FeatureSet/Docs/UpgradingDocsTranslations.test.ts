@@ -308,6 +308,7 @@ const PROSE_LEADS: Array<string> = [
   "Skip minor and patch releases as you like",
   "Back up before every upgrade",
   "Community Edition without SCIM:",
+  "Community Edition with custom roles, IP allowlists, status page access controls, or Powered by OneUptime hidden:",
   "Helm with `image.type: enterprise-edition`:",
   "Docker Compose with `IS_ENTERPRISE_EDITION=true`:",
   "refuses to start",

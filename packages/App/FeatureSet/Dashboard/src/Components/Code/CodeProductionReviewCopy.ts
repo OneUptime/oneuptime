@@ -49,6 +49,7 @@ export const PRODUCTION_REVIEW_COPY: {
   statusOffNoCommands: string;
   statusNotConnectedLabel: string;
   statusNotConnected: string;
+  gitHubOnly: string;
   connectGitHub: string;
   openSettings: string;
   turnOnInSettings: string;
@@ -140,6 +141,13 @@ export const PRODUCTION_REVIEW_COPY: {
   statusNotConnectedLabel: translationKey("Not connected"),
   statusNotConnected: translationKey(
     "This repository is not connected through the GitHub App, so its pull requests are not reviewed.",
+  ),
+  /*
+   * A repository that is not on GitHub (GitLab, Forgejo, Gitea, a Git
+   * server): the GitHub App reviews pull requests, so none of its are.
+   */
+  gitHubOnly: translationKey(
+    "Production reviews work in GitHub repositories only, for now: the OneUptime GitHub App reviews each pull request against production. Ask AI about a change in this repository from its Tasks.",
   ),
   // Repositories, where GitHub is connected - as a task's blocker links it.
   connectGitHub: translationKey("Connect GitHub"),

@@ -10,7 +10,7 @@ OneUptime 인시던트마다 [GitLab](https://gitlab.com) issue를 열어, 후�
 :::
 
 > [!NOTE]
-> OneUptime AI는 GitHub App으로 연결한 저장소에서만 수정 pull request를 열기 때문에, 아직 GitLab 저장소에서는 작업할 수 없습니다. [GitHub](/docs/integrations/github)를 참고하세요.
+> OneUptime AI는 GitLab 저장소에서도 작업합니다. 접근 토큰으로 코드에 연결하면 수정마다 머지 리퀘스트를 엽니다. [저장소 연결하기](/docs/ai/ai-agent#저장소-연결하기)를 참고하세요.
 
 ## 작동 방식
 

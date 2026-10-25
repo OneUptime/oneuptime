@@ -28,7 +28,7 @@
  *   ?repo=     found (default) | pick | none
  *              found: the function's file is in acme/checkout
  *              pick:  two repositories, neither found to hold it
- *              none:  no repository connected through the GitHub App
+ *              none:  no repository connected in Code
  *   ?fix=      none (default) | running - a fix already on its way
  *   ?blocker=  none (default) | credits - Code's gate says no AI credits
  *   ?fail=     comma separated: types, functions, compare, focus, fix,
@@ -56,7 +56,13 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import ProfilesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Profiles/Layout";
 import ProfilesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Profiles/Index";
+import ProfilesAIInsights from "../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Insights";
+import ProfilesAIInsightView from "../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/InsightView";
+import ProfilesAILogs from "../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Logs";
+import ProfilesAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Settings";
 import ServiceProfiles from "../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Profiles";
+import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import Service from "Common/Models/DatabaseModels/Service";
 import Host from "Common/Models/DatabaseModels/Host";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -93,6 +99,16 @@ import {
   getProfileFixOffer,
   profileFixSuggestionToJSON,
 } from "Common/Utils/Suggestions/ProfileFixSuggestion";
+import {
+  aiInsights,
+  aiLogs,
+  aiProject,
+  aiProviders,
+  aiReadiness,
+  aiRules,
+  filterInsights,
+  saveProjectSwitches,
+} from "./AiSection";
 
 const params = new URLSearchParams(window.location.search);
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -424,6 +440,8 @@ const fixture = {
   modelListRequests: [],
   analyticsListRequests: [],
   fixRequests: [],
+  // The project switches the AI settings saved.
+  switchSaves: [],
 };
 window.__profilesFixture = fixture;
 
@@ -1092,6 +1110,27 @@ async function handleApi(method, options) {
     return ok({ taskId: TASK_ID });
   }
 
+  // The Profiler's AI section.
+  if (url.includes("/telemetry-ai/readiness")) {
+    return ok(aiReadiness());
+  }
+
+  if (url.includes("/telemetry-ai/logs")) {
+    const logs = aiLogs(NOW, Number(body.skip) || 0);
+    if (!logs) {
+      fail(500, "The AI logs could not be read.");
+    }
+    return ok(logs);
+  }
+
+  if (url.includes("/ai-chat/providers")) {
+    return ok(aiProviders());
+  }
+
+  if (url.includes("/ai-insight/triage-run")) {
+    return ok({ run: null, events: [] });
+  }
+
   return ok({});
 }
 
@@ -1100,11 +1139,7 @@ UserUtil.getUserId = () => new ObjectID(USER_ID);
 PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ProjectUtil.getCurrentProject = () => {
-  return Object.assign(new Project(), {
-    _id: PROJECT_ID,
-    name: "Commerce",
-    enableAi: isAiOn,
-  });
+  return aiProject(PROJECT_ID);
 };
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 AnalyticsModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
@@ -1155,10 +1190,75 @@ ModelAPI.getList = async (options) => {
     return { data: hosts, count: hosts.length, skip: 0, limit: 100 };
   }
 
+  if (options.modelType === AIInsight) {
+    const rows = filterInsights(
+      aiInsights(NOW, SERVICE_IDS.checkout),
+      options.query,
+    );
+    return {
+      data: rows.slice(options.skip || 0, (options.skip || 0) + options.limit),
+      count: rows.length,
+      skip: options.skip || 0,
+      limit: options.limit,
+    };
+  }
+
+  if (options.modelType === AutoRemediationRule) {
+    const rules = aiRules();
+    return { data: rules, count: rules.length, skip: 0, limit: 10 };
+  }
+
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
-ModelAPI.getItem = async () => null;
+ModelAPI.getItem = async (options) => {
+  if (options.modelType === Project) {
+    return aiProject(PROJECT_ID);
+  }
+
+  if (options.modelType === AIInsight) {
+    const id = options.id ? options.id.toString() : "";
+    return (
+      aiInsights(NOW, SERVICE_IDS.checkout).find((row) => {
+        return row.id && row.id.toString() === id;
+      }) || null
+    );
+  }
+
+  // A rule's edit dialog reads the rule it opens on.
+  if (options.modelType === AutoRemediationRule) {
+    const id = options.id ? options.id.toString() : "";
+    return (
+      aiRules().find((rule) => {
+        return rule.id && rule.id.toString() === id;
+      }) || null
+    );
+  }
+
+  return null;
+};
 ModelAPI.getCount = async () => 0;
+ModelAPI.count = async (options) => {
+  if (options.modelType === AIInsight) {
+    return filterInsights(aiInsights(NOW, SERVICE_IDS.checkout), options.query)
+      .length;
+  }
+
+  if (options.modelType === AutoRemediationRule) {
+    return aiRules().filter((rule) => {
+      return rule.isEnabled;
+    }).length;
+  }
+
+  return 0;
+};
+ModelAPI.updateById = async (options) => {
+  const data = serialize(options.data);
+  fixture.switchSaves.push(data);
+  if (options.modelType === Project) {
+    saveProjectSwitches(data);
+  }
+  return ok({});
+};
 
 AnalyticsModelAPI.getList = async (options) => {
   const model = new options.modelType();
@@ -1253,6 +1353,11 @@ createRoot(document.getElementById("root")).render(
             element={<ProfilesLayout />}
           >
             <Route index element={<ProfilesPage />} />
+            {/* The AI section: what OneUptime found, what it did, its settings. */}
+            <Route path="ai/insights" element={<ProfilesAIInsights />} />
+            <Route path="ai/insights/:id" element={<ProfilesAIInsightView />} />
+            <Route path="ai/logs" element={<ProfilesAILogs />} />
+            <Route path="ai/settings" element={<ProfilesAISettings />} />
           </Route>
           <Route
             path="/dashboard/:projectId/service/:modelId/profiles"

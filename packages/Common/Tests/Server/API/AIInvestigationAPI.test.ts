@@ -35,6 +35,7 @@ import {
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import InvestigationNotStartedReason from "../../../Types/AI/InvestigationNotStartedReason";
 import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
+import ProfileFixTaskTrigger from "../../../Server/Utils/AI/SRE/ProfileFixTaskTrigger";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -2430,4 +2431,90 @@ describe("toPanelClusterAccess gap next steps", () => {
     ).toEqual([RESTRICTED_GAP_NEXT_STEP, AI_BALANCE_INSUFFICIENT_NEXT_STEP]);
     expect(row.gaps[1]?.description).toBe(RESTRICTED_GAP_DESCRIPTION);
   });
+});
+
+/*
+ * "Fix with AI" from the Profiler, or from a slow-code finding - what an AI
+ * rule that asks before fixing leaves to a person. The finding the person
+ * asked from is handed to the task, and a malformed one is refused before
+ * anything starts.
+ */
+describe("AIInvestigationAPI create-profile-fix-task", () => {
+  const PATH: string = "/ai-investigation/create-profile-fix-task";
+  const INSIGHT_ID: string = "5092abab-0000-4000-8000-0000000000a1";
+  const BODY: JSONObject = {
+    serviceId: "5092abab-0000-4000-8000-0000000000b2",
+    functionName: "OrderParser.parse",
+    fileName: "src/orders/parser.ts",
+    startTime: "2026-10-24T08:00:00.000Z",
+    endTime: "2026-10-24T09:00:00.000Z",
+  };
+
+  let createFixTask: SpyInstance<typeof ProfileFixTaskTrigger.createFixTask>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props);
+    createFixTask = jest
+      .spyOn(ProfileFixTaskTrigger, "createFixTask")
+      .mockResolvedValue({ taskId: "5092abab-0000-4000-8000-0000000000c3" });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function post(body: JSONObject): Promise<ReturnType<typeof jest.fn>> {
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", PATH)
+      .handlerFunction(
+        requestFor(body),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    return next;
+  }
+
+  it("hands the finding it was asked from to the task", async () => {
+    const next: ReturnType<typeof jest.fn> = await post({
+      ...BODY,
+      insightId: INSIGHT_ID,
+    });
+
+    expect(next).not.toHaveBeenCalled();
+
+    const request: Parameters<typeof ProfileFixTaskTrigger.createFixTask>[0] =
+      createFixTask.mock.calls[0]![0];
+
+    expect(request.insightId?.toString()).toBe(INSIGHT_ID);
+    expect(request.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(request.props.isMultiTenantRequest).toBe(false);
+    expect(sentPayload()).toEqual({
+      taskId: "5092abab-0000-4000-8000-0000000000c3",
+    });
+  });
+
+  it("names no finding when it was not asked from one", async () => {
+    await post(BODY);
+
+    expect(createFixTask.mock.calls[0]![0].insightId).toBeUndefined();
+  });
+
+  it.each([["not-a-uuid"], [42], [{ id: INSIGHT_ID }]])(
+    "refuses a malformed insightId (%j) before anything starts",
+    async (insightId: unknown) => {
+      const next: ReturnType<typeof jest.fn> = await post({
+        ...BODY,
+        insightId: insightId as never,
+      });
+
+      expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+      expect(createFixTask).not.toHaveBeenCalled();
+    },
+  );
 });

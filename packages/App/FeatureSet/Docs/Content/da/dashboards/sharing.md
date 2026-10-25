@@ -68,7 +68,7 @@ For en stærkere adgangskontrol (separate konti pr. seer, et revisionsspor over,
 
 ## IP-tilladelsesliste
 
-Under **Yderligere indstillinger** på siden **Deling** begrænser sektionen **IP-tilladelsesliste** (kolonnen `ipWhitelist`) det offentlige link til de IP-adresser eller IPv4-intervaller, du angiver, én pr. linje, for eksempel `203.0.113.7` eller `10.0.0.0/8`. Den gælder med eller uden adgangskoden; projektmedlemmer, der logger ind, påvirkes ikke. Lad den være tom for at tillade alle adresser. Den gemmes for sig, adskilt fra valget, og at ændre den kræver abonnementet **Scale** på OneUptime Cloud; at tømme den virker på alle abonnementer. Så længe en liste gælder, viser den sammenfoldede overskrift for **Yderligere indstillinger** **IP-tilladelsesliste** med antallet af poster, den indeholder.
+Under **Yderligere indstillinger** på siden **Deling** begrænser sektionen **IP-tilladelsesliste** (kolonnen `ipWhitelist`) det offentlige link til de IP-adresser eller IPv4-intervaller, du angiver, én pr. linje, for eksempel `203.0.113.7` eller `10.0.0.0/8`. Den gælder med eller uden adgangskoden; projektmedlemmer, der logger ind, påvirkes ikke. Lad den være tom for at tillade alle adresser. Den gemmes for sig, adskilt fra valget, og at ændre den kræver abonnementet **Scale** på OneUptime Cloud; at tømme den virker på alle abonnementer. Så længe en liste gælder, viser den sammenfoldede overskrift for **Yderligere indstillinger** **IP-tilladelsesliste** med antallet af poster, den indeholder. Ved selvhosting er det en del af Enterprise Edition at ændre den: på Community Edition gælder en liste, der allerede er angivet, fortsat og kan kun fjernes.
 
 Brug den, når:
 

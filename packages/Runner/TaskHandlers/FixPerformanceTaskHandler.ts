@@ -26,7 +26,7 @@ export default class FixPerformanceTaskHandler extends SubjectPullRequestTaskHan
   protected readonly noActionMessage: string =
     "No performance fix could be applied to any repository";
   protected readonly noRepositoryMessage: string =
-    "Could not resolve a repository for this performance fix task. Connect the right repository through the GitHub App.";
+    "Could not resolve a repository for this performance fix task. Connect the right repository in Code.";
 
   protected override readonly usesProductionTelemetry: boolean = true;
 

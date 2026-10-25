@@ -59,6 +59,13 @@ const TASK: Record<
 
 const INCIDENT_ID: string = "50000000-0000-4000-8000-0000000000e1";
 
+/*
+ * insight=1: a task OneUptime started on its own from slow code it found
+ * in checkout's profiles (the Profiler's AI section), and the finding.
+ */
+const INSIGHT_TASK_ID: string = "40000000-0000-4000-8000-0000000000da";
+const INSIGHT_ID: string = "50000000-0000-4000-8000-0000000000e6";
+
 // The project's own Runners a repository may pick (Code/Fixture).
 const RUNNER: Record<"prod" | "office" | "agent", string> = {
   prod: "60000000-0000-4000-8000-0000000000f1",
@@ -726,8 +733,14 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
     const empty: Locator = page.getByTestId("code-connect-github");
     await expect(empty).toContainText("Connect your code");
     await expect(empty).toContainText(
-      "ask OneUptime AI to work in your repositories",
+      "Connect your repositories and ask OneUptime AI to work in them",
     );
+    // Under Connect GitHub, the other places a repository can be.
+    await expect(empty.getByTestId("code-other-host")).toHaveText([
+      "GitLab",
+      "Forgejo or Gitea",
+      "Any Git server",
+    ]);
     // No box to write in before there is anywhere for AI to work.
     await expect(page.getByTestId("code-ask")).toHaveCount(0);
     await expectNoSidewaysScroll(page);
@@ -1056,7 +1069,7 @@ test.describe("Code's Repositories", () => {
     await screenshot(page, testInfo, "code-repositories-german");
   });
 
-  test("Connect repositories, the list's main button, starts GitHub's install", async ({
+  test("Connect repositories, the list's main button, asks where the code is - GitHub starts GitHub's install", async ({
     page,
   }: {
     page: Page;
@@ -1065,6 +1078,12 @@ test.describe("Code's Repositories", () => {
 
     await connectedCard(page)
       .getByRole("button", { name: "Connect repositories" })
+      .click();
+    // Nothing leaves the page before the reader says where the code is.
+    expect((await recorded(page)).navigations).toEqual([]);
+    await page
+      .getByRole("dialog")
+      .locator("[data-testid='code-host-choice'][data-provider='GitHub']")
       .click();
     await expect
       .poll(async () => {
@@ -1180,6 +1199,629 @@ test.describe("Code's Repositories", () => {
  * in the order they had - is under More settings, which names them while
  * it is folded and opens by itself where a link lands on one of them.
  */
+/*
+ * The maintainer's ask (2026-10-23): "We have a GitHub connection to
+ * oneuptime in terms of our Code product. Can we have other connections as
+ * well, maybe like a normal Git repo or forgejo? What do you recommend?"
+ * Code connects GitLab, Forgejo or Gitea and any Git server beside GitHub.
+ * Each does what Code does there - tasks, branches, merge or pull requests
+ * - and says plainly what it cannot: commands from comments and production
+ * reviews are GitHub's, and a Git server gets a pushed branch. A token is
+ * typed once, never shown again; a Git server only the project's own
+ * Runner reaches is asked about first.
+ */
+test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git server", () => {
+  const BILLING: string = "20000000-0000-4000-8000-0000000000b4";
+  const INFRA: string = "20000000-0000-4000-8000-0000000000b6";
+  const INVOICES_TASK: string = "40000000-0000-4000-8000-0000000000d8";
+  const TERRAFORM_TASK: string = "40000000-0000-4000-8000-0000000000d9";
+  const GITLAB_CONNECTION: string = "70000000-0000-4000-8000-0000000000a1";
+  const FORGEJO_CONNECTION: string = "70000000-0000-4000-8000-0000000000a2";
+  const TOKEN: string = "glpat-e2e-token-000000000001";
+
+  interface ConnectRecorded {
+    connectReads: Array<Record<string, unknown>>;
+    connects: Array<Record<string, unknown>>;
+    gitConnects: Array<Record<string, unknown>>;
+    tokenReplacements: Array<Record<string, unknown>>;
+  }
+
+  async function connectRecorded(page: Page): Promise<ConnectRecorded> {
+    return await page.evaluate((): ConnectRecorded => {
+      return (window as unknown as { __fixture: ConnectRecorded }).__fixture;
+    });
+  }
+
+  // Repositories' main button, Connect repositories: where is your code?
+  async function openConnectDialog(
+    page: Page,
+    search: string = "",
+  ): Promise<Locator> {
+    await page.goto(`${CODE}/repositories${search ? `?${search}` : ""}`);
+    await page
+      .getByTestId("code-repositories-card")
+      .getByRole("button", { name: "Connect repositories" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog.getByTestId("code-host-choice")).toHaveCount(4);
+    return dialog;
+  }
+
+  function hostChoice(dialog: Locator, provider: string): Locator {
+    return dialog.locator(
+      `[data-testid='code-host-choice'][data-provider='${provider}']`,
+    );
+  }
+
+  function repositoryRow(page: Page, name: string): Locator {
+    return page.getByTestId("code-repository-row").filter({
+      has: page.getByRole("link", { name: name, exact: true }),
+    });
+  }
+
+  function settingsPath(id: string): string {
+    return `${repositoryPath(id)}/settings`;
+  }
+
+  test("Connect repositories asks where the code is: GitHub, GitLab, Forgejo or Gitea, any Git server - each saying how it connects", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page);
+
+    await expect(dialog).toContainText("Connect repositories");
+    await expect(dialog).toContainText("Where is your code?");
+    await expect(dialog.getByTestId("code-host-choice")).toHaveText([
+      /^GitHubInstall the OneUptime GitHub App\.$/,
+      /^GitLabGitLab\.com or your own GitLab, with an access token\.$/,
+      /^Forgejo or GiteaCodeberg or your own server, with an access token\.$/,
+      /^Any Git serverOver HTTPS\. AI pushes a branch, and you open the pull request\.$/,
+    ]);
+    // Each tile draws its host's own mark.
+    expect(
+      await dialog
+        .getByTestId("code-host-choice")
+        .evaluateAll((tiles: Array<Element>): Array<string | null> => {
+          return tiles.map((tile: Element): string | null => {
+            return (
+              tile
+                .querySelector("[data-testid='code-host-mark']")
+                ?.getAttribute("data-provider") || null
+            );
+          });
+        }),
+    ).toEqual(["GitHub", "GitLab", "Forgejo", "Git"]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-where");
+  });
+
+  test("GitLab: the server and an access token, then the repositories it can push to - picked, connected, and the token never shown again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page);
+    await hostChoice(dialog, "GitLab").click();
+
+    await expect(dialog.getByTestId("code-connect-dialog")).toHaveAttribute(
+      "data-step",
+      "token",
+    );
+    await expect(dialog).toContainText("Connect GitLab");
+    // The public server most people use, filled in; the token typed unseen.
+    await expect(dialog.getByTestId("code-connect-host-url")).toHaveValue(
+      "https://gitlab.com",
+    );
+    const token: Locator = dialog.getByTestId("code-connect-token-input");
+    await expect(token).toHaveAttribute("type", "password");
+    // The server is filled in: the token is where typing starts.
+    await expect(token).toBeFocused();
+    await token.fill(TOKEN);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-gitlab-token");
+
+    await dialog.getByRole("button", { name: "Continue" }).click();
+
+    // The account the token signed in as, under the step's title.
+    await expect(dialog.getByTestId("modal-description")).toHaveText(
+      "Signed in to gitlab.com as @ada.",
+    );
+    await expect(dialog.getByTestId("code-connect-search")).toBeFocused();
+    const rows: Locator = dialog.getByTestId("code-connect-repository");
+    await expect(rows).toHaveCount(4);
+    // One the token may only read cannot be picked, and says so.
+    await expect(rows.nth(2)).toContainText("acme/handbook");
+    await expect(rows.nth(2).getByRole("checkbox")).toBeDisabled();
+    await expect(
+      rows.nth(2).getByTestId("code-connect-repository-cannot-push"),
+    ).toHaveText("Read-only");
+    // Whether a repository is private does not decide what to connect.
+    await expect(rows.getByText("Private", { exact: true })).toHaveCount(0);
+    // The token is nowhere on the page once it was sent.
+    expect(await page.content()).not.toContain(TOKEN);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-gitlab-pick");
+
+    await rows.nth(1).getByRole("checkbox").check();
+    await rows.nth(3).getByRole("checkbox").check();
+    await dialog
+      .getByRole("button", { name: "Connect 2 repositories" })
+      .click();
+
+    const notice: Locator = page.getByTestId("code-connected-notice");
+    await expect(notice).toContainText("2 repositories connected");
+    // The notice keeps its space above the list, as a page's notices do.
+    const noticeBox: { y: number; height: number } | null =
+      await notice.boundingBox();
+    const cardBox: { y: number } | null = await page
+      .getByTestId("code-repositories-card")
+      .boundingBox();
+    expect(
+      cardBox!.y - (noticeBox!.y + noticeBox!.height),
+    ).toBeGreaterThanOrEqual(16);
+    // The list reads its repositories again: both are in it, with GitLab's mark.
+    for (const name of ["ledger", "mobile-app"]) {
+      await expect(
+        repositoryRow(page, name).getByTestId("code-host-mark"),
+      ).toHaveAttribute("data-provider", "GitLab");
+    }
+
+    const sent: ConnectRecorded = await connectRecorded(page);
+    expect(sent.connectReads).toEqual([
+      {
+        provider: "GitLab",
+        hostUrl: "https://gitlab.com",
+        token: TOKEN,
+        page: 1,
+      },
+    ]);
+    expect(sent.connects).toEqual([
+      {
+        provider: "GitLab",
+        hostUrl: "https://gitlab.com",
+        token: TOKEN,
+        repositoryIds: ["acme/ledger", "acme/mobile-app"],
+      },
+    ]);
+    expect(await page.content()).not.toContain(TOKEN);
+    await screenshot(page, testInfo, "code-connect-gitlab-connected");
+  });
+
+  test("a token GitLab refuses is said in the dialog, which keeps what was typed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openConnectDialog(page);
+    await hostChoice(dialog, "GitLab").click();
+    await dialog
+      .getByTestId("code-connect-token-input")
+      .fill("revoked-token-0000000001");
+    await dialog.getByRole("button", { name: "Continue" }).click();
+
+    await expect(dialog).toContainText(
+      "GitLab refused the access token. It may have expired or been revoked: create a new token and use it instead.",
+    );
+    await expect(dialog.getByTestId("code-connect-dialog")).toHaveAttribute(
+      "data-step",
+      "token",
+    );
+    await expect(dialog.getByTestId("code-connect-token-input")).toHaveValue(
+      "revoked-token-0000000001",
+    );
+    expect((await connectRecorded(page)).connects).toEqual([]);
+  });
+
+  test("Forgejo or Gitea: the project's connection to Codeberg is offered again, by server and account, and needs no token", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page, "hosts=1");
+    await hostChoice(dialog, "Forgejo").click();
+
+    // Only Forgejo's: the project's GitLab and Git connections are their hosts'.
+    const offered: Locator = dialog.getByTestId("code-connect-connection");
+    await expect(offered).toHaveCount(1);
+    await expect(offered).toContainText("codeberg.org");
+    await expect(offered).toContainText("@ada");
+    // The step starts on it: nothing to type to connect more from Codeberg.
+    await expect(offered.getByRole("radio")).toBeChecked();
+    await expect(offered.getByRole("radio")).toBeFocused();
+    await expect(dialog.getByTestId("code-connect-token-input")).toHaveCount(0);
+    await screenshot(page, testInfo, "code-connect-forgejo-connection");
+
+    await dialog.getByRole("button", { name: "Continue" }).click();
+    const rows: Locator = dialog.getByTestId("code-connect-repository");
+    await expect(rows).toHaveCount(2);
+    // status-widgets is one of the project's already.
+    await expect(
+      rows.first().getByTestId("code-connect-repository-connected"),
+    ).toBeVisible();
+    await expect(rows.first().getByRole("checkbox")).toBeDisabled();
+
+    await rows.nth(1).getByRole("checkbox").check();
+    await dialog.getByRole("button", { name: "Connect 1 repository" }).click();
+
+    await expect(page.getByTestId("code-connected-notice")).toContainText(
+      "1 repository connected",
+    );
+    expect((await connectRecorded(page)).connects).toEqual([
+      {
+        connectionId: FORGEJO_CONNECTION,
+        repositoryIds: ["acme/uptime-badges"],
+      },
+    ]);
+    await expect(
+      repositoryRow(page, "uptime-badges").getByTestId("code-host-mark"),
+    ).toHaveAttribute("data-provider", "Forgejo");
+  });
+
+  test("any Git server: one OneUptime cannot reach is asked about first, then connected for a Runner of the project's own", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page);
+    await hostChoice(dialog, "Git").click();
+
+    await expect(dialog).toContainText("Connect a Git repository");
+    await expect(dialog).toContainText(
+      "AI works on a new branch and pushes it. You open the pull request yourself, on your Git server.",
+    );
+    await expect(dialog.getByTestId("code-connect-git-url")).toBeFocused();
+    await expect(
+      dialog.getByTestId("code-connect-git-password"),
+    ).toHaveAttribute("type", "password");
+    await dialog
+      .getByTestId("code-connect-git-url")
+      .fill("https://10.0.4.12/ops/deploy-tools.git");
+    await dialog.getByTestId("code-connect-git-username").fill("deploy");
+    await dialog
+      .getByTestId("code-connect-git-password")
+      .fill("deploy-password-000001");
+    await dialog.getByRole("button", { name: "Connect", exact: true }).click();
+
+    const confirm: Locator = dialog.getByTestId("code-connect-git-confirm");
+    // The host, named so a typo shows, then what Connect anyway does.
+    await expect(confirm).toContainText("OneUptime cannot reach 10.0.4.12");
+    // Brought into view: on a phone it comes in under the body's fold.
+    await expect(confirm).toBeInViewport({ ratio: 0.9 });
+    await expect(confirm).toContainText(
+      "Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-git-confirm");
+
+    await dialog.getByRole("button", { name: "Connect anyway" }).click();
+    await expect(page.getByTestId("code-connected-notice")).toContainText(
+      "Repository connected",
+    );
+    expect(
+      (await connectRecorded(page)).gitConnects.map(
+        (sent: Record<string, unknown>): unknown => {
+          return sent["connectWithoutCheck"];
+        },
+      ),
+    ).toEqual([false, true]);
+    // Its row names the Git server, beside its path.
+    const row: Locator = repositoryRow(page, "deploy-tools");
+    await expect(row.getByTestId("code-host-mark")).toHaveAttribute(
+      "data-provider",
+      "Git",
+    );
+    await expect(row.getByTestId("code-repository-full-name")).toHaveText(
+      "ops/deploy-tools · 10.0.4.12",
+    );
+    expect(await page.content()).not.toContain("deploy-password-000001");
+  });
+
+  test("Repositories: each repository with its host's mark, a server of its own named beside it", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${CODE}/repositories?hosts=1`);
+
+    for (const [name, provider] of [
+      ["checkout-api", "GitHub"],
+      ["billing-service", "GitLab"],
+      ["status-widgets", "Forgejo"],
+      ["infra-scripts", "Git"],
+    ]) {
+      await expect(
+        repositoryRow(page, name!).getByTestId("code-host-mark"),
+      ).toHaveAttribute("data-provider", provider!);
+    }
+    // gitlab.com and codeberg.org go without saying; a server of its own does not.
+    await expect(
+      repositoryRow(page, "billing-service").getByTestId(
+        "code-repository-full-name",
+      ),
+    ).toHaveText("acme/billing-service");
+    await expect(
+      repositoryRow(page, "infra-scripts").getByTestId(
+        "code-repository-full-name",
+      ),
+    ).toHaveText("ops/infra-scripts · 10.0.4.12");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-hosts");
+  });
+
+  test("a token GitLab refused: Token refused on Repositories, and the repository's page says so with Replace access token", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${CODE}/repositories?hosts=1&token=refused`);
+    const folded: Locator = page.getByTestId("code-repositories-not-connected");
+    await folded.getByRole("button", { name: "Not connected" }).click();
+    await expect(
+      repositoryRow(page, "billing-service").getByTestId(
+        "code-repository-token-refused",
+      ),
+    ).toHaveText("Token refused");
+
+    await page.goto(`${repositoryPath(BILLING)}?hosts=1&token=refused`);
+    const blocker: Locator = page.getByTestId("code-blocker");
+    await expect(blocker).toHaveAttribute(
+      "data-blocker",
+      "RepositoryTokenRefused",
+    );
+    await expect(blocker).toContainText(
+      "This repository's Git server refused its access token, so AI cannot work in it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-token-refused");
+
+    await blocker.getByTestId("code-blocker-fix").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/code/repositories/${BILLING}/settings`),
+    );
+    const connection: Locator = page.getByTestId("code-repository-connection");
+    await expect(
+      connection.getByTestId("repository-connection-status"),
+    ).toHaveAttribute("data-connection", "token-refused");
+    await expect(
+      connection.getByTestId("code-repository-connection-refused"),
+    ).toHaveText(
+      "GitLab refused the access token: it may have expired or been revoked. Replace it to connect the repository again.",
+    );
+  });
+
+  test("a GitLab repository's settings: its server, account and token's last characters - Replace access token - and plainly what works on GitHub only", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${settingsPath(BILLING)}?hosts=1`);
+
+    const connection: Locator = page.getByTestId("code-repository-connection");
+    // One fact each: a phone wraps between them, never inside "…x7Kq".
+    await expect(
+      connection.getByTestId("code-repository-connection-fact"),
+    ).toHaveText([
+      "gitlab.com",
+      "Signed in as ada",
+      "Access token ending in …x7Kq",
+    ]);
+    await expect(
+      connection.getByTestId("code-repository-github-only"),
+    ).toHaveText(
+      "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
+    );
+    // More settings holds only what GitLab has.
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
+      "Runner",
+      "Pull Requests",
+    ]);
+    await expect(
+      page.getByTestId("code-repository-github-commands"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-gitlab");
+
+    await connection.getByTestId("code-repository-replace-token").click();
+    await expect(page.getByRole("dialog")).toContainText(
+      "Every repository that uses this connection uses the new token from then on. OneUptime checks it with GitLab first.",
+    );
+    const dialog: Locator = page.getByTestId("code-replace-token-dialog");
+    const input: Locator = dialog.getByTestId("code-replace-token-input");
+    await expect(input).toHaveAttribute("type", "password");
+    // GitLab signs in as the token's account: no username to ask.
+    await expect(dialog.getByTestId("code-replace-token-username")).toHaveCount(
+      0,
+    );
+    await input.fill("glpat-replaced-0000000002");
+    await screenshot(page, testInfo, "code-repository-replace-token");
+    await page.getByRole("button", { name: "Replace token" }).click();
+
+    await expect(
+      page.getByTestId("code-repository-connection-replaced"),
+    ).toHaveText("Access token replaced.");
+    // Read again: the new token's last characters, never the token.
+    await expect(
+      page.getByTestId("code-repository-connection-facts"),
+    ).toContainText("Access token ending in …0002");
+    expect((await connectRecorded(page)).tokenReplacements).toEqual([
+      { connectionId: GITLAB_CONNECTION, token: "glpat-replaced-0000000002" },
+    ]);
+    expect(await page.content()).not.toContain("glpat-replaced-0000000002");
+  });
+
+  test("a Git repository's settings: Branches where the others have Pull Requests, and the server only a Runner of the project's own reaches", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${settingsPath(INFRA)}?hosts=1`);
+
+    const connection: Locator = page.getByTestId("code-repository-connection");
+    await expect(
+      connection.getByTestId("code-repository-connection-fact"),
+    ).toHaveText(["10.0.4.12", "Signed in as deploy"]);
+    await expect(
+      connection.getByTestId("code-repository-connection-runner-only"),
+    ).toHaveText(
+      "Only one of your own Runners on its network can reach this Git server.",
+    );
+    await expect(
+      connection.getByTestId("code-repository-github-only"),
+    ).toHaveText(
+      "On a Git server, AI pushes a branch and you open the pull request. Commands from comments and production reviews work in GitHub repositories only.",
+    );
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
+      "Runner: prod-eu-west-1",
+      "Branches",
+    ]);
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+    await expect(moreSettings).toContainText(
+      "AI starts from the main branch and pushes its work to a new branch, for you to open a pull request from on your Git server.",
+    );
+    await expect(page.locator("#pull-requests")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-git");
+  });
+
+  test("a Git server only a Runner reaches, with none picked: AI says so, and Pick a Runner opens its Runner setting", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${repositoryPath(INFRA)}?hosts=1&gitrunner=none`);
+
+    const blocker: Locator = page.getByTestId("code-blocker");
+    await expect(blocker).toHaveAttribute(
+      "data-blocker",
+      "RepositoryNeedsOwnRunner",
+    );
+    await expect(blocker).toContainText(
+      "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it.",
+    );
+    await blocker.getByTestId("code-blocker-fix").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/code/repositories/${INFRA}/settings#runner$`),
+    );
+  });
+
+  test("a GitLab task: Opened merge request !12, with GitLab's mark and View on GitLab - and no Production Reviews in its repository's menu", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepository(page, BILLING, "hosts=1");
+    await expect(page.getByTestId("code-task-row-pull-request")).toHaveText(
+      /MR !12/,
+    );
+    await expect(
+      page.getByRole("link", { name: "Production Reviews" }),
+    ).toHaveCount(0);
+    // GitLab's own word for it, before a task opens one.
+    await expect(page.getByTestId("code-ask-footer")).toHaveText(
+      "AI works on a new branch and opens a merge request for you to review when it changes code. Nothing is merged on its own.",
+    );
+
+    await openTask(page, INVOICES_TASK, "hosts=1");
+    const line: Locator = page.getByTestId("code-turn-pull-request");
+    await expect(line).toContainText("Opened merge request !12");
+    await expect(line.getByTestId("code-host-mark")).toHaveAttribute(
+      "data-provider",
+      "GitLab",
+    );
+    await expect(
+      line.getByRole("link", { name: /View on GitLab/ }),
+    ).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/12",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-gitlab");
+  });
+
+  test("a Git repository's task: the pushed branch and where to open the pull request - and the branch picker offers the main branch, saying why", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, TERRAFORM_TASK, "hosts=1");
+    await expect(turnReplies(page).last()).toContainText(
+      "Pushed the branch oneuptime-task-6-9a8b7c6d to ops/infra-scripts. Open a pull request from it into main on your Git server.",
+    );
+    await expect(page.getByTestId("code-turn-pull-request")).toHaveCount(0);
+    await expect(page.getByTestId("code-task-composer-footer")).toHaveText(
+      "AI works on a new branch and pushes it when it changes code, for you to open a pull request from. Nothing is merged on its own.",
+    );
+    await screenshot(page, testInfo, "code-task-git");
+
+    await openRepository(page, INFRA, "hosts=1");
+    await page.getByTestId("code-branch-picker-button").click();
+    await expect(page.getByTestId("code-branch-picker-option")).toHaveCount(1);
+    await expect(page.getByTestId("code-branch-picker-note")).toHaveText(
+      "OneUptime does not read this repository's branches: only your Runner reaches its Git server. A task starts from its main branch.",
+    );
+    // The server is never asked for branches it does not read.
+    expect(
+      (await recorded(page)).branchReads.filter(
+        (read: { repositoryId: string }): boolean => {
+          return read.repositoryId === INFRA;
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("dark mode: the connect dialog and a GitLab repository's settings draw on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "width-independent");
+    const dialog: Locator = await openConnectDialog(page, "theme=dark");
+    await hostChoice(dialog, "GitLab").click();
+    await expect(dialog.getByTestId("code-connect-token-input")).toBeVisible();
+    await screenshot(page, testInfo, "code-connect-gitlab-token-dark");
+
+    await page.goto(`${settingsPath(BILLING)}?hosts=1&theme=dark`);
+    await expect(
+      page.getByTestId("code-repository-connection-facts"),
+    ).toBeVisible();
+    const background: string = await page
+      .getByTestId("code-repository-connection")
+      .evaluate((element: Element): string => {
+        let current: Element | null = element;
+        while (current) {
+          const colour: string =
+            window.getComputedStyle(current).backgroundColor;
+          if (
+            colour &&
+            colour !== "rgba(0, 0, 0, 0)" &&
+            colour !== "transparent"
+          ) {
+            return colour;
+          }
+          current = current.parentElement;
+        }
+        return "";
+      });
+    const channels: Array<number> = (background.match(COLOUR_CHANNELS) || [])
+      .slice(0, 3)
+      .map(Number);
+    // Its card is dark, not a light box in a dark page.
+    expect(
+      channels.every((value: number) => {
+        return value < 100;
+      }),
+    ).toBe(true);
+    await screenshot(page, testInfo, "code-repository-settings-gitlab-dark");
+  });
+});
+
 test.describe("a repository's settings", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
 
@@ -2524,6 +3166,88 @@ test.describe("a repository's Runner", () => {
     await expect(
       settingsCard(page).getByRole("button", { name: "Edit" }),
     ).toBeFocused();
+  });
+});
+
+test.describe("a task OneUptime started on its own, from slow code it found", () => {
+  test("its row says OneUptime started it - nobody asked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "insight=1");
+
+    const row: Locator = page
+      .getByTestId("code-task-row")
+      .filter({ hasText: "Make parseOrder in src/orders/parse.ts faster" });
+
+    await expect(row).toBeVisible();
+    await expect(row.getByTestId("code-task-row-meta")).toContainText(
+      "Started by OneUptime",
+    );
+    await expect(row.getByTestId("code-task-row-meta")).not.toContainText(
+      "Asked by",
+    );
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+  });
+
+  /*
+   * One message of OneUptime's, on the left as the AI's are: why it began
+   * - the finding, linked - then what it asked, quoted. The right is where
+   * people ask (the UI review: OneUptime spoke twice in a row, once on each
+   * side).
+   */
+  test("its conversation opens on one message of OneUptime's: the finding, linked, then what it asked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, INSIGHT_TASK_ID, "insight=1");
+
+    const origin: Locator = page.getByTestId("code-turn-origin");
+
+    await expect(origin).toHaveCount(1);
+    await expect(origin).toContainText(
+      "OneUptime started this task from an AI insight: parseOrder takes 34% of the CPU time in checkout",
+    );
+    await expect(
+      origin.getByRole("link", {
+        name: "parseOrder takes 34% of the CPU time in checkout",
+      }),
+    ).toHaveAttribute("href", `${DASHBOARD}/ai/insights/${INSIGHT_ID}`);
+    await expect(origin.getByTestId("code-turn-request-message")).toContainText(
+      "OneUptime found this in the service's profiles on its own.",
+    );
+    await expect(origin.getByTestId("code-turn-context")).toContainText(
+      "parseOrder",
+    );
+
+    // No person's bubble: nobody asked.
+    await expect(page.getByTestId("code-turn-request")).toHaveCount(0);
+    await expect(page.getByTestId("code-task-turns")).not.toContainText(
+      "Someone",
+    );
+
+    // The request sits under why, inside the same message.
+    const [why, request] = await Promise.all([
+      origin.locator("p").first().boundingBox(),
+      origin.getByTestId("code-turn-request-message").boundingBox(),
+    ]);
+
+    expect(why).not.toBeNull();
+    expect(request).not.toBeNull();
+    expect(request!.y).toBeGreaterThan(why!.y);
+    expect(Math.abs(request!.x - why!.x)).toBeLessThan(2);
+
+    await expect(page.getByTestId("code-turn-pull-request")).toContainText(
+      "Opened pull request #431",
+    );
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-started-by-oneuptime");
   });
 });
 

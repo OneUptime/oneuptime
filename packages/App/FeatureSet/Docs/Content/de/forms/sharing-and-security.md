@@ -94,7 +94,7 @@ Jede Zeile ist eines davon:
 
 Eine IPv4-Adresse muss als solche geschrieben werden: In IPv6-Schreibweise, etwa `::ffff:203.0.113.7`, wird sie abgelehnt. Die Liste wird bei jedem Speichern geprüft — aus dem Dashboard, der API, Terraform oder einem Workflow —, und eine Zeile, die nie passen könnte, wird mit einer Meldung abgelehnt, die sie nennt. Lassen Sie die Liste leer, um jedes Netz zu erlauben. Sobald sie einen Eintrag hat, wird eine Anfrage abgelehnt, deren Adresse sich nicht feststellen lässt.
 
-In OneUptime Cloud braucht das Festlegen der IP-Zulassungsliste den Tarif **Scale** — beim Anlegen eines Formulars mit einer über die API wie beim Bearbeiten —, wie die IP-Zulassungsliste eines [öffentlichen Dashboards](/docs/dashboards/sharing). Leeren funktioniert in jedem Tarif.
+In OneUptime Cloud braucht das Festlegen der IP-Zulassungsliste den Tarif **Scale** — beim Anlegen eines Formulars mit einer über die API wie beim Bearbeiten —, wie die IP-Zulassungsliste eines [öffentlichen Dashboards](/docs/dashboards/sharing). Leeren funktioniert in jedem Tarif. Selbst gehostet gehört das Ändern zur Enterprise Edition: In der Community Edition gilt eine bereits gesetzte Liste weiter und kann nur entfernt werden.
 
 ### Anfragen von anderen Websites
 

@@ -122,6 +122,34 @@ describe("EnableAuditLog decorator", () => {
     });
   });
 
+  test("copies redactColumns, the secrets an entry records without their values", () => {
+    const redactColumns: Array<string> = ["apiKey"];
+    const config: EnableAuditLogOn = decorate({ redactColumns });
+
+    redactColumns.push("somethingElse");
+
+    expect(config).toStrictEqual({
+      create: true,
+      update: true,
+      delete: true,
+      redactColumns: ["apiKey"],
+    });
+  });
+
+  test("the models whose secrets their readers see list them to redact, and only real columns", () => {
+    for (const modelType of AllModelTypes as Array<{ new (): BaseModel }>) {
+      const model: BaseModel = new modelType();
+
+      for (const column of model.enableAuditLogOn?.redactColumns || []) {
+        expect([model.tableName, column, model.isTableColumn(column)]).toEqual([
+          model.tableName,
+          column,
+          true,
+        ]);
+      }
+    }
+  });
+
   test("copies the options instead of aliasing the declaration", () => {
     const rootResource: { resourceType: string; column: string } = {
       resourceType: "Parent",

@@ -1,6 +1,11 @@
+import AuditLogExportPlugins from "./AuditLogExport/Plugins";
 import AuditLogsPlugins from "./AuditLogs/Plugins";
+import CustomRolesPlugins from "./CustomRoles/Plugins";
 import IdentityPlugins from "./Identity/Plugins";
+import IpAllowlistPlugins from "./IpAllowlists/Plugins";
 import LicensePlugins from "./License/Plugins";
+import StatusPageAccessControlsPlugins from "./StatusPageAccessControls/Plugins";
+import StatusPageBrandingPlugins from "./StatusPageBranding/Plugins";
 import TeamCompliancePlugins from "./TeamCompliance/Plugins";
 import TelemetryRetentionPlugins from "./TelemetryRetention/Plugins";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
@@ -30,8 +35,13 @@ export const ONEUPTIME_EE_DASHBOARD_PLUGIN_SENTINEL: string =
 export default {
   ...IdentityPlugins,
   ...AuditLogsPlugins,
+  ...AuditLogExportPlugins,
   ...TeamCompliancePlugins,
   ...TelemetryRetentionPlugins,
+  ...CustomRolesPlugins,
+  ...IpAllowlistPlugins,
+  ...StatusPageBrandingPlugins,
+  ...StatusPageAccessControlsPlugins,
   ...LicensePlugins,
   buildMarker: ONEUPTIME_EE_DASHBOARD_PLUGIN_SENTINEL,
 } satisfies DashboardEnterprisePlugins;

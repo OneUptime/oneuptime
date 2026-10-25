@@ -136,27 +136,27 @@ x-common-runtime-variables: &common-runtime-variables
 
   # Cache and queues. VALKEY_* is the current name; the `:-${REDIS_*}` fallback is
   # what lets a config.env written before the rename keep working with no edits.
-  VALKEY_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME}}
-  VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
-  VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST}}
-  VALKEY_PORT: ${VALKEY_PORT:-${REDIS_PORT}}
-  VALKEY_DB: ${VALKEY_DB:-${REDIS_DB}}
-  VALKEY_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY}}
-  VALKEY_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA}}
-  VALKEY_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE}}
+  VALKEY_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME:-}}
+  VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}
+  VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST:-}}
+  VALKEY_PORT: ${VALKEY_PORT:-${REDIS_PORT:-}}
+  VALKEY_DB: ${VALKEY_DB:-${REDIS_DB:-}}
+  VALKEY_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY:-}}
+  VALKEY_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA:-}}
+  VALKEY_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE:-}}
 
   # Deprecated mirrors, carrying the identical value. The app reads VALKEY_* and
   # only falls back to these, so they are dead weight for a matching image --
   # they exist because APP_TAG lets you pin an OLDER image against this file, and
   # an image from before the rename reads nothing else.
-  REDIS_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME}}
-  REDIS_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
-  REDIS_HOST: ${VALKEY_HOST:-${REDIS_HOST}}
-  REDIS_PORT: ${VALKEY_PORT:-${REDIS_PORT}}
-  REDIS_DB: ${VALKEY_DB:-${REDIS_DB}}
-  REDIS_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY}}
-  REDIS_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA}}
-  REDIS_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE}}
+  REDIS_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME:-}}
+  REDIS_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}
+  REDIS_HOST: ${VALKEY_HOST:-${REDIS_HOST:-}}
+  REDIS_PORT: ${VALKEY_PORT:-${REDIS_PORT:-}}
+  REDIS_DB: ${VALKEY_DB:-${REDIS_DB:-}}
+  REDIS_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY:-}}
+  REDIS_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA:-}}
+  REDIS_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE:-}}
 
   ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
 
@@ -317,11 +317,11 @@ services:
       oneuptime:
         aliases:
           - redis
-    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}" --save "" --appendonly no
+    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no
     environment:
-      VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}
     healthcheck:
-      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}", "ping"]
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

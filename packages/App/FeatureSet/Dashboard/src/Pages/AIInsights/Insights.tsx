@@ -11,6 +11,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import OneUptimeDate from "Common/Types/Date";
@@ -111,15 +112,42 @@ const SEVERITY_FILTER_OPTIONS: Array<InsightFilterOption> = [
   { label: "Low severity", value: AIInsightSeverity.Low },
 ];
 
-const TYPE_FILTER_OPTIONS: Array<InsightFilterOption> = [
-  { label: "All types", value: ALL_FILTER_VALUE },
-  ...Object.values(AIInsightType).map((insightType: AIInsightType) => {
-    return {
-      label: INSIGHT_TYPE_LABELS[insightType],
-      value: insightType as string,
-    };
-  }),
-];
+// The type filter's choices: every kind of insight, or a scope's.
+function getTypeFilterOptions(
+  insightTypes: ReadonlyArray<AIInsightType>,
+): Array<InsightFilterOption> {
+  return [
+    { label: "All types", value: ALL_FILTER_VALUE },
+    ...insightTypes.map((insightType: AIInsightType) => {
+      return {
+        label: INSIGHT_TYPE_LABELS[insightType],
+        value: insightType as string,
+      };
+    }),
+  ];
+}
+
+const ALL_INSIGHT_TYPES: ReadonlyArray<AIInsightType> =
+  Object.values(AIInsightType);
+
+/*
+ * The inbox inside a product's AI section - the Profiler's AI insights:
+ * only the product's own kinds of insight, opened in the product's own
+ * view, in the product's words, with its own Settings as the way on. The
+ * highlights across every kind of insight are AI Insights' alone.
+ */
+export interface AIInsightsInboxScope {
+  insightTypes: ReadonlyArray<AIInsightType>;
+  viewPage: PageMap;
+  settingsPage: PageMap;
+  intro: string;
+  emptyTitle: string;
+  emptyDescription: string;
+}
+
+export interface AIInsightsPageProps extends PageComponentProps {
+  scope?: AIInsightsInboxScope | undefined;
+}
 
 /*
  * Filters live in the URL query string (replaceState, no history spam) so a
@@ -152,12 +180,22 @@ const readFilterParam: ReadFilterParamFunction = (
  * aligned list where every finding reads as title-first with its status,
  * detection count and freshness in fixed right-hand columns.
  */
-const AIInsightsPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
+  props: AIInsightsPageProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
+  const scope: AIInsightsInboxScope | undefined = props.scope;
+  /*
+   * What the scope narrows the list to. The reads follow this alone, not
+   * the scope's words: a product that swaps its empty state's words (the
+   * Profiler, while its switch is off) does not read the list again.
+   */
+  const scopeInsightTypes: ReadonlyArray<AIInsightType> | undefined =
+    scope?.insightTypes;
+  const insightTypes: ReadonlyArray<AIInsightType> =
+    scopeInsightTypes || ALL_INSIGHT_TYPES;
   const settingsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.AI_INSIGHTS_SETTINGS] as Route,
+    RouteMap[scope?.settingsPage || PageMap.AI_INSIGHTS_SETTINGS] as Route,
   );
 
   const [insights, setInsights] = useState<Array<AIInsight>>([]);
@@ -189,7 +227,7 @@ const AIInsightsPage: FunctionComponent<
     return readFilterParam("severity", Object.values(AIInsightSeverity));
   });
   const [typeFilter, setTypeFilter] = useState<string>(() => {
-    return readFilterParam("type", Object.values(AIInsightType));
+    return readFilterParam("type", [...insightTypes]);
   });
   /*
    * "Any time" is the same "All" sentinel the other filters use, so the bar's
@@ -282,6 +320,10 @@ const AIInsightsPage: FunctionComponent<
 
       if (typeFilter !== ALL_FILTER_VALUE) {
         (query as Record<string, unknown>)["insightType"] = typeFilter;
+      } else if (scopeInsightTypes) {
+        (query as Record<string, unknown>)["insightType"] = new Includes([
+          ...scopeInsightTypes,
+        ]);
       }
 
       if (debouncedSearchText) {
@@ -302,7 +344,13 @@ const AIInsightsPage: FunctionComponent<
 
       return query;
     },
-    [severityFilter, typeFilter, seenWithinFilter, debouncedSearchText],
+    [
+      severityFilter,
+      typeFilter,
+      seenWithinFilter,
+      debouncedSearchText,
+      scopeInsightTypes,
+    ],
   );
 
   /*
@@ -559,8 +607,11 @@ const AIInsightsPage: FunctionComponent<
            * and a half of white on a phone.
            */
           paddingClassName="py-20 md:pt-52 md:pb-52"
-          title="No insights yet"
-          description="OneUptime AI watches this project's telemetry and files a quiet insight when something looks off. It never pages anyone."
+          title={scope?.emptyTitle || "No insights yet"}
+          description={
+            scope?.emptyDescription ||
+            "OneUptime AI watches this project's telemetry and files a quiet insight when something looks off. It never pages anyone."
+          }
           footer={
             /*
              * The page's one way on, drawn as a button: the OUTLINE style
@@ -570,7 +621,7 @@ const AIInsightsPage: FunctionComponent<
              */
             <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
               <Button
-                title="Go to Insights Settings"
+                title={scope ? "Go to AI Settings" : "Go to Insights Settings"}
                 icon={IconProp.Settings}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
@@ -636,7 +687,13 @@ const AIInsightsPage: FunctionComponent<
           <ul className="divide-y divide-gray-100">
             {insights.map((item: AIInsight) => {
               return (
-                <InsightListItem key={item.id?.toString()} insight={item} />
+                <InsightListItem
+                  key={item.id?.toString()}
+                  insight={item}
+                  viewPage={scope?.viewPage}
+                  // One kind of insight here: no row says its kind.
+                  isTypeShown={insightTypes.length > 1}
+                />
               );
             })}
           </ul>
@@ -728,16 +785,22 @@ const AIInsightsPage: FunctionComponent<
     <div className="space-y-5">
       <AIPlanGate />
 
-      <p className="max-w-3xl text-sm leading-6 text-gray-500">
-        {translator.translateText(
-          "OneUptime AI watches your telemetry around the clock and tells you about problems before anyone is paged: new or spiking exceptions, error-log spikes, slower requests and metrics that drift. Insights never page and never open incidents.",
-        )}{" "}
-        {translator.translateText(
-          "To be alerted when a finding happens again, open it and choose Create Monitor.",
-        )}
-      </p>
+      {scope ? (
+        <p className="max-w-3xl text-sm leading-6 text-gray-500">
+          {translator.translateText(scope.intro)}
+        </p>
+      ) : (
+        <p className="max-w-3xl text-sm leading-6 text-gray-500">
+          {translator.translateText(
+            "OneUptime AI watches your telemetry around the clock and tells you about problems before anyone is paged: new or spiking exceptions, error-log spikes, slower requests and metrics that drift. Insights never page and never open incidents.",
+          )}{" "}
+          {translator.translateText(
+            "To be alerted when a finding happens again, open it and choose Create Monitor.",
+          )}
+        </p>
+      )}
 
-      <InsightHighlights />
+      {scope ? <></> : <InsightHighlights />}
 
       <InsightStatusSummary
         buckets={statusBuckets}
@@ -749,9 +812,10 @@ const AIInsightsPage: FunctionComponent<
       <InsightFilterBar
         searchText={searchText}
         onSearchTextChange={setSearchText}
-        typeOptions={TYPE_FILTER_OPTIONS}
+        typeOptions={getTypeFilterOptions(insightTypes)}
         typeValue={typeFilter}
         onTypeChange={setTypeFilter}
+        isTypeFilterShown={insightTypes.length > 1}
         severityOptions={SEVERITY_FILTER_OPTIONS}
         severityValue={severityFilter}
         onSeverityChange={setSeverityFilter}

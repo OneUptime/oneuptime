@@ -8,6 +8,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
@@ -37,6 +38,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * could give the team directly (TeamCustomRoleService). Nothing of it is
  * ever changed in place: a team is given a role, or it is not.
  */
+@TableEditionAccessControl({
+  requiresEnterprise: true,
+})
 @TableBillingAccessControl({
   create: PlanType.Scale,
   read: PlanType.Free,

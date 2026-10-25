@@ -97,6 +97,7 @@ describe("the suggestion helpers", () => {
         "CodeFixSuggestion.ts",
         "ProfileFixSuggestion.ts",
         "SuggestionOffer.ts",
+        "TelemetryAiFixSuggestion.ts",
         "TelemetryImprovementSuggestion.ts",
         "TracePerformanceFixSuggestion.ts",
       ].sort(),

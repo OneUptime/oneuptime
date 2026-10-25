@@ -64,6 +64,10 @@ import {
   resolveProjectUserOptions,
 } from "../../Components/ResourceOwners/ProjectUserFacetOptions";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  CUSTOM_ROLES_REQUIRED_PLAN,
+  isEnterpriseFeatureEligible,
+} from "../../Enterprise/EnterpriseEligibility";
 
 /*
  * A team whose access could not be added after it was made: what to say,
@@ -113,7 +117,10 @@ const Teams: FunctionComponent<PageComponentProps> = (
    * The project's custom roles this user could give a team - every
    * permission in each one being one they may hand on - as Access cards.
    * Read once, after the page opens: null until then, and none for someone
-   * who may not read them.
+   * who may not read them. Giving a custom role is an Enterprise feature, so
+   * none either where the project may not use custom roles (the Community
+   * Edition, or OneUptime Cloud below the plan): the server would refuse
+   * the team the role.
    */
   const [customRoleOptions, setCustomRoleOptions] =
     useState<Array<CardSelectOption> | null>(null);
@@ -121,7 +128,10 @@ const Teams: FunctionComponent<PageComponentProps> = (
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-    if (!projectId) {
+    if (
+      !projectId ||
+      !isEnterpriseFeatureEligible(CUSTOM_ROLES_REQUIRED_PLAN)
+    ) {
       setCustomRoleOptions([]);
       return;
     }

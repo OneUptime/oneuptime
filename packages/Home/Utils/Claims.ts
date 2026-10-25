@@ -650,7 +650,7 @@ export const Claims: Array<Claim> = [
     statement:
       "The full platform runs on your own Kubernetes cluster via our Helm chart, or on a single host with Docker Compose.",
     qualifier:
-      "The Community Edition is the core platform under Apache 2.0, SAML and OIDC single sign-on included; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
+      "The Community Edition is the core platform under Apache 2.0, SAML and OIDC single sign-on included; the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
     evidence: "The public Helm chart and its installation guide.",
     sourceUrl: "/enterprise/self-hosted",
   },
@@ -675,7 +675,7 @@ export const Claims: Array<Claim> = [
     status: "customer-configurable",
     scope: "self-hosted",
     statement:
-      "Enterprise Edition images add SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
+      "Enterprise Edition images add SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
     qualifier:
       "Production use requires a valid Enterprise license. The images are not separately hardened: both editions are built from the same source and run with the same chart security defaults.",
     evidence:
@@ -1021,7 +1021,7 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
     reason:
       "Enterprise Edition images are the Community Edition image plus the ee/ modules, not a separately hardened base. Hardening comes from the Helm chart and applies to both editions.",
     replacement:
-      "Enterprise Edition images, which add SCIM, audit logs, team compliance, and instance health dashboards.",
+      "Enterprise Edition images, which add SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards.",
     claimId: "deployment-enterprise-edition",
   },
   {
@@ -1029,7 +1029,7 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
       /\bnot\s+feature[- ]limited\b|\bno\s+feature\s+gates\b|\bcommunity\s+edition\s+is\s+the\s+(?:full\s+feature\s+set|complete\s+product)/i,
     example: "the community edition is not feature-limited",
     reason:
-      "SCIM, audit logs, team compliance, and instance health dashboards are Enterprise Edition features.",
+      "SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards are Enterprise Edition features.",
     replacement:
       "The Community Edition includes the whole monitoring, incident, and observability platform.",
     claimId: "deployment-self-hosted",
@@ -1138,7 +1138,8 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
      * Single sign-on filed under the Enterprise Edition. SAML and OIDC single
      * sign-on, global SSO, and "Require SSO for login" are part of the Apache
      * 2.0 Community Edition and need no license; the Enterprise Edition adds
-     * SCIM, audit logs, team compliance, and the instance health dashboards.
+     * SCIM, audit logs, team compliance, custom roles, IP allowlists, and the
+     * instance health dashboards.
      *
      * Two shapes are caught: the Enterprise Edition (its images, its modules)
      * adding, including, or shipping with single sign-on; and single sign-on
@@ -1157,9 +1158,9 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
     example:
       "the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards",
     reason:
-      'SAML and OIDC single sign-on, global SSO, and "Require SSO for login" are part of the Apache 2.0 Community Edition and need no license. The Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards. On OneUptime Cloud, SSO is on the Scale plan: a plan, not an edition.',
+      'SAML and OIDC single sign-on, global SSO, and "Require SSO for login" are part of the Apache 2.0 Community Edition and need no license. The Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards. On OneUptime Cloud, SSO is on the Scale plan: a plan, not an edition.',
     replacement:
-      "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards.",
+      "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards.",
     claimId: "deployment-enterprise-edition",
   },
 ];

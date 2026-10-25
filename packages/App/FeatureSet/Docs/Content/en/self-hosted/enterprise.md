@@ -35,7 +35,7 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | Feature | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Monitoring, alerts, incidents, on-call, status pages, logs, metrics, traces, exceptions, dashboards, workflows, AI features, API and Terraform | Yes | Yes | Every plan |
-| Password sign-in, two-factor authentication, teams, roles and API keys | Yes | Yes | Every plan |
+| Password sign-in, two-factor authentication, teams, built-in roles and API keys | Yes | Yes | Every plan |
 | [SAML SSO and OpenID Connect](/docs/identity/sso) for project sign-in | Yes | Yes | Scale plan and above |
 | SAML SSO and OpenID Connect for private status page sign-in | Yes | Yes | Scale plan and above |
 | [Global (instance-wide) SSO and OIDC](/docs/identity/global-sso) | Yes | Yes | Not applicable |
@@ -43,6 +43,10 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | Team compliance settings | No | Yes | Scale plan and above |
 | Audit logs | No | Yes | Enterprise plan |
 | Retention overrides: retention by telemetry type (logs, traces, metrics, profiles, with rules by log severity and trace status), and per-service and per-resource retention | No | Yes | Scale plan and above |
+| Custom roles: sets of permissions you name once and give to teams and API keys | No | Yes | Scale plan and above |
+| IP allowlists for status pages, public dashboards and forms | No | Yes | Scale plan and above |
+| Status page access controls: how long readers of a private status page stay signed in, and who can subscribe | No | Yes | Scale plan and above |
+| Hiding "Powered by OneUptime" on status pages | No | Yes | Scale plan and above |
 | Admin **Health** dashboards: instance overview, background queues, instance logs, PostgreSQL, Valkey, ClickHouse cluster, diagnostic logs and telemetry ingestion | No | Yes | Not applicable |
 | Admin **Query Console** | No | Yes | Not available |
 | PostgreSQL and Valkey (Redis) health alerts | No | Yes | Not applicable |
@@ -55,6 +59,8 @@ Single sign-on includes "Require SSO for login" for projects, private status pag
 Every edition has the project's default telemetry retention, on **Project Settings > Telemetry & APM > Data Retention**. Retention overrides are what the Enterprise Edition adds on top of it.
 
 On OneUptime Cloud, a paid feature can always be switched off, on any plan. A retention override a trial (or a move to a lower plan) left set keeps applying to new telemetry, so below the Scale plan the retention pages show it under the upgrade card with a **Remove Override** button. Removing it works on every plan; setting one again needs the Scale plan. Telemetry already stored keeps the retention it was stored with. In the same way, **Project Settings > Security > SSO** shows the **Require SSO for Login** switch under its upgrade card while the project still requires SSO, so it can be turned off.
+
+Custom roles, IP allowlists, status page access controls and a hidden "Powered by OneUptime" line work the same way: whatever a trial or a lower plan left set keeps applying, and its settings show it under the upgrade card with a button to remove it.
 
 "Not applicable" rows are instance-administration features. On OneUptime Cloud, OneUptime operates the instance for you.
 
@@ -185,12 +191,14 @@ What stops when a license lapses:
 - **SCIM provisioning stops.** Your identity provider's SCIM requests are refused, including deprovisioning, and SCIM team locks are lifted, so teams managed by SCIM push groups can be edited by hand.
 - **Audit logging stops recording.** Audit logs recorded so far are kept.
 - **Retention overrides stop applying.** New telemetry is kept for the project's default retention. Telemetry already stored keeps the retention it was written with. You can still clear an override through the API, but not set one.
+- **Status pages show Powered by OneUptime again.** A page that hides the line shows it until a license is activated. The setting is kept.
 
 What does **not** stop:
 
 - **Single sign-on.** SAML and OIDC sign-in for projects, private status pages, the whole instance (global SSO) and the mobile apps, and "Require SSO for login", are part of every edition. A lapsed license changes none of it, and single sign-on configuration stays editable.
 - **Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.
 - **Master admins can always sign in with their password.**
+- **Custom roles, IP allowlists and status page access controls keep applying.** You can remove them, but not create or change them.
 - **Nothing is deleted.** SCIM configuration, audit logs and retention overrides stay as they are.
 
 **Everything resumes as soon as a license is activated**, without a restart: SCIM provisioning, audit logging and retention overrides come back with the configuration you have. OneUptime only switches them off when it knows the license has lapsed. While it cannot read the license state, for example for a moment while the server starts, SCIM, audit logging and retention overrides stay on.
@@ -206,6 +214,8 @@ Your configuration stays in the database. Switching back to the Enterprise image
 - **SCIM team locks are lifted**, so teams that were managed by SCIM push groups can be edited by hand. At startup the server logs which projects had their SCIM team locks lifted.
 - **Audit logging stops.** Audit logs recorded so far are kept, but the audit log pages show an upgrade prompt.
 - **Retention overrides stop applying.** New telemetry is kept for the project's default retention, and the retention cards on **Project Settings > Telemetry & APM > Data Retention** and on every service and resource Settings page show an upgrade prompt. The overrides stay in the database and apply again when you switch back.
+- **Status pages show Powered by OneUptime again.** The setting stays in the database and hides the line again when you switch back.
+- **Custom roles, IP allowlists and status page access controls keep applying.** Their settings show an upgrade prompt, with what is still set and a button to remove it.
 - **Enterprise settings pages show an upgrade prompt.** Through the API you can still read and delete enterprise configuration and reset a SCIM bearer token, but not create or change anything else. Audit logging cannot be turned on.
 - **The enterprise Health dashboards, the Query Console, and the PostgreSQL and Valkey health alerts stop.** ClickHouse capacity monitoring and pruning, migration status and the support bundle keep working.
 

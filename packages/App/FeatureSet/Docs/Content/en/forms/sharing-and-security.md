@@ -94,7 +94,7 @@ Each line is one of these:
 
 An IPv4 address must be written as one: written the IPv6 way, such as `::ffff:203.0.113.7`, it is refused. The list is checked whenever it is saved — from the dashboard, the API, Terraform or a workflow — and a line that could never match is refused with a message that names it. Leave the list empty to allow every network. Once it has an entry, a request whose address cannot be established is refused.
 
-On OneUptime Cloud, setting the IP allowlist needs the **Scale** plan - when a form is created with one through the API as when it is edited - like the IP allowlist of a [public dashboard](/docs/dashboards/sharing). Emptying it works on every plan.
+On OneUptime Cloud, setting the IP allowlist needs the **Scale** plan - when a form is created with one through the API as when it is edited - like the IP allowlist of a [public dashboard](/docs/dashboards/sharing). Emptying it works on every plan. Self-hosted, changing it is part of the Enterprise Edition: on the Community Edition, a list already set keeps applying and can only be removed.
 
 ### Requests from other websites
 

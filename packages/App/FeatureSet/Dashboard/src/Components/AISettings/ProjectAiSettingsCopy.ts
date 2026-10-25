@@ -22,7 +22,9 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
-import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationTriggerEntity, {
+  IncidentOrAlertTriggerEntity,
+} from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 
 /*
  * What the project's AI settings pages say, in one place: Incidents → AI
@@ -138,9 +140,13 @@ export const getProjectAiSwitchTestId: (column: string) => string = (
   return `ai-switch-${column}`;
 };
 
-// What AI Insights' fix pull request switch needs besides the switch.
-const GITHUB_APP_NOTE: string = translationKey(
-  "Needs a repository connected through the GitHub App.",
+/*
+ * What AI Insights' fix pull request switch needs besides the switch: a
+ * repository connected in Code - on GitHub, GitLab, Forgejo, Gitea or any
+ * Git server (SubjectCodeFixRun.hasConnectedRepository).
+ */
+const CONNECTED_REPOSITORY_NOTE: string = translationKey(
+  "Needs a repository connected in Code.",
 );
 /*
  * Fixing starts off: it changes infrastructure, so a project turns it on
@@ -162,11 +168,11 @@ const REMEDIATION_NOTE: string = translationKey(
  * settings), on by default.
  */
 const getFixSwitch: (data: {
-  signal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
   title: string;
   description: string;
 }) => ProjectAiSwitchDefinition<AiLaneSwitchColumn> = (data: {
-  signal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
   title: string;
   description: string;
 }): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
@@ -738,7 +744,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     description: translationKey(
       "OneUptime AI opens a pull request with a proposed fix for your team to review. Nothing is merged automatically.",
     ),
-    note: GITHUB_APP_NOTE,
+    note: CONNECTED_REPOSITORY_NOTE,
   },
   {
     column: "autoArchiveNonActionableExceptions",
@@ -874,6 +880,16 @@ export enum ProjectAiNoticeContext {
   ExternalMcpServers = "ExternalMcpServers",
   // Security Events → AI → Settings: triaging security cases.
   SecurityEvents = "SecurityEvents",
+  /*
+   * Profiler → AI → Settings: slow code OneUptime finds in profiles
+   * (Common/Types/AI/TelemetryAi), which is still found with AI off.
+   */
+  Profiles = "Profiles",
+  /*
+   * Traces → AI → Settings: slow and failing operations OneUptime finds in
+   * traces, still found with AI off.
+   */
+  Traces = "Traces",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1062,6 +1078,22 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     aiOffDescription: AI_OFF_EVENT_PAGE,
     providerConsequence: translationKey(
       "Until it has one, security cases are not triaged.",
+    ),
+  },
+  [ProjectAiNoticeContext.Profiles]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Slow code is still found, but none of it is looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, slow code is still found, but none of it is looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Traces]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Slow and failing operations are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, slow and failing operations are still found, but none are looked into or fixed.",
     ),
   },
 };

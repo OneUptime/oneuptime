@@ -65,17 +65,14 @@
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-وقتی `npm start` پیام **OneUptime is up!‎** را نشان داد، `http://localhost` یا نشانی سرورتان را باز کنید و ثبت‌نام کنید. نخستین حساب، مدیر نمونه می‌شود.
+فرمان `npm start` سرور را بررسی می‌کند، به هر رمز در `config.env` مقدار تصادفی جداگانه‌ای می‌دهد و OneUptime را راه‌اندازی می‌کند. وقتی `npm start` پیام **OneUptime is up!‎** را نشان داد، `http://localhost` یا نشانی سرورتان را باز کنید و ثبت‌نام کنید. نخستین حساب، مدیر نمونه می‌شود.
 
 [راهنمای Docker Compose](https://oneuptime.com/docs/fa/installation/docker-compose) اندازه سرور، HTTPS، پشتیبان‌گیری و به‌روزرسانی را پوشش می‌دهد.
 

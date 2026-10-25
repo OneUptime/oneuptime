@@ -378,6 +378,64 @@ describe("InsightFixRouting.routeInsightFix", () => {
     );
   });
 
+  /*
+   * While Traces' AI section works on the project's traces ("Find and fix
+   * slow and failing operations"), a slow request's pull request is its:
+   * one per slow operation it finds, as its own AI rules say. A latency
+   * insight is still filed and triaged, but opens no second one here.
+   */
+  test("latency: no pull request from here while Traces' AI section works on the traces", async () => {
+    const budget: jest.SpyInstance = mockBudgetAllowed(true);
+    const createFromFindings: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromFindings")
+      .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
+
+    const result: InsightFixRoutingResult =
+      await InsightFixRouting.routeInsightFix({
+        insight: makeLatencyInsight(),
+        project: makeProject({ enableAutomaticTraceRemediation: true }),
+      });
+
+    expect(result).toEqual({});
+    expect(createFromFindings).not.toHaveBeenCalled();
+    // Nothing is even counted against the day's fix budget.
+    expect(budget).not.toHaveBeenCalled();
+  });
+
+  test("latency: routed as before while Traces' AI section is off", async () => {
+    mockBudgetAllowed(true);
+    const createFromFindings: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromFindings")
+      .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
+    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1);
+
+    const result: InsightFixRoutingResult =
+      await InsightFixRouting.routeInsightFix({
+        insight: makeLatencyInsight(),
+        project: makeProject({ enableAutomaticTraceRemediation: false }),
+      });
+
+    expect(result).toEqual({ fixAiRunId: fixRunId });
+    expect(createFromFindings).toHaveBeenCalledTimes(1);
+  });
+
+  test("an exception insight is routed whatever Traces' AI section says", async () => {
+    mockBudgetAllowed(true);
+    mockReadiness(true);
+    jest
+      .spyOn(TelemetryExceptionService, "createCodeFixRunForException")
+      .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
+    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1);
+
+    const result: InsightFixRoutingResult =
+      await InsightFixRouting.routeInsightFix({
+        insight: makeInsight(),
+        project: makeProject({ enableAutomaticTraceRemediation: true }),
+      });
+
+    expect(result).toEqual({ fixAiRunId: fixRunId });
+  });
+
   test("a missing insight.traceId falls back to the evidence's sampleTraceId", async () => {
     mockBudgetAllowed(true);
     const createFromFindings: jest.SpyInstance = jest
@@ -471,7 +529,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
     jest.spyOn(SpanTreeAnalyzer, "analyzeTrace").mockReturnValue([]);
     const repoGate: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     await expect(
@@ -510,7 +568,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
     const finding: PerformanceFinding = makeFinding();
     jest.spyOn(SpanTreeAnalyzer, "analyzeTrace").mockReturnValue([finding]);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
@@ -545,7 +603,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
 
   test("the findings entry point still enforces the repository gate", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     await expect(
@@ -555,12 +613,12 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         findings: [makeFinding()],
         codeLocations: [],
       }),
-    ).rejects.toThrow(/No GitHub-App-connected repository/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
   });
 
   test("the findings entry point still enforces the per-trace dedupe gate", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")

@@ -362,17 +362,22 @@ export async function fetchProfileFixSuggestion(
   );
 }
 
-// Start the fix: a Code task. Returns its id.
+/*
+ * Start the fix: a Code task. Returns its id. From a slow-code finding
+ * (insightId), the task names the finding and the finding links the task.
+ */
 export async function createProfileFixTask(
   request: ProfileFixRequestBody & {
     message?: string | undefined;
     repositoryId?: string | undefined;
+    insightId?: string | undefined;
   },
 ): Promise<string> {
   const answer: JSONObject = await post(PROFILE_FIX_CREATE_PATH, {
     ...fixBody(request),
     ...(request.message ? { message: request.message } : {}),
     ...(request.repositoryId ? { repositoryId: request.repositoryId } : {}),
+    ...(request.insightId ? { insightId: request.insightId } : {}),
   });
 
   return text(answer["taskId"]);

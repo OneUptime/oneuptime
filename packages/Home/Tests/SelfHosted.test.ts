@@ -242,6 +242,10 @@ describe("SelfHosted content model", () => {
       "team compliance",
       "health dashboards",
       "query console",
+      "Custom roles",
+      "IP allowlists for status pages, public dashboards, and forms",
+      "Status page access controls",
+      "without the Powered by OneUptime line",
     ]) {
       expect(text).toContain(feature);
     }
@@ -405,7 +409,7 @@ describe("SelfHosted content model", () => {
     const included: string = enterprise!.included.join(" ");
 
     expect(included).toContain(
-      "The Enterprise Edition image: SCIM, audit logs, team compliance, and instance health dashboards",
+      "The Enterprise Edition image: SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards",
     );
     expect(included).not.toMatch(SINGLE_SIGN_ON_WORDING);
     expect(enterprise!.description).toContain("Community Edition plus");
@@ -438,7 +442,7 @@ describe("SelfHosted content model", () => {
     expect(communitySentence).toContain("The Community Edition");
     expect(communitySentence).toContain("SAML and OIDC single sign-on");
     expect(enterpriseSentence).toContain(
-      "SCIM provisioning, audit logs, team compliance, and instance health dashboards",
+      "SCIM provisioning, audit logs, team compliance, custom roles, IP allowlists, status page access controls, and instance health dashboards",
     );
     expect(enterpriseSentence).not.toMatch(SINGLE_SIGN_ON_WORDING);
   });
@@ -578,7 +582,7 @@ describe("SelfHosted content model", () => {
     );
   });
 
-  test("shared responsibility ships single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition", () => {
+  test("shared responsibility ships single sign-on in both editions, and SCIM, audit logs, custom roles and IP allowlists in the Enterprise Edition", () => {
     const accessControl: ResponsibilityRow | undefined =
       SharedResponsibilities.find((row: ResponsibilityRow) => {
         return row.area === "Access control";
@@ -589,7 +593,7 @@ describe("SelfHosted content model", () => {
       "SAML and OIDC single sign-on in both editions",
     );
     expect(accessControl!.oneuptime).toContain(
-      "SCIM and audit logs in the Enterprise Edition",
+      "SCIM, audit logs, custom roles, and IP allowlists in the Enterprise Edition",
     );
     expect(accessControl!.oneuptime).not.toContain(
       "SSO/SAML, SCIM, and audit logs in the Enterprise Edition",

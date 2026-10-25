@@ -73,6 +73,8 @@
  *                     investigation rule that investigates right away) pick
  *                     Claude Opus; rulePick=gone, a provider the project can
  *                     no longer use; none by default
+ *   - ruleContext=1   the saved rule "Fix database incidents" carries notes
+ *                     for OneUptime AI, its AI context; none by default
  *   - lang=de         the Dashboard's German words
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
@@ -155,6 +157,14 @@ const providerSet = ["project", "none", "denied"].includes(
   ? params.get("providers")
   : "global";
 const rulePick = params.get("rulePick");
+/*
+ * ?ruleContext=1: the saved rule "Fix database incidents" carries notes for
+ * OneUptime AI (its AI context, issue #5198); none by default.
+ */
+const RULE_AI_CONTEXT =
+  params.get("ruleContext") === "1"
+    ? "## Database incidents\n\n- **payments-db** is a PostgreSQL primary on `vm-db-07`. Fail over only after checking replication lag."
+    : undefined;
 
 window.__fixture = {
   creates: [],
@@ -545,6 +555,8 @@ const SAVED_RULES = [
     runnerId: new ObjectID(RUNNER_IDS.prodEu),
     // The LLM provider it fixes with (?rulePick=): none by default.
     llmProviderId: RULE_PICK,
+    // Its notes for OneUptime AI (?ruleContext=1): none by default.
+    aiContext: RULE_AI_CONTEXT,
     /*
      * It names one repository - and, with hiddenRepository=1, one the
      * reader may not read, which the list never returns - and opens fix

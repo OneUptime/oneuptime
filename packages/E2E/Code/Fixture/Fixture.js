@@ -35,6 +35,26 @@
  *                       them holds (140), so the branch picker searches the
  *                       server by what is typed
  *   - other=1           tasks that have no repository (Other tasks)
+ *   - insight=1         checkout-api has a task OneUptime started on its
+ *                       own, from slow code it found in checkout's profiles
+ *                       (the Profiler's AI section): its request is
+ *                       OneUptime's, its origin the finding, and it opened
+ *                       pull request #431
+ *   - hosts=1           repositories beyond GitHub too, each through its
+ *                       connection: billing-service on GitLab (gitlab.com)
+ *                       with merge request !12, status-widgets on Forgejo
+ *                       (codeberg.org) and infra-scripts on a Git server only
+ *                       a Runner of the project's own reaches (10.0.4.12),
+ *                       whose task pushed a branch; token=refused: GitLab
+ *                       refused billing-service's access token;
+ *                       gitrunner=none: infra-scripts picks no Runner
+ *
+ * The connect dialog's server (/code-repository-connection, Common/Server/
+ * API/CodeRepositoryConnectionAPI) answers too: the project's connections,
+ * the repositories a token reaches on GitLab (gitlab.com, or any server
+ * address) and Forgejo (codeberg.org), connecting them, any Git server -
+ * one on a private network asked about first - and replacing a token. A
+ * token beginning "revoked" is refused, as a host refuses one.
  *   - github=unconfigured  a server with no GitHub App (server.js)
  *   - plan=free         billing on and the Free plan: the plan gate answers
  *                       on Code's first page, and every repository and
@@ -175,6 +195,10 @@ const REPOSITORY_IDS = {
   checkout: "20000000-0000-4000-8000-0000000000b1",
   web: "20000000-0000-4000-8000-0000000000b2",
   payments: "20000000-0000-4000-8000-0000000000b3",
+  // hosts=1: on GitLab, Forgejo and a Git server.
+  billing: "20000000-0000-4000-8000-0000000000b4",
+  widgets: "20000000-0000-4000-8000-0000000000b5",
+  infra: "20000000-0000-4000-8000-0000000000b6",
 };
 
 const TASK_IDS = {
@@ -185,6 +209,11 @@ const TASK_IDS = {
   stopped: "40000000-0000-4000-8000-0000000000d5",
   working: "40000000-0000-4000-8000-0000000000d6",
   orphan: "40000000-0000-4000-8000-0000000000d7",
+  // hosts=1: a GitLab merge request, and a branch pushed to a Git server.
+  invoices: "40000000-0000-4000-8000-0000000000d8",
+  terraform: "40000000-0000-4000-8000-0000000000d9",
+  // insight=1: started by OneUptime, from slow code it found.
+  insight: "40000000-0000-4000-8000-0000000000da",
 };
 
 const RECORD_IDS = {
@@ -193,6 +222,8 @@ const RECORD_IDS = {
   exception: "50000000-0000-4000-8000-0000000000e3",
   monitor: "50000000-0000-4000-8000-0000000000e4",
   service: "50000000-0000-4000-8000-0000000000e5",
+  // The slow-code finding (an AI insight) insight=1's task came from.
+  insight: "50000000-0000-4000-8000-0000000000e6",
 };
 
 /*
@@ -217,6 +248,7 @@ const hasGlobalCodeRunner = params.get("global") !== "0";
 const reposParam = params.get("repos") || "some";
 const isGitHubGone = params.get("connected") === "none";
 const hasNoTasks = params.get("tasks") === "none";
+const hasInsightTask = params.get("insight") === "1";
 const hasManyBranches = params.get("branches") === "many";
 const hasLongNames = params.get("names") === "long";
 const blockerParam = params.get("blocker");
@@ -247,6 +279,11 @@ window.__fixture = {
   lists: [],
   reviewLists: [],
   reviewAgains: [],
+  // The connect dialog: each listing read, connect, Git connect and token replaced.
+  connectReads: [],
+  connects: [],
+  gitConnects: [],
+  tokenReplacements: [],
   reads: { task: 0, list: 0, repositories: 0, repository: 0 },
 };
 
@@ -382,6 +419,127 @@ if (isGitHubGone) {
 }
 
 /*
+ * hosts=1: repositories on GitLab, Forgejo and a Git server, each through
+ * one of the project's connections - its server, the account its token
+ * acts as and the token's last characters, never the token itself
+ * (CodeTaskRepositoryConnectionJSON). infra-scripts' Git server is on a
+ * private network: only a Runner of the project's own reaches it.
+ */
+const hasOtherHosts = params.get("hosts") === "1";
+const CONNECTION_IDS = {
+  gitlab: "70000000-0000-4000-8000-0000000000a1",
+  forgejo: "70000000-0000-4000-8000-0000000000a2",
+  git: "70000000-0000-4000-8000-0000000000a3",
+};
+const connections = hasOtherHosts
+  ? [
+      {
+        id: CONNECTION_IDS.gitlab,
+        provider: CodeRepositoryType.GitLab,
+        hostUrl: "https://gitlab.com",
+        accountLogin: "ada",
+        credentialHint: "x7Kq",
+        isTokenRefused: params.get("token") === "refused",
+        isReachableFromServer: true,
+      },
+      {
+        id: CONNECTION_IDS.forgejo,
+        provider: CodeRepositoryType.Forgejo,
+        hostUrl: "https://codeberg.org",
+        hostProduct: "Forgejo",
+        accountLogin: "ada",
+        credentialHint: "9fLm",
+        isTokenRefused: false,
+        isReachableFromServer: true,
+      },
+      {
+        id: CONNECTION_IDS.git,
+        provider: CodeRepositoryType.Git,
+        hostUrl: "https://10.0.4.12",
+        accountLogin: "deploy",
+        credentialHint: "",
+        isTokenRefused: false,
+        isReachableFromServer: false,
+      },
+    ]
+  : [];
+
+function connectionById(id) {
+  return (
+    connections.find((connection) => {
+      return connection.id === id;
+    }) || null
+  );
+}
+
+// What Code is told of a connection: never its token.
+function connectionJSON(connection) {
+  return {
+    id: connection.id,
+    provider: connection.provider,
+    hostUrl: connection.hostUrl,
+    ...(connection.hostProduct ? { hostProduct: connection.hostProduct } : {}),
+    ...(connection.accountLogin
+      ? { accountLogin: connection.accountLogin }
+      : {}),
+    ...(connection.credentialHint
+      ? { credentialHint: connection.credentialHint }
+      : {}),
+    isTokenRefused: connection.isTokenRefused,
+    isReachableFromServer: connection.isReachableFromServer,
+    repositoryCount: repositories.filter((repository) => {
+      return repository.connectionId === connection.id;
+    }).length,
+  };
+}
+
+if (hasOtherHosts) {
+  repositories.push(
+    {
+      id: REPOSITORY_IDS.billing,
+      name: "billing-service",
+      description: "Invoices, refunds and the ledger.",
+      organizationName: "acme",
+      repositoryName: "billing-service",
+      mainBranchName: "main",
+      repositoryUrl: "https://gitlab.com/acme/billing-service",
+      isConnected: params.get("token") !== "refused",
+      provider: CodeRepositoryType.GitLab,
+      connectionId: CONNECTION_IDS.gitlab,
+    },
+    {
+      id: REPOSITORY_IDS.widgets,
+      name: "status-widgets",
+      organizationName: "acme",
+      repositoryName: "status-widgets",
+      mainBranchName: "main",
+      repositoryUrl: "https://codeberg.org/acme/status-widgets",
+      isConnected: true,
+      provider: CodeRepositoryType.Forgejo,
+      connectionId: CONNECTION_IDS.forgejo,
+    },
+    {
+      id: REPOSITORY_IDS.infra,
+      name: "infra-scripts",
+      organizationName: "ops",
+      repositoryName: "infra-scripts",
+      mainBranchName: "main",
+      repositoryUrl: "https://10.0.4.12/ops/infra-scripts.git",
+      isConnected: true,
+      provider: CodeRepositoryType.Git,
+      connectionId: CONNECTION_IDS.git,
+    },
+  );
+}
+
+// A repository on GitHub: the fixture's own, and those the App imports.
+function isOnGitHub(repository) {
+  return (
+    !repository.provider || repository.provider === CodeRepositoryType.GitHub
+  );
+}
+
+/*
  * Each repository's branches on GitHub, its main branch among them. With
  * branches=many, checkout-api has 140: more than one read of them holds.
  */
@@ -403,6 +561,8 @@ const BRANCHES_BY_REPOSITORY = {
       ],
   [REPOSITORY_IDS.web]: ["main", "redesign/checkout-page"],
   [REPOSITORY_IDS.payments]: ["master"],
+  [REPOSITORY_IDS.billing]: ["fix/invoice-rounding", "main", "release/2026-10"],
+  [REPOSITORY_IDS.widgets]: ["main"],
 };
 
 // What one read of a repository's branches holds, as the server's page.
@@ -432,14 +592,22 @@ for (const repository of repositories) {
     testCommand: null,
     // The Runner AI works in it on: none picked, a global Runner.
     runnerId: null,
-    // Connected through the GitHub App from now on: reviewed against production.
-    isProductionReviewEnabled: repository.isConnected,
+    /*
+     * Connected through the GitHub App from now on: reviewed against
+     * production. Only GitHub's are: production reviews are the App's.
+     */
+    isProductionReviewEnabled: repository.isConnected && isOnGitHub(repository),
     // Never chosen: the review, or a link on a public repository.
     productionReviewPullRequestContent: null,
   };
 }
 
 const checkoutSettings = settingsByRepository[REPOSITORY_IDS.checkout];
+
+// infra-scripts works on prod-eu-west-1, on its Git server's network.
+if (hasOtherHosts && params.get("gitrunner") !== "none") {
+  settingsByRepository[REPOSITORY_IDS.infra].runnerId = RUNNER_IDS.prod;
+}
 
 if (checkoutSettings && params.get("commands") === "1") {
   checkoutSettings.setupCommand = "npm ci";
@@ -479,8 +647,12 @@ if (
 // Whether a repository's pull requests are reviewed against production, as Code's reads answer it.
 function withProductionReview(repository) {
   const settings = settingsByRepository[repository.id] || {};
+  const { connectionId, ...shown } = repository;
+  const connection = connectionId ? connectionById(connectionId) : null;
   return {
-    ...repository,
+    ...shown,
+    // How a repository off GitHub connects, as the server says it.
+    ...(connection ? { connection: connectionJSON(connection) } : {}),
     isProductionReviewEnabled: settings.isProductionReviewEnabled === true,
     // Unset is on, as the server reads it.
     isGitHubCommandsEnabled: settings.isGitHubCommandsEnabled !== false,
@@ -1338,6 +1510,208 @@ function advanceReview(task, current) {
   current.outcome = reviewOutcome(report);
 }
 
+/*
+ * insight=1: OneUptime found parseOrder taking a third of checkout's CPU
+ * time and, as the Profiler's AI rules let it, started a task on its own
+ * (ProfileInsightFix): a Code request nobody typed, stamped with the
+ * finding, which opened pull request #431.
+ */
+if (hasInsightTask && !hasNoTasks) {
+  tasks.push({
+    id: TASK_IDS.insight,
+    repositoryId: REPOSITORY_IDS.checkout,
+    taskNumber: 14,
+    title: "Make parseOrder in src/orders/parse.ts faster",
+    turns: [
+      turn({
+        runId: TASK_IDS.insight,
+        status: AIRunStatus.Completed,
+        createdAt: minutesAgo(50),
+        startedAt: minutesAgo(49),
+        completedAt: minutesAgo(41),
+        request: {
+          message: [
+            "Make parseOrder in src/orders/parse.ts faster",
+            "",
+            "OneUptime found this in the service's profiles on its own. It takes 34% of checkout's CPU time (counting the library and runtime code it calls), in 65,400 samples between 09:00 and 10:00 UTC.",
+            "",
+            "The profile attached shows who calls it, what it spends its time calling, and its hottest line. Find why it is costly, change the code so it does less work, keep its behaviour the same, and add or update tests that show it still works. If it cannot be made meaningfully faster without changing what it does, or the cost is not in this repository's code, say why and change nothing.",
+          ].join("\n"),
+          context: [
+            {
+              type: CodeTaskContextType.Profile,
+              label: "Performance profile",
+              serviceId: RECORD_IDS.service,
+              functionName: "parseOrder",
+              fileName: "src/orders/parse.ts",
+              profileType: "cpu",
+            },
+          ],
+        },
+        steps: [
+          step(1, CodeTaskStepKind.Read, "src/orders/parse.ts"),
+          step(2, CodeTaskStepKind.Edited, "src/orders/parse.ts"),
+          step(3, CodeTaskStepKind.Ran, "npm test -- orders"),
+          step(4, CodeTaskStepKind.PullRequest, "Opened pull request #431"),
+        ],
+        outcome: {
+          summary:
+            "parseOrder parsed the whole order body twice: once to validate it and once to read it. It now parses it once and validates the parsed object. The order tests pass.",
+          filesChanged: [
+            {
+              path: "src/orders/parse.ts",
+              status: CodeTaskFileStatus.Modified,
+              additions: 6,
+              deletions: 9,
+            },
+          ],
+          branchName: "oneuptime-task-14-9c8b7a6d",
+          pullRequestNumber: 431,
+          pullRequestUrl: "https://github.com/acme/checkout-api/pull/431",
+          openedPullRequest: true,
+        },
+        pullRequests: [
+          {
+            number: 431,
+            url: "https://github.com/acme/checkout-api/pull/431",
+            title: "Make parseOrder in src/orders/parse.ts faster",
+            state: "open",
+            branch: "oneuptime-task-14-9c8b7a6d",
+          },
+        ],
+      }),
+    ],
+    origin: {
+      type: CodeTaskOriginType.Insight,
+      label: "parseOrder takes 34% of the CPU time in checkout",
+      recordId: RECORD_IDS.insight,
+    },
+  });
+}
+
+/*
+ * hosts=1: billing-service's task opened GitLab's merge request !12, and
+ * infra-scripts' pushed a branch - OneUptime opens no pull request on a
+ * Git server - saying where to open one (Runner PushedBranches).
+ */
+if (hasOtherHosts) {
+  tasks.push(
+    {
+      id: TASK_IDS.invoices,
+      repositoryId: REPOSITORY_IDS.billing,
+      taskNumber: 7,
+      title: "Round invoice totals the way the ledger does",
+      turns: [
+        turn({
+          runId: TASK_IDS.invoices,
+          status: AIRunStatus.Completed,
+          createdAt: minutesAgo(40),
+          startedAt: minutesAgo(39),
+          completedAt: minutesAgo(33),
+          userId: ADA_ID,
+          request: {
+            message:
+              "Round invoice totals the way the ledger does: half up, to the cent.",
+            context: [],
+          },
+          steps: [
+            step(1, CodeTaskStepKind.Read, "src/invoices/total.ts"),
+            step(2, CodeTaskStepKind.Edited, "src/invoices/total.ts"),
+            step(3, CodeTaskStepKind.Ran, "npm test"),
+            step(4, CodeTaskStepKind.PullRequest, "Opened merge request !12"),
+          ],
+          outcome: {
+            summary:
+              "Invoice totals now round **half up, to the cent**, as the ledger does. The tests pass.",
+            filesChanged: [
+              {
+                path: "src/invoices/total.ts",
+                status: CodeTaskFileStatus.Modified,
+                additions: 3,
+                deletions: 1,
+              },
+            ],
+            branchName: "oneuptime-task-7-5e6f7a8b",
+            pullRequestNumber: 12,
+            pullRequestUrl:
+              "https://gitlab.com/acme/billing-service/-/merge_requests/12",
+            openedPullRequest: true,
+          },
+          changes: {
+            files: [
+              {
+                path: "src/invoices/total.ts",
+                status: CodeTaskFileStatus.Modified,
+                additions: 3,
+                deletions: 1,
+                patch: [
+                  "@@ -4,4 +4,6 @@ export function invoiceTotal(lines: Array<Line>): number {",
+                  "   const sum: number = lines.reduce(addLine, 0);",
+                  "-  return Math.round(sum * 100) / 100;",
+                  "+  // Half up, to the cent, as the ledger rounds.",
+                  "+  const cents: number = Math.floor(sum * 100 + 0.5);",
+                  "+  return cents / 100;",
+                  " }",
+                ].join("\n"),
+              },
+            ],
+            isTruncated: false,
+          },
+          pullRequests: [
+            {
+              number: 12,
+              url: "https://gitlab.com/acme/billing-service/-/merge_requests/12",
+              title: "Round invoice totals the way the ledger does",
+              state: "open",
+              branch: "oneuptime-task-7-5e6f7a8b",
+            },
+          ],
+        }),
+      ],
+    },
+    {
+      id: TASK_IDS.terraform,
+      repositoryId: REPOSITORY_IDS.infra,
+      taskNumber: 6,
+      title: "Pin the Terraform provider versions",
+      turns: [
+        turn({
+          runId: TASK_IDS.terraform,
+          status: AIRunStatus.Completed,
+          createdAt: minutesAgo(70),
+          startedAt: minutesAgo(69),
+          completedAt: minutesAgo(64),
+          userId: GRACE_ID,
+          request: {
+            message:
+              "Pin every Terraform provider to the version we run in production.",
+            context: [],
+          },
+          steps: [
+            step(1, CodeTaskStepKind.Read, "terraform/versions.tf"),
+            step(2, CodeTaskStepKind.Edited, "terraform/versions.tf"),
+            step(3, CodeTaskStepKind.Ran, "terraform validate"),
+          ],
+          outcome: {
+            summary:
+              "Every provider in `terraform/versions.tf` is now pinned to the version production runs, and `terraform validate` passes.\n\nPushed the branch `oneuptime-task-6-9a8b7c6d` to ops/infra-scripts. Open a pull request from it into `main` on your Git server.",
+            filesChanged: [
+              {
+                path: "terraform/versions.tf",
+                status: CodeTaskFileStatus.Modified,
+                additions: 2,
+                deletions: 2,
+              },
+            ],
+            branchName: "oneuptime-task-6-9a8b7c6d",
+            openedPullRequest: false,
+          },
+        }),
+      ],
+    },
+  );
+}
+
 let nextTaskNumber = 14;
 let nextRunNumber = 1;
 let nextPullRequest = 419;
@@ -1427,6 +1801,10 @@ const BLOCKER_MESSAGES = {
     'The Runner "prod-eu-west-1" this repository picks is not online. Check that its container is running, or pick another Runner in the repository\'s settings in Code.',
   [CodeTaskBlockerType.GlobalRunnersOff]:
     "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.",
+  [CodeTaskBlockerType.RepositoryTokenRefused]:
+    "GitLab refused this repository's access token, so AI cannot work in it. It may have expired: replace it on the repository's Settings page in Code.",
+  [CodeTaskBlockerType.RepositoryNeedsOwnRunner]:
+    "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network in the repository's settings in Code.",
 };
 
 function blockerFor(repository) {
@@ -1453,6 +1831,27 @@ function blockerFor(repository) {
       };
     }
     return { type: blockerParam, message: BLOCKER_MESSAGES[blockerParam] };
+  }
+  // Off GitHub, as CodeTaskGate asks: a refused token, then a private network.
+  const connection =
+    repository && repository.connectionId
+      ? connectionById(repository.connectionId)
+      : null;
+  if (connection && connection.isTokenRefused) {
+    return {
+      type: CodeTaskBlockerType.RepositoryTokenRefused,
+      message: BLOCKER_MESSAGES[CodeTaskBlockerType.RepositoryTokenRefused],
+    };
+  }
+  if (
+    connection &&
+    !connection.isReachableFromServer &&
+    !(settingsByRepository[repository.id] || {}).runnerId
+  ) {
+    return {
+      type: CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+      message: BLOCKER_MESSAGES[CodeTaskBlockerType.RepositoryNeedsOwnRunner],
+    };
   }
   if (repository && !repository.isConnected) {
     return {
@@ -1693,6 +2092,13 @@ function turnJSON(task, item, index, canSeeChanges) {
   }
   if (item.request) {
     json.request = item.request;
+    /*
+     * As the server (CodeTaskPresenter): a request OneUptime wrote itself
+     * shows what started it - the finding - above what it asked.
+     */
+    if (index === 0 && originOf(task).type !== CodeTaskOriginType.Request) {
+      json.origin = originOf(task);
+    }
   } else if (index === 0) {
     json.origin = originOf(task);
   }
@@ -1958,6 +2364,16 @@ async function answer(path, body) {
         BLOCKER_MESSAGES[CodeTaskBlockerType.RepositoryNotConnected],
       );
     }
+    // OneUptime's server never reaches a Git server only a Runner reaches.
+    const branchesConnection = repository.connectionId
+      ? connectionById(repository.connectionId)
+      : null;
+    if (branchesConnection && !branchesConnection.isReachableFromServer) {
+      return refused(
+        400,
+        "OneUptime does not read this repository's branches: only a Runner of the project's own reaches its Git server.",
+      );
+    }
     if (failParam === "branches") {
       return refused(
         400,
@@ -2187,10 +2603,323 @@ function logOf(runId) {
   );
 }
 
+/*
+ * The repositories a token reaches on a host, as the connect dialog lists
+ * them: those it may only read cannot be picked, and those the project has
+ * already say so.
+ */
+function listedRepository(hostUrl, ownerPath, name, extra) {
+  const isConnected = repositories.some((repository) => {
+    return (
+      repository.organizationName === ownerPath &&
+      repository.repositoryName === name &&
+      (repository.repositoryUrl || "").startsWith(hostUrl)
+    );
+  });
+  return {
+    id: `${ownerPath}/${name}`,
+    name,
+    ownerPath,
+    fullName: `${ownerPath}/${name}`,
+    defaultBranch: "main",
+    webUrl: `${hostUrl}/${ownerPath}/${name}`,
+    isPrivate: true,
+    canPush: true,
+    isConnected,
+    ...(extra || {}),
+  };
+}
+
+function hostListingOf(provider, hostUrl) {
+  if (provider === CodeRepositoryType.Forgejo) {
+    return {
+      account: { login: "ada", name: "Ada Lovelace" },
+      hostUrl,
+      hostProduct: "Forgejo",
+      repositories: [
+        listedRepository(hostUrl, "acme", "status-widgets"),
+        listedRepository(hostUrl, "acme", "uptime-badges", {
+          description: "Badges for the status page.",
+          isPrivate: false,
+        }),
+      ],
+    };
+  }
+  return {
+    account: { login: "ada", name: "Ada Lovelace" },
+    hostUrl,
+    repositories: [
+      listedRepository(hostUrl, "acme", "billing-service", {
+        description: "Invoices, refunds and the ledger.",
+      }),
+      listedRepository(hostUrl, "acme", "ledger", {
+        description: "Double-entry bookkeeping for every order.",
+      }),
+      listedRepository(hostUrl, "acme", "handbook", {
+        description: "How the team works.",
+        isPrivate: false,
+        canPush: false,
+      }),
+      listedRepository(hostUrl, "acme", "mobile-app"),
+    ],
+  };
+}
+
+// The last characters of a token long enough to show them of.
+function hintOf(token) {
+  return token.length >= 16 ? token.substring(token.length - 4) : "";
+}
+
+const HOST_NAMES = {
+  [CodeRepositoryType.GitLab]: "GitLab",
+  [CodeRepositoryType.Forgejo]: "Forgejo",
+  [CodeRepositoryType.Git]: "The Git server",
+};
+
+let nextConnectionNumber = 1;
+let nextConnectedRepositoryNumber = 1;
+
+// A source the dialog sends: a connection the project has, or a new token.
+function connectionOfSource(body) {
+  if (body.connectionId) {
+    return connectionById(body.connectionId);
+  }
+  return {
+    id: `70000000-0000-4000-8000-${String(100 + nextConnectionNumber).padStart(12, "0")}`,
+    provider: body.provider,
+    hostUrl: body.hostUrl,
+    ...(body.provider === CodeRepositoryType.Forgejo
+      ? { hostProduct: "Forgejo" }
+      : {}),
+    accountLogin: "ada",
+    credentialHint: hintOf(String(body.token || "")),
+    isTokenRefused: false,
+    isReachableFromServer: true,
+  };
+}
+
+function isPrivateHost(hostname) {
+  return (
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+    hostname === "localhost"
+  );
+}
+
+function addConnectedRepository(data) {
+  const id = `20000000-0000-4000-8000-0000000003${String(nextConnectedRepositoryNumber).padStart(2, "0")}`;
+  nextConnectedRepositoryNumber++;
+  repositories.push({
+    id,
+    name: data.name,
+    ...(data.description ? { description: data.description } : {}),
+    organizationName: data.ownerPath,
+    repositoryName: data.name,
+    mainBranchName: data.defaultBranch || "main",
+    repositoryUrl: data.webUrl,
+    isConnected: true,
+    provider: data.provider,
+    connectionId: data.connectionId,
+  });
+  settingsByRepository[id] = {
+    mainBranchName: data.defaultBranch || "main",
+    maxOpenFixPullRequests: null,
+    isGitHubCommandsEnabled: true,
+    gitHubTriggerLabel: null,
+    setupCommand: null,
+    buildCommand: null,
+    testCommand: null,
+    runnerId: null,
+    isProductionReviewEnabled: false,
+    productionReviewPullRequestContent: null,
+  };
+  return id;
+}
+
+function answerConnect(path, body) {
+  if (path === "/list") {
+    return new HTTPResponse(
+      200,
+      { connections: connections.map(connectionJSON) },
+      {},
+    );
+  }
+
+  if (path === "/repositories") {
+    window.__fixture.connectReads.push(JSON.parse(JSON.stringify(body)));
+    const connection = connectionOfSource(body);
+    if (!connection) {
+      return refused(404, "That connection is not one of this project's.");
+    }
+    if (String(body.token || "").startsWith("revoked")) {
+      return refused(
+        400,
+        `${HOST_NAMES[connection.provider]} refused the access token. It may have expired or been revoked: create a new token and use it instead.`,
+      );
+    }
+    const listing = hostListingOf(connection.provider, connection.hostUrl);
+    const search = typeof body.search === "string" ? body.search : "";
+    return new HTTPResponse(
+      200,
+      {
+        ...listing,
+        repositories: listing.repositories.filter((repository) => {
+          return !search || repository.fullName.includes(search);
+        }),
+        hasMore: false,
+      },
+      {},
+    );
+  }
+
+  if (path === "/connect") {
+    window.__fixture.connects.push(JSON.parse(JSON.stringify(body)));
+    const connection = connectionOfSource(body);
+    if (!connection) {
+      return refused(404, "That connection is not one of this project's.");
+    }
+    if (!body.connectionId) {
+      connections.push(connection);
+      nextConnectionNumber++;
+    }
+    const listing = hostListingOf(connection.provider, connection.hostUrl);
+    const ids = [];
+    for (const id of body.repositoryIds || []) {
+      const listed = listing.repositories.find((repository) => {
+        return repository.id === id;
+      });
+      if (!listed || !listed.canPush || listed.isConnected) {
+        continue;
+      }
+      ids.push(
+        addConnectedRepository({
+          ...listed,
+          provider: connection.provider,
+          connectionId: connection.id,
+        }),
+      );
+    }
+    return new HTTPResponse(
+      200,
+      {
+        connectionId: connection.id,
+        imported: ids.length,
+        reconnected: 0,
+        skipped: (body.repositoryIds || []).length - ids.length,
+        repositoryIds: ids,
+      },
+      {},
+    );
+  }
+
+  if (path === "/connect-git") {
+    window.__fixture.gitConnects.push(JSON.parse(JSON.stringify(body)));
+    let address;
+    try {
+      address = new globalThis.URL(String(body.url || ""));
+    } catch {
+      return refused(
+        400,
+        "That is not a web address. Enter it as https://git.example.com.",
+      );
+    }
+    const isPrivate = isPrivateHost(address.hostname);
+    if (isPrivate && !body.connectWithoutCheck) {
+      return new HTTPResponse(
+        200,
+        {
+          needsConfirmation: true,
+          message: `OneUptime cannot reach ${address.host}. Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.`,
+        },
+        {},
+      );
+    }
+    const parts = address.pathname
+      .replace(/\.git$/, "")
+      .split("/")
+      .filter(Boolean);
+    const name = parts[parts.length - 1] || "repository";
+    const ownerPath = parts.slice(0, -1).join("/");
+    const connection = {
+      id: `70000000-0000-4000-8000-${String(200 + nextConnectionNumber).padStart(12, "0")}`,
+      provider: CodeRepositoryType.Git,
+      hostUrl: address.origin,
+      accountLogin: body.username || "",
+      credentialHint: hintOf(String(body.password || "")),
+      isTokenRefused: false,
+      isReachableFromServer: !isPrivate,
+    };
+    nextConnectionNumber++;
+    connections.push(connection);
+    const repositoryId = addConnectedRepository({
+      name,
+      ownerPath,
+      defaultBranch: "main",
+      webUrl: address.toString(),
+      provider: CodeRepositoryType.Git,
+      connectionId: connection.id,
+    });
+    return new HTTPResponse(200, { repositoryId }, {});
+  }
+
+  const token = /^\/([0-9a-f-]+)\/token$/.exec(path);
+  if (token) {
+    window.__fixture.tokenReplacements.push({
+      connectionId: token[1],
+      ...JSON.parse(JSON.stringify(body)),
+    });
+    const connection = connectionById(token[1]);
+    if (!connection) {
+      return refused(404, "That connection is not one of this project's.");
+    }
+    if (String(body.token || "").startsWith("revoked")) {
+      return refused(
+        400,
+        `${HOST_NAMES[connection.provider]} refused the access token. It may have expired or been revoked: create a new token and use it instead.`,
+      );
+    }
+    connection.isTokenRefused = false;
+    connection.credentialHint = hintOf(String(body.token || ""));
+    if (typeof body.username === "string" && body.username) {
+      connection.accountLogin = body.username;
+    }
+    for (const repository of repositories) {
+      if (repository.connectionId === connection.id) {
+        repository.isConnected = true;
+      }
+    }
+    return new HTTPResponse(
+      200,
+      {
+        accountLogin: connection.accountLogin || null,
+        credentialHint: connection.credentialHint,
+      },
+      {},
+    );
+  }
+
+  return refused(404, `The fixture does not model ${path}.`);
+}
+
 API.post = async (options) => {
   const url = options.url.toString();
   if (delay) {
     await wait(delay);
+  }
+  const connect = url.indexOf("/code-repository-connection/");
+  if (connect >= 0) {
+    try {
+      return answerConnect(
+        url
+          .substring(connect + "/code-repository-connection".length)
+          .split("?")[0],
+        options.data || {},
+      );
+    } catch (error) {
+      console.error(`Code fixture failed on ${url}: ${error.stack}`);
+      return refused(500, `The fixture failed: ${error.message}`);
+    }
   }
   const codeTask = url.indexOf("/code-task/");
   if (codeTask >= 0) {
@@ -2315,8 +3044,10 @@ function readRepositoryModel(id) {
   model.description = repository.description || "";
   model.organizationName = repository.organizationName;
   model.repositoryName = repository.repositoryName;
-  model.repositoryHostedAt = CodeRepositoryType.GitHub;
-  model.gitHubAppInstallationId = repository.isConnected ? "51234567" : null;
+  model.repositoryHostedAt = repository.provider || CodeRepositoryType.GitHub;
+  // Only a GitHub repository is connected through the GitHub App.
+  model.gitHubAppInstallationId =
+    repository.isConnected && isOnGitHub(repository) ? "51234567" : null;
   model.labels = [];
   for (const [key, value] of Object.entries(
     settingsByRepository[repository.id] || {},

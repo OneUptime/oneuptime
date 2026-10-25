@@ -14,6 +14,7 @@
     "Runner",
     "SNMP trap",
     "VMware vCenter",
+    "Web",
     "Webhook URL",
     "kubectl set image deployment/web * -n web",
     "syslog",

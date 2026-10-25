@@ -19,12 +19,24 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { showFullValueWhenCutShort } from "Common/UI/Components/Table/FullValueTitle";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   insight: AIInsight;
+  /*
+   * Where the row opens: AI Insights' own view, or - in a product's AI
+   * section - that section's (the Profiler's AI insights).
+   */
+  viewPage?: PageMap | undefined;
+  /*
+   * Whether the meta line says what kind of insight it is ("Slow Code"):
+   * not in a list that holds one kind only, where every row would say the
+   * same. Said unless told otherwise.
+   */
+  isTypeShown?: boolean | undefined;
 }
 
 /*
@@ -70,7 +82,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
   const insight: AIInsight = props.insight;
 
   const viewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.AI_INSIGHT_VIEW] as Route,
+    RouteMap[props.viewPage || PageMap.AI_INSIGHT_VIEW] as Route,
     { modelId: insight.id! },
   );
 
@@ -122,7 +134,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
     metaItems.push({ element: getSeverityInlineElement(insight.severity) });
   }
 
-  if (insight.insightType) {
+  if (insight.insightType && props.isTypeShown !== false) {
     metaItems.push({
       element: (
         <span>
@@ -197,7 +209,18 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-600">
+          {/*
+           * Two lines before it is cut: a finding's title is what it found
+           * ("parseOrder takes 34% of the CPU time in checkout"), and one
+           * line beside the columns cut it before the number at a laptop's
+           * width. A name with no spaces breaks anywhere rather than run
+           * under the columns; a title still cut short shows whole under
+           * the pointer.
+           */}
+          <p
+            className="line-clamp-2 text-sm font-semibold text-gray-900 [overflow-wrap:anywhere] group-hover:text-indigo-600"
+            onMouseEnter={showFullValueWhenCutShort}
+          >
             {insight.title}
           </p>
 
