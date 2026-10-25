@@ -255,6 +255,15 @@
     "updateTo": "Update over {{eventType}}",
     "view": "{{eventType}} bekijken"
   },
+  "markdownCallouts": {
+    "caution": "Let op",
+    "danger": "Gevaar",
+    "important": "Belangrijk",
+    "info": "Info",
+    "note": "Opmerking",
+    "tip": "Tip",
+    "warning": "Waarschuwing"
+  },
   "Active Incidents": "Actieve incidenten",
   "Active Episodes": "Actieve episodes",
   "Active Alerts": "Actieve waarschuwingen",

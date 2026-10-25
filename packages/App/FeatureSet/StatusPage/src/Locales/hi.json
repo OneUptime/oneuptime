@@ -396,13 +396,6 @@
   "Email is not valid.": "ईमेल मान्य नहीं है।",
   "Next": "अगला",
   "Opens in a new tab": "नए टैब में खुलता है",
-  "Note": "नोट",
-  "Tip": "सुझाव",
-  "Info": "जानकारी",
-  "Important": "महत्वपूर्ण",
-  "Warning": "चेतावनी",
-  "Caution": "सावधानी",
-  "Danger": "खतरा",
   "Loading the latest version": "नवीनतम संस्करण लोड हो रहा है",
   "A newer version of this page is available. It's loading now.": "इस पेज का नया संस्करण उपलब्ध है। यह अभी लोड हो रहा है।",
   "You're offline": "आप ऑफ़लाइन हैं",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "यह लोड नहीं हो सका।",
   "Try again": "फिर से प्रयास करें",
   "Loading...": "लोड हो रहा है...",
-  "Loading": "लोड हो रहा है"
+  "Loading": "लोड हो रहा है",
+  "markdownCallouts": {
+    "caution": "सावधानी",
+    "danger": "खतरा",
+    "important": "महत्वपूर्ण",
+    "info": "जानकारी",
+    "note": "नोट",
+    "tip": "सुझाव",
+    "warning": "चेतावनी"
+  }
 }

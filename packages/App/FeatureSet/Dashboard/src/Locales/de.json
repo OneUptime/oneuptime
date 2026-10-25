@@ -255,6 +255,15 @@
     "updateTo": "Update zu diesem {{eventType}}",
     "view": "{{eventType}} ansehen"
   },
+  "markdownCallouts": {
+    "caution": "Vorsicht",
+    "danger": "Gefahr",
+    "important": "Wichtig",
+    "info": "Info",
+    "note": "Hinweis",
+    "tip": "Tipp",
+    "warning": "Warnung"
+  },
   "Active Incidents": "Aktive Vorfälle",
   "Active Episodes": "Aktive Episoden",
   "Active Alerts": "Aktive Warnungen",

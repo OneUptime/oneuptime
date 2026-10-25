@@ -255,6 +255,15 @@
     "updateTo": "この{{eventType}}の更新",
     "view": "{{eventType}}を表示"
   },
+  "markdownCallouts": {
+    "caution": "注意",
+    "danger": "危険",
+    "important": "重要",
+    "info": "情報",
+    "note": "注記",
+    "tip": "ヒント",
+    "warning": "警告"
+  },
   "Active Incidents": "アクティブなインシデント",
   "Active Episodes": "アクティブなエピソード",
   "Active Alerts": "アクティブなアラート",

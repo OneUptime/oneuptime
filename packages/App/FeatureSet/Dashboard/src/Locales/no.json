@@ -255,6 +255,15 @@
     "updateTo": "Oppdatering for denne {{eventType}}",
     "view": "Vis {{eventType}}"
   },
+  "markdownCallouts": {
+    "caution": "Forsiktig",
+    "danger": "Fare",
+    "important": "Viktig",
+    "info": "Info",
+    "note": "Merk",
+    "tip": "Tips",
+    "warning": "Advarsel"
+  },
   "Active Incidents": "Aktive hendelser",
   "Active Episodes": "Aktive episoder",
   "Active Alerts": "Aktive varsler",

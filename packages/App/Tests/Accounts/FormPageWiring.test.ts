@@ -488,18 +488,77 @@ const MARKDOWN_TOOLBAR_WORDS: Array<string> = [
 /*
  * The Markdown viewer's words on the form's description and thank-you
  * message, which it looks up in the page's locale: that a link opens in a
- * new tab, for a screen reader, and each callout's name.
+ * new tab, for a screen reader. Each callout's name is a key of its own,
+ * under markdownCallouts (MARKDOWN_CALLOUT_NAMES).
  */
-const MARKDOWN_VIEWER_WORDS: Array<string> = [
-  "Opens in a new tab",
-  "Note",
-  "Tip",
-  "Info",
-  "Important",
-  "Warning",
-  "Caution",
-  "Danger",
-];
+const MARKDOWN_VIEWER_WORDS: Array<string> = ["Opens in a new tab"];
+
+/*
+ * What a screen reader calls each callout (MarkdownQuote's
+ * getMarkdownCalloutName): the nested markdownCallouts block that ends
+ * every locale, worded as the docs name their callouts.
+ */
+const MARKDOWN_CALLOUT_NAMES: Record<string, string> = {
+  caution: "Caution",
+  danger: "Danger",
+  important: "Important",
+  info: "Info",
+  note: "Note",
+  tip: "Tip",
+  warning: "Warning",
+};
+
+const DOCS_LOCALES_DIR: string = nodePath.join(
+  APP_DIR,
+  "FeatureSet",
+  "Docs",
+  "Locales",
+);
+
+// The docs' own callout names (calloutNote, calloutTip, ...) in a language.
+function docsCalloutNames(code: string): Record<string, string> {
+  const find: (value: unknown) => Record<string, unknown> | null = (
+    value: unknown,
+  ): Record<string, unknown> | null => {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const record: Record<string, unknown> = value as Record<string, unknown>;
+
+    if (typeof record["calloutNote"] === "string") {
+      return record;
+    }
+
+    for (const child of Object.values(record)) {
+      const found: Record<string, unknown> | null = find(child);
+
+      if (found) {
+        return found;
+      }
+    }
+
+    return null;
+  };
+
+  const block: Record<string, unknown> | null = find(
+    JSON.parse(
+      fs.readFileSync(nodePath.join(DOCS_LOCALES_DIR, `${code}.json`), "utf8"),
+    ),
+  );
+
+  expect(block).not.toBeNull();
+
+  const names: Record<string, string> = {};
+
+  for (const kind of Object.keys(MARKDOWN_CALLOUT_NAMES)) {
+    names[kind] = block![
+      `callout${kind.charAt(0).toUpperCase()}${kind.slice(1)}`
+    ] as string;
+  }
+
+  return names;
+}
 
 const FLAT_SENTENCES: Array<string> = [
   ...(Object.values(FormMessage) as Array<string>),
@@ -511,14 +570,11 @@ const FLAT_SENTENCES: Array<string> = [
 
 // Words a language genuinely shares with English, and nothing else.
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
-  de: ["(Optional)", "Link", "Code", "Info"],
-  fr: ["Code", "Info", "Important", "Danger"],
+  de: ["(Optional)", "Link", "Code"],
+  fr: ["Code"],
   pt: ["Link"],
-  nl: ["Code", "Tip", "Info"],
-  da: ["Link", "Tip", "Info"],
-  it: ["Info"],
-  no: ["Info"],
-  sv: ["Info"],
+  nl: ["Code"],
+  da: ["Link"],
 };
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
@@ -671,13 +727,43 @@ describe("the sentences the page looks up whole", () => {
   );
 
   test.each(localeCodes)(
-    "%s keeps them in the same order, at the end",
+    "%s keeps them in the same order, at the end before the callout names",
     (code: string) => {
       const keys: Array<string> = Object.keys(readLocale(code));
 
-      expect(keys.slice(keys.length - FLAT_SENTENCES.length)).toEqual(
-        FLAT_SENTENCES,
+      expect(keys[keys.length - 1]).toBe("markdownCallouts");
+      expect(
+        keys.slice(keys.length - 1 - FLAT_SENTENCES.length, keys.length - 1),
+      ).toEqual(FLAT_SENTENCES);
+    },
+  );
+
+  test("English names each callout as the viewer does", () => {
+    expect(readLocale("en")["markdownCallouts"]).toEqual(
+      MARKDOWN_CALLOUT_NAMES,
+    );
+  });
+
+  test.each(translatedLocaleCodes)(
+    "%s names each callout as its docs do",
+    (code: string) => {
+      const names: unknown = readLocale(code)["markdownCallouts"];
+
+      expect(Object.keys(names as Record<string, string>)).toEqual(
+        Object.keys(MARKDOWN_CALLOUT_NAMES),
       );
+      expect(names).toEqual(docsCalloutNames(code));
+    },
+  );
+
+  test.each(localeCodes)(
+    "%s no longer holds the shared words for the callouts' names",
+    (code: string) => {
+      const locale: Record<string, unknown> = readLocale(code);
+
+      for (const word of Object.values(MARKDOWN_CALLOUT_NAMES)) {
+        expect({ word, flat: word in locale }).toEqual({ word, flat: false });
+      }
     },
   );
 

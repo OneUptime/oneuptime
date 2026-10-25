@@ -255,6 +255,15 @@
     "updateTo": "이 {{eventType}}에 대한 업데이트",
     "view": "{{eventType}} 보기"
   },
+  "markdownCallouts": {
+    "caution": "주의",
+    "danger": "위험",
+    "important": "중요",
+    "info": "정보",
+    "note": "참고",
+    "tip": "팁",
+    "warning": "경고"
+  },
   "Active Incidents": "활성 인시던트",
   "Active Episodes": "활성 에피소드",
   "Active Alerts": "활성 알림",

@@ -9,8 +9,8 @@ import {
   MarkdownCalloutKind,
   getMarkdownCalloutKind,
 } from "./MarkdownCallouts";
-import { Translator, translationKey } from "../../Utils/TranslateTemplate";
-import useTranslator from "../../Utils/UseTranslator";
+import { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 
 /*
  * A blockquote in rendered Markdown (MarkdownViewer's `blockquote`): a quote,
@@ -55,7 +55,10 @@ export interface MarkdownCalloutStyle {
   icon: string;
   // The icon: a Heroicons outline path, as the docs draw the same kind.
   iconPath: string;
-  // What a screen reader calls it.
+  /*
+   * What a screen reader calls it, in English: the reader's language has
+   * its own word under the callout's key (getMarkdownCalloutName).
+   */
   label: string;
 }
 
@@ -77,44 +80,83 @@ export const MARKDOWN_CALLOUT_STYLES: Readonly<
     panel: "border-blue-200 bg-blue-50",
     icon: "text-blue-500",
     iconPath: INFO_ICON,
-    label: translationKey("Note"),
+    label: "Note",
   },
   info: {
     panel: "border-blue-200 bg-blue-50",
     icon: "text-blue-500",
     iconPath: INFO_ICON,
-    label: translationKey("Info"),
+    label: "Info",
   },
   tip: {
     panel: "border-green-200 bg-green-50",
     icon: "text-green-600",
     iconPath: TIP_ICON,
-    label: translationKey("Tip"),
+    label: "Tip",
   },
   important: {
     panel: "border-violet-200 bg-violet-50",
     icon: "text-violet-500",
     iconPath: IMPORTANT_ICON,
-    label: translationKey("Important"),
+    label: "Important",
   },
   warning: {
     panel: "border-amber-200 bg-amber-50",
     icon: "text-amber-500",
     iconPath: WARNING_ICON,
-    label: translationKey("Warning"),
+    label: "Warning",
   },
   caution: {
     panel: "border-amber-200 bg-amber-50",
     icon: "text-amber-500",
     iconPath: WARNING_ICON,
-    label: translationKey("Caution"),
+    label: "Caution",
   },
   danger: {
     panel: "border-red-200 bg-red-50",
     icon: "text-red-500",
     iconPath: DANGER_ICON,
-    label: translationKey("Danger"),
+    label: "Danger",
   },
+};
+
+// Where a callout's name is kept in every frontend's locale files.
+export const MARKDOWN_CALLOUT_NAME_KEY_PREFIX: string = "markdownCallouts.";
+
+/*
+ * What a screen reader calls a callout, in the reader's language.
+ *
+ * Each kind is a key of its own (markdownCallouts.note, ...), worded as the
+ * docs name their callouts, never the shared word: the Dashboard's "Note" is
+ * a note somebody wrote (German "Notiz", where a callout is a "Hinweis"),
+ * and its "Warning" and "Info" name statuses and severities whose words the
+ * docs and other pages pin. A frontend without the key, or a stand-in t()
+ * that hands keys back, reads the English.
+ */
+export const getMarkdownCalloutName: (
+  t: TFunction,
+  kind: MarkdownCalloutKind,
+) => string = (t: TFunction, kind: MarkdownCalloutKind): string => {
+  const names: Record<MarkdownCalloutKind, unknown> = {
+    note: t("markdownCallouts.note", "Note"),
+    info: t("markdownCallouts.info", "Info"),
+    tip: t("markdownCallouts.tip", "Tip"),
+    important: t("markdownCallouts.important", "Important"),
+    warning: t("markdownCallouts.warning", "Warning"),
+    caution: t("markdownCallouts.caution", "Caution"),
+    danger: t("markdownCallouts.danger", "Danger"),
+  };
+  const name: unknown = names[kind];
+
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    name.startsWith(MARKDOWN_CALLOUT_NAME_KEY_PREFIX)
+  ) {
+    return MARKDOWN_CALLOUT_STYLES[kind].label;
+  }
+
+  return name;
 };
 
 /*
@@ -144,7 +186,7 @@ export interface MarkdownBlockquoteProps {
 const MarkdownBlockquote: FunctionComponent<MarkdownBlockquoteProps> = (
   props: MarkdownBlockquoteProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
+  const { t } = useTranslation();
   const kind: MarkdownCalloutKind | null = getMarkdownCalloutKind(
     props[MARKDOWN_CALLOUT_ATTRIBUTE],
   );
@@ -170,7 +212,7 @@ const MarkdownBlockquote: FunctionComponent<MarkdownBlockquoteProps> = (
       <blockquote
         className={`${MARKDOWN_CALLOUT_CLASS_NAME} ${style.panel}`}
         role="note"
-        aria-label={translator.translateText(style.label)}
+        aria-label={getMarkdownCalloutName(t, kind)}
         data-callout={kind}
       >
         <svg

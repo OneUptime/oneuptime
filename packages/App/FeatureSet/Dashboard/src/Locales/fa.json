@@ -255,6 +255,15 @@
     "updateTo": "به‌روزرسانی این {{eventType}}",
     "view": "مشاهدهٔ {{eventType}}"
   },
+  "markdownCallouts": {
+    "caution": "احتیاط",
+    "danger": "خطر",
+    "important": "مهم",
+    "info": "اطلاعات",
+    "note": "نکته",
+    "tip": "نکته کاربردی",
+    "warning": "هشدار"
+  },
   "Active Incidents": "حوادث فعال",
   "Active Episodes": "اپیزودهای فعال",
   "Active Alerts": "هشدارهای فعال",

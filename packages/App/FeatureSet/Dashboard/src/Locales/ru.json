@@ -255,6 +255,15 @@
     "updateTo": "Обновление: {{eventType}}",
     "view": "Просмотр: {{eventType}}"
   },
+  "markdownCallouts": {
+    "caution": "Осторожно",
+    "danger": "Опасно",
+    "important": "Важно",
+    "info": "Информация",
+    "note": "Примечание",
+    "tip": "Совет",
+    "warning": "Предупреждение"
+  },
   "Active Incidents": "Активные инциденты",
   "Active Episodes": "Активные эпизоды",
   "Active Alerts": "Активные оповещения",

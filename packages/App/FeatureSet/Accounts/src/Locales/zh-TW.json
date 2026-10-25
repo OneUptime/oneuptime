@@ -376,11 +376,13 @@
   "Switch to markdown source": "切換到 Markdown 原始碼",
   "Switch to visual editor": "切換到視覺化編輯器",
   "Opens in a new tab": "在新分頁中開啟",
-  "Note": "注意",
-  "Tip": "提示",
-  "Info": "資訊",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "小心",
-  "Danger": "危險"
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危險",
+    "important": "重要",
+    "info": "資訊",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  }
 }

@@ -255,6 +255,15 @@
     "updateTo": "इस {{eventType}} पर अपडेट",
     "view": "{{eventType}} देखें"
   },
+  "markdownCallouts": {
+    "caution": "सावधानी",
+    "danger": "खतरा",
+    "important": "महत्वपूर्ण",
+    "info": "जानकारी",
+    "note": "नोट",
+    "tip": "सुझाव",
+    "warning": "चेतावनी"
+  },
   "Active Incidents": "सक्रिय घटनाएं",
   "Active Episodes": "सक्रिय एपिसोड",
   "Active Alerts": "सक्रिय अलर्ट",

@@ -396,13 +396,6 @@
   "Email is not valid.": "Email is not valid.",
   "Next": "Next",
   "Opens in a new tab": "Opens in a new tab",
-  "Note": "Note",
-  "Tip": "Tip",
-  "Info": "Info",
-  "Important": "Important",
-  "Warning": "Warning",
-  "Caution": "Caution",
-  "Danger": "Danger",
   "Loading the latest version": "Loading the latest version",
   "A newer version of this page is available. It's loading now.": "A newer version of this page is available. It's loading now.",
   "You're offline": "You're offline",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "This couldn't be loaded.",
   "Try again": "Try again",
   "Loading...": "Loading...",
-  "Loading": "Loading"
+  "Loading": "Loading",
+  "markdownCallouts": {
+    "caution": "Caution",
+    "danger": "Danger",
+    "important": "Important",
+    "info": "Info",
+    "note": "Note",
+    "tip": "Tip",
+    "warning": "Warning"
+  }
 }

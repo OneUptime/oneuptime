@@ -255,6 +255,15 @@
     "updateTo": "此{{eventType}}的更新",
     "view": "查看{{eventType}}"
   },
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危险",
+    "important": "重要",
+    "info": "信息",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  },
   "Active Incidents": "活动事件",
   "Active Episodes": "活动片段",
   "Active Alerts": "活动警报",

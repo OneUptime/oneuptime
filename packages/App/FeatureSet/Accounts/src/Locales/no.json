@@ -376,11 +376,13 @@
   "Switch to markdown source": "Bytt til Markdown-kilde",
   "Switch to visual editor": "Bytt til visuell redigering",
   "Opens in a new tab": "Åpnes i en ny fane",
-  "Note": "Merk",
-  "Tip": "Tips",
-  "Info": "Info",
-  "Important": "Viktig",
-  "Warning": "Advarsel",
-  "Caution": "Forsiktig",
-  "Danger": "Fare"
+  "markdownCallouts": {
+    "caution": "Forsiktig",
+    "danger": "Fare",
+    "important": "Viktig",
+    "info": "Info",
+    "note": "Merk",
+    "tip": "Tips",
+    "warning": "Advarsel"
+  }
 }
