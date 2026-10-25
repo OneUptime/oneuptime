@@ -21,7 +21,9 @@ import KubernetesClusterAiAccessService from "../../../Services/KubernetesCluste
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
 import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
-import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import ResourceAccessContext, {
+  describeResource,
+} from "../ResourceAccess/ResourceAccessContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
@@ -56,9 +58,24 @@ import logger from "../../Logger";
  * some were left out. An incident or alert the person may not read offers
  * nothing at all, since its links are part of what they may not read. And
  * either way the commands only read: the toolkits refuse anything but the
- * Read tier, and so do the enqueue chokepoint and the agent. A chat never
- * changes infrastructure; changes go through AI remediation, or a person.
+ * Read tier, and so do the enqueue chokepoint and the agent. No change is
+ * ever made through an agent from a chat; those go through AI remediation,
+ * or a person.
  */
+
+/*
+ * The most commands one Ask AI answer may send through each kind of agent
+ * (resources' AI agents, clusters' Kubernetes AI agents). Every command an
+ * AI run sends counts toward the project's hourly limit of investigation
+ * commands, which automatic investigations share, so neither one answer
+ * nor text in a tool result that talks the model into a loop can spend it.
+ * The incident's shared thread keeps the investigation's runaway guard.
+ */
+export const MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER: number = 30;
+
+// The heading of what would let a personal conversation run commands.
+export const WITHOUT_ACCESS_SECTION_HEADING: string =
+  "# What would let you run commands";
 
 /*
  * Told to the model when some of the infrastructure a conversation is
@@ -108,6 +125,8 @@ export interface ChatInfrastructureTools {
    * out.
    */
   contextSections: Array<string>;
+  // The clusters and resources the person may view: all the rest is left out.
+  viewable: ChatInfrastructureStatuses;
 }
 
 // What a personal conversation's turn adds to its tools and its prompt.
@@ -206,6 +225,13 @@ export default class ChatInfrastructureAccess {
       return none;
     }
 
+    /*
+     * Each kind is looked up on its own, as the incident's thread does: a
+     * failed cluster lookup still leaves the linked resources, and the
+     * other way around.
+     */
+    const noun: string = context.type.toLowerCase();
+
     const [clusters, resources]: [
       Array<KubernetesClusterAiAccessStatus>,
       Array<ResourceAiAccessStatus>,
@@ -213,10 +239,22 @@ export default class ChatInfrastructureAccess {
       KubernetesClusterAiAccessService.getStatusesForSubject({
         projectId: data.projectId,
         ...subject,
-      }),
+      }).catch(
+        (error: unknown): Array<KubernetesClusterAiAccessStatus> => {
+          logger.error(
+            `AI: could not resolve the clusters an Ask AI conversation's ${noun} is linked to; offering none of them: ${error}`,
+          );
+          return [];
+        },
+      ),
       ResourceAiAccessService.getStatusesForSubject({
         projectId: data.projectId,
         ...subject,
+      }).catch((error: unknown): Array<ResourceAiAccessStatus> => {
+        logger.error(
+          `AI: could not resolve the infrastructure an Ask AI conversation's ${noun} is linked to; offering none of it: ${error}`,
+        );
+        return [];
       }),
     ]);
 
@@ -280,6 +318,11 @@ export default class ChatInfrastructureAccess {
     statuses: ChatInfrastructureStatuses;
     // Where the tools are offered, for the log: "the incident thread".
     offeredIn: string;
+    /*
+     * The most commands the turn may send through each kind of agent;
+     * absent, the investigation's runaway guard.
+     */
+    maxCommands?: number | undefined;
   }): Promise<ChatInfrastructureTools> {
     const linkedCount: number =
       data.statuses.clusters.length + data.statuses.resources.length;
@@ -309,6 +352,7 @@ export default class ChatInfrastructureAccess {
       aiRunId: data.aiRunId,
       clusters,
       outputPager,
+      maxCommands: data.maxCommands,
     }).buildTools();
     extraTools.push(...kubectlTools);
 
@@ -320,6 +364,7 @@ export default class ChatInfrastructureAccess {
         aiRunId: data.aiRunId,
         resources,
         outputPager,
+        maxCommands: data.maxCommands,
       }).buildTools();
       extraTools.push(...infrastructureTools);
     } catch (error) {
@@ -355,7 +400,55 @@ export default class ChatInfrastructureAccess {
           return !resource.isInvestigationReady;
         }),
       contextSections,
+      viewable: { clusters, resources },
     };
+  }
+
+  /*
+   * What would let the conversation run commands on each cluster and
+   * resource the person may view that offers none: every gap that blocks
+   * investigation, with the step that fixes it, in the access service's
+   * own words. The access sections give the reasons alone (and the install
+   * line when no agent is connected). "" when every one is ready. Pure.
+   */
+  public static buildWithoutAccessSection(
+    viewable: ChatInfrastructureStatuses,
+  ): string {
+    const lines: Array<string> = [];
+
+    for (const cluster of viewable.clusters) {
+      if (cluster.isInvestigationReady) {
+        continue;
+      }
+
+      for (const gap of cluster.gaps) {
+        if (gap.blocks === "investigation" || gap.blocks === "both") {
+          lines.push(
+            `- Cluster "${cluster.clusterName}": ${gap.title}. ${gap.nextStep}`,
+          );
+        }
+      }
+    }
+
+    for (const resource of viewable.resources) {
+      if (resource.isInvestigationReady) {
+        continue;
+      }
+
+      for (const gap of resource.gaps) {
+        if (gap.blocksInvestigation) {
+          lines.push(
+            `- ${describeResource(resource)}: ${gap.title}. ${gap.nextStep}`,
+          );
+        }
+      }
+    }
+
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return [WITHOUT_ACCESS_SECTION_HEADING, ...lines].join("\n");
   }
 
   /*
@@ -392,15 +485,18 @@ export default class ChatInfrastructureAccess {
         `- You can run read-only commands on the infrastructure this conversation is about, the way an on-call engineer opens a terminal on it: ${ways.join(
           ", and ",
         )}. When the user asks you to run a command or to check something on it live (for example "run uptime on this host"), run the command and show what it returned, cited [C#] - never answer from telemetry instead, and never say you have no tool for it.`,
-        "- One command per call: a program followed by its arguments, never a shell line (no pipes, redirects, ;, &&, $( ) or sudo). For several commands, make several calls.",
-        "- These commands only read. When the answer is a change (restart or stop a service, kill a process, scale, roll back, …), do not try it: give the exact command and what it would change, and say that a person can run it, or that OneUptime AI applies such fixes when it remediates an incident or alert on this resource with fixes turned on. Never claim you changed the infrastructure.",
+        `- One command per call: a program followed by its arguments, never a shell line (no pipes, redirects, ;, &&, $( ) or sudo). For several commands, make several calls - at most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} through each kind of agent for one answer, so run the ones that answer the question.`,
+        "- These commands only read: a change (restart or stop a service, kill a process, scale, roll back, …) cannot be made with them. When the answer is a change, give the exact command and what it would change, and say that a person can run it, or that OneUptime AI applies such fixes when it remediates an incident or alert on this resource with fixes turned on. Never claim a command changed the infrastructure.",
         `- When a tool output is long you see its first page; read the rest with ${READ_TOOL_OUTPUT_TOOL_NAME} whenever the part you need is further down. Never say something was not in an output you did not fully read.`,
       );
     }
 
     if (data.hasInfrastructureWithoutAccess) {
       lines.push(
-        "- For a resource or cluster marked NO direct access below, you cannot run commands on it. When the user asks for a command there, or for something only a command can answer, say so, with the reason and the next step given below, and answer what you can from OneUptime's own data. Do not bring this up otherwise, and never invent command output.",
+        `- For a resource marked NO direct access or a cluster marked NO kubectl access below, you cannot run commands on it. When the user asks for a command there, or for something only a command can answer, say so, with the reason and what would change it (${WITHOUT_ACCESS_SECTION_HEADING.replace(
+          /^# /,
+          "",
+        )}, below), and answer what you can from OneUptime's own data. Do not bring this up otherwise, and never invent command output.`,
       );
     }
 
@@ -442,6 +538,7 @@ export default class ChatInfrastructureAccess {
         props: data.props,
         statuses,
         offeredIn: "an Ask AI conversation",
+        maxCommands: MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,
       });
 
       if (tools.contextSections.length === 0) {
@@ -458,6 +555,7 @@ export default class ChatInfrastructureAccess {
               tools.hasInfrastructureWithoutAccess,
           }),
           ...tools.contextSections,
+          this.buildWithoutAccessSection(tools.viewable),
         ]
           .filter((section: string): boolean => {
             return section.length > 0;

@@ -13,13 +13,16 @@ import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../ResourceAccess/Resource
 /*
  * How the prompt speaks of commands on the infrastructure itself. Only a
  * conversation about a resource or cluster whose AI agent may investigate
- * has the command tools (ChatInfrastructureAccess, the investigations'
- * toolkits): everywhere else - another page, Slack, Microsoft Teams - the
- * model said "I don't have a tool that can execute commands on remote
- * hosts" and stopped there (issue #5259), with nothing on where commands
- * can run.
+ * has the agents' command tools (ChatInfrastructureAccess, the
+ * investigations' toolkits): everywhere else - another page, Slack,
+ * Microsoft Teams - the model said "I don't have a tool that can execute
+ * commands on remote hosts" and stopped there (issue #5259), with nothing
+ * on where commands can run. Every run reads it - a remediation run, which
+ * has command tools of its own, too - so it never claims those two tools
+ * are the only way a command runs, and it names the kinds of resource that
+ * have an AI agent at all.
  */
-export const INFRASTRUCTURE_COMMANDS_GUIDANCE: string = `- Commands on the infrastructure itself (a host's uptime, systemctl or journalctl, docker, pvesh, govc, ceph, kubectl, …) run only through ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and ${RUN_KUBECTL_TOOL_NAME}, which a conversation has only for the resources and clusters it is about whose AI agent is connected and may investigate: the one on the page Ask AI was opened from, or the ones an incident or alert is linked to. If you are asked to run a command and neither tool is offered here, never pretend a command ran: say you cannot run commands on it from this conversation - with the reason, when this conversation gives one - and that Ask AI opened on the resource's own page in OneUptime can, once its AI agent is connected and AI investigation is on for it.`;
+export const INFRASTRUCTURE_COMMANDS_GUIDANCE: string = `- Commands on the infrastructure itself (a host's uptime, systemctl or journalctl, docker, pvesh, govc, ceph, kubectl, …) reach it through its AI agent, with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and ${RUN_KUBECTL_TOOL_NAME}. A conversation has them only for the resources and clusters it is about whose AI agent is connected and may investigate: the one on the page Ask AI was opened from, or the ones an incident or alert is linked to. Hosts, Docker and Podman hosts, Docker Swarm, Proxmox, VMware and Ceph clusters, database servers and Kubernetes clusters have AI agents; other resources have none. If you are asked to run a command and no tool here can run it, never pretend a command ran: say you cannot run commands on it from this conversation, with the reason when this conversation gives one, and, for a resource that has an AI agent, that Ask AI opened on its page in OneUptime can, once the agent is connected and AI investigation is on for it.`;
 
 /*
  * System prompt for the observability chat agent. The binding rules here

@@ -5,6 +5,9 @@ import {
 } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import { RUN_KUBECTL_TOOL_NAME } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import AiResourceType, {
+  ALL_AI_RESOURCE_TYPES,
+} from "../../../../Types/ResourceAiAgent/AiResourceType";
 import AIChatPageContextType, {
   AIChatPageContext,
   AIChatPageContextHelper,
@@ -915,13 +918,55 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       "whose AI agent is connected and may investigate",
     );
     expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
-      "with the reason, when this conversation gives one",
+      "with the reason when this conversation gives one",
     );
     expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
-      "Ask AI opened on the resource's own page in OneUptime can, once its AI agent is connected and AI investigation is on for it",
+      "for a resource that has an AI agent, that Ask AI opened on its page in OneUptime can, once the agent is connected and AI investigation is on for it",
     );
     expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
       "never pretend a command ran",
+    );
+  });
+
+  /*
+   * Every run reads the base prompt, a remediation run too: it runs
+   * commands with tools of its own (execute_remediation_command), so the
+   * guidance never says the agents' two tools are the only way.
+   */
+  test("never claims the agents' tools are the only way a command runs", () => {
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "If you are asked to run a command and no tool here can run it",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).not.toContain("run only through");
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).not.toContain(
+      "neither tool is offered",
+    );
+  });
+
+  /*
+   * A storage array's or a network device's page has no AI agent to send
+   * the user to: the guidance says which kinds of resource have one.
+   */
+  test("names every kind of resource that has an AI agent, and says the others have none", () => {
+    // Typed by kind: a new kind of resource AI agent fails here until named.
+    const named: Record<AiResourceType, string> = {
+      [AiResourceType.DockerHost]: "Docker and Podman hosts",
+      [AiResourceType.PodmanHost]: "Docker and Podman hosts",
+      [AiResourceType.DockerSwarmCluster]: "Docker Swarm",
+      [AiResourceType.ProxmoxCluster]: "Proxmox",
+      [AiResourceType.VMwareVCenter]: "VMware",
+      [AiResourceType.CephCluster]: "Ceph clusters",
+      [AiResourceType.DatabaseServer]: "database servers",
+      [AiResourceType.Host]: "Hosts",
+    };
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(named[type]);
+    }
+
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain("Kubernetes clusters");
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "have AI agents; other resources have none",
     );
   });
 

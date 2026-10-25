@@ -3,7 +3,9 @@ import ChatInfrastructureAccess, {
   ChatInfrastructureTools,
   ChatPageInfrastructure,
   INFRASTRUCTURE_OUT_OF_VIEW_SECTION,
+  MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER,
   PAGE_INFRASTRUCTURE_SECTION_HEADING,
+  WITHOUT_ACCESS_SECTION_HEADING,
 } from "../../../../Server/Utils/AI/Chat/ChatInfrastructureAccess";
 import { ChatExtraTool } from "../../../../Server/Utils/AI/Chat/ChatAgentRunner";
 import { READ_TOOL_OUTPUT_TOOL_NAME } from "../../../../Server/Utils/AI/Chat/ToolOutputPager";
@@ -612,6 +614,47 @@ describe("ChatInfrastructureAccess.getStatusesForPage", () => {
     expect(lookups.clusterSubject).not.toHaveBeenCalled();
   });
 
+  test("on an incident, a failed cluster lookup still leaves its linked resources", async () => {
+    const lookups: StatusLookups = installStatusLookups({
+      subjectResources: [hostStatus()],
+    });
+    lookups.clusterSubject.mockRejectedValue(
+      new Error("cluster lookup failed") as never,
+    );
+
+    const statuses: ChatInfrastructureStatuses =
+      await ChatInfrastructureAccess.getStatusesForPage({
+        projectId: PROJECT_ID,
+        props: ASKER_PROPS,
+        pageContext: {
+          type: AIChatPageContextType.Incident,
+          entityId: INCIDENT_ID,
+        },
+      });
+
+    expect(statuses.clusters).toEqual([]);
+    expect(statuses.resources).toHaveLength(1);
+  });
+
+  test("on an alert, a failed resource lookup still leaves its linked clusters", async () => {
+    const lookups: StatusLookups = installStatusLookups({
+      subjectClusters: [readyCluster()],
+    });
+    lookups.resourceSubject.mockRejectedValue(
+      new Error("resource lookup failed") as never,
+    );
+
+    const statuses: ChatInfrastructureStatuses =
+      await ChatInfrastructureAccess.getStatusesForPage({
+        projectId: PROJECT_ID,
+        props: ASKER_PROPS,
+        pageContext: { type: AIChatPageContextType.Alert, entityId: ALERT_ID },
+      });
+
+    expect(statuses.clusters).toEqual([readyCluster()]);
+    expect(statuses.resources).toEqual([]);
+  });
+
   test("a read the permission layer refuses is the same as an unreadable incident", async () => {
     const lookups: StatusLookups = installStatusLookups({
       subjectResources: [hostStatus()],
@@ -964,12 +1007,33 @@ describe("ChatInfrastructureAccess.buildPageInstructions", () => {
     expect(text).toContain("never say you have no tool for it");
     expect(text).toContain("One command per call");
     expect(text).toContain("never a shell line");
-    expect(text).toContain("These commands only read");
-    expect(text).toContain("Never claim you changed the infrastructure");
+    expect(text).toContain(
+      `at most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} through each kind of agent for one answer`,
+    );
+    expect(text).toContain(
+      "These commands only read: a change (restart or stop a service, kill a process, scale, roll back, …) cannot be made with them.",
+    );
+    expect(text).toContain("Never claim a command changed the infrastructure");
     expect(text).toContain(READ_TOOL_OUTPUT_TOOL_NAME);
     // kubectl only where a cluster is reachable.
     expect(text).not.toContain(RUN_KUBECTL_TOOL_NAME);
     expect(text).not.toContain("NO direct access");
+  });
+
+  /*
+   * The commands only read, but Ask AI's own actions (a runbook, say) are
+   * the permission mode's to allow: the instructions forbid a change made
+   * with the commands, never "trying" a change some other way.
+   */
+  test("forbids a change made with the commands, not Ask AI's own actions", () => {
+    const text: string = ChatInfrastructureAccess.buildPageInstructions({
+      hasClusterAccess: true,
+      hasInfrastructureAccess: true,
+      hasInfrastructureWithoutAccess: false,
+    });
+
+    expect(text).not.toContain("do not try it");
+    expect(text).not.toContain("Never claim you changed");
   });
 
   test("with a cluster: names run_kubectl and its list", () => {
@@ -992,8 +1056,13 @@ describe("ChatInfrastructureAccess.buildPageInstructions", () => {
     });
 
     expect(text.startsWith(PAGE_INFRASTRUCTURE_SECTION_HEADING)).toBe(true);
-    expect(text).toContain("NO direct access");
-    expect(text).toContain("with the reason and the next step given below");
+    // How the access sections mark them: resources and clusters each their way.
+    expect(text).toContain(
+      "For a resource marked NO direct access or a cluster marked NO kubectl access below",
+    );
+    expect(text).toContain(
+      "with the reason and what would change it (What would let you run commands, below)",
+    );
     expect(text).toContain("Do not bring this up otherwise");
     expect(text).toContain("never invent command output");
     expect(text).not.toContain(RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME);
@@ -1011,7 +1080,253 @@ describe("ChatInfrastructureAccess.buildPageInstructions", () => {
   });
 });
 
+describe("ChatInfrastructureAccess.buildWithoutAccessSection", () => {
+  function clusterWithoutAccess(): KubernetesClusterAiAccessStatus {
+    return {
+      ...readyCluster(),
+      isInvestigationReady: false,
+      runner: null,
+      accessMethod: "none",
+      gaps: [
+        {
+          code: "ai_agent_not_connected",
+          title: "No Kubernetes AI agent is connected",
+          description: "AI cannot run kubectl on this cluster.",
+          nextStep: "Install the Kubernetes AI agent with the Kubernetes agent chart.",
+          blocks: "both",
+        },
+        {
+          code: "remediation_disabled",
+          title: "AI fixes are turned off",
+          description: "AI only investigates.",
+          nextStep: "Set aiAgent.fixes on the Kubernetes agent chart.",
+          blocks: "remediation",
+        },
+      ],
+    } as unknown as KubernetesClusterAiAccessStatus;
+  }
+
+  test("an offline agent: why, and the step that fixes it, in the access service's own words", () => {
+    const status: ResourceAiAccessStatus = hostStatus({
+      agent: hostAgent({ online: false }),
+    });
+    const text: string = ChatInfrastructureAccess.buildWithoutAccessSection({
+      clusters: [],
+      resources: [status],
+    });
+
+    expect(text.startsWith(WITHOUT_ACCESS_SECTION_HEADING)).toBe(true);
+    expect(text).toContain(
+      '- Host "test01": The Host AI agent is offline. It last reported in at',
+    );
+    expect(text).toContain(
+      "Check that its container is running and can reach your OneUptime URL",
+    );
+  });
+
+  test("investigation off: where to turn it on", () => {
+    const status: ResourceAiAccessStatus = hostStatus({
+      row: { isAiInvestigationEnabled: false },
+    });
+    const gap: { title: string; nextStep: string } | undefined =
+      status.gaps.find((candidate: { code: string }): boolean => {
+        return candidate.code === "investigation_disabled";
+      });
+
+    expect(gap).toBeDefined();
+    expect(
+      ChatInfrastructureAccess.buildWithoutAccessSection({
+        clusters: [],
+        resources: [status],
+      }),
+    ).toContain(`- Host "test01": ${gap!.title}. ${gap!.nextStep}`);
+  });
+
+  test("a cluster: only what blocks investigation, never what only blocks fixes", () => {
+    const text: string = ChatInfrastructureAccess.buildWithoutAccessSection({
+      clusters: [clusterWithoutAccess()],
+      resources: [],
+    });
+
+    expect(text).toContain(
+      '- Cluster "prod-gke": No Kubernetes AI agent is connected. Install the Kubernetes AI agent with the Kubernetes agent chart.',
+    );
+    expect(text).not.toContain("AI fixes are turned off");
+  });
+
+  test("everything ready: nothing to say", () => {
+    expect(
+      ChatInfrastructureAccess.buildWithoutAccessSection({
+        clusters: [readyCluster()],
+        resources: [hostStatus()],
+      }),
+    ).toBe("");
+  });
+
+  test("the marks the instructions name are the ones the access sections write", async () => {
+    installViewChecks();
+
+    const tools: ChatInfrastructureTools =
+      await ChatInfrastructureAccess.buildTools({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        props: ASKER_PROPS,
+        statuses: {
+          clusters: [clusterWithoutAccess()],
+          resources: [hostStatus({ agent: null })],
+        },
+        offeredIn: "a test",
+      });
+    const sections: string = tools.contextSections.join("\n");
+    const instructions: string = ChatInfrastructureAccess.buildPageInstructions(
+      {
+        hasClusterAccess: false,
+        hasInfrastructureAccess: false,
+        hasInfrastructureWithoutAccess: true,
+      },
+    );
+
+    for (const mark of ["NO direct access", "NO kubectl access"]) {
+      expect(sections).toContain(mark);
+      expect(instructions).toContain(mark);
+    }
+  });
+});
+
 describe("ChatInfrastructureAccess.buildForPage", () => {
+  test(`one answer sends at most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands through the agent, and is told so up front`, async () => {
+    installStatusLookups({ resource: hostStatus() });
+    installViewChecks();
+    const run: SpyInstance = jest
+      .spyOn(ResourceCommandJobRunner, "run")
+      .mockResolvedValue(uptimeOutcome() as never);
+
+    const infrastructure: ChatPageInfrastructure | null =
+      await ChatInfrastructureAccess.buildForPage({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        props: ASKER_PROPS,
+        pageContext: hostPage(),
+      });
+    const tool: ChatExtraTool = toolNamed(
+      infrastructure!.extraTools,
+      RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    )!;
+
+    expect(tool.definition.description).toContain(
+      `At most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands in this run.`,
+    );
+
+    for (let sent: number = 0; sent < MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER; sent++) {
+      expect(
+        (
+          await tool.execute({
+            resourceId: HOST_ID,
+            command: "uptime",
+            rationale: "The user asked again.",
+          })
+        ).success,
+      ).toBe(true);
+    }
+
+    const refused: ToolCallOutcome = await tool.execute({
+      resourceId: HOST_ID,
+      command: "uptime",
+      rationale: "Once more.",
+    });
+
+    expect(refused.success).toBe(false);
+    expect(refused.textForLlm).toContain(
+      `already sent ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} infrastructure commands`,
+    );
+    expect(run).toHaveBeenCalledTimes(MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER);
+  });
+
+  test("kubectl on a cluster's page has the same cap", async () => {
+    installStatusLookups({ cluster: readyCluster() });
+    installViewChecks();
+
+    const infrastructure: ChatPageInfrastructure | null =
+      await ChatInfrastructureAccess.buildForPage({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        props: ASKER_PROPS,
+        pageContext: hostPage({
+          resourceType: AIResourceType.KubernetesCluster,
+          entityId: CLUSTER_ID,
+        }),
+      });
+
+    expect(
+      toolNamed(infrastructure!.extraTools, RUN_KUBECTL_TOOL_NAME)!.definition
+        .description,
+    ).toContain(
+      `At most ${MAX_INFRASTRUCTURE_COMMANDS_PER_ANSWER} commands in this run.`,
+    );
+  });
+
+  test("the incident's shared thread keeps the investigation's runaway guard: no cap of its own", async () => {
+    installViewChecks();
+
+    const tools: ChatInfrastructureTools =
+      await ChatInfrastructureAccess.buildTools({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        props: ASKER_PROPS,
+        statuses: { clusters: [readyCluster()], resources: [hostStatus()] },
+        offeredIn: "the incident thread",
+      });
+
+    for (const name of [
+      RUN_KUBECTL_TOOL_NAME,
+      RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    ]) {
+      expect(
+        toolNamed(tools.extraTools, name)!.definition.description,
+      ).not.toContain("At most");
+    }
+  });
+
+  test("an agent that cannot answer: the prompt says why, and what would change it", async () => {
+    installStatusLookups({
+      resource: hostStatus({ agent: hostAgent({ online: false }) }),
+    });
+    installViewChecks();
+
+    const infrastructure: ChatPageInfrastructure | null =
+      await ChatInfrastructureAccess.buildForPage({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        props: ASKER_PROPS,
+        pageContext: hostPage(),
+      });
+
+    expect(infrastructure!.extraTools).toEqual([]);
+    expect(infrastructure!.instructions).toContain(
+      WITHOUT_ACCESS_SECTION_HEADING,
+    );
+    expect(infrastructure!.instructions).toContain(
+      "Check that its container is running and can reach your OneUptime URL",
+    );
+  });
+
+  test("a ready host: nothing about what would let it run commands", async () => {
+    installStatusLookups({ resource: hostStatus() });
+    installViewChecks();
+
+    const infrastructure: ChatPageInfrastructure | null =
+      await ChatInfrastructureAccess.buildForPage({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        props: ASKER_PROPS,
+        pageContext: hostPage(),
+      });
+
+    expect(infrastructure!.instructions).not.toContain(
+      WITHOUT_ACCESS_SECTION_HEADING,
+    );
+  });
+
   test("the issue: on test01's page, Ask AI can run uptime there through the Host AI agent", async () => {
     installStatusLookups({ resource: hostStatus() });
     installViewChecks();
