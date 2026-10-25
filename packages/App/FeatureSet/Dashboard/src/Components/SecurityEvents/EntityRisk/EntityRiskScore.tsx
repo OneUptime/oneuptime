@@ -1,7 +1,4 @@
-import {
-  ENTITY_RISK_TEST_IDS,
-  RISK_AGAINST_THRESHOLD,
-} from "./EntityRiskCopy";
+import { ENTITY_RISK_TEST_IDS, RISK_AGAINST_THRESHOLD } from "./EntityRiskCopy";
 import {
   getEntityRiskLevelColor,
   getEntityRiskMeterPercent,

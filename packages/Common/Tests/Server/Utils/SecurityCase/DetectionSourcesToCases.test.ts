@@ -387,12 +387,13 @@ describe("SecurityConnectionCases", () => {
    * connection opens cases from.
    */
   function recordRisk(order?: Array<string>): ReturnType<typeof getJestSpyOn> {
-    return getJestSpyOn(SecurityEntityRiskRecorder, "record").mockImplementation(
-      async () => {
-        order?.push("risk");
-        return { entitiesUpdated: 1, riskCasesRaised: 0 } as never;
-      },
-    );
+    return getJestSpyOn(
+      SecurityEntityRiskRecorder,
+      "record",
+    ).mockImplementation(async () => {
+      order?.push("risk");
+      return { entitiesUpdated: 1, riskCasesRaised: 0 } as never;
+    });
   }
 
   function riskFindingsOf(

@@ -214,7 +214,7 @@ const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 const PRODUCT: string = `/dashboard/${PROJECT_ID}/security-events`;
 const ROW_ID: string = "2d000000-0000-4000-8000-000000000001";
 
-const minutesAgo = (minutes: number): string => {
+const minutesAgo: (minutes: number) => string = (minutes: number): string => {
   return new Date(NOW.getTime() - minutes * 60 * 1000).toISOString();
 };
 
@@ -515,7 +515,11 @@ describe("the Entity Risk guide", () => {
 
     expect(guide.id).toBe("entity-risk");
     expect(guide.documentationPath).toBe("/telemetry/security-entity-risk");
-    expect(guide.steps.map((step: { title: string }) => step.title)).toEqual([
+    expect(
+      guide.steps.map((step: { title: string }): string => {
+        return step.title;
+      }),
+    ).toEqual([
       "Findings add points",
       "Each source counts once",
       "What matters more counts more",
@@ -535,9 +539,11 @@ describe("the Entity Risk guide", () => {
       ["100 to 199", OcsfSeverity.High],
       ["200 or more", OcsfSeverity.Critical],
     ]);
-    expect(guide.sections.map((section: { id: string }) => section.id)).toEqual(
-      ["overview", "points", "levels", "criticality"],
-    );
+    expect(
+      guide.sections.map((section: { id: string }): string => {
+        return section.id;
+      }),
+    ).toEqual(["overview", "points", "levels", "criticality"]);
   });
 
   test.each([10, 15, 50, 99, 100, 1000])(
@@ -709,7 +715,10 @@ describe("Security Events > Entity Risk", () => {
       title: string;
       getElement: (item: SecurityEntityRisk) => ReactElement;
     }>;
-    const cell = (title: string, item: SecurityEntityRisk): HTMLElement => {
+    const cell: (title: string, item: SecurityEntityRisk) => HTMLElement = (
+      title: string,
+      item: SecurityEntityRisk,
+    ): HTMLElement => {
       const column: {
         getElement: (row: SecurityEntityRisk) => ReactElement;
       } = columns.find((each: { title: string }): boolean => {

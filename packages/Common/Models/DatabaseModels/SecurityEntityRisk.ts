@@ -321,8 +321,8 @@ export default class SecurityEntityRisk extends BaseModel {
 
   /*
    * When the score next falls: the moment the first of its sources has said
-   * nothing for a week. The hourly refresh reads the rows whose moment has
-   * come, and no other.
+   * nothing for a week. The refresh every 15 minutes reads the rows whose
+   * moment has come, and no other.
    */
   @ColumnAccessControl(serverWrittenColumnAccess)
   @Index()

@@ -2736,9 +2736,7 @@ describe("DetectionRuleEvaluator", () => {
         mitreTechniques: ["T1110"],
       });
       expect(findings[0]!.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(findings[0]!.detectionRuleId?.toString()).toBe(
-        RULE_ID.toString(),
-      );
+      expect(findings[0]!.detectionRuleId?.toString()).toBe(RULE_ID.toString());
     });
 
     test("a rule that opens no cases still adds risk, at its own Risk Points", async () => {

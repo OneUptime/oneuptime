@@ -158,7 +158,10 @@ describe("what an entry holds", () => {
   test("refuses another kind of entity, an unknown criticality, and an empty or over-long value", async () => {
     await expect(
       service.onBeforeCreate({
-        data: entry({ value: "evil.example", entityType: SecurityEntityType.Domain }),
+        data: entry({
+          value: "evil.example",
+          entityType: SecurityEntityType.Domain,
+        }),
         props: { isRoot: true },
       }),
     ).rejects.toThrow(/a User, a Host or an IP Address/);
@@ -175,7 +178,9 @@ describe("what an entry holds", () => {
         data: entry({ value: "   " }),
         props: { isRoot: true },
       }),
-    ).rejects.toThrow(/Enter the user's sign-in name, the host's name or the address/);
+    ).rejects.toThrow(
+      /Enter the user's sign-in name, the host's name or the address/,
+    );
 
     await expect(
       service.onBeforeCreate({
@@ -261,7 +266,10 @@ describe("every change weighs the project's risk again, in the background", () =
     const created: SecurityEntityCriticality = entry({ value: "alice" });
 
     await service.onCreateSuccess(
-      { createBy: { data: created, props: { isRoot: true } }, carryForward: undefined },
+      {
+        createBy: { data: created, props: { isRoot: true } },
+        carryForward: undefined,
+      },
       created,
     );
 
@@ -350,7 +358,11 @@ describe("the list as the risk score reads it", () => {
         entityType: SecurityEntityType.Host,
         criticality: Criticality.Extreme,
       },
-      { value: "ceo@corp.example", entityType: null, criticality: Criticality.High },
+      {
+        value: "ceo@corp.example",
+        entityType: null,
+        criticality: Criticality.High,
+      },
       // An entry for a kind that carries no risk names nobody, not everybody.
     ]);
   });

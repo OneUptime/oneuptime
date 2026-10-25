@@ -2190,7 +2190,7 @@ export default class Project extends TenantModel {
    * about it takes the risk in (Types/SecurityCase/SecurityEntityRisk). On
    * for new projects (ProjectService.applyNewProjectSecurityDefaults); a
    * project that existed before keeps it off until someone turns it on under
-   * Security Events > Settings > Entity Risk, so an upgrade opens no case
+   * Security Events > Settings > Risk Scoring, so an upgrade opens no case
    * nobody asked for. Risk scores are kept either way.
    */
   @ColumnAccessControl({

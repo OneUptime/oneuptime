@@ -247,10 +247,6 @@ function sideMenu(page: Page): Locator {
   return page.locator('aside[role="navigation"]');
 }
 
-function menuEntry(page: Page, title: string): Locator {
-  return sideMenu(page).getByRole("link", { name: title, exact: true });
-}
-
 function menuSection(page: Page, title: string): Locator {
   return sideMenu(page).getByRole("button", { name: title, exact: true });
 }
@@ -489,7 +485,11 @@ test.describe("Entity Risk", () => {
       .getByRole("navigation", { name: "Breadcrumb" })
       .getByRole("link", { name: "Entity Risk", exact: true })
       .click();
-    await expect.poll(() => pathnameOf(page)).toBe(ENTITY_RISK_PATH);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(ENTITY_RISK_PATH);
 
     // On a phone, the menu's button names where you are.
     await open(page, entityPath(SPRAY_IP, "IP Address"), {
@@ -552,7 +552,11 @@ test.describe("Entity Risk", () => {
     await screenshot(page, "entity-risk-cases-off", { fullPage: false });
 
     await note.getByRole("button", { name: "Open Risk Scoring" }).click();
-    await expect.poll(() => pathnameOf(page)).toBe(RISK_SCORING_PATH);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(RISK_SCORING_PATH);
     await expect(page.getByTestId("security-risk-cases")).toHaveAttribute(
       "aria-checked",
       "false",
@@ -575,7 +579,11 @@ test.describe("Entity Risk", () => {
     await screenshot(page, "entity-risk-empty", { fullPage: false });
 
     await page.getByRole("button", { name: "Open the Rule Library" }).click();
-    await expect.poll(() => pathnameOf(page)).toBe(RULE_LIBRARY_PATH);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(RULE_LIBRARY_PATH);
   });
 });
 
@@ -667,7 +675,11 @@ test.describe("an entity's page", () => {
 
     // A case about it opens on its page.
     await cases.getByRole("button", { name: "View", exact: true }).click();
-    await expect.poll(() => pathnameOf(page)).toBe(SPRAY_CASE_PATH);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(SPRAY_CASE_PATH);
   });
 
   test("how much an entity matters weighs its score: Extreme counts its findings twice", async ({
@@ -719,14 +731,22 @@ test.describe("an entity's page", () => {
     await entityHeader(page)
       .getByRole("button", { name: "Open in Correlate" })
       .click();
-    await expect.poll(() => pathnameOf(page)).toBe(`${PRODUCT}/correlate`);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(`${PRODUCT}/correlate`);
     expect(queryOf(page, "observable")).toBe(SPRAY_IP);
 
     await open(page, entityPath(SPRAY_IP, "IP Address"));
     await entityHeader(page)
       .getByRole("button", { name: "Search Its Events" })
       .click();
-    await expect.poll(() => pathnameOf(page)).toBe(PRODUCT);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(PRODUCT);
     // Its events of the week its risk is counted over.
     expect(queryOf(page, "search")).toBe(`observable:${SPRAY_IP}`);
     expect(queryOf(page, "range")).toBe("Custom");
@@ -1048,14 +1068,14 @@ test.describe("entity risk on a case", () => {
     await open(page, `${SPRAY_CASE_PATH}/entities`, { width: 1344 });
     const table: Locator = page.getByTestId("security-case-entities-table");
     await expect(table).toBeVisible({ timeout: 30000 });
-    const row = (value: string): Locator => {
+    const row: (value: string) => Locator = (value: string): Locator => {
       return table
         .getByTestId("security-case-entity-row")
         .filter({ hasText: value });
     };
 
     // Wide enough: a Risk column of its own.
-    const column = (value: string): Locator => {
+    const column: (value: string) => Locator = (value: string): Locator => {
       return row(value).getByTestId("security-case-entity-risk-column");
     };
     await expect(column(SPRAY_IP)).toContainText("125", { timeout: 30000 });
@@ -1085,7 +1105,11 @@ test.describe("entity risk on a case", () => {
     });
 
     await column(SPRAY_IP).getByRole("link").click();
-    await expect.poll(() => pathnameOf(page)).toBe(ENTITY_PATH);
+    await expect
+      .poll((): string => {
+        return pathnameOf(page);
+      })
+      .toBe(ENTITY_PATH);
     expect(queryOf(page, "value")).toBe(SPRAY_IP);
     expect(queryOf(page, "type")).toBe("IP Address");
     await expect(entityHeader(page)).toContainText("125", { timeout: 30000 });

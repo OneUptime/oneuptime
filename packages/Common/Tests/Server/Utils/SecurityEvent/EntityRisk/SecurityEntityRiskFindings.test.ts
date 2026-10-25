@@ -286,8 +286,14 @@ describe("a threat intel feed's matches", () => {
       riskFindingsForIndicatorMatches({
         feed: feed(),
         matchedGroups: [
-          indicator({ indicatorValue: "evil.example", indicatorType: "domain-name" }),
-          indicator({ indicatorValue: "https://evil.example/x", indicatorType: "url" }),
+          indicator({
+            indicatorValue: "evil.example",
+            indicatorType: "domain-name",
+          }),
+          indicator({
+            indicatorValue: "https://evil.example/x",
+            indicatorType: "url",
+          }),
           indicator({
             indicatorValue: "d41d8cd98f00b204e9800998ecf8427e",
             indicatorType: "file",
@@ -359,7 +365,9 @@ describe("a connected product's imported alerts", () => {
 
   test("else the ones acted on, else one address", () => {
     expect(
-      importedAlertRiskEntities(event({ principalUser: "", principalHost: " " })),
+      importedAlertRiskEntities(
+        event({ principalUser: "", principalHost: " " }),
+      ),
     ).toEqual([
       { type: SecurityEntityType.User, value: "bob" },
       { type: SecurityEntityType.Host, value: "db-01" },
@@ -441,7 +449,11 @@ describe("a connected product's imported alerts", () => {
   test("at most IMPORTED_ALERT_RISK_LIMIT alerts a poll, the most severe first", () => {
     const events: Array<NormalizedSecurityEvent> = [];
 
-    for (let index: number = 0; index < IMPORTED_ALERT_RISK_LIMIT + 10; index++) {
+    for (
+      let index: number = 0;
+      index < IMPORTED_ALERT_RISK_LIMIT + 10;
+      index++
+    ) {
       events.push(
         event({
           eventUid: `low-${index}`,

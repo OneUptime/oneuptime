@@ -268,7 +268,8 @@ export function isRiskContributionInWindow(
   const lastSeenAt: number | null = readTime(contribution.lastSeenAt);
 
   return (
-    lastSeenAt !== null && lastSeenAt >= now.getTime() - ENTITY_RISK_WINDOW_IN_MS
+    lastSeenAt !== null &&
+    lastSeenAt >= now.getTime() - ENTITY_RISK_WINDOW_IN_MS
   );
 }
 

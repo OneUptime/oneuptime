@@ -51,7 +51,11 @@ import {
   updateRiskHistory,
   weightRiskScore,
 } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -107,7 +111,9 @@ function contribution(
 
 describe("an entity's risk key", () => {
   test("is its value trimmed and case folded", () => {
-    expect(getEntityRiskKey("  Alice@Corp.Example ")).toBe("alice@corp.example");
+    expect(getEntityRiskKey("  Alice@Corp.Example ")).toBe(
+      "alice@corp.example",
+    );
     expect(getEntityRiskKey("WEB-01")).toBe("web-01");
     expect(getEntityRiskKey("")).toBe("");
   });
@@ -158,7 +164,10 @@ describe("which entities carry risk", () => {
       { type: SecurityEntityType.User, value: " Alice " },
       { type: SecurityEntityType.User, value: "alice" },
       { type: SecurityEntityType.Host, value: "web-01" },
-      { type: SecurityEntityType.FileHash, value: "d41d8cd98f00b204e9800998ecf8427e" },
+      {
+        type: SecurityEntityType.FileHash,
+        value: "d41d8cd98f00b204e9800998ecf8427e",
+      },
       { type: SecurityEntityType.Domain, value: "evil.example" },
       { type: SecurityEntityType.IpAddress, value: "   " },
       { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
@@ -246,7 +255,9 @@ describe("taking a finding in", () => {
     const contributions: Array<SecurityEntityRiskContribution> =
       addRiskObservation(
         [],
-        observation({ detectionRuleId: "11111111-1111-4111-8111-111111111111" }),
+        observation({
+          detectionRuleId: "11111111-1111-4111-8111-111111111111",
+        }),
         NOW,
       );
 
@@ -350,7 +361,11 @@ describe("taking a finding in", () => {
   test("sources that stopped counting are let go, and past the limit the ones that add least", () => {
     const many: Array<SecurityEntityRiskContribution> = [];
 
-    for (let index: number = 0; index < ENTITY_RISK_CONTRIBUTION_LIMIT; index++) {
+    for (
+      let index: number = 0;
+      index < ENTITY_RISK_CONTRIBUTION_LIMIT;
+      index++
+    ) {
       many.push(
         contribution({
           sourceKey: `rule:${index}`,
@@ -685,9 +700,7 @@ describe("levels against the threshold", () => {
     expect(readRiskCaseThreshold("150")).toBe(150);
     expect(readRiskCaseThreshold(149.5)).toBe(150);
     expect(readRiskCaseThreshold(1)).toBe(ENTITY_RISK_CASE_THRESHOLD_MIN);
-    expect(readRiskCaseThreshold(10 ** 9)).toBe(
-      ENTITY_RISK_CASE_THRESHOLD_MAX,
-    );
+    expect(readRiskCaseThreshold(10 ** 9)).toBe(ENTITY_RISK_CASE_THRESHOLD_MAX);
   });
 
   test("a risk detection is High at the threshold and Critical at twice it", () => {
@@ -721,7 +734,11 @@ describe("when risk opens a case", () => {
 
   test("before any risk case, every source that counts counts", () => {
     expect(
-      getRiskSinceLastCase({ contributions: sources, riskCaseAt: null, now: NOW }),
+      getRiskSinceLastCase({
+        contributions: sources,
+        riskCaseAt: null,
+        now: NOW,
+      }),
     ).toBe(125);
   });
 
@@ -760,7 +777,11 @@ describe("when risk opens a case", () => {
           lastSeenAt: ago(9 * DAY_IN_MS).toISOString(),
         }),
       ],
-      observation({ sourceKey: "rule:a", points: 100, seenAt: ago(HOUR_IN_MS) }),
+      observation({
+        sourceKey: "rule:a",
+        points: 100,
+        seenAt: ago(HOUR_IN_MS),
+      }),
       NOW,
     );
 
@@ -871,15 +892,32 @@ describe("an entity's history", () => {
   });
 
   test("pruning keeps only what counts, the most first", () => {
-    const pruned: Array<SecurityEntityRiskContribution> = pruneRiskContributions(
-      [
-        contribution({ sourceKey: "a", points: 10, lastSeenAt: ago(HOUR_IN_MS).toISOString() }),
-        contribution({ sourceKey: "b", points: 50, lastSeenAt: ago(2 * HOUR_IN_MS).toISOString() }),
-        contribution({ sourceKey: "c", points: 50, lastSeenAt: ago(HOUR_IN_MS).toISOString() }),
-        contribution({ sourceKey: "d", points: 75, lastSeenAt: ago(8 * DAY_IN_MS).toISOString() }),
-      ],
-      NOW,
-    );
+    const pruned: Array<SecurityEntityRiskContribution> =
+      pruneRiskContributions(
+        [
+          contribution({
+            sourceKey: "a",
+            points: 10,
+            lastSeenAt: ago(HOUR_IN_MS).toISOString(),
+          }),
+          contribution({
+            sourceKey: "b",
+            points: 50,
+            lastSeenAt: ago(2 * HOUR_IN_MS).toISOString(),
+          }),
+          contribution({
+            sourceKey: "c",
+            points: 50,
+            lastSeenAt: ago(HOUR_IN_MS).toISOString(),
+          }),
+          contribution({
+            sourceKey: "d",
+            points: 75,
+            lastSeenAt: ago(8 * DAY_IN_MS).toISOString(),
+          }),
+        ],
+        NOW,
+      );
 
     expect(
       pruned.map((item: SecurityEntityRiskContribution): string => {
@@ -912,9 +950,9 @@ describe("which criticality names an entity", () => {
       },
     ];
 
-    expect(findEntityCriticalityRule({ entity: alice, rules })?.criticality).toBe(
-      SecurityEntityCriticality.Extreme,
-    );
+    expect(
+      findEntityCriticalityRule({ entity: alice, rules })?.criticality,
+    ).toBe(SecurityEntityCriticality.Extreme);
     // The entry is for users; DC-01 is a host.
     expect(findEntityCriticalityRule({ entity: dc, rules })).toBeUndefined();
   });
@@ -923,7 +961,10 @@ describe("which criticality names an entity", () => {
     const rules: Array<SecurityEntityCriticalityRule> = [
       { value: "*", criticality: SecurityEntityCriticality.Low },
       { value: "dc-*", criticality: SecurityEntityCriticality.High },
-      { value: "dc-*.corp.example", criticality: SecurityEntityCriticality.Extreme },
+      {
+        value: "dc-*.corp.example",
+        criticality: SecurityEntityCriticality.Extreme,
+      },
       { value: "*.corp.example", criticality: SecurityEntityCriticality.Low },
     ];
 
@@ -936,7 +977,10 @@ describe("which criticality names an entity", () => {
         entity: dc,
         rules: [
           ...rules,
-          { value: "DC-01.CORP.EXAMPLE", criticality: SecurityEntityCriticality.Low },
+          {
+            value: "DC-01.CORP.EXAMPLE",
+            criticality: SecurityEntityCriticality.Low,
+          },
         ],
       })?.criticality,
     ).toBe(SecurityEntityCriticality.Low);
@@ -978,6 +1022,8 @@ describe("which criticality names an entity", () => {
       }),
     ).toBeUndefined();
 
-    expect(findEntityCriticalityRule({ entity: alice, rules: [] })).toBeUndefined();
+    expect(
+      findEntityCriticalityRule({ entity: alice, rules: [] }),
+    ).toBeUndefined();
   });
 });

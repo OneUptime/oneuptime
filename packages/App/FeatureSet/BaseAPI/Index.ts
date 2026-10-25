@@ -4095,7 +4095,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         SecurityEntityCriticality,
         SecurityEntityCriticalityServiceType
-      >(SecurityEntityCriticality, SecurityEntityCriticalityService).getRouter(),
+      >(
+        SecurityEntityCriticality,
+        SecurityEntityCriticalityService,
+      ).getRouter(),
     );
 
     // A project's own case priorities and statuses (Security Events > Settings).

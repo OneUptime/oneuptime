@@ -105,9 +105,10 @@ interface EntityObservations {
  * about the entity, or opens one.
  *
  * One project's risk is written under one lock, by the sources and by the
- * hourly refresh alike, so two of them never add to one row at once. The
- * cases are recorded once the lock is given back: the case ingest takes the
- * project's own lock, and nothing a playbook does should hold risk up.
+ * refresh every 15 minutes alike, so two of them never add to one row at
+ * once. The cases are recorded once the lock is given back: the case ingest
+ * takes the project's own lock, and nothing a playbook does should hold risk
+ * up.
  *
  * Never throws: what was found is recorded already where it belongs, and
  * risk that could not be written must not fail the run that found it.
@@ -471,10 +472,10 @@ export default class SecurityEntityRiskRecorder {
 
   /*
    * One project's rows worked out again: those whose next source has
-   * stopped counting by now (the hourly refresh), or every one (a change to
-   * the project's Entity Criticality list, `isWhole`). A score that falls
-   * never opens a case, but one that rises - an entity newly marked as
-   * mattering more - can, as it would from a new finding.
+   * stopped counting by now (the refresh every 15 minutes), or every one (a
+   * change to the project's Entity Criticality list, `isWhole`). A score
+   * that falls never opens a case, but one that rises - an entity newly
+   * marked as mattering more - can, as it would from a new finding.
    */
   @CaptureSpan()
   public static async refreshProject(data: {

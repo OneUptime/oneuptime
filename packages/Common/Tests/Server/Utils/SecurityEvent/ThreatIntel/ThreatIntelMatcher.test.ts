@@ -275,9 +275,7 @@ describe("ThreatIntelMatcher: entity risk", () => {
       points: 75,
       entities: [{ type: SecurityEntityType.IpAddress, value: "203.0.113.7" }],
     });
-    expect(findings[0]!.threatIntelFeedId?.toString()).toBe(
-      FEED_ID.toString(),
-    );
+    expect(findings[0]!.threatIntelFeedId?.toString()).toBe(FEED_ID.toString());
   });
 
   test("a feed that opens no cases still adds risk", async () => {

@@ -58,7 +58,7 @@ export const ENTITY_RISK_POINTS_MAX: number = 100;
 /*
  * Where a new project opens a case: two different High findings, or a High
  * and two Medium, about the same entity within a week. A project changes it
- * under Security Events > Settings > Entity Risk.
+ * under Security Events > Settings > Risk Scoring.
  */
 export const DEFAULT_ENTITY_RISK_CASE_THRESHOLD: number = 100;
 export const ENTITY_RISK_CASE_THRESHOLD_MIN: number = 10;

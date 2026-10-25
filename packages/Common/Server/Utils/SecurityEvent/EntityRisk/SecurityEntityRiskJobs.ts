@@ -30,7 +30,7 @@ export async function queueSecurityEntityRiskRecompute(
       },
     );
   } catch (error) {
-    // Best effort: the hourly refresh weighs every entity it touches anew.
+    // Best effort: the refresh every 15 minutes weighs anew what it touches.
     logger.error(
       `SecurityEntityRisk: could not queue the recompute of project ${projectId.toString()}'s entity risk:`,
     );

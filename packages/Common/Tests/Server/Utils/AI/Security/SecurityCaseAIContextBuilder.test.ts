@@ -491,9 +491,9 @@ describe("SecurityCaseAIContextBuilder: the risk of the case's entities", () => 
     expect(build(makeTriage()).contextSummary).not.toContain(
       "## The risk of its entities",
     );
-    expect(
-      build(makeTriage({ entityRisks: [] })).contextSummary,
-    ).not.toContain("## The risk of its entities");
+    expect(build(makeTriage({ entityRisks: [] })).contextSummary).not.toContain(
+      "## The risk of its entities",
+    );
   });
 
   test("a source's name is outside text: quoted on its line and looked over", () => {
@@ -580,8 +580,8 @@ describe("SecurityCaseAIContextBuilder: the risk of the case's entities", () => 
         securityCaseId: caseId,
       });
 
-    const query: { projectId: ObjectID; entityKey: Includes } = findRisk.mock
-      .calls[0]![0].query;
+    const query: { projectId: ObjectID; entityKey: Includes } =
+      findRisk.mock.calls[0]![0].query;
 
     expect(query.projectId).toBe(projectId);
     // Folded as risk keys them; the hash carries no risk and is not asked.

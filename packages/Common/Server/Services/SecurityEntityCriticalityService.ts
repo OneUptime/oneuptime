@@ -165,7 +165,9 @@ export class Service extends ProjectReferencesService<Model> {
     const data: JSONObject = updateBy.data as unknown as JSONObject;
 
     const value: string | undefined =
-      data["value"] === undefined ? undefined : Service.readValue(data["value"]);
+      data["value"] === undefined
+        ? undefined
+        : Service.readValue(data["value"]);
     const hasType: boolean = data["entityType"] !== undefined;
     const entityType: SecurityEntityType | null = hasType
       ? Service.readType(data["entityType"])
@@ -312,9 +314,7 @@ export class Service extends ProjectReferencesService<Model> {
       .map((row: Model): SecurityEntityCriticalityRule => {
         return {
           value: row.value as string,
-          entityType: isRiskEntityType(row.entityType)
-            ? row.entityType
-            : null,
+          entityType: isRiskEntityType(row.entityType) ? row.entityType : null,
           criticality: row.criticality as SecurityEntityCriticality,
         };
       });

@@ -110,7 +110,9 @@ describe("the risk detection", () => {
       severity: OcsfSeverity.High,
       eventCount: 6,
       groupValue: "Alice@Corp.Example",
-      entities: [{ type: SecurityEntityType.User, value: "Alice@Corp.Example" }],
+      entities: [
+        { type: SecurityEntityType.User, value: "Alice@Corp.Example" },
+      ],
       mitreTactics: ["TA0006", "TA0001"],
       mitreTechniques: ["T1110"],
       ruleName: ENTITY_RISK_DETECTION_NAME,
@@ -167,7 +169,9 @@ describe("the risk detection", () => {
     expect(description).toContain(
       "- **First sudo on a host** (Detection Rule, Medium): 25 points, once, last ",
     );
-    expect(description).toContain("Its criticality, High, weighs its risk ×1.5.");
+    expect(description).toContain(
+      "Its criticality, High, weighs its risk ×1.5.",
+    );
   });
 });
 
@@ -214,7 +218,11 @@ describe("entityRiskMarkdown", () => {
       lastSeen: string;
     }> = [];
 
-    for (let index: number = 0; index < ENTITY_RISK_MARKDOWN_SOURCE_LIMIT + 3; index++) {
+    for (
+      let index: number = 0;
+      index < ENTITY_RISK_MARKDOWN_SOURCE_LIMIT + 3;
+      index++
+    ) {
       sources.push({
         name: `Rule ${index}`,
         source: "Detection Rule",
