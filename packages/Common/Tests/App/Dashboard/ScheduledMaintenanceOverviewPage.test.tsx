@@ -47,6 +47,14 @@ const measurementsCardRenderMock: MockFunction = getJestMockFunction();
 // Which item each stubbed CardModelDetail renders its field elements against.
 const detailItemsByCardName: Record<string, unknown> = {};
 
+/*
+ * The event's owners, as the header's hook would read them from the event's
+ * own owner tables (EventOwnersHook.test.tsx covers the reads themselves):
+ * undefined until read, then the list.
+ */
+const useEventOwnersMock: MockFunction = getJestMockFunction();
+let ownersForTest: Array<unknown> | undefined = undefined;
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -76,6 +84,47 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/EventView/useEventOwners",
+  () => {
+    return {
+      __esModule: true,
+      default: (options: unknown): { owners: unknown; error: string } => {
+        useEventOwnersMock(options);
+        return { owners: ownersForTest, error: "" };
+      },
+    };
+  },
+);
+
+// Links render as plain anchors: the header's facts are read outside a router.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AppLink/AppLink",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: {
+        to?: { toString: () => string };
+        children: React.ReactNode;
+        className?: string;
+        title?: string;
+        dataTestId?: string;
+      }): React.ReactElement => {
+        return React.createElement(
+          "a",
+          {
+            href: props.to?.toString(),
+            className: props.className,
+            title: props.title,
+            "data-testid": props.dataTestId,
+          },
+          props.children,
+        );
+      },
+    };
+  },
+);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ChangeState",
@@ -523,6 +572,43 @@ function makeEvent(overrides?: {
   return event;
 }
 
+/*
+ * A header fact's value, drawn on its own: the page hands the header
+ * elements (links, people), so the test draws the one it reads.
+ */
+let factView: RenderResult | null = null;
+
+function cleanupFact(): void {
+  factView?.unmount();
+  factView = null;
+}
+
+function renderFact(label: string): HTMLElement {
+  cleanupFact();
+
+  const fact: EventStatusFact | undefined = (
+    (
+      changeStateRenderMock.mock.calls[
+        changeStateRenderMock.mock.calls.length - 1
+      ]![0] as { facts?: Array<EventStatusFact> }
+    ).facts || []
+  ).find((candidate: EventStatusFact): boolean => {
+    return candidate.label === label;
+  });
+
+  if (!fact) {
+    throw new Error(`No ${label} fact was handed to the header`);
+  }
+
+  factView = render(<div data-testid="fact-value">{fact.value}</div>);
+
+  return factView.getByTestId("fact-value");
+}
+
+function factText(label: string): string {
+  return renderFact(label).textContent || "";
+}
+
 async function flush(): Promise<void> {
   await act(async () => {
     for (let i: number = 0; i < 20; i++) {
@@ -559,6 +645,8 @@ function cardProps(name: string): CardProps {
 describe("Scheduled maintenance overview page", () => {
   beforeEach(() => {
     currentEventId = EVENT_ID;
+    ownersForTest = undefined;
+    useEventOwnersMock.mockReset();
     jest.spyOn(Navigation, "getLastParamAsObjectID").mockImplementation(() => {
       return new ObjectID(currentEventId);
     });
@@ -1002,40 +1090,89 @@ describe("Scheduled maintenance overview page", () => {
       expect(props.title).toBe("Primary database failover drill");
       expect(props.eventStartsAt).toBe(event.startsAt);
       expect(props.eventEndsAt).toBe(event.endsAt);
-      expect(props.facts).toEqual([
-        {
-          label: "Status pages",
-          value: "Acme Internal Status, Acme Public",
-          icon: IconProp.Globe,
-        },
-        { label: "Created by", value: "Jane Doe", icon: IconProp.User },
+      // Owners are not read yet: the header says nothing about them.
+      expect(
+        (props.facts || []).map(
+          (fact: EventStatusFact): [string, IconProp | undefined] => {
+            return [fact.label, fact.icon];
+          },
+        ),
+      ).toEqual([
+        ["Status pages", IconProp.Globe],
+        ["Created by", IconProp.User],
       ]);
+      expect(factText("Status pages")).toBe("Acme Internal StatusAcme Public");
+      expect(factText("Created by")).toBe("JDJane Doe");
     });
 
-    const STATUS_PAGE_CASES: Array<[Array<string>, string]> = [
-      [[], "None"],
-      [["Only page"], "Only page"],
-      [["A", "B", "C"], "A, B +1 more"],
-      [["A", "B", "C", "D", "E"], "A, B +3 more"],
-      [["  ", "Named"], "Named"],
+    /*
+     * The status pages it shows on, one under another, each a link to its
+     * page; the first two, then "+N more". An event on none says so.
+     */
+    const STATUS_PAGE_CASES: Array<[Array<string>, Array<string>, string]> = [
+      [[], [], "None"],
+      [["Only page"], ["Only page"], ""],
+      [["A", "B", "C"], ["A", "B"], "+1 more"],
+      [["A", "B", "C", "D", "E"], ["A", "B"], "+3 more"],
+      [["  ", "Named"], ["Named"], ""],
     ];
 
     test.each(STATUS_PAGE_CASES)(
-      "summarises status pages %j as %s",
-      async (names: Array<string>, text: string) => {
+      "lists status pages %j as %j, then %j",
+      async (names: Array<string>, shown: Array<string>, rest: string) => {
         getItemMock.mockResolvedValue(
           makeEvent({ statusPageNames: names }) as never,
         );
 
         await renderPage();
 
+        const value: HTMLElement = renderFact("Status pages");
+        const list: HTMLElement = within(value).getByTestId(
+          "event-status-page-links",
+        );
+
         expect(
-          lastProps<ChangeStateProps>(changeStateRenderMock).facts?.[0]?.value,
-        ).toBe(text);
+          Array.from(list.children)
+            .map((child: Element): string => {
+              return child.textContent || "";
+            })
+            .filter((text: string): boolean => {
+              return !text.startsWith("+") && text !== "None";
+            }),
+        ).toEqual(shown);
+        if (rest) {
+          expect(list).toHaveTextContent(rest);
+        } else {
+          expect(list.textContent).not.toContain("+");
+        }
+        if (names.filter((name: string) => name.trim()).length === 0) {
+          expect(list).toHaveTextContent(/^None$/);
+          expect(list).toHaveClass("text-gray-500");
+        }
       },
     );
 
-    test("falls back to the creator's email, and leaves the fact empty without a creator", async () => {
+    test("links each status page to its own page", async () => {
+      const event: ScheduledMaintenance = makeEvent({
+        statusPageNames: ["Acme Public"],
+      });
+      event.statusPages![0]!._id = "88888888-8888-4888-8888-888888888888";
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+
+      const link: HTMLElement = within(renderFact("Status pages")).getByRole(
+        "link",
+        { name: "Acme Public" },
+      );
+
+      expect(link.getAttribute("href")).toContain(
+        "/status-pages/88888888-8888-4888-8888-888888888888",
+      );
+      expect(link).toHaveClass("text-indigo-600", "hover:underline");
+    });
+
+    test("names the creator as the header names people, by email without a name, and leaves the fact out without a creator", async () => {
       const user: User = new User();
       user.email = new Email("jane@example.com");
       getItemMock
@@ -1044,16 +1181,75 @@ describe("Scheduled maintenance overview page", () => {
 
       await renderPage();
 
-      expect(
-        lastProps<ChangeStateProps>(changeStateRenderMock).facts?.[1]?.value,
-      ).toBe("jane@example.com");
+      const value: HTMLElement = renderFact("Created by");
+
+      expect(within(value).getByTestId("event-person-name")).toHaveTextContent(
+        "jane@example.com",
+      );
 
       fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
       await flush();
 
       expect(
-        lastProps<ChangeStateProps>(changeStateRenderMock).facts?.[1]?.value,
-      ).toBe("");
+        (lastProps<ChangeStateProps>(changeStateRenderMock).facts || []).map(
+          (fact: EventStatusFact): string => {
+            return fact.label;
+          },
+        ),
+      ).toEqual(["Status pages"]);
+    });
+
+    test("reads the event's own owners, and names them first once read", async () => {
+      ownersForTest = [];
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      const options: {
+        ownerUserModelType: { name: string };
+        ownerTeamModelType: { name: string };
+        resourceIdField: string;
+        resourceId: ObjectID;
+      } = useEventOwnersMock.mock.calls[0]![0] as never;
+
+      expect(options.ownerUserModelType.name).toBe(
+        "ScheduledMaintenanceOwnerUser",
+      );
+      expect(options.ownerTeamModelType.name).toBe(
+        "ScheduledMaintenanceOwnerTeam",
+      );
+      expect(options.resourceIdField).toBe("scheduledMaintenanceId");
+      expect(options.resourceId.toString()).toBe(EVENT_ID);
+      expect(
+        (lastProps<ChangeStateProps>(changeStateRenderMock).facts || []).map(
+          (fact: EventStatusFact): string => {
+            return fact.label;
+          },
+        ),
+      ).toEqual(["Owners", "Status pages", "Created by"]);
+    });
+
+    test("offers to add owners until the event is over, from its Owners page", async () => {
+      ownersForTest = [];
+      getItemMock
+        .mockResolvedValueOnce(makeEvent({ isEnded: false }) as never)
+        .mockResolvedValueOnce(makeEvent({ isEnded: true }) as never);
+
+      await renderPage();
+
+      const add: HTMLElement = within(renderFact("Owners")).getByRole("link", {
+        name: "Add owners",
+      });
+
+      expect(add.getAttribute("href")).toContain(
+        `/scheduled-maintenance-events/${EVENT_ID}/owners`,
+      );
+      cleanupFact();
+
+      fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
+      await flush();
+
+      expect(renderFact("Owners")).toHaveTextContent(/^None$/);
     });
   });
 

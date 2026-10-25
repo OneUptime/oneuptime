@@ -632,28 +632,35 @@ describe("EventStatusPanel disabled behavior", () => {
 });
 
 describe("EventStatusPanel action-group layout", () => {
-  test("labels one responsive wrapping group for every action control (compact layout)", () => {
+  test("labels one group for every action: the buttons in a wrapping place of their own, the ⋯ after them", () => {
     renderPanel();
 
     const group: HTMLElement = getActionGroup();
+    const buttons: HTMLElement = screen.getByTestId("event-header-buttons");
+    const morePlace: HTMLElement = screen.getByTestId(
+      "event-header-more-place",
+    );
 
     expect(group).toHaveAttribute("aria-label", "Event actions");
-    expect(group).toHaveClass(
+    expect(group).toHaveAttribute("data-testid", "event-header-actions");
+    expect(group).toContainElement(buttons);
+    expect(group).toContainElement(morePlace);
+    expect(buttons).toHaveClass(
       "flex",
-      "w-full",
+      "min-w-0",
+      "flex-auto",
       "flex-wrap",
       "justify-end",
-      "md:w-auto",
     );
-    expect(within(group).getByRole("button", { name: "Acknowledge" })).toBe(
+    expect(
+      buttons.compareDocumentPosition(morePlace) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(buttons).getAllByRole("button")).toEqual([
       screen.getByRole("button", { name: "Acknowledge" }),
-    );
-    expect(within(group).getByRole("button", { name: "Resolve" })).toBe(
       screen.getByRole("button", { name: "Resolve" }),
-    );
-    expect(within(group).getByRole("button", { name: "More actions" })).toBe(
-      screen.getByRole("button", { name: "More actions" }),
-    );
+    ]);
+    expect(within(morePlace).getByRole("button")).toBe(getMoreActionsTrigger());
   });
 
   test("keeps the overflow control aligned to the fixed action height", () => {
@@ -662,7 +669,7 @@ describe("EventStatusPanel action-group layout", () => {
     expect(getMoreActionsTrigger()).toHaveClass("h-9", "w-9");
   });
 
-  test("constrains long state-action labels before truncating them", () => {
+  test("constrains long state-action labels before truncating them, by the header's width", () => {
     renderPanel({
       actions: [
         {
@@ -677,106 +684,300 @@ describe("EventStatusPanel action-group layout", () => {
       name: "A very long custom scheduled maintenance state label",
     });
 
-    expect(button).toHaveClass("min-w-[7rem]", "max-w-full", "sm:max-w-64");
+    expect(button).toHaveClass(
+      "min-w-[7rem]",
+      "max-w-full",
+      "flex-auto",
+      "[@container(min-width:36rem)]:max-w-64",
+      "[@container(min-width:36rem)]:flex-none",
+    );
+    expect(button).not.toHaveClass("sm:max-w-64");
     expect(button.querySelector("span")).toHaveClass("truncate");
+  });
+
+  test("draws the More actions menu over the page, outside the header", () => {
+    renderPanel({ title: "Database connection failures" });
+
+    const menu: HTMLElement = openMenu();
+
+    // The header is a size container: a menu inside it would sit under the cards after it.
+    expect(screen.getByTestId("event-header")).not.toContainElement(menu);
   });
 });
 
-describe("EventStatusPanel header layouts", () => {
-  test("puts the title, identifier badge, and action group in the header layout", () => {
+describe("EventStatusPanel header layout, by its own width", () => {
+  type HeaderPartsFunction = () => {
+    header: HTMLElement;
+    top: HTMLElement;
+    chips: HTMLElement;
+    title: HTMLElement | null;
+    actions: HTMLElement | null;
+  };
+
+  const headerParts: HeaderPartsFunction = () => {
+    return {
+      header: screen.getByTestId("event-header"),
+      top: screen.getByTestId("event-header-top"),
+      chips: screen.getByTestId("event-header-chips"),
+      title: screen.queryByTestId("event-header-title"),
+      actions: screen.queryByTestId("event-header-actions"),
+    };
+  };
+
+  type BesideWidthFunction = () => number;
+
+  // The width the header says it puts the actions beside the pills from.
+  const besideWidth: BesideWidthFunction = (): number => {
+    const value: string | null = screen
+      .getByTestId("event-header")
+      .getAttribute("data-actions-beside-from");
+
+    return Number((value || "").replace("rem", ""));
+  };
+
+  test("is a size container, read in the order number and pills, title, actions", () => {
     renderPanel({ title: "Database connection failures" });
 
-    const heading: HTMLElement = screen.getByRole("heading", {
-      level: 2,
-      name: "Database connection failures",
-    });
-    const identifier: HTMLElement = screen.getByTitle("Number");
-    const group: HTMLElement = getActionGroup();
-    const headingBlock: HTMLElement = heading.parentElement as HTMLElement;
-    const headerRow: HTMLElement = headingBlock.parentElement as HTMLElement;
+    const { header, top, chips, title, actions } = headerParts();
 
+    expect(header.tagName).toBe("SECTION");
+    expect(header).toHaveClass(
+      "relative",
+      "rounded-xl",
+      "border",
+      "border-gray-200",
+      "bg-white",
+      "shadow-sm",
+      "[container-type:inline-size]",
+    );
+    expect(Array.from(top.children)).toEqual([chips, title, actions]);
+    expect(title).toHaveTextContent("Database connection failures");
+    expect(title?.tagName).toBe("H2");
+    expect(chips).toContainElement(screen.getByTitle("Number"));
+    expect(chips).toContainElement(screen.getByTestId("pill"));
+  });
+
+  test("draws the number as a security case draws its own: a grey monospace chip named Number", () => {
+    renderPanel({ title: "Database connection failures" });
+
+    const identifier: HTMLElement = screen.getByTestId("event-header-number");
+
+    expect(identifier).toBe(screen.getByTitle("Number"));
     expect(identifier).toHaveTextContent("INC-42");
-    expect(identifier).toHaveClass("bg-gray-100", "uppercase");
-    expect(headerRow).toHaveClass("xl:items-start", "xl:justify-between");
-    expect(headerRow).toContainElement(group);
-    expect(headerRow).not.toContainElement(screen.getByTestId("pill"));
+    expect(identifier).toHaveClass(
+      "rounded-md",
+      "bg-gray-100",
+      "font-mono",
+      "text-xs",
+      "font-semibold",
+      "text-gray-700",
+    );
   });
 
-  /*
-   * Beside a side menu, a header that went side by side from md squeezed the
-   * title to a few characters and stacked the actions one per row, so the
-   * titled header stacks the actions under the title until xl.
-   */
-  test("stacks the actions under the title until xl, and puts them beside it only from xl", () => {
-    renderPanel({ title: "Database connection failures" });
-
-    const heading: HTMLElement = screen.getByRole("heading", {
-      level: 2,
-      name: "Database connection failures",
+  test("keeps the whole title on lines of its own: wrapped, never cut short", () => {
+    renderPanel({
+      title:
+        "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster for every region",
     });
-    const headerRow: HTMLElement = (heading.parentElement as HTMLElement)
-      .parentElement as HTMLElement;
 
-    expect(headerRow).toHaveClass(
-      "flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between",
-      { exact: true },
+    const title: HTMLElement = screen.getByRole("heading", { level: 2 });
+
+    expect(title).toHaveClass(
+      "basis-full",
+      "break-words",
+      "text-xl",
+      "font-semibold",
+      "[overflow-wrap:anywhere]",
     );
-    expect(headerRow).not.toHaveClass("md:flex-row");
-    expect(headerRow).not.toHaveClass("md:items-start");
-    expect(headerRow).not.toHaveClass("md:justify-between");
+    expect(title).not.toHaveClass("truncate");
+    expect(title).not.toHaveClass("line-clamp-1");
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
-  test("keeps the titled header's action group full width until xl", () => {
+  test("puts the actions beside the pills from the width the buttons need, and the title under both", () => {
     renderPanel({ title: "Database connection failures" });
 
-    const group: HTMLElement = getActionGroup();
+    const { top, chips, title, actions } = headerParts();
+    const width: number = besideWidth();
+    const at: (classes: string) => Array<string> = (
+      classes: string,
+    ): Array<string> => {
+      return classes.split(" ").map((className: string): string => {
+        return `[@container(min-width:${width}rem)]:${className}`;
+      });
+    };
 
-    expect(group).toHaveClass(
-      "flex w-full flex-wrap items-center justify-end gap-2 xl:w-auto xl:shrink-0",
-      { exact: true },
+    expect(width).toBeGreaterThan(0);
+    expect(top).toHaveClass(
+      "flex",
+      "flex-wrap",
+      ...at("grid grid-cols-[minmax(0,1fr)_auto]"),
     );
-    expect(group).not.toHaveClass("md:w-auto");
-    expect(group).toHaveAttribute("aria-label", "Event actions");
-    expect(within(group).getAllByRole("button")).toEqual([
-      screen.getByRole("button", { name: "Acknowledge" }),
-      screen.getByRole("button", { name: "Resolve" }),
-      screen.getByRole("button", { name: "More actions" }),
-    ]);
+    expect(chips).toHaveClass(...at("col-start-1 row-start-1 pe-0"));
+    expect(title).toHaveClass(...at("col-span-2 row-start-2"));
+    expect(actions).toHaveClass(
+      "ms-auto",
+      "w-full",
+      "justify-end",
+      ...at("col-start-2 row-start-1 w-auto"),
+    );
   });
 
-  test("uses the compact inline metadata layout when no title is supplied", () => {
-    renderPanel();
+  test("needs a wider header for a third button, and wider still for longer words", () => {
+    renderPanel({ title: "Checkout latency" });
+    const twoButtons: number = besideWidth();
+    cleanup();
 
-    const identifier: HTMLElement = screen.getByTitle("Number");
-    const group: HTMLElement = getActionGroup();
-    const compactRow: HTMLElement = group.parentElement as HTMLElement;
+    renderPanel({
+      title: "Checkout latency",
+      secondaryActions: [
+        {
+          id: "alert-declare-incident-btn",
+          label: "Declare Incident",
+          icon: IconProp.Alert,
+          onClick: (): void => {},
+        },
+      ],
+    });
+    const threeButtons: number = besideWidth();
+    cleanup();
 
-    expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
-    expect(identifier).toHaveTextContent("INC-42");
-    expect(identifier).toHaveClass("text-sm", "font-semibold");
-    expect(identifier).not.toHaveClass("bg-gray-100", "uppercase");
-    expect(compactRow).toHaveClass("md:items-center", "md:justify-between");
-    expect(compactRow).toContainElement(identifier);
-    expect(compactRow).toContainElement(screen.getByTestId("pill"));
+    renderPanel({
+      title: "Checkout latency",
+      actions: [
+        {
+          stateId: "acknowledged",
+          label: "Bestätigen und benachrichtigen",
+          icon: IconProp.Check,
+          buttonStyle: ButtonStyleType.PRIMARY,
+        },
+        {
+          stateId: "resolved",
+          label: "Als behoben markieren",
+          icon: IconProp.CheckCircle,
+          buttonStyle: ButtonStyleType.OUTLINE,
+        },
+      ],
+    });
+    const longerWords: number = besideWidth();
+
+    expect(threeButtons).toBeGreaterThan(twoButtons);
+    expect(longerWords).toBeGreaterThan(twoButtons);
   });
 
-  // Only the titled header moved to xl; the compact layout is as it was.
-  test("keeps the compact layout side by side from md, with its action group full width until md", () => {
-    renderPanel();
+  test("puts the ⋯ in the top corner below that width, with the pills keeping room for it", () => {
+    renderPanel({ title: "Database connection failures" });
 
-    const group: HTMLElement = getActionGroup();
-    const compactRow: HTMLElement = group.parentElement as HTMLElement;
+    const { chips } = headerParts();
+    const morePlace: HTMLElement = screen.getByTestId(
+      "event-header-more-place",
+    );
+    const width: number = besideWidth();
 
-    expect(compactRow).toHaveClass(
-      "flex flex-col gap-3 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between",
-      { exact: true },
+    expect(morePlace).toHaveClass(
+      "absolute",
+      "end-4",
+      "top-4",
+      "sm:end-5",
+      `[@container(min-width:${width}rem)]:static`,
+      `[@container(min-width:${width}rem)]:shrink-0`,
     );
-    expect(compactRow).not.toHaveClass("xl:flex-row");
-    expect(group).toHaveClass(
-      "flex w-full flex-wrap items-center justify-end gap-2 md:w-auto",
-      { exact: true },
-    );
-    expect(group).not.toHaveClass("xl:w-auto");
+    expect(chips).toHaveClass("pe-11", "min-h-9");
+  });
+
+  test("lets the pills take the whole row when there is no ⋯", () => {
+    renderPanel({
+      title: "Database connection failures",
+      states: [
+        makeState("created", "Created"),
+        makeState("acknowledged", "Acknowledged"),
+        makeState("resolved", "Resolved"),
+      ],
+    });
+
+    expect(screen.queryByTestId("event-header-more-place")).toBeNull();
+    expect(headerParts().chips).not.toHaveClass("pe-11");
+  });
+
+  test("draws no actions group, and switches nothing, when there is nothing to do", () => {
+    renderPanel({
+      title: "Database connection failures",
+      currentStateId: "resolved",
+      actions: [],
+      onStateSelect: undefined,
+    });
+
+    const { header, top, actions } = headerParts();
+
+    expect(actions).toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "Event actions" }),
+    ).not.toBeInTheDocument();
+    expect(header).toHaveAttribute("data-actions-beside-from", "never");
+    expect(top.className).not.toContain("@container");
+  });
+
+  test("keeps the buttons under the title at every width when even the widest header cannot hold them", () => {
+    renderPanel({
+      title: "Database connection failures",
+      secondaryActions: Array.from({ length: 9 }, (_value: unknown, index) => {
+        return {
+          id: `secondary-${index}`,
+          label: `A long secondary action number ${index}`,
+          icon: IconProp.Alert,
+          onClick: (): void => {},
+        };
+      }),
+    });
+
+    const { header, top, actions } = headerParts();
+
+    expect(header).toHaveAttribute("data-actions-beside-from", "never");
+    expect(top.className).not.toContain("@container");
+    expect(actions).toHaveClass("ms-auto", "w-full", "justify-end");
+  });
+
+  test("lays nothing out by the window's breakpoints", () => {
+    renderPanel({
+      title: "Database connection failures",
+      severity: { name: "Critical", color: Red500 },
+      isPrivate: true,
+      durationStartsAt: new Date("2026-08-07T10:00:00.000Z"),
+      durationEndsAt: new Date("2026-08-07T10:05:00.000Z"),
+      facts: [{ label: "Monitor", value: "checkout-api" }],
+      headerNotice: <div>Notice</div>,
+    });
+
+    const windowBreakpoint: RegExp = /(^|\s)(md|lg|xl|2xl):/;
+    const offenders: Array<string> = Array.from(
+      screen.getByTestId("event-header").querySelectorAll("*"),
+    )
+      .map((element: Element): string => {
+        return element.getAttribute("class") || "";
+      })
+      .filter((className: string): boolean => {
+        return windowBreakpoint.test(className);
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("names its sides by where a line starts and ends, so a right-to-left page mirrors it", () => {
+    renderPanel({ title: "Database connection failures" });
+
+    const physicalSide: RegExp = /(^|\s|:)-?(ml|mr|pl|pr|left|right)-/;
+    const offenders: Array<string> = Array.from(
+      screen.getByTestId("event-header-top").querySelectorAll("*"),
+    )
+      .concat([screen.getByTestId("event-header-top")])
+      .map((element: Element): string => {
+        return element.getAttribute("class") || "";
+      })
+      .filter((className: string): boolean => {
+        return physicalSide.test(className);
+      });
+
+    expect(offenders).toEqual([]);
   });
 
   test("falls back to black when hydrated current-state color is absent", () => {
@@ -797,10 +998,210 @@ describe("EventStatusPanel header layouts", () => {
       backgroundColor: "#000000",
     });
   });
+
+  test("without a title keeps its number, pills, actions, track and facts", () => {
+    renderPanel({ facts: [{ label: "Monitor", value: "checkout-api" }] });
+
+    expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
+    expect(screen.getByTitle("Number")).toHaveTextContent("INC-42");
+    expect(screen.getByTestId("pill")).toHaveTextContent("Created");
+    expect(getActionGroup()).toBeInTheDocument();
+    expect(screen.getByTestId("event-state-track")).toBeInTheDocument();
+    expect(screen.getByTestId("event-status-facts")).toHaveTextContent(
+      "checkout-api",
+    );
+  });
+});
+
+describe("EventStatusPanel state track", () => {
+  type StepsFunction = () => Array<HTMLElement>;
+
+  const steps: StepsFunction = (): Array<HTMLElement> => {
+    return Array.from(
+      screen.getByTestId("event-state-track").querySelectorAll("li"),
+    );
+  };
+
+  test("draws every state as one track under the title, the current one the step", () => {
+    renderPanel({ title: "Checkout latency", currentStateId: "acknowledged" });
+
+    const track: HTMLElement = screen.getByRole("list", {
+      name: "State progress",
+    });
+
+    expect(track.tagName).toBe("OL");
+    expect(
+      steps().map((step: HTMLElement): [string, string | null] => {
+        return [step.textContent || "", step.getAttribute("data-step")];
+      }),
+    ).toEqual([
+      ["Created", "reached"],
+      ["Acknowledged", "current"],
+      ["Investigating", "upcoming"],
+      ["Resolved", "upcoming"],
+    ]);
+    expect(steps()[1]).toHaveAttribute("aria-current", "step");
+    expect(steps()[0]).not.toHaveAttribute("aria-current");
+    // Under the title, inside the header's top section.
+    const title: HTMLElement = screen.getByRole("heading", { level: 2 });
+    expect(
+      title.compareDocumentPosition(track) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("fills the segments up to the current state in its colour, and greys the rest", () => {
+    renderPanel({ currentStateId: "acknowledged" });
+
+    const segments: Array<HTMLElement> = screen.getAllByTestId(
+      "event-state-track-segment",
+    );
+
+    expect(segments).toHaveLength(4);
+    expect(segments[0]).toHaveStyle({ backgroundColor: "#f59e0b" });
+    expect(segments[1]).toHaveStyle({ backgroundColor: "#f59e0b" });
+    expect(segments[2]).toHaveClass("bg-gray-200");
+    expect(segments[2]!.style.backgroundColor).toBe("");
+    expect(segments[3]).toHaveClass("bg-gray-200");
+    for (const segment of segments) {
+      expect(segment).toHaveAttribute("aria-hidden", "true");
+      expect(segment).toHaveClass("h-1.5", "rounded-full");
+    }
+  });
+
+  test("gives every state an equal share of the width, cutting a long name whole under the pointer", () => {
+    renderPanel({
+      states: [
+        makeState("created", "Created"),
+        makeState(
+          "verification",
+          "Waiting for the customer to verify the fix in production",
+        ),
+        makeState("resolved", "Resolved"),
+      ],
+    });
+
+    const track: HTMLElement = screen.getByTestId("event-state-track");
+    const longName: HTMLElement = screen.getByTitle(
+      "Waiting for the customer to verify the fix in production",
+    );
+
+    expect(track).toHaveStyle({
+      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    });
+    expect(longName).toHaveClass("truncate");
+  });
+
+  test("marks nothing reached when the current state is not in the list", () => {
+    renderPanel({ currentStateId: "removed-state" });
+
+    expect(
+      steps().map((step: HTMLElement): string | null => {
+        return step.getAttribute("data-step");
+      }),
+    ).toEqual(["upcoming", "upcoming", "upcoming", "upcoming"]);
+  });
+
+  test("draws no track for a record with a single state, or none", () => {
+    renderPanel({ states: [makeState("created", "Created")], actions: [] });
+
+    expect(screen.queryByTestId("event-state-track")).toBeNull();
+  });
+
+  test("reads a default state's name in the reader's words, a project's own as written", () => {
+    renderPanel({
+      states: [
+        makeState("created", "Created"),
+        makeState("resolved", "Resolve translation key"),
+      ],
+      actions: [],
+    });
+
+    expect(
+      steps().map((step: HTMLElement): string => {
+        return step.textContent || "";
+      }),
+    ).toEqual(["Created", "Résoudre"]);
+  });
+});
+
+describe("EventStatusPanel how long", () => {
+  const STARTED_AT: Date = new Date("2026-08-07T10:00:00.000Z");
+  const ENDED_AT: Date = new Date("2026-08-07T10:05:00.000Z");
+
+  test("is the first fact, labelled by its prefix over the duration", () => {
+    renderPanel({
+      title: "Checkout latency",
+      durationPrefix: "Ongoing for",
+      durationStartsAt: STARTED_AT,
+      durationEndsAt: ENDED_AT,
+      facts: [{ label: "Monitor", value: "checkout-api" }],
+    });
+
+    const facts: HTMLElement = screen.getByTestId("event-status-facts");
+    const first: Element = facts.children[0]!;
+
+    expect(first.querySelector("dt")).toHaveTextContent("Ongoing for");
+    expect(first.querySelector("dd")).toHaveTextContent("5 minutes");
+    expect(first.querySelector("dd")).toContainElement(
+      screen.getByTestId("event-header-duration"),
+    );
+    expect(first.querySelector("dt svg")).not.toBeNull();
+    expect(facts.children[1]!.querySelector("dt")).toHaveTextContent(
+      "Monitor",
+    );
+  });
+
+  test("says Ongoing for when no prefix is given, and the caller's word when it is", () => {
+    renderPanel({ durationStartsAt: STARTED_AT, durationEndsAt: ENDED_AT });
+    expect(
+      screen.getByTestId("event-status-facts").querySelector("dt"),
+    ).toHaveTextContent("Ongoing for");
+    cleanup();
+
+    renderPanel({
+      durationPrefix: "Lasted",
+      durationStartsAt: STARTED_AT,
+      durationEndsAt: ENDED_AT,
+    });
+    expect(
+      screen.getByTestId("event-status-facts").querySelector("dt"),
+    ).toHaveTextContent("Lasted");
+  });
+
+  test("looks its label up in the reader's language", () => {
+    renderPanel({
+      durationPrefix: "Resolve translation key",
+      durationStartsAt: STARTED_AT,
+      durationEndsAt: ENDED_AT,
+    });
+
+    expect(
+      screen.getByTestId("event-status-facts").querySelector("dt"),
+    ).toHaveTextContent("Résoudre");
+  });
+
+  test("is left out without a start, and so are the facts when it was the only one", () => {
+    renderPanel({ durationPrefix: "Starts in" });
+
+    expect(screen.queryByTestId("event-header-duration")).toBeNull();
+    expect(screen.queryByTestId("event-status-facts")).toBeNull();
+  });
+
+  test("never sits among the pills", () => {
+    renderPanel({
+      severity: { name: "Critical", color: Red500 },
+      durationStartsAt: STARTED_AT,
+      durationEndsAt: ENDED_AT,
+    });
+
+    expect(screen.getByTestId("event-header-chips")).not.toContainElement(
+      screen.getByTestId("event-header-duration"),
+    );
+  });
 });
 
 describe("EventStatusPanel header notice", () => {
-  test("renders a notice inside the titled header card", () => {
+  test("draws the notice as a band at the foot of the header", () => {
     render(
       <EventStatusPanel
         stateList={StateListType.IncidentState}
@@ -809,6 +1210,7 @@ describe("EventStatusPanel header notice", () => {
         states={[]}
         actions={[]}
         onActionClick={() => {}}
+        facts={[{ label: "Monitor", value: "checkout-api" }]}
         headerNotice={
           <div data-testid="header-notice">AI is investigating</div>
         }
@@ -816,24 +1218,85 @@ describe("EventStatusPanel header notice", () => {
     );
 
     const notice: HTMLElement = screen.getByTestId("header-notice");
+    const band: HTMLElement = screen.getByTestId("event-header-notice");
+    const header: HTMLElement = screen.getByTestId("event-header");
+
     expect(notice).toHaveTextContent("AI is investigating");
-    expect(notice.parentElement).toHaveClass("mt-3");
+    expect(notice.parentElement).toBe(band);
+    expect(header.lastElementChild).toBe(band);
+    expect(band).toHaveClass(
+      "rounded-b-[11px]",
+      "border-t",
+      "px-4",
+      "py-3.5",
+      "sm:px-5",
+    );
+    // A band of the header, not a box inside it.
+    expect(band).not.toHaveClass("rounded-lg", "shadow-sm", "border");
     expect(screen.getByText("Database latency")).toBeInTheDocument();
     expect(screen.getByText("INC-42")).toBeInTheDocument();
   });
 
-  test("adds no empty notice spacing when the optional content is absent", () => {
-    const { container } = render(
+  test.each([
+    ["ai", ["border-indigo-100", "bg-indigo-50/60"]],
+    ["warning", ["border-amber-200", "bg-amber-50/70"]],
+    ["danger", ["border-red-100", "bg-red-50/60"]],
+    ["neutral", ["border-gray-100"]],
+  ])(
+    "paints a %s band in its own tone",
+    (tone: string, classes: Array<string>) => {
+      render(
+        <EventStatusPanel
+          stateList={StateListType.IncidentState}
+          title="Database latency"
+          states={[]}
+          actions={[]}
+          onActionClick={() => {}}
+          headerNotice={<div>Notice</div>}
+          headerNoticeTone={
+            tone as "ai" | "warning" | "danger" | "neutral"
+          }
+        />,
+      );
+
+      const band: HTMLElement = screen.getByTestId("event-header-notice");
+
+      expect(band).toHaveAttribute("data-tone", tone);
+      expect(band).toHaveClass(...classes);
+    },
+  );
+
+  test("is a neutral band when no tone is given", () => {
+    render(
       <EventStatusPanel
         stateList={StateListType.IncidentState}
         title="Database latency"
         states={[]}
         actions={[]}
         onActionClick={() => {}}
+        headerNotice={<div>Notice</div>}
       />,
     );
 
-    expect(container.querySelector(".mt-3")).toBeNull();
+    expect(screen.getByTestId("event-header-notice")).toHaveAttribute(
+      "data-tone",
+      "neutral",
+    );
+  });
+
+  test("draws no band when there is no notice", () => {
+    render(
+      <EventStatusPanel
+        stateList={StateListType.IncidentState}
+        title="Database latency"
+        states={[]}
+        actions={[]}
+        onActionClick={() => {}}
+        headerNoticeTone="ai"
+      />,
+    );
+
+    expect(screen.queryByTestId("event-header-notice")).toBeNull();
   });
 
   test("keeps existing metadata, state progress, and actions intact beside the notice", () => {
@@ -865,6 +1328,7 @@ describe("EventStatusPanel header notice", () => {
           },
         ]}
         onActionClick={onActionClick}
+        headerNoticeTone="ai"
         headerNotice={
           <div data-testid="header-notice">AI is investigating</div>
         }
@@ -881,7 +1345,7 @@ describe("EventStatusPanel header notice", () => {
     expect(onActionClick).toHaveBeenCalledWith("acknowledged");
   });
 
-  test("leaves compact consumers unchanged", () => {
+  test("draws the notice whether or not the header has a title", () => {
     render(
       <EventStatusPanel
         stateList={StateListType.IncidentState}
@@ -898,7 +1362,159 @@ describe("EventStatusPanel header notice", () => {
 
     expect(screen.getByText("#7")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
-    expect(screen.queryByTestId("header-notice")).not.toBeInTheDocument();
+    expect(screen.getByTestId("header-notice")).toBeInTheDocument();
+  });
+});
+
+/*
+ * A reader who may not change the record's state - an Alert Member on an
+ * incident, a project viewer - sees the state buttons locked, each saying
+ * which permission is missing, as a table locks a row action
+ * (PermissionGate); and no menu of other states, all of which would be
+ * refused. While the permissions are not read yet, neither is shown.
+ */
+describe("EventStatusPanel state change permissions", () => {
+  const REASON: string =
+    "You do not have permission to create this Incident State Timeline.";
+
+  test("a reader who may change the state gets working buttons", () => {
+    const rendered: RenderedPanel = renderPanel({
+      stateChangeGate: { isAllowed: true },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge" }));
+
+    expect(rendered.actionClicks).toEqual(["acknowledged"]);
+    expect(getMoreActionsTrigger()).toBeEnabled();
+    expect(
+      document.querySelector('[data-testid$="-disabled-wrapper"]'),
+    ).toBeNull();
+  });
+
+  test("a reader who may not sees each state button locked, saying why, and no menu of states", () => {
+    const rendered: RenderedPanel = renderPanel({
+      stateChangeGate: { isAllowed: false, disabledReason: REASON },
+    });
+
+    const acknowledge: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    const resolve: HTMLElement = screen.getByRole("button", {
+      name: "Resolve",
+    });
+    const acknowledgeWrapper: HTMLElement = screen.getByTestId(
+      "incident-acknowledge-btn-disabled-wrapper",
+    );
+
+    expect(acknowledge).toBeDisabled();
+    expect(acknowledge).toHaveAttribute("aria-disabled", "true");
+    expect(resolve).toBeDisabled();
+    expect(acknowledge).toHaveClass("pointer-events-none", "w-full");
+    expect(acknowledge).not.toHaveAttribute("title");
+    expect(acknowledgeWrapper).toHaveAttribute("tabindex", "0");
+    expect(acknowledgeWrapper).toContainElement(acknowledge);
+    expect(
+      screen.getByTestId("incident-resolve-btn-disabled-wrapper"),
+    ).toContainElement(resolve);
+    expect(
+      screen.queryByRole("button", { name: "More actions" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(acknowledgeWrapper);
+    fireEvent.click(acknowledge);
+
+    expect(rendered.actionClicks).toEqual([]);
+
+    fireEvent.mouseEnter(acknowledgeWrapper);
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(REASON);
+  });
+
+  test("keeps a locked primary action its look, so the reader still sees what comes next", () => {
+    renderPanel({
+      stateChangeGate: { isAllowed: false, disabledReason: REASON },
+    });
+
+    expect(screen.getByRole("button", { name: "Acknowledge" })).toHaveClass(
+      "bg-indigo-600",
+      "disabled:opacity-50",
+    );
+  });
+
+  test("looks the reason up in the reader's language", () => {
+    renderPanel({
+      stateChangeGate: {
+        isAllowed: false,
+        disabledReason: "Resolve translation key",
+      },
+    });
+
+    fireEvent.focus(
+      screen.getByTestId("incident-acknowledge-btn-disabled-wrapper"),
+    );
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Résoudre");
+  });
+
+  test("while the permissions are not known, shows neither the state buttons nor the menu, but the other actions", () => {
+    renderPanel({
+      stateChangeGate: { isAllowed: false },
+      secondaryActions: [
+        {
+          id: "join-video-call",
+          label: "Join call",
+          icon: IconProp.VideoCamera,
+          onClick: (): void => {},
+        },
+      ],
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Resolve" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "More actions" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join call" })).toBeEnabled();
+  });
+
+  test("never locks the actions that change no state", () => {
+    const onJoin: MockFunction = getJestMockFunction();
+
+    renderPanel({
+      stateChangeGate: { isAllowed: false, disabledReason: REASON },
+      secondaryActions: [
+        {
+          id: "join-video-call",
+          label: "Join call",
+          icon: IconProp.VideoCamera,
+          onClick: onJoin,
+        },
+      ],
+    });
+
+    const join: HTMLElement = screen.getByRole("button", { name: "Join call" });
+
+    expect(join).toBeEnabled();
+    expect(
+      screen.queryByTestId("join-video-call-disabled-wrapper"),
+    ).toBeNull();
+
+    fireEvent.click(join);
+
+    expect(onJoin).toHaveBeenCalledTimes(1);
+  });
+
+  test("leaves the header as it was when no gate is given", () => {
+    const rendered: RenderedPanel = renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: "Resolve" }));
+
+    expect(rendered.actionClicks).toEqual(["resolved"]);
+    expect(getMoreActionsTrigger()).toBeInTheDocument();
   });
 });
 
@@ -950,7 +1566,7 @@ describe("EventStatusPanel header facts", () => {
     }
   });
 
-  test("wraps on narrow screens and keeps long values from overflowing", () => {
+  test("keeps long values from overflowing their column", () => {
     renderPanel({
       title: "Checkout latency",
       facts: [
@@ -965,10 +1581,73 @@ describe("EventStatusPanel header facts", () => {
     const facts: HTMLElement = getFacts() as HTMLElement;
     const value: HTMLElement = facts.querySelector("dd") as HTMLElement;
 
-    expect(facts).toHaveClass("flex", "flex-wrap");
+    expect(facts).toHaveClass("grid", "grid-cols-1");
     expect(value).toHaveClass("min-w-0", "break-words");
     expect(value).not.toHaveClass("truncate");
-    expect(facts.children[0]).toHaveClass("max-w-full", "min-w-0");
+    expect(facts.children[0]).toHaveClass("min-w-0");
+  });
+
+  test("lays the facts on a grid that follows the header's width, never with more columns than facts", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Owners", value: "Checkout SRE" },
+        { label: "Monitor", value: "checkout-api" },
+        { label: "Episode", value: "#7" },
+        { label: "Grouping", value: "Checkout" },
+      ],
+    });
+
+    const facts: HTMLElement = getFacts() as HTMLElement;
+
+    expect(facts).toHaveClass(
+      "grid",
+      "grid-cols-1",
+      "border-t",
+      "border-gray-100",
+      "[@container(min-width:18rem)]:grid-cols-2",
+      "[@container(min-width:34rem)]:grid-cols-3",
+      "[@container(min-width:50rem)]:grid-cols-4",
+    );
+    // Four facts never spread over five columns.
+    expect(facts.className).not.toContain("grid-cols-5");
+    cleanup();
+
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Owners", value: "Checkout SRE" },
+        { label: "Monitor", value: "checkout-api" },
+      ],
+    });
+
+    const twoFacts: HTMLElement = getFacts() as HTMLElement;
+
+    expect(twoFacts).toHaveClass("[@container(min-width:18rem)]:grid-cols-2");
+    expect(twoFacts.className).not.toContain("grid-cols-3");
+  });
+
+  test("labels each fact as the stat tiles under it do: small capitals over the value", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [{ label: "Monitor", value: "checkout-api" }],
+    });
+
+    const facts: HTMLElement = getFacts() as HTMLElement;
+
+    expect(facts.querySelector("dt")).toHaveClass(
+      "text-xs",
+      "font-medium",
+      "uppercase",
+      "tracking-wide",
+      "text-gray-500",
+    );
+    expect(facts.querySelector("dd")).toHaveClass(
+      "mt-1.5",
+      "text-sm",
+      "font-medium",
+      "text-gray-900",
+    );
   });
 
   test("renders an element value such as a link", () => {
@@ -1004,7 +1683,7 @@ describe("EventStatusPanel header facts", () => {
     );
 
     const declaredIcon: Element | null = groups[0]!.querySelector("dt svg");
-    expect(declaredIcon).toHaveClass("h-4", "w-4", "text-gray-400");
+    expect(declaredIcon).toHaveClass("h-3.5", "w-3.5", "text-gray-400");
     expect(declaredIcon).toHaveAttribute("aria-hidden", "true");
     expect(groups[1]!.querySelector("svg")).toBeNull();
     // The icon never lands directly in the <div> group or the <dd>.
@@ -1031,7 +1710,9 @@ describe("EventStatusPanel header facts", () => {
       facts.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(facts).not.toContainElement(notice);
-    expect(notice.parentElement).toHaveClass("mt-3");
+    expect(notice.parentElement).toBe(
+      screen.getByTestId("event-header-notice"),
+    );
   });
 
   test("still renders facts when the header has no pills", () => {
@@ -1114,14 +1795,14 @@ describe("EventStatusPanel header facts", () => {
     expect(container.querySelector("dl")).toBeNull();
   });
 
-  test("keeps facts out of the compact layout", () => {
+  test("draws the facts whether or not the header has a title", () => {
     renderPanel({
       facts: [{ label: "Declared", value: "Sep 14" }],
     });
 
-    expect(getFacts()).toBeNull();
-    expect(screen.queryByText("Declared")).not.toBeInTheDocument();
-    // The compact row itself is untouched.
+    expect(factPairs(getFacts() as HTMLElement)).toEqual([
+      ["Declared", "Sep 14"],
+    ]);
     expect(screen.getByTitle("Number")).toHaveTextContent("INC-42");
   });
 
@@ -1301,8 +1982,11 @@ describe("EventStatusPanel secondary actions", () => {
       declare,
       more,
     ]);
-    // A direct child of the group, like the state buttons - not nested.
-    expect(declare.parentElement).toBe(group);
+    // Beside the state buttons, in the same place - not nested further.
+    expect(declare.parentElement).toBe(acknowledge.parentElement);
+    expect(declare.parentElement).toBe(
+      screen.getByTestId("event-header-buttons"),
+    );
   });
 
   test("is a native button with its id and label as title", () => {
@@ -1634,7 +2318,9 @@ describe("EventStatusPanel secondary actions", () => {
       expect(declare).toHaveAttribute("aria-disabled", "true");
       expect(declare).toHaveAttribute("title", DECLARE_LABEL);
       expect(declare).not.toHaveClass("pointer-events-none", "w-full");
-      expect(declare.parentElement).toBe(getActionGroup());
+      expect(declare.parentElement).toBe(
+        screen.getByTestId("event-header-buttons"),
+      );
       expect(screen.queryByTestId(`${DECLARE_ID}-disabled-wrapper`)).toBeNull();
 
       fireEvent.click(declare);
@@ -1673,11 +2359,14 @@ describe("EventStatusPanel secondary actions", () => {
       "max-w-full",
       "flex-auto",
       "rounded-md",
-      "sm:max-w-64",
-      "sm:flex-none",
+      "[@container(min-width:36rem)]:max-w-64",
+      "[@container(min-width:36rem)]:flex-none",
     );
     expect(declare.parentElement).toBe(wrapper);
-    expect(wrapper.parentElement).toBe(group);
+    expect(wrapper.parentElement).toBe(
+      screen.getByTestId("event-header-buttons"),
+    );
+    expect(group).toContainElement(wrapper);
 
     // Taken out of hit-testing so the wrapper receives the hover.
     expect(declare).toHaveClass("pointer-events-none", "w-full");
@@ -1773,7 +2462,9 @@ describe("EventStatusPanel secondary actions", () => {
     const declare: HTMLElement = getButton(DECLARE_LABEL);
 
     expect(screen.queryByTestId(`${DECLARE_ID}-disabled-wrapper`)).toBeNull();
-    expect(declare.parentElement).toBe(getActionGroup());
+    expect(declare.parentElement).toBe(
+      screen.getByTestId("event-header-buttons"),
+    );
     expect(declare).toBeEnabled();
     expect(declare).toHaveAttribute("title", DECLARE_LABEL);
     expect(declare).not.toHaveClass("pointer-events-none");

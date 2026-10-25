@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { allowStateChanges } from "./StateChangePermission";
 import {
   afterEach,
   beforeEach,
@@ -506,7 +507,16 @@ const renderLoaded: RenderLoadedFunction = async (
 type ActionButtonsFunction = () => Array<HTMLElement>;
 
 const actionButtons: ActionButtonsFunction = (): Array<HTMLElement> => {
-  return within(screen.getByRole("group", { name: "Event actions" }))
+  // An episode with nothing left to do has no actions group at all.
+  const group: HTMLElement | null = screen.queryByRole("group", {
+    name: "Event actions",
+  });
+
+  if (!group) {
+    return [];
+  }
+
+  return within(group)
     .queryAllByRole("button")
     .filter((button: HTMLElement): boolean => {
       return button.getAttribute("aria-label") !== "More actions";
@@ -518,15 +528,37 @@ const actionButtons: ActionButtonsFunction = (): Array<HTMLElement> => {
 
 type FactPairsFunction = () => Array<[string, string]>;
 
+/*
+ * The facts the page and the episode name, after how long (the header's
+ * first fact, read on its own by durationFact).
+ */
 const factPairs: FactPairsFunction = (): Array<[string, string]> => {
-  return Array.from(screen.getByTestId("event-status-facts").children).map(
-    (group: Element): [string, string] => {
+  return Array.from(screen.getByTestId("event-status-facts").children)
+    .filter((group: Element): boolean => {
+      return !group.querySelector("[data-testid='event-header-duration']");
+    })
+    .map((group: Element): [string, string] => {
       return [
         group.querySelector("dt")?.textContent?.trim() || "",
         group.querySelector("dd")?.textContent?.trim() || "",
       ];
-    },
-  );
+    });
+};
+
+type DurationFactFunction = () => [string, string] | null;
+
+const durationFact: DurationFactFunction = (): [string, string] | null => {
+  const first: Element | null =
+    screen.getByTestId("event-status-facts").firstElementChild;
+
+  if (!first?.querySelector("[data-testid='event-header-duration']")) {
+    return null;
+  }
+
+  return [
+    first.querySelector("dt")?.textContent?.trim() || "",
+    first.querySelector("dd")?.textContent?.trim() || "",
+  ];
 };
 
 type MenuChoicesFunction = () => Array<string>;
@@ -564,6 +596,8 @@ beforeEach((): void => {
   getItemMock.mockReset();
   getListMock.mockReset();
   modelFormModalMock.mockReset();
+  // These drive the buttons, not who may press them.
+  allowStateChanges();
 
   const path: string = `/dashboard/${PROJECT_ID}/incidents/episodes/${EPISODE_ID}`;
 
@@ -651,6 +685,24 @@ describe.each(CASES)("$noun episode header", (episodeCase: EpisodeCase) => {
     await renderLoaded(episodeCase);
 
     expect(screen.queryByText("Private")).toBeNull();
+  });
+
+  test("says how long first: Ongoing for while it is open, Lasted once it is resolved", async () => {
+    installFakeServer(episodeCase, { stage: "acknowledged" });
+
+    const open: { view: ReturnType<typeof render> } =
+      await renderLoaded(episodeCase);
+
+    expect(durationFact()?.[0]).toBe("Ongoing for");
+    expect(durationFact()?.[1]).not.toBe("");
+    open.view.unmount();
+
+    installFakeServer(episodeCase, { stage: "resolved" });
+
+    await renderLoaded(episodeCase);
+
+    expect(durationFact()?.[0]).toBe("Lasted");
+    expect(screen.queryByText("Ongoing for")).toBeNull();
   });
 
   test("shows the grouping and when the last member joined; who opened it is the stat bar's", async () => {

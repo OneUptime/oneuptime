@@ -171,9 +171,20 @@ describe("scheduled maintenance overview: loading", () => {
     );
     expect(changeState).not.toContain("PageLoader");
     expect(changeState).not.toContain("mt-52");
-    expect(changeState).toContain('role="status"');
-    expect(changeState).toContain('aria-live="polite"');
-    expect(changeState).toContain("motion-safe:animate-pulse");
+    // The shared header skeleton, read out while it loads.
+    expect(changeState).toContain(
+      '<EventHeaderSkeleton testId="scheduled-maintenance-state-loading" loadingText={SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT}',
+    );
+
+    const skeleton: string = readSource(
+      "Components",
+      "EventView",
+      "EventHeaderSkeleton.tsx",
+    );
+
+    expect(skeleton).toContain('role={isStatus ? "status" : undefined}');
+    expect(skeleton).toContain('aria-live={isStatus ? "polite" : undefined}');
+    expect(skeleton).toContain("motion-safe:animate-pulse");
   });
 
   test("the header loads states, timeline and templates in parallel", () => {
@@ -188,6 +199,14 @@ describe("scheduled maintenance overview: header", () => {
     expect(page).toContain("facts={heroFacts}");
     expect(page).toContain('label: "Status pages"');
     expect(page).toContain('label: "Created by"');
+    // Who owns it, read from the event's own owner tables.
+    expect(page).toContain(
+      'ownerUserModelType: ScheduledMaintenanceOwnerUser, ownerTeamModelType: ScheduledMaintenanceOwnerTeam, resourceIdField: "scheduledMaintenanceId", resourceId: modelId,',
+    );
+    expect(page).toContain(
+      "RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route",
+    );
+    expect(page).toContain("canAddOwners: !isEventOver,");
     expect(page).toContain("statusPages: { _id: true, name: true, },");
     expect(page).toContain("createdByUser: { name: true, email: true, },");
     expect(changeState).toContain("facts={props.facts}");
@@ -212,12 +231,18 @@ describe("scheduled maintenance overview: header", () => {
     );
   });
 
-  test("shows overdue phases as a header notice", () => {
-    expect(changeState).toContain("headerNotice={overdueNotice}");
+  test("shows overdue phases as the header's amber band", () => {
+    expect(changeState).toContain(
+      'headerNoticeTone="warning" headerNotice={overdueNotice}',
+    );
     expect(changeState).toContain(
       "timing.isOverdue && timing.overdueSince ? ( <OverdueNotice",
     );
-    expect(changeState).toContain("bg-amber-50");
+    expect(
+      readSource("Components", "EventView", "EventHeaderLayout.ts"),
+    ).toContain(
+      "warning: `${NOTICE_BAND_CLASS_NAME} border-amber-200 bg-amber-50/70`",
+    );
   });
 
   test("re-reads the timeline after a missed boundary and refreshes the page on a real change", () => {

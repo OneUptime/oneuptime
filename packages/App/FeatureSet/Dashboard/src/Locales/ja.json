@@ -34485,5 +34485,14 @@
   "Wrong Histogram Buckets": "不適切なヒストグラムのバケット",
   "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI がこれらのメトリクス名から ID を取り除くプルリクエストを作成します。内容を確認してください。",
   "Once": "1 回",
-  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} とその検出、メモ、タイムライン、プレイブックの実行は完全に削除されます。記録を残すには、代わりに判定を付けてクローズしてください。"
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} とその検出、メモ、タイムライン、プレイブックの実行は完全に削除されます。記録を残すには、代わりに判定を付けてクローズしてください。",
+  "Completed in": "所要時間",
+  "In progress for": "経過時間",
+  "Loading scheduled maintenance status": "定期メンテナンスのステータスを読み込んでいます",
+  "Overrunning by": "超過時間",
+  "Planned to end at {{time}}, but it has not been marked as {{state}} yet.": "{{time}} に終了する予定でしたが、まだ{{state}}になっていません。",
+  "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "{{time}} に開始する予定でしたが、まだ{{state}}になっていません。",
+  "Start overdue by": "開始の遅れ",
+  "Starts in": "開始まで",
+  "State progress": "状態の進捗"
 }

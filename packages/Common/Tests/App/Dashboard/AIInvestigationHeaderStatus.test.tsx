@@ -257,13 +257,9 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     });
     const summary: HTMLElement = screen.getByText(SUMMARY);
 
-    expect(eyebrow).toHaveClass(
-      "text-xs",
-      "font-semibold",
-      "uppercase",
-      "tracking-wider",
-      "text-indigo-600",
-    );
+    // A heading in sentence case, not an eyebrow in capitals.
+    expect(eyebrow).toHaveClass("text-sm", "font-semibold", "text-indigo-900");
+    expect(eyebrow).not.toHaveClass("uppercase", "tracking-wider", "text-xs");
     // Three lines at a readable measure; Show more has the rest.
     expect(summary).toHaveClass("line-clamp-3", "max-w-4xl", "text-sm");
     // The whole summary is reachable on the page, so no hover-only copy.
@@ -274,7 +270,7 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     ).toBeTruthy();
   });
 
-  test("uses the compact indigo notice with a Sparkles badge and no live animation", () => {
+  test("is a band of the header, not a box: no frame, tint or shadow of its own, a Sparkles mark and no live animation", () => {
     const { container } = render(
       <AIInvestigationHeaderStatus
         status={AIRunStatus.Completed}
@@ -285,7 +281,17 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
 
     const notice: HTMLElement = container.firstElementChild as HTMLElement;
 
-    expect(notice).toHaveClass("rounded-lg", "border", "border-indigo-100");
+    expect(notice).toHaveAttribute("data-testid", "ai-header-summary");
+    // The header paints the band (EventStatusPanel's "ai" notice).
+    for (const element of [notice, ...Array.from(notice.querySelectorAll("*"))]) {
+      const className: string = element.getAttribute("class") || "";
+      expect({ className, boxed: /(^|\s)(border|shadow-sm|shadow|bg-gradient-to-r)(\s|$)/.test(className) }).toEqual({ className, boxed: false });
+    }
+    expect(notice.className).not.toMatch(/(^|\s)bg-(indigo|white)/);
+    expect(screen.getByTestId("ai-header-mark")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(container.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
     expect(container.innerHTML).not.toContain("animate-ping");
     expect(screen.queryByText("AI is investigating")).not.toBeInTheDocument();
@@ -453,32 +459,35 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
     expect(header.parentElement).toBe(grid);
     expect(summary).toHaveClass("col-span-2", "break-words");
     /*
-     * Below lg (a phone, or a tablet's column beside the side menu) the label
-     * has the row to itself; from lg up it shares it with the button.
+     * On a narrow header (a phone, or a tablet's column beside the side
+     * menu) the label has the row to itself; from 36rem of header it shares
+     * it with the button - by the header's own width, never the window's.
      */
     expect(header).toHaveClass(
       "min-w-0",
       "col-span-2",
-      "lg:col-span-1",
+      "[@container(min-width:36rem)]:col-span-1",
       "flex-wrap",
     );
-    expect(header.className).not.toMatch(/(^|\s)(sm|md):col-span-1/);
+    expect(header.className).not.toMatch(/(^|\s)(sm|md|lg|xl):col-span-1/);
     // The icon and the label never wrap apart, whatever wraps beside them.
     expect(headingGroup).toHaveClass("flex", "min-w-0");
     expect(headingGroup).not.toHaveClass("flex-wrap");
     expect(heading).toHaveClass("truncate");
-    // Below lg the button drops to the bottom row, beside Show more.
+    // On a narrow header the button drops to the bottom row, beside Show more.
     expect(viewReport).toHaveClass(
       "row-start-3",
-      "lg:row-start-1",
+      "[@container(min-width:36rem)]:row-start-1",
       "whitespace-nowrap",
     );
-    expect(viewReport.className).not.toMatch(/(^|\s)(sm|md):row-start-1/);
+    expect(viewReport.className).not.toMatch(
+      /(^|\s)(sm|md|lg|xl):row-start-1/,
+    );
     /*
      * Aligned to the top of its row, so it stays level with the label's
      * line when a verdict badge wraps below it.
      */
-    expect(viewReport).toHaveClass("self-start", "-my-0.5");
+    expect(viewReport).toHaveClass("self-start", "-my-1");
     // The paragraphs hold only text: Icon renders a <div>, never inside a <p>.
     expect(summary.querySelector("div")).toBeNull();
     expect(heading.querySelector("div")).toBeNull();

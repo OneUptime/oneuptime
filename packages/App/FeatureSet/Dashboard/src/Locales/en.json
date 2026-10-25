@@ -34485,5 +34485,14 @@
   "Wrong Histogram Buckets": "Wrong Histogram Buckets",
   "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.": "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
   "Once": "Once",
-  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead."
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
+  "Completed in": "Completed in",
+  "In progress for": "In progress for",
+  "Loading scheduled maintenance status": "Loading scheduled maintenance status",
+  "Overrunning by": "Overrunning by",
+  "Planned to end at {{time}}, but it has not been marked as {{state}} yet.": "Planned to end at {{time}}, but it has not been marked as {{state}} yet.",
+  "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Planned to start at {{time}}, but it has not been marked as {{state}} yet.",
+  "Start overdue by": "Start overdue by",
+  "Starts in": "Starts in",
+  "State progress": "State progress"
 }

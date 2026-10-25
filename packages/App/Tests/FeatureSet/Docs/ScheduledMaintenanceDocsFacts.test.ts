@@ -1622,11 +1622,31 @@ describe("the header's clock", () => {
 
   it("calls the two warnings what the header calls them, in amber, with the planned time and the state not reached", () => {
     expect(CHANGE_STATE).toContain(
-      '<span>{isStartOverdue ? "Start overdue" : "Overrunning"}</span>',
+      'export const START_OVERDUE_TEXT: string = translationKey("Start overdue");',
     );
-    expect(CHANGE_STATE).toContain("bg-amber-50");
     expect(CHANGE_STATE).toContain(
-      '{isStartOverdue ? "Planned to start at " : "Planned to end at "}',
+      'export const OVERRUNNING_TEXT: string = translationKey("Overrunning");',
+    );
+    expect(CHANGE_STATE).toContain(
+      "isStartOverdue ? START_OVERDUE_TEXT : OVERRUNNING_TEXT,",
+    );
+    // An amber notice: the header's amber band, its words in amber.
+    expect(CHANGE_STATE).toContain('headerNoticeTone="warning"');
+    expect(CHANGE_STATE).toContain(
+      '<p className="text-sm font-semibold text-amber-800">',
+    );
+    expect(
+      readDashboardSource("Components/EventView/EventHeaderLayout.ts"),
+    ).toContain("border-amber-200 bg-amber-50/70");
+    // The planned time, and the state the event has not reached yet.
+    expect(CHANGE_STATE).toContain(
+      '"Planned to start at {{time}}, but it has not been marked as {{state}} yet.",',
+    );
+    expect(CHANGE_STATE).toContain(
+      '"Planned to end at {{time}}, but it has not been marked as {{state}} yet.",',
+    );
+    expect(CHANGE_STATE).toContain(
+      "values={{ state: translatableTerm(props.nextStateName) }}",
     );
     expect(clock).toContain(
       "- **Start overdue**: the event is still waiting after its **Starts At**.",

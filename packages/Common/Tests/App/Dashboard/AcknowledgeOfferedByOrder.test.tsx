@@ -300,7 +300,16 @@ async function renderLoaded(kind: HeaderKind): Promise<void> {
  * More actions menu either.
  */
 function stateActionIds(kind: HeaderKind): Array<string> {
-  return within(screen.getByRole("group", { name: "Event actions" }))
+  // A record with nothing left to do has no actions group at all.
+  const group: HTMLElement | null = screen.queryByRole("group", {
+    name: "Event actions",
+  });
+
+  if (!group) {
+    return [];
+  }
+
+  return within(group)
     .queryAllByRole("button")
     .map((button: HTMLElement): string => {
       return button.id;

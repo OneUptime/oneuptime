@@ -2858,10 +2858,23 @@ describe("incident-only behaviour", () => {
       <>{monitorFact!.value}</>,
     );
 
-    expect(within(several.container).getAllByRole("link")).toHaveLength(2);
-    expect(several.container).toHaveTextContent(
-      "checkout-api, payments-api +2 more",
+    // Two by name, one under another, then how many more.
+    const list: HTMLElement = within(several.container).getByTestId(
+      "event-monitor-links",
     );
+
+    expect(list).toHaveClass("flex", "flex-col");
+    expect(
+      within(list)
+        .getAllByRole("link")
+        .map((monitorLink: HTMLElement): string => {
+          return monitorLink.textContent || "";
+        }),
+    ).toEqual(["checkout-api", "payments-api"]);
+    expect(list.lastElementChild).toHaveTextContent("+2 more");
+    expect(list.lastElementChild).toHaveClass("text-gray-500");
+    // No comma glued between two names that wrap.
+    expect(list.textContent).not.toContain(",");
   });
 
   test("an incident with no monitors gets no monitor fact", async () => {
@@ -3488,12 +3501,21 @@ describe("alert-only behaviour", () => {
       </>,
     );
 
-    expect(
-      within(rendered.container).getByTestId("monitor-element"),
-    ).toHaveTextContent("checkout-api");
-    expect(
-      within(rendered.container).getByTestId("episode-element"),
-    ).toHaveTextContent("Checkout errors across regions");
+    // Links to their pages, drawn as an incident's header draws its monitors.
+    const monitorLink: HTMLElement = within(
+      within(rendered.container).getByTestId("event-monitor-links"),
+    ).getByRole("link", { name: "checkout-api" });
+    const episodeLink: HTMLElement = within(
+      within(rendered.container).getByTestId("event-episode-links"),
+    ).getByRole("link", { name: "Checkout errors across regions" });
+
+    expect(monitorLink.getAttribute("href")).toContain(MONITOR_ID);
+    expect(episodeLink.getAttribute("href")).toContain(
+      "cccccccc-cccc-4ccc-8ccc-ccccccccccc1",
+    );
+    for (const factLink of [monitorLink, episodeLink]) {
+      expect(factLink).toHaveClass("text-indigo-600", "hover:underline");
+    }
   });
 
   test("an alert outside any episode gets no episode fact", async () => {
