@@ -91,7 +91,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
-Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Assign to Me**, **Run Playbook**, **Declarar incidente** y **Close Case**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**.
+Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Asignarme**, **Run Playbook**, **Declarar incidente** y **Close Case**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Asignar a otra persona**, **Cambiar estado**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**.
 
 - **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo.
 - **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
 - **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas, cronología y ejecuciones de playbooks. Para conservar el registro, ciérralo con un veredicto.
 
-Para gestionar varios casos a la vez, selecciónalos en la cola y usa **Assign to Me**, **Change Status** o **Change Priority**.
+### Gestionar casos desde la cola
+
+No tienes que abrir un caso para gestionarlo. En las listas de la cola, el menú ⋯ de la fila de un caso tiene **Asignarme**, **Asignar a otra persona**, **Cambiar estado** y **Cambiar prioridad**. Para gestionar varios casos a la vez, selecciónalos y usa las mismas acciones en **Acciones masivas**: te dice qué casos cambió, cuáles dejó como estaban y por qué.
+
+- Para darle un caso a otra persona, usa **Asignar a otra persona** y elige una persona o un equipo. El caso de un equipo espera en **Sin asignar** hasta que alguien del equipo lo toma.
+- Un estado que cierra un caso pide un veredicto y una nota de cierre, como hace **Close Case**.
+- Un caso cerrado no se asigna a nadie. Para volver a gestionarlo, reábrelo con **Cambiar estado**.
 
 ### Cerrar un caso
 

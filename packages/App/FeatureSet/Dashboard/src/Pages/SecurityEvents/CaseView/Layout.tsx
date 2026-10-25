@@ -8,6 +8,18 @@ import {
   getSecurityCaseAssigneePickerConfig,
   getSecurityCaseTeamPickerConfig,
 } from "../../../Components/SecurityCase/SecurityCaseAssigneePicker";
+import {
+  SecurityCaseAssigneePick,
+  SecurityCaseStatusPick,
+  getSecurityCaseAssignSkipReason,
+  getSecurityCaseAssignWrite,
+  getSecurityCaseStatusSkipReason,
+  getSecurityCaseStatusWrite,
+} from "../../../Components/SecurityCase/SecurityCaseChanges";
+import {
+  AssignSecurityCaseModal,
+  ChangeSecurityCaseStatusModal,
+} from "../../../Components/SecurityCase/SecurityCaseChangeModals";
 import SecurityCaseHeader from "../../../Components/SecurityCase/SecurityCaseHeader";
 import SecurityCaseNotFound, {
   SecurityCaseNotFoundReason,
@@ -70,6 +82,8 @@ import { Outlet, matchPath, useLocation, useParams } from "react-router-dom";
 
 type CaseDialog =
   | "close"
+  | "assign"
+  | "changeStatus"
   | "runPlaybook"
   | "declareIncident"
   | "edit"
@@ -98,9 +112,11 @@ interface LoadedCase {
  * colleague's change, a playbook step or a detection joining it bumps
  * every page - and draws its header on top of each: in full on the
  * Overview, compact on the others, with the same actions on every one. The
- * actions' dialogs live here too, so Close Case, Run Playbook, Declare
- * Incident, Edit Case and Delete Case work the same from any page. The
- * crumb that stands for the case names it by its number.
+ * actions' dialogs live here too, so Close Case, Assign to Someone Else,
+ * Change Status, Run Playbook, Declare Incident, Edit Case and Delete Case
+ * work the same from any page - Assign to Someone Else and Change Status as
+ * a row's ⋯ in the case lists does them (SecurityCaseChanges). The crumb
+ * that stands for the case names it by its number.
  *
  * A case that is not there, or that the reader may not read, says so in
  * place of its pages, with the way back to the queue.
@@ -282,6 +298,28 @@ const SecurityCaseViewLayout: FunctionComponent<
     setDialog("delete");
   }, []);
 
+  /*
+   * A change made in one of the header's dialogs: saved with the dialog
+   * open, which says why when it cannot be, then the case read again. A
+   * pick that leaves the case as it is closes the dialog without a write.
+   */
+  const saveFromDialog: (data: JSONObject | null) => Promise<void> =
+    useCallback(
+      async (data: JSONObject | null): Promise<void> => {
+        if (data) {
+          await ModelAPI.updateById<SecurityCase>({
+            modelType: SecurityCase,
+            id: caseId,
+            data: data,
+          });
+        }
+
+        setDialog(null);
+        refreshAll();
+      },
+      [caseIdString, refreshAll],
+    );
+
   const isCurrentCaseLoaded: boolean =
     loaded !== null && loaded.caseId === caseIdString;
   const securityCase: SecurityCase | null = isCurrentCaseLoaded
@@ -405,6 +443,12 @@ const SecurityCaseViewLayout: FunctionComponent<
           onAssignToMe={() => {
             void updateCase({ assignedToUserId: User.getUserId().toString() });
           }}
+          onAssignToSomeoneElse={() => {
+            setDialog("assign");
+          }}
+          onPickStatus={() => {
+            setDialog("changeStatus");
+          }}
           onChangeStatus={(status: SecurityCaseStatus) => {
             // A status that closes the case asks for its verdict first.
             if (
@@ -457,6 +501,55 @@ const SecurityCaseViewLayout: FunctionComponent<
             onDone={() => {
               setDialog(null);
               refreshAll();
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {dialog === "assign" ? (
+          <AssignSecurityCaseModal
+            securityCases={[securityCase]}
+            onClose={() => {
+              setDialog(null);
+            }}
+            onSubmit={async (pick: SecurityCaseAssigneePick) => {
+              await saveFromDialog(
+                getSecurityCaseAssignSkipReason({
+                  securityCase: securityCase,
+                  pick: pick,
+                  statuses: values.statuses,
+                  myUserId: User.getUserId(),
+                })
+                  ? null
+                  : getSecurityCaseAssignWrite(pick),
+              );
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {dialog === "changeStatus" ? (
+          <ChangeSecurityCaseStatusModal
+            securityCases={[securityCase]}
+            values={values}
+            onClose={() => {
+              setDialog(null);
+            }}
+            onSubmit={async (pick: SecurityCaseStatusPick) => {
+              await saveFromDialog(
+                getSecurityCaseStatusSkipReason({
+                  securityCase: securityCase,
+                  statusId: pick.statusId,
+                })
+                  ? null
+                  : getSecurityCaseStatusWrite({
+                      securityCase: securityCase,
+                      pick: pick,
+                      statuses: values.statuses,
+                    }),
+              );
             }}
           />
         ) : (
