@@ -34799,5 +34799,6 @@
   "Nothing it names was found.": "找不到它指向的任何內容。",
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime 無法確定這些是同一筆記錄，因此它們不會計入其頁面，也不會連結到事件。",
   "Possible matches": "可能的相符項目",
-  "Some kinds of record could not be read, so it may still be in OneUptime.": "部分類型的記錄無法讀取，因此它仍可能在 OneUptime 中。"
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "部分類型的記錄無法讀取，因此它仍可能在 OneUptime 中。",
+  "Approvals": "待核准"
 }

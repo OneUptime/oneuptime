@@ -188,8 +188,8 @@ interface OpenOptions {
   fail?: "status" | "overview";
   // What the project's events say it sends: nothing this week, or a read that fails.
   data?: "none" | "fail";
-  // The Dashboard's German or Japanese locale.
-  lang?: "de" | "ja";
+  // The Dashboard's German, French, Italian, Dutch, Japanese or Persian locale.
+  lang?: "de" | "fr" | "it" | "nl" | "ja" | "fa";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
   // Case numbers, comma separated, whose every change the server refuses.
@@ -772,7 +772,7 @@ test.describe("the overview", () => {
       [
         "1 playbook step waiting for approval",
         RUNS_PATH,
-        "Waiting for Approval",
+        "Approvals",
         "Contain Compromised Okta Users",
       ],
     ]) {
@@ -4153,7 +4153,7 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbook-desktop");
   });
 
-  test("Waiting for Approval, at the runs page's old address, lists the run held for a decision", async ({
+  test("Approvals, at the runs page's old address, lists the run held for a decision", async ({
     page,
   }: {
     page: Page;
@@ -4169,14 +4169,14 @@ test.describe("playbooks", () => {
       "CASE-142",
     );
     await expect(
-      page.getByRole("heading", { name: "Waiting for Approval", exact: true }),
+      page.getByRole("heading", { name: "Approvals", exact: true }),
     ).toBeVisible();
-    expect(await litEntries(page)).toEqual(["Waiting for Approval"]);
+    expect(await litEntries(page)).toEqual(["Approvals"]);
     expect(await breadcrumbs(page)).toEqual([
       "Project",
       "Security Events",
       "Playbooks",
-      "Waiting for Approval",
+      "Approvals",
     ]);
     // The views that sat on the card are gone: each is a page.
     await expect(
@@ -4185,7 +4185,7 @@ test.describe("playbooks", () => {
     await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
     // With a run listed, the card says what the page holds.
     await expect(
-      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+      cardTitled(page, "Approvals").getByTestId("card-description"),
     ).toContainText("Runs held before a step that needs approval.");
 
     await screenshot(page, "playbook-runs-waiting-desktop");
@@ -4334,7 +4334,7 @@ test.describe("playbooks", () => {
     }
   });
 
-  test("with nothing held, Waiting for Approval says all is clear; with no run, Playbook Runs points at the playbooks", async ({
+  test("with nothing held, Approvals says all is clear; with no run, Playbook Runs points at the playbooks", async ({
     page,
   }: {
     page: Page;
@@ -4346,7 +4346,7 @@ test.describe("playbooks", () => {
     await expect(waiting).toContainText("No step is waiting for approval");
     // The empty state says what the page is for; the card does not say it again.
     await expect(
-      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+      cardTitled(page, "Approvals").getByTestId("card-description"),
     ).toHaveCount(0);
 
     await open(page, ALL_RUNS_PATH, { quiet: true });
@@ -5404,7 +5404,7 @@ test.describe("detections", () => {
       "Entities",
       "Correlate",
       "Playbooks",
-      "Waiting for Approval",
+      "Approvals",
       "Playbook Runs",
     ]) {
       await expect(menuEntry(page, title)).toBeVisible();
@@ -5424,7 +5424,7 @@ test.describe("detections", () => {
     // What waits for someone is counted beside the page that lists it.
     await expect(menuEntry(page, "Open Cases")).toContainText("6");
     await expect(menuEntry(page, "Assigned to Me")).toContainText("2");
-    await expect(menuEntry(page, "Waiting for Approval")).toContainText("1");
+    await expect(menuEntry(page, "Approvals")).toContainText("1");
 
     await screenshot(page, "side-menu-desktop", { fullPage: false });
 
@@ -5445,6 +5445,74 @@ test.describe("detections", () => {
       timeout: 30000,
     });
     await screenshot(page, "side-menu-dark", { fullPage: false });
+  });
+
+  /*
+   * An entry shares its row with its count. Beside the 224px menu a tablet
+   * has (768 to 1023px), "Waiting for Approval" was cut to "Waiting for
+   * Appr…" - and in German, French and Italian at every width - and so were
+   * Assigned to Me's Dutch and Japanese names. The page is Approvals now,
+   * and those two are Mijn zaken and 自分の担当: every entry that carries a
+   * count keeps its whole name, in English and in the languages whose names
+   * ran longest, beside a tablet's menu and a laptop's.
+   */
+  test("an entry keeps its whole name beside its count, beside a tablet's menu and in the longest languages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const views: Array<[number, OpenOptions["lang"] | undefined]> = [
+      [800, undefined],
+      [1023, undefined],
+      [1440, undefined],
+      [800, "de"],
+      [1440, "de"],
+      [800, "fr"],
+      [1440, "fr"],
+      [800, "it"],
+      [800, "nl"],
+      [800, "ja"],
+      [800, "fa"],
+    ];
+
+    const cutShort: Array<string> = [];
+
+    for (const [width, lang] of views) {
+      await open(page, OVERVIEW_PATH, lang ? { width, lang } : { width });
+
+      for (const [pathname, count] of [
+        [CASES_PATH, "6"],
+        [MY_CASES_PATH, "2"],
+        [RUNS_PATH, "1"],
+      ]) {
+        const entry: Locator = sideMenu(page).locator(
+          `a[href="${pathname!}"]`,
+        );
+        await expect(entry).toContainText(count!, { timeout: 30000 });
+
+        const title: Locator = entry.locator("span.truncate").first();
+        const cutBy: number = await title.evaluate(
+          (element: Element): number => {
+            return element.scrollWidth - element.clientWidth;
+          },
+        );
+
+        if (cutBy > 0) {
+          cutShort.push(
+            `${(await title.textContent()) || ""} (${lang || "en"}, ${width}px): ${cutBy}px`,
+          );
+        }
+      }
+    }
+
+    expect(cutShort).toEqual([]);
+
+    await open(page, OVERVIEW_PATH, { width: 800, lang: "de" });
+    await expect(sideMenu(page).locator(`a[href="${RUNS_PATH}"]`)).toContainText(
+      "Genehmigungen",
+      { timeout: 30000 },
+    );
+    await screenshot(page, "side-menu-tablet-de", { fullPage: false });
   });
 
   test("on a phone, the menu names the section and the page, and opens on its sections", async ({

@@ -238,7 +238,7 @@ describe("each trail names the page as the menu does", () => {
     [PageMap.SECURITY_PLAYBOOKS, ["Security Events", "Playbooks"]],
     [
       PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-      ["Security Events", "Playbooks", "Waiting for Approval"],
+      ["Security Events", "Playbooks", "Approvals"],
     ],
     [
       PageMap.SECURITY_PLAYBOOK_RUNS,

@@ -20,9 +20,8 @@ import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
 
 /*
  * The playbook runs, as two pages under Playbooks in the side menu:
- * Waiting for Approval and Playbook Runs. They were three views switched
- * by buttons along the top of one card (Waiting for Approval, Running, All
- * Runs). Each page is drawn here for real: what it asks the server for,
+ * Approvals and Playbook Runs. They were three views switched by buttons
+ * along the top of one card (Waiting for Approval, Running, All Runs). Each page is drawn here for real: what it asks the server for,
  * its card, its runs, and what it says when there are none - all clear for
  * the approvals, a way to the playbooks for the runs.
  */
@@ -194,7 +193,7 @@ describe("the two runs pages", () => {
     },
   );
 
-  test("Waiting for Approval asks for the runs held for an approval, newest first", async () => {
+  test("Approvals asks for the runs held for an approval, newest first", async () => {
     await renderRuns("waiting");
 
     expect(listRequests[0]).toEqual({
@@ -214,11 +213,11 @@ describe("the two runs pages", () => {
     });
   });
 
-  test("a page without a view is Waiting for Approval, the runs page's old address", async () => {
+  test("a page without a view is Approvals, the runs page's old address", async () => {
     await renderRuns(undefined);
 
     expect(
-      screen.getByRole("heading", { name: "Waiting for Approval" }),
+      screen.getByRole("heading", { name: "Approvals" }),
     ).toBeInTheDocument();
     expect(listRequests[0]?.query).toEqual({
       status: SecurityPlaybookRunStatus.WaitingForApproval,

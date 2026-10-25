@@ -174,12 +174,7 @@ describe("the Security Events menu", () => {
       ],
       [
         "Playbooks",
-        [
-          "Playbooks",
-          "Waiting for Approval",
-          "Playbook Runs",
-          "Protected Entities",
-        ],
+        ["Playbooks", "Approvals", "Playbook Runs", "Protected Entities"],
       ],
       // What OneUptime AI does on its own; the triage is on each case.
       ["AI", ["Settings"]],
@@ -212,7 +207,7 @@ describe("the Security Events menu", () => {
       ["Threat Intel", "SECURITY_EVENTS_THREAT_INTEL"],
       ["ATT&CK Coverage", "SECURITY_EVENTS_ATTACK_COVERAGE"],
       ["Playbooks", "SECURITY_PLAYBOOKS"],
-      ["Waiting for Approval", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
+      ["Approvals", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
       ["Protected Entities", "SECURITY_PROTECTED_ENTITIES"],
       ["Settings", "SECURITY_EVENTS_SETTINGS_AI"],
@@ -282,7 +277,7 @@ describe("the Security Events menu", () => {
     ]);
   });
 
-  test("counts what is waiting beside Open Cases, Assigned to Me and Waiting for Approval, and nowhere else", () => {
+  test("counts what is waiting beside Open Cases, Assigned to Me and Approvals, and nowhere else", () => {
     expect(
       getSecurityEventsMenuItems()
         .filter((item: SecurityEventsMenuItem): boolean => {
@@ -294,7 +289,7 @@ describe("the Security Events menu", () => {
     ).toEqual([
       ["Open Cases", "openCases"],
       ["Assigned to Me", "myOpenCases"],
-      ["Waiting for Approval", "runsWaitingForApproval"],
+      ["Approvals", "runsWaitingForApproval"],
     ]);
   });
 
@@ -585,7 +580,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Detections", "Threat Intel"],
       ["Security Events", "Detections", "ATT&CK Coverage"],
       ["Security Events", "Playbooks"],
-      ["Security Events", "Playbooks", "Waiting for Approval"],
+      ["Security Events", "Playbooks", "Approvals"],
       ["Security Events", "Playbooks", "Playbook Runs"],
       ["Security Events", "Playbooks", "Protected Entities"],
       ["Security Events", "AI", "Settings"],

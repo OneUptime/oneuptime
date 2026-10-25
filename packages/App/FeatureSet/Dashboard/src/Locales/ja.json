@@ -28123,7 +28123,7 @@
   "Assign To": "Assign To",
   "Assign the case": "Assign the case",
   "Assign to Me": "自分に割り当て",
-  "Assigned to Me": "自分に割り当て済み",
+  "Assigned to Me": "自分の担当",
   "Assignee": "Assignee",
   "Automated responses to security cases: steps that assign, investigate, notify, escalate and contain, run when a matching case opens or by hand.": "Automated responses to security cases: steps that assign, investigate, notify, escalate and contain, run when a matching case opens or by hand.",
   "Available in the rule library": "Rule Library で利用可能",
@@ -34799,5 +34799,6 @@
   "Nothing it names was found.": "示されているものは見つかりませんでした。",
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime では同じレコードだと確信できないため、それぞれのページでは数えられず、インシデントにもリンクされません。",
   "Possible matches": "一致の可能性があるもの",
-  "Some kinds of record could not be read, so it may still be in OneUptime.": "一部の種類のレコードを読み取れなかったため、OneUptime にある可能性があります。"
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "一部の種類のレコードを読み取れなかったため、OneUptime にある可能性があります。",
+  "Approvals": "承認待ち"
 }

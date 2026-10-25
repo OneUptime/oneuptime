@@ -333,7 +333,7 @@ describe("the count beside Playbook Runs", () => {
     goTo(caseRoute(PageMap.SECURITY_CASE_VIEW));
   });
 
-  test("asks for this case's runs held for an approval, in the warning colour Waiting for Approval's count has", () => {
+  test("asks for this case's runs held for an approval, in the warning colour the Approvals count has", () => {
     expect(
       getSecurityCaseMenuBadgeCount(
         "runsWaitingForApproval",

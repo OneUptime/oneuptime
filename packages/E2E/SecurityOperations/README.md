@@ -21,7 +21,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
 | Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`, `SecurityPlaybookTemplatePicker`                           |
 | A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                           |
-| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
+| Approvals            | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
 | Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                     |
 | AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
 | Case Priorities      | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
@@ -178,7 +178,7 @@ that list is not empty.
   in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
   its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
   Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
-  phone; Waiting for Approval, at the runs page's old
+  phone; Approvals, at the runs page's old
   address, lists the run held for a decision, and Playbook Runs every run, each a line of how far
   it got - the failed one Stopped at step 2 in red, its reason under Show steps; an empty runs
   page says what it is for in its empty state only.

@@ -34799,5 +34799,6 @@
   "Nothing it names was found.": "Ingenting den nevner, ble funnet.",
   "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime kan ikke være sikker på at dette er de samme oppføringene, så de telles ikke på sidene sine og knyttes ikke til hendelser.",
   "Possible matches": "Mulige treff",
-  "Some kinds of record could not be read, so it may still be in OneUptime.": "Noen typer oppføringer kunne ikke leses, så det kan likevel finnes i OneUptime."
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "Noen typer oppføringer kunne ikke leses, så det kan likevel finnes i OneUptime.",
+  "Approvals": "Godkjenninger"
 }
