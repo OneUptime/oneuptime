@@ -434,7 +434,9 @@ describe("toResourceSecurityCaseJson", () => {
 });
 
 describe("IncidentSecurity.read", () => {
-  function readIncident(incident: object | null): jest.SpyInstance {
+  function readIncident(
+    incident: Record<string, unknown> | null,
+  ): jest.SpyInstance {
     return jest
       .spyOn(IncidentService, "findOneBy")
       .mockResolvedValue(incident as never);

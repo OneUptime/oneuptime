@@ -525,7 +525,9 @@ describe("the facts on each record", () => {
     const keys: Array<unknown> = Object.values(
       (
         (inventorySpy.mock.calls[0]![0] as { query: Record<string, unknown> })
-          .query["entityKey"] as { objectLiteralParameters: object }
+          .query["entityKey"] as {
+          objectLiteralParameters: Record<string, unknown>;
+        }
       ).objectLiteralParameters,
     ).flat();
 

@@ -217,7 +217,14 @@ test.describe("an incident's Security card", () => {
     page: Page;
   }) => {
     await open(page);
-    await expect.poll(() => securityReads(page), { timeout: 30000 }).toBe(1);
+    await expect
+      .poll(
+        (): Promise<number> => {
+          return securityReads(page);
+        },
+        { timeout: 30000 },
+      )
+      .toBe(1);
     await expect(card(page)).toHaveCount(0);
   });
 

@@ -287,7 +287,11 @@ test.describe("a case's Connected Signals", () => {
     expect(investigation[entities + 1]?.trim()).toBe("Connected Signals");
 
     await menuEntry(page, "Connected Signals").click();
-    await expect.poll(() => new URL(page.url()).pathname).toBe(SPRAY_CASE);
+    await expect
+      .poll((): string => {
+        return new URL(page.url()).pathname;
+      })
+      .toBe(SPRAY_CASE);
     await waitForRecords(page);
     expect(await litEntries(page)).toEqual(["Connected Signals"]);
     // The trail names the case by its number, then the page.
