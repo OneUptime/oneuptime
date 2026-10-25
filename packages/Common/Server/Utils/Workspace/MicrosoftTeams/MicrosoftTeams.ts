@@ -73,7 +73,7 @@ import {
   ConfigurationBotFrameworkAuthenticationOptions,
   Activity,
   ResourceResponse,
-} from "botbuilder";
+} from "./Botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 // Teams action handlers and types
@@ -120,6 +120,7 @@ import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
 } from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
+import MicrosoftTeamsAiAnswer from "./MicrosoftTeamsAiAnswer";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
@@ -146,6 +147,7 @@ import WorkspaceProjectResolver, {
   WorkspaceProjectResolution,
 } from "../WorkspaceProjectResolution";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import WorkspaceAiRefusal from "../WorkspaceAiRefusal";
 import AIService, {
   AI_DISABLED_MESSAGE,
   getProjectDailyLimitMessage,
@@ -3882,12 +3884,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
          * The help, and the answer to a misspelt command, read nothing in
          * any project: an organization connected to several projects, with
          * nothing to tell which, still gets them - as Slack answers
-         * /oneuptime help at once.
+         * /oneuptime help at once - and so does one connected to none yet,
+         * whose help says how to get started. Microsoft's store refused the
+         * app while that help was "Sorry, I couldn't find your project
+         * configuration".
          */
-        if (tenantResolution.isAmbiguous && !listCommand) {
+        if (!listCommand) {
           if (input.command === WorkspaceCommandName.Help) {
             await MicrosoftTeamsCommands.replyHelp({
               turnContext: data.turnContext,
+              isConnected: tenantResolution.isAmbiguous,
             });
             return;
           }
@@ -4533,6 +4539,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     /*
+     * The project's AI credits, read before we acknowledge for the same
+     * reason. A project whose credits are used up - every new project,
+     * until somebody adds some - was told "I ran into a problem answering
+     * that question. Please try again later" on every question, which no
+     * retry answers: Microsoft's reviewers were, in the project they had
+     * just created to test the app. This says so, and who can add them, and
+     * where (WorkspaceAiRefusal.getCreditsRefusal).
+     */
+    const creditsRefusal: string | null =
+      await WorkspaceAiRefusal.getCreditsRefusal(projectId);
+
+    if (creditsRefusal) {
+      logger.debug("AI Ops declined: the project's AI credits are used up", {
+        projectId: projectId.toString(),
+      });
+      await turnContext.sendActivity(
+        mdText`${creditsRefusal} ${this.HELP_POINTER}`.toString(),
+      );
+      return;
+    }
+
+    /*
      * Let the user know we're working on it: the assistant runs a bounded,
      * tool-grounded agent loop and can take several seconds. A personal or
      * group chat shows OneUptime typing, which goes by itself when the
@@ -4612,25 +4640,53 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 
+      /*
+       * Said under every answer, and shown by Teams' own label on it: AI
+       * wrote it, it may be wrong, and how to report it
+       * (MicrosoftTeamsAiAnswer).
+       */
+      replyText = mdText`${replyText}\n\n${MicrosoftTeamsAiAnswer.getNotice()}`;
+
       await this.sendAnswerInPlaceOf({
         turnContext: turnContext,
         placeholderId: placeholderId,
         text: replyText.toString(),
+        isAiAnswer: true,
       });
       logger.debug("AI Ops answer sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
     } catch (error) {
-      logger.error(
-        "Error answering observability question via AI Ops: " + error,
-        {
-          projectId: projectId.toString(),
-        },
-      );
+      /*
+       * A refusal while the answer was written - its calls used up the
+       * last AI credits, or crossed the day's limit - is said as it is,
+       * with where to change it: "try again later" would not get past it.
+       */
+      const refusal: string | null =
+        WorkspaceAiRefusal.getRefusalMessage(error);
+
+      if (refusal) {
+        logger.debug(
+          "AI Ops declined while answering: " + refusal.substring(0, 200),
+          {
+            projectId: projectId.toString(),
+          },
+        );
+      } else {
+        logger.error(
+          "Error answering observability question via AI Ops: " + error,
+          {
+            projectId: projectId.toString(),
+          },
+        );
+      }
+
       await this.sendAnswerInPlaceOf({
         turnContext: turnContext,
         placeholderId: placeholderId,
-        text: "Sorry, I ran into a problem answering that question. Please try again later.",
+        text: refusal
+          ? mdText`${refusal} ${this.HELP_POINTER}`.toString()
+          : "Sorry, I ran into a problem answering that question. Please try again later.",
       });
     }
   }
@@ -4669,19 +4725,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * The answer - or why there is none - in place of the channel's
    * placeholder; a new reply when there is none, or Teams will not change
-   * it in place.
+   * it in place. An answer OneUptime AI wrote carries Teams' AI label and
+   * feedback buttons either way (MicrosoftTeamsAiAnswer.toActivity).
    */
   private static async sendAnswerInPlaceOf(data: {
     turnContext: TurnContext;
     placeholderId: string | undefined;
     text: string;
+    isAiAnswer?: boolean | undefined;
   }): Promise<void> {
+    const answer: Partial<Activity> = data.isAiAnswer
+      ? MicrosoftTeamsAiAnswer.toActivity(data.text)
+      : { type: "message", text: data.text };
+
     if (data.placeholderId) {
       try {
         await data.turnContext.updateActivity({
+          ...answer,
           id: data.placeholderId,
-          type: "message",
-          text: data.text,
         });
         return;
       } catch (updateError) {
@@ -4692,7 +4753,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    await data.turnContext.sendActivity(data.text);
+    await data.turnContext.sendActivity(answer);
   }
 
   @CaptureSpan()
@@ -4700,6 +4761,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     activity: JSONObject;
     turnContext: TurnContext;
   }): Promise<void> {
+    /*
+     * A 👍 or 👎 on an answer from OneUptime AI (MicrosoftTeamsAiAnswer):
+     * reported, and answered with Teams' own thanks. Read before the
+     * buttons below - it is no card's button, and needs nobody connected.
+     */
+    if (MicrosoftTeamsAiAnswer.isFeedback(data.activity)) {
+      await MicrosoftTeamsAiAnswer.handleFeedback({ activity: data.activity });
+      return;
+    }
+
     // Handle adaptive card button clicks via Bot Framework
     const value: JSONObject = (data.activity["value"] as JSONObject) || {};
 
@@ -5294,7 +5365,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean here. Try it again in a channel of the project you mean, such as one of its incident channels.";
     }
 
-    return "Sorry, I couldn't find your project configuration. This usually means the Microsoft 365 organization you're messaging me from isn't the one connected to OneUptime. Please ask your OneUptime admin to check the Microsoft Teams integration in Project Settings.";
+    return "Sorry, I couldn't find your project configuration. This usually means the Microsoft 365 organization you're messaging me from isn't the one connected to OneUptime. Please ask your OneUptime admin to check the Microsoft Teams integration in Project Settings. Type help to see what I can do and how to get started.";
   }
 
   /*

@@ -1,7 +1,13 @@
 import {
+  INFRASTRUCTURE_COMMANDS_GUIDANCE,
   buildObservabilityChatSystemPrompt,
   buildPageContextSection,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
+import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import { RUN_KUBECTL_TOOL_NAME } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import AiResourceType, {
+  ALL_AI_RESOURCE_TYPES,
+} from "../../../../Types/ResourceAiAgent/AiResourceType";
 import AIChatPageContextType, {
   AIChatPageContext,
   AIChatPageContextHelper,
@@ -880,5 +886,116 @@ describe("container host and split-metric guidance (issues #4784, #4785)", () =>
     );
     expect(line).toContain("use query_containers");
     expect(TOOLBOX_TOOL_NAMES.has("query_containers")).toBe(true);
+  });
+});
+
+/*
+ * Issue #5259: asked to run a command on a host, the model answered "I
+ * don't have a tool that can execute commands on remote hosts" and stopped
+ * there. The command tools exist only in a conversation about a resource
+ * whose AI agent may investigate; everywhere else - another page, Slack,
+ * Microsoft Teams - the prompt says where commands can run.
+ */
+describe("infrastructure commands guidance (issue #5259)", () => {
+  test.each(Object.values(AIChatPermissionMode))(
+    "the %s prompt says where commands on infrastructure run",
+    (permissionMode: AIChatPermissionMode) => {
+      const prompt: string = buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-10-25T00:00:00Z"),
+        permissionMode,
+      });
+
+      expect(prompt).toContain(INFRASTRUCTURE_COMMANDS_GUIDANCE);
+    },
+  );
+
+  test("names both command tools, the agent behind them, and never pretends a command ran", () => {
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(RUN_KUBECTL_TOOL_NAME);
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "whose AI agent is connected and may investigate",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "with the reason when this conversation gives one",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "for a resource that has an AI agent, that Ask AI opened on its page in OneUptime can, once the agent is connected and AI investigation is on for it",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "never pretend a command ran",
+    );
+  });
+
+  /*
+   * Every run reads the base prompt, a remediation run too: it runs
+   * commands with tools of its own (execute_remediation_command), so the
+   * guidance never says the agents' two tools are the only way.
+   */
+  test("never claims the agents' tools are the only way a command runs", () => {
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "If you are asked to run a command and no tool here can run it",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).not.toContain("run only through");
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).not.toContain(
+      "neither tool is offered",
+    );
+  });
+
+  /*
+   * A storage array's or a network device's page has no AI agent to send
+   * the user to: the guidance says which kinds of resource have one.
+   */
+  test("names every kind of resource that has an AI agent, and says the others have none", () => {
+    // Typed by kind: a new kind of resource AI agent fails here until named.
+    const named: Record<AiResourceType, string> = {
+      [AiResourceType.DockerHost]: "Docker and Podman hosts",
+      [AiResourceType.PodmanHost]: "Docker and Podman hosts",
+      [AiResourceType.DockerSwarmCluster]: "Docker Swarm",
+      [AiResourceType.ProxmoxCluster]: "Proxmox",
+      [AiResourceType.VMwareVCenter]: "VMware",
+      [AiResourceType.CephCluster]: "Ceph clusters",
+      [AiResourceType.DatabaseServer]: "database servers",
+      [AiResourceType.Host]: "Hosts",
+    };
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(named[type]);
+    }
+
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain("Kubernetes clusters");
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "have AI agents; other resources have none",
+    );
+  });
+
+  test("the guidance sits with the other infrastructure lines of How to investigate", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-10-25T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+    const lines: Array<string> = prompt.split("\n");
+    const hostMetricsLine: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("- Host metrics such as system.cpu.utilization");
+    });
+
+    expect(lines[hostMetricsLine + 1]).toBe(INFRASTRUCTURE_COMMANDS_GUIDANCE);
+    expect(prompt.indexOf(INFRASTRUCTURE_COMMANDS_GUIDANCE)).toBeGreaterThan(
+      prompt.indexOf("## How to investigate"),
+    );
+  });
+
+  test("a page section names neither command tool: a page alone never offers them", () => {
+    for (const resourceType of Object.values(AIResourceType)) {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType,
+        entityId: ENTITY_ID,
+      });
+
+      expect(section).not.toContain(RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME);
+      expect(section).not.toContain(RUN_KUBECTL_TOOL_NAME);
+    }
   });
 });

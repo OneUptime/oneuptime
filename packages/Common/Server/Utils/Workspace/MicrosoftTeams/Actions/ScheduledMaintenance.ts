@@ -2,7 +2,7 @@ import { MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsScheduledMaintenanceActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";

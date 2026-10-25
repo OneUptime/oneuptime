@@ -58,6 +58,14 @@ Les listes d'infrastructure et les pages de ressources proposent des questions p
 
 Sur la page d'un élément enfant, le contexte enregistre aussi le pod, le conteneur, la VM, le processus ou l'autre élément sélectionné. Les outils d'infrastructure lisent la télémétrie de la ressource parente ; ils ne peuvent pas mesurer un élément enfant à partir de son seul nom. Demander à l'IA le dit, et ne devine pas un namespace Kubernetes que la page n'indique pas. Un état de connexion n'est pas la santé d'une charge de travail, et une télémétrie absente ne signifie pas qu'une ressource va bien.
 
+## Commandes sur votre infrastructure
+
+Ouvert sur la page d'une ressource dont l'agent IA est connecté (un hôte, un hôte Docker ou Podman, un cluster Docker Swarm, un cluster Proxmox, un VMware vCenter, un cluster Ceph, un serveur de base de données ou un cluster Kubernetes), Demander à l'IA y exécute des commandes par cet agent quand vous le demandez : « exécute `uptime` sur cet hôte » ou « affiche les 100 dernières lignes de `journalctl -u nginx` ». Il répond avec ce qui est revenu, cité comme tout autre élément de preuve. Ouvert sur un incident ou une alerte, il atteint les ressources qui y sont liées.
+
+- Il n'exécute que les commandes en lecture seule qu'une investigation IA peut exécuter sur ce type de ressource (voir [Agents IA pour l'infrastructure](/docs/ai/infrastructure-ai-agents)), 30 au plus pour une réponse par type d'agent, vérifiées par OneUptime puis de nouveau par l'agent, dans tous les modes d'autorisation. Une modification par l'agent, comme le redémarrage d'un service, ne s'exécute jamais depuis Demander à l'IA : il vous donne plutôt la commande exacte, et l'agent n'effectue de modifications que lorsque OneUptime AI remédie à un incident ou à une alerte, selon les propres réglages de correctifs de la ressource. Les actions propres à Demander à l'IA, comme l'exécution d'un runbook, suivent le mode d'autorisation de la conversation, décrit plus bas.
+- Il n'atteint que les ressources que vous pouvez voir, et seulement tant que l'investigation IA est activée pour la ressource.
+- Quand il ne peut pas y exécuter de commande (aucun agent n'est connecté, l'agent est hors ligne, ou l'investigation IA est désactivée pour la ressource), il le dit, avec ce qu'il faut changer, et répond plutôt à partir des données de votre projet.
+
 ## Actions et modes d'autorisation
 
 Chaque conversation a un mode d'autorisation, que vous choisissez dans la zone de saisie, à côté du champ où vous tapez :

@@ -110,6 +110,7 @@ import SlackAiConversations, {
   SlackThreadPerson,
 } from "../Utils/Workspace/Slack/SlackAiConversations";
 import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
+import WorkspaceAiRefusal from "../Utils/Workspace/WorkspaceAiRefusal";
 import SlackHome from "../Utils/Workspace/Slack/SlackHome";
 import SlackDirectMessageHelp from "../Utils/Workspace/Slack/SlackDirectMessageHelp";
 import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
@@ -1932,6 +1933,28 @@ export default class SlackAPI {
         return;
       }
 
+      /*
+       * The project's AI credits: refused the same way, saying who can add
+       * them and where (WorkspaceAiRefusal) - a project whose credits are
+       * used up, every new one, got no answer at all here.
+       */
+      const creditsRefusal: string | null =
+        await WorkspaceAiRefusal.getCreditsRefusal(context.projectId);
+
+      if (creditsRefusal) {
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackAPI.withHelpPointer(creditsRefusal, helpCommand),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
       const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
         projectId: context.projectId,
         userId: context.userId,
@@ -2158,6 +2181,25 @@ export default class SlackAPI {
       return;
     }
 
+    /*
+     * The project's AI credits, read before we acknowledge for the same
+     * reason: a project whose credits are used up - every new one - was
+     * told "Please try again in a minute" on every question. This says who
+     * can add them, and where (WorkspaceAiRefusal).
+     */
+    const creditsRefusal: string | null =
+      await WorkspaceAiRefusal.getCreditsRefusal(context.projectId);
+
+    if (creditsRefusal) {
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: creditsRefusal,
+      });
+      return;
+    }
+
     // What was said before in the thread or the direct message.
     const history:
       | Array<{ role: "user" | "assistant"; content: string }>
@@ -2215,11 +2257,16 @@ export default class SlackAPI {
       );
       logger.error(err, getLogAttributesFromRequest(req as any));
 
+      /*
+       * A refusal while the answer was written - the last AI credits used
+       * up, the day's limit crossed - is said as it is (WorkspaceAiRefusal).
+       */
       await SlackUtil.sendMessageToThread({
         authToken: context.projectAuthToken,
         channelId: slackChannelId,
         threadTs: threadTs,
-        text: SlackAPI.AI_FAILED_TEXT,
+        text:
+          WorkspaceAiRefusal.getRefusalMessage(err) || SlackAPI.AI_FAILED_TEXT,
       }).catch((sendError: Error) => {
         logger.error(sendError, getLogAttributesFromRequest(req as any));
       });

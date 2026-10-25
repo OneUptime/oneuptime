@@ -364,6 +364,10 @@ export default class WorkspaceCommands {
    * so there each is in bold, as typed to the bot, and the help says how to
    * reach the bot in a channel: by @mentioning it, under the name Teams
    * shows for it (`botName`, from the message it answers).
+   *
+   * A chat may say more around the commands (`before`, `after`): Microsoft
+   * Teams says what the app is for first, and where to go next after them
+   * (MicrosoftTeamsCommands.getHelpAnswer).
    */
   public static getHelpAnswer(data: {
     workspaceType: WorkspaceType;
@@ -373,6 +377,9 @@ export default class WorkspaceCommands {
     extraCommands?: Array<WorkspaceExtraCommand> | undefined;
     // The bot's name as Microsoft Teams shows it; the product's by default.
     botName?: string | undefined;
+    // Paragraphs before the commands, and after the example.
+    before?: Array<MarkdownText> | undefined;
+    after?: Array<MarkdownText> | undefined;
   }): WorkspaceAnswer {
     const isSlack: boolean = data.workspaceType === WorkspaceType.Slack;
     const productName: string = ProductBrandingText.getProductName();
@@ -397,6 +404,7 @@ export default class WorkspaceCommands {
       : TEAMS_QUESTION_EXAMPLE;
 
     const lines: Array<MarkdownText> = [
+      ...WorkspaceCommands.asParagraphs(data.before, "before"),
       isSlack
         ? mdText`👋 **Here's what ${WorkspaceCommands.typed(
             data.workspaceType,
@@ -417,6 +425,7 @@ export default class WorkspaceCommands {
             `${slackCommand} ${question}`,
           )}`
         : mdText`For example: "${incidentExample}". Anything else you type is a question for ${productName} AI too, such as "${question}"`,
+      ...WorkspaceCommands.asParagraphs(data.after, "after"),
     ];
 
     const names: string = WORKSPACE_COMMANDS.map(
@@ -520,6 +529,32 @@ export default class WorkspaceCommands {
       )}.`.toString(),
       text: `${suggestion.typed} is not a command. Did you mean ${suggestion.meant}?`,
     };
+  }
+
+  /*
+   * Paragraphs a chat says around the help (getHelpAnswer's `before` and
+   * `after`), each a block of its own: a blank line between it and the
+   * help's own lines.
+   */
+  private static asParagraphs(
+    paragraphs: Array<MarkdownText> | undefined,
+    place: "before" | "after",
+  ): Array<MarkdownText> {
+    const lines: Array<MarkdownText> = [];
+
+    for (const paragraph of paragraphs || []) {
+      if (place === "after") {
+        lines.push(FeedMarkdown.empty());
+      }
+
+      lines.push(paragraph);
+
+      if (place === "before") {
+        lines.push(FeedMarkdown.empty());
+      }
+    }
+
+    return lines;
   }
 
   // "• /oneuptime incident [title]: declare an incident"

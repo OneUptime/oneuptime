@@ -31,6 +31,8 @@ import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceN
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../../Utils/Project/ProjectBalance";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import logger from "../../../Server/Utils/Logger";
 import SlackDirectMessageHelp from "../../../Server/Utils/Workspace/Slack/SlackDirectMessageHelp";
@@ -2034,6 +2036,54 @@ describe("the placeholder an answer stands behind", () => {
         data: { channel: OPS, ts: placeholderTimestamps[0] },
       },
     ]);
+  });
+
+  /*
+   * A project whose AI credits are used up - every new one - was told
+   * "Please try again in a minute" on every question, which no retry
+   * answers. Checked before the acknowledgement, as the AI switch and the
+   * daily limits are: the reply says who can add credits, and where.
+   */
+  test("the project's AI credits are used up: one reply that says who can add them and where - no placeholder, and AI is not asked", async () => {
+    jest
+      .spyOn(AIService, "getAiBalanceBlocker")
+      .mockResolvedValue(
+        "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.",
+      );
+    const answer: jest.SpyInstance = jest.spyOn(
+      ObservabilityAssistant,
+      "answerQuestion",
+    );
+
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+    });
+
+    expect(await untilWrites(1)).toEqual([
+      threadPost(OPS, asked.ts, PROJECT_AI_CREDITS_USED_UP_MESSAGE),
+    ]);
+    expect(placeholderTimestamps).toEqual([]);
+    expect(answer).not.toHaveBeenCalled();
+  });
+
+  test("the credits run out while the answer is written: the refusal, not 'try again in a minute', and the placeholder goes", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockRejectedValue(
+        new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE),
+      );
+
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+    });
+
+    expect(await untilWrites(2)).toEqual([
+      threadPost(OPS, asked.ts, ACKNOWLEDGEMENT),
+      threadPost(OPS, asked.ts, PROJECT_AI_CREDITS_USED_UP_MESSAGE),
+    ]);
+    expect(removals()).toHaveLength(1);
   });
 
   test("Slack will not remove the placeholder: the answer stands, and nothing is thrown", async () => {

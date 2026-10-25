@@ -58,6 +58,14 @@ Infrastrukturlistor och resurssidor föreslår frågor för den sortens resurs d
 
 På en undersida registrerar kontexten också den pod, container, VM, process eller annan underresurs du valde. Infrastrukturverktygen läser den överordnade resursens telemetri; de kan inte mäta en enskild underresurs utifrån bara dess namn. Fråga AI säger det och gissar inte ett Kubernetes-namnområde som sidan inte anger. Ett anslutningstillstånd är inte en arbetsbelastnings hälsa, och saknad telemetri betyder inte att en resurs är frisk.
 
+## Kommandon på din infrastruktur
+
+Öppnat på sidan för en resurs vars AI-agent är ansluten (en värd, en Docker- eller Podman-värd, ett Docker Swarm-kluster, ett Proxmox-kluster, ett VMware vCenter, ett Ceph-kluster, en databasserver eller ett Kubernetes-kluster) kör Fråga AI kommandon på den genom den agenten när du ber om det: "kör `uptime` på den här värden" eller "visa de sista 100 raderna av `journalctl -u nginx`". Den svarar med det som kom tillbaka, med källhänvisning som allt annat underlag. Öppnat på en incident eller ett larm når den resurserna som är kopplade till den.
+
+- Den kör bara de skrivskyddade kommandon som en AI-undersökning får köra på den typen av resurs (se [AI-agenter för infrastrukturen](/docs/ai/infrastructure-ai-agents)), högst 30 för ett svar genom varje typ av agent, kontrollerade av OneUptime och igen av agenten, i alla behörighetslägen. En ändring genom agenten, till exempel att starta om en tjänst, körs aldrig från Fråga AI: den ger dig i stället det exakta kommandot, och agenten gör bara ändringar när OneUptime AI åtgärdar en incident eller ett larm, enligt resursens egna inställningar för åtgärder. Fråga AI:s egna åtgärder, till exempel att köra en runbook, följer samtalets behörighetsläge, som beskrivs nedan.
+- Den når bara de resurser du får se, och bara medan AI-undersökning är påslagen för resursen.
+- När den inte kan köra ett kommando där (ingen agent är ansluten, agenten är offline eller AI-undersökning är avstängd för resursen) säger den det, tillsammans med vad som behöver ändras, och svarar i stället utifrån ditt projekts data.
+
 ## Åtgärder och behörighetslägen
 
 Varje samtal har ett behörighetsläge, som du väljer i inmatningsfältet bredvid rutan du skriver i:

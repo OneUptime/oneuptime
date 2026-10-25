@@ -1,31 +1,175 @@
-<%
-  // Customer logos, in grey. Each height is what its artwork needs to look the same size as the rest.
-  const customerLogos = [
-    { src: '/img/mistral-ai-full.png', alt: 'Mistral AI', height: 28 },
-    { src: '/img/securonix-blue.svg', alt: 'Securonix', height: 28 },
-    { src: '/img/aareon.svg', alt: 'Aareon', height: 26 },
-    { src: '/img/viewsonic.svg', alt: 'ViewSonic', height: 26 },
-    { src: '/img/syniti.png', alt: 'Syniti', height: 28 },
-    { src: '/img/skillable-logo.svg', alt: 'Skillable', height: 34 },
-    { src: '/img/nt-ware.png', alt: 'NT-ware', height: 20 },
-    { src: '/img/sodexo.svg', alt: 'Sodexo', height: 30 },
-    { src: '/img/avolve.webp', alt: 'Avolve Software', height: 28 },
-    { src: '/img/Dotdash_Meredith.svg', alt: 'Dotdash Meredith', height: 28 },
-    { src: '/img/trustify.svg', alt: 'Trustify', height: 34 },
-    { src: '/img/bowie.svg', alt: 'Bowie', height: 44 },
-    { src: '/img/talkwalker.svg', alt: 'Talkwalker', height: 40 },
-    { src: '/img/cscs.svg', alt: 'CSCS', height: 28 },
-  ];
+<%#
+  Customer logos, in one colour. Two rows drift past in opposite directions,
+  the first the largest companies. Each row is drawn twice so it loops without
+  a seam, and the second copy is hidden from screen readers. Hovering a row,
+  or the pause control, stops them; visitors who ask for less motion get every
+  logo once, standing still.
 -%>
-<div class="bg-white py-12 sm:py-16">
+<%
+  /*
+   * Static/img/customers holds each logo cropped to its ink, in black. Each
+   * height is what its artwork needs to look the same size as the rest, and
+   * each width is that height in the file's own proportions.
+   */
+  const customerLogoRows = [
+    [
+      { name: 'IBM', file: 'ibm.svg', width: 85, height: 32 },
+      { name: 'Siemens', file: 'siemens.svg', width: 121, height: 20 },
+      { name: 'Airbus', file: 'airbus.svg', width: 115, height: 22 },
+      { name: 'Tesco', file: 'tesco.svg', width: 97, height: 28 },
+      { name: 'Thermo Fisher Scientific', file: 'thermo-fisher-scientific.svg', width: 127, height: 28 },
+      { name: 'Comcast', file: 'comcast.svg', width: 89, height: 36 },
+      { name: 'PayPal', file: 'paypal.svg', width: 79, height: 27 },
+      { name: 'Vodafone', file: 'vodafone.svg', width: 110, height: 28 },
+      { name: 'ZF', file: 'zf.svg', width: 30, height: 30 },
+      { name: 'Booz Allen Hamilton', file: 'booz-allen-hamilton.svg', width: 178, height: 21 },
+      { name: 'ServiceNow', file: 'servicenow.svg', width: 142, height: 22 },
+      { name: 'Optum', file: 'optum.svg', width: 88, height: 26 },
+      { name: 'FIS', file: 'fis.svg', width: 66, height: 28 },
+      { name: 'Applied Materials', file: 'applied-materials.svg', width: 116, height: 30 },
+      { name: 'Bristol Myers Squibb', file: 'bristol-myers-squibb.svg', width: 149, height: 22 },
+      { name: 'Deloitte', file: 'deloitte.svg', width: 109, height: 21 },
+    ],
+    [
+      { name: 'Mistral AI', file: 'mistral-ai.svg', width: 131, height: 24 },
+      { name: 'Trend Micro', file: 'trend-micro.svg', width: 94, height: 32 },
+      { name: 'Nutanix', file: 'nutanix.svg', width: 134, height: 18 },
+      { name: 'Keyfactor', file: 'keyfactor.svg', width: 147, height: 22 },
+      { name: 'Aptean', file: 'aptean.svg', width: 85, height: 27 },
+      { name: 'Securonix', file: 'securonix.svg', width: 144, height: 25 },
+      { name: 'Syniti', file: 'syniti.svg', width: 75, height: 31 },
+      { name: 'The Access Group', file: 'the-access-group.svg', width: 118, height: 28 },
+      { name: 'Synology', file: 'synology.svg', width: 114, height: 30 },
+      { name: 'AirAsia', file: 'airasia.svg', width: 107, height: 24 },
+      { name: 'PayU', file: 'payu.svg', width: 68, height: 34 },
+      { name: 'Portainer', file: 'portainer.svg', width: 131, height: 17 },
+      { name: 'Aareon', file: 'aareon.svg', width: 142, height: 23 },
+      { name: 'NT-ware', file: 'nt-ware.png', width: 97, height: 20 },
+      { name: 'Avolve Software', file: 'avolve-software.png', width: 90, height: 33 },
+      { name: 'CSCS', file: 'cscs.svg', width: 97, height: 30 },
+    ],
+  ];
+
+  // Every row moves at the same speed, so a longer row takes longer to come round.
+  const customerLogoGap = 64;
+  const customerLogoPixelsPerSecond = 36;
+  const customerLogoSeconds = function (row) {
+    const length = row.reduce(function (total, logo) { return total + logo.width + customerLogoGap; }, 0);
+    return Math.round(length / customerLogoPixelsPerSecond);
+  };
+-%>
+<style>
+  /* The rows are far wider than the page; none of that width reaches the layout around them. */
+  .customer-logos-viewport {
+    contain: inline-size;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  }
+  .customer-logos-track {
+    display: flex;
+    width: max-content;
+    animation: customer-logos-drift var(--customer-logos-seconds, 80s) linear infinite;
+  }
+  .customer-logos-track[data-direction="right"] {
+    animation-direction: reverse;
+  }
+  .customer-logos-viewport:hover .customer-logos-track,
+  .customer-logos-pause:checked ~ div .customer-logos-track {
+    animation-play-state: paused;
+  }
+  .customer-logos-list {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2.5rem;
+    padding-right: 2.5rem;
+  }
+  .customer-logo {
+    display: block;
+    width: calc(var(--customer-logo-width) * 0.75);
+    max-width: none;
+    height: auto;
+    opacity: 0.55;
+    transition: opacity 150ms ease;
+  }
+  .customer-logo:hover {
+    opacity: 0.9;
+  }
+  .customer-logos-pause:checked ~ div .customer-logos-pause-icon,
+  .customer-logos-resume-icon {
+    display: none;
+  }
+  .customer-logos-pause:checked ~ div .customer-logos-resume-icon {
+    display: block;
+  }
+  .customer-logos-pause:focus-visible ~ div .customer-logos-toggle {
+    outline: 2px solid #030712;
+    outline-offset: 2px;
+  }
+  @keyframes customer-logos-drift {
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+  @media (min-width: 640px) {
+    .customer-logos-list {
+      gap: <%= customerLogoGap / 16 %>rem;
+      padding-right: <%= customerLogoGap / 16 %>rem;
+    }
+    .customer-logo {
+      width: var(--customer-logo-width);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .customer-logos-viewport {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .customer-logos-track {
+      width: auto;
+      animation: none;
+    }
+    .customer-logos-list {
+      flex: auto;
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: 1.75rem;
+      padding: 0 1.5rem;
+    }
+    .customer-logos-list[aria-hidden="true"],
+    .customer-logos-pause,
+    .customer-logos-toggle {
+      display: none;
+    }
+  }
+</style>
+<section class="relative bg-white py-12 sm:py-16" aria-labelledby="customer-logos-title">
+  <input type="checkbox" id="customer-logos-paused" class="customer-logos-pause sr-only">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
-    <p class="text-center text-sm font-medium text-gray-500">Trusted by engineering teams at</p>
-    <ul class="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-6 sm:mt-10 sm:gap-x-10 sm:gap-y-10" aria-label="Customers">
-      <% customerLogos.forEach(function (logo) { -%>
-      <li class="flex h-10 w-16 items-center justify-center sm:h-12 sm:w-28">
-        <img src="<%= logo.src %>" alt="<%= logo.alt %>" width="120" height="<%= logo.height %>" class="h-auto w-auto max-w-full object-contain opacity-50 brightness-0" style="max-height: <%= logo.height %>px;" loading="lazy" decoding="async">
-      </li>
-      <% }); -%>
-    </ul>
+    <div class="relative">
+      <p id="customer-logos-title" class="text-center text-sm font-medium text-gray-500">Trusted by engineering teams at</p>
+      <label for="customer-logos-paused" title="Pause the moving logos" class="customer-logos-toggle absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-gray-400 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 hover:text-gray-700">
+        <span class="sr-only">Pause the moving logos</span>
+        <svg class="customer-logos-pause-icon h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="1.5" width="2.75" height="9" rx="0.75" /><rect x="7.25" y="1.5" width="2.75" height="9" rx="0.75" /></svg>
+        <svg class="customer-logos-resume-icon h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M3.5 1.9v8.2a.75.75 0 0 0 1.14.64l6.6-4.1a.75.75 0 0 0 0-1.28l-6.6-4.1A.75.75 0 0 0 3.5 1.9Z" /></svg>
+      </label>
+    </div>
   </div>
-</div>
+  <div class="mx-auto mt-8 max-w-6xl sm:mt-10 sm:px-6 lg:px-8">
+    <div class="customer-logos-viewport space-y-7 overflow-hidden sm:space-y-9">
+      <% customerLogoRows.forEach(function (row, rowIndex) { -%>
+      <div class="customer-logos-track" data-direction="<%= rowIndex % 2 === 0 ? 'left' : 'right' %>" style="--customer-logos-seconds: <%= customerLogoSeconds(row) %>s;">
+        <% [false, true].forEach(function (isCopy) { -%>
+        <ul class="customer-logos-list"<% if (isCopy) { %> aria-hidden="true"<% } %>>
+          <% row.forEach(function (logo) { -%>
+          <li class="flex-none">
+            <img src="/img/customers/<%= logo.file %>" alt="<%= isCopy ? '' : logo.name %>" width="<%= logo.width %>" height="<%= logo.height %>" class="customer-logo" style="--customer-logo-width: <%= logo.width %>px;" loading="lazy" decoding="async">
+          </li>
+          <% }); -%>
+        </ul>
+        <% }); -%>
+      </div>
+      <% }); -%>
+    </div>
+  </div>
+</section>

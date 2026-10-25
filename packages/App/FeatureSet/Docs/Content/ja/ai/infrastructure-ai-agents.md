@@ -1,6 +1,6 @@
 # インフラストラクチャの AI エージェント
 
-OneUptime AI は、インシデントやアラートを調査するとき、テレメトリ以外のものも見ることができます。リソース(Docker または Podman のホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、Linux ホスト)の隣にインストールした小さなエージェントが、`docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30`、`journalctl -u nginx -n 200 --no-pager` のように OneUptime AI が求める読み取り専用のコマンドを実行して出力を返すので、根本原因分析はリソース自身が示す内容を引用します。許可すれば、同じエージェントが修正(コンテナの再起動、VM の起動、OSD を in に戻すなど)も適用します。各修正はコマンドポリシーによって段階に分類され、別の設定を選ばない限り、まず人が承認します。
+OneUptime AI は、インシデントやアラートを調査するとき、テレメトリ以外のものも見ることができます。リソース(Docker または Podman のホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、Linux ホスト)の隣にインストールした小さなエージェントが、`docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30`、`journalctl -u nginx -n 200 --no-pager` のように OneUptime AI が求める読み取り専用のコマンドを実行して出力を返すので、根本原因分析はリソース自身が示す内容を引用します。許可すれば、同じエージェントが修正(コンテナの再起動、VM の起動、OSD を in に戻すなど)も適用します。各修正はコマンドポリシーによって段階に分類され、別の設定を選ばない限り、まず人が承認します。リソースのページで開いた AI に質問も、頼めば同じ読み取り専用のコマンドを実行します([AI に質問](/docs/ai/ask-ai)を参照)。
 
 これらのエージェントが **リソース AI エージェント** です。各リソースのダッシュボードページには、三つのページを持つ **AI** セクションがあります:
 

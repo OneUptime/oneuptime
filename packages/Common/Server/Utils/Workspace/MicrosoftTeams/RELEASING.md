@@ -29,14 +29,16 @@ added to the Entra app first.
 
 ## Identifiers
 
-| Item                                                        | Value                                                                                         |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Microsoft tenant                                            | **HackerBay** (`oneuptimehq.onmicrosoft.com`)                                                 |
-| Account used for Entra and Partner Center                   | `NawazDhandala@oneuptimehq.onmicrosoft.com`                                                   |
-| Entra app **OneUptime** (client ID = Teams app ID = bot ID) | `0e5480fd-a9c5-4ad3-9c0b-9f6045318daf`                                                        |
-| Entra app **OneUptime Meetings** (video calls)              | `b7805806-13a4-4ecd-bdfc-8d91944b5a46`                                                        |
-| Partner Center offer **OneUptime**                          | Apps and agents for Microsoft 365 and Copilot, product `46ee157b-5751-49f9-8fdd-e323534d700a` |
-| Teams Developer Portal                                      | No app is registered there. Do not create one: the store app lives in Partner Center.         |
+| Item                                                             | Value                                                                                         |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Microsoft tenant                                                 | **HackerBay** (`oneuptimehq.onmicrosoft.com`)                                                 |
+| Account used for Entra and Partner Center                        | `NawazDhandala@oneuptimehq.onmicrosoft.com`                                                   |
+| Entra app **OneUptime** (client ID = Teams app ID = bot ID)      | `0e5480fd-a9c5-4ad3-9c0b-9f6045318daf`                                                        |
+| Entra app **OneUptime Meetings** (video calls)                   | `b7805806-13a4-4ecd-bdfc-8d91944b5a46`                                                        |
+| Entra app **OneUptime Sign-in** (Sign in with Microsoft)         | `c6386dbb-d994-4a14-81ce-5e8a64a79506`                                                        |
+| Verified publisher each of the three must show (Partner Network) | **HackerBay Inc**, MPN ID `7025026`                                                           |
+| Partner Center offer **OneUptime**                               | Apps and agents for Microsoft 365 and Copilot, product `46ee157b-5751-49f9-8fdd-e323534d700a` |
+| Teams Developer Portal                                           | No app is registered there. Do not create one: the store app lives in Partner Center.         |
 
 The client IDs are public: `MICROSOFT_TEAMS_APP_CLIENT_ID` and
 `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID` in `https://oneuptime.com/dashboard/env.js`.
@@ -52,6 +54,39 @@ Entry points:
 Partner Center may open a personal Microsoft account first and show a "We're
 updating our terms" page. That is the wrong account, not a blocker: sign in
 with the work account above.
+
+## Publisher verification
+
+Certification checks that every Microsoft consent screen a reviewer meets
+shows the blue "verified" badge (policy 1140.6.1). Reviewers meet three Entra
+apps, not one: **OneUptime** when an admin grants consent, **OneUptime
+Meetings** when they start a video call, and **OneUptime Sign-in** when they
+use **Sign in with Microsoft** on the OneUptime sign-in page - which they do
+when they sign up to test. 14.0.59 failed this check on **OneUptime Sign-in**
+alone: it was created on 16 October 2026 for Sign in with Microsoft and never
+verified, so its consent screen said "unverified".
+
+Every Entra app a customer can consent to must, on **Branding & properties**:
+
+1. have **Publisher domain** `oneuptime.com` (a DNS-verified domain of the
+   tenant; an `onmicrosoft.com` domain cannot be verified);
+2. have **Home page URL** `https://oneuptime.com`, **Terms of service URL**
+   `https://oneuptime.com/legal/terms` and **Privacy statement URL**
+   `https://oneuptime.com/legal/privacy` - the consent screen says "The
+   publisher has not provided links to their terms" without them;
+3. be verified: **Add MPN ID to verify publisher**, MPN ID `7025026`, tick
+   the Microsoft Platform Policies box (a maintainer's decision), **Verify and
+   save**. The consent screen then names **HackerBay Inc** with the badge.
+
+Check all of them at once (read-only):
+
+```bash
+for app in 0e5480fd-a9c5-4ad3-9c0b-9f6045318daf b7805806-13a4-4ecd-bdfc-8d91944b5a46 c6386dbb-d994-4a14-81ce-5e8a64a79506; do az rest --method get --url "https://graph.microsoft.com/v1.0/applications(appId='$app')?\$select=displayName,publisherDomain,verifiedPublisher"; done
+```
+
+All three are verified (OneUptime since October 2025, OneUptime Meetings
+since 10 October 2026, OneUptime Sign-in since 25 October 2026). A new
+multitenant Entra app is verified the same way before it ships.
 
 ## Releasing a new store package
 
@@ -99,16 +134,31 @@ https://oneuptime.com/api/microsoft-teams/app-manifest-zip` returns it
 
 ### Notes for certification template
 
+Reviewers test with the account the notes give them, or else sign up and
+create a project of their own - one with no AI credits, no on-call schedule
+and the Free plan, where `ask`, `oncall` and `page` cannot work (14.0.59's
+`ask` failed that way). Give them a test project that has, and keep it so
+while the app is listed: **AI credits** (Project Settings > AI > AI Credits),
+the **Growth plan** (paging needs it), an **on-call policy** with an
+**on-call schedule** the test user is on, and a monitor or two. Attach the
+steps as a PDF under **Additional certification info** too: it is kept for
+later submissions, and it is what reviewers look for.
+
 ```text
 >>> TEST ACCOUNT: sign-in email and password for https://oneuptime.com, and the project to use <<<
 
 OneUptime (https://oneuptime.com) is an observability and incident management platform. This Teams app is a bot: it posts incident, alert and scheduled maintenance notifications to the channels and chats a project picks, and lets people act on them from Teams.
 
 How to test:
-1. Sign in to OneUptime with the test account and open Project Settings > Workspace > Microsoft Teams to see the connection.
+1. Sign in to OneUptime with the test account and open Project Settings > Workspace > Microsoft Teams to see the connection. Before an organization is connected, "help" says what the app does and how to get started.
 2. Add the OneUptime app to a team and to a personal chat. It can also be added to a shared or private channel.
 3. In the personal chat, type "help" to list the commands, or "home" for the Home card. The first time, the bot shows a Connect button to link your Microsoft Teams account to the OneUptime test account.
 4. In a channel, mention @OneUptime with a command: incident <title>, maintenance <title>, oncall, page @someone <message>, ask <question>, show active incidents, show active alerts, show scheduled maintenance, show ongoing maintenance.
+5. "oncall": lists who is on call now in each on-call schedule of the project, until when, and who is next.
+6. "page @someone <message>" in a channel or group chat pages the people mentioned (an alert, then a call, SMS, push or email by their notification rules) and posts a card that shows who was paged and who acknowledged. "page" alone opens a card to pick a person, a team, an on-call schedule or an on-call policy.
+7. "ask <question>" (or any question) is answered by OneUptime AI from the project's data, for example "ask which monitors are down right now?" or "ask what changed before the last incident?". Answers are labelled AI generated, end with a line asking you to check them, and have thumbs-up/down buttons to report an answer.
+
+OneUptime AI: a generative AI assistant (a large language model) that answers questions from the project's logs, traces, metrics, incidents and monitors, read with the asking user's own permissions. It never changes anything. Admins can turn it off per project. Reports of wrong or inappropriate answers come from the thumbs-down button or support@oneuptime.com and reach the OneUptime team.
 
 Changes since the last version:
 - <what changed in the manifest: commands, permissions, channel support>
@@ -116,12 +166,31 @@ Changes since the last version:
 
 ### Store history
 
-| Submitted  | Version | What changed                                                                                                                                                                                                                                                     | Outcome                               |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| 2025-12-05 | 9.1.2   | First listing: 3 RSC permissions, 7 commands.                                                                                                                                                                                                                    | Certified and published 2025-12-09.   |
-| 2026-10-15 | 14.0.59 | Manifest v1.25 with `supportsChannelFeatures: tier1`; RSC `ChatMessage.Read.Chat`, `ChatMember.Read.Chat`, `ChatSettings.Read.Chat`, `TeamsAppInstallation.Read.Group` added; commands became incident, maintenance, oncall, page, ask, the show lists and help. | Submitted; certification in progress. |
+| Submitted  | Version | What changed                                                                                                                                                                                                                                                     | Outcome                                                          |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| 2025-12-05 | 9.1.2   | First listing: 3 RSC permissions, 7 commands.                                                                                                                                                                                                                    | Certified and published 2025-12-09.                              |
+| 2026-10-15 | 14.0.59 | Manifest v1.25 with `supportsChannelFeatures: tier1`; RSC `ChatMessage.Read.Chat`, `ChatMember.Read.Chat`, `ChatSettings.Read.Chat`, `TeamsAppInstallation.Read.Group` added; commands became incident, maintenance, oncall, page, ask, the show lists and help. | Certification failed 2026-10-25: four Must-fix items, see below. |
 
 Add a row for every submission.
+
+### Certification feedback for 14.0.59
+
+Microsoft's report for 14.0.59 (25 October 2026, ticket 5877223, by email
+from teamsubm@microsoft.com and in Partner Center) had four Must-fix items.
+Its email asks not to resubmit until they approve the fixes in that thread,
+and to send any changed manifest there first.
+
+| Policy                                           | What they saw                                                                         | Root cause and fix                                                                                                                                                                                      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1140.4.3.4 Bots - Bot Welcome Message            | "help" before connecting answered "Sorry, I couldn't find your project configuration" | The tenant had to resolve before any command. The help now works before connecting, says what the app is for, and ends with a way forward (MicrosoftTeamsCommands.replyHelp).                           |
+| 100.14.1 Testing Instructions                    | `ask` said "Please try again later"; no test steps for ask, oncall and page           | Their own new project had no AI credits; the bot checked the AI switch and the daily limits but not the credits, and hid the refusal (WorkspaceAiRefusal). Test steps: the template above.              |
+| 1140.4.1.24 General - App Description            | `ask` names OneUptime AI; nothing described it                                        | The description now says what OneUptime AI does, that answers can be wrong and how to report one; each answer carries Teams' AI label, a "check it" line and feedback buttons (MicrosoftTeamsAiAnswer). |
+| 1140.6.1 Publisher Attestation - M365 Compliance | "OneUptime Sign-in unverified" on a consent screen                                    | That Entra app was never publisher-verified. See [Publisher verification](#publisher-verification).                                                                                                     |
+
+A 👍 or 👎 on an AI answer reaches the operator's Slack channel set with
+`NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK` (Helm
+`notifications.webhooks.slack.onAiFeedback`). OneUptime Cloud must set it:
+reports of inappropriate AI content must reach the team, who act on them.
 
 ## Microsoft Graph permissions
 

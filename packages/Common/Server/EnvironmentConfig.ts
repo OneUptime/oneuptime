@@ -1232,6 +1232,13 @@ export const NotificationSlackWebhookOnDeleteProject: string =
 export const NotificationSlackWebhookOnSubscriptionUpdate: string =
   process.env["NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE"] || "";
 
+/*
+ * Feedback people give an answer from OneUptime AI in a chat - a 👍 or a 👎
+ * in Microsoft Teams, and what they wrote - reported to the operator.
+ */
+export const NotificationSlackWebhookOnAiFeedback: string =
+  process.env["NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK"] || "";
+
 export const AdminDashboardClientURL: URL = new URL(
   HttpProtocol,
   Host,
