@@ -1,6 +1,20 @@
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
-import { SECURITY_CASE_QUEUE_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import {
+  SECURITY_CASE_QUEUE_VIEWS,
+  SecurityCaseQueueView,
+  getSecurityCaseQueueQuery,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import {
+  ASSIGN_TO_ME,
+  ASSIGN_TO_SOMEONE_ELSE,
+  CHANGE_PRIORITY,
+  CHANGE_STATUS,
+  doesStatusCloseSecurityCase,
+  getSecurityCaseAssignWrite,
+  isAssignToMeOffered,
+  isAssignToSomeoneElseOffered,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseChanges";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
 import { ARCHIVABLE_VALUE_COPY } from "../../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
@@ -56,7 +70,14 @@ import {
   DefaultSecurityCaseStatus,
 } from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import { STATE_LISTS, StateListType } from "Common/Utils/StateOrder";
-import { buildDefaultTestPriorities } from "Common/Tests/Helpers/SecurityCaseValues";
+import {
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+  testStatusId,
+} from "Common/Tests/Helpers/SecurityCaseValues";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import ObjectID from "Common/Types/ObjectID";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
   SECURITY_CASE_VERDICTS,
   SecurityCaseVerdictDescription,
@@ -482,10 +503,32 @@ describe("Security Cases and Playbooks docs", () => {
     expect(header).toContain(
       '<MoreMenuSection key="priority" title="Set priority">',
     );
-    expect(header).toContain('text="Edit Case"');
-    expect(header).toContain('text="Delete Case"');
+    // The ⋯'s items, in the menu's order after its priority section.
+    const more: Array<string> = [
+      'text="Assign to Someone Else"',
+      'text="Change Status"',
+      'text="Edit Case"',
+      'text="Delete Case"',
+    ];
+
+    for (const item of more) {
+      expect(header).toContain(item);
+    }
+    expect(
+      more.map((item: string): number => {
+        return header.indexOf(item);
+      }),
+    ).toEqual(
+      [...more]
+        .map((item: string): number => {
+          return header.indexOf(item);
+        })
+        .sort((a: number, b: number): number => {
+          return a - b;
+        }),
+    );
     expect(flat(section(page, "Work a case"))).toContain(
-      "Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**.",
+      "Every page keeps the case's header on top: its number, priority, status and title, **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, and in the ⋯ menu beside them **Set priority**, **Assign to Someone Else**, **Change Status**, **Edit Case** and **Delete Case**. So the case can be worked from any of its pages, and a link to the case still opens its **Overview**.",
     );
 
     // The case's own address is its Overview, the first entry of its menu.
@@ -498,6 +541,84 @@ describe("Security Cases and Playbooks docs", () => {
     expect(source(`${DASHBOARD}/Utils/RouteMap.ts`)).toContain(
       "[PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,",
     );
+  });
+
+  it("says how a case is worked from the queue's lists, as their rows and Bulk Actions offer it", () => {
+    const queue: string = flat(section(page, "Work cases from the queue"));
+    const statuses: ReturnType<typeof buildDefaultTestStatuses> =
+      buildDefaultTestStatuses();
+    const openCase: SecurityCase = new SecurityCase();
+    openCase.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
+    const closedCase: SecurityCase = new SecurityCase();
+    closedCase.securityCaseStatusId = testStatusId(SecurityCaseStage.Closed);
+    const someone: string = "80000000-0000-4000-8000-000000000001";
+    const team: string = "81000000-0000-4000-8000-000000000001";
+
+    // The row's ⋯ moves, by the names the Dashboard draws, in its order.
+    expect(queue).toContain(
+      `the ⋯ menu on a case's row has **${ASSIGN_TO_ME}**, **${ASSIGN_TO_SOMEONE_ELSE}**, **${CHANGE_STATUS}** and **${CHANGE_PRIORITY}**.`,
+    );
+    // The bulk bar's own button.
+    expect(
+      source("Common/UI/Components/BulkUpdate/BulkUpdateForm.tsx"),
+    ).toContain('tx("Bulk Actions")');
+    expect(queue).toContain(
+      "select them and use the same actions under **Bulk Actions**: it says which cases it changed, and which it left as they were, and why.",
+    );
+
+    // A person, or a team whose case waits under Unassigned.
+    expect(queue).toContain(
+      `use **${ASSIGN_TO_SOMEONE_ELSE}** and pick one person, or a team. A team's case waits under **Unassigned** until someone on the team takes it.`,
+    );
+    expect(getSecurityCaseAssignWrite({ teamId: team })).toEqual({
+      assignedToTeamId: team,
+      assignedToUserId: null,
+    });
+    const unassigned: SecurityCaseQueueView | undefined =
+      SECURITY_CASE_QUEUE_VIEWS.find((view: SecurityCaseQueueView): boolean => {
+        return view.key === "unassigned";
+      });
+    expect(unassigned?.title).toBe("Unassigned");
+    expect(
+      getSecurityCaseQueueQuery("unassigned", new ObjectID(someone), statuses)[
+        "assignedToUserId"
+      ],
+    ).toBeInstanceOf(IsNull);
+
+    // Closing asks what Close Case asks.
+    expect(queue).toContain(
+      "A status that closes a case asks for a verdict and a closing note, as **Close Case** does.",
+    );
+    expect(
+      doesStatusCloseSecurityCase({
+        securityCase: openCase,
+        statusId: testStatusId(SecurityCaseStage.Closed).toString(),
+        statuses: statuses,
+      }),
+    ).toBe(true);
+
+    // Nobody takes a closed case: it is reopened first.
+    expect(queue).toContain(
+      `A closed case is not assigned to anyone. To work it again, reopen it with **${CHANGE_STATUS}**.`,
+    );
+    expect(
+      isAssignToMeOffered({
+        securityCase: closedCase,
+        statuses: statuses,
+        myUserId: someone,
+      }),
+    ).toBe(false);
+    expect(
+      isAssignToSomeoneElseOffered({
+        securityCase: closedCase,
+        statuses: statuses,
+      }),
+    ).toBe(false);
+    expect(
+      SECURITY_CASE_QUEUE_VIEWS.find((view: SecurityCaseQueueView): boolean => {
+        return view.key === "closed";
+      })?.canAssignToSomeoneElse,
+    ).toBe(false);
   });
 
   it("says the menu counts the runs waiting for an approval, and what deleting a case takes with it", () => {
