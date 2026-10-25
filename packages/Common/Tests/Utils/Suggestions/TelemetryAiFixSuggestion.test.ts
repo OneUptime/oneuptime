@@ -6,6 +6,7 @@
  */
 
 import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
+import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
   NO_TELEMETRY_AI_FIX_SUGGESTION,
@@ -193,5 +194,65 @@ describe("the answer, on the wire", () => {
         ],
       }).repositories,
     ).toEqual([{ id: REPO, name: "acme/checkout" }]);
+  });
+});
+
+/*
+ * An exception finding's offer says which pull request it would be - a fix,
+ * or better handling of an expected error - so the strip can say so. Only a
+ * Code recipe there is, and only on an offer to act, is read.
+ */
+describe("the recipe, on the wire", () => {
+  const act: TelemetryAiFixSuggestion = {
+    offer: SuggestionOffer.Act,
+    blocker: null,
+    repository: { id: REPO, name: "acme/checkout" },
+    repositories: [],
+    taskId: null,
+  };
+
+  test("round-trips with an offer to act", () => {
+    for (const recipe of [
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.CodeRequest,
+    ]) {
+      const suggestion: TelemetryAiFixSuggestion = { ...act, recipe };
+
+      expect(telemetryAiFixSuggestionToJSON(suggestion)["recipe"]).toBe(recipe);
+      expect(
+        parseTelemetryAiFixSuggestion(
+          JSON.parse(
+            JSON.stringify(telemetryAiFixSuggestionToJSON(suggestion)),
+          ),
+        ),
+      ).toEqual(suggestion);
+    }
+  });
+
+  test("absent, it stays absent: a request in Code, as before", () => {
+    expect(telemetryAiFixSuggestionToJSON(act)).not.toHaveProperty("recipe");
+    expect(
+      parseTelemetryAiFixSuggestion(telemetryAiFixSuggestionToJSON(act)),
+    ).not.toHaveProperty("recipe");
+  });
+
+  test("a recipe that is not one, or on an offer that is not to act, is left out", () => {
+    for (const recipe of ["DropDatabase", "", 42, null]) {
+      expect(
+        parseTelemetryAiFixSuggestion({
+          ...telemetryAiFixSuggestionToJSON(act),
+          recipe,
+        }),
+      ).not.toHaveProperty("recipe");
+    }
+
+    expect(
+      parseTelemetryAiFixSuggestion({
+        offer: SuggestionOffer.InProgress,
+        taskId: "5229cccc-0000-4000-8000-0000000000f1",
+        recipe: CodeFixTaskType.FixException,
+      }),
+    ).not.toHaveProperty("recipe");
   });
 });

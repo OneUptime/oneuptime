@@ -78,6 +78,32 @@ export function getExceptionsBreadcrumbs(
       "Exceptions",
       "Setup Guide",
     ]),
+    // The AI section's pages name the tab and the menu section they live in.
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_AI_INSIGHTS, [
+      "Project",
+      "Exceptions",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_AI_INSIGHT_VIEW, [
+      "Project",
+      "Exceptions",
+      "AI",
+      "Insights",
+      "Insight",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_AI_LOGS, [
+      "Project",
+      "Exceptions",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_AI_SETTINGS, [
+      "Project",
+      "Exceptions",
+      "AI",
+      "Settings",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -26,6 +26,14 @@ enum AutoRemediationTriggerEntity {
    * a pull request that fixes the code or adds the tracing it lacks.
    */
   Trace = "Trace",
+  /*
+   * The new and rising exceptions OneUptime found in a service, and the
+   * services whose exceptions carry no stack trace (Exceptions → AI): the
+   * rule says which services' exceptions OneUptime AI looks into, and
+   * whether it opens a pull request that fixes the code, improves how the
+   * code handles an expected error, or makes it record stack traces.
+   */
+  Exception = "Exception",
 }
 
 export default AutoRemediationTriggerEntity;

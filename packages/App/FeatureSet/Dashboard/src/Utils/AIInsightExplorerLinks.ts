@@ -38,6 +38,8 @@ import {
  *   TraceSlowOperation /   -> traces explorer: the service, the operation
  *   TraceFailingOperation /   (its span name) and the hour it was read in -
  *   TraceMissingTracing       only its failed spans for a failing one
+ *   ExceptionMissingStackTrace -> the exceptions list scoped to the service
+ *                             over the day the finding read
  *
  * Everything here is pure (no network, no React) so App/Tests/Dashboard can
  * exercise the whole matrix in plain Node; the caller resolves service
@@ -233,6 +235,7 @@ export const getInsightDetectionWindow: GetInsightDetectionWindowFunction =
         break;
       case AIInsightType.NewException:
       case AIInsightType.ExceptionSpike:
+      case AIInsightType.ExceptionMissingStackTrace:
         windowMinutes = EXCEPTION_INSIGHT_WINDOW_MINUTES;
         break;
       default:
@@ -682,6 +685,56 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
       case AIInsightType.TraceFailingOperation:
       case AIInsightType.TraceMissingTracing: {
         return buildTraceFindingLink(input);
+      }
+
+      /*
+       * A service's exceptions with no stack trace: its unresolved
+       * exceptions over the day the finding read - what it counted. The
+       * list has no name-shaped service filter: a name that never resolved
+       * to an id is reported dropped.
+       */
+      case AIInsightType.ExceptionMissingStackTrace: {
+        const params: Dictionary<string> = {};
+        const dropped: Array<string> = [];
+        const serviceId: string | null = trimmedOrNull(input.serviceId);
+
+        if (serviceId) {
+          params["filters"] = JSON.stringify([["primaryEntityId", serviceId]]);
+        } else if (trimmedOrNull(input.serviceName)) {
+          dropped.push("serviceIds");
+        }
+
+        const window: InsightDetectionWindow | null = getInsightDetectionWindow(
+          {
+            insightType: input.insightType,
+            lastSeenAt: input.lastSeenAt,
+          },
+        );
+
+        if (window) {
+          params["range"] = TimeRange.CUSTOM;
+          params["start"] = window.startTime.toISOString();
+          params["end"] = window.endTime.toISOString();
+        }
+
+        const route: Route | null = withQueryParams(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
+          ),
+          params,
+        );
+
+        if (!route) {
+          return null;
+        }
+
+        return {
+          target: "exceptions",
+          label: "Open in Exceptions",
+          icon: IconProp.Bug,
+          route,
+          dropped,
+        };
       }
 
       case AIInsightType.ProfileHotspot: {

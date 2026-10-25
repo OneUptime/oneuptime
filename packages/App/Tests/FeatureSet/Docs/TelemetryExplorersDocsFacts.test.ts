@@ -1754,7 +1754,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
   });
 
-  it("counts the unresolved issues on the Exceptions tab, beside Insights and the Setup Guide", () => {
+  it("counts the unresolved issues on the Exceptions tab, beside Insights, AI and the Setup Guide", () => {
     const tabsSource: string = readDashboardSource(
       "Components/Exceptions/ExceptionsNavTabs.tsx",
     );
@@ -1763,6 +1763,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(allMatches(tabsSource, LABEL_PROPERTY)).toEqual([
       "Exceptions",
       "Insights",
+      "AI",
       "Setup Guide",
     ]);
     expect(badge).toContain("isResolved: false,");

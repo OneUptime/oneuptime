@@ -19,8 +19,8 @@ export const TELEMETRY_AI_RULE_CRITERIA_FIELDS: ReadonlyArray<string> = [
  * reads the same everywhere. One table serves every kind of AI rule, told
  * apart by triggerEntityType, and each uses only its own share: an
  * incident has an IncidentSeverity, an alert an AlertSeverity, and slow
- * code in a profile - or a slow or failing operation in a trace - the
- * service it runs in.
+ * code in a profile - or a slow or failing operation in a trace, or an
+ * exception - the service it runs in.
  */
 export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   Record<AutoRemediationTriggerEntity, ReadonlyArray<string>>
@@ -43,6 +43,7 @@ export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   ],
   [AutoRemediationTriggerEntity.Profile]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   [AutoRemediationTriggerEntity.Trace]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
+  [AutoRemediationTriggerEntity.Exception]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
 };
 
 const TRIGGER_ENTITY_TYPES: ReadonlyArray<AutoRemediationTriggerEntity> =
@@ -68,6 +69,7 @@ const RULES_NAME_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Alert]: "alert AI rules",
   [AutoRemediationTriggerEntity.Profile]: "profile AI rules",
   [AutoRemediationTriggerEntity.Trace]: "trace AI rules",
+  [AutoRemediationTriggerEntity.Exception]: "exception AI rules",
 };
 
 // What a refusal calls each criterion: its column's title in the API docs.
@@ -189,8 +191,17 @@ export function getAiRuleCriteriaProblem(data: {
       return RULES_NAME_BY_TRIGGER[owner];
     });
 
-    return `${TRIGGER_SPECIFIC_FIELD_TITLES[field] || field} can only be used by ${owners.join(" or ")}.`;
+    return `${TRIGGER_SPECIFIC_FIELD_TITLES[field] || field} can only be used by ${joinWithOr(owners)}.`;
   }
 
   return null;
+}
+
+// "a or b", and "a, b or c" once there are more than two.
+function joinWithOr(items: Array<string>): string {
+  if (items.length <= 2) {
+    return items.join(" or ");
+  }
+
+  return `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
 }

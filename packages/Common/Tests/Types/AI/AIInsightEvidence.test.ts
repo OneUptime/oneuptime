@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import AIInsightEvidence, {
   DeployRegressionInsightEvidence,
   ExceptionInsightEvidence,
+  ExceptionStackTraceInsightEvidence,
   LatencyInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
@@ -37,6 +38,7 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.TraceSlowOperation]: "trace",
   [AIInsightType.TraceFailingOperation]: "trace",
   [AIInsightType.TraceMissingTracing]: "trace",
+  [AIInsightType.ExceptionMissingStackTrace]: "exceptionStackTrace",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -47,6 +49,7 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "deployRegression",
   "profile",
   "trace",
+  "exceptionStackTrace",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -72,6 +75,31 @@ const exceptionEvidence: ExceptionInsightEvidence = {
   totalOccurrenceCount: 1200,
   distinctExceptionGroupCount: 3,
   firstSeenAt: "2026-09-18T10:00:00.000Z",
+  // Read by the Exceptions AI section: where the application's own code is.
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  stackFrameCount: 12,
+  ownCodeFrames: [
+    { functionName: "getOrder", fileName: "src/orders.ts", lineNumber: 42 },
+    { functionName: "", fileName: "src/routes.ts", lineNumber: 0 },
+  ],
+};
+
+const exceptionStackTraceEvidence: ExceptionStackTraceInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  windowStartTime: "2026-10-23T09:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  exceptions: [
+    {
+      telemetryExceptionId: "8f0e1d2c-3b4a-4596-8877-665544332211",
+      exceptionType: "TimeoutError",
+      exceptionMessage: "context deadline exceeded",
+      occurrenceCount: 900,
+      lastSeenAt: "2026-10-24T08:55:00.000Z",
+    },
+  ],
+  exceptionCount: 3,
+  occurrenceCount: 1240,
+  withStackTraceCount: 0,
 };
 
 const logSpikeEvidence: LogSpikeInsightEvidence = {
@@ -230,6 +258,10 @@ describe("AIInsightEvidence", () => {
     ["deployRegression", { deployRegression: deployRegressionEvidence }],
     ["profile", { profile: profileEvidence }],
     ["trace", { trace: traceEvidence }],
+    [
+      "exceptionStackTrace",
+      { exceptionStackTrace: exceptionStackTraceEvidence },
+    ],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {
@@ -243,6 +275,47 @@ describe("AIInsightEvidence", () => {
   test("exception evidence fields are all optional", () => {
     const minimal: ExceptionInsightEvidence = {};
     expect(roundTrip({ exception: minimal })).toEqual({ exception: {} });
+  });
+
+  /*
+   * A finding filed before the Exceptions AI section read its stack trace
+   * has neither field: absent says "not read", which an empty list (a stack
+   * of library frames only) must stay told apart from.
+   */
+  test("an exception's own code frames: absent, empty and read stay three answers", () => {
+    const legacy: AIInsightEvidence = roundTrip({
+      exception: { exceptionType: "TypeError" },
+    });
+    const libraryOnly: AIInsightEvidence = roundTrip({
+      exception: { stackFrameCount: 8, ownCodeFrames: [] },
+    });
+    const ownCode: AIInsightEvidence = roundTrip({
+      exception: exceptionEvidence,
+    });
+
+    expect(legacy.exception?.ownCodeFrames).toBeUndefined();
+    expect(libraryOnly.exception?.ownCodeFrames).toEqual([]);
+    expect(libraryOnly.exception?.stackFrameCount).toBe(8);
+    expect(ownCode.exception?.ownCodeFrames?.[0]).toEqual({
+      functionName: "getOrder",
+      fileName: "src/orders.ts",
+      lineNumber: 42,
+    });
+  });
+
+  test("missing stack trace evidence keeps its counts and exceptions exactly", () => {
+    const restored: AIInsightEvidence = roundTrip({
+      exceptionStackTrace: exceptionStackTraceEvidence,
+    });
+
+    expect(restored.exceptionStackTrace?.occurrenceCount).toBe(1240);
+    expect(restored.exceptionStackTrace?.withStackTraceCount).toBe(0);
+    expect(restored.exceptionStackTrace?.exceptions[0]?.occurrenceCount).toBe(
+      900,
+    );
+    expect(restored.exceptionStackTrace?.exceptions[0]?.lastSeenAt).toBe(
+      "2026-10-24T08:55:00.000Z",
+    );
   });
 
   test("undefined optional fields are dropped by serialisation", () => {

@@ -74,7 +74,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
   /*
    * The Exceptions destination is the only top-level tab backed by
    * ExceptionsViewer. Carry list scope into it from preserved legacy status
-   * URLs; Insights and Setup Guide do not render that scope.
+   * URLs; Insights, AI and Setup Guide do not render that scope.
    *
    * `status` is not in the carried set because the unified list owns it.
    */
@@ -100,6 +100,18 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
       icon: IconProp.ChartBar,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
+      ),
+    },
+    /*
+     * What OneUptime AI found in the project's exceptions and did with it,
+     * and its settings (Types/AI/TelemetryAi): its own side menu.
+     */
+    {
+      key: "ai",
+      label: "AI",
+      icon: IconProp.Sparkles,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.EXCEPTIONS_AI_INSIGHTS] as Route,
       ),
     },
     {
