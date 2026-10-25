@@ -515,9 +515,10 @@ describe("MetricInsightFix.start - OneUptime on its own", () => {
       skip: MetricInsightFixSkip.Blocked,
       detail: "No AI credits left.",
     });
-    expect(
-      (getBlocker.mock.calls[0]![0] as { props: JSONObject }).props,
-    ).toEqual({ isRoot: true, isSubscriptionUnpaid: false });
+    expect(getBlocker.mock.calls[0]![0].props).toEqual({
+      isRoot: true,
+      isSubscriptionUnpaid: false,
+    });
 
     capCheck.mockResolvedValueOnce({
       allowed: false,

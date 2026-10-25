@@ -17,6 +17,7 @@ import {
   OTEL_METRIC_OVERFLOW_ATTRIBUTE,
 } from "../../../Utils/Metrics/MetricInsight";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The Metrics AI lane's reads (MetricAggregationService): every metric of
@@ -56,7 +57,7 @@ function params(statement: Statement): Array<unknown> {
 
 function stubQuery(
   rows: Array<JSONObject>,
-): jest.SpiedFunction<typeof MetricService.executeQuery> {
+): SpyInstance<typeof MetricService.executeQuery> {
   const fakeResult: Results = {
     json: (): Promise<unknown> => {
       return Promise.resolve({ data: rows });
@@ -183,14 +184,13 @@ describe("the hour's metrics, from the hourly rollup", () => {
   });
 
   test("read through the metric table's own client", async () => {
-    const spy: jest.SpiedFunction<typeof MetricService.executeQuery> =
-      stubQuery([
-        {
-          name: "http.server.request.count",
-          primaryEntityId: CHECKOUT,
-          points: 9,
-        },
-      ]);
+    const spy: SpyInstance<typeof MetricService.executeQuery> = stubQuery([
+      {
+        name: "http.server.request.count",
+        primaryEntityId: CHECKOUT,
+        points: 9,
+      },
+    ]);
 
     expect(
       await MetricAggregationService.getHourlyMetricVolumes({
@@ -346,8 +346,7 @@ describe("a few metrics read closely, by the metric table's sort key", () => {
   });
 
   test("no metric to read: nothing is asked", async () => {
-    const spy: jest.SpiedFunction<typeof MetricService.executeQuery> =
-      stubQuery([]);
+    const spy: SpyInstance<typeof MetricService.executeQuery> = stubQuery([]);
 
     expect(
       await MetricAggregationService.getMetricShapes({
