@@ -91,7 +91,7 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | **Notater** | **Private notater** |
 | **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
-Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Run Playbook**, **Erklær hendelse** og **Close Case**, og i menyen ⋯ ved siden av **Angi prioritet**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**.
+Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Run Playbook**, **Erklær hendelse** og **Close Case**, og i menyen ⋯ ved siden av **Angi prioritet**, **Tildel til en annen**, **Endre status**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**.
 
 - **Oversikt**: sakens beskrivelse, etiketter og statussteg, hvem som har den og hva som åpnet den, og tallene: hvor mange deteksjoner den har, hvor lenge den har vært åpen, og hvor lang tid det tok å bekrefte og inndemme den.
 - **OneUptime AI**, på **Oversikt**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
 - **Slett sak**: sletter saken for godt, med deteksjonene, notatene, tidslinjen og playbook-kjøringene. For å beholde den som dokumentasjon, lukk den heller med en konklusjon.
 
-For å behandle flere saker samtidig merker du dem i køen og bruker **Tildel til meg**, **Change Status** eller **Change Priority**.
+### Behandle saker fra køen
+
+Du trenger ikke åpne en sak for å behandle den. I køens lister har menyen ⋯ på raden til en sak **Tildel til meg**, **Tildel til en annen**, **Endre status** og **Endre prioritet**. For å behandle flere saker samtidig merker du dem og bruker de samme handlingene under **Massehandlinger**: De viser hvilke saker som ble endret, hvilke som ble latt være, og hvorfor.
+
+- For å gi en sak til noen andre bruker du **Tildel til en annen** og velger én person eller et team. En sak som hører til et team, venter under **Ikke tildelt** til noen på teamet tar den.
+- En status som lukker en sak, ber om en konklusjon og et avslutningsnotat, slik **Close Case** gjør.
+- En lukket sak tildeles ikke noen. For å jobbe med den igjen gjenåpner du den med **Endre status**.
 
 ### Lukk en sak
 

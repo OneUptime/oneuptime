@@ -91,7 +91,7 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
-Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e título, **Atribuir a mim**, **Run Playbook**, **Declarar incidente** e **Close Case** e, no menu ⋯ ao lado, **Definir prioridade**, **Editar caso** e **Excluir caso**. Assim o caso pode ser tratado de qualquer uma das suas páginas, e um link para o caso continua abrindo a **Visão geral** dele.
+Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e título, **Atribuir a mim**, **Run Playbook**, **Declarar incidente** e **Close Case** e, no menu ⋯ ao lado, **Definir prioridade**, **Atribuir a outra pessoa**, **Alterar status**, **Editar caso** e **Excluir caso**. Assim o caso pode ser tratado de qualquer uma das suas páginas, e um link para o caso continua abrindo a **Visão geral** dele.
 
 - **Visão geral**: a descrição, os rótulos e as etapas de status do caso, quem está com ele e o que o abriu, e os números dele: quantas detecções tem, há quanto tempo está aberto e quanto tempo levou para ser reconhecido e contido.
 - **OneUptime AI**, na **Visão geral**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
 - **Excluir caso**: exclui o caso para sempre, com as detecções, notas, linha do tempo e execuções de playbooks dele. Para manter o registro, feche-o com um veredito.
 
-Para tratar vários casos de uma vez, selecione-os na fila e use **Atribuir a mim**, **Change Status** ou **Change Priority**.
+### Tratar casos a partir da fila
+
+Você não precisa abrir um caso para tratá-lo. Nas listas da fila, o menu ⋯ na linha de um caso tem **Atribuir a mim**, **Atribuir a outra pessoa**, **Alterar status** e **Alterar prioridade**. Para tratar vários casos de uma vez, selecione-os e use as mesmas ações em **Ações em massa**: elas dizem quais casos foram alterados, quais ficaram como estavam e por quê.
+
+- Para passar um caso a outra pessoa, use **Atribuir a outra pessoa** e escolha uma pessoa ou uma equipe. O caso de uma equipe aguarda em **Não atribuído** até que alguém da equipe o assuma.
+- Um status que fecha um caso pede um veredito e uma nota de fechamento, como **Close Case** faz.
+- Um caso fechado não é atribuído a ninguém. Para tratá-lo de novo, reabra-o com **Alterar status**.
 
 ### Fechar um caso
 

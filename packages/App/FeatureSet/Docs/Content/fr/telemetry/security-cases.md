@@ -91,7 +91,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
-Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Run Playbook**, **Déclarer un incident** et **Close Case**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**.
+Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son statut et son titre, **M'attribuer**, **Run Playbook**, **Déclarer un incident** et **Close Case**, et, dans le menu ⋯ à côté, **Définir la priorité**, **Attribuer à quelqu'un d'autre**, **Changer le statut**, **Modifier le dossier** et **Supprimer le dossier**. Le dossier se traite ainsi depuis n'importe laquelle de ses pages, et un lien vers le dossier ouvre toujours sa **Vue d'ensemble**.
 
 - **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir.
 - **OneUptime AI**, sur la **Vue d'ensemble** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
 - **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes, sa chronologie et ses exécutions de playbooks. Pour en garder la trace, clôturez-le plutôt avec un verdict.
 
-Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **M'attribuer**, **Change Status** ou **Change Priority**.
+### Traiter les dossiers depuis la file d'attente
+
+Inutile d'ouvrir un dossier pour le traiter. Dans les listes de la file d'attente, le menu ⋯ de la ligne d'un dossier propose **M'attribuer**, **Attribuer à quelqu'un d'autre**, **Changer le statut** et **Changer la priorité**. Pour traiter plusieurs dossiers à la fois, sélectionnez-les et utilisez les mêmes actions sous **Actions groupées** : elles indiquent quels dossiers ont été modifiés, lesquels sont restés tels quels, et pourquoi.
+
+- Pour confier un dossier à quelqu'un d'autre, utilisez **Attribuer à quelqu'un d'autre** et choisissez une personne, ou une équipe. Le dossier d'une équipe attend sous **Non attribué** jusqu'à ce que quelqu'un de l'équipe le prenne en charge.
+- Un statut qui ferme un dossier demande un verdict et une note de clôture, comme **Close Case**.
+- Un dossier fermé n'est attribué à personne. Pour le traiter à nouveau, rouvrez-le avec **Changer le statut**.
 
 ### Fermer un dossier
 

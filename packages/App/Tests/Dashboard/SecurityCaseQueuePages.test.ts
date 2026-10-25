@@ -98,6 +98,7 @@ function rowOf(view: SecurityCaseQueueView): JSONObject {
     isEmptyGoodNews: view.isEmptyGoodNews,
     canOpenCase: view.canOpenCase,
     canAssignToMe: view.canAssignToMe,
+    canAssignToSomeoneElse: view.canAssignToSomeoneElse,
   };
 }
 
@@ -152,9 +153,13 @@ describe("the case queue's pages", () => {
         isEmptyGoodNews: true,
         canOpenCase: true,
         canAssignToMe: true,
+        canAssignToSomeoneElse: true,
       },
       {
-        // Every case here is yours: no Assignee column, no Assign to Me.
+        /*
+         * Every case here is yours: no Assignee column, no Assign to Me -
+         * and Assign to Someone Else, to hand one on.
+         */
         key: "mine",
         page: "SECURITY_CASES_ASSIGNED_TO_ME",
         title: "Assigned to Me",
@@ -172,6 +177,7 @@ describe("the case queue's pages", () => {
         isEmptyGoodNews: false,
         canOpenCase: false,
         canAssignToMe: false,
+        canAssignToSomeoneElse: true,
       },
       {
         /*
@@ -203,11 +209,12 @@ describe("the case queue's pages", () => {
         isEmptyGoodNews: true,
         canOpenCase: false,
         canAssignToMe: true,
+        canAssignToSomeoneElse: true,
       },
       {
         /*
          * Read by verdict and when it closed; every case here is Closed,
-         * and nobody takes a closed case on.
+         * and nobody takes a closed case on, or hands one to anybody.
          */
         key: "closed",
         page: "SECURITY_CASES_CLOSED",
@@ -234,6 +241,7 @@ describe("the case queue's pages", () => {
         isEmptyGoodNews: false,
         canOpenCase: false,
         canAssignToMe: false,
+        canAssignToSomeoneElse: false,
       },
       {
         key: "all",
@@ -262,6 +270,7 @@ describe("the case queue's pages", () => {
         isEmptyGoodNews: false,
         canOpenCase: true,
         canAssignToMe: true,
+        canAssignToSomeoneElse: true,
       },
     ]);
   });

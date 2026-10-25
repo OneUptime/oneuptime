@@ -153,6 +153,8 @@ export const SECURITY_CASE_HEADER_TEST_IDS: {
   more: string;
   morePlace: string;
   priorityOption: string;
+  assignToSomeoneElse: string;
+  changeStatus: string;
   edit: string;
   delete: string;
 } = {
@@ -168,6 +170,8 @@ export const SECURITY_CASE_HEADER_TEST_IDS: {
   more: "security-case-more",
   morePlace: "security-case-more-place",
   priorityOption: "security-case-priority-option",
+  assignToSomeoneElse: "security-case-assign-to-someone-else",
+  changeStatus: "security-case-change-status",
   edit: "security-case-edit",
   delete: "security-case-delete",
 };

@@ -91,7 +91,7 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | **Anteckningar** | **Privata anteckningar** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
-Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Run Playbook**, **Deklarera incident** och **Close Case**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**.
+Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Run Playbook**, **Deklarera incident** och **Close Case**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Tilldela någon annan**, **Ändra status**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**.
 
 - **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det.
 - **OneUptime AI**, på **Översikt**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
@@ -104,7 +104,13 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
 - **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar, tidslinje och playbook-körningar. För att behålla det som dokumentation, stäng det i stället med en bedömning.
 
-För att arbeta med flera ärenden samtidigt markerar du dem i kön och använder **Tilldela mig**, **Change Status** eller **Change Priority**.
+### Arbeta med ärenden från kön
+
+Du behöver inte öppna ett ärende för att arbeta med det. I köns listor har menyn ⋯ på ett ärendes rad **Tilldela mig**, **Tilldela någon annan**, **Ändra status** och **Ändra prioritet**. För att arbeta med flera ärenden samtidigt markerar du dem och använder samma åtgärder under **Massåtgärder**: där står vilka ärenden som ändrades, vilka som lämnades som de var, och varför.
+
+- För att ge ett ärende till någon annan använder du **Tilldela någon annan** och väljer en person eller ett team. Ett teams ärende väntar under **Ej tilldelad** tills någon i teamet tar det.
+- En status som stänger ett ärende ber om en bedömning och en avslutande anteckning, som **Close Case** gör.
+- Ett stängt ärende tilldelas ingen. För att arbeta med det igen öppnar du det på nytt med **Ändra status**.
 
 ### Stäng ett ärende
 
