@@ -199,9 +199,10 @@ describe("EventHeaderSkeleton", () => {
     )) {
       expect(button).toHaveClass(
         "flex-auto",
-        "min-w-[7rem]",
         "[@container(min-width:36rem)]:flex-none",
       );
+      // No fixed minimum a phone could not fit (EventOverviewSkeleton's rule).
+      expect(button.className).not.toContain("min-w-[");
     }
   });
 

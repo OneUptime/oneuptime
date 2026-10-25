@@ -522,14 +522,15 @@ describe("whether the reader may add owners", () => {
     });
     allowCreating([AlertOwnerTeam]);
 
+    const alertOptions: UseEventOwnersOptions = {
+      ownerUserModelType: AlertOwnerUser,
+      ownerTeamModelType: AlertOwnerTeam,
+      resourceIdField: "alertId",
+      resourceId: new ObjectID(INCIDENT_ID),
+    };
     const alert: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
       renderHook(useEventOwners, {
-        initialProps: {
-          ownerUserModelType: AlertOwnerUser,
-          ownerTeamModelType: AlertOwnerTeam,
-          resourceIdField: "alertId",
-          resourceId: new ObjectID(INCIDENT_ID),
-        },
+        initialProps: alertOptions,
       });
 
     expect(alert.result.current.canAddOwners).toBe(true);

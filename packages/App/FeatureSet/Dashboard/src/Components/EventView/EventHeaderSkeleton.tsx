@@ -41,9 +41,10 @@ const VALUE_WIDTHS: Array<string> = ["w-20", "w-28", "w-32", "w-24", "w-28"];
 
 /*
  * A button's place, sized as a loaded button is: on a phone's header it
- * grows from its width to share the row, wider it keeps its width.
+ * grows from its width to share the row, wider it keeps its width. (No
+ * fixed minimum: the placeholder holds nothing a phone could not fit.)
  */
-const SKELETON_BUTTON_CLASS_NAME: string = `h-9 min-w-[7rem] max-w-full flex-auto rounded-md bg-gray-100 ${atContainerWidth(
+const SKELETON_BUTTON_CLASS_NAME: string = `h-9 max-w-full flex-auto rounded-md bg-gray-100 ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
   "flex-none",
 )}`;
