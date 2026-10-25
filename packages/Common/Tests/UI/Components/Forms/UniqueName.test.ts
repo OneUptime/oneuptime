@@ -360,3 +360,45 @@ describe("what the lookup of a copy's taken names searches for", () => {
     }
   });
 });
+
+/*
+ * A name a command carries takes no spaces: an Add guide's resource name
+ * (Components/ResourceOnboarding) is numbered "my-cluster-2".
+ */
+describe("a name numbered with a separator of its own", () => {
+  test("puts the separator between the name and its number", () => {
+    expect(
+      getUniqueName({
+        name: "my-cluster",
+        existingNames: ["my-cluster"],
+        separator: "-",
+      }),
+    ).toBe("my-cluster-2");
+    expect(
+      getUniqueName({
+        name: "my-cluster",
+        existingNames: ["my-cluster", "MY-CLUSTER-2"],
+        separator: "-",
+      }),
+    ).toBe("my-cluster-3");
+  });
+
+  test("keeps the wanted name while nothing has it", () => {
+    expect(
+      getUniqueName({
+        name: "my-cluster",
+        existingNames: ["my-cluster 2"],
+        separator: "-",
+      }),
+    ).toBe("my-cluster");
+  });
+
+  test("is a space when none is given, as every form's name is", () => {
+    expect(
+      getUniqueName({
+        name: "Kubernetes key",
+        existingNames: ["Kubernetes key"],
+      }),
+    ).toBe("Kubernetes key 2");
+  });
+});

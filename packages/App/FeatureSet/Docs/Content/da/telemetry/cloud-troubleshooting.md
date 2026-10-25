@@ -112,7 +112,7 @@ Miljønøglen er `cloud.platform|cloud.account.id|cloud.region`, sammenlignet te
 
 ## Et håndlavet miljø matcher aldrig
 
-Indtagelsen matcher et miljø alene på dets nøgle, og nøglen skal være præcis `platform|account|region`, f.eks. `aws_ecs|123456789012|us-east-1`: samme platformværdi, konto-ID og region, som telemetrien bærer. Oprettelsesformularen (**Opret Cloud-ressource** under **Cloud → All Environments**) bygger nøglen ud fra felterne **Cloud-platform**, **Cloud-konto-ID** og **Cloud-region**, så de tre skal stemme overens med telemetrien tegn for tegn. Gør de ikke det, opretter indtagelsen et andet miljø med den nøgle, den udledte, og dit forbliver tomt. Arkivér det håndlavede miljø, og lad indtagelsen oprette det rigtige, eller opret det igen med de rettede værdier.
+Indtagelsen matcher et miljø alene på dets nøgle, og nøglen skal være præcis `platform|account|region`, f.eks. `aws_ecs|123456789012|us-east-1`: samme platformværdi, konto-ID og region, som telemetrien bærer. Et miljø, der er oprettet via API'et eller i hånden, før **Tilføj cloud-miljø** erstattede dashboardets formular, matches kun, når dets **Cloud-platform**, **Cloud-konto-ID** og **Cloud-region** stemmer overens med telemetriens tegn for tegn. Gør de ikke det, opretter indtagelsen et andet miljø med den nøgle, den udledte, og dit forbliver tomt. Arkivér det håndlavede miljø, og lad indtagelsen oprette det rigtige.
 
 ## Stadig problemer
 

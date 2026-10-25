@@ -56,7 +56,7 @@ Nel passaggio successivo, fai clic su **Testa la connessione**. La sonda accede,
 Per impostazione predefinita vCenter usa un certificato della propria autorità, di cui la sonda non si fida. Il test mostra allora il certificato: confronta la sua impronta con quella di vCenter, poi fai clic su **Considera attendibile questo certificato**.
 
 ### Assegnare un nome e collegare
-Il nome predefinito è il nome host di vCenter. Fai clic su **Collega vCenter** per salvare.
+Il nome predefinito è il nome host di vCenter. Fai clic su **Collega vCenter** per salvare, e si apre la pagina del vCenter.
 :::
 
 La **Panoramica** del vCenter mostra una scheda **Raccolta dati**. Indica **Verifica in corso** fino alla prima raccolta, che parte entro un minuto, poi **In raccolta**, e l'inventario si popola.

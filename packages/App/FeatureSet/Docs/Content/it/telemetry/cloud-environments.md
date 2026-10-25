@@ -89,9 +89,9 @@ All'interno di un ambiente, ogni task, istanza o replica in esecuzione ottiene u
 
 L'identità propria della piattaforma viene prima di proposito. Un collector sidecar e l'SDK dell'applicazione la vedono entrambi, e sopravvive ai riavvii. Un SDK di solito inventa un nuovo `service.instance.id` per ogni processo (l'SDK Node.js lo fa per impostazione predefinita), quindi usarlo come chiave dividerebbe un task ECS in due righe. `service.instance.id` si usa quando la piattaforma non imposta un'identità propria. La colonna **Identità dell'istanza** in [Piattaforme supportate](#piattaforme-supportate) indica l'attributo usato da una configurazione tipica su ogni piattaforma.
 
-### Ambienti creati a mano
+### Aggiungere un ambiente
 
-Raramente serve: l'acquisizione crea gli ambienti per te. Per crearne uno prima della sua telemetria, apri **Cloud → All Environments** e fai clic su **Crea: Risorsa cloud**. Scegli la **Piattaforma cloud**, poi inserisci **ID account cloud** e **Regione cloud** esattamente come li riporta la tua telemetria. OneUptime costruisce la chiave `platform|account|region` da questi tre valori, e l'acquisizione associa un ambiente solo in base alla sua chiave. Gli dà il nome che gli darebbe l'acquisizione; per mostrare un altro nome, apri **Altri campi** e inseriscilo in **Nome visualizzato**.
+L'acquisizione crea gli ambienti per te, quindi non c'è nulla da inserire. Apri **Cloud → All Environments** e fai clic su **Aggiungi ambiente cloud**: scegli dove gira la tua app, e la guida mostra le impostazioni OpenTelemetry di quella piattaforma, con il tuo URL di OneUptime e la tua chiave di acquisizione già inseriti. Il suo ultimo passaggio, **Attendi che si connetta**, indica quando sono arrivati i primi dati dell'ambiente e ne mostra il link. Per mostrare un altro nome, scegli **Modifica dettagli** nella scheda **Dettagli della risorsa** della pagina **Impostazioni** dell'ambiente e inseriscilo in **Nome visualizzato**.
 
 ## Che cosa non è un ambiente cloud
 

@@ -89,9 +89,9 @@ Inden for et miljø får hver kørende opgave, instans eller replika én række 
 
 Platformens egen identitet kommer først med vilje. En sidecar-collector og applikationens SDK ser den begge, og den overlever genstarter. Et SDK finder som regel på et nyt `service.instance.id` for hver proces (Node.js-SDK'et gør det som standard), så hvis det var nøglen først, ville én ECS-opgave blive delt i to rækker. `service.instance.id` bruges, når platformen ikke selv sætter en identitet. Kolonnen **Instansidentitet** i [Understøttede platforme](#understøttede-platforme) nævner den attribut, en typisk opsætning bruger på hver platform.
 
-### Miljøer, du opretter i hånden
+### Tilføj et miljø
 
-Det er sjældent nødvendigt: indtagelsen opretter miljøer for dig. For at oprette et før dets telemetri skal du åbne **Cloud → All Environments** og klikke på **Opret Cloud-ressource**. Vælg **Cloud-platform**, og skriv derefter **Cloud-konto-ID** og **Cloud-region** præcis, som din telemetri rapporterer dem. OneUptime bygger nøglen `platform|account|region` ud fra disse tre, og indtagelsen matcher et miljø alene på nøglen. Miljøet får det navn, indtagelsen ville give det; vil du vise et andet navn, så åbn **Flere felter** og skriv et **Visningsnavn**.
+Indtagelsen opretter miljøer for dig, så der er intet at indtaste. Åbn **Cloud → All Environments**, og klik på **Tilføj cloud-miljø**: vælg, hvor din applikation kører, og vejledningen viser platformens OpenTelemetry-indstillinger med din OneUptime-URL og indtagelsesnøgle udfyldt. Dens sidste trin, **Vent på forbindelse**, fortæller, hvornår miljøets første data er kommet ind, og linker til det. For at vise et andet navn skal du vælge **Rediger detaljer** på kortet **Ressourcedetaljer** på miljøets side **Indstillinger** og skrive et **Visningsnavn**.
 
 ## Hvad der ikke er et cloud-miljø
 

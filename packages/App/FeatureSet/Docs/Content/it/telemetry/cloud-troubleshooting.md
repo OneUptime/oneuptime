@@ -112,7 +112,7 @@ Apri la **Panoramica** di ogni ambiente: la sua **Chiave ambiente** mostra quale
 
 ## Un ambiente creato a mano non viene mai associato
 
-L'acquisizione associa un ambiente solo in base alla sua chiave, e la chiave deve essere esattamente `platform|account|region`, ad esempio `aws_ecs|123456789012|us-east-1`: lo stesso valore di piattaforma, ID account e regione che porta la telemetria. Il modulo di creazione (**Crea: Risorsa cloud** in **Cloud → All Environments**) costruisce la chiave dai suoi campi **Piattaforma cloud**, **ID account cloud** e **Regione cloud**, quindi questi tre devono corrispondere alla telemetria carattere per carattere. Se non corrispondono, l'acquisizione crea un secondo ambiente con la chiave che ha calcolato, e il tuo resta vuoto. Archivia l'ambiente creato a mano e lascia che l'acquisizione crei quello giusto, oppure ricrealo con i valori corretti.
+L'acquisizione associa un ambiente solo in base alla sua chiave, e la chiave deve essere esattamente `platform|account|region`, ad esempio `aws_ecs|123456789012|us-east-1`: lo stesso valore di piattaforma, ID account e regione che porta la telemetria. Un ambiente creato tramite l'API, o a mano prima che **Aggiungi ambiente cloud** sostituisse il modulo della dashboard, viene associato solo quando i suoi campi **Piattaforma cloud**, **ID account cloud** e **Regione cloud** sono uguali a quelli della telemetria carattere per carattere. Se non corrispondono, l'acquisizione crea un secondo ambiente con la chiave che ha calcolato, e il tuo resta vuoto. Archivia l'ambiente creato a mano e lascia che l'acquisizione crei quello giusto.
 
 ## Ancora bloccato
 

@@ -1,7 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -15,19 +13,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
-import {
-  getDisplayNameFormField,
-  getIdentityFormField,
-  getNameFromIdentityField,
-} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -39,7 +35,10 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PodmanDocumentationCard from "../../Components/Podman/DocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import PODMAN_HOST_ONBOARDING from "../../Components/Podman/PodmanHostOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -50,6 +49,9 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<PodmanHost>({
     modelType: PodmanHost,
   });
+  const [isAddHostOpen, setIsAddHostOpen] = useState<boolean>(false);
+  // Hosts connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<PodmanHost>({ modelType: PodmanHost });
@@ -117,22 +119,19 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   /*
-   * The create form asks for the one thing a Podman host cannot be created
-   * without: the host.name its agent reports. The display name follows it -
-   * a host added here is named like a discovered one - and folds under
-   * Advanced with the description and the labels, so the form is two rows
-   * (DiscoveredResourceFormFields).
+   * A Podman host is added by running the agent on it (Add Podman Host):
+   * the guide asks for the host's name, writes it into the commands, and
+   * the host registers itself under it when the agent connects. There is
+   * no form: a host typed in by hand would only wait for telemetry that
+   * nothing sends.
    */
-  const advancedSection: FormFieldCollapsibleSection<PodmanHost> =
-    getAdvancedFormSection<PodmanHost>();
-
   return (
     <Fragment>
       <ModelTable<PodmanHost>
         modelType={PodmanHost}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="podman-hosts-table"
         userPreferencesKey="podman-hosts-table"
         topContent={getFirstRunTopContent({
@@ -149,14 +148,10 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         onFetchSuccess={(data: Array<PodmanHost>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: PodmanHost): Promise<PodmanHost> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -173,40 +168,19 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Podman Hosts",
           description:
             "Hosts being monitored in this project. Install the OneUptime Podman Agent to connect a host.",
+          buttons: [
+            {
+              title: PODMAN_HOST_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddHostOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          getIdentityFormField<PodmanHost>({
-            field: {
-              hostIdentifier: true,
-            },
-            title: "Host Name (host.name)",
-            placeholder: "podman-host-prod-1",
-            description:
-              "Exactly as the OneUptime Podman Agent reports it. Telemetry is matched to this host by its host name.",
-          }),
-          getDisplayNameFormField<PodmanHost>({
-            getDefaultName:
-              getNameFromIdentityField<PodmanHost>("hostIdentifier"),
-            placeholder: "Production Podman host",
-            description:
-              "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.",
-            collapsibleSection: advancedSection,
-          }),
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production Podman host running in US East",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<PodmanHost>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
+        formFields={[]}
         columns={[
           {
             field: {
@@ -319,9 +293,30 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <PodmanDocumentationCard
-          title="Getting Started with Podman Monitoring"
+        <AddResourceGuide
+          onboarding={PODMAN_HOST_ONBOARDING}
+          title={PODMAN_HOST_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new host.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddHostOpen && (
+        <AddResourceModal
+          onboarding={PODMAN_HOST_ONBOARDING}
+          onClose={() => {
+            setIsAddHostOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

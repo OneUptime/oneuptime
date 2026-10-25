@@ -48,6 +48,8 @@ Fill in **App Name (service.name)** with the `service.name` your app will report
 The application is named after its app name, as a discovered one is. To show another name, open **More fields** and type a **Display Name**; the description and labels are there too. Then save the form.
 :::
 
+Its setup guide then opens on its own, with the app name as the snippet's `service.name`. Its last step, **Wait for it to connect**, says when the first data arrives.
+
 If the project already has an application with that `service.name`, whether discovered, added before or archived, the form says so instead of creating a second one.
 
 ## Connection status

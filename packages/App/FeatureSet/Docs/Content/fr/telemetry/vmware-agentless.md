@@ -56,7 +56,7 @@ Saisissez l'adresse à laquelle vous ouvrez le vSphere Client, comme `https://vc
 Par défaut, vCenter utilise un certificat de sa propre autorité, auquel la sonde ne fait pas confiance. Le test affiche alors le certificat : comparez son empreinte à celle de vCenter, puis cliquez sur **Approuver ce certificat**.
 
 ### Le nommer et le connecter
-Le nom est par défaut le nom d'hôte de vCenter. Cliquez sur **Connecter vCenter** pour enregistrer.
+Le nom est par défaut le nom d'hôte de vCenter. Cliquez sur **Connecter vCenter** pour enregistrer, et la page du vCenter s'ouvre.
 :::
 
 La **Vue d'ensemble** du vCenter affiche une carte **Collecte des données**. Elle indique **Vérification** jusqu'à la première collecte, qui démarre dans la minute, puis **Collecte en cours**, et l'inventaire se remplit.

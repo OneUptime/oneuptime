@@ -53,7 +53,7 @@ Jedes Mal, wenn Telemetrie eintrifft, rückt **Zuletzt gesehen** des Dienstes vo
 - Wählen Sie mehrere Dienste aus, um allen auf einmal Beschriftungen oder Eigentümer zu geben oder sie zu archivieren.
 - Klicken Sie auf einen Dienst, um seine Seiten zu öffnen.
 
-Um einen Dienst anzulegen, bevor seine Telemetrie eintrifft, etwa um zuerst seine Eigentümer festzulegen, klicken Sie auf **Dienst erstellen** und geben seinen **Name** genau so ein, wie sein `service.name` lauten wird. Beschriftungs- und Eigentümerregeln laufen auf ihm wie auf einem entdeckten Dienst.
+Um einen Dienst anzulegen, bevor seine Telemetrie eintrifft, etwa um zuerst seine Eigentümer festzulegen, klicken Sie auf **Dienst erstellen** und geben seinen **Name** genau so ein, wie sein `service.name` lauten wird. Beschriftungs- und Eigentümerregeln laufen auf ihm wie auf einem entdeckten Dienst. Sobald er gespeichert ist, öffnet sich die OpenTelemetry-Einrichtungsanleitung mit diesem Namen in jedem Snippet, und ihr letzter Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten des Dienstes eintreffen.
 
 ## Die Seiten eines Dienstes
 

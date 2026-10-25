@@ -112,7 +112,7 @@ Open het **Overzicht** van elke omgeving: de **Omgevingssleutel** laat zien welk
 
 ## Een met de hand gemaakte omgeving komt nooit overeen
 
-De ingestie koppelt een omgeving alleen op haar sleutel, en de sleutel moet precies `platform|account|region` zijn, zoals `aws_ecs|123456789012|us-east-1`: dezelfde platformwaarde, hetzelfde account-ID en dezelfde regio als de telemetrie draagt. Het aanmaakformulier (**Cloud-resource aanmaken** onder **Cloud → All Environments**) bouwt de sleutel uit de velden **Cloud-platform**, **Cloud-account-ID** en **Cloud-regio**, dus die drie moeten teken voor teken met de telemetrie overeenkomen. Doen ze dat niet, dan maakt de ingestie een tweede omgeving aan met de sleutel die ze heeft bepaald, en blijft de jouwe leeg. Archiveer de met de hand gemaakte omgeving en laat de ingestie de juiste aanmaken, of maak haar opnieuw aan met de gecorrigeerde waarden.
+De ingestie koppelt een omgeving alleen op haar sleutel, en de sleutel moet precies `platform|account|region` zijn, zoals `aws_ecs|123456789012|us-east-1`: dezelfde platformwaarde, hetzelfde account-ID en dezelfde regio als de telemetrie draagt. Een omgeving die via de API is aangemaakt, of met de hand voordat **Cloud-omgeving toevoegen** het formulier van het dashboard verving, wordt alleen gekoppeld als haar **Cloud-platform**, **Cloud-account-ID** en **Cloud-regio** teken voor teken gelijk zijn aan die van de telemetrie. Zijn ze dat niet, dan maakt de ingestie een tweede omgeving aan met de sleutel die ze heeft bepaald, en blijft de jouwe leeg. Archiveer de met de hand gemaakte omgeving en laat de ingestie de juiste aanmaken.
 
 ## Nog steeds problemen
 

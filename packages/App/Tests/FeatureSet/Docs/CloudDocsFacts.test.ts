@@ -1,4 +1,3 @@
-import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES } from "Common/Server/Services/CloudResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import {
@@ -49,7 +48,7 @@ import path from "path";
  * discovery defaults to these pages, and Common's CloudSetupGuide and
  * CloudMonitoringSetupGuide tests hold the in-app guides' commands to them.
  * This suite holds the rest: every menu path is a path through the
- * product's own menus; the create form, the overview, the instances and the
+ * product's own menus; the Add guide, the overview, the instances and the
  * status pills are named as the Dashboard names them; the clocks the pages
  * quote are the sweeps' own; the token check answers as the pages say; the
  * labels a resource attribute adds are the ones ingest makes; and every
@@ -84,12 +83,13 @@ const ENVIRONMENT_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/View/Overview.tsx
 const RESOURCE_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/View/MonitoredResourceOverview.tsx`;
 const INSTANCES_PAGE: string = `${DASHBOARD}/Pages/Cloud/View/Instances.tsx`;
 const TELEMETRY_SCOPE: string = `${DASHBOARD}/Pages/Cloud/Utils/CloudResourceTelemetryScope.ts`;
-const DISPLAY_NAME_FIELD: string = `${DASHBOARD}/Utils/Form/DiscoveredResourceFormFields.ts`;
+const ENVIRONMENT_ONBOARDING: string = `${DASHBOARD}/Components/Cloud/CloudEnvironmentOnboarding.tsx`;
+const ENVIRONMENT_SETTINGS: string = `${DASHBOARD}/Pages/Cloud/View/Settings.tsx`;
+const RESOURCE_DETAILS_CARD: string = `${DASHBOARD}/Components/TelemetryResource/ResourceDetailsCard.tsx`;
+const RESOURCE_ONBOARDING: string = `${DASHBOARD}/Components/ResourceOnboarding/ResourceOnboarding.ts`;
 const METRIC_EXPLORER: string = `${DASHBOARD}/Components/Metrics/MetricExplorer.tsx`;
 const CLOUD_SETUP_GUIDE: string = `${DASHBOARD}/Components/Cloud/CloudSetupGuide.ts`;
 const CLOUD_MONITORING_GUIDE: string = `${DASHBOARD}/Components/Cloud/CloudMonitoringSetupGuide.ts`;
-const FOLDED_SECTION_TITLES: string =
-  "Common/UI/Components/FoldedSection/FoldedSectionTitles.ts";
 const EN_LOCALE: string = `${DASHBOARD}/Locales/en.json`;
 const OTLP_INGEST_API: string = "App/FeatureSet/Telemetry/API/OTelIngest.ts";
 const INGEST_BASE: string =
@@ -462,42 +462,57 @@ describe("the menu paths", () => {
   });
 });
 
-describe("the environments list and its create form", () => {
-  it("names the create button as the Cloud Environments table draws it", () => {
+describe("the environments list and its Add guide", () => {
+  it("names the Add button as the Cloud Environments table draws it", () => {
     const source: string = readSource(ENVIRONMENTS_PAGE);
-    const button: string = `Create ${new CloudResource().singularName}`;
+    const button: string = "Add Cloud Environment";
 
-    // The table names no noun of its own, so the button takes the model's.
-    expect(source).toContain("isCreateable={true}");
-    expect(source).not.toContain("singularName=");
-    expect(button).toBe("Create Cloud Resource");
+    // No form: ingest creates environments, and the button opens the guide.
+    expect(source).toContain("isCreateable={false}");
+    expect(source).toContain("title: CLOUD_ENVIRONMENT_ONBOARDING.addTitle,");
+    expect(readSource(ENVIRONMENT_ONBOARDING)).toContain(
+      `addTitle: translationKey("${button}"),`,
+    );
 
     for (const page of [HUB, TROUBLESHOOTING]) {
       expect(boldLabels(englishPage(page))).toContain(button);
     }
   });
 
-  it("names the form's fields, and the fold the display name is in", () => {
-    const source: string = readSource(ENVIRONMENTS_PAGE);
+  it("names the key a hand-made environment must match as the list and its details card draw it", () => {
+    expect(readSource(ENVIRONMENTS_PAGE)).toContain('title: "Cloud Platform",');
+
+    for (const field of ["Cloud Account ID", "Cloud Region"]) {
+      expect(readSource(ENVIRONMENT_SETTINGS)).toContain(`title: "${field}",`);
+    }
 
     for (const field of [
       "Cloud Platform",
       "Cloud Account ID",
       "Cloud Region",
     ]) {
-      expect(source).toContain(`title: "${field}",`);
-      expect(boldLabels(englishPage(HUB))).toContain(field);
       expect(boldLabels(englishPage(TROUBLESHOOTING))).toContain(field);
     }
+  });
 
-    expect(readSource(DISPLAY_NAME_FIELD)).toContain('title: "Display Name",');
-    expect(readSource(FOLDED_SECTION_TITLES)).toContain(
-      'MORE_FIELDS_SECTION_TITLE: string = translationKey("More fields")',
+  it("renames an environment on its details card, as the Settings page draws it", () => {
+    const settings: string = readSource(ENVIRONMENT_SETTINGS);
+
+    expect(settings).toContain('title="Resource Details"');
+    expect(settings).toContain('title: "Display Name",');
+    expect(readSource(RESOURCE_DETAILS_CARD)).toContain(
+      'translationKey("Edit Details")',
     );
-    expect(source).toContain("collapsibleSection: advancedSection");
     expect(pageProse(HUB)).toContain(
-      "open **More fields** and type a **Display Name**",
+      "choose **Edit Details** on the **Resource Details** card of the environment's **Settings** page and type a **Display Name**",
     );
+  });
+
+  it("names the guide's last step as it is drawn", () => {
+    expect(readSource(RESOURCE_ONBOARDING)).toMatch(
+      /RESOURCE_CONNECTION_STEP_TITLE: string = translationKey\(\s*"Wait for it to connect",?\s*\);/,
+    );
+    expect(boldLabels(englishPage(HUB))).toContain("Wait for it to connect");
   });
 
   it("names the status pill as the list draws it", () => {
@@ -512,7 +527,10 @@ describe("the environments list and its create form", () => {
   it("says the guide is in the dashboard until the first environment or resource arrives", () => {
     // Both lists count with the shared first-record watch.
     expect(readSource(ENVIRONMENTS_PAGE)).toContain(
-      "{firstRecordWatch.count === 0 && (\n        <CloudDocumentationCard",
+      "{firstRecordWatch.count === 0 && (\n        <AddResourceGuide\n          onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
+    );
+    expect(readSource(ENVIRONMENT_ONBOARDING)).toContain(
+      "<CloudDocumentationCard",
     );
     /*
      * All Resources leads with connecting a cloud account; the collector's

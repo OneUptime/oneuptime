@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -11,7 +12,7 @@ import {
 } from "../../Pages/Podman/Utils/DocumentationMarkdown";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   /*
@@ -44,6 +45,9 @@ const PodmanDocumentationCard: FunctionComponent<ComponentProps> = (
           hostName: props.hostName,
         });
       }}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

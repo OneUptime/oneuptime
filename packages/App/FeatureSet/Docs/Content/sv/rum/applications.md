@@ -48,6 +48,8 @@ Fyll i **Appnamn (service.name)** med det `service.name` som din app kommer att 
 Applikationen får namnet på sin app, precis som en upptäckt applikation. För att visa ett annat namn öppnar du **Fler fält** och anger ett **Visningsnamn**; beskrivningen och etiketterna finns också där. Spara sedan formuläret.
 :::
 
+Sedan öppnas dess installationsguide av sig själv, med appnamnet som kodsnuttens `service.name`. Dess sista steg, **Vänta på anslutningen**, visar när de första data kommer in.
+
 Om projektet redan har en applikation med det `service.name`, upptäckt, tillagd tidigare eller arkiverad, säger formuläret det i stället för att skapa en till.
 
 ## Anslutningsstatus
