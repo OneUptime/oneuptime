@@ -76,6 +76,8 @@ export interface ComponentProps {
 /*
  * The list's open state and its placement, for the control that opens it:
  * repositionKey follows that control as owners are added in front of it.
+ * Opened low on a phone's screen, the page scrolls to give the list its
+ * height rather than a sliver (revealRoomOnOpen).
  */
 export const useAddOwnersPopup: (
   repositionKey?: string | number | undefined,
@@ -86,6 +88,7 @@ export const useAddOwnersPopup: (
     popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
     popupWidth: PEOPLE_SEARCH_POPUP_WIDTH_PX,
     repositionKey: repositionKey,
+    revealRoomOnOpen: true,
   });
 };
 

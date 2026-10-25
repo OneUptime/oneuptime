@@ -22,6 +22,10 @@
  *   - ai=off           the project has AI switched off
  *   - role=viewer      may read only (Viewer); the default is a project owner
  *   - fail=move        the next status move is refused, as a server would
+ *   - owners=none      nobody owns any incident yet
+ *   - fail=owner-add   every owner the postmortem's Add owners list adds is
+ *                      refused, as the server refuses a second row for an
+ *                      owner
  *   - lang=de          the Dashboard's German words
  *   - theme=dark       dark mode (set before the bundle by server.js)
  *
@@ -61,6 +65,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -96,6 +101,8 @@ const templateCount = Math.min(
 );
 const language = params.get("lang") === "de" ? "de" : "en";
 let failNextMove = params.get("fail") === "move";
+const failOwnerAdds = params.get("fail") === "owner-add";
+const isOwnedByNobody = params.get("owners") === "none";
 
 window.__fixture = { updates: [], saves: [] };
 
@@ -434,7 +441,8 @@ const INCIDENTS = isEmpty
     ];
 
 // Alice owns the first and third; the Database Team the first; SRE the fifth.
-const OWNER_USERS = isEmpty
+const OWNER_USERS =
+  isEmpty || isOwnedByNobody
   ? []
   : [
       record(IncidentOwnerUser, {
@@ -457,7 +465,8 @@ const OWNER_USERS = isEmpty
       }),
     ];
 
-const OWNER_TEAMS = isEmpty
+const OWNER_TEAMS =
+  isEmpty || isOwnedByNobody
   ? []
   : [
       record(IncidentOwnerTeam, {
@@ -487,8 +496,24 @@ const TEMPLATES = [
   }),
 ].slice(0, templateCount);
 
+/*
+ * The project's people, as the owners' Add owners list reads them: through
+ * their team memberships (User itself is not project-listable).
+ */
+const TEAM_MEMBERS = USERS.map((user, index) => {
+  return record(TeamMember, {
+    _id: `c2000000-0000-4000-8000-00000000000${index + 1}`,
+    teamId: new ObjectID(TEAMS[0]._id),
+    team: TEAMS[0],
+    userId: new ObjectID(user._id),
+    user: user,
+    hasAcceptedInvitation: true,
+  });
+});
+
 const TABLES = {
   Project: [project],
+  TeamMember: TEAM_MEMBERS,
   IncidentPostmortemStatus: STATUSES,
   IncidentSeverity: SEVERITIES,
   IncidentState: STATES,
@@ -675,6 +700,43 @@ ModelAPI.createOrUpdate = async (options) => {
   const json = BaseModel.toJSON(options.model, options.modelType);
 
   window.__fixture.saves.push({ model: name, data: json });
+
+  /*
+   * An owner added from the postmortem: a row the incident's owners are
+   * read from again, naming the person or the team as the server's join does.
+   */
+  if (name === "IncidentOwnerUser" || name === "IncidentOwnerTeam") {
+    const isUser = name === "IncidentOwnerUser";
+
+    if (failOwnerAdds) {
+      throw new HTTPErrorResponse(
+        400,
+        {
+          message: isUser
+            ? "This user is already an owner of this incident."
+            : "This team is already an owner of this incident.",
+        },
+        {},
+      );
+    }
+
+    const pickedId = idOf(isUser ? options.model.userId : options.model.teamId);
+    const rowNumber = OWNER_USERS.length + OWNER_TEAMS.length + 1;
+    const row = record(isUser ? IncidentOwnerUser : IncidentOwnerTeam, {
+      _id: `c3000000-0000-4000-8000-${String(rowNumber).padStart(12, "0")}`,
+      incidentId: new ObjectID(idOf(options.model.incidentId)),
+      ...(isUser
+        ? {
+            userId: new ObjectID(pickedId),
+            user: USERS.find((user) => idOf(user._id) === pickedId),
+          }
+        : {
+            teamId: new ObjectID(pickedId),
+            team: TEAMS.find((team) => idOf(team._id) === pickedId),
+          }),
+    });
+    (isUser ? OWNER_USERS : OWNER_TEAMS).push(row);
+  }
 
   return new HTTPResponse(200, json, {});
 };

@@ -77,17 +77,28 @@ const LINK_CLASS_NAME: string =
  * Assign / Add: the empty place and its word as one control, laid out like
  * a person (avatar, gap, name), its circle lined up with the avatars of the
  * facts beside it. The whole control lights up on hover, so it reads as
- * something to press rather than a word that happens to be blue.
+ * something to press rather than a word that happens to be blue - and
+ * stays lit while its list is open, so the reader sees which Add or Assign
+ * the list under it belongs to. Its colours are one set or the other, never
+ * both: the Dashboard's Tailwind would let whichever rule it wrote last win.
  */
 export const EVENT_EMPTY_PLACE_ACTION_CLASS_NAME: string =
-  "group -my-0.5 -ms-1 inline-flex max-w-full items-center gap-1.5 rounded-full py-0.5 pe-2.5 ps-1 font-medium text-gray-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "group -my-0.5 -ms-1 inline-flex max-w-full items-center gap-1.5 rounded-full py-0.5 pe-2.5 ps-1 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
-/*
- * The empty place's control while its list is open: lit, as on hover, so
- * the reader sees which Add or Assign the list under it belongs to.
- */
+export const EVENT_EMPTY_PLACE_ACTION_IDLE_CLASS_NAME: string =
+  "text-gray-700 hover:bg-indigo-50 hover:text-indigo-700";
+
 export const EVENT_EMPTY_PLACE_ACTION_OPEN_CLASS_NAME: string =
   "bg-indigo-50 text-indigo-700";
+
+// The empty place's circle, idle and while its list is open.
+const EMPTY_PLACE_CLASS_NAME: string =
+  "-my-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed transition-colors";
+
+const EMPTY_PLACE_IDLE_CLASS_NAME: string =
+  "border-gray-300 text-gray-400 group-hover:border-indigo-500 group-hover:text-indigo-500";
+
+const EMPTY_PLACE_OPEN_CLASS_NAME: string = "border-indigo-500 text-indigo-500";
 
 // A quiet "Not assigned" / "None": a fact with nothing to name.
 const EMPTY_VALUE_CLASS_NAME: string = "font-normal text-gray-500";
@@ -116,24 +127,35 @@ const NOBODY_PICKED: Set<string> = new Set<string>();
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
  * word beside it, or the control's name, says what it does.
  */
-const EmptyPlace: FunctionComponent = (): ReactElement => {
+interface EmptyPlaceProps {
+  // Its control's list is open: the circle is lit with it.
+  isOpen?: boolean | undefined;
+}
+
+const EmptyPlace: FunctionComponent<EmptyPlaceProps> = (
+  props: EmptyPlaceProps,
+): ReactElement => {
   return (
     <span
       aria-hidden="true"
       data-testid="event-empty-place"
-      className="-my-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-500 group-hover:text-indigo-500"
+      className={`${EMPTY_PLACE_CLASS_NAME} ${
+        props.isOpen ? EMPTY_PLACE_OPEN_CLASS_NAME : EMPTY_PLACE_IDLE_CLASS_NAME
+      }`}
     >
       <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
     </span>
   );
 };
 
-const getEmptyPlaceActionClassName: (isOpen: boolean) => string = (
+export const getEmptyPlaceActionClassName: (isOpen: boolean) => string = (
   isOpen: boolean,
 ): string => {
-  return isOpen
-    ? `${EVENT_EMPTY_PLACE_ACTION_CLASS_NAME} ${EVENT_EMPTY_PLACE_ACTION_OPEN_CLASS_NAME}`
-    : EVENT_EMPTY_PLACE_ACTION_CLASS_NAME;
+  return `${EVENT_EMPTY_PLACE_ACTION_CLASS_NAME} ${
+    isOpen
+      ? EVENT_EMPTY_PLACE_ACTION_OPEN_CLASS_NAME
+      : EVENT_EMPTY_PLACE_ACTION_IDLE_CLASS_NAME
+  }`;
 };
 
 interface PersonProps {
@@ -218,6 +240,7 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
   const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
     popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
     popupWidth: PEOPLE_SEARCH_POPUP_WIDTH_PX,
+    revealRoomOnOpen: true,
   });
 
   // Where the keyboard goes once the list has given the role.
@@ -280,7 +303,7 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
             aria-label={assignText}
             className={getEmptyPlaceActionClassName(popup.isPopupOpen)}
           >
-            <EmptyPlace />
+            <EmptyPlace isOpen={popup.isPopupOpen} />
             <span>{translator.translateText("Assign")}</span>
           </button>
         </div>
@@ -382,7 +405,7 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
           {...getAnchoredPopupTriggerProps(popup)}
           className={getEmptyPlaceActionClassName(popup.isPopupOpen)}
         >
-          <EmptyPlace />
+          <EmptyPlace isOpen={popup.isPopupOpen} />
           <span aria-hidden="true">{translator.translateText("Add")}</span>
           <span className="sr-only">{addOwnersText}</span>
         </button>
