@@ -34748,5 +34748,7 @@
   "No people available.": "Нет доступных людей.",
   "You do not have permission to add owners.": "У вас нет прав на добавление владельцев.",
   "You do not have permission to add people as owners.": "У вас нет прав на добавление людей в качестве владельцев.",
-  "You do not have permission to add teams as owners.": "У вас нет прав на добавление команд в качестве владельцев."
+  "You do not have permission to add teams as owners.": "У вас нет прав на добавление команд в качестве владельцев.",
+  "Search people...": "Поиск людей...",
+  "No one else to add.": "Больше некого добавить."
 }

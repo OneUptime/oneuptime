@@ -1,6 +1,7 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import {
   getPeoplePickerOptionKey,
   PeoplePickerKind,
@@ -10,6 +11,7 @@ import {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
+  PermissionCheckableModel,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -61,6 +63,15 @@ export const ADD_OWNERS_TEXT: string = translationKey("Add owners");
 
 // Said under the list after a pick: what it did, by name.
 export const OWNER_ADDED_NOTICE: string = translationKey("Added {{name}}.");
+
+/*
+ * What the list says once everybody it would offer owns the record already
+ * - the last team of a small project just added - rather than "No people
+ * or teams available.", which reads as if the project had nobody.
+ */
+export const NO_ONE_ELSE_TO_ADD_TEXT: string = translationKey(
+  "No one else to add.",
+);
 
 // Why the reader may add no owner at all, before the permissions that would.
 export const ADD_OWNERS_REFUSED_SENTENCE: string = translationKey(
@@ -132,6 +143,63 @@ export const canAddOwners: (tables: OwnerTables) => boolean = (
 };
 
 /*
+ * The record's two owner tables as one, for the reason a control that adds
+ * owners of either kind is locked: either table's create permission would
+ * open it, so the reason names the permissions of both - a reader asking
+ * for "Create Incident Team Owner" may add owners too.
+ */
+export const getEitherOwnerTable: (
+  tables: OwnerTables,
+) => PermissionCheckableModel = (
+  tables: OwnerTables,
+): PermissionCheckableModel => {
+  const people: BaseModel = new tables.ownerUserModelType();
+  const teams: BaseModel = new tables.ownerTeamModelType();
+  const createPermissions: Array<Permission> = [];
+
+  for (const permission of [
+    ...people.getCreatePermissions(),
+    ...teams.getCreatePermissions(),
+  ]) {
+    if (!createPermissions.includes(permission)) {
+      createPermissions.push(permission);
+    }
+  }
+
+  return {
+    singularName: people.singularName,
+    isOperationalResource: people.isOperationalResource,
+    hasCreatePermissions: (permissions: Array<Permission>): boolean => {
+      return (
+        people.hasCreatePermissions(permissions) ||
+        teams.hasCreatePermissions(permissions)
+      );
+    },
+    hasReadPermissions: (permissions: Array<Permission>): boolean => {
+      return people.hasReadPermissions(permissions);
+    },
+    hasUpdatePermissions: (permissions: Array<Permission>): boolean => {
+      return people.hasUpdatePermissions(permissions);
+    },
+    hasDeletePermissions: (permissions: Array<Permission>): boolean => {
+      return people.hasDeletePermissions(permissions);
+    },
+    getCreatePermissions: (): Array<Permission> => {
+      return createPermissions;
+    },
+    getReadPermissions: (): Array<Permission> => {
+      return people.getReadPermissions();
+    },
+    getUpdatePermissions: (): Array<Permission> => {
+      return people.getUpdatePermissions();
+    },
+    getDeletePermissions: (): Array<Permission> => {
+      return people.getDeletePermissions();
+    },
+  };
+};
+
+/*
  * The gate on a control that adds owners and stays on screen for everyone
  * (the Owners page's Add owner): open when the reader may add either kind,
  * or before the permissions are known (the server decides); locked, with
@@ -145,7 +213,7 @@ export const getAddOwnersGate: (tables: OwnerTables) => PermissionGateResult = (
   }
 
   const gate: PermissionGateResult = PermissionGate.check(
-    new tables.ownerUserModelType(),
+    getEitherOwnerTable(tables),
     ModelAction.Create,
     { sentence: ADD_OWNERS_REFUSED_SENTENCE },
   );

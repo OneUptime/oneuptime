@@ -1,7 +1,6 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
-  ADD_OWNERS_TEXT,
   canAddOwners,
   getOwnerKeys,
   OwnersChange,
@@ -9,18 +8,15 @@ import {
 } from "../Owners/AddOwners";
 import AddOwnersPopup, {
   AddOwnersPlaceButton,
+  AddOwnersTextButton,
   useAddOwnersPopup,
 } from "../Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import OwnersCell from "../ResourceOwners/OwnersCell";
-import { ICON_CLASS_NAMES, VARIANT_CLASS_NAMES } from "./SloOverviewActionLink";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
-import {
-  AnchoredFieldPopup,
-  getAnchoredPopupTriggerProps,
-} from "Common/UI/Types/UseAnchoredFieldPopup";
+import { AnchoredFieldPopup } from "Common/UI/Types/UseAnchoredFieldPopup";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Route from "Common/Types/API/Route";
@@ -187,26 +183,24 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
       return <span className="text-sm text-gray-400">Unavailable</span>;
     }
 
+    /*
+     * "No owners", and "+ Add owners" beside it for a reader who may add
+     * one - the monitor overview's words and control, so the two read alike.
+     */
     if (props.owners.length === 0) {
-      if (!mayAddOwners) {
-        return (
-          <span className="text-sm text-gray-500">
+      return (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span className="text-gray-500">
             {translator.translateText("No owners")}
           </span>
-        );
-      }
-
-      return (
-        <div ref={ownersPopup.anchorRef} className="inline-flex">
-          <button
-            type="button"
-            data-testid="slo-overview-add-owners"
-            {...getAnchoredPopupTriggerProps(ownersPopup)}
-            className={VARIANT_CLASS_NAMES.text}
-          >
-            <Icon icon={IconProp.Add} className={ICON_CLASS_NAMES.text} />
-            <span>{translator.translateText(ADD_OWNERS_TEXT)}</span>
-          </button>
+          {mayAddOwners ? (
+            <AddOwnersTextButton
+              popup={ownersPopup}
+              dataTestId="slo-overview-add-owners"
+            />
+          ) : (
+            <></>
+          )}
         </div>
       );
     }

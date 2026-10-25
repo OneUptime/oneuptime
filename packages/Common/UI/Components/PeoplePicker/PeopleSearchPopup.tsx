@@ -159,6 +159,17 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   // How many records the list leaves out, whatever is searched.
   const excludedCount: number = props.excludedKeys?.size || 0;
 
+  /*
+   * How many a search may find that the list then hides: whoever is left
+   * out, and - on a list that adds ("add") - whoever is picked already, the
+   * record's owners on an Add owners list. One more is asked for each, so a
+   * record with many owners still offers a whole page of the others, not a
+   * page with its owners taken out. Read whenever the list searches.
+   */
+  const hiddenCount: number =
+    excludedCount +
+    (props.selectionMode === "add" ? props.selectedKeys.size : 0);
+
   // What the reader may not pick: never searched, named under the list.
   const lockedKinds: Array<PeopleSearchLockedKind> = (
     props.lockedKinds || []
@@ -227,10 +238,10 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
             projectId: projectId,
             searchText: debouncedSearch,
             /*
-             * One more for each record left out below, so the list still
+             * One more for each record the list hides below, so it still
              * offers as many as it would without them.
              */
-            limit: PEOPLE_PICKER_SEARCH_LIMIT + excludedCount,
+            limit: PEOPLE_PICKER_SEARCH_LIMIT + hiddenCount,
           });
         },
       ),

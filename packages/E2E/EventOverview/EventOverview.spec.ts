@@ -16183,7 +16183,7 @@ test.describe("at a glance: who is on it", () => {
     await expect(list).toBeVisible();
     await expect(assign).toHaveAttribute("aria-expanded", "true");
     await expect(
-      list.getByRole("combobox", { name: "Search people by name or email" }),
+      list.getByRole("combobox", { name: "Search people..." }),
     ).toBeFocused();
     await expect
       .poll(async (): Promise<Array<string>> => {
@@ -16271,7 +16271,7 @@ test.describe("at a glance: who is on it", () => {
 
     const list: Locator = assignList(page);
     const search: Locator = list.getByRole("combobox", {
-      name: "Search people by name or email",
+      name: "Search people...",
     });
     await expect(search).toBeFocused();
 
@@ -16779,6 +16779,70 @@ test.describe("at a glance: who is on it", () => {
     });
   }
 
+  /*
+   * Each list's search box holds its whole placeholder in the languages
+   * with the longest words (UI review): the Assign list's first words,
+   * "Search people by name or email", ran past the box in eight languages,
+   * German, French and Spanish among them, and the Add owners list's French
+   * one too. Measured as drawn, in the box's own font, against its room.
+   */
+  test("each list's search box holds its whole placeholder in German, French and Spanish", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["de", "fr", "es"]) {
+      await open(
+        page,
+        INCIDENT_PATH,
+        `owners=none&commander=none&state=ongoing&lang=${language}`,
+      );
+      const add: Locator = ownersFact(page).getByTestId("event-owners-add");
+      await expect(add).toBeVisible({ timeout: 30000 });
+      await loadProductionFont(page);
+
+      for (const control of [
+        add,
+        commanderFact(page).getByTestId("event-commander-assign"),
+      ]) {
+        await control.click();
+        const search: Locator = page
+          .getByTestId("people-search-popup")
+          .getByTestId("people-search-input");
+        await expect(search).toBeFocused();
+
+        const fit: { text: string; width: number; room: number } =
+          await search.evaluate(
+            (
+              input: HTMLInputElement,
+            ): { text: string; width: number; room: number } => {
+              const style: CSSStyleDeclaration = getComputedStyle(input);
+              const context: CanvasRenderingContext2D = document
+                .createElement("canvas")
+                .getContext("2d")!;
+              context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+              return {
+                text: input.placeholder,
+                width: context.measureText(input.placeholder).width,
+                room:
+                  input.clientWidth -
+                  parseFloat(style.paddingLeft) -
+                  parseFloat(style.paddingRight),
+              };
+            },
+          );
+
+        // Translated, not the English words.
+        expect(fit.text).not.toMatch(/^Search people/);
+        expect(fit.width, `${language}: "${fit.text}"`).toBeLessThanOrEqual(
+          fit.room,
+        );
+        await page.keyboard.press("Escape");
+        await expect(page.getByTestId("people-search-popup")).toHaveCount(0);
+      }
+    }
+  });
+
   test("?owners=none: a resolved incident says only None", async ({
     page,
   }: {
@@ -16904,7 +16968,7 @@ test.describe("at a glance: who is on it", () => {
 
     const list: Locator = assignList(page);
     await expect(
-      list.getByRole("combobox", { name: "Search people by name or email" }),
+      list.getByRole("combobox", { name: "Search people..." }),
     ).toBeFocused();
     await list.getByRole("option", { name: /Jordan Patel/ }).click();
 

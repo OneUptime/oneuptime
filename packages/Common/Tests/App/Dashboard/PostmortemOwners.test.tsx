@@ -64,6 +64,7 @@ import PostmortemOwners, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Postmortem/PostmortemOwners";
 import PostmortemSummary from "../../../../App/FeatureSet/Dashboard/src/Components/Postmortem/PostmortemSummary";
 import { OwnersChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwners";
+import { ADD_OWNERS_TEXT_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
@@ -159,6 +160,11 @@ describe("PostmortemOwners", () => {
     expect(add).toHaveAttribute("data-testid", "postmortem-add-owners");
     expect(add).toHaveAttribute("aria-haspopup", "dialog");
     expect(screen.queryByRole("link")).toBeNull();
+    // The shared "+ Add owners", as the monitor and SLO overviews draw it.
+    for (const className of ADD_OWNERS_TEXT_BUTTON_CLASS_NAME.split(" ")) {
+      expect(add).toHaveClass(className);
+    }
+    expect(add.querySelector("svg")).not.toBeNull();
 
     fireEvent.click(add);
 

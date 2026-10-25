@@ -12,16 +12,15 @@ export type SloOverviewActionLinkVariant = "primary" | "secondary" | "text";
  * Literal class names per variant so the runtime Tailwind scanner sees each
  * one, built only from classes Theme.css already remaps for dark mode.
  */
-export const VARIANT_CLASS_NAMES: Record<SloOverviewActionLinkVariant, string> =
-  {
-    primary:
-      "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
-    secondary:
-      "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
-    text: "inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
-  };
+const VARIANT_CLASS_NAMES: Record<SloOverviewActionLinkVariant, string> = {
+  primary:
+    "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+  secondary:
+    "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+  text: "inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
+};
 
-export const ICON_CLASS_NAMES: Record<SloOverviewActionLinkVariant, string> = {
+const ICON_CLASS_NAMES: Record<SloOverviewActionLinkVariant, string> = {
   primary: "h-4 w-4 flex-shrink-0 text-white",
   secondary: "h-4 w-4 flex-shrink-0 text-gray-500",
   text: "h-4 w-4 flex-shrink-0",

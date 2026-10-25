@@ -34748,5 +34748,7 @@
   "No people available.": "사용할 수 있는 사람이 없습니다.",
   "You do not have permission to add owners.": "소유자를 추가할 권한이 없습니다.",
   "You do not have permission to add people as owners.": "사람을 소유자로 추가할 권한이 없습니다.",
-  "You do not have permission to add teams as owners.": "팀을 소유자로 추가할 권한이 없습니다."
+  "You do not have permission to add teams as owners.": "팀을 소유자로 추가할 권한이 없습니다.",
+  "Search people...": "사람 검색...",
+  "No one else to add.": "더 추가할 사람이나 팀이 없습니다."
 }

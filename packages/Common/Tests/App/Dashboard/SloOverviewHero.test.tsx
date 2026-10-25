@@ -37,6 +37,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import { OwnersChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwners";
+import { ADD_OWNERS_TEXT_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
 import SloOverviewHero, {
   ComponentProps,
@@ -431,6 +432,21 @@ describe("SloOverviewHero", () => {
       expect(add).toHaveAttribute("data-testid", "slo-overview-add-owners");
       expect(add).toHaveAttribute("aria-haspopup", "dialog");
       expect(screen.queryByRole("link", { name: "Add owners" })).toBeNull();
+      /*
+       * "No owners", then the shared "+ Add owners" - the monitor
+       * overview's words and control, so the two heroes read alike (UI
+       * review).
+       */
+      const owners: HTMLElement = screen.getByTestId("slo-overview-owners");
+      expect(within(owners).getByText("No owners")).toBeVisible();
+      expect(
+        within(owners).getByText("No owners").compareDocumentPosition(add) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      for (const className of ADD_OWNERS_TEXT_BUTTON_CLASS_NAME.split(" ")) {
+        expect(add).toHaveClass(className);
+      }
+      expect(add.querySelector("svg")).not.toBeNull();
 
       fireEvent.click(add);
 

@@ -32,6 +32,7 @@ import {
   ADD_OWNERS_TEXT,
   addOwner,
   getOwnerKindAccess,
+  NO_ONE_ELSE_TO_ADD_TEXT,
   OWNER_ADDED_NOTICE,
   OwnerKindAccess,
   OwnersChange,
@@ -97,13 +98,15 @@ export const useAddOwnersPopup: (
  * SLO's, a postmortem's: a dashed circle with a plus, as big as the avatars
  * beside it (the Owners page's "+", at a row's size), that opens the Add
  * owners list under it. The open list lights it, so it is clear which
- * control the list belongs to.
+ * control the list belongs to. With no word beside it, its plus is grey-500
+ * - 3:1 and more on white, as a control's only mark must be - not the
+ * fainter grey of a decoration.
  */
 export const ADD_OWNERS_PLACE_CLASS_NAME: string =
   "inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
 
 export const ADD_OWNERS_PLACE_IDLE_CLASS_NAME: string =
-  "border-gray-300 bg-white text-gray-400 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-600";
+  "border-gray-300 bg-white text-gray-500 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-600";
 
 export const ADD_OWNERS_PLACE_OPEN_CLASS_NAME: string =
   "border-indigo-500 bg-indigo-50 text-indigo-600";
@@ -137,6 +140,54 @@ export const AddOwnersPlaceButton: FunctionComponent<
           <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
         </button>
       </Tooltip>
+    </div>
+  );
+};
+
+/*
+ * "+ Add owners", beside the "No owners" of a monitor's or an SLO's
+ * overview and a postmortem's "No owners yet.": the one word-and-plus
+ * control that opens the Add owners list under it, drawn the same in all
+ * three. Underlined while its list is open, as the place button above
+ * stays lit, so it is clear which control the list belongs to. Its
+ * colours are one set or the other, never both: the Dashboard's Tailwind
+ * would let whichever rule it wrote last win.
+ */
+export const ADD_OWNERS_TEXT_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center gap-1 rounded-sm text-sm font-medium underline-offset-2 transition-colors hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
+
+export const ADD_OWNERS_TEXT_BUTTON_IDLE_CLASS_NAME: string = "text-indigo-600";
+
+export const ADD_OWNERS_TEXT_BUTTON_OPEN_CLASS_NAME: string =
+  "text-indigo-700 underline";
+
+export interface AddOwnersTextButtonProps {
+  popup: AnchoredFieldPopup;
+  dataTestId?: string | undefined;
+}
+
+export const AddOwnersTextButton: FunctionComponent<
+  AddOwnersTextButtonProps
+> = (props: AddOwnersTextButtonProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div ref={props.popup.anchorRef} className="inline-flex">
+      <button
+        type="button"
+        data-testid={props.dataTestId}
+        {...getAnchoredPopupTriggerProps(props.popup)}
+        className={`${ADD_OWNERS_TEXT_BUTTON_CLASS_NAME} ${
+          props.popup.isPopupOpen
+            ? ADD_OWNERS_TEXT_BUTTON_OPEN_CLASS_NAME
+            : ADD_OWNERS_TEXT_BUTTON_IDLE_CLASS_NAME
+        }`}
+      >
+        <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
+        <span>
+          {translator.translateText(ADD_OWNERS_TEXT) || ADD_OWNERS_TEXT}
+        </span>
+      </button>
     </div>
   );
 };
@@ -217,7 +268,15 @@ const AddOwnersPopup: FunctionComponent<ComponentProps> = (
       selectionMode="add"
       onPick={onPick}
       searchPlaceholder={OWNERS_PICKER_CONFIG.searchPlaceholder}
-      emptyText={OWNERS_PICKER_CONFIG.emptyText}
+      /*
+       * A list left empty by owners who are already there has nobody else
+       * to offer; one empty with nobody owning the record has nobody at all.
+       */
+      emptyText={
+        selectedKeys.size > 0
+          ? NO_ONE_ELSE_TO_ADD_TEXT
+          : OWNERS_PICKER_CONFIG.emptyText
+      }
       ariaLabel={props.ariaLabel || ADD_OWNERS_TEXT}
     />
   );

@@ -370,7 +370,7 @@ describe("the commander", () => {
     expect(offered(list)).toEqual([JORDAN_ID, SAM_ID]);
     expect(
       within(list).getByRole("combobox", {
-        name: "Search people by name or email",
+        name: "Search people...",
       }),
     ).toBeVisible();
     expect(
@@ -1037,8 +1037,7 @@ describe("in the reader's language", () => {
             None: "Keine",
             Add: "Hinzufügen",
             "Add owners": "Eigentümer hinzufügen",
-            "Search people by name or email":
-              "Personen nach Name oder E-Mail suchen",
+            "Search people...": "Personen suchen...",
             "Added {{name}}.": "{{name}} hinzugefügt.",
           },
         },
@@ -1074,9 +1073,7 @@ describe("in the reader's language", () => {
     const list: HTMLElement = await openedList("Vorfall-Kommandant zuweisen");
 
     expect(
-      within(list).getByPlaceholderText(
-        "Personen nach Name oder E-Mail suchen",
-      ),
+      within(list).getByPlaceholderText("Personen suchen..."),
     ).toBeVisible();
     open.unmount();
 

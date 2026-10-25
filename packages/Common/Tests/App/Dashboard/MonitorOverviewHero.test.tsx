@@ -55,6 +55,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
 import { OwnersChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwners";
+import { ADD_OWNERS_TEXT_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwnersPopup";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import Route from "../../../Types/API/Route";
@@ -1048,6 +1049,11 @@ describe("MonitorOverviewHero layout", () => {
       expect(add).toHaveAttribute("data-testid", "monitor-overview-add-owners");
       expect(add).toHaveAttribute("aria-haspopup", "dialog");
       expect(add).toHaveAttribute("aria-expanded", "false");
+      // The shared "+ Add owners", as the SLO overview and a postmortem draw it.
+      for (const className of ADD_OWNERS_TEXT_BUTTON_CLASS_NAME.split(" ")) {
+        expect(add).toHaveClass(className);
+      }
+      expect(add.querySelector("svg")).not.toBeNull();
 
       await act(async () => {
         fireEvent.click(add);

@@ -4,7 +4,6 @@ import RelativeTime from "../../EpisodeView/RelativeTime";
 import { ResourceOwnerEntry } from "../../ResourceOwners/OwnerEntry";
 import OwnersCell from "../../ResourceOwners/OwnersCell";
 import {
-  ADD_OWNERS_TEXT,
   canAddOwners,
   getOwnerKeys,
   OwnersChange,
@@ -12,14 +11,12 @@ import {
 } from "../../Owners/AddOwners";
 import AddOwnersPopup, {
   AddOwnersPlaceButton,
+  AddOwnersTextButton,
   useAddOwnersPopup,
 } from "../../Owners/AddOwnersPopup";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
-import {
-  AnchoredFieldPopup,
-  getAnchoredPopupTriggerProps,
-} from "Common/UI/Types/UseAnchoredFieldPopup";
+import { AnchoredFieldPopup } from "Common/UI/Types/UseAnchoredFieldPopup";
 import SloOverviewActionLink from "../../Slo/SloOverviewActionLink";
 import MonitorOverviewActions, { LoadedAtTime } from "./MonitorOverviewActions";
 import { getMonitorOverviewRoute } from "./MonitorOverviewLinks";
@@ -440,21 +437,15 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 
     if (owners.length === 0) {
       return (
-        <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           <span className="text-gray-500">
             {translator.translateText("No owners")}
           </span>
           {mayAddOwners ? (
-            <div ref={ownersPopup.anchorRef} className="inline-flex">
-              <button
-                type="button"
-                data-testid="monitor-overview-add-owners"
-                {...getAnchoredPopupTriggerProps(ownersPopup)}
-                className="rounded-sm font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-              >
-                {translator.translateText(ADD_OWNERS_TEXT)}
-              </button>
-            </div>
+            <AddOwnersTextButton
+              popup={ownersPopup}
+              dataTestId="monitor-overview-add-owners"
+            />
           ) : (
             <></>
           )}

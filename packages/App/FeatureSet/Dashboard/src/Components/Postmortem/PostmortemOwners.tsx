@@ -1,13 +1,8 @@
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
-import {
-  AnchoredFieldPopup,
-  getAnchoredPopupTriggerProps,
-} from "Common/UI/Types/UseAnchoredFieldPopup";
+import { AnchoredFieldPopup } from "Common/UI/Types/UseAnchoredFieldPopup";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
@@ -23,14 +18,10 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import {
-  ADD_OWNERS_TEXT,
-  getOwnerKeys,
-  OwnersChange,
-  OwnersTarget,
-} from "../Owners/AddOwners";
+import { getOwnerKeys, OwnersChange, OwnersTarget } from "../Owners/AddOwners";
 import AddOwnersPopup, {
   AddOwnersPlaceButton,
+  AddOwnersTextButton,
   useAddOwnersPopup,
 } from "../Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
@@ -242,17 +233,10 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
             {translator.translateText(POSTMORTEM_NO_OWNERS)}
           </span>
           {props.addOwners ? (
-            <div ref={popup.anchorRef} className="inline-flex">
-              <button
-                type="button"
-                data-testid="postmortem-add-owners"
-                {...getAnchoredPopupTriggerProps(popup)}
-                className="inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
-                <span>{translator.translateText(ADD_OWNERS_TEXT)}</span>
-              </button>
-            </div>
+            <AddOwnersTextButton
+              popup={popup}
+              dataTestId="postmortem-add-owners"
+            />
           ) : (
             <></>
           )}

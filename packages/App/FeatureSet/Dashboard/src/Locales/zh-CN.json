@@ -34748,5 +34748,7 @@
   "No people available.": "没有可用的人员。",
   "You do not have permission to add owners.": "您没有添加所有者的权限。",
   "You do not have permission to add people as owners.": "您没有将人员添加为所有者的权限。",
-  "You do not have permission to add teams as owners.": "您没有将团队添加为所有者的权限。"
+  "You do not have permission to add teams as owners.": "您没有将团队添加为所有者的权限。",
+  "Search people...": "搜索人员...",
+  "No one else to add.": "没有其他可添加的人员或团队。"
 }

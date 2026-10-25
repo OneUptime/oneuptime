@@ -114,10 +114,14 @@ const EMPTY_VALUE_CLASS_NAME: string = "font-normal text-gray-500";
 const VALUE_CLASS_NAME: string =
   "flex max-w-full flex-col items-start gap-2 focus:outline-none";
 
-// The Assign list's words: it lists the project's people.
-export const ASSIGN_SEARCH_PLACEHOLDER: string = translationKey(
-  "Search people by name or email",
-);
+/*
+ * The Assign list's words: it lists the project's people, each with their
+ * email under their name. Short, as the Add owners list's "Search people or
+ * teams...": "Search people by name or email" ran past the search box in
+ * German, French, Spanish, Russian and the Nordic languages.
+ */
+export const ASSIGN_SEARCH_PLACEHOLDER: string =
+  translationKey("Search people...");
 export const ASSIGN_EMPTY_TEXT: string = translationKey("No people available.");
 
 // What the Assign list leaves out: nobody - it opens while nobody holds the role.

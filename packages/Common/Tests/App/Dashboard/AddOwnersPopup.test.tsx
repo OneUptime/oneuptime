@@ -70,8 +70,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import AddOwnersPopup, {
+  ADD_OWNERS_PLACE_IDLE_CLASS_NAME,
   ADD_OWNERS_PLACE_OPEN_CLASS_NAME,
+  ADD_OWNERS_TEXT_BUTTON_CLASS_NAME,
+  ADD_OWNERS_TEXT_BUTTON_IDLE_CLASS_NAME,
+  ADD_OWNERS_TEXT_BUTTON_OPEN_CLASS_NAME,
   AddOwnersPlaceButton,
+  AddOwnersTextButton,
   useAddOwnersPopup,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwnersPopup";
 import {
@@ -81,8 +86,10 @@ import {
   buildOwnerRow,
   canAddOwners,
   getAddOwnersGate,
+  getEitherOwnerTable,
   getOwnerKeys,
   getOwnerKindAccess,
+  NO_ONE_ELSE_TO_ADD_TEXT,
   OwnerKindAccess,
   OwnersChange,
   OwnersTarget,
@@ -100,6 +107,7 @@ import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { PEOPLE_PICKER_SEARCH_LIMIT } from "../../../UI/Components/PeoplePicker/PeoplePickerKinds";
 import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import {
   AnchoredFieldPopup,
@@ -558,6 +566,125 @@ describe("the Add owners list", () => {
     expect(offered(dialog)).toContain(`user:${BOB}`);
   });
 
+  /*
+   * A list that has nobody left to offer because everybody already owns
+   * the record says so - not "No people or teams available.", which reads
+   * as if the project had nobody (UI review).
+   */
+  test("once everybody it would offer owns the record, it says there is no one else to add", async () => {
+    render(
+      <Harness
+        target={INCIDENT_TARGET}
+        owners={[
+          owner("user", ADA),
+          owner("user", BOB),
+          owner("team", DATABASE),
+          owner("team", PLATFORM),
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add owners" }));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owners",
+    });
+
+    expect(
+      await within(dialog).findByText(NO_ONE_ELSE_TO_ADD_TEXT),
+    ).toBeVisible();
+    expect(NO_ONE_ELSE_TO_ADD_TEXT).toBe("No one else to add.");
+    expect(
+      within(dialog).queryByText("No people or teams available."),
+    ).toBeNull();
+    expect(within(dialog).queryAllByRole("option")).toHaveLength(0);
+  });
+
+  test("the last one added leaves no one else to add, said under what the pick did", async () => {
+    render(
+      <Harness
+        target={INCIDENT_TARGET}
+        owners={[
+          owner("user", ADA),
+          owner("user", BOB),
+          owner("team", DATABASE),
+        ]}
+      />,
+    );
+
+    const dialog: HTMLElement = await openList();
+
+    expect(offered(dialog)).toEqual([`team:${PLATFORM}`]);
+
+    pick(dialog, PLATFORM);
+
+    expect(
+      await within(dialog).findByText(NO_ONE_ELSE_TO_ADD_TEXT),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByTestId("people-search-notice-done"),
+    ).toHaveTextContent("Added Platform.");
+  });
+
+  test("a record nobody owns, in a project with nobody to offer, says there is nobody", async () => {
+    getListMock.mockImplementation(async (): Promise<any> => {
+      return list([]);
+    });
+
+    render(<Harness target={INCIDENT_TARGET} owners={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add owners" }));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owners",
+    });
+
+    expect(
+      await within(dialog).findByText("No people or teams available."),
+    ).toBeVisible();
+    expect(within(dialog).queryByText(NO_ONE_ELSE_TO_ADD_TEXT)).toBeNull();
+  });
+
+  /*
+   * The search reads a page of people and a page of teams, and the list
+   * then hides whoever owns the record already. One more is asked for each
+   * owner, so a record with many owners still offers a whole page of the
+   * others rather than a page with its owners taken out (UI review).
+   */
+  test("asks for one more person and team for each owner it leaves out", async () => {
+    render(
+      <Harness
+        target={INCIDENT_TARGET}
+        owners={[owner("user", ADA), owner("team", PLATFORM)]}
+      />,
+    );
+
+    await openList();
+
+    const limits: Array<string> = getListMock.mock.calls.map(
+      (call: Array<any>): string => {
+        const request: any = call[0];
+
+        return `${request.modelType === Team ? "teams" : "people"}:${request.limit}`;
+      },
+    );
+
+    expect(limits.sort()).toEqual([
+      `people:${PEOPLE_PICKER_SEARCH_LIMIT + 2}`,
+      `teams:${PEOPLE_PICKER_SEARCH_LIMIT + 2}`,
+    ]);
+  });
+
+  test("asks for the usual page on a record nobody owns", async () => {
+    render(<Harness target={INCIDENT_TARGET} owners={[]} />);
+
+    await openList();
+
+    for (const call of getListMock.mock.calls) {
+      expect((call[0] as any).limit).toBe(PEOPLE_PICKER_SEARCH_LIMIT);
+    }
+  });
+
   test("a monitor's owners go to the monitor's own owner tables", async () => {
     render(<Harness target={MONITOR_TARGET} owners={[]} />);
 
@@ -697,6 +824,89 @@ describe("the empty place after a row of owners (AddOwnersPlaceButton)", () => {
       expect(place).toHaveClass(className);
     }
   });
+
+  /*
+   * With no word beside it, the plus is the control's only mark: grey-500
+   * (4.8:1 on white), not the grey-400 of a decoration (2.5:1), which is
+   * under the 3:1 a control's mark needs (UI review).
+   */
+  test("its plus is grey-500 while idle, not the fainter grey of a decoration", () => {
+    render(<Place />);
+
+    const place: HTMLElement = screen.getByTestId("place");
+
+    expect(ADD_OWNERS_PLACE_IDLE_CLASS_NAME.split(" ")).toContain(
+      "text-gray-500",
+    );
+    expect(place).toHaveClass("text-gray-500");
+    expect(place).not.toHaveClass("text-gray-400");
+  });
+});
+
+/*
+ * "+ Add owners" beside "No owners": a monitor's overview, an SLO's and a
+ * postmortem draw the same control (each place's own suite holds it there).
+ */
+describe("the word-and-plus Add owners (AddOwnersTextButton)", () => {
+  const Text: () => ReactElement = (): ReactElement => {
+    const popup: AnchoredFieldPopup = useAddOwnersPopup();
+
+    return (
+      <>
+        <AddOwnersTextButton popup={popup} dataTestId="text-add" />
+        <AddOwnersPopup
+          popup={popup}
+          target={INCIDENT_TARGET}
+          ownerKeys={new Set()}
+        />
+      </>
+    );
+  };
+
+  test("reads Add owners after a plus, says it opens a dialog, and is underlined while its list is open", async () => {
+    render(<Text />);
+
+    const add: HTMLElement = screen.getByTestId("text-add");
+
+    expect(add).toHaveAccessibleName("Add owners");
+    expect(add).toHaveTextContent(/^Add owners$/);
+    expect(add.querySelector("svg")).not.toBeNull();
+    // The plus comes before the words.
+    expect(add.firstElementChild?.querySelector("svg")).not.toBeNull();
+    expect(add).toHaveAttribute("aria-haspopup", "dialog");
+    expect(add).toHaveAttribute("aria-expanded", "false");
+    for (const className of [
+      ...ADD_OWNERS_TEXT_BUTTON_CLASS_NAME.split(" "),
+      ...ADD_OWNERS_TEXT_BUTTON_IDLE_CLASS_NAME.split(" "),
+    ]) {
+      expect(add).toHaveClass(className);
+    }
+    expect(add).not.toHaveClass("underline");
+
+    fireEvent.click(add);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owners",
+    });
+
+    expect(add).toHaveAttribute("aria-expanded", "true");
+    expect(add).toHaveAttribute("aria-controls", dialog.id);
+    for (const className of ADD_OWNERS_TEXT_BUTTON_OPEN_CLASS_NAME.split(
+      " ",
+    )) {
+      expect(add).toHaveClass(className);
+    }
+    // One colour set or the other, never both: the later rule would win.
+    expect(add).not.toHaveClass(ADD_OWNERS_TEXT_BUTTON_IDLE_CLASS_NAME);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Add owners" })).toBeNull();
+    });
+    expect(add).toHaveFocus();
+    expect(add).not.toHaveClass("underline");
+  });
 });
 
 describe("the rules (AddOwners)", () => {
@@ -765,6 +975,39 @@ describe("the rules (AddOwners)", () => {
     expect(locked.disabledReason).toContain(
       "You need one of these permissions:",
     );
+    /*
+     * Either table's permission would open it, so the reason names both:
+     * a reader who asks for Create Incident Team Owner may add owners too
+     * (it used to name the people table's alone - UI review).
+     */
+    expect(locked.disabledReason).toContain("Create Incident User Owner");
+    expect(locked.disabledReason).toContain("Create Incident Team Owner");
+  });
+
+  test("the two owner tables as one: either table's create permission, each named once", () => {
+    const either: ReturnType<typeof getEitherOwnerTable> =
+      getEitherOwnerTable(INCIDENT_TARGET);
+    const permissions: Array<Permission> = either.getCreatePermissions();
+
+    expect(permissions).toEqual(
+      expect.arrayContaining([
+        Permission.CreateIncidentOwnerUser,
+        Permission.CreateIncidentOwnerTeam,
+        Permission.ProjectOwner,
+      ]),
+    );
+    expect(new Set(permissions).size).toBe(permissions.length);
+    expect(either.hasCreatePermissions([Permission.CreateIncidentOwnerTeam])).toBe(
+      true,
+    );
+    expect(either.hasCreatePermissions([Permission.CreateIncidentOwnerUser])).toBe(
+      true,
+    );
+    expect(either.hasCreatePermissions([Permission.IncidentViewer])).toBe(false);
+    // A monitor's tables name the monitor's permissions, not an incident's.
+    expect(
+      getEitherOwnerTable(MONITOR_TARGET).getCreatePermissions(),
+    ).not.toContain(Permission.CreateIncidentOwnerTeam);
   });
 
   test("buildOwnerRow writes the record, the project and the pick, in the kind's table", () => {
