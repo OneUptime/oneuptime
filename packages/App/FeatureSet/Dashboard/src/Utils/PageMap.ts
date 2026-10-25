@@ -72,6 +72,14 @@ enum PageMap {
   METRICS_DOCUMENTATION = "METRICS_DOCUMENTATION",
   METRICS_SETTINGS_PIPELINE_RULES = "METRICS_SETTINGS_PIPELINE_RULES",
   METRICS_SETTINGS_RECORDING_RULES = "METRICS_SETTINGS_RECORDING_RULES",
+  /*
+   * Metrics' AI section (Types/AI/TelemetryAi): high-cardinality metrics,
+   * histograms whose buckets do not fit, missing metrics, and their fixes.
+   */
+  METRICS_AI_INSIGHTS = "METRICS_AI_INSIGHTS",
+  METRICS_AI_INSIGHT_VIEW = "METRICS_AI_INSIGHT_VIEW",
+  METRICS_AI_LOGS = "METRICS_AI_LOGS",
+  METRICS_AI_SETTINGS = "METRICS_AI_SETTINGS",
 
   // Traces (standalone product)
   TRACES_ROOT = "TRACES_ROOT",

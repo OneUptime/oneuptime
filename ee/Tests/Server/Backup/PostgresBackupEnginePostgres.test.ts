@@ -110,7 +110,7 @@ describePostgres("PostgresBackupEngine on a real PostgreSQL", () => {
         'CREATE TABLE public.migrations (id serial PRIMARY KEY, "timestamp" bigint NOT NULL, name varchar NOT NULL)',
       );
       await client.query(
-        "INSERT INTO public.migrations (\"timestamp\", name) VALUES (1807110000000, 'AddAuditLogExports1807110000000'), (1807400000000, 'AddBackups1807400000000')",
+        "INSERT INTO public.migrations (\"timestamp\", name) VALUES (1807110000000, 'AddAuditLogExports1807110000000'), (1807450000000, 'AddBackups1807450000000')",
       );
       await client.query(
         `INSERT INTO public."Project" (name) VALUES ('Acme'), ('Globex')`,
@@ -155,7 +155,7 @@ describePostgres("PostgresBackupEngine on a real PostgreSQL", () => {
   test("counts what people recognise, without the deleted, and names the last migration", async () => {
     expect(await engine.getContents()).toEqual({
       counts: { projects: 2, users: 1, monitors: 3, statusPages: 1 },
-      lastMigration: "AddBackups1807400000000",
+      lastMigration: "AddBackups1807450000000",
     });
   });
 

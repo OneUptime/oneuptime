@@ -1,3 +1,4 @@
+import MetricInsightFix from "./MetricInsightFix";
 import AIInsightService from "../../../Services/AIInsightService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ExceptionInsightFix from "./ExceptionInsightFix";
@@ -110,6 +111,24 @@ export const TELEMETRY_AI_PERSON_FIX_PLANNERS: Readonly<
       repositoryId?: ObjectID | undefined;
     }): Promise<{ taskId: string }> => {
       return LogInsightFix.createFixTask(data);
+    },
+  },
+  [TelemetryAiLane.Metric]: {
+    getSuggestion: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<TelemetryAiFixSuggestion> => {
+      return MetricInsightFix.getSuggestion(data);
+    },
+    createFixTask: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      repositoryId?: ObjectID | undefined;
+    }): Promise<{ taskId: string }> => {
+      return MetricInsightFix.createFixTask(data);
     },
   },
 };

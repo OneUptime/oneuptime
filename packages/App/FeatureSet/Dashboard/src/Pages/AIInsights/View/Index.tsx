@@ -14,6 +14,7 @@ import InsightFactsList, {
   InsightFact,
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
+import InsightTitleText from "../../../Components/AIInsights/InsightTitleText";
 import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import ProfileFixStrip from "../../../Components/Profiles/ProfileFixStrip";
 import {
@@ -29,6 +30,7 @@ import {
   AIInsightExplorerLink,
   buildInsightInvestigationLink,
   buildMetricExplorerRoute,
+  getEvidenceWindow,
 } from "../../../Utils/AIInsightExplorerLinks";
 import { buildTraceViewRoute } from "../../../Utils/LogsCrossSignalPivot";
 import {
@@ -547,6 +549,7 @@ const AIInsightViewPage: FunctionComponent<
       profile: insight.evidence?.profile,
       trace: insight.evidence?.trace,
       log: insight.evidence?.log,
+      metric: insight.evidence?.metric,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
@@ -716,9 +719,18 @@ const AIInsightViewPage: FunctionComponent<
       service.id = new ObjectID(serviceIdString);
       service.name = insight.serviceName;
 
+      /*
+       * A long name ("storefront-checkout-service-eu-west-1-production")
+       * is cut at its end, with an ellipsis: pushed to the right edge, it
+       * overflowed to the left and lost its start ("eu-west-1-production").
+       * Whole under the pointer (the fact's title).
+       */
       serviceValue = (
-        <span className="flex justify-end">
-          <ServiceElement service={service} />
+        <span className="flex min-w-0 justify-end [&>*]:min-w-0">
+          <ServiceElement
+            service={service}
+            serviceNameClassName="min-w-0 truncate"
+          />
         </span>
       );
     }
@@ -732,10 +744,14 @@ const AIInsightViewPage: FunctionComponent<
   }
 
   if (insight.metricName) {
+    // A Metrics finding opens the metric on the hour it was read in.
     const metricRoute: Route | null = buildMetricExplorerRoute({
       metricName: insight.metricName,
       serviceName: insight.serviceName,
       lastSeenAt: insight.lastSeenAt,
+      window: insight.evidence?.metric
+        ? getEvidenceWindow(insight.evidence.metric)
+        : null,
     });
 
     facts.push({
@@ -774,13 +790,20 @@ const AIInsightViewPage: FunctionComponent<
     });
   }
 
+  /*
+   * In the reader's language: glued together from English ("5 times"), it
+   * read English on every translated page.
+   */
   facts.push({
     label: "Detections",
     icon: IconProp.Refresh,
     value:
       insight.occurrenceCount === 1
-        ? "Once"
-        : `${insight.occurrenceCount || 0} times`,
+        ? translator.translateText("Once") || "Once"
+        : translator.translatePlural(
+            { one: "{{count}} time", other: "{{count}} times" },
+            insight.occurrenceCount || 0,
+          ),
   });
 
   if (insight.firstSeenAt) {
@@ -824,8 +847,16 @@ const AIInsightViewPage: FunctionComponent<
                 />
               </span>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold leading-6 text-gray-900">
-                  {insight.title}
+                {/*
+                 * A title names what the service named - a metric, an
+                 * attribute, an operation - often one long word: it breaks
+                 * anywhere rather than run past the card's edge on a phone.
+                 */}
+                <h2
+                  className="text-lg font-semibold leading-6 text-gray-900 [overflow-wrap:anywhere]"
+                  data-testid="ai-insight-title"
+                >
+                  <InsightTitleText text={insight.title || ""} />
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {getInsightTypeElement(insight.insightType)}

@@ -42,6 +42,13 @@ enum AutoRemediationTriggerEntity {
    * noisy line less.
    */
   Log = "Log",
+  /*
+   * The problems OneUptime found in a service's metrics, and the metrics a
+   * busy service does not send at all (Metrics → AI): the rule says which
+   * services' problems OneUptime AI looks into, and whether it opens a
+   * pull request that improves the metrics or adds the missing ones.
+   */
+  Metric = "Metric",
 }
 
 export default AutoRemediationTriggerEntity;

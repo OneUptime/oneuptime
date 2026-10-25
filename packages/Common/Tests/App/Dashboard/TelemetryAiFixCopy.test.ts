@@ -12,6 +12,7 @@ import {
   TELEMETRY_AI_FIX_LEADS,
   TELEMETRY_AI_FIX_LEADS_BY_RECIPE,
   TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD,
+  TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   doesInsightOfferTelemetryAiFix,
   getTelemetryAiFixLead,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
@@ -35,18 +36,32 @@ import { LogLoggingGap } from "../../../Utils/Logs/LogInsight";
 
 const LINE_LIMIT: number = 150;
 
+// High Cardinality by its names: metric names with IDs in them.
+const METRIC_NAMES_EVIDENCE: AIInsightEvidence = {
+  metric: {
+    serviceId: "s",
+    kind: "HighCardinality",
+    shape: "Name",
+    windowStartTime: "2026-10-24T08:00:00.000Z",
+    windowEndTime: "2026-10-24T09:00:00.000Z",
+    namePattern: "job.{id}.duration",
+  },
+};
+
 describe("which findings draw Fix with AI", () => {
-  test("Traces', Exceptions' and Logs' kinds, while open and with no fix linked", () => {
+  test("Traces', Exceptions', Logs' and Metrics' kinds, while open and with no fix linked", () => {
     expect(TELEMETRY_AI_FIX_LANES).toEqual([
       TelemetryAiLane.Trace,
       TelemetryAiLane.Exception,
       TelemetryAiLane.Log,
+      TelemetryAiLane.Metric,
     ]);
 
     for (const insightType of [
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Exception].insightTypes,
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
     ]) {
       for (const status of [
         AIInsightStatus.Detected,
@@ -85,6 +100,7 @@ describe("which findings draw Fix with AI", () => {
       AIInsightType.TraceLatencyRegression,
       // AI Insights' own error-log spike is not a Logs finding.
       AIInsightType.ErrorLogSpike,
+      // AI Insights' week-over-week drift is a heads-up, never a fix.
       AIInsightType.MetricDrift,
       "Unknown",
       undefined,
@@ -133,6 +149,91 @@ describe("what Fix with AI says", () => {
     ).toBe(
       "OneUptime AI opens a pull request that makes this service record stack traces, for you to review.",
     );
+  });
+
+  test("each of Metrics' kinds says what its pull request does, short enough for two lines", () => {
+    const leads: Array<string> = [];
+
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Metric]
+      .insightTypes) {
+      const lead: string | undefined = TELEMETRY_AI_FIX_LEADS[insightType];
+
+      expect(lead).toBeTruthy();
+      expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(lead).toContain("pull request");
+      expect(lead).toMatch(/for you to review\.$/u);
+      expect(getTelemetryAiFixLead(insightType)).toBe(lead);
+      leads.push(lead!);
+    }
+
+    // Three kinds, three different pull requests.
+    expect(new Set(leads).size).toBe(3);
+    expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality]).toBe(
+      "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHistogramBuckets]).toBe(
+      "OneUptime AI opens a pull request that gives this histogram buckets that fit its values, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricMissingMetrics]).toBe(
+      "OneUptime AI opens a pull request that adds metrics to this service, for you to review.",
+    );
+  });
+
+  test("metric names with IDs say their own pull request: the IDs come out of the names", () => {
+    expect(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES).toBe(
+      "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES.length).toBeLessThanOrEqual(
+      LINE_LIMIT,
+    );
+    // Not the attribute's line: nothing is "recorded on the metric" there.
+    expect(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES).not.toBe(
+      TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality],
+    );
+
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.MetricHighCardinality,
+        undefined,
+        METRIC_NAMES_EVIDENCE,
+      ),
+    ).toBe(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES);
+  });
+
+  test("every other finding says its kind's line", () => {
+    const attribute: AIInsightEvidence = {
+      metric: {
+        serviceId: "s",
+        kind: "HighCardinality",
+        shape: "Attribute",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        attributeKey: "user.id",
+      },
+    };
+
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.MetricHighCardinality,
+        undefined,
+        attribute,
+      ),
+    ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality]);
+    // A finding with no evidence, or of another kind, has nothing to add.
+    expect(getTelemetryAiFixLead(AIInsightType.MetricHighCardinality)).toBe(
+      TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality],
+    );
+
+    for (const insightType of [
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.MetricDrift,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(insightType, undefined, METRIC_NAMES_EVIDENCE),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[insightType] || TELEMETRY_AI_FIX_LEAD);
+    }
   });
 
   test("an expected error says it is handled better, not fixed - whatever its kind", () => {

@@ -97,7 +97,7 @@ import {
   formerSingularName: "Auto Remediation Rule",
   icon: IconProp.Sparkles,
   tableDescription:
-    "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too. A rule whose Trigger Entity Type is Profile decides the same about the slow code OneUptime finds in a service's profiles, and one whose Trigger Entity Type is Trace about the slow and failing operations OneUptime finds in a service's traces, matched by their service; their fix is a pull request in one of the project's code repositories.",
+    "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too. A rule whose Trigger Entity Type is Profile decides the same about the slow code OneUptime finds in a service's profiles, one whose Trigger Entity Type is Trace about the slow and failing operations OneUptime finds in a service's traces, and one whose Trigger Entity Type is Metric about the problems OneUptime finds in a service's metrics, matched by their service; their fix is a pull request in one of the project's code repositories.",
 })
 export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -288,7 +288,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Trigger Entity Type",
     description:
-      "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Log, the error, missing and noisy logs OneUptime finds in a service's logs.",
+      "Which kind of signal this rule decides about: Incident or Alert - or Profile, the slow code OneUptime finds in a service's profiles, or Trace, the slow and failing operations OneUptime finds in a service's traces, or Exception, the new and rising exceptions OneUptime finds in a service, or Log, the error, missing and noisy logs OneUptime finds in a service's logs, or Metric, the problems OneUptime finds in a service's metrics.",
   })
   @Column({
     nullable: false,
@@ -1004,7 +1004,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Service,
     title: "Services",
     description:
-      "Profile, Trace and Log AI rules only: match what OneUptime found in one of these services. Leave empty to match any service.",
+      "Profile, Trace, Exception, Log and Metric AI rules only: match what OneUptime found in one of these services. Leave empty to match any service.",
   })
   @ManyToMany(
     () => {
@@ -1050,7 +1050,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Label,
     title: "Service Labels",
     description:
-      "Profile, Trace and Log AI rules only: match what OneUptime found in a service that carries at least one of these labels. Leave empty to match any label.",
+      "Profile, Trace, Exception, Log and Metric AI rules only: match what OneUptime found in a service that carries at least one of these labels. Leave empty to match any label.",
   })
   @ManyToMany(
     () => {
@@ -1095,7 +1095,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.LongText,
     title: "Service Name Pattern",
     description:
-      "Profile, Trace and Log AI rules only: case-insensitive regex matched against the name of the service OneUptime found the problem in. Leave empty to match any name.",
+      "Profile, Trace, Exception, Log and Metric AI rules only: case-insensitive regex matched against the name of the service OneUptime found the problem in. Leave empty to match any name.",
   })
   @Column({
     type: ColumnType.LongText,

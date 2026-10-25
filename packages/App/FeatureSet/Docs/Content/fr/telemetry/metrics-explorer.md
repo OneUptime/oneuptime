@@ -7,6 +7,7 @@ Les métriques sont les nombres que vos services et votre infrastructure rapport
 - [Représenter une métrique](#représenter-une-métrique): Agréger, filtrer et regrouper une requête.
 - [Combiner des requêtes avec une formule](#combiner-des-requêtes-avec-une-formule): Taux d'erreur et autres ratios.
 - [Utiliser ce que vous avez représenté](#utiliser-ce-que-vous-avez-représenté): Un moniteur, un widget de tableau de bord ou un lien.
+- [Améliorer les métriques et ajouter celles qui manquent avec l'IA](#améliorer-les-métriques-et-ajouter-celles-qui-manquent-avec-lia): Des pull requests qui corrigent vos métriques et ajoutent celles qui manquent à un service.
 :::
 
 ## Comment fonctionne l'explorateur
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["Un widget de<br/>tableau de bord"]
 ```
 
-L'explorateur a quatre onglets :
+L'explorateur a cinq onglets :
 
 | Onglet | À quoi il sert |
 | --- | --- |
 | **Lecteur** | La liste des métriques, chacune avec un petit graphique et sa dernière valeur. Il s'ouvre sur la dernière heure. |
 | **Analyses** | Quels services rapportent des métriques, et combien. |
+| **IA** | Les problèmes qu'OneUptime trouve dans vos métriques (trop de valeurs, des buckets d'histogramme qui ne conviennent pas, des métriques manquantes), et ce qu'OneUptime AI en a fait. Voir [Améliorer les métriques et ajouter celles qui manquent avec l'IA](#améliorer-les-métriques-et-ajouter-celles-qui-manquent-avec-lia). |
 | **Guide de configuration** | Comment envoyer des métriques avec OpenTelemetry, avec l'une de vos clés d'ingestion. |
 | **Paramètres** | **Règles de pipeline** et **Règles d'enregistrement** : ce qui arrive aux métriques à leur arrivée. |
 
@@ -107,6 +109,44 @@ Faites glisser la souris sur un graphique pour zoomer sur un moment, et double-c
 ## Analyses des métriques
 
 L'onglet **Analyses** compte les métriques d'une plage de temps : **Métriques actives**, **Services de reporting** et la moyenne par service. Il range les métriques par catégories, et liste les services qui les rapportent.
+
+## Améliorer les métriques et ajouter celles qui manquent avec l'IA
+
+Chaque heure, OneUptime parcourt les métriques que vos services ont envoyées dans la dernière heure à la recherche de celles qui enregistrent trop de valeurs, des histogrammes dont les buckets ne conviennent pas et des services chargés qui n'envoient aucune métrique. Il enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+
+OneUptime lit de près les 10 métriques pour lesquelles vos services ont envoyé le plus de points de données dans l'heure, chacune avec au moins 1 000 points, et enregistre trois sortes de constats :
+
+| Constat | Quand OneUptime l'enregistre | La pull request |
+| --- | --- | --- |
+| **Cardinalité élevée** | Un attribut que le code pose sur l'une de ces métriques a pris 1 000 valeurs ou plus dans l'heure, comme des identifiants d'utilisateur ou des URL complètes, si bien que chaque valeur est une série à part. Ou 50 noms de métriques ou plus d'un service sont un même nom avec un identifiant différent. | Cesse d'enregistrer la valeur sur la métrique, ou retire les identifiants de ses noms. |
+| **Buckets d'histogramme incorrects** | L'une de ces métriques est un histogramme qui a enregistré 1 000 valeurs ou plus, dont 90 % ou plus sont tombées dans son plus petit bucket ou au-dessus du plus grand, ou il n'a aucun bucket, si bien que ses percentiles ne peuvent pas être distingués. | Donne à l'histogramme des buckets adaptés à ses valeurs, ou corrige son unité. |
+| **Métriques manquantes** | Un service a envoyé 1 000 spans ou plus dans l'heure et n'a jamais envoyé de métrique. | Ajoute en métriques le nombre de requêtes, les erreurs et la durée de ses opérations les plus actives. |
+
+Un constat ne stocke jamais les valeurs d'un attribut : seulement le nom de l'attribut, le nombre de valeurs qu'il a prises et leur forme.
+
+### L'activer
+
+**Métriques → IA → Paramètres** contient l'interrupteur **Améliorer les métriques et ajouter celles qui manquent**, activé pour les nouveaux projets. Avec **Activer l'IA** désactivé, les problèmes de vos métriques sont toujours trouvés, mais OneUptime AI n'en fait rien. Pour ouvrir des pull requests, OneUptime AI a besoin d'un dépôt connecté dans [Code](/docs/ai/ai-agent) : la page indique d'abord ce qui manque. Le code de chaque dépôt est modifié sur le Runner que le dépôt choisit dans Code.
+
+OneUptime AI ouvre de lui-même au plus 5 pull requests par jour (UTC), une par constat, et jamais plus que la limite de pull requests IA ouvertes d'un dépôt.
+
+### Règles IA
+
+Sans règle, OneUptime AI examine immédiatement chaque problème qu'il trouve dans vos métriques et ouvre une pull request pour chacun de ceux qu'il peut corriger. Les **Règles IA** sous **Plus de paramètres** restreignent cela, en trois étapes :
+
+| Étape | Ce qu'elle décide |
+| --- | --- |
+| **Correspondance** | Quels services : ceux choisis, ceux qui portent certaines étiquettes, ou ceux dont le nom correspond à un motif. |
+| **Investiguer** | **Immédiatement**, ou **Seulement s'il est encore trouvé après une attente** : un problème qui disparaît pendant l'attente n'est pas examiné. |
+| **Correction** | **Ne pas corriger**, **Demander avant de corriger** ou **Corriger sans demander**. Demander d'abord laisse la pull request à une personne : le constat propose **Corriger avec l'IA**. |
+
+Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs MCP et le fournisseur de LLM qu'OneUptime AI peut utiliser pour elle. Si rien n'est choisi, il peut tous les utiliser, ainsi que le fournisseur de LLM par défaut du projet.
+
+### Voir ce qu'il a fait
+
+- **Métriques → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Métriques**, qui ouvre sa métrique pour son service, de l'heure où il a été trouvé. Un service sans métriques propose plutôt **Ouvrir dans Traces** : les spans que ses métriques mesureraient.
+- **Métriques → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
+- Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Ce qui arrive aux métriques à leur arrivée
 

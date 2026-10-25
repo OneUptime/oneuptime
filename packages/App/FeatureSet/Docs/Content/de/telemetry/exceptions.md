@@ -124,8 +124,8 @@ Alle 15 Minuten durchsucht OneUptime Ihre Ausnahmen nach neuen, nach solchen, di
 
 | Befund | Wann OneUptime ihn anlegt | Der Pull Request |
 | --- | --- | --- |
-| **New Exception** | Eine Ausnahme, die in den letzten 24 Stunden zum ersten Mal gesehen wurde und bereits 3 Mal oder öfter aufgetreten ist. | Behebt die Ausnahme oder behandelt sie besser. |
-| **Exception Spike** | Eine Ausnahme, die in der letzten Stunde 10 Mal oder öfter aufgetreten ist, mit dem 5-Fachen oder mehr ihrer stündlichen Rate in den 24 Stunden davor. | Behebt die Ausnahme oder behandelt sie besser. |
+| **Neue Ausnahme** | Eine Ausnahme, die in den letzten 24 Stunden zum ersten Mal gesehen wurde und bereits 3 Mal oder öfter aufgetreten ist. | Behebt die Ausnahme oder behandelt sie besser. |
+| **Ausnahme-Anstieg** | Eine Ausnahme, die in der letzten Stunde 10 Mal oder öfter aufgetreten ist, mit dem 5-Fachen oder mehr ihrer stündlichen Rate in den 24 Stunden davor. | Behebt die Ausnahme oder behandelt sie besser. |
 | **Fehlender Stack-Trace** | Die Ausnahmen, die ein Dienst am letzten Tag aufgezeichnet hat, haben keinen Stack-Trace und sind zusammen 20 Mal oder öfter aufgetreten. | Sorgt dafür, dass der Dienst mit jeder Ausnahme einen Stack-Trace aufzeichnet. |
 
 Der Pull Request einer neuen oder zunehmenden Ausnahme ist die eigene KI-Aufgabe der Ausnahme, die ihre Seite **KI-Unterstützung** startet, und er wartet, bis OneUptime AI den Befund untersucht hat. Findet es den schuldigen Code (`code-fault`), behebt der Pull Request ihn, wie es **Diese Ausnahme mit KI beheben** tut. Findet es einen erwarteten Fehler (`user-error` oder `expected-denial`), behandelt der Pull Request den Fehler besser, wie es **Fehlerbehandlung verbessern** tut. Jedes andere Urteil öffnet von sich aus keinen Pull Request. Ist **Erwartete Ausnahmen archivieren** eingeschaltet, wird eine erwartete Ablehnung stattdessen archiviert und bekommt keinen Pull Request.

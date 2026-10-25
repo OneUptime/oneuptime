@@ -693,13 +693,16 @@ describe("getAIInsightMonitorBlocker", () => {
     );
   });
 
-  test("missing tracing, missing stack traces, missing logging and noisy logs are not offered at all; every other kind is", () => {
+  test("missing tracing, missing stack traces, missing logging, noisy logs and Metrics' findings are not offered at all; every other kind is", () => {
     const notOffered: Array<AIInsightType> = [
       AIInsightType.TraceMissingTracing,
       // What an exception lacks is not a count either.
       AIInsightType.ExceptionMissingStackTrace,
       AIInsightType.LogMissingLogging,
       AIInsightType.LogNoisyPattern,
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
     ];
 
     for (const insightType of notOffered) {
@@ -709,6 +712,9 @@ describe("getAIInsightMonitorBlocker", () => {
     expect([...Prefill.AI_INSIGHT_TYPES_NOT_MONITORED]).toEqual([
       AIInsightType.LogMissingLogging,
       AIInsightType.LogNoisyPattern,
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
     ]);
 
     for (const insightType of Object.values(AIInsightType).filter(
@@ -719,6 +725,10 @@ describe("getAIInsightMonitorBlocker", () => {
       expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(true);
     }
 
+    // AI Insights' own metric finding, a drift, still offers its monitor.
+    expect(Prefill.isAIInsightMonitorOffered(AIInsightType.MetricDrift)).toBe(
+      true,
+    );
     expect(Prefill.isAIInsightMonitorOffered(undefined)).toBe(true);
   });
 
