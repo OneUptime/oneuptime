@@ -80,7 +80,11 @@ The suite drives the pages the way a person does:
   where a repository picks its Runner (`&picks=0`); on a phone its Setup
   Instructions show the command;
 - a phone (nothing runs off the screen, the open picker fits), dark mode
-  (`?theme=dark`) and German (`?lang=de`).
+  (`?theme=dark`) and German (`?lang=de`);
+- in a project with no Runner of its own, each step's Runner field at 1280px
+  and 390px, light and dark: the JavaScript step on Global Runner, saying
+  what runs there, and the Bash step never on it, saying it needs a Runner of
+  your own and where to add one, with the open menu on the screen.
 
 `Fixture/Fixture.js` records every save (`updates`, with the model, the id and
 the data) and every created record (`creates`) on `window.__fixture`, so the

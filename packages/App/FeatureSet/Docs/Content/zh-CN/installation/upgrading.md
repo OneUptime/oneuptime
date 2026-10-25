@@ -467,7 +467,7 @@ API 客户端和 Terraform 配置可以用项目的 `enableAutomaticIncidentReme
 - 修复开启且某个开关关闭的项目，该类型的每条规则中的这个开关都会关闭。如果没有该类型的已启用规则，项目会得到一条规则 **All incidents** （或 **All alerts**）：它匹配所有对象，像没有规则时的 OneUptime AI 一样无需询问直接修复，并按项目原来的设置保持两个开关。要打开这些拉取请求，请在其中开启开关，或删除这条规则。
 - 调查上的 **Open Fix PR from this analysis** 保持不变。
 
-规则的 **Runner** 只列出你自己的 Runner。**AI agent on the cluster or host** 已被移除：受影响的集群或主机上的命令无论规则选择什么，始终通过其 AI 代理运行。之前没有选择任何 Runner 的规则显示为 **无 Runner**，并像以前一样修复。
+规则的 **Runner** 列出你自己的 Runner 和 **全局 Runner**。**AI agent on the cluster or host** 已被移除：受影响的集群或主机上的命令无论规则选择什么，始终通过其 AI 代理运行。之前没有选择任何 Runner 的规则显示为 **全局 Runner**，并像以前一样修复：OneUptime AI 不会在全局 Runner 上运行 Bash 命令。
 
 API 客户端和 Terraform 配置不再有项目字段 `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes` 和 `enableAlertInstrumentationFixTasks`（Terraform 中的 `enable_automatic_incident_code_fixes` 等）：请从配置中删除它们。自动补救规则的 `openCodeFixPullRequests` 和 `openTelemetryPullRequests`（`open_code_fix_pull_requests` 和 `open_telemetry_pull_requests`）除非你设置，否则都为 `true`，两种规则都在 `codeRepositories`（`code_repositories`）中指定存储库，为空表示所有已连接的存储库。
 

@@ -61,6 +61,7 @@ Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaS
 | Wat een stap kan bereiken | Openbare internetadressen | Wat zijn host kan bereiken |
 | Langste looptijd van een stap | 5 minuten | 1 uur |
 | Geheime variabelen | Die u globale Runners laat gebruiken | Die hem vermelden |
+| Bash-opdrachten van OneUptime AI | Nooit | Voor de AI-regels die hem kiezen |
 
 Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
 

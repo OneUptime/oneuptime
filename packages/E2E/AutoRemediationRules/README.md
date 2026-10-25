@@ -44,15 +44,31 @@ npm run test-auto-remediation-rules-ui
   runbook" when none is picked), "Run them every time" once the rule names
   runbooks, the Runner OneUptime AI runs the rule's Bash commands on (the
   project's own Runners with how each is doing, the default first and tagged
-  - a new rule starts on it, `?defaultRunner=prod` - "No Runner" while none
-  is picked, never the AI agent on the cluster or host, never the in-cluster
-  Runner the Kubernetes agent chart installed and never a global Runner), the
-  two pull requests and the description; the repositories come first, the one
-  field every rule shows, so the fold stays open whatever the Fix answer;
+  - a new rule starts on it, `?defaultRunner=prod` - and the Global Runner,
+  which a rule that picks none shows, never the AI agent on the cluster or
+  host and never the in-cluster Runner the Kubernetes agent chart
+  installed), the two pull requests and the description; the repositories
+  come first, the one field every rule shows, so the fold stays open
+  whatever the Fix answer;
+- "If there are no runners, it should use the global runner by default"
+  (the maintainer): a rule that picks no Runner shows "Global Runner ·
+  Connected", with the line that OneUptime AI runs no Bash commands there,
+  which every project shares, and how to have them run - pick one of your
+  Runners, or, with none (`?runners=0`), add one under Runbooks › Runners,
+  linked in a new tab; picking the Global Runner saves no Runner, and there
+  is nothing to clear; a Global Runner not heard from lately
+  (`?globalRunners=disconnected`) is shown so, and nothing of the rule's
+  waits on it; a project that turned global Runners off
+  (`?useGlobalRunners=0`), or a server with none (`?globalRunners=0`),
+  reads "No Runner" as before, and a pick clears back to it; the line is
+  drawn like the hints under the rule's other pickers (the Code
+  Repositories hint's size and colour), close under its box; the field at
+  1280px and 390px, light and dark, with Runners and without, the menu
+  open, and in German and Persian (`?lang=fa`, right to left: the box's
+  words follow each other from the right, as the menu draws them);
 - a Runner picked is always named on the folded line ("Runner:
   prod-eu-runner", with " · Never connected" for one that is not connected);
-  a project with no Runner of its own reads No Runner, has nothing to pick,
-  and is told where to add one;
+  the Global Runner, the field's default, is never named there;
 - the code repositories ("All connected repositories" when none is picked,
   with a link to Code › Repositories), drawn like the Runbooks and MCP
   Servers pickers (one height, chips, no chevron), each hint close under its

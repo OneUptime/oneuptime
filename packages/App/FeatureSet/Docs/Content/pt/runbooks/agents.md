@@ -61,6 +61,7 @@ Runners globais são os Runners que o OneUptime executa para todos os projetos. 
 | O que uma etapa alcança | Endereços públicos da internet | O que o host dele alcança |
 | Tempo máximo de uma etapa | 5 minutos | 1 hora |
 | Variáveis secretas | As que você deixa os Runners globais usarem | As que o listam |
+| Comandos Bash da OneUptime AI | Nunca | Para as regras de IA que o escolhem |
 
 Um Runner global executa as etapas de muitos projetos, então cada etapa fica separada de todas as outras:
 
