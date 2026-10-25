@@ -9,6 +9,7 @@ import SecurityEntityRiskService from "../../../../../Server/Services/SecurityEn
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
+import UserService from "../../../../../Server/Services/UserService";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityCaseValues from "../../../../../Server/Utils/SecurityCase/SecurityCaseValues";
 import IncidentSecurity, {
@@ -370,12 +371,15 @@ describe("ResourceSecurity.read", () => {
     ]);
   });
 
-  test("a user by their email, as a member the caller may see", async () => {
+  test("a user by their email, as a member the caller may see: the membership read as the caller, who they are as OneUptime", async () => {
     const find: jest.SpyInstance = jest
       .spyOn(TeamMemberService, "findOneBy")
+      .mockResolvedValue({ userId: HOST_ID } as never);
+    const user: jest.SpyInstance = jest
+      .spyOn(UserService, "findOneById")
       .mockResolvedValue({
-        userId: HOST_ID,
-        user: { name: "Kim Morgan", email: new Email("k.morgan@acme.example") },
+        name: "Kim Morgan",
+        email: new Email("k.morgan@acme.example"),
       } as never);
 
     const security: ResourceSecurityJson | null = await read(
@@ -388,10 +392,25 @@ describe("ResourceSecurity.read", () => {
       type: SecurityEntityType.User,
       value: "k.morgan@acme.example",
     });
-    expect(find.mock.calls[0]![0]).toMatchObject({
+    // The membership alone, as the caller: a member's user is a narrower column.
+    expect(find.mock.calls[0]![0]).toEqual({
       query: { projectId: PROJECT_ID, userId: HOST_ID },
+      select: { userId: true },
       props: CALLER,
     });
+    expect(user.mock.calls[0]![0]).toEqual({
+      id: HOST_ID,
+      select: { name: true, email: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test("a user who is no member the caller may see has no card, and who they are is never read", async () => {
+    jest.spyOn(TeamMemberService, "findOneBy").mockResolvedValue(null);
+    const user: jest.SpyInstance = jest.spyOn(UserService, "findOneById");
+
+    expect(await read(SecurityConnectionKind.User)).toBeNull();
+    expect(user).not.toHaveBeenCalled();
   });
 
   test("an inventory item of a machine by its names and its host.ip; any other item has no card", async () => {

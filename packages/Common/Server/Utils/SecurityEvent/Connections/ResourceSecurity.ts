@@ -11,6 +11,7 @@ import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityEntityRisk from "../../../../Models/DatabaseModels/SecurityEntityRisk";
 import ServiceModel from "../../../../Models/DatabaseModels/Service";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
+import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
@@ -48,6 +49,7 @@ import SecurityEventService, {
 } from "../../../Services/SecurityEventService";
 import ServiceService from "../../../Services/ServiceService";
 import TeamMemberService from "../../../Services/TeamMemberService";
+import UserService from "../../../Services/UserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import SecurityCaseValues from "../../SecurityCase/SecurityCaseValues";
@@ -463,19 +465,35 @@ export default class ResourceSecurity {
         };
       }
       case SecurityConnectionKind.User: {
+        /*
+         * Whether the reader may see this member of the project, with their
+         * own props, and only then who the member is, as OneUptime: a
+         * member's user is a column fewer of a membership's readers may
+         * read (Current User reads its own membership, not who it is).
+         */
         const member: TeamMember | null = await TeamMemberService.findOneBy({
           query: { projectId: data.projectId, userId: data.id },
-          select: { userId: true, user: { name: true, email: true } },
+          select: { userId: true },
           props: data.props,
         });
-        const email: string = member?.user?.email?.toString() || "";
 
-        if (!member || !email) {
+        if (!member) {
+          return null;
+        }
+
+        const user: User | null = await UserService.findOneById({
+          id: data.id,
+          select: { name: true, email: true },
+          props: { isRoot: true },
+        });
+        const email: string = user?.email?.toString() || "";
+
+        if (!email) {
           return null;
         }
 
         return {
-          name: member.user?.name?.toString() || email,
+          name: user?.name?.toString() || email,
           names: [email],
           entity: { type: SecurityEntityType.User, value: email },
           isSearchedByLogs: false,

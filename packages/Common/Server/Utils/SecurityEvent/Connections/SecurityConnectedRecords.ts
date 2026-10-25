@@ -898,8 +898,11 @@ export default class SecurityConnectedRecords {
 
   /*
    * The project's members an email names. Users are found by email as
-   * OneUptime (an email is never readable across projects otherwise), then
-   * kept only when they are members the caller may see.
+   * OneUptime (an email is never readable across projects otherwise), with
+   * their names, then kept only when the caller's own read of the project's
+   * members finds them - a read of the memberships alone, since a member's
+   * user is a column fewer of a membership's readers may read (Current
+   * User reads its own membership, not who it is).
    */
   private static async matchMembers(data: {
     projectId: ObjectID;
@@ -920,7 +923,7 @@ export default class SecurityConnectedRecords {
           query: {
             email: QueryHelper.findWithSameTextAnyOf(lookups.emails),
           } as never,
-          select: { _id: true },
+          select: { _id: true, name: true, email: true },
           limit: MAX_ROWS_PER_READ,
           skip: 0,
           props: { isRoot: true },
@@ -928,15 +931,15 @@ export default class SecurityConnectedRecords {
       },
     );
 
-    const userIds: Array<ObjectID> = (users || [])
-      .map((user: User): ObjectID | undefined => {
-        return user.id || undefined;
-      })
-      .filter((id: ObjectID | undefined): id is ObjectID => {
-        return Boolean(id);
-      });
+    const usersById: Map<string, User> = new Map();
 
-    if (userIds.length === 0) {
+    for (const user of users || []) {
+      if (user.id) {
+        usersById.set(user.id.toString(), user);
+      }
+    }
+
+    if (usersById.size === 0) {
       return;
     }
 
@@ -946,12 +949,13 @@ export default class SecurityConnectedRecords {
         return await TeamMemberService.findBy({
           query: {
             projectId: data.projectId,
-            userId: QueryHelper.any(userIds),
+            userId: QueryHelper.any(
+              Array.from(usersById.keys()).map((id: string): ObjectID => {
+                return new ObjectID(id);
+              }),
+            ),
           },
-          select: {
-            userId: true,
-            user: { _id: true, name: true, email: true },
-          },
+          select: { userId: true },
           limit: MAX_ROWS_PER_READ,
           skip: 0,
           props: data.props,
@@ -966,8 +970,9 @@ export default class SecurityConnectedRecords {
     }
 
     for (const member of members || []) {
-      const email: string = member.user?.email?.toString() || "";
       const id: string = member.userId?.toString() || "";
+      const user: User | undefined = usersById.get(id);
+      const email: string = user?.email?.toString() || "";
       const entity: SecurityEntity | undefined = entityByEmail.get(
         foldConnectionValue(email),
       );
@@ -985,7 +990,7 @@ export default class SecurityConnectedRecords {
         collector.add({
           kind: SecurityConnectionKind.User,
           id,
-          name: member.user?.name?.toString() || email,
+          name: user?.name?.toString() || email,
           match: {
             entity,
             certainty: verdict.certainty,

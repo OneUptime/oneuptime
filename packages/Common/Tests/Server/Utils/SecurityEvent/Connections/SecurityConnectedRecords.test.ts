@@ -62,6 +62,7 @@ const CALLER: DatabaseCommonInteractionProps = {
 
 interface FindArgs {
   query: Record<string, unknown>;
+  select?: Record<string, unknown>;
   props: DatabaseCommonInteractionProps;
   limit?: number;
 }
@@ -533,16 +534,14 @@ describe("addresses", () => {
 describe("members", () => {
   test("the project's member with the email: found as OneUptime, kept only as a member the caller may see", async () => {
     spies["user"]!.mockResolvedValue([
-      { id: new ObjectID(MEMBER_ID) },
+      {
+        id: new ObjectID(MEMBER_ID),
+        name: "Kim Morgan",
+        email: new Email("k.morgan@acme.example"),
+      },
     ] as never);
     spies["member"]!.mockResolvedValue([
-      {
-        userId: new ObjectID(MEMBER_ID),
-        user: {
-          name: "Kim Morgan",
-          email: new Email("k.morgan@acme.example"),
-        },
-      },
+      { userId: new ObjectID(MEMBER_ID) },
     ] as never);
 
     const result: SecurityConnectedRecordsResult = await resolve([
@@ -577,8 +576,31 @@ describe("members", () => {
     expect(boundValues(users.query["email"])).toEqual([
       "k.morgan@acme.example",
     ]);
+    expect(users.select).toEqual({ _id: true, name: true, email: true });
     expect(members.props).toBe(CALLER);
     expect(members.query["projectId"]).toBe(PROJECT_ID);
+    /*
+     * The caller's read is of the memberships alone: a member's user is a
+     * column fewer of a membership's readers may read than the membership.
+     */
+    expect(members.select).toEqual({ userId: true });
+  });
+
+  test("a user OneUptime found whom the caller's read of the members does not find is not shown", async () => {
+    spies["user"]!.mockResolvedValue([
+      {
+        id: new ObjectID(MEMBER_ID),
+        name: "Kim Morgan",
+        email: new Email("k.morgan@acme.example"),
+      },
+    ] as never);
+    spies["member"]!.mockResolvedValue([]);
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+    ]);
+
+    expect(result.records).toEqual([]);
   });
 
   test("a user who is no member of the project is not shown, and is not found", async () => {
