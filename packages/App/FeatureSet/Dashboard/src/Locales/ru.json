@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "У вас нет прав на добавление людей в качестве владельцев.",
   "You do not have permission to add teams as owners.": "У вас нет прав на добавление команд в качестве владельцев.",
   "Search people...": "Поиск людей...",
-  "No one else to add.": "Больше некого добавить."
+  "No one else to add.": "Больше некого добавить.",
+  "Add an announcement note.": "Добавьте заметку к объявлению.",
+  "Add postmortem notes for this episode here.": "Добавьте здесь заметки постмортема по этому эпизоду.",
+  "Add remediation notes for this alert here.": "Добавьте здесь заметки об исправлении этого оповещения.",
+  "Add remediation notes for this episode here.": "Добавьте здесь заметки об исправлении этого эпизода.",
+  "Add remediation notes for this incident here.": "Добавьте здесь заметки об исправлении этого инцидента.",
+  "Describe the alert details here.": "Опишите здесь подробности оповещения.",
+  "Describe the episode details here.": "Опишите здесь подробности эпизода.",
+  "Describe the incident details here.": "Опишите здесь подробности инцидента.",
+  "Describe the root cause of this incident here.": "Опишите здесь корневую причину этого инцидента.",
+  "Describe the scheduled maintenance event here.": "Опишите здесь запланированное обслуживание.",
+  "Describe the status page group here.": "Опишите здесь группу страницы статуса.",
+  "Describe this resource here.": "Опишите здесь этот ресурс.",
+  "Describe your status page overview here.": "Опишите здесь обзор своей страницы статуса."
 }

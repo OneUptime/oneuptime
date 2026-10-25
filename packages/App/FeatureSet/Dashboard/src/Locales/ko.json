@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "사람을 소유자로 추가할 권한이 없습니다.",
   "You do not have permission to add teams as owners.": "팀을 소유자로 추가할 권한이 없습니다.",
   "Search people...": "사람 검색...",
-  "No one else to add.": "더 추가할 사람이나 팀이 없습니다."
+  "No one else to add.": "더 추가할 사람이나 팀이 없습니다.",
+  "Add an announcement note.": "공지사항 메모를 추가하세요.",
+  "Add postmortem notes for this episode here.": "이 에피소드의 포스트모템 메모를 여기에 추가하세요.",
+  "Add remediation notes for this alert here.": "이 알림의 해결 메모를 여기에 추가하세요.",
+  "Add remediation notes for this episode here.": "이 에피소드의 해결 메모를 여기에 추가하세요.",
+  "Add remediation notes for this incident here.": "이 인시던트의 해결 메모를 여기에 추가하세요.",
+  "Describe the alert details here.": "알림의 세부 정보를 여기에 설명하세요.",
+  "Describe the episode details here.": "에피소드의 세부 정보를 여기에 설명하세요.",
+  "Describe the incident details here.": "인시던트의 세부 정보를 여기에 설명하세요.",
+  "Describe the root cause of this incident here.": "이 인시던트의 근본 원인을 여기에 설명하세요.",
+  "Describe the scheduled maintenance event here.": "예정된 유지보수 이벤트를 여기에 설명하세요.",
+  "Describe the status page group here.": "상태 페이지 그룹을 여기에 설명하세요.",
+  "Describe this resource here.": "이 리소스를 여기에 설명하세요.",
+  "Describe your status page overview here.": "상태 페이지 개요를 여기에 설명하세요."
 }

@@ -10,7 +10,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import {
   translateText,
   translationKey,
@@ -115,9 +114,7 @@ export const getAnnouncementFormFields: (
       stepId: "announcement",
       fieldType: FormFieldSchemaType.Markdown,
       required: true,
-      description: MarkdownUtil.getMarkdownCheatsheet(
-        "Add an announcement note",
-      ),
+      description: "Add an announcement note.",
     },
   ];
 
@@ -360,9 +357,7 @@ export const getAnnouncementTemplateFormFields: () => Array<
       stepId: "announcement",
       fieldType: FormFieldSchemaType.Markdown,
       required: true,
-      description: MarkdownUtil.getMarkdownCheatsheet(
-        "Add an announcement note",
-      ),
+      description: "Add an announcement note.",
     },
     /*
      * Optional here: an announcement made from it picks its pages then.

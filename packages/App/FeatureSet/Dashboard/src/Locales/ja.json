@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "ユーザーを所有者として追加する権限がありません。",
   "You do not have permission to add teams as owners.": "チームを所有者として追加する権限がありません。",
   "Search people...": "ユーザーを検索...",
-  "No one else to add.": "追加できるユーザーやチームはもうありません。"
+  "No one else to add.": "追加できるユーザーやチームはもうありません。",
+  "Add an announcement note.": "お知らせのメモを追加します。",
+  "Add postmortem notes for this episode here.": "このエピソードのポストモーテムのメモをここに追加します。",
+  "Add remediation notes for this alert here.": "このアラートの修復メモをここに追加します。",
+  "Add remediation notes for this episode here.": "このエピソードの修復メモをここに追加します。",
+  "Add remediation notes for this incident here.": "このインシデントの修復メモをここに追加します。",
+  "Describe the alert details here.": "アラートの詳細をここに記述します。",
+  "Describe the episode details here.": "エピソードの詳細をここに記述します。",
+  "Describe the incident details here.": "インシデントの詳細をここに記述します。",
+  "Describe the root cause of this incident here.": "このインシデントの根本原因をここに記述します。",
+  "Describe the scheduled maintenance event here.": "定期メンテナンスイベントの内容をここに記述します。",
+  "Describe the status page group here.": "ステータスページのグループをここに記述します。",
+  "Describe this resource here.": "このリソースの説明をここに記述します。",
+  "Describe your status page overview here.": "ステータスページの概要をここに記述します。"
 }

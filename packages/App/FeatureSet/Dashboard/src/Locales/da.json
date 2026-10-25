@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "Du har ikke tilladelse til at tilføje personer som ejere.",
   "You do not have permission to add teams as owners.": "Du har ikke tilladelse til at tilføje teams som ejere.",
   "Search people...": "Søg efter personer...",
-  "No one else to add.": "Der er ikke flere at tilføje."
+  "No one else to add.": "Der er ikke flere at tilføje.",
+  "Add an announcement note.": "Tilføj en note til meddelelsen.",
+  "Add postmortem notes for this episode here.": "Tilføj postmortem-noter for denne episode her.",
+  "Add remediation notes for this alert here.": "Tilføj afhjælpningsnoter for denne advarsel her.",
+  "Add remediation notes for this episode here.": "Tilføj afhjælpningsnoter for denne episode her.",
+  "Add remediation notes for this incident here.": "Tilføj afhjælpningsnoter for denne hændelse her.",
+  "Describe the alert details here.": "Beskriv detaljerne om advarslen her.",
+  "Describe the episode details here.": "Beskriv detaljerne om episoden her.",
+  "Describe the incident details here.": "Beskriv detaljerne om hændelsen her.",
+  "Describe the root cause of this incident here.": "Beskriv grundårsagen til denne hændelse her.",
+  "Describe the scheduled maintenance event here.": "Beskriv den planlagte vedligeholdelse her.",
+  "Describe the status page group here.": "Beskriv statussidens gruppe her.",
+  "Describe this resource here.": "Beskriv denne ressource her.",
+  "Describe your status page overview here.": "Beskriv oversigten over din statusside her."
 }

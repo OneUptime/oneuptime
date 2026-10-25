@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "您沒有將人員新增為擁有者的權限。",
   "You do not have permission to add teams as owners.": "您沒有將團隊新增為擁有者的權限。",
   "Search people...": "搜尋人員...",
-  "No one else to add.": "沒有其他可新增的人員或團隊。"
+  "No one else to add.": "沒有其他可新增的人員或團隊。",
+  "Add an announcement note.": "為公告新增說明。",
+  "Add postmortem notes for this episode here.": "在此新增此片段的事後分析說明。",
+  "Add remediation notes for this alert here.": "在此新增此警示的補救說明。",
+  "Add remediation notes for this episode here.": "在此新增此片段的補救說明。",
+  "Add remediation notes for this incident here.": "在此新增此事件的補救說明。",
+  "Describe the alert details here.": "在此描述警示的詳細資訊。",
+  "Describe the episode details here.": "在此描述片段的詳細資訊。",
+  "Describe the incident details here.": "在此描述事件的詳細資訊。",
+  "Describe the root cause of this incident here.": "在此描述此事件的根本原因。",
+  "Describe the scheduled maintenance event here.": "在此描述排定的維護事件。",
+  "Describe the status page group here.": "在此描述狀態頁面群組。",
+  "Describe this resource here.": "在此描述此資源。",
+  "Describe your status page overview here.": "在此描述你的狀態頁面概覽。"
 }

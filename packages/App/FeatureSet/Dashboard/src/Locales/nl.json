@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "U hebt geen toestemming om personen als eigenaren toe te voegen.",
   "You do not have permission to add teams as owners.": "U hebt geen toestemming om teams als eigenaren toe te voegen.",
   "Search people...": "Personen zoeken...",
-  "No one else to add.": "Er is niemand meer om toe te voegen."
+  "No one else to add.": "Er is niemand meer om toe te voegen.",
+  "Add an announcement note.": "Voeg een notitie aan de aankondiging toe.",
+  "Add postmortem notes for this episode here.": "Voeg hier postmortem-notities voor deze episode toe.",
+  "Add remediation notes for this alert here.": "Voeg hier herstelnotities voor deze waarschuwing toe.",
+  "Add remediation notes for this episode here.": "Voeg hier herstelnotities voor deze episode toe.",
+  "Add remediation notes for this incident here.": "Voeg hier herstelnotities voor dit incident toe.",
+  "Describe the alert details here.": "Beschrijf hier de details van de waarschuwing.",
+  "Describe the episode details here.": "Beschrijf hier de details van de episode.",
+  "Describe the incident details here.": "Beschrijf hier de details van het incident.",
+  "Describe the root cause of this incident here.": "Beschrijf hier de hoofdoorzaak van dit incident.",
+  "Describe the scheduled maintenance event here.": "Beschrijf hier het geplande onderhoud.",
+  "Describe the status page group here.": "Beschrijf hier de groep van de statuspagina.",
+  "Describe this resource here.": "Beschrijf deze resource hier.",
+  "Describe your status page overview here.": "Beschrijf hier het overzicht van uw statuspagina."
 }

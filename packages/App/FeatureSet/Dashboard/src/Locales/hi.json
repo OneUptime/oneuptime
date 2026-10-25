@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "आपको लोगों को मालिक के रूप में जोड़ने की अनुमति नहीं है।",
   "You do not have permission to add teams as owners.": "आपको टीमों को मालिक के रूप में जोड़ने की अनुमति नहीं है।",
   "Search people...": "लोग खोजें...",
-  "No one else to add.": "जोड़ने के लिए कोई और नहीं है।"
+  "No one else to add.": "जोड़ने के लिए कोई और नहीं है।",
+  "Add an announcement note.": "घोषणा के लिए एक नोट जोड़ें।",
+  "Add postmortem notes for this episode here.": "इस एपिसोड के पोस्टमॉर्टम नोट्स यहाँ जोड़ें।",
+  "Add remediation notes for this alert here.": "इस अलर्ट के सुधार नोट्स यहाँ जोड़ें।",
+  "Add remediation notes for this episode here.": "इस एपिसोड के सुधार नोट्स यहाँ जोड़ें।",
+  "Add remediation notes for this incident here.": "इस घटना के सुधार नोट्स यहाँ जोड़ें।",
+  "Describe the alert details here.": "अलर्ट का विवरण यहाँ लिखें।",
+  "Describe the episode details here.": "एपिसोड का विवरण यहाँ लिखें।",
+  "Describe the incident details here.": "घटना का विवरण यहाँ लिखें।",
+  "Describe the root cause of this incident here.": "इस घटना का मूल कारण यहाँ लिखें।",
+  "Describe the scheduled maintenance event here.": "अनुसूचित रखरखाव इवेंट का विवरण यहाँ लिखें।",
+  "Describe the status page group here.": "स्थिति पृष्ठ के समूह का विवरण यहाँ लिखें।",
+  "Describe this resource here.": "इस संसाधन का विवरण यहाँ लिखें।",
+  "Describe your status page overview here.": "अपने स्थिति पृष्ठ का अवलोकन यहाँ लिखें।"
 }

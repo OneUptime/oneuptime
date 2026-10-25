@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "You do not have permission to add people as owners.",
   "You do not have permission to add teams as owners.": "You do not have permission to add teams as owners.",
   "Search people...": "Search people...",
-  "No one else to add.": "No one else to add."
+  "No one else to add.": "No one else to add.",
+  "Add an announcement note.": "Add an announcement note.",
+  "Add postmortem notes for this episode here.": "Add postmortem notes for this episode here.",
+  "Add remediation notes for this alert here.": "Add remediation notes for this alert here.",
+  "Add remediation notes for this episode here.": "Add remediation notes for this episode here.",
+  "Add remediation notes for this incident here.": "Add remediation notes for this incident here.",
+  "Describe the alert details here.": "Describe the alert details here.",
+  "Describe the episode details here.": "Describe the episode details here.",
+  "Describe the incident details here.": "Describe the incident details here.",
+  "Describe the root cause of this incident here.": "Describe the root cause of this incident here.",
+  "Describe the scheduled maintenance event here.": "Describe the scheduled maintenance event here.",
+  "Describe the status page group here.": "Describe the status page group here.",
+  "Describe this resource here.": "Describe this resource here.",
+  "Describe your status page overview here.": "Describe your status page overview here."
 }

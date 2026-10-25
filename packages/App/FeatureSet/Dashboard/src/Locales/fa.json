@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "مجوز افزودن افراد به‌عنوان مالک را ندارید.",
   "You do not have permission to add teams as owners.": "مجوز افزودن تیم‌ها به‌عنوان مالک را ندارید.",
   "Search people...": "جستجوی افراد...",
-  "No one else to add.": "کس دیگری برای افزودن نیست."
+  "No one else to add.": "کس دیگری برای افزودن نیست.",
+  "Add an announcement note.": "یک یادداشت برای اطلاعیه اضافه کنید.",
+  "Add postmortem notes for this episode here.": "یادداشت‌های گزارش پس از حادثه این اپیزود را اینجا اضافه کنید.",
+  "Add remediation notes for this alert here.": "یادداشت‌های رفع مشکل این هشدار را اینجا اضافه کنید.",
+  "Add remediation notes for this episode here.": "یادداشت‌های رفع مشکل این اپیزود را اینجا اضافه کنید.",
+  "Add remediation notes for this incident here.": "یادداشت‌های رفع مشکل این حادثه را اینجا اضافه کنید.",
+  "Describe the alert details here.": "جزئیات هشدار را اینجا شرح دهید.",
+  "Describe the episode details here.": "جزئیات اپیزود را اینجا شرح دهید.",
+  "Describe the incident details here.": "جزئیات حادثه را اینجا شرح دهید.",
+  "Describe the root cause of this incident here.": "علت ریشه‌ای این حادثه را اینجا شرح دهید.",
+  "Describe the scheduled maintenance event here.": "رویداد تعمیر و نگهداری زمان‌بندی‌شده را اینجا شرح دهید.",
+  "Describe the status page group here.": "گروه صفحه وضعیت را اینجا شرح دهید.",
+  "Describe this resource here.": "این منبع را اینجا شرح دهید.",
+  "Describe your status page overview here.": "نمای کلی صفحه وضعیت خود را اینجا شرح دهید."
 }

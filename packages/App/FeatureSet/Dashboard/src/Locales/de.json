@@ -34750,5 +34750,18 @@
   "You do not have permission to add people as owners.": "Sie haben keine Berechtigung, Personen als Eigentümer hinzuzufügen.",
   "You do not have permission to add teams as owners.": "Sie haben keine Berechtigung, Teams als Eigentümer hinzuzufügen.",
   "Search people...": "Personen suchen...",
-  "No one else to add.": "Keine weiteren Personen oder Teams verfügbar."
+  "No one else to add.": "Keine weiteren Personen oder Teams verfügbar.",
+  "Add an announcement note.": "Fügen Sie eine Notiz zur Ankündigung hinzu.",
+  "Add postmortem notes for this episode here.": "Fügen Sie hier Postmortem-Notizen zu dieser Episode hinzu.",
+  "Add remediation notes for this alert here.": "Fügen Sie hier Notizen zur Behebung dieser Warnung hinzu.",
+  "Add remediation notes for this episode here.": "Fügen Sie hier Notizen zur Behebung dieser Episode hinzu.",
+  "Add remediation notes for this incident here.": "Fügen Sie hier Notizen zur Behebung dieses Vorfalls hinzu.",
+  "Describe the alert details here.": "Beschreiben Sie hier die Details der Warnung.",
+  "Describe the episode details here.": "Beschreiben Sie hier die Details der Episode.",
+  "Describe the incident details here.": "Beschreiben Sie hier die Details des Vorfalls.",
+  "Describe the root cause of this incident here.": "Beschreiben Sie hier die Grundursache dieses Vorfalls.",
+  "Describe the scheduled maintenance event here.": "Beschreiben Sie hier das geplante Wartungsereignis.",
+  "Describe the status page group here.": "Beschreiben Sie hier die Gruppe der Statusseite.",
+  "Describe this resource here.": "Beschreiben Sie diese Ressource hier.",
+  "Describe your status page overview here.": "Beschreiben Sie hier die Übersicht Ihrer Statusseite."
 }
