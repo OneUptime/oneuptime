@@ -37,6 +37,7 @@ flowchart TB
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
 | **Entiteter** | Begivenheder | De brugere, værter og adresser, dine fund nævner oftest |
+| **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detection Rules** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
 | **Rule Library** | Detections | Færdige detektionsregler at tilføje, hver med de hændelser, den læser, og om de kommer ind, med de anbefalede markeret |
@@ -51,6 +52,7 @@ flowchart TB
 | **Opsætningsvejledning** | Connections | Kodestykker til at sende begivenheder, udfyldt med din ingestion-nøgle |
 | **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
 | **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
+| **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
 
 **Detections**, **AI**, **Connections** og **Indstillinger**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.
 

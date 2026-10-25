@@ -32,7 +32,7 @@ import OcsfSeverity, {
   OcsfSeverityId,
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
-import Crypto from "../../../Utils/Crypto";
+import { getEntityCaseGroupingKey } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import {
   caseOpenedFromDetectionMarkdown,
   detectionAddedMarkdown,
@@ -83,9 +83,6 @@ export interface SecurityCaseIngestResult {
   detectionsRepeated: number;
 }
 
-// The longest entity value a grouping key holds as it is; longer ones are hashed.
-const GROUPING_KEY_VALUE_LIMIT: number = 200;
-
 const LONG_TEXT_LIMIT: number = 480;
 
 function clamp(text: string, limit: number): string {
@@ -96,20 +93,19 @@ function clamp(text: string, limit: number): string {
  * What a signal is matched on to join an open case: the entity it is about,
  * so that a brute force, a password spray and a threat-intel hit on the same
  * address land in one case; or, for a signal about no particular entity, its
- * own fingerprint, so the same rule firing again joins its own case.
+ * own fingerprint, so the same rule firing again joins its own case. The
+ * entity's key is the one its risk is kept under (getEntityCaseGroupingKey:
+ * the value case folded, hashed past 200 characters), so an entity's page
+ * finds the case about it, and its risk joins that case.
  */
 export function securityCaseGroupingKey(signal: {
   groupValue?: string | undefined;
   fingerprint: string;
 }): string {
-  const value: string = (signal.groupValue || "").trim().toLowerCase();
+  const value: string = (signal.groupValue || "").trim();
 
   if (value) {
-    return `entity:${
-      value.length > GROUPING_KEY_VALUE_LIMIT
-        ? `sha256:${Crypto.getSha256Hash(value)}`
-        : value
-    }`;
+    return getEntityCaseGroupingKey(value);
   }
 
   return clamp(`detection:${signal.fingerprint}`, LONG_TEXT_LIMIT);

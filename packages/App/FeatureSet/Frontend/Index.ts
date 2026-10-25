@@ -44,6 +44,7 @@ import { getDashboardThemeHead } from "Common/Types/Dashboard/DashboardTheme";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import {
+  getFrontendStaticFileRoutes,
   shouldSkipDashboardFallbackRoute,
   shouldSkipStatusPageDomainFallbackRoute,
 } from "./RouteReservations";
@@ -412,6 +413,24 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
       }
 
       return sendFrontendEnvScript(req, res, next);
+    },
+  );
+
+  /*
+   * A bundle chunk or an asset the static files above do not have - one a
+   * deploy removed - is a 404, not the frontend's page (see
+   * getFrontendStaticFileRoutes). Never stored: during a rolling deploy one
+   * server may not have a chunk the next one serves.
+   */
+  app.get(
+    getFrontendStaticFileRoutes(frontendConfig.routePrefix),
+    (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+      if (frontendConfig.primaryHostOnly && !isPrimaryHostRequest(req)) {
+        return next();
+      }
+
+      res.setHeader("Cache-Control", "no-store");
+      res.status(404).type("text/plain").send("Not found");
     },
   );
 

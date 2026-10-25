@@ -201,7 +201,8 @@ Lorsque l'agent est plus ancien que votre OneUptime, un signe d'avertissement ap
 ```bash
 podman pull oneuptime/podman-agent:release
 podman pull oneuptime/resource-ai-agent:release
-podman rm -f oneuptime-podman-agent oneuptime-podman-ai-agent
+podman stop oneuptime-podman-agent oneuptime-podman-ai-agent
+podman rm oneuptime-podman-agent oneuptime-podman-ai-agent
 ```
 
 Exécutez ensuite de nouveau les deux commandes `podman run` de [Démarrer l'agent](#démarrer-lagent).

@@ -18,6 +18,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
+  RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   ResourceAiAgentRegistrationRefusalReason,
   ResourceCommandJobPayload,
   TRANSIENT_RESOURCE_AI_AGENT_REGISTRATION_REFUSALS,
@@ -626,7 +627,7 @@ describe("POST /register end to end through the service", () => {
     expect(wire.body!["reason"]).toBe("resource_identifier_invalid");
   });
 
-  test("another agent of the resource is online: 403 previous_instance_online, Retry-After 20", async () => {
+  test("another agent of the resource is online: 403 previous_instance_online, Retry-After when its time to answer is up", async () => {
     const found: Record<string, unknown> = { _id: RESOURCE_ID.toString() };
     Object.defineProperty(found, "id", { value: RESOURCE_ID });
     jest
@@ -665,12 +666,132 @@ describe("POST /register end to end through the service", () => {
       skipFirstHandler: true,
     });
 
+    const retryAfter: number =
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1;
+
     expect(wire.statusCode).toBe(403);
     expect(wire.body!["reason"]).toBe("previous_instance_online");
-    expect(wire.body!["retryAfterSeconds"]).toBe(20);
-    expect(wire.headers["Retry-After"]).toBe("20");
+    expect(wire.body!["retryAfterSeconds"]).toBe(retryAfter);
+    expect(wire.headers["Retry-After"]).toBe(String(retryAfter));
     expect(create).not.toHaveBeenCalled();
   });
+
+  test("an agent that left a refusal unanswered for the takeover window (docker rm -f): the retry is let in with a new key", async () => {
+    const found: Record<string, unknown> = { _id: RESOURCE_ID.toString() };
+    Object.defineProperty(found, "id", { value: RESOURCE_ID });
+    jest
+      .spyOn(DockerHostService, "findOrCreateByHostIdentifier")
+      .mockResolvedValue(found as never);
+    const row: Record<string, unknown> = {
+      _id: RESOURCE_ID.toString(),
+      projectId: PROJECT_ID,
+      name: "web-1",
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: "Disabled",
+      aiAccessConfiguredAt: new Date(),
+    };
+    Object.defineProperty(row, "id", { value: RESOURCE_ID });
+    jest.spyOn(DockerHostService, "findOneBy").mockResolvedValue(row as never);
+    jest.spyOn(DockerHostService, "updateOneBy").mockResolvedValue(0 as never);
+
+    const now: number = Date.now();
+    const silent: ResourceAiAgent = makeAgent({
+      keyHash: "cd".repeat(32),
+      // Still inside the alive window, but silent since the first refusal.
+      lastAliveAt: new Date(
+        now - (RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 25) * 1000,
+      ),
+      lastRefusedRegistrationAt: new Date(
+        now - (RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1) * 1000,
+      ),
+      lastRefusedRegistrationReason: "previous_instance_online",
+    });
+    jest.spyOn(ResourceAiAgentService, "findOneBy").mockResolvedValue(silent);
+    const reKey: jest.SpyInstance = jest
+      .spyOn(ResourceAiAgentService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(ResourceAiAgentService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined);
+
+    const wire: WireResponse = await call("/register", {
+      body: {
+        resourceType: "docker",
+        resourceIdentifier: "web-1",
+        agentVersion: "14.0.89",
+        posture: { allowWrites: false },
+      },
+      projectId: PROJECT_ID,
+      skipFirstHandler: true,
+    });
+
+    expect(wire.statusCode).toBe(200);
+    expect(wire.thrownToNext).toBeUndefined();
+    expect(wire.body!["agentId"]).toBe(AGENT_ID.toString());
+    expect(typeof wire.body!["agentKey"]).toBe("string");
+    expect(reKey).toHaveBeenCalledTimes(1);
+    expect(
+      (reKey.mock.calls[0]![0] as { data: Record<string, unknown> }).data[
+        "agentVersion"
+      ],
+    ).toBe("14.0.89");
+  });
+});
+
+describe("an authenticated request answers a refusal the agent has not answered", () => {
+  test.each(
+    AUTHENTICATED_ROUTES.filter((route: string): boolean => {
+      return route !== "/disconnect";
+    }),
+  )(
+    "%s through the real authorization: lastAliveAt is stamped, so the refused agent keeps waiting",
+    async (route: string) => {
+      authenticate.mockRestore();
+
+      const refusedAt: Date = new Date(Date.now() - 5 * 1000);
+      jest.spyOn(ResourceAiAgentService, "findOneBy").mockResolvedValue(
+        makeAgent({
+          keyHash: ResourceAiAgentService.hashKey(AGENT_KEY),
+          lastAliveAt: new Date(Date.now() - 25 * 1000),
+          lastRefusedRegistrationAt: refusedAt,
+          lastRefusedRegistrationReason: "previous_instance_online",
+        }),
+      );
+      const writes: jest.SpyInstance = jest
+        .spyOn(ResourceAiAgentService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      // Only the authorization runs: the answer is its doing, not the route's.
+      const matched: MockRoute = findRoute(route);
+      const req: ExpressRequest = {
+        params: { jobId: JOB_ID.toString() },
+        query: {},
+        headers: {},
+        body: { agentId: AGENT_ID.toString(), agentKey: AGENT_KEY },
+      } as unknown as ExpressRequest;
+      let proceeded: boolean = false;
+
+      await matched.handlers[0]!(
+        req,
+        {} as ExpressResponse,
+        ((): void => {
+          proceeded = true;
+        }) as NextFunction,
+      );
+
+      expect(proceeded).toBe(true);
+      expect(writes).toHaveBeenCalledTimes(1);
+
+      const answer: Record<string, unknown> = (
+        writes.mock.calls[0]![0] as { data: Record<string, unknown> }
+      ).data;
+
+      expect(Object.keys(answer)).toEqual(["lastAliveAt"]);
+      expect((answer["lastAliveAt"] as Date).getTime()).toBeGreaterThanOrEqual(
+        refusedAt.getTime(),
+      );
+    },
+  );
 });
 
 describe("authentication (ResourceAiAgentAuthorization)", () => {

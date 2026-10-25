@@ -624,6 +624,12 @@ import SecurityPlaybookService, {
 import SecurityProtectedEntityService, {
   Service as SecurityProtectedEntityServiceType,
 } from "Common/Server/Services/SecurityProtectedEntityService";
+import SecurityEntityRiskService, {
+  Service as SecurityEntityRiskServiceType,
+} from "Common/Server/Services/SecurityEntityRiskService";
+import SecurityEntityCriticalityService, {
+  Service as SecurityEntityCriticalityServiceType,
+} from "Common/Server/Services/SecurityEntityCriticalityService";
 import SecurityCasePriorityService, {
   Service as SecurityCasePriorityServiceType,
 } from "Common/Server/Services/SecurityCasePriorityService";
@@ -1647,6 +1653,8 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
+import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
@@ -4070,6 +4078,26 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
         SecurityProtectedEntity,
         SecurityProtectedEntityService,
+      ).getRouter(),
+    );
+
+    // Each user's, host's and address's risk, and how much each matters.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityEntityRisk, SecurityEntityRiskServiceType>(
+        SecurityEntityRisk,
+        SecurityEntityRiskService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityEntityCriticality,
+        SecurityEntityCriticalityServiceType
+      >(
+        SecurityEntityCriticality,
+        SecurityEntityCriticalityService,
       ).getRouter(),
     );
 

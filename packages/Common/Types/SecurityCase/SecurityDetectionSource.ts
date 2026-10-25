@@ -2,13 +2,16 @@
  * What raised a detection. Shown on every detection and case so an analyst
  * knows whose judgement they are reading: one of the project's own rules,
  * a threat-intelligence match, a product the project connected (its own
- * alert, imported), or a person.
+ * alert, imported), a person, or an entity's risk - everything those found
+ * about one user, host or address adding up to the project's threshold
+ * (Types/SecurityCase/SecurityEntityRisk).
  */
 enum SecurityDetectionSource {
   DetectionRule = "Detection Rule",
   ThreatIntel = "Threat Intel",
   ConnectedProduct = "Connected Product",
   Manual = "Manual",
+  EntityRisk = "Entity Risk",
 }
 
 export const SECURITY_DETECTION_SOURCES: ReadonlyArray<SecurityDetectionSource> =
@@ -17,6 +20,7 @@ export const SECURITY_DETECTION_SOURCES: ReadonlyArray<SecurityDetectionSource> 
     SecurityDetectionSource.ThreatIntel,
     SecurityDetectionSource.ConnectedProduct,
     SecurityDetectionSource.Manual,
+    SecurityDetectionSource.EntityRisk,
   ];
 
 export function isSecurityDetectionSource(

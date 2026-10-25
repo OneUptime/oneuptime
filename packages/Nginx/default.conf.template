@@ -1334,12 +1334,15 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     # passes maxAge to ExpressStatic); the two are compatible, and if the
     # frontend mount ever grows a maxAge the header here still agrees with it.
     #
-    # One consequence of hiding the upstream header: if a chunk is MISSING,
-    # express-static falls through to the frontend catch-all, which answers the
-    # request with the index page and HTTP 200, and that 200 picks up the
-    # immutable header. The URL is dead either way -- a rebuild changes the
-    # content, hence the hash, hence the URL -- so nothing a later build serves
-    # can be poisoned by it.
+    # A chunk that is MISSING -- one a deploy removed, asked for by a tab still
+    # running the build before it -- is answered by the App with 404 and
+    # "Cache-Control: no-store" (getFrontendStaticFileRoutes in
+    # App/FeatureSet/Frontend/RouteReservations.ts), and the add_header below
+    # has no "always", so the 404 is never cached either. It used to fall
+    # through to the frontend catch-all and come back as the index page with
+    # HTTP 200 and this block's year-long header; the URL was dead either way
+    # -- a rebuild changes the content, hence the hash, hence the URL -- so
+    # nothing a later build serves could be poisoned by it.
     #
     # The regex deliberately requires a "-<uppercase hash>" segment before the
     # extension rather than matching /dist/ wholesale. The esbuild ENTRY file is
@@ -1387,10 +1390,11 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # style prefix blocks, and add_header only inherits DOWN a level --
         # never sideways from a sibling -- so anything not restated here is
         # simply not sent. That matters beyond static assets: a request for a
-        # hashed chunk that does not exist falls through ExpressStatic into
-        # the SPA catch-all, which renders the authenticated Dashboard
-        # document as text/html with a 200. Without these, that response
-        # would ship with no framing protection.
+        # hashed chunk that does not exist used to fall through ExpressStatic
+        # into the SPA catch-all, which rendered the authenticated Dashboard
+        # document as text/html with a 200. The App answers it 404 now; these
+        # stay so that whatever answers through this location carries the
+        # framing protection the prefix block gives.
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header X-XSS-Protection "1; mode=block" always;

@@ -100,7 +100,7 @@ flowchart TB
 | 收集器配置 | `Collector Config` |
 | vCenter 服务器 | `vCenter` |
 | 抓包及其下载 | `Packet Capture` |
-| 安全案例及其优先级和状态、剧本及其运行，以及受保护的实体 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
+| 安全案例及其优先级和状态、剧本及其运行、受保护的实体、实体重要性，以及被重置的实体风险 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
 | 审计日志导出 | `Audit Log Export` |
 
 当管理员在他人的账户上添加或移除通知方式或个人值班规则时，也会记录，但不包含地址或号码本身。

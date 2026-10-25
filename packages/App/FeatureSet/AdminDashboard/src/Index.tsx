@@ -3,6 +3,11 @@ import "./Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
+import NewVersionNotice from "Common/UI/Components/NewVersion/NewVersionNotice";
+import NewVersion, {
+  NewVersionAudience,
+} from "Common/UI/Utils/NewVersion/NewVersion";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
 import ThemeUtil from "Common/UI/Utils/Theme";
 import UserUtil from "Common/UI/Utils/User";
@@ -39,6 +44,14 @@ Telemetry.init({
   serviceName: "admin-dashboard",
 });
 
+/*
+ * Notice a new version of OneUptime deployed while this tab is open, and
+ * move the reader onto it: the next page they open loads it, the notice
+ * says it is ready, and a page whose code is gone loads it instead of
+ * failing (Common/UI/Utils/NewVersion/NewVersion.ts).
+ */
+NewVersion.start({ audience: NewVersionAudience.Members });
+
 const root: any = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,
 );
@@ -51,7 +64,9 @@ const root: any = ReactDOM.createRoot(
 root.render(
   <ErrorBoundary>
     <BrowserRouter>
+      <NewVersionNavigation />
       <App />
     </BrowserRouter>
+    <NewVersionNotice />
   </ErrorBoundary>,
 );

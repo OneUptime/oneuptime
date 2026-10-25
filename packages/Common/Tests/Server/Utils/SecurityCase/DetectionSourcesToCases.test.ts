@@ -10,6 +10,8 @@ import SecurityConnectionCases, {
   readCaseMinimumSeverity,
 } from "../../../../Server/Utils/SecurityCase/SecurityConnectionCases";
 import SecurityEventConnectionService from "../../../../Server/Services/SecurityEventConnectionService";
+import SecurityEntityRiskRecorder from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { SecurityRiskFinding } from "../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
 import logger from "../../../../Server/Utils/Logger";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
@@ -21,7 +23,14 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import { getJestSpyOn } from "../../../Spy";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * Each detection source hands the case ingest signals it can trust: the
@@ -212,6 +221,14 @@ describe("ThreatIntelMatcher.buildCaseSignals", () => {
 });
 
 describe("SecurityConnectionCases", () => {
+  // Entity risk has its own suite (SecurityEntityRiskRecorder); here it only records.
+  beforeEach(() => {
+    getJestSpyOn(SecurityEntityRiskRecorder, "record").mockResolvedValue({
+      entitiesUpdated: 0,
+      riskCasesRaised: 0,
+    } as never);
+  });
+
   function event(
     overrides: Partial<NormalizedSecurityEvent>,
   ): NormalizedSecurityEvent {
@@ -361,6 +378,115 @@ describe("SecurityConnectionCases", () => {
       }),
     ).toBe(0);
     expect(record).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Every imported alert, at any severity, adds to the risk of the user and
+   * host it names (SecurityEntityRiskRecorder) - after the poll's cases, so
+   * a risk that reaches the threshold joins theirs, and whatever the
+   * connection opens cases from.
+   */
+  function recordRisk(order?: Array<string>): ReturnType<typeof getJestSpyOn> {
+    return getJestSpyOn(
+      SecurityEntityRiskRecorder,
+      "record",
+    ).mockImplementation(async () => {
+      order?.push("risk");
+      return { entitiesUpdated: 1, riskCasesRaised: 0 } as never;
+    });
+  }
+
+  function riskFindingsOf(
+    risk: ReturnType<typeof getJestSpyOn>,
+  ): Array<SecurityRiskFinding> {
+    return risk.mock.calls[0]![0] as Array<SecurityRiskFinding>;
+  }
+
+  test("every alert adds risk to the user and host it names, after the cases, below the threshold too", async () => {
+    threshold("High");
+    const order: Array<string> = [];
+
+    getJestSpyOn(SecurityCaseIngest, "recordDetections").mockImplementation(
+      async () => {
+        order.push("cases");
+        return {
+          casesOpened: 1,
+          detectionsAdded: 1,
+          detectionsRepeated: 0,
+        } as never;
+      },
+    );
+
+    const risk: ReturnType<typeof getJestSpyOn> = recordRisk(order);
+
+    await SecurityConnectionCases.recordImportedAlerts({
+      connection: connectionModel(),
+      definition: { productName: "CrowdStrike Falcon" },
+      events: [
+        event({}),
+        event({ eventUid: "alert-2", severityName: OcsfSeverity.Medium }),
+      ],
+    });
+
+    expect(order).toEqual(["cases", "risk"]);
+
+    const findings: Array<SecurityRiskFinding> = riskFindingsOf(risk);
+
+    expect(findings).toHaveLength(2);
+    expect(findings[0]).toMatchObject({
+      source: SecurityDetectionSource.ConnectedProduct,
+      sourceName: "Suspicious PowerShell (CrowdStrike Falcon)",
+      points: 50,
+      entities: [
+        { type: SecurityEntityType.User, value: "alice" },
+        { type: SecurityEntityType.Host, value: "web-01" },
+      ],
+    });
+    expect(findings[1]).toMatchObject({ points: 25 });
+  });
+
+  test("a connection that opens no cases still adds risk", async () => {
+    threshold("");
+    const risk: ReturnType<typeof getJestSpyOn> = recordRisk();
+
+    await SecurityConnectionCases.recordImportedAlerts({
+      connection: connectionModel(),
+      definition: { productName: "CrowdStrike Falcon" },
+      events: [event({ severityName: OcsfSeverity.Critical })],
+    });
+
+    expect(riskFindingsOf(risk)[0]).toMatchObject({ points: 75 });
+  });
+
+  test("alerts all below the threshold add risk though they open no case", async () => {
+    threshold("Critical");
+    const cases: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SecurityCaseIngest,
+      "recordDetections",
+    );
+    const risk: ReturnType<typeof getJestSpyOn> = recordRisk();
+
+    await SecurityConnectionCases.recordImportedAlerts({
+      connection: connectionModel(),
+      definition: { productName: "CrowdStrike Falcon" },
+      events: [event({ severityName: OcsfSeverity.Low })],
+    });
+
+    expect(cases).not.toHaveBeenCalled();
+    expect(riskFindingsOf(risk)[0]).toMatchObject({ points: 10 });
+  });
+
+  test("a poll that imported no alert adds no risk", async () => {
+    threshold("Low");
+    const risk: ReturnType<typeof getJestSpyOn> = recordRisk();
+
+    await SecurityConnectionCases.recordImportedAlerts({
+      connection: connectionModel(),
+      definition: { productName: "CrowdStrike Falcon" },
+      events: [event({ classUid: 3002, className: "Authentication" })],
+    });
+
+    expect(risk).not.toHaveBeenCalled();
   });
 
   test("never fails the poll that imported the alerts", async () => {

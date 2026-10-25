@@ -113,13 +113,32 @@ async function handleRequest(request) {
       return await fetch(request);
     }
 
+    // Strategy 0b: Network only for build.json, which says which build of
+    // the Dashboard the server serves now. The Dashboard asks for it to
+    // notice that a new version was deployed (Common/UI/Utils/NewVersion);
+    // a copy would only ever say the version it was cached in.
+    if (isBuildManifestRequest(pathname)) {
+      return await fetch(request);
+    }
+
     // Strategy 1: Network First for HTML pages (with fallback)
     if (pathname.endsWith('/') || pathname.endsWith('.html') ||
         pathname === '/dashboard' || pathname.startsWith('/dashboard/') && !pathname.includes('.')) {
       return await networkFirstWithFallback(request, DYNAMIC_CACHE);
     }
     
-    // Strategy 2: Cache First for JavaScript, CSS, and other static assets
+    // Strategy 1b: Network First for the bundle's own entry, /dist/Index.js.
+    // Its name is the same in every build, so served cache first a browser
+    // kept running the build this worker cached it in: a reload after a
+    // deploy still ran the old Dashboard, asking for chunks the server no
+    // longer has. The copy stays for offline use.
+    if (isMutableBundleFile(pathname)) {
+      return await networkFirstWithFallback(request, STATIC_CACHE);
+    }
+
+    // Strategy 2: Cache First for JavaScript, CSS, and other static assets:
+    // the bundle's chunks carry a hash of their content in their name, so a
+    // cached copy is never stale.
     if (pathname.includes('/dist/') || pathname.match(/\.(js|css|woff|woff2|ttf|otf|eot)$/)) {
       return await cacheFirstWithUpdate(request, STATIC_CACHE);
     }
@@ -157,6 +176,37 @@ async function handleRequest(request) {
 // frontend's /<frontend>/env.js this worker might see).
 function isRuntimeConfigRequest(pathname) {
   return pathname === '/env.js' || pathname.endsWith('/env.js');
+}
+
+// Which build the server serves: /dashboard/dist/build.json (and any other
+// frontend's), written beside the bundle by Common/UI/esbuild-config.js.
+function isBuildManifestRequest(pathname) {
+  return pathname.endsWith('/dist/build.json');
+}
+
+// A chunk the frontend build named after a hash of its content (esbuild's
+// "<name>-<HASH>.js"), the same pattern the nginx config caches for a year.
+const CONTENT_HASHED_BUNDLE_FILE = /\/dist\/.+-[A-Z0-9]{8,}\.(js|css)$/;
+
+// A file of the bundle whose name does not change with its content.
+function isMutableBundleFile(pathname) {
+  return pathname.includes('/dist/') && !CONTENT_HASHED_BUNDLE_FILE.test(pathname);
+}
+
+// A script or stylesheet answered with a page: the server's answer to a
+// chunk a deploy removed. Served, so the page can tell what went wrong, but
+// never kept under the chunk's name.
+function isPageServedForAsset(request, response) {
+  const pathname = new URL(request.url).pathname;
+
+  if (!pathname.match(/\.(js|css)$/)) {
+    return false;
+  }
+
+  const contentType =
+    (response && response.headers && response.headers.get('content-type')) || '';
+
+  return contentType.toLowerCase().includes('text/html');
 }
 
 // Whether a network response may be written to a cache: a successful one the
@@ -226,7 +276,10 @@ async function cacheFirstWithUpdate(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    if (isCacheableResponse(networkResponse)) {
+    if (
+      isCacheableResponse(networkResponse) &&
+      !isPageServedForAsset(request, networkResponse)
+    ) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
@@ -243,7 +296,10 @@ async function updateCacheInBackground(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    if (isCacheableResponse(networkResponse)) {
+    if (
+      isCacheableResponse(networkResponse) &&
+      !isPageServedForAsset(request, networkResponse)
+    ) {
       const cache = await caches.open(cacheName);
       await cache.put(request, networkResponse);
       console.log('[ServiceWorker] Background cache update:', request.url);

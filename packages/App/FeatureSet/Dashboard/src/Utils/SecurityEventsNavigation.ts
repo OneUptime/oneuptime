@@ -13,7 +13,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Open Cases, Assigned to Me, Unassigned, Closed Cases
  *                    and All Cases
  *   Events           every security event, how they connect, and who or
- *                    what they name: Events, Entities, Correlate
+ *                    what they name: Events, Entities, Entity Risk (who is
+ *                    riskiest, from everything found about each) and
+ *                    Correlate
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the runs
@@ -28,7 +30,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Connections, and the Setup Guide
  *   Settings         how the project's cases are kept: its own Case
  *                    Priorities and Case Statuses, as the Incidents' and
- *                    Alerts' Settings keep their severities and states
+ *                    Alerts' Settings keep their severities and states, and
+ *                    Risk Scoring: when an entity's risk opens a case, and
+ *                    how much each entity matters
  *
  * Every page has its own entry, address and name. The maintainer asked
  * for this in place of the tabs a page used to carry across its top (and
@@ -58,6 +62,11 @@ export interface SecurityEventsMenuItem {
   title: string;
   icon: IconProp;
   badge?: SecurityEventsMenuBadge | undefined;
+  /*
+   * The pages opened from this entry's page, inside the menu's layout, that
+   * light it: an entity's page lights Entity Risk.
+   */
+  detailPages?: Array<PageMap> | undefined;
 }
 
 export interface SecurityEventsMenuSection {
@@ -126,6 +135,17 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_ENTITIES,
         title: "Entities",
         icon: IconProp.Fingerprint,
+      },
+      {
+        /*
+         * Who to look at first: every user, host and address scored by what
+         * the rules, threat intel and connected products found about it this
+         * week (Types/SecurityCase/SecurityEntityRisk).
+         */
+        page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
+        title: "Entity Risk",
+        icon: IconProp.Fire,
+        detailPages: [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW],
       },
       {
         page: PageMap.SECURITY_EVENTS_CORRELATE,
@@ -242,6 +262,12 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         title: "Case Statuses",
         icon: IconProp.ArrowCircleRight,
       },
+      {
+        // When an entity's risk opens a case, and how much each entity matters.
+        page: PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
+        title: "Risk Scoring",
+        icon: IconProp.Gauge,
+      },
     ],
   },
 ];
@@ -347,6 +373,18 @@ export function getSecurityEventsMenuItems(): Array<SecurityEventsMenuItem> {
   return SECURITY_EVENTS_MENU.flatMap(
     (section: SecurityEventsMenuSection): Array<SecurityEventsMenuItem> => {
       return section.items;
+    },
+  );
+}
+
+/*
+ * The pages inside the menu's layout that no entry names, each opened from
+ * an entry's page and lit as it: an entity's page, under Entity Risk.
+ */
+export function getSecurityEventsMenuDetailPages(): Array<PageMap> {
+  return getSecurityEventsMenuItems().flatMap(
+    (item: SecurityEventsMenuItem): Array<PageMap> => {
+      return item.detailPages || [];
     },
   );
 }

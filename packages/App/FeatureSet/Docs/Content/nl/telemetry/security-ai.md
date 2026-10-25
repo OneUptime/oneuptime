@@ -45,6 +45,7 @@ Een beoordeling leest:
 - de zaak: titel, prioriteit, status, entiteiten en ATT&CK-koppeling;
 - de detecties ervan, de nieuwste eerst, met een voorbeeldgebeurtenis van elke detectie;
 - de beveiligingsgebeurtenissen en threat intelligence over de gebruikers, hosts en adressen ervan;
+- het risico van de gebruikers, hosts en adressen ervan, en wat er deze week aan bijdroeg;
 - de hosts in OneUptime waarmee de hosts en adressen van de zaak overeenkomen, en wie de eigenaar is;
 - het incident dat de zaak heeft gemeld, de notities, de beschermde entiteiten en de ingeschakelde playbooks.
 

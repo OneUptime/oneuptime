@@ -169,6 +169,8 @@ export function getSecurityDetectionSourceIcon(
       return IconProp.Link;
     case SecurityDetectionSource.Manual:
       return IconProp.User;
+    case SecurityDetectionSource.EntityRisk:
+      return IconProp.Fire;
     default:
       return IconProp.Circle;
   }

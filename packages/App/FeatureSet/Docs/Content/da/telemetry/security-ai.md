@@ -45,6 +45,7 @@ En vurdering læser:
 - sagen: titel, prioritet, status, entiteter og ATT&CK-tilknytning;
 - dens detektioner, den nyeste først, med en eksempelbegivenhed for hver;
 - sikkerhedsbegivenhederne og trusselsintelligensen om dens brugere, værter og adresser;
+- risikoen for dens brugere, værter og adresser, og hvad der bidrog til den i denne uge;
 - de værter i OneUptime, som dens værter og adresser svarer til, og hvem der ejer dem;
 - den hændelse, den har erklæret, dens noter, dens beskyttede entiteter og de playbooks, der er slået til.
 

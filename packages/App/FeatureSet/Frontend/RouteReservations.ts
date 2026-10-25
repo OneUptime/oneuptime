@@ -189,3 +189,36 @@ export const shouldSkipStatusPageDomainFallbackRoute: (
     path,
   );
 };
+
+/*
+ * A frontend's built files: its bundle (dist/, the content-hashed chunks
+ * every page is fetched from, its entry and build.json) and its static
+ * assets (assets/). A file there that is not on disk is answered 404, never
+ * with the frontend's page: a tab still running the build before a deploy
+ * asks for chunks the new build no longer has, and the page at HTTP 200 -
+ * which nginx then marks cacheable for a year, as it does every chunk - is
+ * a script that fails to parse rather than a file that is missing. The
+ * standalone frontend servers (Common/Server/Utils/StartServer.ts) answer
+ * the same way.
+ */
+export const FRONTEND_STATIC_FOLDERS: ReadonlyArray<string> = [
+  "dist",
+  "assets",
+];
+
+export const getFrontendStaticFileRoutes: (
+  routePrefix: string,
+) => Array<string> = (routePrefix: string): Array<string> => {
+  return FRONTEND_STATIC_FOLDERS.map((folder: string): string => {
+    return `${routePrefix}/${folder}/*`;
+  });
+};
+
+export const isFrontendStaticFilePath: (
+  routePrefix: string,
+  path: string,
+) => boolean = (routePrefix: string, path: string): boolean => {
+  return FRONTEND_STATIC_FOLDERS.some((folder: string): boolean => {
+    return path.startsWith(`${routePrefix}/${folder}/`);
+  });
+};

@@ -272,7 +272,7 @@ export default class SecurityPlaybook extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Detection Source",
     description:
-      "Run only on cases raised by this source: a Detection Rule, Threat Intel or a Connected Product. Empty runs on every source.",
+      "Run only on cases raised by this source: a Detection Rule, Threat Intel, a Connected Product or Entity Risk. Empty runs on every source.",
   })
   @Column({
     nullable: true,
