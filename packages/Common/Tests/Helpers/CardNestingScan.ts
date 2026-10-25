@@ -839,9 +839,7 @@ class CardNestingScanner {
     if (ts.isJsxElement(element) && INTRINSIC_NAME.test(name)) {
       const children: Array<ts.JsxChild> = meaningfulChildrenOf(element);
       const inner: Array<CardRowCell> =
-        children.length === 1
-          ? this.cellsOfChild(module, children[0]!)
-          : [];
+        children.length === 1 ? this.cellsOfChild(module, children[0]!) : [];
 
       if (inner.length === 1 && inner[0]!.isCard) {
         return {

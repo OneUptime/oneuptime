@@ -849,6 +849,16 @@ test("German readers on the free plan read the plan in German", async ({
  * ending on one line however long either list is, and a list with nothing in
  * it saying so in the middle of its card.
  */
+interface NetworkOverviewCell {
+  title: string;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  // Where the card's own frame - its border - ends.
+  frameBottom: number;
+}
+
 test("a busy network's four lists end on one line two by two, and one above the other where there is no room, light and dark", async ({
   page,
 }: {
@@ -883,14 +893,7 @@ test("a busy network's four lists end on one line two by two, and one above the 
       const rows: {
         left: number;
         right: number;
-        cells: Array<{
-          title: string;
-          top: number;
-          left: number;
-          right: number;
-          bottom: number;
-          frameBottom: number;
-        }>;
+        cells: Array<NetworkOverviewCell>;
       } = await page
         .getByTestId("network-overview-cards")
         .evaluate((container: Element) => {
@@ -921,10 +924,12 @@ test("a busy network's four lists end on one line two by two, and one above the 
           };
         });
 
-      expect([label, rows.cells.map((cell) => cell.title)]).toEqual([
+      expect([
         label,
-        TITLES,
-      ]);
+        rows.cells.map((cell: NetworkOverviewCell): string => {
+          return cell.title;
+        }),
+      ]).toEqual([label, TITLES]);
       expect([
         label,
         getCardGridColumnsAt(
@@ -936,32 +941,42 @@ test("a busy network's four lists end on one line two by two, and one above the 
       const across: number = ACROSS[width]!;
 
       for (let index: number = 0; index < rows.cells.length; index += across) {
-        const line = rows.cells.slice(index, index + across);
+        const line: Array<NetworkOverviewCell> = rows.cells.slice(
+          index,
+          index + across,
+        );
         const bottom: number = Math.max(
-          ...line.map((cell) => {
+          ...line.map((cell: NetworkOverviewCell): number => {
             return cell.bottom;
           }),
         );
 
         for (const cell of line) {
           // On one line, each card's frame to the row's bottom.
-          expect([label, cell.title, cell.top - line[0]!.top, bottom - cell.frameBottom]).toEqual(
-            [label, cell.title, 0, 0],
-          );
+          expect([
+            label,
+            cell.title,
+            cell.top - line[0]!.top,
+            bottom - cell.frameBottom,
+          ]).toEqual([label, cell.title, 0, 0]);
         }
         // From the grid's left edge to its right, the grid's 20px between.
         expect([
           label,
           line[0]!.left - Math.round(rows.left),
           Math.round(rows.right) - line[line.length - 1]!.right,
-          line.length > 1 ? line[1]!.left - line[0]!.right : CARD_GRID_GAP_IN_PX,
+          line.length > 1
+            ? line[1]!.left - line[0]!.right
+            : CARD_GRID_GAP_IN_PX,
         ]).toEqual([label, 0, 0, CARD_GRID_GAP_IN_PX]);
         // And 20px under the row above.
         if (index > 0) {
           const above: number = Math.max(
-            ...rows.cells.slice(index - across, index).map((cell) => {
-              return cell.bottom;
-            }),
+            ...rows.cells
+              .slice(index - across, index)
+              .map((cell: NetworkOverviewCell): number => {
+                return cell.bottom;
+              }),
           );
           expect([label, line[0]!.top - above]).toEqual([
             label,

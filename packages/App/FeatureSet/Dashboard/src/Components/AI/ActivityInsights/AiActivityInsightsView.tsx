@@ -1047,11 +1047,7 @@ function MonitorsAndServicesCards(props: {
      * Side by side where the page has the room, the shorter list's card
      * as tall as the other (CardGrid).
      */
-    <CardGrid
-      columns={2}
-      cardWidth="narrow"
-      dataTestId="ai-insights-hotspots"
-    >
+    <CardGrid columns={2} cardWidth="narrow" dataTestId="ai-insights-hotspots">
       <ResourceHotspotsCard
         title="Monitors that keep failing"
         description={

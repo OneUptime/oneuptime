@@ -798,9 +798,11 @@ describe("the queue Overview's scope", () => {
     );
 
     expect(cells).toHaveLength(2);
-    for (const [cell, side] of cells.map((cell: HTMLElement, index: number): [HTMLElement, string] => {
-      return [cell, index === 0 ? "producers" : "consumers"];
-    })) {
+    for (const [cell, side] of cells.map(
+      (cell: HTMLElement, index: number): [HTMLElement, string] => {
+        return [cell, index === 0 ? "producers" : "consumers"];
+      },
+    )) {
       expect(within(cell).getByTestId("card")).toHaveAttribute(
         "data-fill-height",
         "true",

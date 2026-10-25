@@ -32,7 +32,10 @@ import {
   getCardGridSteps,
 } from "../../../UI/Components/Card/CardGridLayout";
 import CardSections from "../../../UI/Components/Card/CardSections";
-import { describeHeightFill, describeHeightFillChain } from "../../ResponsiveHeightFill";
+import {
+  describeHeightFill,
+  describeHeightFillChain,
+} from "../../ResponsiveHeightFill";
 import { resolveSpacing } from "../../ResponsiveSpacing";
 import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 
@@ -214,15 +217,17 @@ describe("the class names the grid draws with", () => {
       "flex min-w-0 flex-col [&>*:last-child]:flex-1 [@container(min-width:34rem)]:col-span-6 [@container(min-width:51rem)]:col-span-3",
     );
     // The first of two wide cards: half the row from 51rem.
-    expect(getCardGridCellClassName({ columns: 2, cardWidth: "wide" }, 0, 2)).toBe(
+    expect(
+      getCardGridCellClassName({ columns: 2, cardWidth: "wide" }, 0, 2),
+    ).toBe(
       "flex min-w-0 flex-col [&>*:last-child]:flex-1 [@container(min-width:51rem)]:col-span-3",
     );
   });
 
   test("a card's gap under it is the grid's gap, so a grid sits among a page's cards as one more card", () => {
-    expect(resolveSpacing(CARD_GRID_CONTAINER_CLASS_NAME, 1280, "margin")).toEqual(
-      resolveSpacing("mb-5", 1280, "margin"),
-    );
+    expect(
+      resolveSpacing(CARD_GRID_CONTAINER_CLASS_NAME, 1280, "margin"),
+    ).toEqual(resolveSpacing("mb-5", 1280, "margin"));
     expect(CARD_GRID_GAP_IN_PX).toBe(20);
   });
 
@@ -279,9 +284,11 @@ describe("the class names the grid draws with", () => {
     ).toEqual(CARD_GRID_STEP_WIDTHS_IN_REM);
 
     for (const width of CARD_GRID_STEP_WIDTHS_IN_REM) {
-      expect([width, Number.isInteger(width), width >= 10 && width < 100]).toEqual(
-        [width, true, true],
-      );
+      expect([
+        width,
+        Number.isInteger(width),
+        width >= 10 && width < 100,
+      ]).toEqual([width, true, true]);
     }
 
     // Every step a layout uses is one of them.
@@ -479,9 +486,9 @@ describe("the card of a cell runs to the bottom of its row", () => {
       expect(card.firstElementChild!.getAttribute("class")).toBe(
         `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`,
       );
-      expect(resolveSpacing(card.getAttribute("class"), 1280, "margin")).toEqual(
-        resolveSpacing("", 1280, "margin"),
-      );
+      expect(
+        resolveSpacing(card.getAttribute("class"), 1280, "margin"),
+      ).toEqual(resolveSpacing("", 1280, "margin"));
     }
   });
 

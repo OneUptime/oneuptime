@@ -950,8 +950,7 @@ describe.each(
       expect(
         cells.map((cell: HTMLElement): string => {
           return (
-            within(cell).getByTestId("card-details-heading").textContent ||
-            ""
+            within(cell).getByTestId("card-details-heading").textContent || ""
           );
         }),
       ).toEqual(["Monitors that keep failing", "Services that keep failing"]);

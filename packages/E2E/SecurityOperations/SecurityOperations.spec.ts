@@ -1234,7 +1234,8 @@ test.describe("the overview's rows of cards", () => {
               left: cellBox.left,
               right: cellBox.right,
               bottom: cellBox.bottom + window.scrollY,
-              frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
+              frameBottom:
+                frame.getBoundingClientRect().bottom + window.scrollY,
             };
           }),
         };
@@ -1263,10 +1264,7 @@ test.describe("the overview's rows of cards", () => {
   }
 
   // Waits for the entities, read after the overview, so the rows are whole.
-  async function openRows(
-    page: Page,
-    options: OpenOptions,
-  ): Promise<void> {
+  async function openRows(page: Page, options: OpenOptions): Promise<void> {
     await open(page, OVERVIEW_PATH, options);
     await expect(
       cardTitled(page, "Riskiest Entities").getByText(
@@ -1299,9 +1297,12 @@ test.describe("the overview's rows of cards", () => {
             const across: number = row.columnsAt[width]!;
 
             // The cards in reading order, as many across as the room allows.
-            expect([label, grid.cells.map((cell: CellBox) => cell.title)]).toEqual(
-              [label, row.titles],
-            );
+            expect([
+              label,
+              grid.cells.map((cell: CellBox) => {
+                return cell.title;
+              }),
+            ]).toEqual([label, row.titles]);
             expect([label, row.testId, lines[0]!.length]).toEqual([
               label,
               row.testId,
@@ -1317,9 +1318,11 @@ test.describe("the overview's rows of cards", () => {
 
               for (const cell of line) {
                 // The frame runs to the row's bottom: no page under it.
-                expect([label, cell.title, Math.round(bottom - cell.frameBottom)]).toEqual(
-                  [label, cell.title, 0],
-                );
+                expect([
+                  label,
+                  cell.title,
+                  Math.round(bottom - cell.frameBottom),
+                ]).toEqual([label, cell.title, 0]);
               }
 
               // The row runs from the grid's left edge to its right: no empty slot.
@@ -1346,17 +1349,21 @@ test.describe("the overview's rows of cards", () => {
                     return cell.bottom;
                   }),
                 );
-                expect([label, row.testId, Math.round(line[0]!.top - above)]).toEqual(
-                  [label, row.testId, GRID_GAP_IN_PX],
-                );
+                expect([
+                  label,
+                  row.testId,
+                  Math.round(line[0]!.top - above),
+                ]).toEqual([label, row.testId, GRID_GAP_IN_PX]);
               }
             });
 
             // And between one row of cards and the next, the page's gap: the same.
             if (previousBottom !== null) {
-              expect([label, row.testId, Math.round(grid.top - previousBottom)]).toEqual(
-                [label, row.testId, GRID_GAP_IN_PX],
-              );
+              expect([
+                label,
+                row.testId,
+                Math.round(grid.top - previousBottom),
+              ]).toEqual([label, row.testId, GRID_GAP_IN_PX]);
             }
             previousBottom = grid.bottom;
           }

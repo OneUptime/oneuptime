@@ -700,8 +700,7 @@ const Card: FunctionComponent<ComponentProps> = (
    * says otherwise. Without either every class below is exactly what it
    * was, so no other card changes.
    */
-  const fillsHeight: boolean =
-    (props.fillHeight ?? isGridCell) && !isSection;
+  const fillsHeight: boolean = (props.fillHeight ?? isGridCell) && !isSection;
   const isHeaderHidden: boolean = Boolean(props.isHeaderHidden);
   const bodyClassName: string = isHeaderHidden
     ? props.bodyClassName || ""

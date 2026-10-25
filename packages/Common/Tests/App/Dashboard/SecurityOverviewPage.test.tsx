@@ -1614,9 +1614,11 @@ describe("the charts below the card", () => {
       ]);
       // It takes the card's room: the body is a column it grows in.
       for (const width of WIDTHS_IN_PX) {
-        expect([sentence, width, describeHeightFill(element, width)]).toEqual(
-          [sentence, width, null],
-        );
+        expect([sentence, width, describeHeightFill(element, width)]).toEqual([
+          sentence,
+          width,
+          null,
+        ]);
       }
     }
     expect(RANKED_BARS_EMPTY_CLASS_NAME).toBe(

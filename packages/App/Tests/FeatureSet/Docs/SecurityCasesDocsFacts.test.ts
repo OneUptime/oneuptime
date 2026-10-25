@@ -1027,17 +1027,24 @@ describe("Security Cases and Playbooks docs", () => {
       ["MITRE ATT&CK Tactics", "the ATT&CK tactics behind the cases"],
       ["Verdicts", "the verdicts of the last 30 days"],
     ];
-    const positionsIn: (text: string, needles: Array<string>) => Array<number> =
-      (text: string, needles: Array<string>): Array<number> => {
-        return needles.map((needle: string): number => {
-          return text.indexOf(needle);
-        });
-      };
+    const positionsIn: (
+      text: string,
+      needles: Array<string>,
+    ) => Array<number> = (
+      text: string,
+      needles: Array<string>,
+    ): Array<number> => {
+      return needles.map((needle: string): number => {
+        return text.indexOf(needle);
+      });
+    };
     const ascending: (positions: Array<number>) => boolean = (
       positions: Array<number>,
     ): boolean => {
       return positions.every((position: number, index: number): boolean => {
-        return position >= 0 && (index === 0 || position > positions[index - 1]!);
+        return (
+          position >= 0 && (index === 0 || position > positions[index - 1]!)
+        );
       });
     };
 

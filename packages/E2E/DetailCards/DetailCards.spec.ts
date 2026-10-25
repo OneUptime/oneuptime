@@ -1237,7 +1237,11 @@ test.describe("rows of cards", () => {
   }
 
   const GRIDS: ReadonlyArray<CardRowGrid> = [
-    { testId: "rows-two-wide", layout: { columns: 2, cardWidth: "wide" }, cards: 2 },
+    {
+      testId: "rows-two-wide",
+      layout: { columns: 2, cardWidth: "wide" },
+      cards: 2,
+    },
     {
       testId: "rows-three-narrow",
       layout: { columns: 3, cardWidth: "narrow" },
@@ -1248,9 +1252,21 @@ test.describe("rows of cards", () => {
       layout: { columns: 3, cardWidth: "narrow" },
       cards: 5,
     },
-    { testId: "rows-three-wide", layout: { columns: 2, cardWidth: "wide" }, cards: 3 },
-    { testId: "rows-nothing", layout: { columns: 2, cardWidth: "wide" }, cards: 2 },
-    { testId: "rows-detail", layout: { columns: 2, cardWidth: "wide" }, cards: 2 },
+    {
+      testId: "rows-three-wide",
+      layout: { columns: 2, cardWidth: "wide" },
+      cards: 3,
+    },
+    {
+      testId: "rows-nothing",
+      layout: { columns: 2, cardWidth: "wide" },
+      cards: 2,
+    },
+    {
+      testId: "rows-detail",
+      layout: { columns: 2, cardWidth: "wide" },
+      cards: 2,
+    },
   ];
 
   // Cards across beside the side menu at each window width.
@@ -1302,7 +1318,8 @@ test.describe("rows of cards", () => {
               left: cellBox.left,
               right: cellBox.right,
               bottom: cellBox.bottom + window.scrollY,
-              frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
+              frameBottom:
+                frame.getBoundingClientRect().bottom + window.scrollY,
             };
           }),
         };
@@ -1368,9 +1385,11 @@ test.describe("rows of cards", () => {
 
             // Every card's frame runs to its row's bottom.
             for (const cell of line) {
-              expect([label, cell.title, Math.round(bottom - cell.frameBottom)]).toEqual(
-                [label, cell.title, 0],
-              );
+              expect([
+                label,
+                cell.title,
+                Math.round(bottom - cell.frameBottom),
+              ]).toEqual([label, cell.title, 0]);
             }
 
             // The row runs from the grid's left edge to its right: no empty slot.
@@ -1395,7 +1414,8 @@ test.describe("rows of cards", () => {
                   label,
                   cell.title,
                   cell.right - cell.left >=
-                    CARD_GRID_MIN_CARD_WIDTH_IN_REM[grid.layout.cardWidth] * 16 -
+                    CARD_GRID_MIN_CARD_WIDTH_IN_REM[grid.layout.cardWidth] *
+                      16 -
                       1,
                 ]).toEqual([label, cell.title, true]);
               }

@@ -191,33 +191,35 @@ interface CardRowBoxes {
 }
 
 async function cardRowBoxes(page: Page, testId: string): Promise<CardRowBoxes> {
-  return page.getByTestId(testId).evaluate((container: Element): CardRowBoxes => {
-    const grid: Element = container.firstElementChild as Element;
-    const box: DOMRect = grid.getBoundingClientRect();
+  return page
+    .getByTestId(testId)
+    .evaluate((container: Element): CardRowBoxes => {
+      const grid: Element = container.firstElementChild as Element;
+      const box: DOMRect = grid.getBoundingClientRect();
 
-    return {
-      left: box.left,
-      right: box.right,
-      cells: Array.from(grid.children).map((cell: Element): CardRowCell => {
-        const cellBox: DOMRect = cell.getBoundingClientRect();
-        const frame: Element = cell.querySelector(
-          '[data-testid="card"] > div',
-        ) as Element;
+      return {
+        left: box.left,
+        right: box.right,
+        cells: Array.from(grid.children).map((cell: Element): CardRowCell => {
+          const cellBox: DOMRect = cell.getBoundingClientRect();
+          const frame: Element = cell.querySelector(
+            '[data-testid="card"] > div',
+          ) as Element;
 
-        return {
-          title: (
-            cell.querySelector('[data-testid="card-details-heading"]')
-              ?.textContent || ""
-          ).trim(),
-          top: cellBox.top + window.scrollY,
-          left: cellBox.left,
-          right: cellBox.right,
-          bottom: cellBox.bottom + window.scrollY,
-          frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
-        };
-      }),
-    };
-  });
+          return {
+            title: (
+              cell.querySelector('[data-testid="card-details-heading"]')
+                ?.textContent || ""
+            ).trim(),
+            top: cellBox.top + window.scrollY,
+            left: cellBox.left,
+            right: cellBox.right,
+            bottom: cellBox.bottom + window.scrollY,
+            frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
+          };
+        }),
+      };
+    });
 }
 
 test.describe("header", () => {
@@ -586,9 +588,12 @@ test.describe("overview", () => {
           row.right - row.left,
         );
 
-        expect([label, row.cells.map((cell: CardRowCell) => cell.title)]).toEqual(
-          [label, ["Details", "Latest Occurrence"]],
-        );
+        expect([
+          label,
+          row.cells.map((cell: CardRowCell) => {
+            return cell.title;
+          }),
+        ]).toEqual([label, ["Details", "Latest Occurrence"]]);
         expect([label, across]).toEqual([label, ACROSS[width]]);
 
         if (across === 2) {
