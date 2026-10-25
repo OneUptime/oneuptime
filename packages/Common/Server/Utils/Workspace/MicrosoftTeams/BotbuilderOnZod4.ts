@@ -37,25 +37,29 @@ import { z } from "zod";
 
 type ZodNamespace = typeof z;
 
+type Prototype = Record<string, unknown>;
+
 /*
  * The parse error prototypes: the one `new ZodError(...)` makes, and the one
  * a failed parse throws (zod makes those as real Errors, from a class of its
  * own). They can be the same object, so a Set.
  */
-function zodErrorPrototypes(zod: ZodNamespace): Set<object> {
-  const prototypes: Set<object> = new Set<object>([zod.ZodError.prototype]);
+function zodErrorPrototypes(zod: ZodNamespace): Set<Prototype> {
+  const prototypes: Set<Prototype> = new Set<Prototype>([
+    zod.ZodError.prototype as unknown as Prototype,
+  ]);
   const parseError: z.ZodError | undefined = zod.string().safeParse(0).error;
 
   if (parseError) {
-    prototypes.add(Object.getPrototypeOf(parseError) as object);
+    prototypes.add(Object.getPrototypeOf(parseError) as Prototype);
   }
 
   return prototypes;
 }
 
 export function addBotbuilderZod3Names(zod: ZodNamespace): void {
-  const objectPrototype: Record<string, unknown> = zod.ZodObject
-    .prototype as unknown as Record<string, unknown>;
+  const objectPrototype: Prototype = zod.ZodObject
+    .prototype as unknown as Prototype;
 
   if (typeof objectPrototype["nonstrict"] !== "function") {
     /*

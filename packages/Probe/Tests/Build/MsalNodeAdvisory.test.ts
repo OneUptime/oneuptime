@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { ManagedIdentityCredential } from "@azure/identity";
+import fs from "fs";
 import http from "http";
 import type { AddressInfo } from "net";
 import path from "path";
@@ -88,8 +89,7 @@ describe("the Probe's @azure/msal-node", () => {
 });
 
 describe("the Probe's @azure/identity on that msal-node", () => {
-  const tokenRequests: Array<{ url: string; header: string | undefined }> =
-    [];
+  const tokenRequests: Array<{ url: string; header: string | undefined }> = [];
   let server: http.Server;
   let identityEndpoint: string = "";
 
@@ -138,7 +138,10 @@ describe("the Probe's @azure/identity on that msal-node", () => {
 
     expect(
       isVersionAtLeast(
-        String((require(msalPackage) as PackageJson).version),
+        String(
+          (JSON.parse(fs.readFileSync(msalPackage, "utf8")) as PackageJson)
+            .version,
+        ),
         FIXED_IN,
       ),
     ).toBe(true);

@@ -117,10 +117,12 @@ describe("a field's OpenAPI metadata", () => {
     // BaseSchema.generateSortSchema puts the metadata on the optional.
     expect(
       fieldOf(
-        Zod.enum(["ASC", "DESC"]).optional().openapi({
-          type: "string",
-          enum: ["ASC", "DESC"],
-        }),
+        Zod.enum(["ASC", "DESC"])
+          .optional()
+          .openapi({
+            type: "string",
+            enum: ["ASC", "DESC"],
+          }),
       ).openApi,
     ).toEqual({ type: "string", enum: ["ASC", "DESC"] });
   });

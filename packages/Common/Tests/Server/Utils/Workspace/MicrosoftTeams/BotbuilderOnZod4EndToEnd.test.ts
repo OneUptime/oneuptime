@@ -2,10 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { spawnSync, SpawnSyncReturns } from "child_process";
 import fs from "fs";
 import path from "path";
-import {
-  isVersionAtLeast,
-  PackageJson,
-} from "../../../../Helpers/PackageLock";
+import { isVersionAtLeast, PackageJson } from "../../../../Helpers/PackageLock";
 import {
   getNativeRequire,
   loadRealBotbuilder,
@@ -73,7 +70,7 @@ interface BotbuilderLike {
   };
   ConfigurationBotFrameworkAuthentication: new (
     settings: Record<string, unknown>,
-  ) => object;
+  ) => Record<string, unknown>;
   TeamsActivityHandler: new () => ActivityHandlerLike;
   TestAdapter: new (logic: (context: TurnContextLike) => Promise<void>) => {
     processActivity: (activity: Record<string, unknown>) => Promise<void>;
@@ -157,9 +154,9 @@ describe("botbuilder loads on Common's zod 4", () => {
       expect(
         fs.existsSync(path.join(packageDirectory, "node_modules", "zod")),
       ).toBe(false);
-      expect(
-        nativeRequire.resolve("zod", { paths: [packageDirectory] }),
-      ).toBe(nativeRequire.resolve("zod"));
+      expect(nativeRequire.resolve("zod", { paths: [packageDirectory] })).toBe(
+        nativeRequire.resolve("zod"),
+      );
     },
   );
 
@@ -280,11 +277,11 @@ describe("CloudAdapter answers an activity", () => {
     expect(response.statusCode).toBe(200);
     expect(response.ended).toBe(true);
     expect(
-      (response.body as { activities: Array<{ text?: string }> }).activities.map(
-        (activity: { text?: string }) => {
-          return activity.text;
-        },
-      ),
+      (
+        response.body as { activities: Array<{ text?: string }> }
+      ).activities.map((activity: { text?: string }) => {
+        return activity.text;
+      }),
     ).toEqual(["pong"]);
   });
 

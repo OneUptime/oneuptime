@@ -43,12 +43,14 @@ describe("SchemaConverter", () => {
     it("copies enum values from openapi metadata on optional fields", () => {
       // The shape BaseSchema.generateSortSchema gives every sortable column.
       const schema: ModelSchemaType = objectSchema({
-        createdAt: Zod.enum(["ASC", "DESC"]).optional().openapi({
-          type: "string",
-          enum: ["ASC", "DESC"],
-          description: "Sort order for createdAt field",
-          example: "ASC",
-        }),
+        createdAt: Zod.enum(["ASC", "DESC"])
+          .optional()
+          .openapi({
+            type: "string",
+            enum: ["ASC", "DESC"],
+            description: "Sort order for createdAt field",
+            example: "ASC",
+          }),
       });
 
       const result: ZodToJsonSchemaResult = zodToJsonSchema(schema);

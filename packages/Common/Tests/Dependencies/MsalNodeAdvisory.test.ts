@@ -124,8 +124,7 @@ describe("@azure/identity on that msal-node", () => {
    */
   const realProcess: NodeJS.Process = process.getBuiltinModule("process");
 
-  const tokenRequests: Array<{ url: string; header: string | undefined }> =
-    [];
+  const tokenRequests: Array<{ url: string; header: string | undefined }> = [];
   let server: http.Server;
   let identityEndpoint: string = "";
 

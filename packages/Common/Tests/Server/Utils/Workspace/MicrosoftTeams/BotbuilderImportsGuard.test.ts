@@ -39,8 +39,10 @@ interface BotbuilderImportFinding extends BotbuilderImport {
   file: string;
 }
 
-// botbuilder and the packages it is made of (botbuilder-core,
-// botframework-connector, botframework-schema, ...), and their subpaths.
+/*
+ * botbuilder and the packages it is made of (botbuilder-core,
+ * botframework-connector, botframework-schema, ...), and their subpaths.
+ */
 function isBotbuilderModule(specifier: string): boolean {
   const packageName: string = specifier.split("/")[0] || "";
 
@@ -139,7 +141,10 @@ function findBotbuilderImports(
   return found;
 }
 
-function modulesIn(source: string, fileName: string = "Fixture.ts"): Array<string> {
+function modulesIn(
+  source: string,
+  fileName: string = "Fixture.ts",
+): Array<string> {
   return findBotbuilderImports(fileName, source).map(
     (found: BotbuilderImport): string => {
       return `${found.line}: ${found.module}`;
@@ -217,9 +222,7 @@ describe("the detector finds every way of loading botbuilder", () => {
     "botbuilder-dialogs",
     "botbuilder/lib/teamsActivityHandler",
   ])("the packages botbuilder is made of, and subpaths: %s", (name: string) => {
-    expect(modulesIn(`import { X } from "${name}";`)).toEqual([
-      `1: ${name}`,
-    ]);
+    expect(modulesIn(`import { X } from "${name}";`)).toEqual([`1: ${name}`]);
   });
 
   test("in JavaScript too", () => {
@@ -308,9 +311,9 @@ describe("Botbuilder.ts adds zod's missing names before botbuilder is loaded", (
       "BotbuilderOnZod4.ts",
     );
 
-    expect(
-      findBotbuilderImports(file, fs.readFileSync(file, "utf8")),
-    ).toEqual([]);
+    expect(findBotbuilderImports(file, fs.readFileSync(file, "utf8"))).toEqual(
+      [],
+    );
   });
 });
 

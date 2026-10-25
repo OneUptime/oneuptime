@@ -50,18 +50,21 @@ export function readPackageJson(directory: string): PackageJson {
 
 const NODE_MODULES: string = "node_modules/";
 
-// The name of the package a lock key installs ("@azure/identity" for
-// "node_modules/tedious/node_modules/@azure/identity").
+/*
+ * The name of the package a lock key installs ("@azure/identity" for
+ * "node_modules/tedious/node_modules/@azure/identity").
+ */
 export function packageNameAt(lockPath: string): string {
   const index: number = lockPath.lastIndexOf(NODE_MODULES);
 
-  return index === -1
-    ? lockPath
-    : lockPath.slice(index + NODE_MODULES.length);
+  return index === -1 ? lockPath : lockPath.slice(index + NODE_MODULES.length);
 }
 
 // Every copy of `name` the lock installs, links aside.
-export function lockedCopies(lock: PackageLock, name: string): Array<LockedCopy> {
+export function lockedCopies(
+  lock: PackageLock,
+  name: string,
+): Array<LockedCopy> {
   return Object.entries(lock.packages)
     .filter(([lockPath, entry]: [string, PackageLockEntry]): boolean => {
       return (
@@ -79,8 +82,10 @@ export function lockedCopies(lock: PackageLock, name: string): Array<LockedCopy>
     });
 }
 
-// The lock key of the folder that holds `lockPath`'s node_modules: "" for the
-// project itself, "node_modules/a" for "node_modules/a/node_modules/b".
+/*
+ * The lock key of the folder that holds `lockPath`'s node_modules: "" for the
+ * project itself, "node_modules/a" for "node_modules/a/node_modules/b".
+ */
 function parentOf(lockPath: string): string {
   const index: number = lockPath.lastIndexOf(`/${NODE_MODULES}`);
 

@@ -171,7 +171,7 @@ describe("ZodError's errors, as zod 3 had it", () => {
   test("errors is not one of the error's own keys: printing or serializing it changes nothing", () => {
     const error: z.ZodError | undefined = z.number().safeParse("x").error;
 
-    expect(Object.keys(error as object)).not.toContain("errors");
+    expect(Object.keys(error as z.ZodError)).not.toContain("errors");
     expect(JSON.parse(JSON.stringify(error))).not.toHaveProperty("errors");
   });
 
@@ -186,9 +186,8 @@ describe("ZodError's errors, as zod 3 had it", () => {
         MicrosoftAppId: 42,
       });
     });
-    const message: string = new Error(
-      JSON.stringify(errorsOf(error), null, 2),
-    ).message;
+    const message: string = new Error(JSON.stringify(errorsOf(error), null, 2))
+      .message;
 
     expect(message).not.toBe("");
     expect(JSON.parse(message)).toEqual([
@@ -227,7 +226,7 @@ describe("addBotbuilderZod3Names", () => {
         return "its own errors";
       },
     };
-    const errorPrototype: object = {};
+    const errorPrototype: Record<string, unknown> = {};
     Object.defineProperty(errorPrototype, "errors", ownErrors);
     const objectPrototype: Record<string, unknown> = {
       nonstrict: ownNonstrict,
@@ -247,13 +246,13 @@ describe("addBotbuilderZod3Names", () => {
     addBotbuilderZod3Names(fakeZod);
 
     expect(objectPrototype["nonstrict"]).toBe(ownNonstrict);
-    expect(
-      Object.getOwnPropertyDescriptor(errorPrototype, "errors")?.get,
-    ).toBe(ownErrors.get);
+    expect(Object.getOwnPropertyDescriptor(errorPrototype, "errors")?.get).toBe(
+      ownErrors.get,
+    );
   });
 
   test("a zod without them gets both", () => {
-    const errorPrototype: object = {};
+    const errorPrototype: Record<string, unknown> = {};
     const objectPrototype: Record<string, unknown> = {};
     const fakeZod: typeof z = {
       ZodObject: { prototype: objectPrototype },

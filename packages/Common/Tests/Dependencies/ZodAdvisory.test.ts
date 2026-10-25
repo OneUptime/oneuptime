@@ -114,9 +114,9 @@ describe("Common's zod", () => {
 
   test("botbuilder still asks for zod 3, and gets Common's zod through the override", () => {
     // If botbuilder ever asks for zod 4 itself, the override can go.
-    expect(lock.packages["node_modules/botbuilder"]?.dependencies?.["zod"]).toBe(
-      "^3.23.8",
-    );
+    expect(
+      lock.packages["node_modules/botbuilder"]?.dependencies?.["zod"],
+    ).toBe("^3.23.8");
     expect(
       (packageJson.overrides?.["botbuilder"] as Record<string, string>)?.[
         "zod"
