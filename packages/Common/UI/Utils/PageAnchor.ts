@@ -33,6 +33,45 @@ export function isPageAnchorName(name: string): boolean {
 }
 
 /*
+ * The place a card is named by after its title, where its page names it by
+ * nothing else: "Default Bar Color" is "default-bar-color". The letters and
+ * digits of the title as the page wrote it (its English words, which the
+ * card looks up in the reader's language), lower-cased, with each run of
+ * anything else between them one "-". Empty - no place - for a title that
+ * is not text, or holds no letter to start a name with (a title in another
+ * script). Read one character at a time: a title of any length takes time
+ * in line with it.
+ */
+export function getPageAnchorNameForTitle(title: unknown): string {
+  if (typeof title !== "string") {
+    return "";
+  }
+
+  let name: string = "";
+  let isAfterSeparator: boolean = false;
+
+  for (const character of title) {
+    const lower: string = character.toLowerCase();
+    const isLetterOrDigit: boolean =
+      (lower >= "a" && lower <= "z") || (lower >= "0" && lower <= "9");
+
+    if (!isLetterOrDigit) {
+      isAfterSeparator = true;
+      continue;
+    }
+
+    if (isAfterSeparator && name) {
+      name += "-";
+    }
+
+    isAfterSeparator = false;
+    name += lower;
+  }
+
+  return isPageAnchorName(name) ? name : "";
+}
+
+/*
  * The place the current address names after its "#": "runner" for
  * ".../settings#runner". Empty when it names none - or names something no
  * page names a place by (anything but a plain name).

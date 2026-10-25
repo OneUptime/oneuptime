@@ -1,11 +1,12 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { CardGridCellContext, useIsCardGridCell } from "./CardGridCell";
-import { useIsCardSection } from "./CardSurface";
+import { useCardPlaceFromTitle, useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
   PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+  getPageAnchorNameForTitle,
 } from "../../Utils/PageAnchor";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
@@ -121,6 +122,13 @@ export interface ComponentProps {
    * name, unique on the page ("runner").
    */
   id?: string | undefined;
+  /*
+   * Its title in words, for a card whose title is drawn as more than words
+   * (a table's, with its plan's badge beside it): what its place in a
+   * page's More settings is named after when its page gives it no `id`.
+   * The title as written, in English, as `title` is.
+   */
+  titleText?: string | undefined;
 }
 
 /*
@@ -420,6 +428,17 @@ const Card: FunctionComponent<ComponentProps> = (
   const { translateValue } = useTranslateValue();
   const isSection: boolean = useIsCardSection();
   const isGridCell: boolean = useIsCardGridCell();
+  /*
+   * Its place on the page: the id its page gives it - or, in a page's More
+   * settings, one after its title (CardPlaceFromTitleContext), so a link
+   * can land on any card there.
+   */
+  const isPlacedFromTitle: boolean = useCardPlaceFromTitle();
+  const placeId: string | undefined =
+    props.id ||
+    (isPlacedFromTitle && isSection
+      ? getPageAnchorNameForTitle(props.titleText || props.title) || undefined
+      : undefined);
   const hasButtons: boolean = Boolean(
     props.buttons && props.buttons.length > 0,
   );
@@ -746,8 +765,8 @@ const Card: FunctionComponent<ComponentProps> = (
   if (isSection) {
     return (
       <div
-        id={props.id}
-        style={getCardAnchorStyle(props.id, true)}
+        id={placeId}
+        style={getCardAnchorStyle(placeId, true)}
         data-testid="card"
         data-card-surface="section"
         className={`${CARD_SECTION_CLASS_NAME} ${props.className || ""}`}
