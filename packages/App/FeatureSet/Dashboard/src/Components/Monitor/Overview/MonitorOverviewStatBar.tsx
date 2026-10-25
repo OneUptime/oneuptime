@@ -84,25 +84,34 @@ export const getUptimeTileContent: (data: {
   summary: OverviewSection<MonitorUptimeSummary>;
   windowKey: MonitorUptimeWindowKey;
   caveat: MonitorUptimeCaveat | null;
+  // The reader's language, for the window's description. English without.
+  translator?: Translator | undefined;
 }) => TileContent = (data: {
   summary: OverviewSection<MonitorUptimeSummary>;
   windowKey: MonitorUptimeWindowKey;
   caveat: MonitorUptimeCaveat | null;
+  translator?: Translator | undefined;
 }): TileContent => {
   const summary: MonitorUptimeSummary | null = data.summary.value;
+  // The tile draws its description as given, so it is translated here.
+  const translateTileText: (text: string) => string = (
+    text: string,
+  ): string => {
+    return data.translator ? data.translator.translateTemplate(text) : text;
+  };
 
   if (!summary) {
     if (data.summary.status === "forbidden") {
       return {
         value: getUnknownValue(),
-        description: "No access to status history",
+        description: translateTileText("No access to status history"),
       };
     }
 
     if (data.summary.status === "error") {
       return {
         value: getUnknownValue(),
-        description: "Uptime is unavailable",
+        description: translateTileText("Uptime is unavailable"),
       };
     }
 
@@ -116,13 +125,14 @@ export const getUptimeTileContent: (data: {
         summary.statuses,
       ),
       caveat: data.caveat,
+      translator: data.translator,
     });
 
   // A summary without this window cannot vouch for any number.
   if (!presentation) {
     return {
       value: getUnknownValue(),
-      description: "Uptime is unavailable",
+      description: translateTileText("Uptime is unavailable"),
     };
   }
 
@@ -191,7 +201,9 @@ export const getOpenNowTileContent: (data: {
           {translator.translateText("Nothing open")}
         </span>
       ),
-      description: "No unresolved incidents or alerts",
+      description: translator.translateTemplate(
+        "No unresolved incidents or alerts",
+      ),
     };
   }
 
@@ -326,6 +338,7 @@ const MonitorOverviewStatBar: FunctionComponent<ComponentProps> = (
           summary: props.summary,
           windowKey: tile.key,
           caveat: props.caveat,
+          translator: translator,
         });
 
         return (

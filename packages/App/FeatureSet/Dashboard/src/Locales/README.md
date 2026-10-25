@@ -190,6 +190,22 @@ The extractor does not read a label map keyed by an enum
 (`{ [MonitorType.API]: "API Monitor" }`). Wrap each label in
 `translationKey()`, and look the label up where you render it.
 
+A shared helper that writes many sentences takes the reader's `Translator`
+as an argument instead of reading the global instance: the monitor
+overview's `MonitorOverviewPresentationUtil` (`input.translator`), the
+uptime windows (`MonitorUptimeSummaryUtil.getWindowPresentation`), a
+monitor's interval (`MonitorCheckScheduleUtil.describeInterval`) and a cron
+schedule in words (`Common/Utils/CronScheduleText`). The page passes
+`useTranslator()`. Each sentence is then looked up whole with that one
+translator, so it is wholly in the reader's language or wholly in English,
+and a test can hand it any locale. Without a translator such a helper writes
+English, word for word as before, which is what the server and a unit test
+get. A value built from other translated pieces - an interval inside "This
+monitor is evaluated {{interval}} once saved." - is a `composedValue()`, so
+it takes the sentence's language. A duration that goes into a sentence is
+written with `formatDurationCompactInLanguage(seconds, translator.language)`
+("12 Min." in German), which an English sentence turns back into "12m".
+
 ### What to leave alone
 
 - Data the user typed: names, descriptions, label values.
@@ -219,11 +235,16 @@ three columns are element text (`text`), plain HTML attributes such as `title`,
 with template literals or `+` (`composed`). Some of these are not copy, such as
 a unit, a code sample or a format string. The list is a work list, not a test.
 
-The extractor reads `Dashboard/src`, `Common/UI` and the database and
-analytics models' names and column titles. To route strings that live
-elsewhere, add the directory to `SOURCE_ROOTS` in
+The extractor reads `Dashboard/src`, `Common/UI`, the database and
+analytics models' names and column titles, a few `Common/Types` catalogs,
+the shared monitor helpers in `Common/Utils/Monitor` and
+`Common/Utils/CronScheduleText.ts`. To route strings that live elsewhere, add
+the directory - or a single file - to `SOURCE_ROOTS` in
 `scripts/i18n/ExtractStrings.ts`. Examples: `Common/Types` catalogs such as
 permission descriptions, monitor-type descriptions and workflow components.
+Adding all of `Common/Utils` at once would bring in some 840 strings, most of
+them for the server, so route a directory when its strings are put on
+screen.
 
 ## Filling in a language (stage 3)
 
@@ -358,7 +379,15 @@ translated the same locale. Take either side, then run
 
 - The `Common/Types` catalogs are not scanned: permissions, monitor-type and
   workflow-component descriptions.
-- Compact durations keep their unit symbols ("2h 5m", "1,72 s"), as a unit
-  symbol reads the same in every language; only their figures are written
-  the reader's way.
+- `formatDurationCompact` stays English ("2h 5m"): the SLO pages still glue
+  it into English sentences of their own. A duration inside a translated
+  sentence uses `formatDurationCompactInLanguage`. Durations in seconds keep
+  their unit symbol ("1,72 s"); only their figures are written the reader's
+  way.
+- A cron schedule on given days of given months ("On the 1st of January at
+  00:00 (UTC)") and one only described field by field ("minute 5, 35, hour 3
+  (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
+- The monitor metric charts' own titles, units and descriptions
+  (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
+  not keys yet; the metric groups' titles and descriptions are.
 - `ee/Dashboard` and documentation markdown are not scanned.

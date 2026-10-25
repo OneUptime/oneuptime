@@ -19,6 +19,7 @@ const MonitoringIntervalElement: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const label: string | undefined = getMonitoringIntervalLabel(
     props.monitoringInterval,
+    translator,
   );
 
   if (label) {

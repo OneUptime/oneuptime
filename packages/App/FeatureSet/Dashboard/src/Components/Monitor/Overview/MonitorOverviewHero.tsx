@@ -48,7 +48,7 @@ import {
   MonitorOverviewSecondaryBadge,
 } from "Common/Utils/Monitor/MonitorOverviewPresentationUtil";
 import { MonitorOverviewTarget } from "Common/Utils/Monitor/MonitorOverviewTargetUtil";
-import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
@@ -407,7 +407,10 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             className="mt-1 text-xs font-medium text-amber-700"
           >
             {translator.translateTemplate("Overdue by {{duration}}", {
-              duration: formatDurationCompact(pulse.overdueSeconds),
+              duration: formatDurationCompactInLanguage(
+                pulse.overdueSeconds,
+                translator.language,
+              ),
             })}
           </p>
         ) : (

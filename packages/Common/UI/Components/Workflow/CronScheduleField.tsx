@@ -12,6 +12,7 @@ import {
 } from "./ValuePicker/ValueSuggestion";
 import IconProp from "../../../Types/Icon/IconProp";
 import CronTab from "../../../Utils/CronTab";
+import { describeCronSchedule } from "../../../Utils/CronScheduleText";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -148,8 +149,8 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
     if (trimmedValue === "" || isVariable || validationError) {
       return null;
     }
-    return CronTab.getHumanReadableDescription(trimmedValue);
-  }, [trimmedValue, isVariable, validationError]);
+    return describeCronSchedule(trimmedValue, translator);
+  }, [trimmedValue, isVariable, validationError, translator]);
 
   const nextRuns: Array<Date> = useMemo(() => {
     if (trimmedValue === "" || isVariable || validationError) {

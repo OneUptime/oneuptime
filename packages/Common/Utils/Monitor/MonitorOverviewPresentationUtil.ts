@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../Types/Date";
+import { withDateDisplayLanguage } from "../../Types/DateLanguage";
 import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
@@ -6,7 +7,15 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import ProbeStatusMonitorResponse, {
   ProbeStatusMonitorProbe,
 } from "../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
-import { formatDurationCompact } from "../Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "../Slo/SloDuration";
+import {
+  composedValue,
+  ComposedValue,
+  createTranslator,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "../../UI/Utils/TranslateTemplate";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
   MonitorCheckFreshnessResult,
@@ -37,6 +46,13 @@ import { MonitorUptimeCaveat } from "./MonitorUptimeSummaryUtil";
  * waiting for its first result are never shown as Good, and never lead with
  * the stored status name (which only describes the last thing that was
  * recorded). Unknown is never rendered as zero.
+ *
+ * Every word it writes is in the reader's language: the page hands it the
+ * reader's Translator (input.translator), and each sentence is looked up
+ * whole, with its values in it ("Expires in {{duration}}"), as the
+ * Dashboard's extractor finds it here. Without one it writes English, word
+ * for word as it always has. What a monitor's owner named - a status, a
+ * probe, a host - goes in as written.
  */
 
 export enum MonitorOverviewRunState {
@@ -189,6 +205,10 @@ export type MonitorOverviewEvaluationStatus =
   | "forbidden";
 
 export interface MonitorOverviewPresentationInput {
+  /*
+   * The reader's language (useTranslator on the page). English without one.
+   */
+  translator?: Translator | undefined;
   /*
    * On the server's clock (the browser's clock plus its measured offset).
    * Every age, due time and expiry here is measured against it, and every
@@ -352,12 +372,18 @@ interface MonitorOverviewTelemetryTiming {
 
 // Everything build() and getRunState() both need, worked out once.
 interface MonitorOverviewContext {
+  // Writes every sentence in the reader's language.
+  t: Translator;
   family: MonitorOverviewFamily;
   layout: MonitorOverviewLayout;
   cadenceSeconds: number;
+  // "Every 5 minutes", in the reader's language.
   intervalText: string;
-  // describeInterval with a lower-case first letter: "every 5 minutes".
-  intervalPhrase: string;
+  /*
+   * The interval as it reads inside a sentence, in that sentence's language:
+   * "every 5 minutes", "alle 5 Minuten".
+   */
+  intervalPhrase: ComposedValue;
   stepCount: number;
   networkDeviceId: string | null;
   // The probes a Probe Status monitor watches; 0 for every other family.
@@ -393,31 +419,34 @@ const PAUSED_EXPLANATION: Record<
   "archived" | "disabled" | "incident" | "maintenance",
   string
 > = {
-  archived:
+  archived: translationKey(
     "No checks run while the monitor is archived, so the status stays at the last one recorded. It opens no incidents or alerts and is hidden from monitor lists and status pages.",
-  disabled:
+  ),
+  disabled: translationKey(
     "No checks run while monitoring is off, so the status stays at the last one recorded.",
-  incident:
+  ),
+  incident: translationKey(
     "Checks resume when the incident that paused this monitor is resolved.",
-  maintenance: "Checks resume automatically when the maintenance event ends.",
+  ),
+  maintenance: translationKey(
+    "Checks resume automatically when the maintenance event ends.",
+  ),
 };
 
-const MANUAL_EXPLANATION: string =
-  "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.";
+const MANUAL_EXPLANATION: string = translationKey(
+  "Manual monitor: OneUptime runs no checks. The status changes when someone sets it, or when an incident or scheduled maintenance event changes it.",
+);
 
 /*
  * What an empty evaluation log says once the monitor is older than the
  * log keeps rows (MONITOR_LOG_MINIMUM_RETENTION_SECONDS): not "never".
  */
-const NOT_EVALUATED_IN_LOG_TEXT: string = "Not evaluated in the last day";
+const NOT_EVALUATED_IN_LOG_TEXT: string = translationKey(
+  "Not evaluated in the last day",
+);
 
-const pluralize: (count: number, singular: string, plural: string) => string = (
-  count: number,
-  singular: string,
-  plural: string,
-): string => {
-  return `${count} ${count === 1 ? singular : plural}`;
-};
+// English, word for word as the overview always read: no lookup.
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 const lowerFirst: (text: string) => string = (text: string): string => {
   return text ? text.charAt(0).toLowerCase() + text.slice(1) : text;
@@ -456,15 +485,67 @@ export const MONITOR_LOG_MINIMUM_RETENTION_SECONDS: number = DAY_SECONDS;
  * (weekday business hours) as overdue every weekend.
  */
 
-// "3 hours", or "20 minutes" under an hour. Never "0 minutes".
-const describeUnderADay: (ms: number) => string = (ms: number): string => {
+interface ExpiryDistance {
+  unit: "minute" | "hour" | "day";
+  count: number;
+}
+
+// Hours, or minutes under an hour. Never 0 minutes.
+const underADay: (ms: number) => ExpiryDistance = (
+  ms: number,
+): ExpiryDistance => {
   const hours: number = Math.floor(ms / HOUR_MS);
 
   if (hours >= 1) {
-    return pluralize(hours, "hour", "hours");
+    return { unit: "hour", count: hours };
   }
 
-  return pluralize(Math.max(1, Math.floor(ms / 60000)), "minute", "minutes");
+  return { unit: "minute", count: Math.max(1, Math.floor(ms / 60000)) };
+};
+
+/*
+ * A sentence per unit, so a language puts the count in the case its words
+ * take ("vor 2 Tagen", never "vor 2 Tage").
+ */
+const EXPIRED_AGO: Record<ExpiryDistance["unit"], PluralTemplate> = {
+  minute: {
+    one: "Expired {{count}} minute ago",
+    other: "Expired {{count}} minutes ago",
+  },
+  hour: {
+    one: "Expired {{count}} hour ago",
+    other: "Expired {{count}} hours ago",
+  },
+  day: {
+    one: "Expired {{count}} day ago",
+    other: "Expired {{count}} days ago",
+  },
+};
+
+const EXPIRES_IN: Record<ExpiryDistance["unit"], PluralTemplate> = {
+  minute: {
+    one: "Expires in {{count}} minute",
+    other: "Expires in {{count}} minutes",
+  },
+  hour: {
+    one: "Expires in {{count}} hour",
+    other: "Expires in {{count}} hours",
+  },
+  day: { one: "in {{count}} day", other: "in {{count}} days" },
+};
+
+const describeExpiredAgo: (
+  distance: ExpiryDistance,
+  t: Translator,
+) => string = (distance: ExpiryDistance, t: Translator): string => {
+  return t.translatePlural(EXPIRED_AGO[distance.unit], distance.count);
+};
+
+const describeExpiresIn: (distance: ExpiryDistance, t: Translator) => string = (
+  distance: ExpiryDistance,
+  t: Translator,
+): string => {
+  return t.translatePlural(EXPIRES_IN[distance.unit], distance.count);
 };
 
 /*
@@ -516,6 +597,7 @@ export default class MonitorOverviewPresentationUtil {
         monitorType: input.monitorType,
         monitorSteps: input.monitorSteps,
         serverHostname: input.agent.hostname,
+        translator: context.t,
       }),
       sections: MonitorOverviewPresentationUtil.getSections(context),
     };
@@ -601,24 +683,31 @@ export default class MonitorOverviewPresentationUtil {
     expiresAt: Date | undefined;
     isValidCertificate?: boolean | undefined;
     now: Date;
+    // The reader's language; English without one.
+    translator?: Translator | undefined;
   }): MonitorOverviewFact {
+    const t: Translator = data.translator || ENGLISH;
     const label: string =
       data.key === "certificate-expiry"
-        ? "Certificate expires"
-        : "Domain expires";
+        ? t.translateTemplate("Certificate expires")
+        : t.translateTemplate("Domain expires");
 
-    const secondary: string | undefined = data.expiresAt
-      ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          data.expiresAt,
-          true,
-        )
+    // The date in the translator's language too: "21. Okt. 2026".
+    const expiresAt: Date | undefined = data.expiresAt;
+    const secondary: string | undefined = expiresAt
+      ? withDateDisplayLanguage(t.language, (): string => {
+          return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            expiresAt,
+            true,
+          );
+        })
       : undefined;
 
     if (data.isValidCertificate === false) {
       return {
         key: data.key,
         label: label,
-        value: "Not valid",
+        value: t.translateTemplate("Not valid"),
         secondary: secondary,
         tone: "danger",
       };
@@ -642,12 +731,14 @@ export default class MonitorOverviewPresentationUtil {
         label: label,
         value:
           -msLeft < DAY_MS
-            ? `Expired ${describeUnderADay(-msLeft)} ago`
-            : `Expired ${pluralize(
-                getCalendarDaysBetween(data.expiresAt, data.now),
-                "day",
-                "days",
-              )} ago`,
+            ? describeExpiredAgo(underADay(-msLeft), t)
+            : describeExpiredAgo(
+                {
+                  unit: "day",
+                  count: getCalendarDaysBetween(data.expiresAt, data.now),
+                },
+                t,
+              ),
         secondary: secondary,
         tone: "danger",
       };
@@ -657,7 +748,7 @@ export default class MonitorOverviewPresentationUtil {
       return {
         key: data.key,
         label: label,
-        value: `Expires in ${describeUnderADay(msLeft)}`,
+        value: describeExpiresIn(underADay(msLeft), t),
         secondary: secondary,
         tone: "danger",
       };
@@ -676,11 +767,13 @@ export default class MonitorOverviewPresentationUtil {
     return {
       key: data.key,
       label: label,
-      value: `in ${pluralize(
-        getCalendarDaysBetween(data.now, data.expiresAt),
-        "day",
-        "days",
-      )}`,
+      value: describeExpiresIn(
+        {
+          unit: "day",
+          count: getCalendarDaysBetween(data.now, data.expiresAt),
+        },
+        t,
+      ),
       secondary: secondary,
       tone: tone,
     };
@@ -698,8 +791,10 @@ export default class MonitorOverviewPresentationUtil {
         monitoringInterval: input.monitoringInterval,
         from: input.now,
       });
+    const t: Translator = input.translator || ENGLISH;
     const intervalText: string = MonitorCheckScheduleUtil.describeInterval(
       input.monitoringInterval,
+      t,
     );
     const stepCount: number = MonitorOverviewCriteriaUtil.getStepCount(
       input.monitorSteps,
@@ -793,11 +888,19 @@ export default class MonitorOverviewPresentationUtil {
     }
 
     return {
+      t: t,
       family: family,
       layout: layout,
       cadenceSeconds: cadenceSeconds,
       intervalText: intervalText,
-      intervalPhrase: lowerFirst(intervalText),
+      intervalPhrase: composedValue((sentence: Translator): string => {
+        return lowerFirst(
+          MonitorCheckScheduleUtil.describeInterval(
+            input.monitoringInterval,
+            sentence,
+          ),
+        );
+      }),
       stepCount: stepCount,
       networkDeviceId: networkDeviceId,
       watchedProbeCount: watchedProbeCount,
@@ -1154,11 +1257,15 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): MonitorOverviewHeroParts {
+    const t: Translator = context.t;
     const status: MonitorOverviewStatusRef | undefined = input.currentStatus;
     const statusTone: MonitorOverviewTone =
       MonitorOverviewPresentationUtil.getStatusTone(status);
+    // The status's name goes in as its owner named it.
     const lastKnownStatus: string | undefined = status
-      ? `Last recorded status: ${status.name}`
+      ? t.translateTemplate("Last recorded status: {{status}}", {
+          status: status.name,
+        })
       : undefined;
 
     // The badge and headline for the states that lead with the status.
@@ -1168,10 +1275,10 @@ export default class MonitorOverviewPresentationUtil {
           tone: statusTone,
           statusColor: MonitorStatusHistoryUtil.normalizeColor(status.color),
         }
-      : { text: "Unknown status", tone: "neutral" };
+      : { text: t.translateTemplate("Unknown status"), tone: "neutral" };
     const statusHeadline: { text: string; since?: Date | undefined } = status
       ? { text: status.name, since: input.statusSince }
-      : { text: "No status recorded yet" };
+      : { text: t.translateTemplate("No status recorded yet") };
 
     switch (context.runState) {
       /*
@@ -1182,9 +1289,11 @@ export default class MonitorOverviewPresentationUtil {
         return {
           tone: statusTone,
           badge: statusBadge,
-          secondaryBadges: [{ text: "Manual", tone: "neutral" }],
+          secondaryBadges: [
+            { text: t.translateTemplate("Manual"), tone: "neutral" },
+          ],
           headline: statusHeadline,
-          explanation: MANUAL_EXPLANATION,
+          explanation: t.translateTemplate(MANUAL_EXPLANATION),
         };
 
       case MonitorOverviewRunState.Paused: {
@@ -1195,10 +1304,13 @@ export default class MonitorOverviewPresentationUtil {
          * there when monitoring resumes, so it stays visible.
          */
         if (context.isNoProbeEnabled) {
-          secondaryBadges.push({ text: "Probes Not Enabled", tone: "danger" });
+          secondaryBadges.push({
+            text: t.translateTemplate("Probes Not Enabled"),
+            tone: "danger",
+          });
         } else if (context.isAllProbesDisconnected) {
           secondaryBadges.push({
-            text: "Probes Disconnected",
+            text: t.translateTemplate("Probes Disconnected"),
             tone: "danger",
           });
         }
@@ -1211,12 +1323,19 @@ export default class MonitorOverviewPresentationUtil {
         if (input.pause.isArchived) {
           return {
             tone: "neutral",
-            badge: { text: "Archived", tone: "neutral" },
+            badge: { text: t.translateTemplate("Archived"), tone: "neutral" },
             secondaryBadges: secondaryBadges,
-            headline: { text: "Monitoring is off because it is archived" },
-            explanation: PAUSED_EXPLANATION.archived,
+            headline: {
+              text: t.translateTemplate(
+                "Monitoring is off because it is archived",
+              ),
+            },
+            explanation: t.translateTemplate(PAUSED_EXPLANATION.archived),
             lastKnownStatus: lastKnownStatus,
-            callToAction: { text: "Open settings", linkKey: "settings" },
+            callToAction: {
+              text: t.translateTemplate("Open settings"),
+              linkKey: "settings",
+            },
           };
         }
 
@@ -1227,13 +1346,13 @@ export default class MonitorOverviewPresentationUtil {
         if (input.pause.isDisabled) {
           return {
             tone: "neutral",
-            badge: { text: "Disabled", tone: "neutral" },
+            badge: { text: t.translateTemplate("Disabled"), tone: "neutral" },
             secondaryBadges: secondaryBadges,
-            headline: { text: "Monitoring is turned off" },
-            explanation: PAUSED_EXPLANATION.disabled,
+            headline: { text: t.translateTemplate("Monitoring is turned off") },
+            explanation: t.translateTemplate(PAUSED_EXPLANATION.disabled),
             lastKnownStatus: lastKnownStatus,
             callToAction: {
-              text: "Turn monitoring on",
+              text: t.translateTemplate("Turn monitoring on"),
               actionKey: "turnMonitoringOn",
             },
           };
@@ -1242,21 +1361,30 @@ export default class MonitorOverviewPresentationUtil {
         if (input.pause.byManualIncident) {
           return {
             tone: "neutral",
-            badge: { text: "Paused", tone: "neutral" },
+            badge: { text: t.translateTemplate("Paused"), tone: "neutral" },
             secondaryBadges: secondaryBadges,
-            headline: { text: "Monitoring is paused by an incident" },
-            explanation: PAUSED_EXPLANATION.incident,
+            headline: {
+              text: t.translateTemplate("Monitoring is paused by an incident"),
+            },
+            explanation: t.translateTemplate(PAUSED_EXPLANATION.incident),
             lastKnownStatus: lastKnownStatus,
-            callToAction: { text: "View incidents", linkKey: "incidents" },
+            callToAction: {
+              text: t.translateTemplate("View incidents"),
+              linkKey: "incidents",
+            },
           };
         }
 
         return {
           tone: "neutral",
-          badge: { text: "Paused", tone: "neutral" },
+          badge: { text: t.translateTemplate("Paused"), tone: "neutral" },
           secondaryBadges: secondaryBadges,
-          headline: { text: "Monitoring is paused for scheduled maintenance" },
-          explanation: PAUSED_EXPLANATION.maintenance,
+          headline: {
+            text: t.translateTemplate(
+              "Monitoring is paused for scheduled maintenance",
+            ),
+          },
+          explanation: t.translateTemplate(PAUSED_EXPLANATION.maintenance),
           lastKnownStatus: lastKnownStatus,
         };
       }
@@ -1279,29 +1407,39 @@ export default class MonitorOverviewPresentationUtil {
         ) {
           return {
             tone: "neutral",
-            badge: { text: "Not set up", tone: "neutral" },
+            badge: { text: t.translateTemplate("Not set up"), tone: "neutral" },
             secondaryBadges: [],
-            headline: { text: "This monitor watches no probes" },
-            explanation:
+            headline: {
+              text: t.translateTemplate("This monitor watches no probes"),
+            },
+            explanation: t.translateTemplate(
               "Pick the probes it watches. It opens an incident when one of them disconnects.",
-            callToAction: { text: "Pick probes", linkKey: "criteria" },
+            ),
+            callToAction: {
+              text: t.translateTemplate("Pick probes"),
+              linkKey: "criteria",
+            },
           };
         }
 
         return {
           tone: "neutral",
-          badge: { text: "Not set up", tone: "neutral" },
+          badge: { text: t.translateTemplate("Not set up"), tone: "neutral" },
           secondaryBadges: [],
           headline: {
             text: isMissingDevice
-              ? "No network device is selected"
-              : "This monitor has no criteria yet",
+              ? t.translateTemplate("No network device is selected")
+              : t.translateTemplate("This monitor has no criteria yet"),
           },
           explanation: isMissingDevice
-            ? "Choose the device this monitor alerts on."
-            : "Add criteria to tell this monitor what to check.",
+            ? t.translateTemplate("Choose the device this monitor alerts on.")
+            : t.translateTemplate(
+                "Add criteria to tell this monitor what to check.",
+              ),
           callToAction: {
-            text: isMissingDevice ? "Choose a device" : "Set up criteria",
+            text: isMissingDevice
+              ? t.translateTemplate("Choose a device")
+              : t.translateTemplate("Set up criteria"),
             linkKey: "criteria",
           },
         };
@@ -1329,14 +1467,16 @@ export default class MonitorOverviewPresentationUtil {
           // A late check cannot vouch for "good"; danger stays danger.
           tone: statusTone === "danger" ? "danger" : "warning",
           badge: isNeverReported
-            ? { text: "No results yet", tone: "warning" }
+            ? { text: t.translateTemplate("No results yet"), tone: "warning" }
             : statusBadge,
-          secondaryBadges: [{ text: "Checks overdue", tone: "warning" }],
+          secondaryBadges: [
+            { text: t.translateTemplate("Checks overdue"), tone: "warning" },
+          ],
           headline: isNeverReported
             ? {
                 text: isProbeCheck
-                  ? "No check has completed yet"
-                  : "No evaluation has completed yet",
+                  ? t.translateTemplate("No check has completed yet")
+                  : t.translateTemplate("No evaluation has completed yet"),
               }
             : statusHeadline,
           explanation: MonitorOverviewPresentationUtil.getOverdueExplanation({
@@ -1345,7 +1485,7 @@ export default class MonitorOverviewPresentationUtil {
           }),
           lastKnownStatus: isNeverReported ? lastKnownStatus : undefined,
           callToAction: isProbeCheck
-            ? { text: "Check probes", linkKey: "probes" }
+            ? { text: t.translateTemplate("Check probes"), linkKey: "probes" }
             : undefined,
         };
       }
@@ -1367,8 +1507,9 @@ export default class MonitorOverviewPresentationUtil {
           context.family === MonitorOverviewFamily.NetworkDevice &&
           context.evaluationLog === "expired"
         ) {
-          running.explanation =
-            "No poll or trap from this device has been evaluated in the last day, so the status shown is the last one recorded.";
+          running.explanation = t.translateTemplate(
+            "No poll or trap from this device has been evaluated in the last day, so the status shown is the last one recorded.",
+          );
         }
 
         /*
@@ -1379,10 +1520,11 @@ export default class MonitorOverviewPresentationUtil {
           context.family === MonitorOverviewFamily.ProbeStatus &&
           context.evaluationLog === "expired"
         ) {
-          running.explanation =
-            "Not evaluated in the last day. The probes this monitor watches may have been deleted: pick probes again under Criteria. The status shown is the last one recorded.";
+          running.explanation = t.translateTemplate(
+            "Not evaluated in the last day. The probes this monitor watches may have been deleted: pick probes again under Criteria. The status shown is the last one recorded.",
+          );
           running.callToAction = {
-            text: "Pick probes",
+            text: t.translateTemplate("Pick probes"),
             linkKey: "criteria",
           };
         }
@@ -1397,24 +1539,40 @@ export default class MonitorOverviewPresentationUtil {
     context: MonitorOverviewContext;
     lastKnownStatus: string | undefined;
   }): MonitorOverviewHeroParts {
+    const t: Translator = data.context.t;
     const probes: MonitorOverviewProbeSummary | null = data.input.probes;
 
     if (!data.context.isNoProbeEnabled) {
       return {
         tone: "danger",
-        badge: { text: "Probes Disconnected", tone: "danger" },
+        badge: {
+          text: t.translateTemplate("Probes Disconnected"),
+          tone: "danger",
+        },
         secondaryBadges: [],
-        headline: { text: "Every probe checking this monitor is disconnected" },
-        explanation:
+        headline: {
+          text: t.translateTemplate(
+            "Every probe checking this monitor is disconnected",
+          ),
+        },
+        explanation: t.translateTemplate(
           "Checks stopped when the probes lost their connection. The status shown is the last one recorded.",
+        ),
         lastKnownStatus: data.lastKnownStatus,
-        callToAction: { text: "Check probes", linkKey: "probes" },
+        callToAction: {
+          text: t.translateTemplate("Check probes"),
+          linkKey: "probes",
+        },
       };
     }
 
     const badge: MonitorOverviewBadge = {
-      text: "Probes Not Enabled",
+      text: t.translateTemplate("Probes Not Enabled"),
       tone: "danger",
+    };
+    const manageProbes: MonitorOverviewCallToAction = {
+      text: t.translateTemplate("Manage probes"),
+      linkKey: "probes",
     };
 
     // Unknown probes must never be described as "no probes attached".
@@ -1423,10 +1581,14 @@ export default class MonitorOverviewPresentationUtil {
         tone: "danger",
         badge: badge,
         secondaryBadges: [],
-        headline: { text: "Nothing is checking this monitor" },
-        explanation: "No probe is enabled for this monitor, so no checks run.",
+        headline: {
+          text: t.translateTemplate("Nothing is checking this monitor"),
+        },
+        explanation: t.translateTemplate(
+          "No probe is enabled for this monitor, so no checks run.",
+        ),
         lastKnownStatus: data.lastKnownStatus,
-        callToAction: { text: "Manage probes", linkKey: "probes" },
+        callToAction: manageProbes,
       };
     }
 
@@ -1435,10 +1597,17 @@ export default class MonitorOverviewPresentationUtil {
         tone: "danger",
         badge: badge,
         secondaryBadges: [],
-        headline: { text: "No probes are attached to this monitor" },
-        explanation: "Add a probe to start checking this resource.",
+        headline: {
+          text: t.translateTemplate("No probes are attached to this monitor"),
+        },
+        explanation: t.translateTemplate(
+          "Add a probe to start checking this resource.",
+        ),
         lastKnownStatus: data.lastKnownStatus,
-        callToAction: { text: "Add a probe", linkKey: "probes" },
+        callToAction: {
+          text: t.translateTemplate("Add a probe"),
+          linkKey: "probes",
+        },
       };
     }
 
@@ -1446,14 +1615,19 @@ export default class MonitorOverviewPresentationUtil {
       tone: "danger",
       badge: badge,
       secondaryBadges: [],
-      headline: { text: "Every probe is turned off for this monitor" },
-      explanation: `${
-        probes.attachedCount === 1
-          ? "1 probe is"
-          : `${probes.attachedCount} probes are`
-      } attached but switched off, so nothing is checking this resource.`,
+      headline: {
+        text: t.translateTemplate("Every probe is turned off for this monitor"),
+      },
+      explanation: t.translatePlural(
+        {
+          one: "{{count}} probe is attached but switched off, so nothing is checking this resource.",
+          other:
+            "{{count}} probes are attached but switched off, so nothing is checking this resource.",
+        },
+        probes.attachedCount,
+      ),
       lastKnownStatus: data.lastKnownStatus,
-      callToAction: { text: "Manage probes", linkKey: "probes" },
+      callToAction: manageProbes,
     };
   }
 
@@ -1464,48 +1638,78 @@ export default class MonitorOverviewPresentationUtil {
   }): MonitorOverviewHeroParts {
     const input: MonitorOverviewPresentationInput = data.input;
     const context: MonitorOverviewContext = data.context;
+    const t: Translator = context.t;
 
-    let headline: string = "Waiting for the first evaluation";
-    let explanation: string = `This monitor is evaluated ${context.intervalPhrase} once saved.`;
+    let headline: string = t.translateTemplate(
+      "Waiting for the first evaluation",
+    );
+    let explanation: string = t.translateTemplate(
+      "This monitor is evaluated {{interval}} once saved.",
+      { interval: context.intervalPhrase },
+    );
     let hasSetup: boolean = false;
-    // What has never arrived, for a push monitor the server has judged.
+    /*
+     * What has never arrived, for a push monitor the server has judged: the
+     * whole sentence, with how long ago the monitor was created in it.
+     */
     let missingSince: string | null = null;
 
     if (context.family === MonitorOverviewFamily.ProbeCheck) {
       const enabledCount: number = input.probes?.enabledCount || 0;
 
-      headline = "Waiting for the first check";
-      explanation = `${
-        enabledCount === 1 ? "1 probe checks" : `${enabledCount} probes check`
-      } this ${context.intervalPhrase}. The first result usually arrives within a few minutes.`;
+      headline = t.translateTemplate("Waiting for the first check");
+      explanation = t.translatePlural(
+        {
+          one: "{{count}} probe checks this {{interval}}. The first result usually arrives within a few minutes.",
+          other:
+            "{{count}} probes check this {{interval}}. The first result usually arrives within a few minutes.",
+        },
+        enabledCount,
+        { interval: context.intervalPhrase },
+      );
     } else if (context.family === MonitorOverviewFamily.NetworkDevice) {
-      headline = "Waiting for the first poll";
-      explanation =
-        "No poll or trap from this device has been evaluated yet. Check that a probe is assigned to poll it.";
+      headline = t.translateTemplate("Waiting for the first poll");
+      explanation = t.translateTemplate(
+        "No poll or trap from this device has been evaluated yet. Check that a probe is assigned to poll it.",
+      );
     } else if (context.family === MonitorOverviewFamily.ProbeStatus) {
-      explanation =
-        "This monitor checks the probes it watches every minute. The first result arrives within a minute or two.";
+      explanation = t.translateTemplate(
+        "This monitor checks the probes it watches every minute. The first result arrives within a minute or two.",
+      );
     } else if (input.monitorType === MonitorType.IncomingRequest) {
-      headline = "Waiting for the first heartbeat";
-      explanation =
-        "Send a GET or POST request to this monitor's heartbeat URL to start tracking it.";
+      headline = t.translateTemplate("Waiting for the first heartbeat");
+      explanation = t.translateTemplate(
+        "Send a GET or POST request to this monitor's heartbeat URL to start tracking it.",
+      );
       hasSetup = true;
-      missingSince = "No heartbeat has arrived";
+      missingSince = translationKey(
+        "No heartbeat has arrived since this monitor was created {{duration}} ago",
+      );
     } else if (input.monitorType === MonitorType.IncomingEmail) {
-      headline = "Waiting for the first email";
-      explanation =
-        "Send an email to this monitor's address to start tracking it.";
+      headline = t.translateTemplate("Waiting for the first email");
+      explanation = t.translateTemplate(
+        "Send an email to this monitor's address to start tracking it.",
+      );
       hasSetup = true;
-      missingSince = "No email has arrived";
+      missingSince = translationKey(
+        "No email has arrived since this monitor was created {{duration}} ago",
+      );
     } else if (context.family === MonitorOverviewFamily.Agent) {
-      headline = "Waiting for the agent to report";
-      explanation = "Install the server agent to start sending reports.";
+      headline = t.translateTemplate("Waiting for the agent to report");
+      explanation = t.translateTemplate(
+        "Install the server agent to start sending reports.",
+      );
       hasSetup = true;
-      missingSince = "The agent has not reported";
+      missingSince = translationKey(
+        "The agent has not reported since this monitor was created {{duration}} ago",
+      );
     }
 
     const callToAction: MonitorOverviewHeroParts["callToAction"] = hasSetup
-      ? { text: "Setup instructions", linkKey: "documentation" }
+      ? {
+          text: t.translateTemplate("Setup instructions"),
+          linkKey: "documentation",
+        }
       : undefined;
     const status: MonitorOverviewStatusRef | undefined = input.currentStatus;
 
@@ -1526,13 +1730,16 @@ export default class MonitorOverviewPresentationUtil {
 
       return {
         tone: statusTone,
-        badge: { text: "Waiting for data", tone: "info" },
+        badge: { text: t.translateTemplate("Waiting for data"), tone: "info" },
         secondaryBadges: [{ text: status.name, tone: statusTone }],
         headline: {
           text: input.createdAt
-            ? `${missingSince} since this monitor was created ${formatDurationCompact(
-                secondsSince(input.now, input.createdAt),
-              )} ago`
+            ? t.translateTemplate(missingSince, {
+                duration: formatDurationCompactInLanguage(
+                  secondsSince(input.now, input.createdAt),
+                  t.language,
+                ),
+              })
             : headline,
         },
         explanation: explanation,
@@ -1542,7 +1749,7 @@ export default class MonitorOverviewPresentationUtil {
 
     return {
       tone: "info",
-      badge: { text: "Waiting for data", tone: "info" },
+      badge: { text: t.translateTemplate("Waiting for data"), tone: "info" },
       secondaryBadges: [],
       headline: { text: headline },
       explanation: explanation,
@@ -1570,35 +1777,58 @@ export default class MonitorOverviewPresentationUtil {
   }): string {
     const input: MonitorOverviewPresentationInput = data.input;
     const context: MonitorOverviewContext = data.context;
+    const t: Translator = context.t;
     const isProbeCheck: boolean =
       context.family === MonitorOverviewFamily.ProbeCheck;
     const resultAgeSeconds: number | null = context.freshness.resultAgeSeconds;
 
     if (context.telemetry?.isMissingFromLog) {
-      return `No evaluation recorded in the last day, but this monitor is evaluated ${context.intervalPhrase}.`;
+      return t.translateTemplate(
+        "No evaluation recorded in the last day, but this monitor is evaluated {{interval}}.",
+        { interval: context.intervalPhrase },
+      );
     }
 
     if (resultAgeSeconds === null) {
-      const createdAgo: string = input.createdAt
-        ? formatDurationCompact(secondsSince(input.now, input.createdAt))
-        : formatDurationCompact(context.freshness.overdueSeconds || 0);
+      const createdAgo: string = formatDurationCompactInLanguage(
+        input.createdAt
+          ? secondsSince(input.now, input.createdAt)
+          : context.freshness.overdueSeconds || 0,
+        t.language,
+      );
 
       return isProbeCheck
-        ? `No check result has arrived since this monitor was created ${createdAgo} ago.`
-        : `No evaluation has run since this monitor was created ${createdAgo} ago.`;
+        ? t.translateTemplate(
+            "No check result has arrived since this monitor was created {{duration}} ago.",
+            { duration: createdAgo },
+          )
+        : t.translateTemplate(
+            "No evaluation has run since this monitor was created {{duration}} ago.",
+            { duration: createdAgo },
+          );
     }
 
-    const age: string = formatDurationCompact(resultAgeSeconds);
+    const age: string = formatDurationCompactInLanguage(
+      resultAgeSeconds,
+      t.language,
+    );
 
     return isProbeCheck
-      ? `No result for ${age}, but this monitor checks ${context.intervalPhrase}. A probe may be overloaded or offline.`
-      : `No evaluation for ${age}, but this monitor is evaluated ${context.intervalPhrase}.`;
+      ? t.translateTemplate(
+          "No result for {{duration}}, but this monitor checks {{interval}}. A probe may be overloaded or offline.",
+          { duration: age, interval: context.intervalPhrase },
+        )
+      : t.translateTemplate(
+          "No evaluation for {{duration}}, but this monitor is evaluated {{interval}}.",
+          { duration: age, interval: context.intervalPhrase },
+        );
   }
 
   private static getPulse(
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): MonitorOverviewPulse {
+    const t: Translator = context.t;
     const isScheduled: boolean =
       context.runState !== MonitorOverviewRunState.Paused &&
       context.runState !== MonitorOverviewRunState.NotChecking &&
@@ -1614,9 +1844,9 @@ export default class MonitorOverviewPresentationUtil {
         const nextAt: Date | undefined = input.probes?.nextCheckAt;
 
         return {
-          label: "Last checked",
+          label: t.translateTemplate("Last checked"),
           at: input.probes?.lastResultAt,
-          emptyText: "Not checked yet",
+          emptyText: t.translateTemplate("Not checked yet"),
           // A paused or unchecked monitor has no cadence to promise.
           cadenceText: isScheduled ? context.intervalText : undefined,
           nextAt:
@@ -1636,20 +1866,24 @@ export default class MonitorOverviewPresentationUtil {
          * schedule of its own to promise.
          */
         return {
-          label: isEmail ? "Last email" : "Last request",
+          label: isEmail
+            ? t.translateTemplate("Last email")
+            : t.translateTemplate("Last request"),
           at: isEmail
             ? input.email.lastReceivedAt
             : input.heartbeat.lastReceivedAt,
-          emptyText: isEmail ? "No email yet" : "No request yet",
+          emptyText: isEmail
+            ? t.translateTemplate("No email yet")
+            : t.translateTemplate("No request yet"),
           isUnavailable: false,
         };
       }
 
       case MonitorOverviewFamily.Agent:
         return {
-          label: "Last report",
+          label: t.translateTemplate("Last report"),
           at: input.agent.lastReportAt,
-          emptyText: "No report yet",
+          emptyText: t.translateTemplate("No report yet"),
           isUnavailable: false,
         };
 
@@ -1664,16 +1898,18 @@ export default class MonitorOverviewPresentationUtil {
         const isScheduledTime: boolean = Boolean(
           context.telemetry?.isScheduledTime,
         );
-        let emptyText: string = "Not evaluated yet";
+        let emptyText: string = t.translateTemplate("Not evaluated yet");
 
         if (isScheduledTime) {
-          emptyText = "Not scheduled yet";
+          emptyText = t.translateTemplate("Not scheduled yet");
         } else if (context.evaluationLog === "expired") {
-          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+          emptyText = t.translateTemplate(NOT_EVALUATED_IN_LOG_TEXT);
         }
 
         return {
-          label: isScheduledTime ? "Last scheduled" : "Last evaluated",
+          label: isScheduledTime
+            ? t.translateTemplate("Last scheduled")
+            : t.translateTemplate("Last evaluated"),
           at: context.telemetry?.lastAt,
           emptyText: emptyText,
           cadenceText: isScheduled ? context.intervalText : undefined,
@@ -1685,17 +1921,17 @@ export default class MonitorOverviewPresentationUtil {
       }
 
       case MonitorOverviewFamily.NetworkDevice: {
-        let emptyText: string = "Not evaluated yet";
+        let emptyText: string = t.translateTemplate("Not evaluated yet");
 
         if (context.evaluationStatus === "loading") {
-          emptyText = "Loading…";
+          emptyText = t.translateTemplate("Loading…");
         } else if (context.evaluationLog === "expired") {
-          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+          emptyText = t.translateTemplate(NOT_EVALUATED_IN_LOG_TEXT);
         }
 
         // The time only comes from the evaluation log, so it follows its read.
         return {
-          label: "Last evaluated",
+          label: t.translateTemplate("Last evaluated"),
           at:
             context.evaluationStatus === "loaded"
               ? input.latestEvaluationAt
@@ -1708,23 +1944,25 @@ export default class MonitorOverviewPresentationUtil {
       }
 
       case MonitorOverviewFamily.ProbeStatus: {
-        let emptyText: string = "Not evaluated yet";
+        let emptyText: string = t.translateTemplate("Not evaluated yet");
 
         if (context.evaluationStatus === "loading") {
-          emptyText = "Loading…";
+          emptyText = t.translateTemplate("Loading…");
         } else if (context.evaluationLog === "expired") {
-          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+          emptyText = t.translateTemplate(NOT_EVALUATED_IN_LOG_TEXT);
         }
 
         // Evaluated by the server every minute: that is its schedule.
         return {
-          label: "Last evaluated",
+          label: t.translateTemplate("Last evaluated"),
           at:
             context.evaluationStatus === "loaded"
               ? input.latestEvaluationAt
               : undefined,
           emptyText: emptyText,
-          cadenceText: isScheduled ? "Every minute" : undefined,
+          cadenceText: isScheduled
+            ? t.translateTemplate("Every minute")
+            : undefined,
           isUnavailable:
             context.evaluationStatus === "error" ||
             context.evaluationStatus === "forbidden",
@@ -1734,7 +1972,7 @@ export default class MonitorOverviewPresentationUtil {
       default:
         return {
           label: null,
-          emptyText: "No automated checks",
+          emptyText: t.translateTemplate("No automated checks"),
           isUnavailable: false,
         };
     }
@@ -1744,19 +1982,22 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): Array<MonitorOverviewFact> {
+    const t: Translator = context.t;
     const facts: Array<MonitorOverviewFact> = [];
 
     switch (context.family) {
       case MonitorOverviewFamily.ProbeCheck:
-        facts.push(MonitorOverviewPresentationUtil.getLatestResultFact(input));
+        facts.push(
+          MonitorOverviewPresentationUtil.getLatestResultFact(input, context),
+        );
 
         if (input.monitorType === MonitorType.SSLCertificate) {
           facts.push(
             input.probes === null
               ? {
                   key: "certificate-expiry",
-                  label: "Certificate expires",
-                  value: "Unavailable",
+                  label: t.translateTemplate("Certificate expires"),
+                  value: t.translateTemplate("Unavailable"),
                   isMuted: true,
                 }
               : MonitorOverviewPresentationUtil.getExpiryFact({
@@ -1765,6 +2006,7 @@ export default class MonitorOverviewPresentationUtil {
                   isValidCertificate:
                     input.probes.latestResult?.isValidCertificate,
                   now: input.now,
+                  translator: t,
                 }),
           );
         }
@@ -1774,14 +2016,15 @@ export default class MonitorOverviewPresentationUtil {
             input.probes === null
               ? {
                   key: "domain-expiry",
-                  label: "Domain expires",
-                  value: "Unavailable",
+                  label: t.translateTemplate("Domain expires"),
+                  value: t.translateTemplate("Unavailable"),
                   isMuted: true,
                 }
               : MonitorOverviewPresentationUtil.getExpiryFact({
                   key: "domain-expiry",
                   expiresAt: input.probes.latestResult?.domainExpiresAt,
                   now: input.now,
+                  translator: t,
                 }),
           );
         }
@@ -1805,23 +2048,29 @@ export default class MonitorOverviewPresentationUtil {
           ? input.email.lastCheckedAt
           : input.heartbeat.lastCheckedAt;
 
+        const windowLabel: string = isEmail
+          ? t.translateTemplate("Missing-email window")
+          : t.translateTemplate("Missing-request window");
+        const checkLabel: string = isEmail
+          ? t.translateTemplate("Last missing-email check")
+          : t.translateTemplate("Last missing-request check");
+
         facts.push(
           minutes === null
             ? {
                 key: "missing-window",
-                label: isEmail
-                  ? "Missing-email window"
-                  : "Missing-request window",
-                value: "Set in Criteria",
+                label: windowLabel,
+                value: t.translateTemplate("Set in Criteria"),
                 linkKey: "criteria",
               }
             : {
                 key: "missing-window",
-                label: isEmail
-                  ? "Missing-email window"
-                  : "Missing-request window",
-                value: pluralize(minutes, "minute", "minutes"),
-                secondary: "From this monitor's criteria",
+                label: windowLabel,
+                value: t.translatePlural(
+                  { one: "{{count}} minute", other: "{{count}} minutes" },
+                  minutes,
+                ),
+                secondary: t.translateTemplate("From this monitor's criteria"),
               },
         );
 
@@ -1829,18 +2078,14 @@ export default class MonitorOverviewPresentationUtil {
           lastCheckedAt
             ? {
                 key: "heartbeat-check",
-                label: isEmail
-                  ? "Last missing-email check"
-                  : "Last missing-request check",
+                label: checkLabel,
                 value: "",
                 valueDate: lastCheckedAt,
               }
             : {
                 key: "heartbeat-check",
-                label: isEmail
-                  ? "Last missing-email check"
-                  : "Last missing-request check",
-                value: "Not run yet",
+                label: checkLabel,
+                value: t.translateTemplate("Not run yet"),
                 isMuted: true,
               },
         );
@@ -1852,25 +2097,30 @@ export default class MonitorOverviewPresentationUtil {
 
         facts.push(
           hostname
-            ? { key: "host", label: "Host", value: hostname, isMono: true }
+            ? {
+                key: "host",
+                label: t.translateTemplate("Host"),
+                value: hostname,
+                isMono: true,
+              }
             : {
                 key: "host",
-                label: "Host",
-                value: "Not reported yet",
+                label: t.translateTemplate("Host"),
+                value: t.translateTemplate("Not reported yet"),
                 isMuted: true,
               },
         );
         facts.push(
           MonitorOverviewPresentationUtil.getPercentFact({
             key: "cpu",
-            label: "CPU",
+            label: t.translateTemplate("CPU"),
             percent: input.agent.cpuPercent,
           }),
         );
         facts.push(
           MonitorOverviewPresentationUtil.getPercentFact({
             key: "memory",
-            label: "Memory",
+            label: t.translateTemplate("Memory"),
             percent: input.agent.memoryPercent,
           }),
         );
@@ -1881,13 +2131,16 @@ export default class MonitorOverviewPresentationUtil {
       case MonitorOverviewFamily.Infrastructure:
         facts.push({
           key: "evaluates",
-          label: "Evaluates",
+          label: t.translateTemplate("Evaluates"),
           value: context.intervalText,
         });
         facts.push({
           key: "criteria",
-          label: "Criteria",
-          value: pluralize(context.stepCount, "step", "steps"),
+          label: t.translateTemplate("Criteria"),
+          value: t.translatePlural(
+            { one: "{{count}} step", other: "{{count}} steps" },
+            context.stepCount,
+          ),
           linkKey: "criteria",
         });
         break;
@@ -1897,22 +2150,22 @@ export default class MonitorOverviewPresentationUtil {
           context.networkDeviceId
             ? {
                 key: "device",
-                label: "Device",
-                value: "View device",
+                label: t.translateTemplate("Device"),
+                value: t.translateTemplate("View device"),
                 linkKey: "networkDevice",
                 linkId: context.networkDeviceId,
               }
             : {
                 key: "device",
-                label: "Device",
-                value: "Not selected",
+                label: t.translateTemplate("Device"),
+                value: t.translateTemplate("Not selected"),
                 isMuted: true,
               },
         );
         facts.push({
           key: "evaluated",
-          label: "Evaluated",
-          value: "On every poll and matching trap",
+          label: t.translateTemplate("Evaluated"),
+          value: t.translateTemplate("On every poll and matching trap"),
         });
         break;
 
@@ -1935,14 +2188,17 @@ export default class MonitorOverviewPresentationUtil {
           context.watchedProbeCount > 0
             ? {
                 key: "probes",
-                label: "Watches",
-                value: pluralize(context.watchedProbeCount, "probe", "probes"),
+                label: t.translateTemplate("Watches"),
+                value: t.translatePlural(
+                  { one: "{{count}} probe", other: "{{count}} probes" },
+                  context.watchedProbeCount,
+                ),
                 linkKey: "criteria",
               }
             : {
                 key: "probes",
-                label: "Watches",
-                value: "No probes picked",
+                label: t.translateTemplate("Watches"),
+                value: t.translateTemplate("No probes picked"),
                 isMuted: true,
                 linkKey: "criteria",
               },
@@ -1953,9 +2209,11 @@ export default class MonitorOverviewPresentationUtil {
       default:
         facts.push({
           key: "checks",
-          label: "Checks",
-          value: "None",
-          secondary: "Status is set by hand or by incidents",
+          label: t.translateTemplate("Checks"),
+          value: t.translateTemplate("None"),
+          secondary: t.translateTemplate(
+            "Status is set by hand or by incidents",
+          ),
         });
         break;
     }
@@ -1966,7 +2224,7 @@ export default class MonitorOverviewPresentationUtil {
      */
     return [
       ...facts.slice(0, MAX_FACTS - 1),
-      { key: "owners", label: "Owners", value: "" },
+      { key: "owners", label: t.translateTemplate("Owners"), value: "" },
     ];
   }
 
@@ -1980,20 +2238,25 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): MonitorOverviewFact {
+    const t: Translator = context.t;
     const base: { key: MonitorOverviewFactKey; label: string } = {
       key: "latest-result",
-      label: "Latest result",
+      label: t.translateTemplate("Latest result"),
     };
 
     if (
       context.evaluationStatus === "error" ||
       context.evaluationStatus === "forbidden"
     ) {
-      return { ...base, value: "Unavailable", isMuted: true };
+      return {
+        ...base,
+        value: t.translateTemplate("Unavailable"),
+        isMuted: true,
+      };
     }
 
     if (context.evaluationStatus === "loading") {
-      return { ...base, value: "Loading…", isMuted: true };
+      return { ...base, value: t.translateTemplate("Loading…"), isMuted: true };
     }
 
     const result: MonitorOverviewPresentationInput["probeStatus"] =
@@ -2005,8 +2268,8 @@ export default class MonitorOverviewPresentationUtil {
         value: "—",
         secondary:
           context.evaluationLog === "expired"
-            ? "None in the last day"
-            : "No results yet",
+            ? t.translateTemplate("None in the last day")
+            : t.translateTemplate("No results yet"),
         isMuted: true,
       };
     }
@@ -2022,19 +2285,26 @@ export default class MonitorOverviewPresentationUtil {
     if (total === 0) {
       return {
         ...base,
-        value: "No probes found",
-        secondary: "Pick probes again",
+        value: t.translateTemplate("No probes found"),
+        secondary: t.translateTemplate("Pick probes again"),
         tone: "warning",
       };
     }
 
+    // The probes' names go in as their owners named them.
     if (disconnected > 0) {
       return {
         ...base,
         value:
           total === 1
-            ? "Disconnected"
-            : `${disconnected} of ${total} disconnected`,
+            ? t.translateTemplate("Disconnected")
+            : t.translateTemplate(
+                "{{disconnected}} of {{total}} disconnected",
+                {
+                  disconnected: disconnected,
+                  total: total,
+                },
+              ),
         secondary: ProbeStatusMonitorUtil.joinProbeNames(
           ProbeStatusMonitorUtil.getDisconnectedProbes({ probes: probes }),
         ),
@@ -2044,7 +2314,13 @@ export default class MonitorOverviewPresentationUtil {
 
     return {
       ...base,
-      value: total === 1 ? "Connected" : `${total} of ${total} connected`,
+      value:
+        total === 1
+          ? t.translateTemplate("Connected")
+          : t.translateTemplate("{{connected}} of {{total}} connected", {
+              connected: total,
+              total: total,
+            }),
       // One probe is named; several connected need no list.
       secondary:
         total === 1 ? ProbeStatusMonitorUtil.joinProbeNames(probes) : undefined,
@@ -2054,14 +2330,20 @@ export default class MonitorOverviewPresentationUtil {
 
   private static getLatestResultFact(
     input: MonitorOverviewPresentationInput,
+    context: MonitorOverviewContext,
   ): MonitorOverviewFact {
+    const t: Translator = context.t;
     const base: { key: MonitorOverviewFactKey; label: string } = {
       key: "latest-result",
-      label: "Latest result",
+      label: t.translateTemplate("Latest result"),
     };
 
     if (input.probes === null) {
-      return { ...base, value: "Unavailable", isMuted: true };
+      return {
+        ...base,
+        value: t.translateTemplate("Unavailable"),
+        isMuted: true,
+      };
     }
 
     const result: MonitorOverviewProbeSummary["latestResult"] =
@@ -2071,7 +2353,7 @@ export default class MonitorOverviewPresentationUtil {
       return {
         ...base,
         value: "—",
-        secondary: "No results yet",
+        secondary: t.translateTemplate("No results yet"),
         isMuted: true,
       };
     }
@@ -2091,20 +2373,34 @@ export default class MonitorOverviewPresentationUtil {
       return {
         ...base,
         value: isScripted
-          ? `Mixed · ${upCount} passed, ${downCount} failed`
-          : `Mixed · ${upCount} up, ${downCount} down`,
+          ? t.translateTemplate("Mixed · {{up}} passed, {{down}} failed", {
+              up: upCount,
+              down: downCount,
+            })
+          : t.translateTemplate("Mixed · {{up}} up, {{down}} down", {
+              up: upCount,
+              down: downCount,
+            }),
         tone: "warning",
       };
     }
 
-    let value: string = "Reported";
+    /*
+     * The verdict in the reader's words, then the figures every language
+     * writes alike: "Up · 120 ms · HTTP 200".
+     */
+    let value: string = t.translateTemplate("Reported");
     let tone: MonitorOverviewTone = "neutral";
 
     if (result.isOnline === true) {
-      value = isScripted ? "Passed" : "Up";
+      value = isScripted
+        ? t.translateTemplate("Passed")
+        : t.translateTemplate("Up");
       tone = "good";
     } else if (result.isOnline === false) {
-      value = isScripted ? "Failed" : "Down";
+      value = isScripted
+        ? t.translateTemplate("Failed")
+        : t.translateTemplate("Down");
       tone = "danger";
     }
 
@@ -2120,13 +2416,14 @@ export default class MonitorOverviewPresentationUtil {
       value += ` · HTTP ${result.responseCode}`;
     }
 
+    // A failure cause is the probe's own message, as it wrote it.
     return {
       ...base,
       value: value,
       secondary:
         result.isOnline === false && result.failureCause
           ? result.failureCause
-          : `from ${result.probeName}`,
+          : t.translateTemplate("from {{probe}}", { probe: result.probeName }),
       tone: tone,
     };
   }
@@ -2135,26 +2432,44 @@ export default class MonitorOverviewPresentationUtil {
     input: MonitorOverviewPresentationInput,
     context: MonitorOverviewContext,
   ): MonitorOverviewFact {
+    const t: Translator = context.t;
     const base: {
       key: MonitorOverviewFactKey;
       label: string;
       linkKey: MonitorOverviewLinkKey;
-    } = { key: "probes", label: "Probes", linkKey: "probes" };
+    } = {
+      key: "probes",
+      label: t.translateTemplate("Probes"),
+      linkKey: "probes",
+    };
 
     if (input.probes === null) {
-      return { ...base, value: "Unavailable", isMuted: true };
+      return {
+        ...base,
+        value: t.translateTemplate("Unavailable"),
+        isMuted: true,
+      };
     }
 
     const probes: MonitorOverviewProbeSummary = input.probes;
     const downCount: number = probes.downCount || 0;
+    // Each part is a phrase of its own, so the " · " between them is no word.
     const connectionParts: Array<string> = [];
 
     if (probes.disabledCount > 0) {
-      connectionParts.push(`${probes.disabledCount} disabled`);
+      connectionParts.push(
+        t.translateTemplate("{{count}} disabled", {
+          count: probes.disabledCount,
+        }),
+      );
     }
 
     if (probes.disconnectedCount > 0) {
-      connectionParts.push(`${probes.disconnectedCount} disconnected`);
+      connectionParts.push(
+        t.translateTemplate("{{count}} disconnected", {
+          count: probes.disconnectedCount,
+        }),
+      );
     }
 
     const joinParts: (parts: Array<string>) => string | undefined = (
@@ -2166,7 +2481,7 @@ export default class MonitorOverviewPresentationUtil {
     if (probes.enabledCount === 0) {
       return {
         ...base,
-        value: "None enabled",
+        value: t.translateTemplate("None enabled"),
         secondary: joinParts(connectionParts),
         tone: "danger",
       };
@@ -2179,8 +2494,13 @@ export default class MonitorOverviewPresentationUtil {
     if (context.isPaused) {
       return {
         ...base,
-        value: `${probes.enabledCount} enabled`,
-        secondary: joinParts(["Checks paused", ...connectionParts]),
+        value: t.translateTemplate("{{count}} enabled", {
+          count: probes.enabledCount,
+        }),
+        secondary: joinParts([
+          t.translateTemplate("Checks paused"),
+          ...connectionParts,
+        ]),
         tone: "neutral",
       };
     }
@@ -2198,11 +2518,16 @@ export default class MonitorOverviewPresentationUtil {
       input.monitorType === MonitorType.SyntheticMonitor ||
       input.monitorType === MonitorType.CustomJavaScriptCode;
     // A probe that reports Down is reporting, but it is not fine.
-    const downPart: string = `${downCount} ${isScripted ? "failing" : "down"}`;
+    const downPart: string = isScripted
+      ? t.translateTemplate("{{count}} failing", { count: downCount })
+      : t.translateTemplate("{{count}} down", { count: downCount });
 
     return {
       ...base,
-      value: `${probes.reportingCount} of ${probes.enabledCount} reporting`,
+      value: t.translateTemplate("{{reporting}} of {{enabled}} reporting", {
+        reporting: probes.reportingCount,
+        enabled: probes.enabledCount,
+      }),
       secondary: joinParts(
         downCount > 0 ? [downPart, ...connectionParts] : connectionParts,
       ),
@@ -2260,7 +2585,9 @@ export default class MonitorOverviewPresentationUtil {
             (context.runState === MonitorOverviewRunState.NotConfigured ||
               isAwaiting)
           ),
-        description: layout.summaryDescription || "",
+        description: layout.summaryDescription
+          ? context.t.translateTemplate(layout.summaryDescription)
+          : "",
       },
       // The connection card only makes sense once something has connected.
       sideCard:
