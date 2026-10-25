@@ -2,6 +2,7 @@ import {
   AI_SRE,
   ASK_AI,
   CODE_PAGE,
+  EXTERNAL_MCP_SERVERS,
   GITHUB_APP,
   INFRASTRUCTURE_AI_AGENTS,
   LLM_PROVIDERS,
@@ -1616,6 +1617,36 @@ describe("MCP Server", () => {
       })
       .sort();
   }
+
+  /*
+   * The two MCP pages point at each other: this one is about assistants
+   * that connect to OneUptime, External MCP Servers about the servers
+   * OneUptime AI connects to - as the Dashboard's MCP Server page points to
+   * External MCP Servers.
+   */
+  it("points the other way, to External MCP Servers, as that page points here and the Dashboard's page does", () => {
+    const opening: string = englishPage(MCP_SERVER).split("\n## ")[0] || "";
+
+    expect(opening).toContain(
+      "This page is about AI assistants that connect to OneUptime. To let OneUptime AI use the tools of other MCP servers instead, such as AWS's or GitHub's, see [External MCP Servers](/docs/ai/external-mcp-servers).",
+    );
+    expect(
+      (englishPage(EXTERNAL_MCP_SERVERS).split("\n## ")[0] || "").includes(
+        "](/docs/ai/mcp-server)",
+      ),
+    ).toBe(true);
+
+    const dashboardPage: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Pages/Settings/McpServer.tsx",
+    );
+
+    expect(dashboardPage).toContain(
+      "RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS]",
+    );
+    expect(dashboardPage).toContain(
+      "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.",
+    );
+  });
 
   it("lists every record with CRUD tools, by its model's name", () => {
     /*

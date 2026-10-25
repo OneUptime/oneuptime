@@ -77,6 +77,11 @@ export interface ModelSwitchesCardChildSwitch<TBaseModel extends BaseModel> {
     | ((isTurningOn: boolean) => ModelSwitchConfirmation | undefined)
     | undefined;
   /*
+   * What its setting comes to right now, when that is not what its name
+   * promises (ModelSwitchRow's getWarning): drawn under its sentences.
+   */
+  getWarning?: ((isOn: boolean) => ReactNode) | undefined;
+  /*
    * The switch's data-testid. Its row is `${dataTestId}-row` and its
    * "Saved" status `${dataTestId}-status`.
    */
@@ -339,6 +344,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
         note={definition.note}
         isInverted={definition.isInverted}
         getConfirmation={definition.getConfirmation}
+        getWarning={definition.getWarning}
         modelAPI={props.modelAPI}
         childSwitches={
           children.length > 0

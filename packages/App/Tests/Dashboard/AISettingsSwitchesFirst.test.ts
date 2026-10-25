@@ -296,12 +296,13 @@ describe("every AI behaviour is a switch", () => {
       const fix: ProjectAiSwitchDefinition<string> = AI_LANE_SWITCHES[lane][1]!;
 
       /*
-       * What fixes: the AI agent where it happens, one of the runbooks, or
-       * a pull request - one of the ways it fixes, not a switch of its own.
+       * What fixes: the AI agent where it happens, one of the runbooks or
+       * of the project's external MCP servers, or a pull request - one of
+       * the ways it fixes, not a switch of its own.
        */
       expect(fix.description).toContain("through the AI agent");
       expect(fix.description).toContain(
-        "with one of your runbooks, or with a pull request.",
+        "with one of your runbooks or MCP servers, or with a pull request.",
       );
       expect(fix.children).toBeUndefined();
       /*

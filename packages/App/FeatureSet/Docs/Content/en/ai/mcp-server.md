@@ -9,6 +9,8 @@ The OneUptime MCP server lets an AI assistant work with your OneUptime project d
 - [Troubleshooting](#troubleshooting): Sign-in, permission and connection problems.
 :::
 
+This page is about AI assistants that connect to OneUptime. To let OneUptime AI use the tools of other MCP servers instead, such as AWS's or GitHub's, see [External MCP Servers](/docs/ai/external-mcp-servers).
+
 ## How it works
 
 The MCP server is part of every OneUptime instance, at `/mcp` on the same address as the dashboard, and speaks the streamable HTTP transport. There is nothing to install.

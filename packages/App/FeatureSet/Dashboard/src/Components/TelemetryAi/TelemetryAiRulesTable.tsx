@@ -303,6 +303,11 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
       cardProps={{
         title: TELEMETRY_AI_RULES_CARD_TITLE,
         description: copy.rulesCardDescription,
+        /*
+         * Its place on the page: a link to ".../ai/settings#<table id>" (the
+         * switch's "Review the AI rules") opens More settings at this table.
+         */
+        id: tableId,
       }}
       noItemsMessage={copy.noRulesMessage}
       sortBy="name"

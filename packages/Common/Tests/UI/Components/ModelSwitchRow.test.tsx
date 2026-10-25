@@ -85,6 +85,7 @@ import ModelSwitchRow, {
   ComponentProps,
   ModelSwitchConfirmation,
   getModelSwitchConfirmationWarningTestId,
+  getModelSwitchWarningTestId,
 } from "../../../UI/Components/ModelSwitch/ModelSwitchRow";
 import {
   announceModelSwitchSaved,
@@ -427,6 +428,110 @@ describe("ModelSwitchRow says what the switch does", () => {
     expect(
       screen.getByRole("switch", { name: "Enable MCP Server" }),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * What the setting comes to right now, when that is not what the switch's
+ * name promises (getWarning): "Every AI rule says Don't fix, so nothing is
+ * fixed" under Fix new incidents automatically, while it is on.
+ */
+describe("ModelSwitchRow says what its setting comes to, when that is a warning", () => {
+  const WARNING_ID: string = getModelSwitchWarningTestId(TEST_ID);
+
+  test("a line of its own under the sentences, marked, for the way the switch is set", async () => {
+    render(
+      monitoringRow({
+        initialValue: true,
+        getDescription: (): string => {
+          return "Checked.";
+        },
+        note: "History is kept.",
+        getWarning: (isOn: boolean): React.ReactNode => {
+          return isOn ? "Nothing is checked right now." : undefined;
+        },
+      }),
+    );
+
+    const warning: HTMLElement = screen.getByTestId(WARNING_ID);
+
+    expect(warning).toHaveTextContent("Nothing is checked right now.");
+    // In the row, after the switch's own sentences.
+    const row: HTMLElement = screen.getByTestId(`${TEST_ID}-row`);
+    expect(row).toContainElement(warning);
+    expect(row).toHaveTextContent(
+      "Checked. History is kept.Nothing is checked right now.",
+    );
+    // Marked, in the warning colour (Theme.css remaps it in dark mode).
+    expect(warning).toHaveClass("text-amber-800");
+    expect(warning.querySelector("svg")).not.toBeNull();
+
+    // Off, the function gives nothing: no line.
+    await press();
+
+    expect(screen.queryByTestId(WARNING_ID)).not.toBeInTheDocument();
+    expect(row).toHaveTextContent("Checked. History is kept.");
+  });
+
+  test("it describes the switch for a screen reader, with its sentences", () => {
+    render(
+      mcpRow({
+        initialValue: true,
+        getDescription: (): string => {
+          return "AI agents can read this status page.";
+        },
+        getWarning: (): React.ReactNode => {
+          return "No agent has read it yet.";
+        },
+      }),
+    );
+
+    const describedBy: string = theSwitch().getAttribute("aria-describedby")!;
+    const description: HTMLElement | null =
+      document.getElementById(describedBy);
+
+    expect(description).toHaveTextContent(
+      "AI agents can read this status page.",
+    );
+    expect(description).toContainElement(screen.getByTestId(WARNING_ID));
+  });
+
+  test("a switch with only a warning still says it, and one with none draws no line", () => {
+    const { unmount } = render(
+      mcpRow({
+        getWarning: (): React.ReactNode => {
+          return "Read nowhere.";
+        },
+      }),
+    );
+
+    expect(screen.getByTestId(WARNING_ID)).toHaveTextContent("Read nowhere.");
+    unmount();
+
+    render(mcpRow({}));
+
+    expect(screen.queryByTestId(WARNING_ID)).not.toBeInTheDocument();
+  });
+
+  test("a warning can hold a link, and the line keeps it", () => {
+    render(
+      mcpRow({
+        initialValue: true,
+        getWarning: (): React.ReactNode => {
+          return (
+            <span>
+              Nothing is read. <a href="#rules">Review the rules</a>
+            </span>
+          );
+        },
+      }),
+    );
+
+    expect(
+      within(screen.getByTestId(WARNING_ID)).getByRole("link", {
+        name: "Review the rules",
+      }),
+    ).toHaveAttribute("href", "#rules");
   });
 });
 

@@ -40,14 +40,29 @@ export interface ComponentProps {
   onChange?:
     | ((column: ModelSwitchColumn<Project>, isOn: boolean) => void)
     | undefined;
+  /*
+   * What a switch's setting comes to right now, when that is not what its
+   * name promises - "Every AI rule says Don't fix, so nothing is fixed"
+   * under Fix new incidents automatically, while it is on: a line under its
+   * sentences (ModelSwitchRow's getWarning). Nothing for the rest.
+   */
+  getWarning?:
+    | ((column: ModelSwitchColumn<Project>, isOn: boolean) => ReactNode)
+    | undefined;
   dataTestId: string;
 }
 
 // One switch as the shared card draws it, from the page's words.
 const toCardSwitch: (
   definition: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
+  getWarning?:
+    | ((column: ModelSwitchColumn<Project>, isOn: boolean) => ReactNode)
+    | undefined,
 ) => ModelSwitchesCardChildSwitch<Project> = (
   definition: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
+  getWarning?:
+    | ((column: ModelSwitchColumn<Project>, isOn: boolean) => ReactNode)
+    | undefined,
 ): ModelSwitchesCardChildSwitch<Project> => {
   return {
     column: definition.column,
@@ -56,6 +71,13 @@ const toCardSwitch: (
       return definition.description;
     },
     note: definition.note,
+    ...(getWarning
+      ? {
+          getWarning: (isOn: boolean): ReactNode => {
+            return getWarning(definition.column, isOn);
+          },
+        }
+      : {}),
     dataTestId: getProjectAiSwitchTestId(definition.column),
   };
 };
@@ -80,8 +102,14 @@ const ProjectAiSwitchesCard: FunctionComponent<ComponentProps> = (
           definition: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
         ): ModelSwitchesCardSwitch<Project> => {
           return {
-            ...toCardSwitch(definition),
-            children: definition.children?.map(toCardSwitch),
+            ...toCardSwitch(definition, props.getWarning),
+            children: definition.children?.map(
+              (
+                child: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
+              ): ModelSwitchesCardChildSwitch<Project> => {
+                return toCardSwitch(child, props.getWarning);
+              },
+            ),
           };
         },
       )}
