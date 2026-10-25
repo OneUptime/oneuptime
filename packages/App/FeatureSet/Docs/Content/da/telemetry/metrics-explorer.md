@@ -145,7 +145,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Målinger → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
-- **Målinger → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- **Målinger → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med metrikker, når de ankommer

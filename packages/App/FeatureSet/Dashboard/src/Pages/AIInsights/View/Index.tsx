@@ -23,10 +23,7 @@ import {
   getProfileInsightMonitorRoute,
 } from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
 import TelemetryAiFixStrip from "../../../Components/TelemetryAi/TelemetryAiFixStrip";
-import {
-  doesInsightOfferTelemetryAiFix,
-  getTelemetryAiFixLeadOfFinding,
-} from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
+import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -551,6 +548,7 @@ const AIInsightViewPage: FunctionComponent<
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
       profile: insight.evidence?.profile,
       trace: insight.evidence?.trace,
+      log: insight.evidence?.log,
       metric: insight.evidence?.metric,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
@@ -1158,10 +1156,12 @@ const AIInsightViewPage: FunctionComponent<
           )}
 
           {/*
-           * A slow, failing or under-traced operation with no fix yet:
-           * "Fix with AI" - the pull request OneUptime AI would open on its
-           * own, what an AI rule that asks before fixing leaves to a person.
-           * The task names this finding, and the finding links the task.
+           * A slow, failing or under-traced operation, or an error, missing
+           * or noisy log, with no fix yet: "Fix with AI" - the pull request
+           * OneUptime AI would open on its own, what an AI rule that asks
+           * before fixing leaves to a person. The task names this finding,
+           * and the finding links the task. Its evidence lets the lead say
+           * what the pull request does for what the logs lack.
            */}
           {doesInsightOfferTelemetryAiFix({
             insightType: insight.insightType,
@@ -1171,7 +1171,7 @@ const AIInsightViewPage: FunctionComponent<
             <TelemetryAiFixStrip
               insightId={modelId.toString()}
               insightType={insight.insightType}
-              lead={getTelemetryAiFixLeadOfFinding(insight)}
+              evidence={insight.evidence}
               onTaskStarted={() => {
                 fetchInsight().catch(() => {
                   // handled inside fetchInsight

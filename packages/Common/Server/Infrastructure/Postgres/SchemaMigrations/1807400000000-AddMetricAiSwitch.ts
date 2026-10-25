@@ -21,8 +21,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing else changes. The column with a constant default is added without
  * rewriting a row.
  */
-export class AddMetricAiSwitch1807300000000 implements MigrationInterface {
-  public name: string = "AddMetricAiSwitch1807300000000";
+export class AddMetricAiSwitch1807400000000 implements MigrationInterface {
+  public name: string = "AddMetricAiSwitch1807400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

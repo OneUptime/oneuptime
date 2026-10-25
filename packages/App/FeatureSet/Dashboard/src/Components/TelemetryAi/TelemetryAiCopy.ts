@@ -46,9 +46,9 @@ import {
  * shape the incidents' have: Match, Investigate, Fix.
  *
  * Traces is the second lane: an AI tab among its tabs, with the same three
- * pages under a side menu of its own. Exceptions is the third and Metrics
- * the fourth, the same way: an AI tab among their product's tabs. Logs adds
- * a lane to TelemetryAiLane and its words here; the pages are the lane's.
+ * pages under a side menu of its own. Exceptions is the third, the same
+ * way, Logs the fourth (its logs page named Activity) and Metrics the
+ * fifth: an AI tab among each product's tabs, the pages the lane's own.
  */
 
 // The pages of a lane's AI section.
@@ -79,6 +79,13 @@ export const TELEMETRY_AI_PAGES: Readonly<
     insightView: PageMap.EXCEPTIONS_AI_INSIGHT_VIEW,
     logs: PageMap.EXCEPTIONS_AI_LOGS,
     settings: PageMap.EXCEPTIONS_AI_SETTINGS,
+  },
+  // Its logs page is Activity: inside Logs, "Logs" would read as log lines.
+  [TelemetryAiLane.Log]: {
+    insights: PageMap.LOGS_AI_INSIGHTS,
+    insightView: PageMap.LOGS_AI_INSIGHT_VIEW,
+    logs: PageMap.LOGS_AI_ACTIVITY,
+    settings: PageMap.LOGS_AI_SETTINGS,
   },
   [TelemetryAiLane.Metric]: {
     insights: PageMap.METRICS_AI_INSIGHTS,
@@ -125,6 +132,12 @@ export interface TelemetryAiLaneCopy {
   investigationVerdicts?:
     | Readonly<Partial<Record<ErrorClass, string>>>
     | undefined;
+  /*
+   * What the page says when it cannot be read, with {{error}}; absent, the
+   * section's "Could not load the AI logs". Logs names the page Activity,
+   * so its words do too.
+   */
+  logsCouldNotLoad?: string | undefined;
 
   // Settings: the switches card and More settings.
   switchesCardDescription: string;
@@ -422,6 +435,109 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     },
   },
   /*
+   * Logs: error logs, missing logging and noisy logs (Common/Utils/Logs/
+   * LogInsight) - "problems in your logs" where all three are meant, and
+   * each by its name where one is. An error log's pull request opens on its
+   * own only once the investigation finds the code at fault: the Fix step's
+   * answer says so.
+   */
+  [TelemetryAiLane.Log]: {
+    noticeContext: ProjectAiNoticeContext.Logs,
+    ruleCriteriaSubject: RuleCriteriaSubject.Services,
+
+    // In the switch's own words: repeated errors, unlogged failures, noisy lines.
+    insightsIntro: translationKey(
+      "Every hour OneUptime checks your services' logs for repeated errors, unlogged failures and noisy lines, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+    ),
+    insightsEmptyTitle: translationKey("No error, missing or noisy logs found"),
+    insightsEmptyDescription: translationKey(
+      "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.",
+    ),
+    insightsOffEmptyTitle: translationKey(
+      "OneUptime is not looking for error, missing or noisy logs",
+    ),
+    insightsOffEmptyDescription: translationKey(
+      "Turn on 'Find and fix error, missing and noisy logs' in AI Settings, and OneUptime looks through your services' logs every hour.",
+    ),
+
+    logsIntro: translationKey(
+      "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.",
+    ),
+    logsEmptyTitle: translationKey("Nothing yet"),
+    logsEmptyDescription: translationKey(
+      "When OneUptime AI looks into a problem in your logs or opens a pull request for it, it shows up here.",
+    ),
+    logsCouldNotLoad: translationKey(
+      "Could not load the AI activity: {{error}}",
+    ),
+    /*
+     * What the investigation found decides an error log's pull request - it
+     * opens on its own only for a fault of the code - so each investigation
+     * in Activity says it, in the words Exceptions' Logs say it: a refused
+     * sign-in logged at Error is a check doing its job, a dependency that is
+     * down a cause outside the code.
+     */
+    investigationVerdicts: {
+      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
+      [ErrorClass.UserError]: translationKey(
+        "Found an expected error: invalid input",
+      ),
+      [ErrorClass.ExpectedDenial]: translationKey(
+        "Found an expected error: a check doing its job",
+      ),
+      [ErrorClass.Infrastructure]: translationKey(
+        "Found a cause outside the code",
+      ),
+      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
+    },
+
+    switchesCardDescription: translationKey(
+      "It works on error, missing and noisy logs on its own. Turn it off if you do not want it to.",
+    ),
+    advancedDescription: translationKey(
+      "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.",
+    ),
+    advancedDefaultsSummary: translationKey(
+      "OneUptime AI looks into every problem it finds in your logs right away, and opens a pull request for each one it can fix.",
+    ),
+    rulesCardDescription: translationKey(
+      "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.",
+    ),
+    noRulesMessage: translationKey(
+      "No rules. Every problem found in your logs is looked into, and a pull request opened for each one OneUptime AI can fix.",
+    ),
+
+    ruleNamePlaceholder: translationKey("Checkout services"),
+    waitDescription: translationKey(
+      "Counted from when the problem was first found. When several rules match, the shortest wait decides. At most 1440 (a day).",
+    ),
+    timing: {
+      [InvestigationRuleTiming.RightAway]: {
+        title: translationKey("Right away"),
+        description: translationKey(
+          "OneUptime AI starts as soon as the problem is found.",
+        ),
+      },
+      [InvestigationRuleTiming.AfterWait]: {
+        title: translationKey("Only if still found after a wait"),
+        description: translationKey(
+          "A problem that goes away during the wait is not looked into.",
+        ),
+      },
+    },
+    fixOptionDescriptions: {
+      [AiRuleFix.DoNotFix]: translationKey(
+        "OneUptime AI looks into the problem and writes what it found on the finding. It opens no pull request.",
+      ),
+      [AiRuleFix.AskFirst]: translationKey(
+        "The finding offers the pull request, and someone opens it with one click.",
+      ),
+      [AiRuleFix.WithoutAsking]: translationKey(
+        "OneUptime AI opens the pull request on its own, for an error log once it finds the code at fault. Nothing is ever merged.",
+      ),
+    },
+  },
+  /*
    * Metrics: metrics that record too many values, histograms whose buckets
    * do not fit, and busy services that send no metrics at all
    * (Common/Utils/Metrics/MetricInsight) - "problems in your metrics" where
@@ -573,6 +689,15 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception]
         .insightsEmptyDescription,
   },
+  [TelemetryAiLane.Log]: {
+    insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
+    viewPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Log].insightView,
+    settingsPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Log].settings,
+    intro: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsIntro,
+    emptyTitle: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsEmptyDescription,
+  },
   [TelemetryAiLane.Metric]: {
     insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
     viewPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Metric].insightView,
@@ -619,6 +744,13 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception]
         .insightsOffEmptyDescription,
+  },
+  [TelemetryAiLane.Log]: {
+    ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Log],
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyDescription,
   },
   [TelemetryAiLane.Metric]: {
     ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Metric],
@@ -688,6 +820,16 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       title: translationKey("Improve metrics and add missing ones"),
       description: translationKey(
         "Every hour OneUptime looks for metrics to improve and for metrics that are missing. OneUptime AI fixes what it can with pull requests.",
+      ),
+      note: translationKey("Needs a repository connected in Code."),
+    },
+  ],
+  [TelemetryAiLane.Log]: [
+    {
+      column: "enableAutomaticLogRemediation",
+      title: translationKey("Find and fix error, missing and noisy logs"),
+      description: translationKey(
+        "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.",
       ),
       note: translationKey("Needs a repository connected in Code."),
     },
@@ -853,6 +995,45 @@ export function getTelemetryAiLogVerdict(
       entry.classification as ErrorClass
     ] || null
   );
+}
+
+/*
+ * Which rows of a list say what their investigation found: the newest done
+ * investigation of each finding that has a verdict to say, and no other. A
+ * finding keeps one verdict - the one its last triage wrote, which the
+ * server hands every finished investigation of it - so an older
+ * investigation of the same finding, which may have found otherwise, says
+ * nothing rather than borrow it, and one still on its way has found
+ * nothing yet. The list is newest first and Load More appends older rows,
+ * so the newer rows are always read before an older one.
+ */
+export function getTelemetryAiLogVerdictRunIds(
+  lane: TelemetryAiLane,
+  entries: ReadonlyArray<{
+    runId: string;
+    kind: TelemetryAiLogKind;
+    state: TelemetryAiLogState;
+    classification?: string | undefined;
+    insight: { id: string };
+  }>,
+): Set<string> {
+  const saidFor: Set<string> = new Set<string>();
+  const runIds: Set<string> = new Set<string>();
+
+  for (const entry of entries) {
+    if (
+      entry.state !== TelemetryAiLogState.Done ||
+      !getTelemetryAiLogVerdict(lane, entry) ||
+      saidFor.has(entry.insight.id)
+    ) {
+      continue;
+    }
+
+    saidFor.add(entry.insight.id);
+    runIds.add(entry.runId);
+  }
+
+  return runIds;
 }
 
 export const TELEMETRY_AI_LOGS_SHOWING: PluralTemplate = {

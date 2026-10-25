@@ -394,7 +394,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         );
 
         expect((error as Error).message).toBe(
-          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Metric.",
+          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric.",
         );
       }
     });
@@ -509,7 +509,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           })) as Error
         ).message,
       ).toBe(
-        "Services can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
+        "Services can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
       expect(
         (
@@ -519,7 +519,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           })) as Error
         ).message,
       ).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
     });
 
@@ -538,7 +538,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       );
 
       expect((refused.error as Error).message).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
     });
 
@@ -596,6 +596,56 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         (
           await updateError({ serviceNamePattern: "^api" }, [
             { triggerEntityType: Trace, investigates: true, fixes: true },
+          ])
+        ).error,
+      ).toBeNull();
+    });
+  });
+
+  /*
+   * Logs' AI rules match on the service too: the same columns and
+   * conditions a profile or a trace rule uses, refused to incident and
+   * alert rules.
+   */
+  describe("a log AI rule", () => {
+    const Log: AutoRemediationTriggerEntity = AutoRemediationTriggerEntity.Log;
+
+    it("is accepted on the service's conditions and columns", async () => {
+      expect(
+        await createError({
+          triggerEntityType: Log,
+          investigates: true,
+          fixes: true,
+          criteria: criteriaOn("services"),
+        }),
+      ).toBeNull();
+      expect(
+        await createError({
+          triggerEntityType: Log,
+          investigates: true,
+          serviceNamePattern: "^checkout",
+          serviceLabels: [ref(Label)],
+        }),
+      ).toBeNull();
+    });
+
+    it("is refused an incident's criteria", async () => {
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Log,
+            investigates: true,
+            criteria: criteriaOn("incidentSeverities"),
+          })) as Error
+        ).message,
+      ).toBe("Incident Severities can only be used by incident AI rules.");
+    });
+
+    it("an edit that writes a service pattern on a log rule is accepted", async () => {
+      expect(
+        (
+          await updateError({ serviceNamePattern: "^api" }, [
+            { triggerEntityType: Log, investigates: true, fixes: true },
           ])
         ).error,
       ).toBeNull();
@@ -671,7 +721,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       );
 
       expect((refused.error as Error).message).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules or metric AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
     });
   });

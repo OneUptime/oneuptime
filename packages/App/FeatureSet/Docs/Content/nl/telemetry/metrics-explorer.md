@@ -145,7 +145,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Metrieken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Metrieken**, dat haar metriek voor haar service opent, uit het uur waarin ze werd gevonden. Een service zonder metrieken biedt in plaats daarvan **Openen in Traces** aan: de spans die haar metrieken zouden meten.
-- **Metrieken → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- **Metrieken → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met metrieken gebeurt als ze binnenkomen

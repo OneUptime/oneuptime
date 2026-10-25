@@ -282,6 +282,61 @@ export interface TraceInsightEvidence {
   codeLocations?: Array<PerformanceCodeLocation> | undefined;
 }
 
+/*
+ * Evidence for the Logs product's insights (LogErrorPattern,
+ * LogMissingLogging, LogNoisyPattern): one service's logs over the hour they
+ * were read in, and what was found in them (Utils/Logs/LogInsight). `kind`
+ * says which of the three it is; `gap` says, for missing logging, what the
+ * logs lack. A message is kept as its pattern - every value that changes
+ * from line to line masked (Utils/Telemetry/LogErrorPattern), then
+ * sanitized - never as a line was logged: a log line may hold whatever the
+ * code put in it.
+ */
+export interface LogInsightEvidence {
+  serviceId: string;
+  // "Error", "MissingLogging" or "Noisy" (Utils/Logs/LogInsight).
+  kind: string;
+  // MissingLogging only: "SilentFailures" or "NoTraceContext".
+  gap?: string | undefined;
+  // ISO-8601: the hour it was read in.
+  windowStartTime: string;
+  windowEndTime: string;
+  // The service's logs in the window, at every severity.
+  logCount: number;
+  // Of them, the ones at Error or Fatal severity.
+  errorLogCount?: number | undefined;
+  // Error and Noisy: the message's pattern, and its lines in the window.
+  pattern?: string | undefined;
+  patternCount?: number | undefined;
+  // The severities its lines were logged at.
+  severities?: Array<string> | undefined;
+  /*
+   * A run of the message's own words, found as written in a line it was
+   * logged in: what the Logs viewer and a Logs monitor search the body for.
+   */
+  searchText?: string | undefined;
+  // Noisy: its share of the lines read, and how many were read.
+  patternPercent?: number | undefined;
+  sampledLogCount?: number | undefined;
+  // Error: the traces its lines were logged in, and a few of them.
+  traceCount?: number | undefined;
+  sampleTraceIds?: Array<string> | undefined;
+  // NoTraceContext: the logs that carried a trace id, and the service's spans.
+  tracedLogCount?: number | undefined;
+  serviceSpanCount?: number | undefined;
+  // SilentFailures: the operation, its spans and failed spans in the window.
+  operationName?: string | undefined;
+  operationSpanCount?: number | undefined;
+  failedSpanCount?: number | undefined;
+  // SilentFailures: the most recent failed requests read, none of which logged.
+  failedSampleSize?: number | undefined;
+  sampleTraceId?: string | undefined;
+  // SilentFailures: what the failed spans recorded, when they recorded it.
+  error?: TraceInsightErrorEvidence | undefined;
+  // code.* attribute locations, to find the repository that holds the code.
+  codeLocations?: Array<PerformanceCodeLocation> | undefined;
+}
+
 // Another attribute of the same metric that also took many values.
 export interface MetricInsightAttributeEvidence {
   key: string;
@@ -368,6 +423,7 @@ export interface AIInsightEvidence {
   profile?: ProfileInsightEvidence | undefined;
   trace?: TraceInsightEvidence | undefined;
   exceptionStackTrace?: ExceptionStackTraceInsightEvidence | undefined;
+  log?: LogInsightEvidence | undefined;
   metric?: MetricInsightEvidence | undefined;
 }
 

@@ -195,6 +195,13 @@ export interface ErrorPatternFilters {
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
+  /*
+   * Leave out the lines that record an exception in their attributes
+   * (LOG_EXCEPTION_ATTRIBUTE_KEYS): an error with an exception is grouped,
+   * and fixed, as an exception (LogExceptionExtractor). The Logs product's
+   * AI section reads only the other ones (Utils/Logs/LogInsight).
+   */
+  excludeExceptionRecords?: boolean | undefined;
 }
 
 export interface TopErrorPatternsRequest extends ErrorPatternFilters {
@@ -267,6 +274,97 @@ export interface ErrorPatternSample {
   resourceId: string;
   traceId: string;
   spanId: string;
+}
+
+/*
+ * THE READS OF THE LOGS PRODUCT'S AI SECTION (Utils/Logs/LogInsight), made
+ * once an hour for each project with "Find and fix error, missing and noisy
+ * logs" on, unattended - so each is bounded: one hour, one service where it
+ * can be, a sample where a whole hour would be too much, and a time limit
+ * that stops it with an error rather than an answer about part of the hour.
+ */
+
+// The attributes a log line records an exception in (LogExceptionExtractor).
+export const LOG_EXCEPTION_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
+  "exception.type",
+  "exception.message",
+  "exception.stacktrace",
+];
+
+/*
+ * The attributes that say where in the code a line was logged: the older
+ * and the newer OpenTelemetry names (code.filepath and code.file.path, ...)
+ * - the Python logging handler and the Java appenders write them.
+ */
+export const LOG_CODE_FILE_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
+  "code.filepath",
+  "code.file.path",
+];
+export const LOG_CODE_FUNCTION_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
+  "code.function",
+  "code.function.name",
+];
+export const LOG_CODE_LINE_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
+  "code.lineno",
+  "code.line.number",
+];
+
+export interface ServiceLogHealthRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  // Services returned, busiest first.
+  limit: number;
+}
+
+// One service's logs over the window: every one, the errors, the traced.
+export interface ServiceLogHealthRow {
+  primaryEntityId: string;
+  logCount: number;
+  errorLogCount: number;
+  tracedLogCount: number;
+}
+
+// Where in the code a message's lines were logged, and how many of them.
+export interface ErrorPatternCodeLocation {
+  filePath: string;
+  functionName: string;
+  lineNumber: string;
+  count: number;
+}
+
+export interface ServiceLogPatternsRequest {
+  projectId: ObjectID;
+  serviceId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  // The most lines of the service the sample reads.
+  sampleSize: number;
+  // The messages returned, the most lines first.
+  limit: number;
+}
+
+// One message of a service's sampled lines, at every severity.
+export interface ServiceLogPattern {
+  pattern: string;
+  // The newest line of the group as it was logged: for checks, never kept.
+  sampleBody: string;
+  count: number;
+  severities: Array<string>;
+}
+
+export interface ServiceLogPatterns {
+  // The lines the sample read.
+  sampledLogCount: number;
+  patterns: Array<ServiceLogPattern>;
+}
+
+export interface TraceLogCountsRequest {
+  projectId: ObjectID;
+  serviceId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  traceIds: Array<string>;
 }
 
 export class LogAggregationService {
@@ -1609,6 +1707,396 @@ export class LogAggregationService {
     });
   }
 
+  /*
+   * How long one of the AI section's unattended reads may run: under the
+   * ClickHouse client's 58 s request timeout, and stopped with an error
+   * ('throw') - a count over part of the hour is wrong, not smaller.
+   */
+  private static readonly LOG_INSIGHT_READ_TIME_LIMIT_IN_SECONDS: number = 45;
+
+  // The most services the log health read groups.
+  private static readonly LOG_HEALTH_MAX_ROWS: number = 1000;
+
+  // The most code locations a message's read returns.
+  private static readonly CODE_LOCATION_LIMIT: number = 3;
+
+  // The most traces one trace-log count names.
+  private static readonly TRACE_LOG_COUNT_MAX_TRACES: number = 100;
+
+  private static logInsightQuerySettings(): string {
+    return getQuerySettings({
+      maxExecutionTimeInSeconds:
+        LogAggregationService.LOG_INSIGHT_READ_TIME_LIMIT_IN_SECONDS,
+      timeoutOverflowMode: "throw",
+    });
+  }
+
+  /**
+   * Every service's logs over a window - all of them, the ones at Error or
+   * Fatal severity, and the ones that carried a trace id - busiest first:
+   * the first read of the Logs product's AI section, once an hour, for the
+   * whole project at once (Utils/Logs/LogInsight). One pass over the hour,
+   * three columns of it; the window is half-open, as the trace health read.
+   */
+  @CaptureSpan()
+  public static async getServiceLogHealth(
+    request: ServiceLogHealthRequest,
+  ): Promise<Array<ServiceLogHealthRow>> {
+    const statement: Statement =
+      LogAggregationService.buildServiceLogHealthStatement(request);
+
+    return LogAggregationService.toServiceLogHealth(
+      await LogAggregationService.runQuery(statement),
+      request.limit,
+    );
+  }
+
+  public static buildServiceLogHealthStatement(
+    request: ServiceLogHealthRequest,
+  ): Statement {
+    const statement: Statement = SQL`SELECT toString(primaryEntityId) AS entityId, count() AS cnt, countIf(severityText IN (${{
+      type: TableColumnType.Text,
+      value: new Includes([...DEFAULT_ERROR_LOG_SEVERITIES]),
+    }})) AS errorCnt, countIf(ifNull(traceId, '') != '') AS tracedCnt FROM ${LogAggregationService.TABLE_NAME}`;
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND time < ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
+
+    statement.append(
+      SQL` GROUP BY entityId ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: LogAggregationService.LOG_HEALTH_MAX_ROWS,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.logInsightQuerySettings());
+
+    return statement;
+  }
+
+  /*
+   * The grouped rows, one per service - busiest first, then by id - cut to
+   * the limit. Pure.
+   */
+  public static toServiceLogHealth(
+    rows: Array<JSONObject>,
+    limit: number,
+  ): Array<ServiceLogHealthRow> {
+    const byService: Map<string, ServiceLogHealthRow> = new Map<
+      string,
+      ServiceLogHealthRow
+    >();
+
+    for (const row of rows) {
+      const entityId: string = String(row["entityId"] ?? "")
+        .trim()
+        .toLowerCase();
+      const count: number = Number(row["cnt"] || 0);
+
+      if (!entityId || !Number.isFinite(count) || count <= 0) {
+        continue;
+      }
+
+      const health: ServiceLogHealthRow = byService.get(entityId) || {
+        primaryEntityId: entityId,
+        logCount: 0,
+        errorLogCount: 0,
+        tracedLogCount: 0,
+      };
+
+      const errors: number = Number(row["errorCnt"] || 0);
+      const traced: number = Number(row["tracedCnt"] || 0);
+
+      health.logCount += count;
+      health.errorLogCount += Number.isFinite(errors) ? errors : 0;
+      health.tracedLogCount += Number.isFinite(traced) ? traced : 0;
+
+      byService.set(entityId, health);
+    }
+
+    return Array.from(byService.values())
+      .sort((a: ServiceLogHealthRow, b: ServiceLogHealthRow): number => {
+        return (
+          b.logCount - a.logCount ||
+          a.primaryEntityId.localeCompare(b.primaryEntityId)
+        );
+      })
+      .slice(0, Math.max(0, limit));
+  }
+
+  /**
+   * Where in the code one message's lines were logged, from the code.*
+   * attributes the lines carry (LOG_CODE_*_ATTRIBUTE_KEYS), the most lines
+   * first - only the lines that carry a file, which attributeKeys' bloom
+   * filter finds without reading the map of every line.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternCodeLocations(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternCodeLocation>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternCodeLocationsStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternCodeLocation => {
+        return {
+          filePath: String(row["filePath"] || ""),
+          functionName: String(row["functionName"] || ""),
+          lineNumber: String(row["lineNumber"] || ""),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((location: ErrorPatternCodeLocation): boolean => {
+        return location.filePath.trim().length > 0;
+      });
+  }
+
+  // The first of the attributes that is set: `if(a != '', a, b)`.
+  private static firstSetAttribute(keys: ReadonlyArray<string>): string {
+    const [first, ...rest] = keys;
+
+    if (!first) {
+      return "''";
+    }
+
+    const own: string = `attributes['${first}']`;
+
+    return rest.length === 0
+      ? own
+      : `if(${own} != '', ${own}, ${LogAggregationService.firstSetAttribute(rest)})`;
+  }
+
+  public static buildErrorPatternCodeLocationsStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const statement: Statement = new Statement();
+
+    // Trusted class constants: the attribute names are this file's own.
+    statement.append(
+      `SELECT ${LogAggregationService.firstSetAttribute(LOG_CODE_FILE_ATTRIBUTE_KEYS)} AS filePath, ${LogAggregationService.firstSetAttribute(LOG_CODE_FUNCTION_ATTRIBUTE_KEYS)} AS functionName, ${LogAggregationService.firstSetAttribute(LOG_CODE_LINE_ATTRIBUTE_KEYS)} AS lineNumber, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      SQL` AND hasAny(attributeKeys, ${{
+        type: TableColumnType.ArrayText,
+        value: [...LOG_CODE_FILE_ATTRIBUTE_KEYS],
+      }})`,
+    );
+
+    statement.append(
+      SQL` GROUP BY filePath, functionName, lineNumber HAVING filePath != '' ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.min(
+          Math.max(1, Math.floor(request.limit || 1)),
+          LogAggregationService.CODE_LOCATION_LIMIT,
+        ),
+      }}`,
+    );
+
+    statement.append(LogAggregationService.logInsightQuerySettings());
+
+    return statement;
+  }
+
+  /**
+   * One service's messages - at every severity - over a sample of its lines
+   * in the window, the most lines first, with how many lines the sample read:
+   * what a noisy log is told by (Utils/Logs/LogInsight). The sample is the
+   * first sampleSize lines the service's window yields, in no order - an
+   * ORDER BY would read the whole window to find the newest - so a busy
+   * service costs what a quiet one does.
+   */
+  @CaptureSpan()
+  public static async getServiceLogPatterns(
+    request: ServiceLogPatternsRequest,
+  ): Promise<ServiceLogPatterns> {
+    const statement: Statement =
+      LogAggregationService.buildServiceLogPatternsStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    let sampledLogCount: number = 0;
+
+    const patterns: Array<ServiceLogPattern> = rows
+      .map((row: JSONObject): ServiceLogPattern => {
+        const sampled: number = Number(row["sampled"] || 0);
+
+        if (Number.isFinite(sampled) && sampled > sampledLogCount) {
+          sampledLogCount = sampled;
+        }
+
+        return {
+          pattern: String(row["pattern"] || ""),
+          sampleBody: String(row["sampleBody"] || ""),
+          count: Number(row["cnt"] || 0),
+          severities: LogAggregationService.toStringArray(row["severities"]),
+        };
+      })
+      .filter((item: ServiceLogPattern): boolean => {
+        return item.pattern.length > 0;
+      });
+
+    return { sampledLogCount, patterns };
+  }
+
+  public static buildServiceLogPatternsStatement(
+    request: ServiceLogPatternsRequest,
+  ): Statement {
+    const severityLimit: number =
+      LogAggregationService.ERROR_PATTERN_SEVERITY_ARRAY_LIMIT;
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      "SELECT pattern, cnt, sampleBody, severities, sum(cnt) OVER () AS sampled FROM (SELECT ",
+    );
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(
+      ` AS pattern, count() AS cnt, argMax(ifNull(body, ''), time) AS sampleBody, groupUniqArray(${severityLimit})(toString(severityText)) AS severities FROM (SELECT body, time, severityText FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND time < ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }} AND primaryEntityId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.serviceId,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
+    statement.append(LogAggregationService.NON_EMPTY_BODY_FILTER);
+
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.floor(request.sampleSize)),
+      }}) GROUP BY pattern)`,
+    );
+
+    statement.append(
+      SQL` WHERE pattern != '' ORDER BY cnt DESC, pattern ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: LogAggregationService.clampErrorPatternLimit(request.limit),
+      }}`,
+    );
+
+    statement.append(LogAggregationService.logInsightQuerySettings());
+
+    return statement;
+  }
+
+  /**
+   * How many lines one service logged in each of the given traces over the
+   * window: whether a failed request wrote a log line (Utils/Logs/
+   * LogInsight). The traceId bloom filter finds the few granules that hold
+   * them. Traces with no line are absent from the map.
+   */
+  @CaptureSpan()
+  public static async getServiceLogCountsByTrace(
+    request: TraceLogCountsRequest,
+  ): Promise<Map<string, number>> {
+    const counts: Map<string, number> = new Map<string, number>();
+    const traceIds: Array<string> = LogAggregationService.toTraceIds(
+      request.traceIds,
+    );
+
+    if (traceIds.length === 0) {
+      return counts;
+    }
+
+    const rows: Array<JSONObject> = await LogAggregationService.runQuery(
+      LogAggregationService.buildServiceLogCountsByTraceStatement({
+        ...request,
+        traceIds,
+      }),
+    );
+
+    for (const row of rows) {
+      const traceId: string = String(row["traceId"] || "")
+        .trim()
+        .toLowerCase();
+      const count: number = Number(row["cnt"] || 0);
+
+      if (traceId && Number.isFinite(count) && count > 0) {
+        counts.set(traceId, (counts.get(traceId) || 0) + count);
+      }
+    }
+
+    return counts;
+  }
+
+  // The trace ids a count names: trimmed, distinct, bounded.
+  private static toTraceIds(traceIds: Array<string>): Array<string> {
+    return Array.from(
+      new Set(
+        (traceIds || [])
+          .map((traceId: string): string => {
+            return String(traceId || "").trim();
+          })
+          .filter((traceId: string): boolean => {
+            return traceId.length > 0;
+          }),
+      ),
+    ).slice(0, LogAggregationService.TRACE_LOG_COUNT_MAX_TRACES);
+  }
+
+  public static buildServiceLogCountsByTraceStatement(
+    request: TraceLogCountsRequest,
+  ): Statement {
+    const statement: Statement = SQL`SELECT traceId, count() AS cnt FROM ${LogAggregationService.TABLE_NAME} WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: request.projectId,
+    }} AND time >= ${{
+      type: TableColumnType.Date,
+      value: request.startTime,
+    }} AND time < ${{
+      type: TableColumnType.Date,
+      value: request.endTime,
+    }} AND primaryEntityId = ${{
+      type: TableColumnType.ObjectID,
+      value: request.serviceId,
+    }} AND traceId IN (${{
+      type: TableColumnType.Text,
+      value: new Includes(request.traceIds),
+    }})`;
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
+    statement.append(" GROUP BY traceId");
+    statement.append(LogAggregationService.logInsightQuerySettings());
+
+    return statement;
+  }
+
   private static async runQuery(
     statement: Statement,
   ): Promise<Array<JSONObject>> {
@@ -1683,6 +2171,16 @@ export class LogAggregationService {
           ? request.severityTexts
           : DEFAULT_ERROR_LOG_SEVERITIES,
     });
+
+    if (request.excludeExceptionRecords) {
+      // attributeKeys' bloom filter answers this without reading the map.
+      statement.append(
+        SQL` AND NOT hasAny(attributeKeys, ${{
+          type: TableColumnType.ArrayText,
+          value: [...LOG_EXCEPTION_ATTRIBUTE_KEYS],
+        }})`,
+      );
+    }
   }
 
   /*

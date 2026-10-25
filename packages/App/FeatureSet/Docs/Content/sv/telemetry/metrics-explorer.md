@@ -145,7 +145,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ### Se vad den gjorde
 
 - **Mått → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
-- **Mått → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står.
+- **Mått → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Vad som händer med mätvärden när de kommer in

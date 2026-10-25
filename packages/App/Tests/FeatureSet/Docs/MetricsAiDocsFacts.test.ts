@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { AiRuleFix } from "Common/Types/AI/AiRule";
 import AIInsightType from "Common/Types/AI/AIInsightType";
+import ErrorClass from "Common/Types/Telemetry/ErrorClass";
 import {
   TELEMETRY_AI_LANES,
   TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY,
@@ -232,6 +233,24 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     expect(section).not.toContain("only once it finds the code at fault");
   });
 
+  it("says Logs show what each investigation found, as the lane's Logs say it", () => {
+    const verdicts: Readonly<Record<string, string | undefined>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].investigationVerdicts ||
+      {};
+
+    // The verdicts a metric problem's investigation can reach are worded.
+    expect(Object.keys(verdicts).sort()).toEqual(
+      [
+        ErrorClass.CodeFault,
+        ErrorClass.Infrastructure,
+        ErrorClass.Unknown,
+      ].sort(),
+    );
+    expect(section).toContain(
+      "- **Metrics → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.",
+    );
+  });
+
   it("names the switch as the Settings page draws it, on for new projects", () => {
     const switches: ReadonlyArray<{ column: string; title: string }> =
       TELEMETRY_AI_SWITCHES[TelemetryAiLane.Metric];
@@ -339,14 +358,20 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     const prefill: string = readSource(
       "App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorPrefill.ts",
     );
-    const without: string = prefill.slice(
-      prefill.indexOf("const AI_INSIGHT_TYPES_WITHOUT_MONITOR"),
-      prefill.indexOf("export function isAIInsightMonitorOffered"),
+    // The kinds no monitor could ever watch, Logs' and Metrics' findings.
+    const start: number = prefill.indexOf(
+      "export const AI_INSIGHT_TYPES_NOT_MONITORED",
     );
+    const notMonitored: string = prefill.slice(
+      start,
+      prefill.indexOf("];", start),
+    );
+
+    expect(start).toBeGreaterThan(-1);
 
     for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Metric]
       .insightTypes) {
-      expect(without).toContain(`AIInsightType.${insightType}`);
+      expect(notMonitored).toContain(`AIInsightType.${insightType}`);
     }
 
     expect(section).not.toContain("Create Monitor");

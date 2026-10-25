@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { LOG_INSIGHT_WINDOW_MINUTES } from "Common/Utils/Logs/LogInsight";
 import MetricExplorerUrl, {
   SerializedMetricQuery,
 } from "Common/Utils/Metrics/MetricExplorerUrl";
@@ -159,6 +160,19 @@ describe("getInsightDetectionWindow", () => {
       {
         insightType: AIInsightType.DeployRegression,
         expectedStart: "2026-08-14T08:00:00.000Z",
+      },
+      // Logs' findings read one hour.
+      {
+        insightType: AIInsightType.LogErrorPattern,
+        expectedStart: "2026-08-14T09:00:00.000Z",
+      },
+      {
+        insightType: AIInsightType.LogMissingLogging,
+        expectedStart: "2026-08-14T09:00:00.000Z",
+      },
+      {
+        insightType: AIInsightType.LogNoisyPattern,
+        expectedStart: "2026-08-14T09:00:00.000Z",
       },
     ];
 
@@ -990,6 +1004,200 @@ describe("buildInsightInvestigationLink — Traces' findings", () => {
   });
 });
 
+/*
+ * Logs' findings (LogErrorPattern, LogMissingLogging, LogNoisyPattern): the
+ * logs explorer on the service, in the hour the finding was read in, with
+ * the message's own words as a contains-match chip - at Error and Fatal for
+ * an error log, at the severities it was logged at for a noisy one. A
+ * failure that writes no log line has no lines to show: it opens the
+ * operation's failed spans in the traces explorer.
+ */
+describe("buildInsightInvestigationLink — Logs' findings", () => {
+  const LOG_WINDOW: {
+    windowStartTime: string;
+    windowEndTime: string;
+  } = {
+    windowStartTime: "2026-08-14T09:00:00.000Z",
+    windowEndTime: "2026-08-14T10:00:00.000Z",
+  };
+
+  test("an error log: the service's Error and Fatal lines holding the message's words, in its hour", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "Error",
+            searchText: "Payment provider returned",
+            severities: ["Error"],
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("logs");
+    expect(link!.label).toBe("Open in Logs");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/logs");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["severityText", ["Error", "Fatal"]],
+      ["primaryEntityId", [SERVICE_ID]],
+      ["body", ["Payment provider returned"]],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe(LOG_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(LOG_WINDOW.windowEndTime);
+  });
+
+  test("a noisy log: its lines at the severities it was logged at", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogNoisyPattern,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "Noisy",
+            searchText: "cache hit for key",
+            severities: ["Debug", "Information"],
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["severityText", ["Debug", "Information"]],
+      ["primaryEntityId", [SERVICE_ID]],
+      ["body", ["cache hit for key"]],
+    ]);
+  });
+
+  test("no words to search by: the service's lines of the hour, at its severities", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceId: SERVICE_ID,
+          log: { kind: "Error", ...LOG_WINDOW },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["severityText", ["Error", "Fatal"]],
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+  });
+
+  test("logs with no trace context: the service's logs of the hour, nothing else", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogMissingLogging,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "MissingLogging",
+            gap: "NoTraceContext",
+            // Never searched for: there is no message.
+            searchText: "anything",
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(link!.target).toBe("logs");
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+  });
+
+  test("a failure that writes no log line: its failed spans, in Traces", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogMissingLogging,
+          serviceId: SERVICE_ID,
+          log: {
+            kind: "MissingLogging",
+            gap: "SilentFailures",
+            operationName: "POST /checkout",
+            ...LOG_WINDOW,
+          },
+        }),
+      );
+
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Open in Traces");
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+      ["name", "POST /checkout"],
+      ["statusCode", "2"],
+    ]);
+    expect(query.get("start")).toBe(LOG_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(LOG_WINDOW.windowEndTime);
+  });
+
+  test("without its evidence (a list row), the hour before it was last seen", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogNoisyPattern,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(link!.target).toBe("logs");
+    expect(query.get("start")).toBe("2026-08-14T09:00:00.000Z");
+    expect(query.get("end")).toBe(LAST_SEEN.toISOString());
+  });
+
+  test("a window that does not hold together falls back to the detection hour", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceId: SERVICE_ID,
+          log: {
+            windowStartTime: "2026-08-14T10:00:00.000Z",
+            windowEndTime: "2026-08-14T09:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(queryOf(link!.route).get("start")).toBe("2026-08-14T09:00:00.000Z");
+  });
+
+  test("a service whose id is unknown rides as its resource.service.name chip", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.LogErrorPattern,
+          serviceName: "checkout",
+          log: { searchText: "card declined", ...LOG_WINDOW },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters")!)).toEqual([
+      ["severityText", ["Error", "Fatal"]],
+      ["attributes.resource.service.name", ["checkout"]],
+      ["body", ["card declined"]],
+    ]);
+  });
+
+  test("the hour of a look is Logs' own (LOG_INSIGHT_WINDOW_MINUTES)", () => {
+    expect(Links.LOG_FINDING_WINDOW_MINUTES).toBe(LOG_INSIGHT_WINDOW_MINUTES);
+  });
+});
+
 describe("buildInsightInvestigationLink — Metrics' findings", () => {
   const METRIC_WINDOW: {
     windowStartTime: string;
@@ -1240,7 +1448,10 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
             break;
           }
 
-          case AIInsightType.ErrorLogSpike: {
+          case AIInsightType.ErrorLogSpike:
+          case AIInsightType.LogErrorPattern:
+          case AIInsightType.LogMissingLogging:
+          case AIInsightType.LogNoisyPattern: {
             const filters: Array<[string, Array<string>]> = JSON.parse(
               query.get("filters")!,
             );

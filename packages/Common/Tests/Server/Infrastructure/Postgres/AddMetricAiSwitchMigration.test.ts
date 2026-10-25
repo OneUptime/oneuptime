@@ -5,7 +5,7 @@ import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import Project from "../../../../Models/DatabaseModels/Project";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddMetricAiSwitch1807300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807300000000-AddMetricAiSwitch";
+import { AddMetricAiSwitch1807400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807400000000-AddMetricAiSwitch";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import {
@@ -37,8 +37,8 @@ const MIGRATIONS_DIR: string = path.join(
   "SchemaMigrations",
 );
 
-const NAME: string = "AddMetricAiSwitch1807300000000";
-const TIMESTAMP: number = 1807300000000;
+const NAME: string = "AddMetricAiSwitch1807400000000";
+const TIMESTAMP: number = 1807400000000;
 const COLUMN: string = "enableAutomaticMetricRemediation";
 
 type MigrationClass = { name: string };
@@ -68,14 +68,14 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddMetricAiSwitch1807300000000()[direction](queryRunner);
+  await new AddMetricAiSwitch1807400000000()[direction](queryRunner);
 
   return statements;
 }
 
 describe("AddMetricAiSwitch: registration", () => {
   test("its name and its file carry its timestamp", () => {
-    expect(new AddMetricAiSwitch1807300000000().name).toBe(NAME);
+    expect(new AddMetricAiSwitch1807400000000().name).toBe(NAME);
     expect(
       fs.existsSync(
         path.join(MIGRATIONS_DIR, `${TIMESTAMP}-AddMetricAiSwitch.ts`),

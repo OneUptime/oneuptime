@@ -145,7 +145,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Metriche → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Metriche**, che apre la sua metrica per il suo servizio, dell'ora in cui è stato trovato. Un servizio senza metriche offre invece **Apri in Tracce**: gli span che le sue metriche misurerebbero.
-- **Metriche → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- **Metriche → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Che cosa succede alle metriche quando arrivano

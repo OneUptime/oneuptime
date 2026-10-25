@@ -11,11 +11,12 @@ import {
   TELEMETRY_AI_FIX_LEAD,
   TELEMETRY_AI_FIX_LEADS,
   TELEMETRY_AI_FIX_LEADS_BY_RECIPE,
+  TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD,
   TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   doesInsightOfferTelemetryAiFix,
   getTelemetryAiFixLead,
-  getTelemetryAiFixLeadOfFinding,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import AIInsightEvidence from "../../../Types/AI/AIInsightEvidence";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
@@ -24,6 +25,7 @@ import {
   TelemetryAiLane,
 } from "../../../Types/AI/TelemetryAi";
 import ObjectID from "../../../Types/ObjectID";
+import { LogLoggingGap } from "../../../Utils/Logs/LogInsight";
 
 /*
  * Which findings draw "Fix with AI" (TelemetryAiFixStrip) and what it says:
@@ -34,17 +36,31 @@ import ObjectID from "../../../Types/ObjectID";
 
 const LINE_LIMIT: number = 150;
 
+// High Cardinality by its names: metric names with IDs in them.
+const METRIC_NAMES_EVIDENCE: AIInsightEvidence = {
+  metric: {
+    serviceId: "s",
+    kind: "HighCardinality",
+    shape: "Name",
+    windowStartTime: "2026-10-24T08:00:00.000Z",
+    windowEndTime: "2026-10-24T09:00:00.000Z",
+    namePattern: "job.{id}.duration",
+  },
+};
+
 describe("which findings draw Fix with AI", () => {
-  test("Traces', Exceptions' and Metrics' kinds, while open and with no fix linked", () => {
+  test("Traces', Exceptions', Logs' and Metrics' kinds, while open and with no fix linked", () => {
     expect(TELEMETRY_AI_FIX_LANES).toEqual([
       TelemetryAiLane.Trace,
       TelemetryAiLane.Exception,
+      TelemetryAiLane.Log,
       TelemetryAiLane.Metric,
     ]);
 
     for (const insightType of [
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Exception].insightTypes,
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
     ]) {
       for (const status of [
@@ -82,6 +98,7 @@ describe("which findings draw Fix with AI", () => {
     for (const insightType of [
       AIInsightType.ProfileHotspot,
       AIInsightType.TraceLatencyRegression,
+      // AI Insights' own error-log spike is not a Logs finding.
       AIInsightType.ErrorLogSpike,
       // AI Insights' week-over-week drift is a heads-up, never a fix.
       AIInsightType.MetricDrift,
@@ -175,44 +192,37 @@ describe("what Fix with AI says", () => {
     );
 
     expect(
-      getTelemetryAiFixLeadOfFinding({
-        insightType: AIInsightType.MetricHighCardinality,
-        evidence: {
-          metric: {
-            serviceId: "s",
-            kind: "HighCardinality",
-            shape: "Name",
-            windowStartTime: "2026-10-24T08:00:00.000Z",
-            windowEndTime: "2026-10-24T09:00:00.000Z",
-            namePattern: "job.{id}.duration",
-          },
-        },
-      }),
+      getTelemetryAiFixLead(
+        AIInsightType.MetricHighCardinality,
+        undefined,
+        METRIC_NAMES_EVIDENCE,
+      ),
     ).toBe(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES);
   });
 
   test("every other finding says its kind's line", () => {
-    const attribute: Parameters<typeof getTelemetryAiFixLeadOfFinding>[0] = {
-      insightType: AIInsightType.MetricHighCardinality,
-      evidence: {
-        metric: {
-          serviceId: "s",
-          kind: "HighCardinality",
-          shape: "Attribute",
-          windowStartTime: "2026-10-24T08:00:00.000Z",
-          windowEndTime: "2026-10-24T09:00:00.000Z",
-          attributeKey: "user.id",
-        },
+    const attribute: AIInsightEvidence = {
+      metric: {
+        serviceId: "s",
+        kind: "HighCardinality",
+        shape: "Attribute",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        attributeKey: "user.id",
       },
     };
 
-    expect(getTelemetryAiFixLeadOfFinding(attribute)).toBeUndefined();
-    // A finding with no evidence, or of another kind, has nothing to add.
     expect(
-      getTelemetryAiFixLeadOfFinding({
-        insightType: AIInsightType.MetricHighCardinality,
-      }),
-    ).toBeUndefined();
+      getTelemetryAiFixLead(
+        AIInsightType.MetricHighCardinality,
+        undefined,
+        attribute,
+      ),
+    ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality]);
+    // A finding with no evidence, or of another kind, has nothing to add.
+    expect(getTelemetryAiFixLead(AIInsightType.MetricHighCardinality)).toBe(
+      TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality],
+    );
 
     for (const insightType of [
       AIInsightType.MetricHistogramBuckets,
@@ -221,19 +231,8 @@ describe("what Fix with AI says", () => {
       AIInsightType.MetricDrift,
     ]) {
       expect(
-        getTelemetryAiFixLeadOfFinding({
-          insightType,
-          evidence: {
-            metric: {
-              serviceId: "s",
-              kind: "HighCardinality",
-              shape: "Name",
-              windowStartTime: "2026-10-24T08:00:00.000Z",
-              windowEndTime: "2026-10-24T09:00:00.000Z",
-            },
-          },
-        }),
-      ).toBeUndefined();
+        getTelemetryAiFixLead(insightType, undefined, METRIC_NAMES_EVIDENCE),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[insightType] || TELEMETRY_AI_FIX_LEAD);
     }
   });
 
@@ -273,6 +272,111 @@ describe("what Fix with AI says", () => {
         CodeFixTaskType.CodeRequest,
       ),
     ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.ExceptionMissingStackTrace]);
+  });
+
+  test("each of Logs' kinds says what its pull request does", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Log]
+      .insightTypes) {
+      const lead: string | undefined = TELEMETRY_AI_FIX_LEADS[insightType];
+
+      expect(lead).toBeTruthy();
+      expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(lead).toContain("pull request");
+      expect(lead).toContain("for you to review");
+    }
+
+    expect(getTelemetryAiFixLead(AIInsightType.LogErrorPattern)).toBe(
+      "OneUptime AI opens a pull request that fixes why this error is logged, for you to review.",
+    );
+    expect(getTelemetryAiFixLead(AIInsightType.LogMissingLogging)).toBe(
+      "OneUptime AI opens a pull request that adds the logging this lacks, for you to review.",
+    );
+    expect(getTelemetryAiFixLead(AIInsightType.LogNoisyPattern)).toBe(
+      "OneUptime AI opens a pull request that logs this line less, for you to review.",
+    );
+  });
+
+  /*
+   * Missing logging has two gaps: failures that write no line get the
+   * logging they lack, but logs with no trace context lack no line - their
+   * pull request adds the trace id, and the lead says so.
+   */
+  test("missing logging says what its pull request adds, by what the logs lack", () => {
+    expect(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD).toBe(
+      "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD.length).toBeLessThanOrEqual(
+      LINE_LIMIT,
+    );
+
+    const logsLacking: (gap: string | undefined) => AIInsightEvidence = (
+      gap: string | undefined,
+    ): AIInsightEvidence => {
+      return {
+        log: {
+          serviceId: ObjectID.generate().toString(),
+          kind: "MissingLogging",
+          ...(gap ? { gap } : {}),
+          windowStartTime: "2026-10-24T08:00:00.000Z",
+          windowEndTime: "2026-10-24T09:00:00.000Z",
+          logCount: 18400,
+        },
+      };
+    };
+
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.LogMissingLogging,
+        undefined,
+        logsLacking(LogLoggingGap.NoTraceContext),
+      ),
+    ).toBe(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD);
+
+    // The pull request the server says it starts speaks first, as it does for every kind.
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.LogMissingLogging,
+        CodeFixTaskType.ImproveExceptionHandling,
+        logsLacking(LogLoggingGap.NoTraceContext),
+      ),
+    ).toBe(
+      TELEMETRY_AI_FIX_LEADS_BY_RECIPE[
+        CodeFixTaskType.ImproveExceptionHandling
+      ],
+    );
+
+    // Failures that write no line, or no gap said: the logging they lack.
+    for (const evidence of [
+      logsLacking(LogLoggingGap.SilentFailures),
+      logsLacking(undefined),
+      {},
+      null,
+      undefined,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(
+          AIInsightType.LogMissingLogging,
+          undefined,
+          evidence,
+        ),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.LogMissingLogging]);
+    }
+
+    // Only missing logging reads the gap: every other kind keeps its line.
+    for (const insightType of [
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogNoisyPattern,
+      AIInsightType.TraceMissingTracing,
+      AIInsightType.TraceFailingOperation,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(
+          insightType,
+          undefined,
+          logsLacking(LogLoggingGap.NoTraceContext),
+        ),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[insightType]);
+    }
   });
 
   test("the button and the rest read as the Profiler's own", () => {

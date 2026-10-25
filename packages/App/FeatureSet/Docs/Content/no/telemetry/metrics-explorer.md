@@ -145,7 +145,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Målinger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Målinger**, som åpner målingen for tjenesten fra timen det ble funnet i. En tjeneste uten målinger tilbyr i stedet **Åpne i Spor**: spansene målingene ville målt.
-- **Målinger → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- **Målinger → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med metrikker når de kommer inn

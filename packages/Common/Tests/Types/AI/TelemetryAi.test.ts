@@ -703,6 +703,149 @@ describe("the Exception lane", () => {
   });
 });
 
+describe("the Log lane", () => {
+  test("files error logs, missing logging and noisy logs, decided by log AI rules, switched by its own column", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Log]).toEqual({
+      lane: TelemetryAiLane.Log,
+      triggerEntityType: AutoRemediationTriggerEntity.Log,
+      insightTypes: [
+        AIInsightType.LogErrorPattern,
+        AIInsightType.LogMissingLogging,
+        AIInsightType.LogNoisyPattern,
+      ],
+      switchColumn: "enableAutomaticLogRemediation",
+      scanEveryMinutes: 60,
+      dashboardPath: "logs",
+      fixAfterVerdictInsightTypes: [AIInsightType.LogErrorPattern],
+    });
+    expect(isTelemetryAiLane("Log")).toBe(true);
+    expect(isTelemetryAiLane("log")).toBe(false);
+    expect(isTelemetryAiLane("Logs")).toBe(false);
+  });
+
+  test("its findings and its rules lead back to it, and open under Logs' AI section", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Log]
+      .insightTypes) {
+      expect(getTelemetryAiLaneOfInsightType(insightType)).toBe(
+        TelemetryAiLane.Log,
+      );
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/logs/ai/insights/i1");
+    }
+
+    expect(getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Log)).toBe(
+      TelemetryAiLane.Log,
+    );
+    // AI Insights' own error-log spike stays AI Insights'.
+    expect(getTelemetryAiLaneOfInsightType(AIInsightType.ErrorLogSpike)).toBe(
+      null,
+    );
+  });
+
+  test("it looks once an hour, as the other lanes, and its wait starts on one look", () => {
+    expect(getStillFoundMinutes(TelemetryAiLane.Log)).toBe(120);
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Log)).toBe(60);
+
+    for (let minute: number = 0; minute < 60; minute++) {
+      const now: Date = new Date(Date.UTC(2026, 9, 24, 7, minute, 30));
+
+      expect(isTelemetryAiLaneScanTick(TelemetryAiLane.Log, now)).toBe(
+        minute < INSIGHT_SCAN_EVERY_MINUTES,
+      );
+    }
+  });
+
+  /*
+   * An error may be logged on purpose - a refused sign-in at Error - and a
+   * pull request that "fixes" that weakens a check that fired correctly:
+   * its fix waits for the investigation to find the code at fault. Missing
+   * logging and noisy logs change how the code logs, not what it does: they
+   * do not wait.
+   */
+  test("only an error log's pull request waits for the investigation's verdict", () => {
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogErrorPattern),
+    ).toBe(true);
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogMissingLogging),
+    ).toBe(false);
+    expect(
+      doesTelemetryAiFixWaitForVerdict(AIInsightType.LogNoisyPattern),
+    ).toBe(false);
+
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.LogErrorPattern,
+        hasTriageCompleted: true,
+        classification: "expected-denial",
+      }),
+    ).toBe(TelemetryAiFixVerdict.NotCodeFault);
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.LogErrorPattern,
+        hasTriageCompleted: true,
+        classification: "code-fault",
+      }),
+    ).toBe(TelemetryAiFixVerdict.CodeFault);
+    expect(
+      getTelemetryAiFixVerdict({
+        insightType: AIInsightType.LogNoisyPattern,
+        hasTriageCompleted: false,
+        classification: undefined,
+      }),
+    ).toBe(TelemetryAiFixVerdict.NotNeeded);
+  });
+
+  test("an error log fixed without asking is investigated first, and opens only on a code-fault verdict", () => {
+    const work: TelemetryAiWork = decideTelemetryAiWork({
+      isAiEnabled: true,
+      isLaneOn: true,
+      rules: {
+        rulesSetUp: true,
+        matchingRules: [rule({ investigates: false })],
+      },
+    });
+    const problem: TelemetryAiProblemState = {
+      firstSeenAt: new Date("2026-10-24T08:00:00.000Z"),
+      lastSeenAt: new Date("2026-10-24T08:59:00.000Z"),
+      hasInvestigation: false,
+      hasFix: false,
+      isClosed: false,
+      fixVerdict: TelemetryAiFixVerdict.Pending,
+    };
+    const now: Date = new Date("2026-10-24T09:00:00.000Z");
+
+    const waiting: TelemetryAiNextSteps = getTelemetryAiNextSteps({
+      lane: TelemetryAiLane.Log,
+      work,
+      problem,
+      now,
+    });
+
+    expect(waiting.startInvestigation).toBe(true);
+    expect(waiting.startFix).toBe(false);
+    expect(waiting.isWaitingForVerdict).toBe(true);
+
+    expect(
+      getTelemetryAiNextSteps({
+        lane: TelemetryAiLane.Log,
+        work,
+        problem: {
+          ...problem,
+          hasInvestigation: true,
+          fixVerdict: TelemetryAiFixVerdict.CodeFault,
+        },
+        now,
+      }).startFix,
+    ).toBe(true);
+  });
+});
+
 describe("the limits that keep it quiet", () => {
   test("at most five pull requests a day, fifty problems a look, found again within two looks", () => {
     expect(TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY).toBe(5);

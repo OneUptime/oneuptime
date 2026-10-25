@@ -40,7 +40,7 @@ import {
  * OneUptime would create PRs for you for that code repo" - the maintainer.
  *
  * Each telemetry product is a lane (TelemetryAiLane): Profiles first, then
- * Traces, then Exceptions; Logs and Metrics follow the same way. A lane has:
+ * Traces, Exceptions, Logs and Metrics, the same way. A lane has:
  *
  *   - the problems OneUptime finds in its data, filed as AI insights of the
  *     lane's own types (insightTypes) by deterministic detectors - no LLM
@@ -49,9 +49,10 @@ import {
  *     slow operations, failing operations, and the ones whose traces cannot
  *     say why (Utils/Traces/TraceInsight). For Exceptions: new and rising
  *     exceptions, and the services whose exceptions carry no stack trace
- *     (Utils/Exceptions/ExceptionInsight). For Metrics: metrics with too
- *     many series, histograms whose buckets do not fit, and busy services
- *     that send no metrics (Utils/Metrics/MetricInsight);
+ *     (Utils/Exceptions/ExceptionInsight). For Logs: error logs, missing
+ *     logging and noisy logs (Utils/Logs/LogInsight). For Metrics: metrics
+ *     with too many series, histograms whose buckets do not fit, and busy
+ *     services that send no metrics (Utils/Metrics/MetricInsight);
  *   - one project switch (switchColumn), on for new projects: while it is on
  *     OneUptime looks for those problems and OneUptime AI works on them;
  *   - AI rules of its own: the one AI rule (AutoRemediationRule) with the
@@ -108,6 +109,7 @@ export enum TelemetryAiLane {
   Profile = "Profile",
   Trace = "Trace",
   Exception = "Exception",
+  Log = "Log",
   Metric = "Metric",
 }
 
@@ -116,6 +118,7 @@ export type TelemetryAiSwitchColumn =
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
   | "enableAutomaticExceptionRemediation"
+  | "enableAutomaticLogRemediation"
   | "enableAutomaticMetricRemediation";
 
 export interface TelemetryAiLaneDefinition {
@@ -232,6 +235,26 @@ export const TELEMETRY_AI_LANES: Readonly<
       CodeFixTaskType.ImproveExceptionHandling,
       CodeFixTaskType.CodeRequest,
     ],
+  },
+  /*
+   * Logs: the errors a service logs again and again, the logging it lacks -
+   * requests that fail without a log line, logs with no trace context - and
+   * the lines that flood its logs (Utils/Logs/LogInsight). An error log may
+   * be logged on purpose (a refused sign-in at Error), so its pull request
+   * opens on its own only once the investigation finds the code at fault.
+   */
+  [TelemetryAiLane.Log]: {
+    lane: TelemetryAiLane.Log,
+    triggerEntityType: AutoRemediationTriggerEntity.Log,
+    insightTypes: [
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ],
+    switchColumn: "enableAutomaticLogRemediation",
+    scanEveryMinutes: 60,
+    dashboardPath: "logs",
+    fixAfterVerdictInsightTypes: [AIInsightType.LogErrorPattern],
   },
   /*
    * Metrics: attributes that take too many values and metric names with ids

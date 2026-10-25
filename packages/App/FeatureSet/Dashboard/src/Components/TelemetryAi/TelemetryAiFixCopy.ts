@@ -1,7 +1,7 @@
+import AIInsightEvidence from "Common/Types/AI/AIInsightEvidence";
 import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "Common/Types/AI/AIInsightStatus";
-import AIInsightEvidence from "Common/Types/AI/AIInsightEvidence";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
@@ -9,6 +9,8 @@ import {
   getTelemetryAiLaneOfInsightType,
 } from "Common/Types/AI/TelemetryAi";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { LogLoggingGap } from "Common/Utils/Logs/LogInsight";
+import { MetricCardinalityShape } from "Common/Utils/Metrics/MetricInsight";
 
 /*
  * "FIX WITH AI" ON A LANE'S FINDING - what the strip on a finding's page
@@ -23,7 +25,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  */
 
 /*
- * The lanes whose findings draw this strip: Traces, Exceptions and
+ * The lanes whose findings draw this strip: Traces, Exceptions, Logs and
  * Metrics. The Profiler's draw the Profiler's own Fix with AI
  * (ProfileFixStrip), which starts from the function rather than the
  * finding.
@@ -31,6 +33,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const TELEMETRY_AI_FIX_LANES: ReadonlyArray<TelemetryAiLane> = [
   TelemetryAiLane.Trace,
   TelemetryAiLane.Exception,
+  TelemetryAiLane.Log,
   TelemetryAiLane.Metric,
 ];
 
@@ -77,6 +80,15 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   [AIInsightType.ExceptionMissingStackTrace]: translationKey(
     "OneUptime AI opens a pull request that makes this service record stack traces, for you to review.",
   ),
+  [AIInsightType.LogErrorPattern]: translationKey(
+    "OneUptime AI opens a pull request that fixes why this error is logged, for you to review.",
+  ),
+  [AIInsightType.LogMissingLogging]: translationKey(
+    "OneUptime AI opens a pull request that adds the logging this lacks, for you to review.",
+  ),
+  [AIInsightType.LogNoisyPattern]: translationKey(
+    "OneUptime AI opens a pull request that logs this line less, for you to review.",
+  ),
   [AIInsightType.MetricHighCardinality]: translationKey(
     "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.",
   ),
@@ -101,45 +113,65 @@ export const TELEMETRY_AI_FIX_LEADS_BY_RECIPE: Readonly<
   ),
 };
 
+/*
+ * Missing logging whose gap is logs with no trace context: the service
+ * logs, its lines just carry no trace id, so its pull request adds the id
+ * (Utils/Logs/LogInsight's "Add trace context to ...'s logs"), not "the
+ * logging this lacks" - the lead of the other gap, failures that write no
+ * line at all.
+ */
+export const TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD: string = translationKey(
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.",
+);
+
+/*
+ * Metric names with IDs in them - High Cardinality by its names, not by an
+ * attribute (Utils/Metrics/MetricInsight): the pull request takes the IDs
+ * out of the names, so its kind's line ("stops recording these values on
+ * the metric") is not what it does.
+ */
+export const TELEMETRY_AI_FIX_LEAD_METRIC_NAMES: string = translationKey(
+  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
+);
+
 // When a finding's kind has no line of its own.
 export const TELEMETRY_AI_FIX_LEAD: string = translationKey(
   "OneUptime AI opens a pull request that fixes this, for you to review.",
 );
 
 /*
- * What Fix with AI does for metric names with IDs in them - High
- * Cardinality by its names, not by an attribute (Utils/Metrics/
- * MetricInsight): the pull request takes the IDs out of the names, so its
- * kind's line ("stops recording these values on the metric") is not true.
+ * The lead for a finding: by the pull request the server says it starts
+ * (its recipe), else by its kind - and, when its evidence says, by what
+ * missing logging lacks or by metric names that carry the IDs.
  */
-export const TELEMETRY_AI_FIX_LEAD_METRIC_NAMES: string = translationKey(
-  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
-);
+export function getTelemetryAiFixLead(
+  insightType: unknown,
+  recipe?: string | undefined,
+  evidence?: AIInsightEvidence | null | undefined,
+): string {
+  const byRecipe: string | undefined = recipe
+    ? TELEMETRY_AI_FIX_LEADS_BY_RECIPE[recipe]
+    : undefined;
 
-/*
- * What Fix with AI does for one finding, when its evidence says more than
- * its kind does; undefined when the kind's own line says it.
- */
-export function getTelemetryAiFixLeadOfFinding(insight: {
-  insightType?: string | undefined;
-  evidence?: AIInsightEvidence | undefined;
-}): string | undefined {
+  if (byRecipe) {
+    return byRecipe;
+  }
+
   if (
-    insight.insightType === AIInsightType.MetricHighCardinality &&
-    insight.evidence?.metric?.shape === "Name"
+    insightType === AIInsightType.LogMissingLogging &&
+    evidence?.log?.gap === LogLoggingGap.NoTraceContext
+  ) {
+    return TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD;
+  }
+
+  if (
+    insightType === AIInsightType.MetricHighCardinality &&
+    evidence?.metric?.shape === MetricCardinalityShape.Name
   ) {
     return TELEMETRY_AI_FIX_LEAD_METRIC_NAMES;
   }
 
-  return undefined;
-}
-
-export function getTelemetryAiFixLead(
-  insightType: unknown,
-  recipe?: string | undefined,
-): string {
   return (
-    (recipe ? TELEMETRY_AI_FIX_LEADS_BY_RECIPE[recipe] : undefined) ||
     TELEMETRY_AI_FIX_LEADS[insightType as AIInsightType] ||
     TELEMETRY_AI_FIX_LEAD
   );

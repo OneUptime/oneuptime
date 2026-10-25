@@ -1008,6 +1008,68 @@ describe("AiActivityInsightsReader.read", () => {
     });
   });
 
+  describe("problems found in a service's logs", () => {
+    test("each kind is about the service its fingerprint names, and no other", () => {
+      const serviceId: string = ObjectID.generate().toString();
+      const otherId: string = ObjectID.generate().toString();
+
+      const findings: Array<[AIInsightType, string]> = [
+        [
+          AIInsightType.LogErrorPattern,
+          `log-error:${serviceId}:Payment provider returned <num>`,
+        ],
+        [
+          AIInsightType.LogMissingLogging,
+          `log-missing-logging:${serviceId}:SilentFailures:POST /checkout`,
+        ],
+        [
+          AIInsightType.LogNoisyPattern,
+          `log-noisy:${serviceId}:cache hit for key <uuid>`,
+        ],
+      ];
+
+      for (const [insightType, fingerprint] of findings) {
+        expect(
+          isPreventiveInsightAboutScope({
+            insight: { insightType, fingerprint } as never,
+            scopeId: serviceId.toUpperCase(),
+            exceptionOwners: new Map<string, string>(),
+          }),
+        ).toBe(true);
+        expect(
+          isPreventiveInsightAboutScope({
+            insight: { insightType, fingerprint } as never,
+            scopeId: otherId,
+            exceptionOwners: new Map<string, string>(),
+          }),
+        ).toBe(false);
+      }
+
+      // A message that names another service's id is not that service's.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.LogErrorPattern,
+            fingerprint: `log-error:${otherId}:cannot reach ${serviceId}`,
+          } as never,
+          scopeId: serviceId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+      // A trace finding's fingerprint is not read as a log one's.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.LogErrorPattern,
+            fingerprint: `trace-failing:${serviceId}:POST /checkout`,
+          } as never,
+          scopeId: serviceId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("problems found in a service's metrics", () => {
     test("each kind is about the service its fingerprint names, and no other", () => {
       const serviceId: string = ObjectID.generate().toString();

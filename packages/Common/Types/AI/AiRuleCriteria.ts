@@ -44,6 +44,7 @@ export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Profile]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   [AutoRemediationTriggerEntity.Trace]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   [AutoRemediationTriggerEntity.Exception]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
+  [AutoRemediationTriggerEntity.Log]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   [AutoRemediationTriggerEntity.Metric]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
 };
 
@@ -71,6 +72,7 @@ const RULES_NAME_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Profile]: "profile AI rules",
   [AutoRemediationTriggerEntity.Trace]: "trace AI rules",
   [AutoRemediationTriggerEntity.Exception]: "exception AI rules",
+  [AutoRemediationTriggerEntity.Log]: "log AI rules",
   [AutoRemediationTriggerEntity.Metric]: "metric AI rules",
 };
 

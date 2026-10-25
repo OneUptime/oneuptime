@@ -145,7 +145,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Métricas → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências e **Abrir em Métricas**, que abre a métrica dela para o seu serviço, da hora em que foi encontrada. Um serviço sem métricas oferece **Abrir em Traços** no lugar: os spans que suas métricas mediriam.
-- **Métricas → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um.
+- **Métricas → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou.
 - Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ## O que acontece com as métricas quando chegam

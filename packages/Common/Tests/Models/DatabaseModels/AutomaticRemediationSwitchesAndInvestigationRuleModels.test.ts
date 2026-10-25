@@ -359,7 +359,8 @@ describe("the AI rule", () => {
     /*
      * Incidents and alerts, the slow code a service's profiles show, the
      * slow and failing operations its traces show, its new and rising
-     * exceptions, and the problems its metrics show.
+     * exceptions, the error, missing and noisy logs its logs show, and the
+     * problems its metrics show.
      */
     expect(Object.values(AutoRemediationTriggerEntity)).toEqual([
       "Incident",
@@ -367,6 +368,7 @@ describe("the AI rule", () => {
       "Profile",
       "Trace",
       "Exception",
+      "Log",
       "Metric",
     ]);
   });

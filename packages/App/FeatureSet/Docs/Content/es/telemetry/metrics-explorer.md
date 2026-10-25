@@ -145,7 +145,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 ### Ver lo que hizo
 
 - **Métricas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Métricas**, que abre su métrica para su servicio, de la hora en que se encontró. Un servicio sin métricas ofrece en su lugar **Abrir en Trazas**: los spans que sus métricas medirían.
-- **Métricas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una.
+- **Métricas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una y lo que encontró cada investigación.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 
 ## Qué les pasa a las métricas al llegar

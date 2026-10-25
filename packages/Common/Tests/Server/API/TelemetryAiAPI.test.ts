@@ -246,6 +246,15 @@ describe("the telemetry AI routes", () => {
     expect(readinessSpy.mock.calls[0]![0].lane).toBe(TelemetryAiLane.Trace);
   });
 
+  test("readiness and logs: the Log lane's too", async () => {
+    await call(TELEMETRY_AI_READINESS_PATH, { lane: TelemetryAiLane.Log });
+    await call(TELEMETRY_AI_LOGS_PATH, { lane: TelemetryAiLane.Log, skip: 20 });
+
+    expect(readinessSpy.mock.calls[0]![0].lane).toBe(TelemetryAiLane.Log);
+    expect(logsSpy.mock.calls[0]![0].lane).toBe(TelemetryAiLane.Log);
+    expect(logsSpy.mock.calls[0]![0].skip).toBe(20);
+  });
+
   test("readiness and logs: a Metric lane's too", async () => {
     await call(TELEMETRY_AI_READINESS_PATH, { lane: TelemetryAiLane.Metric });
     await call(TELEMETRY_AI_LOGS_PATH, { lane: TelemetryAiLane.Metric });
@@ -378,6 +387,8 @@ describe("the telemetry AI routes", () => {
   test.each([
     [TELEMETRY_AI_READINESS_PATH, {}],
     [TELEMETRY_AI_READINESS_PATH, { lane: "Traces" }],
+    [TELEMETRY_AI_READINESS_PATH, { lane: "Logs" }],
+    [TELEMETRY_AI_LOGS_PATH, { lane: "log" }],
     [TELEMETRY_AI_LOGS_PATH, { lane: 1 }],
     [TELEMETRY_AI_LOGS_PATH, null],
     [TELEMETRY_AI_LOGS_PATH, { lane: TelemetryAiLane.Profile, skip: -1 }],
