@@ -29,7 +29,7 @@ To tilkoblinger får dette til å fungere:
 - **Prosjektets tilkobling**, gjort én gang: OneUptime-appen installert i Slack-workspacet ditt. Den publiserer meldingene, oppretter kanalene og inviterer folk.
 - **Hver persons egen tilkobling**: personens Slack-konto koblet til personens OneUptime-konto. Knapper, kommandoer og emoji-reaksjoner handler som den personen, med personens tillatelser i prosjektet.
 
-Ett Slack-workspace kan være koblet til mer enn ett prosjekt, for eksempel produksjon og staging. En knapp eller et skjema handler i prosjektet til posten det gjelder. En kommando eller en melding til OneUptime handler i prosjektet til kanalen den skrives i, for eksempel en hendelses kanal, ellers i det ene prosjektet Slack-kontoen din er koblet til i. Når ingenting viser hvilket, nevner OneUptime prosjektene du er med i, og ber deg prøve igjen fra en kanal i prosjektet du mener.
+Ett Slack-workspace kan være koblet til mer enn ett prosjekt, for eksempel produksjon og staging. En knapp eller et skjema handler i prosjektet til posten det gjelder. En kommando eller en melding til OneUptime handler i prosjektet til kanalen den skrives i, for eksempel en hendelses kanal, ellers i det ene prosjektet Slack-kontoen din er koblet til i. Når ingenting viser hvilket, spør OneUptime hvilket prosjekt du mener, med en knapp for hvert prosjekt du er med i, og fortsetter der når du har valgt. I en samtale med OneUptime AI gjelder valget ditt resten av tråden.
 
 ## Før du begynner
 

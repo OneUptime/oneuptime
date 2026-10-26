@@ -12,7 +12,7 @@ import {
   getProjectLlmProviderFormFields,
 } from "Common/UI/Components/AI/LlmProviderFormFields";
 import {
-  getLlmProviderDefaultModel,
+  getLlmProviderShownModelName,
   getLlmProviderShownValue,
   getLlmProviderTypeCopy,
 } from "Common/UI/Components/AI/LlmProviderFormCopy";
@@ -154,17 +154,16 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Element,
               /*
                * Left blank, the model the server asks for: said by name
-               * ("gpt-5.1 (default)") rather than "Not specified".
+               * ("gpt-5.1 (default)", or "First model the server lists")
+               * rather than "Not specified".
                */
               getElement: (item: LlmProvider): ReactElement => {
                 return (
                   <span>
-                    {getLlmProviderShownValue({
-                      value: item.modelName,
-                      defaultValue: getLlmProviderDefaultModel({
-                        llmType: item.llmType,
-                        baseUrl: item.baseUrl,
-                      }),
+                    {getLlmProviderShownModelName({
+                      modelName: item.modelName,
+                      llmType: item.llmType,
+                      baseUrl: item.baseUrl,
                       translator: translator,
                     })}
                   </span>
