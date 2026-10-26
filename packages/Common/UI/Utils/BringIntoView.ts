@@ -82,6 +82,91 @@ export const getInvalidControl: (
 };
 
 /*
+ * What marks a field's error message: the line a text box, text area,
+ * dropdown, color or icon picker draws under itself, and the alert a custom
+ * field draws for its own (Monitor Steps under all of its steps). Not any
+ * alert: a field can draw a tip or a warning as an alert too.
+ */
+export const FIELD_ERROR_MESSAGE_SELECTOR: string =
+  "[data-testid='error-message']";
+
+/*
+ * The message a field in error draws: the last one in it, under the controls
+ * it is about. Null when the field draws none.
+ */
+export const getFieldErrorMessage: (
+  element: Element | null | undefined,
+) => HTMLElement | null = (
+  element: Element | null | undefined,
+): HTMLElement | null => {
+  if (!element) {
+    return null;
+  }
+
+  const messages: NodeListOf<HTMLElement> =
+    element.querySelectorAll<HTMLElement>(FIELD_ERROR_MESSAGE_SELECTOR);
+
+  return messages.length > 0 ? messages[messages.length - 1]! : null;
+};
+
+const SCROLLING_OVERFLOW: ReadonlyArray<string> = ["auto", "scroll", "overlay"];
+
+/*
+ * How tall the view is that an element scrolls in: its nearest ancestor
+ * that scrolls - a dialog's body - or else the window, never more than the
+ * window.
+ */
+const getViewHeight: (element: Element) => number = (
+  element: Element,
+): number => {
+  const windowHeight: number =
+    typeof window !== "undefined" ? window.innerHeight : 0;
+  let ancestor: HTMLElement | null = element.parentElement;
+
+  while (ancestor) {
+    if (
+      SCROLLING_OVERFLOW.includes(
+        window.getComputedStyle(ancestor).overflowY,
+      ) &&
+      ancestor.scrollHeight > ancestor.clientHeight
+    ) {
+      return Math.min(ancestor.clientHeight, windowHeight);
+    }
+
+    ancestor = ancestor.parentElement;
+  }
+
+  return windowHeight;
+};
+
+/*
+ * Brings a field in error into view. A field that fits comes in whole, its
+ * label, control and message all in sight. A field taller than its view - a
+ * custom field of many controls, such as Monitor Steps - would come in at
+ * its start (bringIntoView), with the message that says what is wrong still
+ * a screen or more below; so its message comes into view instead.
+ */
+export const bringFieldInErrorIntoView: (
+  element: Element | null | undefined,
+) => void = (element: Element | null | undefined): void => {
+  if (!element) {
+    return;
+  }
+
+  const message: HTMLElement | null = getFieldErrorMessage(element);
+
+  if (
+    message &&
+    element.getBoundingClientRect().height > getViewHeight(element)
+  ) {
+    bringIntoView(message);
+    return;
+  }
+
+  bringIntoView(element);
+};
+
+/*
  * Puts the focus on the control of a field in error (getInvalidControl),
  * without scrolling - bringIntoView has done that, as gently as it does:
  * after a press that found the field in error, the reader types the fix

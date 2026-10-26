@@ -305,3 +305,173 @@ describe("the focus goes to the first field in error", () => {
     expect(screen.getByTestId("city")).toHaveFocus();
   });
 });
+
+/*
+ * A FIELD TALLER THAN ITS VIEW BRINGS ITS MESSAGE INTO VIEW.
+ *
+ * Brought into view whole, a field taller than the view comes in at its
+ * start. A custom field of many controls draws its message at its end -
+ * Monitor Steps says "Pick at least one browser to run the script in."
+ * under all of its steps - so after Next the reader saw the steps' first
+ * screen and no message, as if Next did nothing (14.0.93's gate, the
+ * Synthetic monitor's browsers). Its message comes into view instead. jsdom
+ * lays nothing out, so each test says how tall the field and its view are.
+ */
+describe("a field taller than its view brings its message into view", () => {
+  const MESSAGE: string = "Pick at least one browser to run the script in.";
+  // Custom validation reads a field that holds a value, as Monitor Steps always does.
+  const STEPS_VALUES: FormValues<any> = { name: "Acme", steps: "No browser" };
+  const originalGetBoundingClientRect: unknown =
+    Element.prototype.getBoundingClientRect;
+  const originalInnerHeight: number = window.innerHeight;
+
+  // The custom field's height, as the form measures its box.
+  function layOut(fieldHeight: number): void {
+    Element.prototype.getBoundingClientRect = function (
+      this: Element,
+    ): DOMRect {
+      const isStepsField: boolean =
+        this.querySelector("[data-testid='steps-controls']") !== null;
+      const height: number = isStepsField ? fieldHeight : 40;
+
+      return {
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 800,
+        bottom: height,
+        width: 800,
+        height: height,
+        toJSON: (): string => {
+          return "";
+        },
+      } as DOMRect;
+    };
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
+  });
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect =
+      originalGetBoundingClientRect as typeof Element.prototype.getBoundingClientRect;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: originalInnerHeight,
+    });
+  });
+
+  function stepsField(
+    drawsMessage: boolean = true,
+  ): Fields<FormValues<any>>[number] {
+    return {
+      field: { steps: true },
+      title: "Monitor Steps",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      customValidation: (): string => {
+        return MESSAGE;
+      },
+      getCustomElement: (
+        _values: FormValues<any>,
+        props: { error?: string | undefined },
+      ): React.ReactElement => {
+        return (
+          <div>
+            <div role="alert" data-testid="steps-tip">
+              One check a minute from each probe.
+            </div>
+            <div data-testid="steps-controls">Browsers and screen sizes</div>
+            {drawsMessage && props.error ? (
+              <div role="alert" data-testid="error-message">
+                {props.error}
+              </div>
+            ) : null}
+          </div>
+        );
+      },
+    };
+  }
+
+  test("a field taller than the window: its message, not its start", async () => {
+    layOut(2600);
+    renderForm(STEPS_VALUES, [FIELDS[0]!, stepsField()]);
+    await screen.findByTestId("steps-controls");
+
+    await pressSave();
+
+    expect(screen.getByTestId("error-message")).toHaveTextContent(MESSAGE);
+    expect(calls).toHaveLength(1);
+    // The message it draws at its end - not the tip it draws as an alert above it.
+    expect(calls[0]!.element).toBe(screen.getByTestId("error-message"));
+    expect(calls[0]!.options).toMatchObject({ block: "nearest" });
+  });
+
+  test("a field that fits comes in whole, its message with it", async () => {
+    layOut(600);
+    renderForm(STEPS_VALUES, [FIELDS[0]!, stepsField()]);
+    await screen.findByTestId("steps-controls");
+
+    await pressSave();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.element).not.toBe(screen.getByTestId("error-message"));
+    expect(
+      calls[0]!.element.contains(screen.getByTestId("steps-controls")),
+    ).toBe(true);
+    expect(
+      calls[0]!.element.contains(screen.getByTestId("error-message")),
+    ).toBe(true);
+  });
+
+  test("a field taller than the dialog body it scrolls in, though shorter than the window", async () => {
+    layOut(600);
+    const onSubmit: MockFunction = getJestMockFunction();
+
+    render(
+      <div data-testid="dialog-body" style={{ overflowY: "auto" }}>
+        <BasicForm
+          id="reveals-in-a-dialog"
+          fields={[FIELDS[0]!, stepsField()]}
+          initialValues={STEPS_VALUES}
+          onSubmit={onSubmit}
+          submitButtonText="Save"
+        />
+      </div>,
+    );
+    const body: HTMLElement = screen.getByTestId("dialog-body");
+    Object.defineProperty(body, "clientHeight", {
+      configurable: true,
+      value: 420,
+    });
+    Object.defineProperty(body, "scrollHeight", {
+      configurable: true,
+      value: 1400,
+    });
+    await screen.findByTestId("steps-controls");
+
+    await pressSave();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.element).toBe(screen.getByTestId("error-message"));
+  });
+
+  test("a tall field that draws no message comes in at its start", async () => {
+    layOut(2600);
+    renderForm(STEPS_VALUES, [FIELDS[0]!, stepsField(false)]);
+    await screen.findByTestId("steps-controls");
+
+    await pressSave();
+
+    expect(screen.queryByTestId("error-message")).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(
+      calls[0]!.element.contains(screen.getByTestId("steps-controls")),
+    ).toBe(true);
+    expect(calls[0]!.element).not.toBe(screen.getByTestId("steps-tip"));
+  });
+});
