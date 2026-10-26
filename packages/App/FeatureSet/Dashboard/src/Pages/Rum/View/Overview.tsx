@@ -784,8 +784,15 @@ const RumApplicationOverview: FunctionComponent<
         <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />
       ),
     },
+    // A sentence: in the page's own type, not a monospaced value.
     ...(recordingHealthValue
-      ? [{ label: "Recording health", value: recordingHealthValue }]
+      ? [
+          {
+            label: "Recording health",
+            value: recordingHealthValue,
+            mono: false,
+          },
+        ]
       : []),
   ];
 
@@ -878,6 +885,7 @@ const RumApplicationOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        recordId={modelId.toString()}
         settingsRoute={populate(PageMap.RUM_APPLICATION_VIEW_SETTINGS)}
         labels={a.labels}
       />

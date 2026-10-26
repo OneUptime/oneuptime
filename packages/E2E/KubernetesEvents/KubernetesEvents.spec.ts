@@ -711,8 +711,21 @@ test.describe("the cluster's Events page", () => {
 
     // The full list is the newest records of the range, and says so.
     await typeButton(page, "All").click();
-    await expect(page.getByTestId("kubernetes-events-more-note")).toBeVisible();
+    const note: Locator = page.getByTestId("kubernetes-events-more-note");
+    await expect(note).toBeVisible();
     await expect(typeButton(page, "All")).toHaveText(/^All$/);
+
+    /*
+     * Under the list's pager, clear of it (#5298's UI review): the pager ends
+     * its card, and the note sat 8px into it, against Rows per page.
+     */
+    const pager: { y: number; height: number } | null = await page
+      .getByTestId("kubernetes-events-view")
+      .getByTestId("pagination-summary")
+      .locator("xpath=ancestor::nav[1]")
+      .boundingBox();
+    const noteBox: { y: number } | null = await note.boundingBox();
+    expect(noteBox!.y).toBeGreaterThanOrEqual(pager!.y + pager!.height + 12);
   });
 
   test("a cluster with no warnings opens on every event, and its Warnings view says so", async ({
@@ -1739,6 +1752,124 @@ test.describe("being told when Kubernetes warns", () => {
     }
 
     await screenshot(page, "kubernetes-warning-alerts-line-phone-dark");
+  });
+
+  /*
+   * #5298's UI review: 6px under the list's Rows per page, in the pager's
+   * grey, the line read as part of the pager. It is the card's footer now:
+   * right under the pager, a rule across the card as the pager's own, its
+   * words where the pager's start, ending the card.
+   */
+  test("the card's footer, under the list's pager, at a laptop's and a phone's width, light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, ""],
+      [390, ""],
+      [1280, "theme=dark"],
+      [390, "theme=dark"],
+    ] as Array<[number, string]>) {
+      await page.setViewportSize({ width, height: 900 });
+      await openEventsPage(page, theme);
+
+      const line: Locator = page.getByTestId("kubernetes-warning-alerts");
+      await expect(line).toBeVisible();
+      const pager: Locator = page
+        .getByTestId("kubernetes-events-view")
+        .getByTestId("pagination-summary")
+        .locator("xpath=ancestor::nav[1]");
+
+      const pagerBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await pager.boundingBox();
+      const lineBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await line.boundingBox();
+      const summaryBox: { x: number } | null = await page
+        .getByTestId("kubernetes-events-view")
+        .getByTestId("pagination-summary")
+        .boundingBox();
+      const cardBox: { y: number; height: number } | null = await page
+        .getByTestId("kubernetes-events-view")
+        .boundingBox();
+
+      // Right under the pager, never over its Rows per page.
+      expect(
+        Math.abs(lineBox!.y - (pagerBox!.y + pagerBox!.height)),
+      ).toBeLessThanOrEqual(1);
+      // Across the card, as the pager is; its words where the pager's start.
+      expect(Math.abs(lineBox!.x - pagerBox!.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(lineBox!.width - pagerBox!.width)).toBeLessThanOrEqual(1);
+      const icon: { x: number } | null = await line
+        .locator("svg")
+        .first()
+        .boundingBox();
+      expect(Math.abs(icon!.x - summaryBox!.x)).toBeLessThanOrEqual(1);
+      // The card's end.
+      expect(
+        cardBox!.y + cardBox!.height - (lineBox!.y + lineBox!.height),
+      ).toBeLessThanOrEqual(2);
+
+      const look: {
+        borderTopStyle: string;
+        borderTopWidth: string;
+        borderTopColor: string;
+        paddingTop: string;
+        cardBackground: string;
+      } = await line.evaluate(
+        (
+          element: Element,
+        ): {
+          borderTopStyle: string;
+          borderTopWidth: string;
+          borderTopColor: string;
+          paddingTop: string;
+          cardBackground: string;
+        } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          // The first ancestor with a background: the card the line is in.
+          let ancestor: Element | null = element.parentElement;
+          let cardBackground: string = "";
+          while (ancestor && !cardBackground) {
+            const background: string =
+              getComputedStyle(ancestor).backgroundColor;
+            if (background && background !== "rgba(0, 0, 0, 0)") {
+              cardBackground = background;
+            }
+            ancestor = ancestor.parentElement;
+          }
+          return {
+            borderTopStyle: style.borderTopStyle,
+            borderTopWidth: style.borderTopWidth,
+            borderTopColor: style.borderTopColor,
+            paddingTop: style.paddingTop,
+            cardBackground,
+          };
+        },
+      );
+
+      // A rule across its top that shows on its card, then room to its words.
+      expect(look.borderTopStyle).toBe("solid");
+      expect(parseFloat(look.borderTopWidth)).toBeGreaterThanOrEqual(1);
+      expect(look.borderTopColor).not.toBe(look.cardBackground);
+      expect(parseFloat(look.paddingTop)).toBeGreaterThanOrEqual(10);
+      await expectNoSidewaysScroll(page);
+    }
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openEventsPage(page);
+    await page
+      .getByTestId("kubernetes-warning-alerts")
+      .scrollIntoViewIfNeeded();
+    await screenshot(page, "kubernetes-warning-alerts-line-under-a-rule");
   });
 
   test("in German, the line and its link read in German", async ({

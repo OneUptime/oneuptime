@@ -115,3 +115,87 @@ describe("an InfoCard value with no place to break", () => {
     expect(valueOf()).toContainElement(screen.getByTestId("state-badge"));
   });
 });
+
+/*
+ * #5298's UI review: left to overflow-wrap alone, a value that names
+ * something broke at whatever letter filled the line - a Swarm task's image
+ * read "registry.acme-swarm.example/shop/checkout:2.7." / "0" on a phone. A
+ * text value is drawn through BreakableName now: it may break after its own
+ * dots and slashes first, and anywhere only where a part is still too long
+ * for its line (the container ID above).
+ */
+describe("an InfoCard text value that names something", () => {
+  const IMAGE: string = "registry.acme-swarm.example/shop/checkout:2.7.0";
+
+  // The text between the <wbr>s of the value.
+  function partsOf(holder: HTMLElement): Array<string> {
+    const parts: Array<string> = [""];
+    for (const node of Array.from(holder.childNodes)) {
+      if (node.nodeName === "WBR") {
+        parts.push("");
+        continue;
+      }
+      parts[parts.length - 1] += node.textContent || "";
+    }
+    return parts;
+  }
+
+  test("breaks after its registry and its path's slashes, never inside its version", () => {
+    render(<InfoCard title="Image" value={IMAGE} />);
+
+    expect(partsOf(valueOf())).toEqual([
+      "registry.",
+      "acme-swarm.",
+      "example/",
+      "shop/",
+      "checkout:2.7.0",
+    ]);
+    // Read, copied and found as written: a <wbr> adds no character.
+    expect(valueOf().textContent).toBe(IMAGE);
+    expect(screen.getByText(IMAGE)).toBe(valueOf());
+  });
+
+  test("the same on a card that navigates and has an (i), whose button still reads the value", () => {
+    render(
+      <InfoCard
+        title="Image"
+        value={IMAGE}
+        tooltip="What the task runs."
+        onClick={(): void => {}}
+      />,
+    );
+
+    expect(valueOf().querySelectorAll("wbr").length).toBeGreaterThan(0);
+    expect(valueOf().textContent).toBe(IMAGE);
+    expect(screen.getByRole("button", { name: `Image ${IMAGE}` })).toBeTruthy();
+  });
+
+  test("a task's id breaks after its kind", () => {
+    render(
+      <InfoCard title="External ID" value="task/x7k2m9p4q1r8s5t3v6w0y2z4a" />,
+    );
+
+    expect(partsOf(valueOf())).toEqual(["task/", "x7k2m9p4q1r8s5t3v6w0y2z4a"]);
+  });
+
+  test("a value with nowhere to break, a number or a short word gets no breaks", () => {
+    for (const value of [CONTAINER_ID, "3.4%", "175 MiB / 512 MiB", "shop"]) {
+      render(<InfoCard title="Value" value={value} />);
+      expect(valueOf().querySelectorAll("wbr")).toHaveLength(0);
+      expect(valueOf().textContent).toBe(value);
+      cleanup();
+    }
+  });
+
+  test("an element value is the page's to draw: no breaks are added to it", () => {
+    render(
+      <InfoCard
+        title="Image"
+        value={<span data-testid="image-link">{IMAGE}</span>}
+      />,
+    );
+
+    expect(valueOf().querySelectorAll("wbr")).toHaveLength(0);
+    expect(screen.getByTestId("image-link").textContent).toBe(IMAGE);
+  });
+});

@@ -24788,7 +24788,7 @@
   "Hardware Components": "Hardware Components",
   "Hardware Needing Attention": "Hardware Needing Attention",
   "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.": "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.",
-  "Health Critical": "Health Critical",
+  "Health Critical": "Santé critique",
   "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.": "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.",
   "Host Group": "Groupe d'hôtes",
   "Host Metrics: {{name}}": "Host Metrics: {{name}}",
@@ -35703,6 +35703,7 @@
   "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Laissez cette page ouverte jusqu'à la fin de l'opération. Vous pouvez arrêter à tout moment : ce qui est déjà fait reste fait.",
   "Less than a minute left": "Moins d'une minute restante",
   "Stopping. The ones already started are finishing.": "Arrêt en cours. Les éléments déjà commencés se terminent.",
+  "Unhealthy": "Défaillant",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} non commencés : {{count}} (vous avez arrêté l'action)",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} non commencé : {{count}} (vous avez arrêté l'action)"
 }

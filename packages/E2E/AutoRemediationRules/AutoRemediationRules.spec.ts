@@ -1,4 +1,4 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import { ElementHandle, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
@@ -2151,20 +2151,6 @@ test.describe("code repositories and pull requests", () => {
         .locator(".ou-select__control"),
     ).toHaveCount(0);
 
-    const top: (locator: Locator) => Promise<number> = async (
-      locator: Locator,
-    ): Promise<number> => {
-      return (await locator.boundingBox())!.y;
-    };
-
-    const bottom: (locator: Locator) => Promise<number> = async (
-      locator: Locator,
-    ): Promise<number> => {
-      const box: { y: number; height: number } | null =
-        await locator.boundingBox();
-      return box!.y + box!.height;
-    };
-
     // In More fields' order: the repositories, the MCP servers, the provider.
     const nextFields: Array<[string, Locator, Locator]> = [
       [
@@ -2185,10 +2171,49 @@ test.describe("code repositories and pull requests", () => {
       ],
     ];
 
+    /*
+     * Each gap is read in one frame. Opening More fields brings its fields
+     * into view with a smooth scroll (FoldedSection, since #5292), and each
+     * boundingBox() is a frame of its own: read one by one, a gap was taken
+     * from two moments of the scroll (96 for a gap of a few pixels).
+     */
+    const gapsInOneFrame: (
+      box: Locator,
+      hint: Locator,
+      next: Locator,
+    ) => Promise<{ underItsBox: number; aboveTheNext: number }> = async (
+      box: Locator,
+      hint: Locator,
+      next: Locator,
+    ): Promise<{ underItsBox: number; aboveTheNext: number }> => {
+      return page.evaluate(
+        (elements: Array<SVGElement | HTMLElement>) => {
+          const [boxRect, hintRect, nextRect] = elements.map(
+            (element: SVGElement | HTMLElement): DOMRect => {
+              return element.getBoundingClientRect();
+            },
+          ) as [DOMRect, DOMRect, DOMRect];
+
+          return {
+            underItsBox: hintRect.top - boxRect.bottom,
+            aboveTheNext: nextRect.top - hintRect.bottom,
+          };
+        },
+        [
+          await box.elementHandle(),
+          await hint.elementHandle(),
+          await next.elementHandle(),
+        ] as Array<ElementHandle<SVGElement | HTMLElement>>,
+      );
+    };
+
     for (const [hintTestId, box, next] of nextFields) {
       const hint: Locator = dialog.getByTestId(hintTestId);
-      const underItsBox: number = (await top(hint)) - (await bottom(box));
-      const aboveTheNext: number = (await top(next)) - (await bottom(hint));
+      const { underItsBox, aboveTheNext } = await gapsInOneFrame(
+        box,
+        hint,
+        next,
+      );
 
       expect(underItsBox).toBeLessThan(aboveTheNext);
       // A field's gap: as wide as the one between two fields with no hint.

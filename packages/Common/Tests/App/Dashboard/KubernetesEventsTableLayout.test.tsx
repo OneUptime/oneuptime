@@ -252,6 +252,48 @@ describe("the Events table at a laptop's width", () => {
   });
 });
 
+describe("a message's names", () => {
+  // The text between the <wbr>s of an element's own children.
+  function partsOf(holder: HTMLElement): Array<string> {
+    const parts: Array<string> = [""];
+    for (const node of Array.from(holder.childNodes)) {
+      if (node.nodeName === "WBR") {
+        parts.push("");
+        continue;
+      }
+      parts[parts.length - 1] += node.textContent || "";
+    }
+    return parts;
+  }
+
+  test("break after their own dots and slashes, never inside a version, and read as written (#5298's UI review)", async () => {
+    await renderTable({ width: 390 });
+
+    const message: HTMLElement = within(eventOf("Pulled")).getByTestId(
+      "kubernetes-event-message",
+    );
+    expect(message.textContent).toBe(PULLED.message);
+    expect(partsOf(message)).toEqual([
+      'Container image "mcr.',
+      "microsoft.",
+      "com/",
+      "oss/",
+      "kubernetes/",
+      'coredns:v1.11.3"',
+    ]);
+  });
+
+  test("a sentence of short words gets no breaks of its own", async () => {
+    await renderTable({ width: 1280 });
+
+    const message: HTMLElement = within(
+      eventOf("FailedComputeMetricsReplicas"),
+    ).getByTestId("kubernetes-event-message");
+    expect(message.querySelectorAll("wbr")).toHaveLength(0);
+    expect(message.textContent).toBe(HPA_WARNING.message);
+  });
+});
+
 describe("Warning and Normal on each row", () => {
   test("All - a view that mixes them - says which each one is", async () => {
     await renderTable({ showType: true });
