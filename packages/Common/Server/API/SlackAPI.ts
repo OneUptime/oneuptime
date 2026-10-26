@@ -1933,6 +1933,17 @@ export default class SlackAPI {
           });
           break;
       }
+    } catch (err) {
+      logger.error(
+        "Could not make a Slack request again in the project chosen for it.",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+
+      // Slack is answered whatever happened, so the button shows no error.
+      if (!res.headersSent) {
+        Response.sendTextResponse(req, res, "");
+      }
     } finally {
       await chosen;
     }

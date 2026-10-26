@@ -74,6 +74,7 @@ import WorkspacePage, {
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import AIService from "../../../Server/Services/AIService";
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import SlackCommandActions from "../../../Server/Utils/Workspace/Slack/Actions/Command";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -2792,6 +2793,38 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       expect(offeredButtons()).toEqual([]);
       expect(onCallReads).toHaveLength(1);
       expect(onCallReads[0]!.projectId.toString()).toBe(NONPRD.toString());
+    });
+
+    test("a request that fails when made again: Slack still has its answer, and the failure is logged - never left hanging", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      jest
+        .spyOn(SlackCommandActions, "runInChosenProject")
+        .mockRejectedValue(new Error("database is away"));
+
+      expect(
+        await press(choicePress({ slackUserId: "U0DEANE", button: nonProd })),
+      ).toBe(200);
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(onCallReads).toEqual([]);
+      expect(replacements()[0]!["text"]).toBe("Going ahead in IRM Non-Prod.");
+      expect(
+        (
+          jest.requireMock("../../../Server/Utils/Logger") as {
+            default: { error: { mock: { calls: Array<Array<unknown>> } } };
+          }
+        ).default.error.mock.calls.some((call: Array<unknown>): boolean => {
+          return (
+            call[0] ===
+            "Could not make a Slack request again in the project chosen for it."
+          );
+        }),
+      ).toBe(true);
     });
 
     async function deaneRunsWithoutQuestion(text: string): Promise<void> {
