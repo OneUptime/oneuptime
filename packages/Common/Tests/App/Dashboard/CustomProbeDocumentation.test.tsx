@@ -10,6 +10,11 @@ import CustomProbeDocumentation, {
   CUSTOM_PROBE_SETUP_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/CustomProbeDocumentation";
 import ObjectID from "../../../Types/ObjectID";
+import { HOST, HTTP_PROTOCOL } from "../../../UI/Config";
+import {
+  getProbeDockerRunCommand,
+  getProbeDockerRunCommandsThroughProxy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeRunCommand";
 
 /*
  * The "Set up your Custom Probe" card on a probe's page: the commands that
@@ -20,6 +25,10 @@ import ObjectID from "../../../Types/ObjectID";
  * HTML, and React warned of it on every visit. They are the card's body
  * now, the first command in view, and the same command through a proxy in
  * a fold - most probes reach OneUptime without one.
+ *
+ * The commands are the Add a probe dialog's (ProbeRunCommand), one option a
+ * line: the first one was a single line, its key and OneUptime's address
+ * off the edge of the block.
  */
 
 const PROBE_ID: ObjectID = new ObjectID("4d0c1a5e-6b0c-4f4e-9d3a-2b1c0d9e8f71");
@@ -85,15 +94,37 @@ describe("the custom probe setup card", () => {
     expect(nestingWarnings()).toEqual([]);
   });
 
-  test("the first command runs this probe, with its ID and key", () => {
+  test("the first command runs this probe, with its ID and key, one option a line", () => {
     const body: HTMLElement = renderCard();
     const firstCommand: HTMLElement | null = body.querySelector("pre");
 
     expect(firstCommand).not.toBeNull();
-    expect(firstCommand!.textContent).toContain(
-      `docker run --name oneuptime-probe --network host -e PROBE_KEY=${PROBE_KEY} -e PROBE_ID=${PROBE_ID.toString()}`,
+    expect(firstCommand!.textContent?.trim().split("\n")).toEqual([
+      "docker run --name oneuptime-probe --network host \\",
+      `  -e PROBE_KEY=${PROBE_KEY} \\`,
+      `  -e PROBE_ID=${PROBE_ID.toString()} \\`,
+      `  -e ONEUPTIME_URL=${HTTP_PROTOCOL}${HOST} \\`,
+      "  -d oneuptime/probe:release",
+    ]);
+  });
+
+  test("prints the commands the Add a probe dialog prints, with no blank line first", () => {
+    const body: HTMLElement = renderCard();
+    const [first, throughProxy] = Array.from(body.querySelectorAll("pre")).map(
+      (block: HTMLPreElement): string => {
+        return block.textContent || "";
+      },
     );
-    expect(firstCommand!.textContent).toContain("-d oneuptime/probe:release");
+    const command: { probeId: string; probeKey: string; oneUptimeUrl: string } =
+      {
+        probeId: PROBE_ID.toString(),
+        probeKey: PROBE_KEY,
+        oneUptimeUrl: `${HTTP_PROTOCOL}${HOST}`,
+      };
+
+    expect(first).toBe(getProbeDockerRunCommand(command));
+    expect(throughProxy).toBe(getProbeDockerRunCommandsThroughProxy(command));
+    expect(throughProxy?.startsWith("# With HTTP/HTTPS proxy")).toBe(true);
   });
 
   test("links IPv6 to its section of the custom probe docs", () => {

@@ -6,6 +6,10 @@ import { DOCS_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getProbeDockerRunCommand,
+  getProbeDockerRunCommandsThroughProxy,
+} from "./ProbeRunCommand";
 
 export interface ComponentProps {
   probeKey: string;
@@ -20,6 +24,11 @@ export const CUSTOM_PROBE_SETUP_TEST_ID: string = "custom-probe-setup";
  * and the same command through a proxy - folded, since most probes reach
  * OneUptime without one.
  *
+ * The commands are the ones the Network area's "Add a probe" dialog prints
+ * and the docs show (ProbeRunCommand): one option a line, so the whole
+ * command reads without scrolling sideways. It was one long line here, its
+ * key and address off the edge of the block.
+ *
  * The commands are the card's body, not its description. A card draws its
  * description in a <p>, and the commands' blocks and heading inside one
  * were invalid HTML that React warned of; a description is also what a
@@ -30,6 +39,15 @@ const CustomProbeDocumentation: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const host: string = `${HTTP_PROTOCOL}${HOST}`;
+  const command: {
+    probeId: string;
+    probeKey: string;
+    oneUptimeUrl: string;
+  } = {
+    probeId: props.probeId.toString(),
+    probeKey: props.probeKey.toString(),
+    oneUptimeUrl: host.toString(),
+  };
 
   return (
     <Card
@@ -37,13 +55,7 @@ const CustomProbeDocumentation: FunctionComponent<ComponentProps> = (
       description="Run this command where the probe should run. Its ID and key are already in it."
     >
       <div className="space-y-3" data-testid={CUSTOM_PROBE_SETUP_TEST_ID}>
-        <CodeBlock
-          language="bash"
-          code={`
-# Run with Docker
-docker run --name oneuptime-probe --network host -e PROBE_KEY=${props.probeKey.toString()} -e PROBE_ID=${props.probeId.toString()} -e ONEUPTIME_URL=${host.toString()} -d oneuptime/probe:release
-`}
-        />
+        <CodeBlock language="bash" code={getProbeDockerRunCommand(command)} />
         <p className="text-sm text-gray-500">
           {translator.translateText(
             "To monitor IPv6 destinations, run the probe on a host that has IPv6.",
@@ -64,27 +76,7 @@ docker run --name oneuptime-probe --network host -e PROBE_KEY=${props.probeKey.t
         >
           <CodeBlock
             language="bash"
-            code={`
-# With HTTP/HTTPS proxy
-docker run --name oneuptime-probe --network host \\
-  -e PROBE_KEY=${props.probeKey.toString()} \\
-  -e PROBE_ID=${props.probeId.toString()} \\
-  -e ONEUPTIME_URL=${host.toString()} \\
-  -e HTTP_PROXY_URL=http://proxy.example.com:8080 \\
-  -e HTTPS_PROXY_URL=http://proxy.example.com:8080 \\
-  -e NO_PROXY=localhost,.internal.example.com \\
-  -d oneuptime/probe:release
-
-# With proxy authentication
-docker run --name oneuptime-probe --network host \\
-  -e PROBE_KEY=${props.probeKey.toString()} \\
-  -e PROBE_ID=${props.probeId.toString()} \\
-  -e ONEUPTIME_URL=${host.toString()} \\
-  -e HTTP_PROXY_URL=http://username:password@proxy.example.com:8080 \\
-  -e HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080 \\
-  -e NO_PROXY=localhost,.internal.example.com \\
-  -d oneuptime/probe:release
-`}
+            code={getProbeDockerRunCommandsThroughProxy(command)}
           />
         </FoldedSection>
       </div>
