@@ -505,7 +505,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             title="View Incident"
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
-            className="w-auto -ml-3"
+            className="w-auto"
             onClick={() => {
               Navigation.navigate(incidentRoute);
             }}
@@ -529,7 +529,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             title="View Alert"
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
-            className="w-auto -ml-3"
+            className="w-auto"
             onClick={() => {
               Navigation.navigate(alertRoute);
             }}
@@ -714,7 +714,12 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               })}
             </div>
           )}
-          {actionButton && <div className="mt-3 -ml-3">{actionButton}</div>}
+          {/*
+           * md:-ml-3 takes back the button's own md:ml-3. The button and
+           * this box both pulled left by 12px, so on a phone it sat 24px
+           * left of the text above it.
+           */}
+          {actionButton && <div className="mt-3 md:-ml-3">{actionButton}</div>}
         </div>
       </div>
     );

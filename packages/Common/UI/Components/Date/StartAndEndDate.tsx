@@ -222,8 +222,12 @@ const StartAndEndDate: DateFilterFunction = (
           </div>
         </div>
 
+        {/*
+         * md:-ml-3 takes back the buttons' own md:ml-3. Below md they have
+         * no margin, and a bare -ml-3 put the row 12px left of the gutter.
+         */}
         {!props.hideTimeButtons && (
-          <div className="mt-1 flex space-x-2 -ml-3">
+          <div className="mt-1 flex space-x-2 md:-ml-3">
             {props.type === StartAndEndDateType.DateTime && (
               <Button
                 buttonStyle={
