@@ -173,12 +173,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     telegramMessage?: TelegramMessagePayload | undefined;
     /*
      * Bypasses burst coalescing for this send, before any rollup bookkeeping
-     * runs. Some producers reuse another family's event type: the SLA-breach
-     * job at App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts sends
-     * under EmailTemplateType.IncidentOwnerResourceCreated at :265 and reuses
-     * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION at :286, so the event type
-     * alone cannot express that this particular message is urgent. Only a
-     * caller knows that, so only a caller can say so.
+     * runs: for a message that is urgent although its event type can be
+     * rolled up - a critical security case's (SecurityCaseNotifications), for
+     * one. Only a caller knows that, so only a caller can say so. An event
+     * that is never urgent enough to wait has no need of it: it is one of
+     * NEVER_ROLLED_UP_EVENT_TYPES, as an SLA breach is.
      */
     forceImmediate?: boolean | undefined;
     incidentId?: ObjectID | undefined;

@@ -4,8 +4,10 @@ import logger from "Common/Server/Utils/Logger";
 import RewriteFeedAttachmentLinks, {
   FEEDS_WITH_NOTE_ATTACHMENTS,
   FEED_ATTACHMENT_LINKS_BATCH_SIZE,
+  FEED_ATTACHMENT_SEARCH,
   FeedRow,
   FeedTable,
+  isStillReadAfterRewrite,
 } from "../../../FeatureSet/Workers/DataMigrations/RewriteFeedAttachmentLinks";
 import fs from "fs";
 import path from "path";
@@ -31,8 +33,23 @@ import {
  *   3. it writes only entries with an old link - with the entry's own
  *      project id - as root and without hooks, so nothing is posted to a
  *      chat again;
- *   4. one feed's or one entry's failure is logged and the rest go on.
+ *   4. one feed's or one entry's failure is logged and the rest go on;
+ *   5. an entry rewritten to mention no attachment (an episode's private
+ *      note) leaves the read, and the entries after it are not passed over.
+ *
+ * The fake read answers as the database does: the entries whose Markdown
+ * holds "/attachment/" in any case (an ILIKE), in the order kept, a page at
+ * a time - so an entry that leaves the read moves the ones after it up.
  */
+
+// Whether the database's read finds an entry: ILIKE '%/attachment/%'.
+const isFoundByTheRead: (stored: FeedRow) => boolean = (
+  stored: FeedRow,
+): boolean => {
+  return (stored.feedInfoInMarkdown || "")
+    .toLowerCase()
+    .includes("/attachment/");
+};
 
 const MIGRATION_NAME: string = "RewriteFeedAttachmentLinks";
 
@@ -140,9 +157,17 @@ describe("RewriteFeedAttachmentLinks", () => {
           return Promise.reject(failure);
         }
 
-        const all: Array<FeedRow> = rowsByFeed.get(feed.name) || [];
+        const found: Array<FeedRow> = (rowsByFeed.get(feed.name) || []).filter(
+          isFoundByTheRead,
+        );
 
-        return Promise.resolve(all.slice(args.skip, args.skip + args.limit));
+        return Promise.resolve(
+          found
+            .slice(args.skip, args.skip + args.limit)
+            .map((stored: FeedRow): FeedRow => {
+              return { ...stored };
+            }),
+        );
       }) as never);
 
       jest.spyOn(feed.service, "updateOneById").mockImplementation(((
@@ -239,6 +264,16 @@ describe("RewriteFeedAttachmentLinks", () => {
 
     for (const call of findCalls) {
       expect(Object.keys(call.args.query)).toEqual(["feedInfoInMarkdown"]);
+      // A case-insensitive substring search for "/attachment/".
+      expect(
+        Object.values(
+          (
+            call.args.query["feedInfoInMarkdown"] as {
+              objectLiteralParameters?: Record<string, unknown> | undefined;
+            }
+          ).objectLiteralParameters || {},
+        ),
+      ).toEqual(["%" + FEED_ATTACHMENT_SEARCH + "%"]);
       expect(call.args.select).toEqual({
         _id: true,
         projectId: true,
@@ -334,6 +369,136 @@ describe("RewriteFeedAttachmentLinks", () => {
         }),
     ).toEqual([0, 500, 1000]);
     expect(updateCalls).toHaveLength(1203);
+  });
+
+  test("an entry that leaves the read does not make the next page pass entries over", async () => {
+    /*
+     * 1,203 entries of an alert episode's feed, every third one a private
+     * note's (its link becomes the file's name, and the entry leaves the
+     * read): each of them is rewritten all the same.
+     */
+    const many: Array<FeedRow> = [];
+
+    for (let index: number = 0; index < 1203; index++) {
+      many.push(
+        row(
+          index,
+          PROJECT_1,
+          oldLink(
+            index % 3 === 0
+              ? "alert-episode-internal-note"
+              : "incident-episode-public-note",
+          ),
+        ),
+      );
+    }
+
+    rowsByFeed.set("AlertEpisodeFeed", many);
+
+    await new RewriteFeedAttachmentLinks().migrate();
+
+    const written: Set<string> = new Set<string>(
+      updateCalls.map((call: UpdateCall): string => {
+        return call.args.id.toString();
+      }),
+    );
+
+    expect(updateCalls).toHaveLength(1203);
+    expect(written.size).toBe(1203);
+
+    // No old link is left: none names the note right after "/attachment/".
+    for (const stored of many) {
+      expect(stored.feedInfoInMarkdown).not.toContain(
+        "/attachment/" + NOTE + "/" + FILE,
+      );
+    }
+
+    /*
+     * Pages of 500: 167 of the first left the read, so the second starts at
+     * 333; 167 of the second left it too, so the third starts at 666.
+     */
+    expect(
+      findCalls
+        .filter((call: FindCall): boolean => {
+          return call.feed === "AlertEpisodeFeed";
+        })
+        .map((call: FindCall): number => {
+          return call.args.skip;
+        }),
+    ).toEqual([0, 333, 666]);
+  });
+
+  test("a page that all left the read is followed by the entries after it", async () => {
+    const many: Array<FeedRow> = [];
+
+    for (let index: number = 0; index < 1000; index++) {
+      many.push(
+        row(index, PROJECT_2, oldLink("incident-episode-internal-note")),
+      );
+    }
+
+    rowsByFeed.set("IncidentEpisodeFeed", many);
+
+    await new RewriteFeedAttachmentLinks().migrate();
+
+    expect(updateCalls).toHaveLength(1000);
+    expect(
+      findCalls
+        .filter((call: FindCall): boolean => {
+          return call.feed === "IncidentEpisodeFeed";
+        })
+        .map((call: FindCall): number => {
+          return call.args.skip;
+        }),
+    ).toEqual([0, 0, 0]);
+  });
+
+  test("an entry that could not be written keeps its place in the read", async () => {
+    const many: Array<FeedRow> = [];
+
+    for (let index: number = 0; index < 700; index++) {
+      many.push(row(index, PROJECT_1, oldLink("alert-episode-internal-note")));
+    }
+
+    rowsByFeed.set("AlertEpisodeFeed", many);
+
+    // The first ten cannot be written: they stay in the read, first.
+    const unwritable: Set<string> = new Set<string>(
+      many.slice(0, 10).map((stored: FeedRow): string => {
+        return stored.id!.toString();
+      }),
+    );
+
+    updateError = (id: string): Error | null => {
+      return unwritable.has(id) ? new Error("write failed") : null;
+    };
+
+    await new RewriteFeedAttachmentLinks().migrate();
+
+    expect(updateCalls).toHaveLength(690);
+    expect(errorLogs).toHaveLength(10);
+    expect(
+      findCalls
+        .filter((call: FindCall): boolean => {
+          return call.feed === "AlertEpisodeFeed";
+        })
+        .map((call: FindCall): number => {
+          return call.args.skip;
+        }),
+    ).toEqual([0, 10]);
+  });
+
+  test("an entry is still read after its rewrite only while it mentions an attachment, in any case", () => {
+    expect(
+      isStillReadAfterRewrite(newLink("alert-internal-note", PROJECT_1)),
+    ).toBe(true);
+    expect(isStillReadAfterRewrite("See /ATTACHMENT/ in the runbook.")).toBe(
+      true,
+    );
+    expect(isStillReadAfterRewrite("**Attachments:**\n- runbook.pdf\n")).toBe(
+      false,
+    );
+    expect(isStillReadAfterRewrite("")).toBe(false);
   });
 
   test("a feed that cannot be read is logged, and the others are rewritten", async () => {

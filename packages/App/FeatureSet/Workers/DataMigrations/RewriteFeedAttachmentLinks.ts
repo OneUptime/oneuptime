@@ -88,6 +88,21 @@ export const FEEDS_WITH_NOTE_ATTACHMENTS: Array<FeedTable> = [
 // How many entries are read at a time.
 export const FEED_ATTACHMENT_LINKS_BATCH_SIZE: number = 500;
 
+// What an entry with an attachment link mentions: the entries read.
+export const FEED_ATTACHMENT_SEARCH: string = "/attachment/";
+
+/*
+ * Whether an entry is still one the read finds once it is rewritten: the
+ * read is a case-insensitive substring search (QueryHelper.search). An
+ * episode's private note loses its link and keeps the file's name, so an
+ * entry with only those links leaves the read.
+ */
+export const isStillReadAfterRewrite: (markdown: string) => boolean = (
+  markdown: string,
+): boolean => {
+  return markdown.toLowerCase().includes(FEED_ATTACHMENT_SEARCH);
+};
+
 export default class RewriteFeedAttachmentLinks extends DataMigrationBase {
   public constructor() {
     super("RewriteFeedAttachmentLinks");
@@ -104,17 +119,21 @@ export default class RewriteFeedAttachmentLinks extends DataMigrationBase {
     let rewrittenEntries: number = 0;
 
     /*
-     * Every entry the query reads still mentions "/attachment/" after it is
-     * rewritten, so the pages stay where they were: the next page starts
-     * after this one.
+     * The next page starts after the entries of this one that the read
+     * still finds. An entry rewritten to mention no attachment any more (an
+     * episode's private note, whose link becomes the file's name) leaves the
+     * read, and the entries after it move up by one: starting the next page
+     * after all of this one would pass them over.
      */
     for (;;) {
       let rows: Array<FeedRow> = [];
+      // Entries of this page the read no longer finds.
+      let leftTheRead: number = 0;
 
       try {
         rows = await feed.service.findBy({
           query: {
-            feedInfoInMarkdown: QueryHelper.search("/attachment/"),
+            feedInfoInMarkdown: QueryHelper.search(FEED_ATTACHMENT_SEARCH),
           },
           select: {
             _id: true,
@@ -164,7 +183,12 @@ export default class RewriteFeedAttachmentLinks extends DataMigrationBase {
             },
           });
           rewrittenEntries++;
+
+          if (!isStillReadAfterRewrite(rewrite.markdown)) {
+            leftTheRead++;
+          }
         } catch (err) {
+          // Not written: the read still finds it, where it was.
           logger.error(
             `RewriteFeedAttachmentLinks: could not rewrite ${feed.name} entry ${row.id.toString()}: ${err}`,
           );
@@ -175,7 +199,12 @@ export default class RewriteFeedAttachmentLinks extends DataMigrationBase {
         break;
       }
 
-      skip += rows.length;
+      /*
+       * Never less than where this page started: an entry that left the
+       * read was written, so a page that all left it is followed by the
+       * entries after it, and the read ends when none are left.
+       */
+      skip += rows.length - leftTheRead;
     }
 
     logger.info(
