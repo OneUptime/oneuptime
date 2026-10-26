@@ -40,6 +40,7 @@ import DatabaseConfig from "../../../Server/DatabaseConfig";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import AlertService from "../../../Server/Services/AlertService";
+import AlertStateService from "../../../Server/Services/AlertStateService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
@@ -48,6 +49,7 @@ import IncidentStateService from "../../../Server/Services/IncidentStateService"
 import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallPageService, {
   OnCallPageRecordType,
@@ -2839,6 +2841,474 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       await slackCallsAfter(1);
       await settle();
     }
+  });
+
+  /*
+   * THE HOME TAB OF SOMEBODY IN BOTH PROJECTS: SWITCH PROJECT.
+   *
+   * The customer's people are members of both IRM Platform and IRM
+   * Non-Prod. Their Home showed IRM Platform, the first connected, and no
+   * way to see IRM Non-Prod. Now it has a Switch project menu beside the
+   * line that names the project; choosing IRM Non-Prod draws it there, as
+   * them, with their own permissions, and their later openings show it -
+   * while they are still a member there. The menu offers only projects
+   * where the Slack account is connected to a current member, and a press
+   * that names any other draws nothing of it.
+   *
+   * Through the real router, authorization and Home, with membership read
+   * from TeamMember as every chat action reads it.
+   */
+  describe("the Home tab of somebody in both projects: Switch project", () => {
+    let homeEvents: number;
+    let scheduleReads: Array<{ projectId: string; props: DatabaseCommonInteractionProps }>;
+    let incidentListReads: Array<{
+      projectId: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }>;
+
+    beforeEach(() => {
+      homeEvents = 0;
+      scheduleReads = [];
+      incidentListReads = [];
+
+      // The open incidents, read through INC-12's own stand-in.
+      const findIncidents: (...args: Array<unknown>) => Promise<unknown> = (
+        IncidentService.findBy as unknown as {
+          getMockImplementation: () => (
+            ...args: Array<unknown>
+          ) => Promise<unknown>;
+        }
+      ).getMockImplementation();
+
+      jest.spyOn(IncidentService, "findBy").mockImplementation((async (findBy: {
+        query: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        incidentListReads.push({
+          projectId: idsOf(findBy.query["projectId"]),
+          props: findBy.props,
+        });
+        return await findIncidents(findBy);
+      }) as never);
+
+      // What else the Home reads: the shifts, the open states, the names.
+      jest
+        .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+        .mockImplementation((async (findBy: {
+          query: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          scheduleReads.push({
+            projectId: String(findBy.query["projectId"]),
+            props: findBy.props,
+          });
+          return [];
+        }) as never);
+      jest
+        .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+        .mockResolvedValue([CREATED, ACKNOWLEDGED]);
+      jest
+        .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+        .mockResolvedValue([ObjectID.generate()]);
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((async (findOneById: { id: ObjectID }) => {
+          const project: Project = new Project();
+          project.id = findOneById.id;
+          project.name = PROJECT_NAMES[findOneById.id.toString()]!;
+          return project;
+        }) as never);
+      jest
+        .spyOn(UserService, "findOneById")
+        .mockImplementation((async (findOneById: { id: ObjectID }) => {
+          return userOf(new ObjectID(findOneById.id.toString()));
+        }) as never);
+    });
+
+    // Somebody opens the app's Home tab.
+    function homeOpened(slackUserId: string): Promise<number> {
+      homeEvents++;
+
+      return deliverEvent({
+        token: "verification-token",
+        team_id: SLACK_TEAM_ID,
+        api_app_id: "A0IRM",
+        type: "event_callback",
+        event_id: `Ev0HOME${String(homeEvents).padStart(4, "0")}`,
+        event_time: 1760000000 + homeEvents,
+        event: {
+          type: "app_home_opened",
+          user: slackUserId,
+          channel: `D${slackUserId.substring(1)}`,
+          tab: "home",
+          event_ts: "1760000000.000100",
+        },
+      });
+    }
+
+    // Slack's ten seconds in which another opening draws nothing, passed.
+    function tenSecondsLater(): void {
+      const store: Map<string, unknown> = (
+        jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+          default: { store: Map<string, unknown> };
+        }
+      ).default.store;
+
+      for (const key of Array.from(store.keys())) {
+        if (key.startsWith("slack-home-drawn-")) {
+          store.delete(key);
+        }
+      }
+    }
+
+    // An option of the Home's Switch project menu, chosen on a Home of `shown`.
+    function homeSwitch(data: {
+      slackUserId: string;
+      shown: ObjectID;
+      value: string;
+    }): Record<string, string> {
+      return {
+        payload: JSON.stringify({
+          type: "block_actions",
+          user: {
+            id: data.slackUserId,
+            username: data.slackUserId.toLowerCase(),
+            name: data.slackUserId.toLowerCase(),
+            team_id: SLACK_TEAM_ID,
+          },
+          api_app_id: "A0IRM",
+          team: { id: SLACK_TEAM_ID, domain: "avepoint" },
+          container: { type: "view", view_id: "V0HOME" },
+          trigger_id: TRIGGER_ID,
+          view: {
+            id: "V0HOME",
+            type: "home",
+            callback_id: "",
+            private_metadata: JSON.stringify({
+              oneuptime: 1,
+              value: "",
+              projectId: data.shown.toString(),
+            }),
+            state: { values: {} },
+          },
+          actions: [
+            {
+              type: "static_select",
+              action_id: "SwitchHomeProject",
+              block_id: `SwitchHomeProject:${data.shown.toString()}`,
+              selected_option: {
+                text: { type: "plain_text", text: "a project", emoji: true },
+                value: data.value,
+              },
+              action_ts: "1760000001.000300",
+            },
+          ],
+        }),
+      };
+    }
+
+    interface Home {
+      userId: string;
+      projectId: string;
+      // The menu's options: their names and values; null without one.
+      menu: Array<[string, string]> | null;
+      text: string;
+      privateMetadata: string;
+    }
+
+    // The Homes Slack was sent, in order.
+    function homes(): Array<Home> {
+      return sentTo("views.publish").map((sent: JSONObject): Home => {
+        const view: JSONObject = sent["view"] as JSONObject;
+        const blocks: Array<JSONObject> = view["blocks"] as Array<JSONObject>;
+        const menu: JSONObject | undefined = blocks
+          .map((block: JSONObject): JSONObject | undefined => {
+            return block["accessory"] as JSONObject | undefined;
+          })
+          .find((accessory: JSONObject | undefined): boolean => {
+            return accessory?.["action_id"] === "SwitchHomeProject";
+          });
+
+        return {
+          userId: String(sent["user_id"]),
+          projectId: String(
+            JSON.parse(view["private_metadata"] as string)["projectId"],
+          ),
+          menu: menu
+            ? (menu["options"] as Array<JSONObject>).map(
+                (option: JSONObject): [string, string] => {
+                  return [
+                    String((option["text"] as JSONObject)["text"]),
+                    String(option["value"]),
+                  ];
+                },
+              )
+            : null,
+          text: JSON.stringify(blocks).split(ZERO_WIDTH_SPACE).join(""),
+          privateMetadata: view["private_metadata"] as string,
+        };
+      });
+    }
+
+    async function homeOf(slackUserId: string): Promise<Home> {
+      const count: number = homes().length;
+      const callsBefore: number = slackCalls.length;
+
+      expect(await homeOpened(slackUserId)).toBe(200);
+      await slackCallsAfter(callsBefore + 1);
+      await settle();
+
+      expect(homes()).toHaveLength(count + 1);
+      return homes()[count]!;
+    }
+
+    async function switchedTo(data: {
+      slackUserId: string;
+      shown: ObjectID;
+      value: string;
+    }): Promise<Home> {
+      const count: number = homes().length;
+      const callsBefore: number = slackCalls.length;
+
+      expect(await press(homeSwitch(data))).toBe(200);
+      await slackCallsAfter(callsBefore + 1);
+      await settle();
+
+      expect(homes()).toHaveLength(count + 1);
+      return homes()[count]!;
+    }
+
+    const REFUSED: string =
+      "You can't switch to that project: you're no longer a member of it, or your Slack account isn't connected there.";
+
+    test("Deane, in both, opens the Home: IRM Platform, the first connected, with Switch project listing IRM Non-Prod - read as him, there", async () => {
+      const home: Home = await homeOf("U0DEANE");
+
+      expect(home.userId).toBe("U0DEANE");
+      expect(home.projectId).toBe(PLATFORM.toString());
+      expect(home.text).toContain("Here's what is happening in *IRM Platform*.");
+      expect(home.menu).toEqual([["IRM Non-Prod", NONPRD.toString()]]);
+      expect(home.text).toContain('"placeholder":{"type":"plain_text","text":"Switch project"');
+
+      // INC-12 is IRM Non-Prod's: not on IRM Platform's Home.
+      expect(home.text).not.toContain("INC-12");
+      expect(home.text).toContain("No open incidents.");
+
+      expect(scheduleReads.length).toBeGreaterThan(0);
+      for (const read of scheduleReads) {
+        expect(read.projectId).toBe(PLATFORM.toString());
+        expect(read.props.userId!.toString()).toBe(DEANE.toString());
+        expect(read.props.tenantId!.toString()).toBe(PLATFORM.toString());
+      }
+    });
+
+    test("he switches to IRM Non-Prod: its Home, INC-12 among its open incidents, read as him there - the menu listing IRM Platform - and his next opening shows it", async () => {
+      await homeOf("U0DEANE");
+      scheduleReads = [];
+      incidentListReads = [];
+
+      const home: Home = await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      expect(home.projectId).toBe(NONPRD.toString());
+      expect(home.text).toContain("Here's what is happening in *IRM Non-Prod*.");
+      expect(home.text).toContain("INC-12");
+      expect(home.text).not.toContain(REFUSED);
+      expect(home.menu).toEqual([["IRM Platform", PLATFORM.toString()]]);
+
+      expect(incidentListReads.length).toBeGreaterThan(0);
+      for (const read of [...scheduleReads, ...incidentListReads]) {
+        expect(read.props.userId!.toString()).toBe(DEANE.toString());
+        expect(read.props.tenantId!.toString()).toBe(NONPRD.toString());
+        expect(read.props.isRoot).toBeFalsy();
+      }
+
+      tenSecondsLater();
+
+      const next: Home = await homeOf("U0DEANE");
+
+      expect(next.projectId).toBe(NONPRD.toString());
+      expect(next.menu).toEqual([["IRM Platform", PLATFORM.toString()]]);
+    });
+
+    test("Who's on call, pressed on the Home he switched to, answers for IRM Non-Prod, as him", async () => {
+      await homeOf("U0DEANE");
+
+      const home: Home = await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      const callsBefore: number = slackCalls.length;
+
+      await press(
+        homePress({
+          slackUserId: "U0DEANE",
+          actionId: "ShowOnCall",
+          privateMetadata: home.privateMetadata,
+        }),
+      );
+      await slackCallsAfter(callsBefore + 1);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.projectId.toString()).toBe(NONPRD.toString());
+      expect(onCallReads[0]!.props.userId!.toString()).toBe(DEANE.toString());
+    });
+
+    test("Nitin and Priya, each in one project: their own project's Home, and no menu - nothing new", async () => {
+      const nitin: Home = await homeOf("U0NITIN");
+      const priya: Home = await homeOf("U0PRIYA");
+
+      expect(nitin.projectId).toBe(NONPRD.toString());
+      expect(nitin.menu).toBeNull();
+      expect(nitin.text).not.toContain("IRM Platform");
+      expect(priya.projectId).toBe(PLATFORM.toString());
+      expect(priya.menu).toBeNull();
+      expect(priya.text).not.toContain("IRM Non-Prod");
+      expect(priya.text).not.toContain("static_select");
+    });
+
+    test("Priya's press for IRM Non-Prod, where she is no member: her IRM Platform Home, told she can't switch - nothing of IRM Non-Prod read for her, nothing remembered", async () => {
+      const home: Home = await switchedTo({
+        slackUserId: "U0PRIYA",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      expect(home.projectId).toBe(PLATFORM.toString());
+      expect(home.text).toContain(REFUSED);
+      expect(home.text).not.toContain("IRM Non-Prod");
+      expect(home.text).not.toContain("INC-12");
+      expect(home.menu).toBeNull();
+
+      for (const read of incidentListReads) {
+        expect(read.projectId).toEqual([PLATFORM.toString()]);
+      }
+
+      tenSecondsLater();
+      expect((await homeOf("U0PRIYA")).projectId).toBe(PLATFORM.toString());
+    });
+
+    test("removed from IRM Non-Prod after choosing it: his next opening is IRM Platform's, with no menu - he is in one project now", async () => {
+      await homeOf("U0DEANE");
+      await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      memberships = memberships.filter((membership: Membership): boolean => {
+        return !(
+          sameId(membership.userId, DEANE) &&
+          sameId(membership.projectId, NONPRD)
+        );
+      });
+      incidentListReads = [];
+
+      tenSecondsLater();
+      const home: Home = await homeOf("U0DEANE");
+
+      expect(home.projectId).toBe(PLATFORM.toString());
+      expect(home.menu).toBeNull();
+      expect(home.text).not.toContain("INC-12");
+      for (const read of incidentListReads) {
+        expect(read.projectId).toEqual([PLATFORM.toString()]);
+      }
+    });
+
+    test("removed from IRM Non-Prod after the menu was drawn, then choosing it: told he can't switch, and his Home stays on IRM Platform", async () => {
+      await homeOf("U0DEANE");
+
+      memberships = memberships.filter((membership: Membership): boolean => {
+        return !(
+          sameId(membership.userId, DEANE) &&
+          sameId(membership.projectId, NONPRD)
+        );
+      });
+
+      const home: Home = await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      expect(home.projectId).toBe(PLATFORM.toString());
+      expect(home.text).toContain(REFUSED);
+      expect(home.text).not.toContain("INC-12");
+      expect(home.menu).toBeNull();
+    });
+
+    test("his Slack account disconnected in IRM Non-Prod since he chose it: IRM Platform's Home, and no menu", async () => {
+      await homeOf("U0DEANE");
+      await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      links = links.filter((link: WorkspaceUserAuthToken): boolean => {
+        return !(
+          link.workspaceUserId === "U0DEANE" && sameId(link.projectId, NONPRD)
+        );
+      });
+
+      tenSecondsLater();
+      const home: Home = await homeOf("U0DEANE");
+
+      expect(home.projectId).toBe(PLATFORM.toString());
+      expect(home.menu).toBeNull();
+    });
+
+    test("held to his permissions in the project he switches to: a viewer of IRM Non-Prod who is a member of IRM Platform reads its Home with his own role there", async () => {
+      links.push(linkOf("U0VIEWER", PLATFORM));
+      memberships.push({
+        userId: VIEWER,
+        projectId: PLATFORM,
+        permissions: [Permission.ProjectMember],
+      });
+
+      const first: Home = await homeOf("U0VIEWER");
+
+      expect(first.projectId).toBe(PLATFORM.toString());
+      expect(first.menu).toEqual([["IRM Non-Prod", NONPRD.toString()]]);
+
+      scheduleReads = [];
+
+      const home: Home = await switchedTo({
+        slackUserId: "U0VIEWER",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      expect(home.projectId).toBe(NONPRD.toString());
+      expect(scheduleReads.length).toBeGreaterThan(0);
+
+      for (const read of scheduleReads) {
+        const permissions: Array<string> = (
+          read.props.userTenantAccessPermission?.[NONPRD.toString()]
+            ?.permissions || []
+        ).map((permission: UserPermission): string => {
+          return permission.permission;
+        });
+
+        expect(read.props.userId!.toString()).toBe(VIEWER.toString());
+        expect(permissions).toEqual([Permission.IncidentViewer]);
+      }
+    });
+
+    test("a workspace connected to one project: no menu, for Deane too", async () => {
+      connections = [connectionOf(NONPRD)];
+
+      const home: Home = await homeOf("U0DEANE");
+
+      expect(home.projectId).toBe(NONPRD.toString());
+      expect(home.menu).toBeNull();
+    });
   });
 
   // A shortcut from Slack's shortcuts menu, by its callback id.
