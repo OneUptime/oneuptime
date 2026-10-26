@@ -531,11 +531,11 @@
       },
       "globalRunners": {
         "cardTitle": "Agents Runbook globaux",
-        "cardDescription": "Des agents Runbook que OneUptime exécute pour chaque projet. Ils exécutent les étapes JavaScript, chacune dans un bac à sable qui n'accède qu'à Internet.",
+        "cardDescription": "Des agents Runbook que OneUptime exécute pour chaque projet. Ils exécutent les étapes JavaScript, chacune dans un bac à sable qui n'accède qu'à Internet, et les corrections de code de OneUptime AI.",
         "noItems": "Ajoutez un agent Runbook global. Créez-en un, puis démarrez-le avec la commande de « Afficher l'ID et la clé ».",
         "showIdKey": "Afficher l'ID et la clé",
         "keyModalTitle": "Clé de l'agent Runbook global",
-        "keyModalDescription": "Démarrez cet agent Runbook global sur un hôte qui peut accéder à Internet. Gardez sa clé secrète : quiconque la détient peut prendre les étapes JavaScript de tous les projets qui utilisent les agents Runbook globaux.",
+        "keyModalDescription": "Démarrez cet agent Runbook global sur un hôte qui peut accéder à Internet. Gardez sa clé secrète : quiconque la détient peut prendre les étapes JavaScript et les corrections de code par IA de tous les projets qui utilisent les agents Runbook globaux, et avec chaque correction, un jeton qui peut pousser vers son dépôt.",
         "runnerIdLabel": "ID de l'agent Runbook :",
         "runnerKeyLabel": "Clé de l'agent Runbook :",
         "commandLabel": "À exécuter sur votre hôte Docker",

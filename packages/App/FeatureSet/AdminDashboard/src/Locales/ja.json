@@ -531,11 +531,11 @@
       },
       "globalRunners": {
         "cardTitle": "グローバル Runner",
-        "cardDescription": "OneUptime がすべてのプロジェクトのために動かす Runner です。JavaScript ステップを、インターネットにだけ届くサンドボックスでステップごとに実行します。",
+        "cardDescription": "OneUptime がすべてのプロジェクトのために動かす Runner です。JavaScript ステップを、インターネットにだけ届くサンドボックスでステップごとに実行し、OneUptime AI のコード修正も行います。",
         "noItems": "グローバル Runner を追加してください。作成したら、「IDとキーを表示」にあるコマンドで起動してください。",
         "showIdKey": "IDとキーを表示",
         "keyModalTitle": "グローバル Runner のキー",
-        "keyModalDescription": "このグローバル Runner は、インターネットに届くホストで起動してください。キーは秘密にしてください。キーを持つ人は、グローバル Runner を使うすべてのプロジェクトの JavaScript ステップを受け取れます。",
+        "keyModalDescription": "このグローバル Runner は、インターネットに届くホストで起動してください。キーは秘密にしてください。キーを持つ人は、グローバル Runner を使うすべてのプロジェクトの JavaScript ステップと AI のコード修正を受け取れ、コード修正ごとに、そのリポジトリに push できるトークンも受け取れます。",
         "runnerIdLabel": "Runner ID：",
         "runnerKeyLabel": "Runner キー：",
         "commandLabel": "Docker ホストで実行",

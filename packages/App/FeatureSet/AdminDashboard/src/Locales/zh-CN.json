@@ -531,11 +531,11 @@
       },
       "globalRunners": {
         "cardTitle": "全局 Runner",
-        "cardDescription": "OneUptime 为每个项目运行的 Runner。它们运行 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行。",
+        "cardDescription": "OneUptime 为每个项目运行的 Runner。它们运行 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行，并负责 OneUptime AI 的代码修复。",
         "noItems": "添加一个全局 Runner。创建后，用“显示 ID 和密钥”中的命令启动它。",
         "showIdKey": "显示 ID 和密钥",
         "keyModalTitle": "全局 Runner 密钥",
-        "keyModalDescription": "请在能访问互联网的主机上启动此全局 Runner。请妥善保管其密钥：持有密钥的人可以领取所有使用全局 Runner 的项目的 JavaScript 步骤。",
+        "keyModalDescription": "请在能访问互联网的主机上启动此全局 Runner。请妥善保管其密钥：持有密钥的人可以领取所有使用全局 Runner 的项目的 JavaScript 步骤和 AI 代码修复，并在每次代码修复时获得一个可以推送到该存储库的令牌。",
         "runnerIdLabel": "Runner ID:",
         "runnerKeyLabel": "Runner 密钥:",
         "commandLabel": "在你的 Docker 主机上运行",

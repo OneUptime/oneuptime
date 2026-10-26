@@ -531,11 +531,11 @@
       },
       "globalRunners": {
         "cardTitle": "Globale Runnere",
-        "cardDescription": "Runners, som OneUptime kører for alle projekter. De kører JavaScript-trin, hvert i en sandkasse, der kun når internettet.",
+        "cardDescription": "Runners, som OneUptime kører for alle projekter. De kører JavaScript-trin, hvert i en sandkasse, der kun når internettet, og OneUptime AI's koderettelser.",
         "noItems": "Tilføj en global Runner. Opret en, og start den derefter med kommandoen under »Vis ID og nøgle«.",
         "showIdKey": "Vis ID og nøgle",
         "keyModalTitle": "Nøgle til global Runner",
-        "keyModalDescription": "Start denne globale Runner på en vært, der kan nå internettet. Hold dens nøgle hemmelig: Den, der har den, kan overtage JavaScript-trinnene i alle projekter, der bruger globale Runners.",
+        "keyModalDescription": "Start denne globale Runner på en vært, der kan nå internettet. Hold dens nøgle hemmelig: Den, der har den, kan overtage JavaScript-trinnene og AI-koderettelserne i alle projekter, der bruger globale Runners, og med hver koderettelse et token, der kan pushe til dens repositorie.",
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-nøgle:",
         "commandLabel": "Kør på din Docker-vært",

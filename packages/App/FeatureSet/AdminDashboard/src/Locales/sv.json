@@ -531,11 +531,11 @@
       },
       "globalRunners": {
         "cardTitle": "Globala Runners",
-        "cardDescription": "Runners som OneUptime kör för alla projekt. De kör JavaScript-steg, vart och ett i en sandlåda som bara når internet.",
+        "cardDescription": "Runners som OneUptime kör för alla projekt. De kör JavaScript-steg, vart och ett i en sandlåda som bara når internet, och OneUptime AI:s kodkorrigeringar.",
         "noItems": "Lägg till en global Runner. Skapa en och starta den sedan med kommandot under ”Visa ID och nyckel”.",
         "showIdKey": "Visa ID och nyckel",
         "keyModalTitle": "Nyckel för global Runner",
-        "keyModalDescription": "Starta den här globala Runnern på en värd som når internet. Håll nyckeln hemlig: den som har den kan ta JavaScript-stegen i alla projekt som använder globala Runners.",
+        "keyModalDescription": "Starta den här globala Runnern på en värd som når internet. Håll nyckeln hemlig: den som har den kan ta JavaScript-stegen och AI-kodkorrigeringarna i alla projekt som använder globala Runners, och med varje kodkorrigering en token som kan pusha till dess repository.",
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-nyckel:",
         "commandLabel": "Kör på din Docker-värd",

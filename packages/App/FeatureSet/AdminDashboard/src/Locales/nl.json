@@ -531,11 +531,11 @@
       },
       "globalRunners": {
         "cardTitle": "Globale Runners",
-        "cardDescription": "Runners die OneUptime voor elk project draait. Ze voeren JavaScript-stappen uit, elk in een sandbox die alleen het internet bereikt.",
+        "cardDescription": "Runners die OneUptime voor elk project draait. Ze voeren JavaScript-stappen uit, elk in een sandbox die alleen het internet bereikt, en de codecorrecties van OneUptime AI.",
         "noItems": "Voeg een globale Runner toe. Maak er een en start hem daarna met de opdracht onder ‘ID en sleutel tonen’.",
         "showIdKey": "ID en sleutel tonen",
         "keyModalTitle": "Sleutel van de globale Runner",
-        "keyModalDescription": "Start deze globale Runner op een host die het internet bereikt. Houd de sleutel geheim: wie hem heeft, kan de JavaScript-stappen overnemen van elk project dat globale Runners gebruikt.",
+        "keyModalDescription": "Start deze globale Runner op een host die het internet bereikt. Houd de sleutel geheim: wie hem heeft, kan de JavaScript-stappen en AI-codecorrecties overnemen van elk project dat globale Runners gebruikt, en bij elke codecorrectie een token dat naar de repository kan pushen.",
         "runnerIdLabel": "Runner-ID:",
         "runnerKeyLabel": "Runner-sleutel:",
         "commandLabel": "Uitvoeren op je Docker-host",
