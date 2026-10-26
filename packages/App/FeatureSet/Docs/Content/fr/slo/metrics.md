@@ -31,7 +31,7 @@ flowchart TB
 
 L'agrégation est la façon dont les graphiques du SLO et le modèle SLO Dashboard combinent les points qui tombent dans un même intervalle du graphique. Les pourcentages et les durées sont moyennés. Le taux de consommation et le statut prennent le maximum, pour qu'un court pic de consommation ou un bref passage par Budget épuisé ne soit pas gommé par la moyenne.
 
-Pour un SLO en mode **Monitor Seconds Average**, `oneuptime.slo.error.budget.remaining.seconds` compte des secondes-moniteur additionnées sur ses moniteurs, comme son budget d'erreur : voir [Budgets d'erreur](/docs/slo/error-budget).
+Pour un SLO en mode **Moyenne des secondes des moniteurs**, `oneuptime.slo.error.budget.remaining.seconds` compte des secondes-moniteur additionnées sur ses moniteurs, comme son budget d'erreur : voir [Budgets d'erreur](/docs/slo/error-budget).
 
 ### Quand aucun point n'est écrit
 
@@ -98,7 +98,7 @@ Le [widget SLO](/docs/dashboards/widgets#slo) affiche le SLI, le budget restant 
 | Réglage | Comportement |
 | --- | --- |
 | **Objectif de niveau de service** | Épingle le widget à un SLO. Le sélecteur liste les SLO qui ne sont pas archivés. |
-| **Follow SLO Variable** | Affiche le SLO choisi dans une variable du tableau de bord : une variable **Telemetry Attribute** sur la clé `sloName`. Ignoré tant qu'un SLO est épinglé. |
+| **Follow SLO Variable** | Affiche le SLO choisi dans une variable du tableau de bord : une variable **Attribut de télémétrie** sur la clé `sloName`. Ignoré tant qu'un SLO est épinglé. |
 
 Sur un [tableau de bord public](/docs/dashboards/sharing), un widget qui suit une variable permet aux visiteurs de choisir par son nom n'importe quel SLO non archivé du projet. Un widget épinglé n'affiche jamais que son propre SLO, et continue d'afficher les derniers chiffres d'un SLO archivé plus tard.
 

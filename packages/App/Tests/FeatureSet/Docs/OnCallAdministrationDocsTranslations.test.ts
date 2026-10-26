@@ -994,8 +994,8 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
-    // A role's name is kept, not drawn.
-    expect(dashboardLabels(ON_CALL_POLICIES)).not.toContain("Project Admin");
+    // A role's name is drawn, as the role pickers draw it.
+    expect(dashboardLabels(ON_CALL_POLICIES)).toContain("Project Admin");
     // A status the Dashboard shows in English is kept.
     expect(dashboardLabels(ON_CALL_POLICIES)).not.toContain(
       "Execution Completed",

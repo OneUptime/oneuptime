@@ -157,7 +157,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
 
 ### 添加 Webhook 触发器
 
-点击虚线的 **Choose what starts this workflow** 块并选择 **Webhook**。点击该触发器，然后点击 **复制 URL**，把该 URL 用在 Datadog 的 Webhook 中。
+点击虚线的 **选择启动此工作流的方式** 块并选择 **Webhook**。点击该触发器，然后点击 **复制 URL**，把该 URL 用在 Datadog 的 Webhook 中。
 
 ### 检查监控器是否已触发
 

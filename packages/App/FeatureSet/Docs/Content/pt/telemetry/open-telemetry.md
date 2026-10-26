@@ -371,7 +371,7 @@ O OneUptime atende OTLP/gRPC no mesmo host da aplicação web, na porta 443 com 
 
 Em uma instalação auto-hospedada, o gRPC só chega ao OneUptime por HTTPS: uma conexão HTTP em texto puro (h2c) é recusada. Se a sua instância é servida por HTTP simples, use OTLP/HTTP.
 
-Duas configurações de uma chave valem só para OTLP/HTTP: o **Requests Per Minute Limit** e o **Pinned Service Name**. Dados enviados por gRPC mantêm o `service.name` com que foram enviados e não contam para o limite.
+Duas configurações de uma chave valem só para OTLP/HTTP: o **Requests Per Minute Limit** e o **Nome do serviço fixado**. Dados enviados por gRPC mantêm o `service.name` com que foram enviados e não contam para o limite.
 
 ### Respostas
 
@@ -400,9 +400,9 @@ A página de cada chave, em **Configurações do projeto → Telemetria e APM �
 
 | Configuração | O que faz |
 | --- | --- |
-| **Tipo de chave** | **Servidor** (o padrão) para aplicações, collectors e agentes. **Browser** para chaves que vão numa página web: só de escrita, e aceitas apenas das suas **Allowed Origins**. Não pode ser alterado depois que a chave é criada. |
-| **Allowed Origins** | As origens web de onde uma chave de navegador funciona, como `https://app.example.com`. Ignorado numa chave de servidor. |
-| **Pinned Service Name** | Quando definido, substitui `service.name` em tudo o que é enviado com esta chave por OTLP/HTTP. |
+| **Tipo de chave** | **Servidor** (o padrão) para aplicações, collectors e agentes. **Navegador** para chaves que vão numa página web: só de escrita, e aceitas apenas das suas **Origens permitidas**. Não pode ser alterado depois que a chave é criada. |
+| **Origens permitidas** | As origens web de onde uma chave de navegador funciona, como `https://app.example.com`. Ignorado numa chave de servidor. |
+| **Nome do serviço fixado** | Quando definido, substitui `service.name` em tudo o que é enviado com esta chave por OTLP/HTTP. |
 | **Habilitado** | Desligue para parar na hora de aceitar dados enviados com a chave, sem excluí-la. |
 | **Expira em** | Depois dessa data a chave é recusada. Vazio significa que ela nunca expira. |
 | **Requests Per Minute Limit** | O máximo de requisições OTLP/HTTP por minuto aceitas com a chave, somando todos os clientes que a usam. Vazio significa sem limite numa chave de servidor, e 6.000 numa chave de navegador. |
@@ -420,7 +420,7 @@ Tudo nesta página funciona da mesma forma na sua própria instalação. Use a U
 
 ## Exceções a partir de logs
 
-O OneUptime encontra exceções dentro dos seus **logs** e as reúne na mesma visualização **Exceções** alimentada pelos erros de traces. Cada log já pertence a um serviço ou host, então a exceção é atribuída a ele. Exceções de logs e de traces compartilham o agrupamento por impressão digital, de modo que um erro relatado tanto por um trace quanto por um log vira um único problema.
+O OneUptime encontra exceções dentro dos seus **registros** e as reúne na mesma visualização **Exceções** alimentada pelos erros de traces. Cada log já pertence a um serviço ou host, então a exceção é atribuída a ele. Exceções de logs e de traces compartilham o agrupamento por impressão digital, de modo que um erro relatado tanto por um trace quanto por um log vira um único problema.
 
 Há duas maneiras de um log virar uma exceção:
 
@@ -460,7 +460,7 @@ Um lote é maior que o limite de tamanho. Reduza o tamanho dos lotes, por exempl
 :::
 
 :::details Os dados chegam no serviço errado, ou em Unknown Service
-O serviço vem do atributo de recurso `service.name`. Defina `OTEL_SERVICE_NAME` em cada aplicação. Se a chave tiver um **Pinned Service Name**, toda exportação OTLP/HTTP com essa chave é registrada sob esse nome.
+O serviço vem do atributo de recurso `service.name`. Defina `OTEL_SERVICE_NAME` em cada aplicação. Se a chave tiver um **Nome do serviço fixado**, toda exportação OTLP/HTTP com essa chave é registrada sob esse nome.
 :::
 
 ## Próximos passos

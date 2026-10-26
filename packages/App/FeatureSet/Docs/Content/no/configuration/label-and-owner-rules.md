@@ -5,7 +5,7 @@ Etikettregler og eierregler holder orden på ressursene dine for deg. En **etike
 :::cards
 - [Opprett en regel](#opprett-en-regel): To trinn: hva regelen treffer, og deretter hva den legger til.
 - [Arv etiketter og eiere](#arv-etiketter-og-eiere): Gi videre det en hendelses monitorer, verter og tjenester bærer.
-- [Når regler kjører](#når-regler-kjører): Nye ressurser, og **Run Now** for dem du allerede har.
+- [Når regler kjører](#når-regler-kjører): Nye ressurser, og **Kjør nå** for dem du allerede har.
 :::
 
 ## Slik fungerer det
@@ -115,7 +115,7 @@ Hver aktivert regel kjører når en ressurs opprettes, fra dashbordet eller via 
 - En regel fjerner aldri noe: verken etiketter eller eiere noen har lagt til manuelt, eller dem den selv har lagt til.
 - En deaktivert regel gjør ingenting.
 
-En regel du skriver i dag, gjelder ressursene som opprettes etterpå. For å bruke den på dem du allerede har, bruker du **Run Now**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Etikettregler kan også kopieres mellom prosjekter: se [Importere og eksportere etikettregler](/docs/configuration/label-rule-import-export).
+En regel du skriver i dag, gjelder ressursene som opprettes etterpå. For å bruke den på dem du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Etikettregler kan også kopieres mellom prosjekter: se [Importere og eksportere etikettregler](/docs/configuration/label-rule-import-export).
 
 ## Mønstre
 

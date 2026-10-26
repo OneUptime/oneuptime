@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>執行各步驟"]
 ```
 
-觸發器啟動執行的方式與 **Run Now** 相同：這次執行跑的是 Runbook 目前的步驟，不關聯任何事件、警示或排程維護事件。每次執行都會記錄是什麼啟動了它。Runbook 的 **執行次數** 和 **運行手冊 → 執行次數** 會在 **觸發者** 中顯示這一點，並附上排程執行的預定時間或呼叫 Webhook 的位址，兩份清單都能依此篩選。
+觸發器啟動執行的方式與 **立即執行** 相同：這次執行跑的是 Runbook 目前的步驟，不關聯任何事件、警示或排程維護事件。每次執行都會記錄是什麼啟動了它。Runbook 的 **執行次數** 和 **運行手冊 → 執行次數** 會在 **觸發者** 中顯示這一點，並附上排程執行的預定時間或呼叫 Webhook 的位址，兩份清單都能依此篩選。
 
 ## 開始之前
 
@@ -44,7 +44,7 @@ flowchart TB
 **時區** 預設為你自己的時區。排程中的時間依此時區的時鐘計算。
 
 ### 儲存
-按一下 **儲存排程**。排程隨即開啟，卡片會用一句話顯示排程及其 **Next runs**。
+按一下 **儲存排程**。排程隨即開啟，卡片會用一句話顯示排程及其 **下次執行**。
 :::
 
 | **重複** | 你選擇的內容 | 範例 |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### 檢查執行
-回應會指出它啟動的執行：`{"runbookExecutionId": "...", "status": "Scheduled"}`。這次執行會出現在 Runbook 的 **執行次數** 中，**觸發者** 顯示 **Webhook**，其頁面的 **Inputs** 中會顯示呼叫傳送的內容。
+回應會指出它啟動的執行：`{"runbookExecutionId": "...", "status": "Scheduled"}`。這次執行會出現在 Runbook 的 **執行次數** 中，**觸發者** 顯示 **Webhook**，其頁面的 **輸入** 中會顯示呼叫傳送的內容。
 :::
 
 **傳送測試要求** 會像其他工具一樣，用你撰寫的本文向該 URL 傳送 `POST`，並連結到它啟動的執行。這是一次真實的 Runbook 執行。
@@ -136,7 +136,7 @@ URL 中含有 Runbook 的祕密金鑰：任何取得它的人都能啟動該 Run
 | --- | --- |
 | Bash 和 kubectl | 環境變數：每個頂層值一個 `ONEUPTIME_INPUT_<NAME>`，`ONEUPTIME_INPUTS` 以 JSON 形式包含整個物件，`ONEUPTIME_TRIGGER` 表示啟動執行的方式，例如 `Webhook` 或 `Schedule`。 |
 | JavaScript | `args.inputs`（依傳送時的樣子提供的物件）和 `args.trigger`。 |
-| AI | 當 **Include trigger context** 開啟時，在其提示中標示為來自 OneUptime 外部的資料。 |
+| AI | 當 **包含觸發器脈絡** 開啟時，在其提示中標示為來自 OneUptime 外部的資料。 |
 | HTTP request 和 SSH | 完全不讀取。它們的 URL、指令碼和目標就是 Runbook 中寫的內容，呼叫端傳送的任何內容都無法改變它們。 |
 
 變數名稱是值的名稱轉為大寫，其中字母和數字以外的每個字元都寫成 `_`：`host-name` 會變成 `ONEUPTIME_INPUT_HOST_NAME`。文字依原樣傳遞，數字以及 `true` 或 `false` 依書寫方式傳遞，物件和清單以 JSON 傳遞。一個步驟最多取得 100 個這樣的變數，超過 100 個字元的名稱不會成為變數；所有值仍都在 `ONEUPTIME_INPUTS` 中。每個名稱都以 `ONEUPTIME_` 開頭，因此呼叫端無法設定 `PATH` 或 Runner 讀取的任何其他變數。
@@ -163,7 +163,7 @@ return { host };
 
 ## 誰可以設定觸發器
 
-排程或 Webhook 會在無人在場時啟動執行，因此設定它們需要編輯並執行該 Runbook 的權限：Project Owner、Project Admin 或 Runbook Admin，或者 **Edit Runbook** 加上 Project Member、Runbook Member 或 **Create Runbook Execution**。與 **Run Now** 一樣，角色所限的標籤也會計入。檢視或重設 Webhook URL 需要同樣的權限。
+排程或 Webhook 會在無人在場時啟動執行，因此設定它們需要編輯並執行該 Runbook 的權限：Project Owner、Project Admin 或 Runbook Admin，或者 **Edit Runbook** 加上 Project Member、Runbook Member 或 **Create Runbook Execution**。與 **立即執行** 一樣，角色所限的標籤也會計入。檢視或重設 Webhook URL 需要同樣的權限。
 
 關閉排程或 Webhook 不會啟動任何內容，因此只需要編輯該 Runbook 的權限。能編輯但不能執行該 Runbook 的人會看到 **設定排程** 被鎖定的 **觸發器** 頁面，並得知誰可以檢視 Webhook URL。
 

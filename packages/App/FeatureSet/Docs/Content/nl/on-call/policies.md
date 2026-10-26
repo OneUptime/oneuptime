@@ -20,7 +20,7 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 
 **Wie wordt als eerste opgeroepen?** is optioneel en wordt alleen gevraagd aan wie escalatieregels mag toevoegen: blijft het leeg, dan roept het beleid niemand op tot het een regel heeft. **Beschrijving** en **Labels** staan onder **Meer velden**. Hoe je de volgende niveaus toevoegt, lees je bij [Escalatieregels](/docs/on-call/escalation-rules).
 
-De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **Import JSON** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
+De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **Import JSON** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
 
 ## Wat een beleid uitvoert
 
@@ -49,7 +49,7 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 
 **Basis** staat open; de andere secties beginnen ingeklapt tot je erop klikt.
 
-- **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Policy at a glance**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Responder readiness** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten.
+- **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Beleid in één oogopslag**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Gereedheid van ontvangers** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten.
 - **Eigenaren** zijn de personen en teams die verantwoordelijk zijn voor het beleid. Vindt een oproep van het beleid voor iemand geen regel, of kan die niet worden afgeleverd, dan krijgen zij een e-mail; een beleid zonder eigenaren mailt in plaats daarvan de eigenaren van het project.
 - **Meldingslogboeken** toont elk bericht dat het beleid stuurde, met een tabblad per kanaal.
 - **Gebruikersoverschrijvingen** vervangt personen alleen in dit beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
@@ -64,7 +64,7 @@ Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan st
 | **Stoppen met oproepen** | Niemand wordt opnieuw opgeroepen, dus het beleid loopt één keer. Een nieuw beleid begint met dit antwoord. |
 | **Opnieuw beginnen bij Level 1** | Elk niveau wordt opnieuw opgeroepen, op volgorde. **Hoe vaak nog?** zegt hoe vaak: 1 of meer. |
 
-Een beleid dat nog drie keer opnieuw begint, gaat in totaal vier keer door zijn niveaus. De regel **Na het laatste niveau** op de kaart zegt wat het beleid doet, en **Policy at a glance** op het **Overzicht** zegt hetzelfde in woorden.
+Een beleid dat nog drie keer opnieuw begint, gaat in totaal vier keer door zijn niveaus. De regel **Na het laatste niveau** op de kaart zegt wat het beleid doet, en **Beleid in één oogopslag** op het **Overzicht** zegt hetzelfde in woorden.
 
 ## Opnieuw oproepen als het niet is opgelost
 
@@ -77,7 +77,7 @@ Bevestigen stopt het oproepen van een beleid voorgoed, ook als daarna niemand he
 
 De minuten tellen vanaf elke bevestiging, en een beleid roept voor één incident, waarschuwing of episode hoogstens 5 keer opnieuw op. Een nieuwe oproep begint op het niveau dat opriep toen er werd bevestigd, roept op wie daar nu dienst heeft en gaat daarna door de niveaus zoals de eerste uitvoering. Het incident of de waarschuwing blijft bevestigd: de nieuwe oproep is een eigen uitvoering, in de feed en in de uitvoeringslogboeken van het beleid, waar de **Status** "Opnieuw opgeroepen (1 van 5)" zegt.
 
-Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Opnieuw bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt. **Policy at a glance** op het **Overzicht** en **Escalation summary** zeggen hetzelfde in woorden.
+Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Opnieuw bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt. **Beleid in één oogopslag** op het **Overzicht** en **Escalatieoverzicht** zeggen hetzelfde in woorden.
 
 ## Uitvoeringslogboeken
 
@@ -110,7 +110,7 @@ Uitvoeringslogboeken vind je op drie plekken:
 - onder **Bereikbaarheidsdienst → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
 - op de pagina **Bereikbaarheidsuitvoeringen** van een incident of een waarschuwing.
 
-Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **View Timeline** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. Een schema waarin niemand dienst heeft, toont **No one was on call** in plaats van een persoon. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
+Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **Tijdlijn bekijken** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. Een schema waarin niemand dienst heeft, toont **Niemand was bereikbaar** in plaats van een persoon. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
 
 ## Een beleid archiveren of verwijderen
 
@@ -123,7 +123,7 @@ Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen*
 
 ## Wie een beleid mag wijzigen
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member** mogen beleid maken, wijzigen en verwijderen; **Viewer** en **On-Call Viewer** mogen het lezen. In een aangepaste rol heten de rechten **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** en **Read On-Call Duty Policy**, en een rol die tot bepaalde labels is beperkt, bereikt alleen het beleid met die labels. Eigenaren en aangepaste velden toevoegen heeft in OneUptime Cloud het abonnement **Growth** nodig.
+**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen beleid maken, wijzigen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen het lezen. In een aangepaste rol heten de rechten **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** en **Read On-Call Duty Policy**, en een rol die tot bepaalde labels is beperkt, bereikt alleen het beleid met die labels. Eigenaren en aangepaste velden toevoegen heeft in OneUptime Cloud het abonnement **Growth** nodig.
 
 ## API en Terraform
 
@@ -147,7 +147,7 @@ Hoe je een beleid met zijn eerste niveau in één verzoek maakt, lees je bij [Re
 ## Probleemoplossing
 
 :::details Een beleid liep, maar niemand werd opgeroepen
-De uitvoering ervan toont **Execution Completed - No One Notified**. Open **View Timeline**: een rij met **No one was on call** wijst op een schema met een gat, en het statusbericht van een rij **Overgeslagen** zegt waarom, bijvoorbeeld iemand die afwezig was zonder vervanger. **Bereikbaarheidsdienst → Gereedheid** toont wie niet bereikt kon worden.
+De uitvoering ervan toont **Execution Completed - No One Notified**. Open **Tijdlijn bekijken**: een rij met **Niemand was bereikbaar** wijst op een schema met een gat, en het statusbericht van een rij **Overgeslagen** zegt waarom, bijvoorbeeld iemand die afwezig was zonder vervanger. **Bereikbaarheidsdienst → Gereedheid** toont wie niet bereikt kon worden.
 :::
 
 :::details Het volgende niveau werd een minuut na zijn wachttijd opgeroepen

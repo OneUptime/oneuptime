@@ -32,7 +32,7 @@ flowchart TB
 
 依金鑰將要存放的位置選擇類型。金鑰建立後就無法變更類型。
 
-| | **伺服器** | **Browser** |
+| | **伺服器** | **瀏覽器** |
 | --- | --- | --- |
 | 用途 | 在你營運的機器上執行的應用程式、collector 和代理程式 | 網頁，以及 React Native Session Replay |
 | 傳送內容 | 所有類型的遙測，送往所有端點 | 追蹤、日誌、指標和 Session Replay |
@@ -60,7 +60,7 @@ flowchart TB
 
 ### 新增瀏覽器金鑰的來源
 
-**Browser** 類型的金鑰會在下一步 **瀏覽器設定** 中要求填寫 **Allowed Origins**，並在 **進階** 下方提供 **Pinned Service Name**。請參閱 [鎖定瀏覽器金鑰](#鎖定瀏覽器金鑰)。
+**瀏覽器** 類型的金鑰會在下一步 **瀏覽器設定** 中要求填寫 **允許的來源**，並在 **進階** 下方提供 **固定的服務名稱**。請參閱 [鎖定瀏覽器金鑰](#鎖定瀏覽器金鑰)。
 
 ### 建立金鑰並複製密鑰值
 
@@ -88,8 +88,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 | 設定 | 作用 |
 | --- | --- |
-| **Allowed Origins** | 接受該金鑰的唯一來源。來自其他任何來源的請求，或完全沒有 `Origin` 標頭的請求，都會遭到拒絕。瀏覽器金鑰必須至少保留一個來源。 |
-| **Pinned Service Name** | 把金鑰透過 OTLP/HTTP 傳送的所有內容都歸入這一個服務，無論傳送端設定了什麼 `service.name`。如此一來，金鑰的副本只能寫入該服務。 |
+| **允許的來源** | 接受該金鑰的唯一來源。來自其他任何來源的請求，或完全沒有 `Origin` 標頭的請求，都會遭到拒絕。瀏覽器金鑰必須至少保留一個來源。 |
+| **固定的服務名稱** | 把金鑰透過 OTLP/HTTP 傳送的所有內容都歸入這一個服務，無論傳送端設定了什麼 `service.name`。如此一來，金鑰的副本只能寫入該服務。 |
 | **Requests Per Minute Limit** | 該金鑰每分鐘可被接受的最大請求數，由所有訪客共用。留空時，瀏覽器金鑰的上限為 6,000。 |
 | **到期於** | 過了這個日期，金鑰就會遭到拒絕，已公開的副本也隨之失效。 |
 
@@ -130,8 +130,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 | `422` 加 `This telemetry ingestion key has been disabled.` | 有人關閉了 **已啟用**。 |
 | `422` 加 `A browser ingestion key cannot be used for` | 瀏覽器金鑰到達了只接受伺服器金鑰的端點。 |
 | `422` 加 `did not send an Origin header` | 瀏覽器金鑰是從瀏覽器之外傳送的。請在那裡改用伺服器金鑰。 |
-| `422` 加 `is not allowed for this browser ingestion key` | 頁面的來源不在 **Allowed Origins** 中。 |
-| `422` 加 `is pinned to a single service` | 有人用設定了 **Pinned Service Name** 的金鑰註冊代理程式。請改用沒有固定名稱的伺服器金鑰。 |
+| `422` 加 `is not allowed for this browser ingestion key` | 頁面的來源不在 **允許的來源** 中。 |
+| `422` 加 `is pinned to a single service` | 有人用設定了 **固定的服務名稱** 的金鑰註冊代理程式。請改用沒有固定名稱的伺服器金鑰。 |
 | `429` 加 `Too many telemetry requests for this ingestion key` | 金鑰達到了它的 **Requests Per Minute Limit**。匯出工具會在 `Retry-After` 的時間之後重試。 |
 
 關於 OTLP 匯出工具可能收到的其他回應，請參閱 [回應](/docs/telemetry/open-telemetry#回應)。

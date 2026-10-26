@@ -53,7 +53,7 @@ flowchart TB
 
 OneUptime 本身不需要任何 Azure 角色。一个密钥本身就能访问资源上的所有部署，不经过角色检查，所以请像对待密码一样对待它。
 
-在 OneUptime 中，向项目添加提供商需要 **Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member** 或 **Create LLM**。自托管实例也可以改用环境变量为所有项目注册一个提供商，这需要能访问服务器。
+在 OneUptime 中，向项目添加提供商需要 **项目所有者**、**项目管理员**、**项目成员**、**设置管理员**、**设置成员** 或 **Create LLM**。自托管实例也可以改用环境变量为所有项目注册一个提供商，这需要能访问服务器。
 
 ## 设置 Microsoft Foundry
 

@@ -993,6 +993,8 @@
   "Never put keys here.": "Nunca ponga claves aquí.",
   "Your deployment's name, exactly as Foundry shows it.": "El nombre de su implementación, tal como lo muestra Foundry.",
   "{{name}} (default)": "{{name}} (predeterminado)",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Déjelo vacío para usar el primer modelo que lista su servidor. Para usar otro, escriba su nombre exactamente como lo lista su servidor.",
+  "First model the server lists": "Primer modelo que lista el servidor",
   "Visitors share an address": "Varios visitantes comparten una dirección",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "En los últimos 30 días, varias personas iniciaron sesión desde una misma dirección de red privada. OneUptime las cuenta como un solo visitante, así que los inicios de sesión fallidos de una persona pueden bloquear a las demás.",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Normalmente, algo delante de OneUptime le entrega cada visitante desde una dirección propia:",

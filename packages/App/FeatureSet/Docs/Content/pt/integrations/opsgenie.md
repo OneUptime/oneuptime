@@ -49,7 +49,7 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Criar o alerta
 

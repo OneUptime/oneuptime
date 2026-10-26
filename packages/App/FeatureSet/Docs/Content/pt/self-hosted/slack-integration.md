@@ -39,7 +39,7 @@ sequenceDiagram
 - Um workspace do Slack em que você possa criar e instalar apps.
 - Um nome de host HTTPS público para o OneUptime que o Slack consiga alcançar. Veja [Acesso à rede](#acesso-à-rede-para-implantações-auto-hospedadas).
 - Acesso à configuração do servidor: `config.env` no Docker Compose, ou os seus values do Helm no Kubernetes.
-- Para conectar um projeto, a função **Project Owner**, **Project Admin** ou **Project Member** nele.
+- Para conectar um projeto, a função **Proprietário do projeto**, **Administrador do projeto** ou **Membro do projeto** nele.
 
 ## Configurar o app do Slack
 
@@ -239,7 +239,7 @@ Quando o Slack devolve você e a conexão não foi feita, a página do Slack de 
 | A página diz | O que fazer |
 | --- | --- |
 | **"Este link de conexão é inválido, expirou ou já foi usado. Comece novamente."** | O link funciona uma vez, por 15 minutos, no navegador que o iniciou. Comece de novo pela página do Slack e conclua no Slack em até 15 minutos, no mesmo navegador. |
-| **"Você não tem permissão para conectar este projeto ao Slack."** | Instalar o OneUptime no Slack exige **Project Owner**, **Project Admin** ou **Project Member**. Isso é verificado de novo quando o Slack devolve você, então uma função retirada nesse meio-tempo também encerra a conexão aqui. |
+| **"Você não tem permissão para conectar este projeto ao Slack."** | Instalar o OneUptime no Slack exige **Proprietário do projeto**, **Administrador do projeto** ou **Membro do projeto**. Isso é verificado de novo quando o Slack devolve você, então uma função retirada nesse meio-tempo também encerra a conexão aqui. |
 | **"Você não é mais membro deste projeto."** | Para conectar a sua própria conta do Slack, você precisa ser membro do projeto quando o Slack devolver você. |
 | **"Este projeto ainda não está conectado a um workspace do Slack."** | Instale primeiro o OneUptime no Slack em **Configurações do projeto > Espaço de trabalho > Slack** e depois conecte a sua própria conta. |
 | **"Você entrou em um workspace do Slack diferente daquele ao qual este projeto está conectado."** | Conecte a sua conta enquanto estiver conectado ao workspace do Slack em que o projeto está instalado. |

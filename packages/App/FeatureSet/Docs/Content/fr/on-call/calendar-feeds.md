@@ -24,7 +24,7 @@ flowchart TB
 - Les remplacements sont pris en compte. Quand quelqu'un vous remplace, l'événement passe à cette personne (`(covering for <Name>)` est ajouté) et reste le même événement dans votre application de calendrier : il se met à jour sur place au lieu d'être dupliqué. Un remplacement partiel découpe la permanence en événements contigus.
 - Deux jours d'historique et 90 jours à venir par défaut. Vous pouvez étendre cela à 60 jours en arrière et 180 jours en avant ; un flux qui dépasserait 5 000 événements est raccourci et le signale dans la description de son calendrier.
 - Les événements sont marqués comme disponibles (`TRANSP:TRANSPARENT`), un flux abonné ne bloque donc jamais votre disponibilité, et rien n'est marqué comme privé : un calendrier d'équipe partagé montre les titres à tous ceux qui peuvent le voir.
-- Les heures sont envoyées en UTC et converties par votre application de calendrier ; la description précise l'heure locale dans le fuseau du planning et dans le vôtre. Définissez votre propre fuseau comme **Fuseau horaire** dans votre **Profil** (votre photo en haut à droite du tableau de bord), et celui du planning dans la carte **Schedule timezone** de sa page **Couches**. Un planning sans fuseau horaire est calculé dans le fuseau du serveur, comme pour les alertes, et l'événement le signale.
+- Les heures sont envoyées en UTC et converties par votre application de calendrier ; la description précise l'heure locale dans le fuseau du planning et dans le vôtre. Définissez votre propre fuseau comme **Fuseau horaire** dans votre **Profil** (votre photo en haut à droite du tableau de bord), et celui du planning dans la carte **Fuseau horaire du planning** de sa page **Couches**. Un planning sans fuseau horaire est calculé dans le fuseau du serveur, comme pour les alertes, et l'événement le signale.
 
 Les affectations permanentes — un utilisateur ou une équipe nommé directement dans une règle de politique d'escalade — n'ont ni début ni fin et n'apparaissent dans aucun flux. Sur OneUptime Cloud, les flux suivent la même offre que les plannings d'astreinte (Growth) ; un projet en dessous de cette offre reçoit un calendrier vide plutôt qu'une erreur.
 
@@ -327,7 +327,7 @@ Ces applications valident TLS sur l'appareil. Importez votre autorité de certif
 :::
 
 :::details Les heures sont fausses
-Toutes les heures du fichier sont en UTC ; l'application de calendrier les convertit dans son propre fuseau. Si les permanences semblent décalées d'un écart fixe, vérifiez le fuseau du planning (**Schedule timezone** sur sa page **Couches**) et le vôtre (**Fuseau horaire** dans votre **Profil**). Un planning sans fuseau horaire est calculé dans le fuseau du serveur, et l'événement le signale.
+Toutes les heures du fichier sont en UTC ; l'application de calendrier les convertit dans son propre fuseau. Si les permanences semblent décalées d'un écart fixe, vérifiez le fuseau du planning (**Fuseau horaire du planning** sur sa page **Couches**) et le vôtre (**Fuseau horaire** dans votre **Profil**). Un planning sans fuseau horaire est calculé dans le fuseau du serveur, et l'événement le signale.
 :::
 
 :::details Le flux indique qu'il a été raccourci

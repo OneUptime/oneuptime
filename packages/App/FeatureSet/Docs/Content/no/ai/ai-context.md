@@ -87,7 +87,7 @@ Hver kjøring lagrer ord for ord notatene den leste. Aktiviteten dens sier **Les
 
 ## Hvem som kan endre den
 
-- **Project Owner** og **Project Admin** kan endre prosjektets AI-kontekst. **Project Member**, **Viewer** og **Read Project** kan lese den.
+- **Prosjekteier** og **Prosjektadministrator** kan endre prosjektets AI-kontekst. **Prosjektmedlem**, **Leser** og **Read Project** kan lese den.
 - Notatene til en AI-regel er en del av regelen: den som kan endre regelen, kan endre dem.
 - Notatene leses bare for sitt eget prosjekt: ingen kjøring leser AI-konteksten til et annet prosjekt.
 

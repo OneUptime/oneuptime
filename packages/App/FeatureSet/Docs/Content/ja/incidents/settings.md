@@ -662,7 +662,7 @@ flowchart TB
 
 ## ワークフローでインシデントを動かす
 
-インシデントのワークフローのトリガーは手書きではありません。OneUptime がデータモデルから生成するので、インシデント関連のすべてのモデルが、モデルの単数形の名前を付けた **On Create X**、**On Update X**、**On Create or Update X**、**On Delete X** のコンポーネントを持ちます。中心となるのは **On Create Incident**、**On Update Incident**、**On Create or Update Incident**、**On Delete Incident** です。`/dashboard/{projectId}/workflows` の **Add Trigger** パネルの **OneUptime resources** → **Incident** の下にあり、最初の 2 つは **Popular** の下にもあります。
+インシデントのワークフローのトリガーは手書きではありません。OneUptime がデータモデルから生成するので、インシデント関連のすべてのモデルが、モデルの単数形の名前を付けた **On Create X**、**On Update X**、**On Create or Update X**、**On Delete X** のコンポーネントを持ちます。中心となるのは **On Create Incident**、**On Update Incident**、**On Create or Update Incident**、**On Delete Incident** です。`/dashboard/{projectId}/workflows` の **Add Trigger** パネルの **OneUptime のリソース** → **Incident** の下にあり、最初の 2 つは **人気** の下にもあります。
 
 同じ生成によって、設定そのもののトリガーもあります。**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** などです。各モデルには対応するアクションのコンポーネント（**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** と、その複数行版）もあるので、似た名前のトリガーとアクションが同じカテゴリーに並びます。**On Create Incident** はワークフローを開始し、**Create One Incident** はインシデントを開きます。
 

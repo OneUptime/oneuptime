@@ -69,7 +69,7 @@ Andate in **Incidenti → Regole → Regole di reperibilità** o **Avvisi → Re
 
 ### Verificare che tutti siano raggiungibili
 
-Aprite **Reperibilità → Prontezza**. Ogni persona che le vostre policy possono avvisare compare come **Pronto**, **Needs setup** o **Unreachable**, con ciò che manca. Vedi [Prontezza e report](/docs/on-call/readiness).
+Aprite **Reperibilità → Prontezza**. Ogni persona che le vostre policy possono avvisare compare come **Pronto**, **Da configurare** o **Irraggiungibile**, con ciò che manca. Vedi [Prontezza e report](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

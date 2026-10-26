@@ -87,7 +87,7 @@ Elke run legt woord voor woord vast welke notities hij heeft gelezen. Zijn activ
 
 ## Wie hem kan wijzigen
 
-- **Project Owner** en **Project Admin** kunnen de AI-context van het project wijzigen. **Project Member**, **Viewer** en **Read Project** kunnen hem lezen.
+- **Projecteigenaar** en **Projectbeheerder** kunnen de AI-context van het project wijzigen. **Projectlid**, **Kijker** en **Read Project** kunnen hem lezen.
 - De notities van een AI-regel horen bij de regel: wie de regel kan wijzigen, kan ze wijzigen.
 - De notities worden alleen ooit gelezen voor hun eigen project: geen enkele run leest de AI-context van een ander project.
 

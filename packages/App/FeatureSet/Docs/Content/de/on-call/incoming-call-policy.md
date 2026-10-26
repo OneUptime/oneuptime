@@ -160,7 +160,7 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 
 Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
-Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Billing Admin** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ein.
+Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ein.
 
 ## Sprachnachrichten und Richtlinieneinstellungen
 
@@ -182,7 +182,7 @@ Twilio liest die Nachrichten mit einer Sprachausgabe vor; schreiben Sie sie also
 
 ## Anrufprotokolle
 
-Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Protokolle** im Seitenmenü: der **Anrufer**, die **Angerufene Nummer**, sein **Status**, wer abgenommen hat (**Beantwortet von**), die **Dauer** und wann er begann (**Gestartet am**). Klicken Sie bei einem Anruf auf **View Timeline**, um seinen **Anrufverlauf** zu sehen: jede Person, bei der es geklingelt hat, auf welcher Nummer und wie jeder Versuch endete.
+Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Protokolle** im Seitenmenü: der **Anrufer**, die **Angerufene Nummer**, sein **Status**, wer abgenommen hat (**Beantwortet von**), die **Dauer** und wann er begann (**Gestartet am**). Klicken Sie bei einem Anruf auf **Zeitachse anzeigen**, um seinen **Anrufverlauf** zu sehen: jede Person, bei der es geklingelt hat, auf welcher Nummer und wie jeder Versuch endete.
 
 | Status | Was passiert ist |
 | --- | --- |
@@ -225,8 +225,8 @@ Ein Workflow kann Anrufprotokolle mit **Find One** und **Find Many** lesen, aber
 
 Die Telefonnummern einer Richtlinie folgen denselben Rollen wie die Richtlinie selbst:
 
-- **Nummern nachschlagen** - bei Twilio nach einer Nummer zum Reservieren suchen oder die Nummern auflisten, die Ihr Twilio-Konto schon hat - braucht die Berechtigung, Richtlinien für eingehende Anrufe zu lesen und Anruf- und SMS-Konfigurationen zu lesen, weil dabei Ihr Twilio-Konto über eine solche gelesen wird. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** und **Settings Viewer** haben beide. In einer benutzerdefinierten Rolle sind das **Read Incoming Call Policy** und **Read Call and SMS**.
-- **Eine Nummer reservieren, eine vorhandene verwenden und eine freigeben** brauchen die Berechtigung, Richtlinien für eingehende Anrufe zu bearbeiten: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** und **Settings Member** oder **Edit Incoming Call Policy** in einer benutzerdefinierten Rolle. Sie ändern die Nummern einer Richtlinie, die Sie bearbeiten dürfen: bei einer auf bestimmte Beschriftungen beschränkten Rolle die Richtlinien mit diesen Beschriftungen.
+- **Nummern nachschlagen** - bei Twilio nach einer Nummer zum Reservieren suchen oder die Nummern auflisten, die Ihr Twilio-Konto schon hat - braucht die Berechtigung, Richtlinien für eingehende Anrufe zu lesen und Anruf- und SMS-Konfigurationen zu lesen, weil dabei Ihr Twilio-Konto über eine solche gelesen wird. **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Betrachter**, **Einstellungs-Administrator**, **Einstellungs-Mitglied** und **Einstellungs-Betrachter** haben beide. In einer benutzerdefinierten Rolle sind das **Read Incoming Call Policy** und **Read Call and SMS**.
+- **Eine Nummer reservieren, eine vorhandene verwenden und eine freigeben** brauchen die Berechtigung, Richtlinien für eingehende Anrufe zu bearbeiten: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Einstellungs-Administrator** und **Einstellungs-Mitglied** oder **Edit Incoming Call Policy** in einer benutzerdefinierten Rolle. Sie ändern die Nummern einer Richtlinie, die Sie bearbeiten dürfen: bei einer auf bestimmte Beschriftungen beschränkten Rolle die Richtlinien mit diesen Beschriftungen.
 
 Ein Teamblock ohne Beschriftungen auf einer dieser Berechtigungen nimmt sie weg. Für alle anderen bleiben **Telefonnummer hinzufügen** und **Freigeben** gesperrt auf der Seite, und ihr Tooltip sagt, was nötig ist. Die API lehnt ihre Anfrage mit einem Satz ab, der sagt, was nötig ist: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oder "Adding or releasing a phone number needs permission to edit incoming call policies." Eine Nummer zu reservieren, belastet Ihr eigenes Twilio-Konto, nicht Ihr OneUptime-Guthaben, und braucht deshalb keine Abrechnungsberechtigung.
 

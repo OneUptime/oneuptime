@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 En browser sender sjældent så store batches, medmindre spans bærer store attributter, som en hel stakspor eller en svarbody. At skære dem ned er den bedre løsning.
 
-**`422`.** OneUptime afviste nøglen her, og beskeden siger hvorfor. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder, at sidens præcise oprindelse, med dens skema og eventuelle port, mangler i nøglens **Allowed Origins**. `This telemetry ingestion key has been disabled.` betyder, at nogen har deaktiveret nøglen.
+**`422`.** OneUptime afviste nøglen her, og beskeden siger hvorfor. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder, at sidens præcise oprindelse, med dens skema og eventuelle port, mangler i nøglens **Tilladte oprindelser**. `This telemetry ingestion key has been disabled.` betyder, at nogen har deaktiveret nøglen.
 
 **`429`.** Nøglens **Requests Per Minute Limit** er brugt op: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nøgle tillader 6000 forespørgsler i minuttet for alle dine besøgende tilsammen, medmindre du sætter din egen grænse på nøglen.
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-Applikationens side **Health**, i dens sektion **Session Replay**, og panelet **Test your installation** på **Replay Policy** tjekker nøglen, listerne over tilladte oprindelser og politikken fra serversiden og siger, hvorfor intet kommer ind. Browserkonsollen giver dig den halvdel, serveren ikke kan se.
+Applikationens side **Sundhed**, i dens sektion **Sessionsafspilning**, og panelet **Test your installation** på **Replay Policy** tjekker nøglen, listerne over tilladte oprindelser og politikken fra serversiden og siger, hvorfor intet kommer ind. Browserkonsollen giver dig den halvdel, serveren ikke kan se.
 
 Med standardpolitikken sender en optager en chunk omtrent hvert 15. sekund, mens brugeren interagerer med siden. En inaktiv fane har intet at sende, så klik eller bevæg musen først; hvis der derefter ingen chunk-forespørgsel er, er der noget galt. Hvis appen kun uploader _On error or frustration_, er stilhed forventet, indtil noget fejler. Kald `OneUptimeReplay.captureSession()` for at tvinge en upload og teste vejen alligevel.
 

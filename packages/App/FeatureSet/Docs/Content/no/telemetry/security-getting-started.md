@@ -18,7 +18,7 @@ Det kreves rollen Project Owner, Project Admin eller Security Admin for å sette
 :::steps
 ### Slå på det de fleste team trenger
 
-Åpne **Produkter → Security Events**. Klikk på **Slå på anbefalt** på **Oversikt**. Det slår på tre ting samtidig: **Finn sikkerhetshendelser i loggene dine**, de anbefalte deteksjonsreglene og **Enrich New Cases**, en playbook som sjekker hver nye sak mot trusseletterretning og legger igjen en sjekkliste for triage på den.
+Åpne **Produkter → Security Events**. Klikk på **Slå på anbefalt** på **Oversikt**. Det slår på tre ting samtidig: **Finn sikkerhetshendelser i loggene dine**, de anbefalte deteksjonsreglene og **Berik nye saker**, en playbook som sjekker hver nye sak mot trusseletterretning og legger igjen en sjekkliste for triage på den.
 
 ### Send et testangrep
 
@@ -26,7 +26,7 @@ Klikk på **Send et testangrep**. Et dusin mislykkede pålogginger fra én dokum
 
 ### Åpne saken
 
-Klikk på **Åpne saken**. Slik ser et ekte funn ut: hendelsene bak det, adressen det gjelder, og hva **Enrich New Cases** fant. Lukk den som en test når du er ferdig.
+Klikk på **Åpne saken**. Slik ser et ekte funn ut: hendelsene bak det, adressen det gjelder, og hva **Berik nye saker** fant. Lukk den som en test når du er ferdig.
 :::
 
 Deretter åpner **Oversikt** på det som trenger noen, under **Krever oppmerksomhet**: de åpne sakene dine, de ingen har tatt, og playbook-trinnene som venter på en godkjenning. Når det ikke er noen, står det **Alt er rolig**.
@@ -43,8 +43,8 @@ flowchart LR
 
 | Del | Hvor | Hva den gjør |
 | --- | --- | --- |
-| **Kilder** | **Connections** | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og alt du sender |
-| **Detections** | **Detections** | Sigma-regler og feeder med trusseletterretning som ser etter trusler i hver hendelse |
+| **Kilder** | **Tilkoblinger** | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og alt du sender |
+| **Deteksjoner** | **Deteksjoner** | Sigma-regler og feeder med trusseletterretning som ser etter trusler i hver hendelse |
 | **Sikkerhetssaker** | **Sikkerhetssaker** | Det som ble funnet, gruppert etter brukeren, verten eller adressen det gjelder |
 | **Playbooks** | **Playbooks** | Trinn som kjører på nye saker: beriker dem, varsler, åpner en hendelse eller demmer inn |
 
@@ -52,7 +52,7 @@ flowchart LR
 
 ## Finn sikkerhetshendelser i loggene dine
 
-Kortet **Loggene dine**, øverst på **Connections**, trenger ingen installasjon. Med **Finn sikkerhetshendelser i loggene dine** slått på leser OneUptime prosjektets nye logger hvert minutt og gjør linjene det kjenner igjen til sikkerhetshendelser:
+Kortet **Loggene dine**, øverst på **Tilkoblinger**, trenger ingen installasjon. Med **Finn sikkerhetshendelser i loggene dine** slått på leser OneUptime prosjektets nye logger hvert minutt og gjør linjene det kjenner igjen til sikkerhetshendelser:
 
 | Logger | Hva som blir en sikkerhetshendelse |
 | --- | --- |
@@ -66,7 +66,7 @@ Loggene dine forblir som de er. Bare linjene som betyr noe for sikkerheten, blir
 
 ## Send det OneUptime finner til SIEM-et ditt
 
-Jobber teamet ditt allerede i et SIEM, sender OneUptime funnene sine dit også. Klikk på **Legg til mål** under **Connections → Send til SIEM-et ditt**, fyll inn region, instans og tjenestekontonøkkel for Google SecOps-instansen din, og klikk på **Send en testhendelse** før du lagrer. Se [Send sikkerhetshendelser til Google SecOps](/docs/integrations/google-secops#send-sikkerhetshendelser-til-google-secops).
+Jobber teamet ditt allerede i et SIEM, sender OneUptime funnene sine dit også. Klikk på **Legg til mål** under **Tilkoblinger → Send til SIEM-et ditt**, fyll inn region, instans og tjenestekontonøkkel for Google SecOps-instansen din, og klikk på **Send en testhendelse** før du lagrer. Se [Send sikkerhetshendelser til Google SecOps](/docs/integrations/google-secops#send-sikkerhetshendelser-til-google-secops).
 
 ## Feilsøking
 
@@ -79,7 +79,7 @@ Kortet nevner alt det ikke kunne slå på, og hvorfor: rollen din, planen din el
 :::
 
 :::details Testangrepet åpnet ingen sak
-Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, sier den fra, og saken åpnes innen et minutt. Se under **Sikkerhetssaker** igjen, og sjekk under **Detections** at brute force-regelen er slått på.
+Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, sier den fra, og saken åpnes innen et minutt. Se under **Sikkerhetssaker** igjen, og sjekk under **Deteksjoner** at brute force-regelen er slått på.
 :::
 
 :::details Det kommer ingen sikkerhetshendelse fra loggene mine
@@ -87,7 +87,7 @@ Sjekk at **Finn sikkerhetshendelser i loggene dine** er slått på, og at kortet
 :::
 
 :::details Oversikt sier at den siste sikkerhetshendelsen kom for dager siden
-Ingenting har nådd Security siden da. Åpne **Connections**, og sjekk at **Loggene dine** og hver tilkobling fortsatt er slått på, og når hver sist sjekket.
+Ingenting har nådd Security siden da. Åpne **Tilkoblinger**, og sjekk at **Loggene dine** og hver tilkobling fortsatt er slått på, og når hver sist sjekket.
 :::
 
 :::details Kortet som slår på Security, er borte

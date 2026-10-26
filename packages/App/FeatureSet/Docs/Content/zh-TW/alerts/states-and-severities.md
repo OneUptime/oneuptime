@@ -44,7 +44,7 @@ flowchart TB
 
 | 狀態             | `order` | 旗標                  | 顏色      | 含義                                            |
 | ---------------- | ------- | --------------------- | --------- | ----------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | 新警示開始時所處的狀態。                        |
+| **已識別**   | `1`     | `isCreatedState`      | `#fd625e` | 新警示開始時所處的狀態。                        |
 | **已確認**       | `2`     | `isAcknowledgedState` | `#ffbf53` | 有人在處理它，呼叫隨之停止。                    |
 | **已解決**       | `3`     | `isResolvedState`     | `#2ab57d` | 警示已經結束，不再算作進行中。                  |
 
@@ -99,10 +99,10 @@ flowchart TB
 
 | 嚴重程度 | `order` | 顏色      | 預設描述                                                                          |
 | -------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **高** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **低**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-事件以三個嚴重程度開始，警示則以兩個開始。當監測器建議的範本寫的是 **嚴重** 或 **Warning** 時，OneUptime 會把它對應到你的第一個和第二個警示嚴重程度，在新專案中即 **High** 和 **Low**。
+事件以三個嚴重程度開始，警示則以兩個開始。當監測器建議的範本寫的是 **嚴重** 或 **Warning** 時，OneUptime 會把它對應到你的第一個和第二個警示嚴重程度，在新專案中即 **高** 和 **低**。
 
 ## 編輯嚴重程度
 

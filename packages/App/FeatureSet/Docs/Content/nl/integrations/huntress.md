@@ -40,7 +40,7 @@ Het incident bewaart het nummer van de melding in zijn aangepaste velden, als `h
 
 ## Voordat u begint
 
-- In OneUptime een rol die workflows kan maken en bewerken, zoals **Project Owner**, **Project Admin** of **Workflow Admin**.
+- In OneUptime een rol die workflows kan maken en bewerken, zoals **Projecteigenaar**, **Projectbeheerder** of **Workflowbeheerder**.
 - In Huntress de rol **Account Admin**: alleen accountbeheerders kunnen webhooks toevoegen.
 - Een bereikbaarheidsbeleid om op te roepen.
 - In OneUptime Cloud een abonnement met workflows: Growth of hoger. Elke gebeurtenis die Huntress stuurt, is één workflow-uitvoering.

@@ -13,7 +13,7 @@ LLM 提供商是 OneUptime 中每项 AI 功能背后的模型：调查、询问 
 
 - **调查**：OneUptime AI 调查新的事件和警报，并在时间线上发布带引用的根本原因分析。请参阅 [AI SRE](/docs/ai/ai-sre)。
 - **问题**：**Ask AI** 根据你项目的数据作答，每个论断都附有引用。请参阅 [询问 AI](/docs/ai/ask-ai)。
-- **草稿**：事件、警报和计划维护的备注中的 **Draft with AI**，以及按需或在事件解决时起草的事后复盘。
+- **草稿**：事件、警报和计划维护的备注中的 **AI 起草**，以及按需或在事件解决时起草的事后复盘。
 - **代码**：修复异常、慢追踪以及调查所发现原因的拉取请求，可从 OneUptime 或 GitHub 发起。请参阅 [代码](/docs/ai/ai-agent)。
 - **其他一切**：AI Insights 的分诊、工作流和运行手册中的 AI 步骤，以及 Slack 和 Microsoft Teams 中的回答。
 
@@ -53,7 +53,7 @@ OneUptime Cloud 只能访问公共互联网上的 LLM 端点。它无法连接�
 | `GLOBAL_LLM_PROVIDER_TYPE` | 开启时必需。取值为 `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` 之一 |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | API 密钥：OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需；Ollama 或无密钥的 OpenAI 兼容服务器不需要 |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | 端点：Azure OpenAI、Ollama 和 OpenAI 兼容服务器必需 |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型：OpenAI 兼容服务器必需，其他提供商建议设置 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型。可选：不设置时，OneUptime 使用提供商的默认模型；在 OpenAI 兼容服务器上，使用服务器列出的第一个模型 |
 | `GLOBAL_LLM_PROVIDER_NAME` | 可选的友好名称，显示在仪表板中 |
 
 :::tabs
@@ -105,15 +105,15 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 - **API 密钥**：你的 API 密钥，OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需，OpenAI 兼容服务器可选；Ollama 不需要填写
 - **基础 URL**：端点，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供商仅在经由代理或网关时填写
-- **模型名称**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`。留空时，OneUptime 使用提供商的默认模型；OpenAI 兼容服务器除外，它必须填写
+- **模型名称**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`。留空时，OneUptime 使用提供商的默认模型；OpenAI 兼容服务器没有默认模型，因此 OneUptime 会询问它提供哪些模型，并使用它列出的第一个模型
 - **名称**：在你输入自己的名称之前，沿用提供商的名称，例如 "Production OpenAI" 或 "Local Ollama"
 - **更多字段**，折叠在上述字段下方：**描述**；**设为默认**，新提供商默认开启，因为 AI 功能只使用项目的默认提供商；以及 **附加参数**，一个可选的 JSON 对象，其中的额外参数会随每个请求发送给提供商（例如 `{"temperature": 0.2}`）
 
-**谁可以看到提供商。** 项目的 LLM 提供商只有能读取项目设置的成员才能读取：**Project Owner**、**Project Admin**、**Project Member**、**Viewer**、**Settings Admin**、**Settings Member**、**Settings Viewer** 和 **Read LLM**。提供商的 **API 密钥** 和 **附加参数** 只有项目的所有者和管理员才能读取，因为参数会随每个请求发送给提供商，并且可能像密钥一样携带令牌或请求头。其他成员只能看到是否保存了参数，而看不到参数内容。可以编辑提供商的成员仍然可以在不读取的情况下替换其 API 密钥或参数：在编辑表单中这些字段一开始是空的，留空则保留已保存的值。要删除参数，请保存 `{}`。只有项目的所有者和管理员才能修改提供商的 **基础 URL**，因为它的 API 密钥和附加参数会被发送到该地址；其他可以编辑提供商的成员可以修改其余所有内容。任何能读取提供商的人都能读取它的 **基础 URL**，所以绝不要在其中放入密钥、令牌或密码：请使用 **API 密钥**。同一页面上的 **全局 LLM 提供商** 列表（项目回退使用的共享提供商）会向任何已登录的人显示它们的名称、描述和价格，此外不显示任何信息。
+**谁可以看到提供商。** 项目的 LLM 提供商只有能读取项目设置的成员才能读取：**项目所有者**、**项目管理员**、**项目成员**、**查看者**、**设置管理员**、**设置成员**、**设置查看者** 和 **Read LLM**。提供商的 **API 密钥** 和 **附加参数** 只有项目的所有者和管理员才能读取，因为参数会随每个请求发送给提供商，并且可能像密钥一样携带令牌或请求头。其他成员只能看到是否保存了参数，而看不到参数内容。可以编辑提供商的成员仍然可以在不读取的情况下替换其 API 密钥或参数：在编辑表单中这些字段一开始是空的，留空则保留已保存的值。要删除参数，请保存 `{}`。只有项目的所有者和管理员才能修改提供商的 **基础 URL**，因为它的 API 密钥和附加参数会被发送到该地址；其他可以编辑提供商的成员可以修改其余所有内容。任何能读取提供商的人都能读取它的 **基础 URL**，所以绝不要在其中放入密钥、令牌或密码：请使用 **API 密钥**。同一页面上的 **全局 LLM 提供商** 列表（项目回退使用的共享提供商）会向任何已登录的人显示它们的名称、描述和价格，此外不显示任何信息。
 
 ### 测试它
 
-**测试提供商。** 提供商页面上或其所在行菜单中的 **测试**，会用提供商的 **API 密钥**、**模型名称**、**基础 URL** 和 **附加参数** 发送一个简短的提示，并告诉你它是否作出回应并调用了工具，这是 OneUptime 的 AI 功能所需要的。测试失败时，会先说明应检查什么，再说明提供商的回答。能修改提供商的人就能测试它：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member** 和 **Edit LLM**。其他能看到该提供商的人会发现 **测试** 处于锁定状态。全局 LLM 提供商由服务器管理员在 Admin Dashboard 的 **设置 → 全局 LLM 提供商** 下测试。
+**测试提供商。** 提供商页面上或其所在行菜单中的 **测试**，会用提供商的 **API 密钥**、**模型名称**、**基础 URL** 和 **附加参数** 发送一个简短的提示，并告诉你它是否作出回应并调用了工具，这是 OneUptime 的 AI 功能所需要的。测试失败时，会先说明应检查什么，再说明提供商的回答。能修改提供商的人就能测试它：**项目所有者**、**项目管理员**、**项目成员**、**设置管理员**、**设置成员** 和 **Edit LLM**。其他能看到该提供商的人会发现 **测试** 处于锁定状态。全局 LLM 提供商由服务器管理员在 Admin Dashboard 的 **设置 → 全局 LLM 提供商** 下测试。
 :::
 
 ## 各提供商的配置
@@ -225,7 +225,7 @@ OneUptime 会把这个 `options` 对象合并到它发送给 Ollama 的选项中
 1. 启动你的 OpenAI 兼容服务器，并记下它的基础 URL（通常以 `/v1` 结尾）
 2. 选择 **OpenAI Compatible** 作为 LLM 提供商
 3. 输入 **基础 URL**（必填），例如 `http://your-server:8000/v1`。OneUptime 服务器必须能访问到它，所以不能用 `localhost`：请参阅 [为自托管模型选择基础 URL](#为自托管模型选择基础-url)
-4. 输入 **模型名称**（必填）：它必须与你的服务器提供的某个模型一致
+4. 输入 **模型名称**，或留空：留空时 OneUptime 会询问你的服务器提供哪些模型，并使用它列出的第一个模型（在 vLLM 上就是它提供的模型）。输入的名称必须与你的服务器提供的某个模型一致
 5. 只有在你的服务器要求时才输入 **API 密钥**；对于无密钥的服务器请留空
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ API Key: (leave blank)
 
 1. 选择 **OpenAI Compatible** 作为 LLM 提供商（vLLM 使用 OpenAI API）
 2. 输入集群内的基础 URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（如果你修改过 `global.clusterDomain`，请替换 `cluster.local`）
-3. 输入模型名称：完整的 Hugging Face 模型 id（如果你设置了 `vllm.servedModelName`，则用它）
+3. 输入模型名称：完整的 Hugging Face 模型 id（如果你设置了 `vllm.servedModelName`，则用它），或留空以使用 vLLM 提供的模型
 4. 只有在你设置了 `vllm.apiKey` 时才输入 API 密钥；对于无密钥的 vLLM 请留空
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 - **OpenAI 或 Anthropic**：检查你的 API 密钥是否有效并且有余额
 - **Azure OpenAI / Microsoft Foundry**：错误信息会先说明需要修改什么。[Microsoft Foundry 和 Azure OpenAI](/docs/ai/microsoft-foundry) 解释了 Azure 返回的每种错误
 - **Ollama**：检查 Ollama 服务器是否在运行，是否监听在 OneUptime 服务器能访问的地址上（原生安装使用 `OLLAMA_HOST=0.0.0.0:11434`），以及基础 URL 是否指向该地址
-- **OpenAI Compatible**：检查基础 URL 是否以 `/v1` 结尾（或与你的服务器相符），模型名称是否与你的服务器提供的模型一致，以及是否只在服务器要求时才设置了 API 密钥
+- **OpenAI Compatible**：检查基础 URL 是否以 `/v1` 结尾（或与你的服务器相符），如果填写了模型名称，它是否与你的服务器提供的模型一致，以及是否只在服务器要求时才设置了 API 密钥。如果模型名称留空，而服务器的 `/models` 端点没有列出任何模型，请填写模型名称
 - **"…points to an address OneUptime is not allowed to connect to"**：基础 URL 解析到了被拒绝的地址：`localhost` 或其他回环地址，或者在 OneUptime Cloud 上是私有网络地址。（OneUptime Cloud 会把被拒绝的主机名报告为 "…could not be reached"。）请参阅 [为自托管模型选择基础 URL](#为自托管模型选择基础-url)
 - **防火墙**：检查你的网络是否允许向提供商的 API 发起出站连接
 :::

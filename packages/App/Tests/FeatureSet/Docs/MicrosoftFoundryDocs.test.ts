@@ -33,6 +33,7 @@ import {
 } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * Issue #4476: the Microsoft Foundry (Azure AI Foundry) guide, in every docs
@@ -659,7 +660,13 @@ describe("the page names the forms as the Dashboard draws them", () => {
       ).join("\n");
 
       for (const title of titles) {
-        expect({ title, named: markdown.includes(`**${title}**`) }).toEqual({
+        // A role reads as the language's Dashboard names it.
+        const written: string = writtenPermissionTitle(language, title);
+
+        expect({
+          title,
+          named: markdown.includes(`**${written}**`),
+        }).toEqual({
           title,
           named: true,
         });
@@ -888,7 +895,7 @@ describe("the example request and response are LLMService's", () => {
     expect(request.data["model"]).toBe(curls[0]!.body["model"]);
     expect(request.data["messages"]).toEqual(curls[0]!.body["messages"]);
 
-    // And the answer shown is one OneUptime reads.
+    // And the answer shown is one OneUptime reads, from the deployment asked.
     expect(response).toEqual({
       content: "OK",
       toolCalls: undefined,
@@ -899,6 +906,7 @@ describe("the example request and response are LLMService's", () => {
         totalTokens: 14,
         cachedInputTokens: undefined,
       },
+      modelName: curls[0]!.body["model"],
     });
   });
 

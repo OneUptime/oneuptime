@@ -71,7 +71,7 @@ O painel de detalhes tem duas abas:
 
 | Aba | O que mostra |
 | --- | --- |
-| **Detalhes** | O **Corpo do registro**, o **ID do Traço**, o **ID do span** e a **Session** quando ele os tem, e os **Atributos** dele, como lista ou como JSON. |
+| **Detalhes** | O **Corpo do registro**, o **ID do Traço**, o **ID do span** e a **Sessão** quando ele os tem, e os **Atributos** dele, como lista ou como JSON. |
 | **Context** | O registro entre os vizinhos. **Nearby (service + time)** mostra as cinco linhas antes e depois dele do mesmo serviço, e **This trace** mostra até 100 registros do traço dele. |
 
 - Clique no ID do traço para abrir a requisição inteira no [Explorador de traços](/docs/telemetry/traces-explorer).
@@ -80,9 +80,9 @@ O painel de detalhes tem duas abas:
 
 ## Acompanhar registros ao vivo
 
-Clique em **Live** acima da lista. O explorador vai para a primeira página, ordenada do mais recente para o mais antigo, e procura registros novos a cada 10 segundos, então as linhas aparecem à medida que seus serviços as escrevem.
+Clique em **Ao vivo** acima da lista. O explorador vai para a primeira página, ordenada do mais recente para o mais antigo, e procura registros novos a cada 10 segundos, então as linhas aparecem à medida que seus serviços as escrevem.
 
-O modo ao vivo se desliga sozinho quando você muda a pesquisa, um filtro ou o intervalo de tempo, ou vai para outra página de resultados: ele só mostra os registros mais recentes. Clique em **Live** de novo para retomar.
+O modo ao vivo se desliga sozinho quando você muda a pesquisa, um filtro ou o intervalo de tempo, ou vai para outra página de resultados: ele só mostra os registros mais recentes. Clique em **Ao vivo** de novo para retomar.
 
 ## Escolher colunas e exportar
 
@@ -100,11 +100,11 @@ Pesquise, filtre e escolha as colunas que quer guardar.
 
 ### Salvá-la
 
-Abra **Saved Views** e clique em **+ Save Current View**. Informe um **Nome**, marque **Definir como padrão** se esta visualização deve abrir sempre que alguém abrir os registros, e clique em **Salvar visualização**.
+Abra **Visualizações salvas** e clique em **+ Salvar visualização atual**. Informe um **Nome**, marque **Definir como padrão** se esta visualização deve abrir sempre que alguém abrir os registros, e clique em **Salvar visualização**.
 
 ### Usá-la
 
-Escolha a visualização em **Saved Views** para aplicá-la, e **Clear view** para voltar à última hora sem filtros. Aponte para uma visualização da lista para **Editar** ou **Excluir**, ou, enquanto ela estiver aplicada, para **Atualizar** com suas mudanças.
+Escolha a visualização em **Visualizações salvas** para aplicá-la, e **Limpar visualização** para voltar à última hora sem filtros. Aponte para uma visualização da lista para **Editar** ou **Excluir**, ou, enquanto ela estiver aplicada, para **Atualizar** com suas mudanças.
 :::
 
 As visualizações salvas pertencem ao projeto, então todos nele veem a mesma lista. Um intervalo móvel, como a última hora, continua móvel: a visualização mostra a hora anterior à abertura, não a hora em que você a salvou. Enquanto o projeto não tiver visualização padrão, a próxima visualização salva passa a ser a padrão, e um projeto tem uma única padrão por vez.
@@ -117,7 +117,7 @@ Clique em **Lista** para voltar às próprias linhas.
 
 ## Abrir traços e métricas relacionados
 
-Os botões **Traços** e **Métricas** ao lado de **Saved Views** abrem o [Explorador de traços](/docs/telemetry/traces-explorer) ou o [Explorador de métricas](/docs/telemetry/metrics-explorer) na mesma janela de tempo, com tanto da sua filtragem quanto esse explorador puder usar. Aponte para um botão para ver o que ele não consegue levar junto.
+Os botões **Traços** e **Métricas** ao lado de **Visualizações salvas** abrem o [Explorador de traços](/docs/telemetry/traces-explorer) ou o [Explorador de métricas](/docs/telemetry/metrics-explorer) na mesma janela de tempo, com tanto da sua filtragem quanto esse explorador puder usar. Aponte para um botão para ver o que ele não consegue levar junto.
 
 ## Insights de registros
 
@@ -207,7 +207,7 @@ Uma pesquisa que demora mais de 45 segundos é interrompida. Escolha um interval
 :::
 
 :::details O modo ao vivo continua se desligando
-O modo ao vivo só acompanha os registros mais recentes, então mudar a pesquisa, um filtro, o intervalo de tempo ou a página o desliga. Clique em **Live** de novo quando seus filtros estiverem prontos.
+O modo ao vivo só acompanha os registros mais recentes, então mudar a pesquisa, um filtro, o intervalo de tempo ou a página o desliga. Clique em **Ao vivo** de novo quando seus filtros estiverem prontos.
 :::
 
 ## Próximos passos

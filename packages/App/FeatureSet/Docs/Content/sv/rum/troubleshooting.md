@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` med `"valid": true` | OneUptime accepterar nyckeln. Svaret anger också dess `keyType` och dess `projectId`. Gå vidare till nästa kontroll. |
 | `401` med `"valid": false` | Nyckeln saknas, är okänd, återkallad, inaktiverad eller har gått ut, och `message` säger vilket. Skapa en aktiv nyckel under **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 
-En webbapp behöver en **Browser**-nyckel, och en mobilapp en **Server**-nyckel: se [Webbläsarkonfiguration](/docs/rum/browser-setup) och [Mobilkonfiguration](/docs/rum/mobile-setup). Exportslutpunkterna avvisar också en felaktig nyckel med `401`, som OTLP-specifikationen kräver, så ett väluppfostrat SDK loggar avvisningen i stället för att försöka igen. Den raden är lätt att missa i webbläsarkonsolen, och den här kontrollen svarar direkt.
+En webbapp behöver en **Webbläsare**-nyckel, och en mobilapp en **Server**-nyckel: se [Webbläsarkonfiguration](/docs/rum/browser-setup) och [Mobilkonfiguration](/docs/rum/mobile-setup). Exportslutpunkterna avvisar också en felaktig nyckel med `401`, som OTLP-specifikationen kräver, så ett väluppfostrat SDK loggar avvisningen i stället för att försöka igen. Den raden är lätt att missa i webbläsarkonsolen, och den här kontrollen svarar direkt.
 
 ## Kontrollera vad som lämnar webbläsaren
 
@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 En webbläsare skickar sällan så stora batcher, om inte spans bär stora attribut, som en hel stackspårning eller en svarstext. Att korta dem är den bättre lösningen.
 
-**`422`.** OneUptime avvisade nyckeln här, och meddelandet säger varför. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder att sidans exakta ursprung, med schema och eventuell port, saknas i nyckelns **Allowed Origins**. `This telemetry ingestion key has been disabled.` betyder att någon har inaktiverat nyckeln.
+**`422`.** OneUptime avvisade nyckeln här, och meddelandet säger varför. `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder att sidans exakta ursprung, med schema och eventuell port, saknas i nyckelns **Tillåtna ursprung**. `This telemetry ingestion key has been disabled.` betyder att någon har inaktiverat nyckeln.
 
 **`429`.** Nyckelns **Requests Per Minute Limit** är förbrukad: `Too many telemetry requests for this ingestion key. Please retry later.` En Browser-nyckel tillåter 6000 förfrågningar per minut för alla dina besökare tillsammans, om du inte sätter en egen gräns på nyckeln.
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-Applikationens sida **Health**, i avsnittet **Session Replay**, och panelen **Test your installation** på **Replay Policy** kontrollerar nyckeln, listorna över tillåtna ursprung och policyn från serversidan och säger varför ingenting kommer in. Webbläsarkonsolen ger dig den halva som servern inte kan se.
+Applikationens sida **Hälsa**, i avsnittet **Sessionsuppspelning**, och panelen **Test your installation** på **Replay Policy** kontrollerar nyckeln, listorna över tillåtna ursprung och policyn från serversidan och säger varför ingenting kommer in. Webbläsarkonsolen ger dig den halva som servern inte kan se.
 
 Med standardpolicyn skickar en inspelare en chunk ungefär var 15:e sekund medan användaren interagerar med sidan. En inaktiv flik har inget att skicka, så klicka eller rör musen först; om det sedan inte finns någon chunk-förfrågan är något fel. Om appen bara laddar upp _On error or frustration_ är tystnad väntad tills något går fel. Anropa `OneUptimeReplay.captureSession()` för att tvinga fram en uppladdning och testa vägen ändå.
 

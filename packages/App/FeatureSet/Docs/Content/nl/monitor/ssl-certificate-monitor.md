@@ -92,7 +92,7 @@ Een nieuwe SSL-certificaatmonitor begint met drie criteria, zodat hij u zonder i
 2. **Certificaat verloopt binnenkort** — het certificaat is geldig, maar verloopt binnen 14 dagen. Er wordt een **waarschuwing** met de naam "_monitor name_ certificate expires soon" aangemaakt.
 3. **Certificaat is geldig** — de monitor wordt als **Operationeel** gemarkeerd.
 
-De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Low** in een nieuw project. Zodra het vernieuwde certificaat wordt opgepikt, staat de monitor weer op "Certificaat is geldig" en lost de waarschuwing zichzelf op.
+De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Laag** in een nieuw project. Zodra het vernieuwde certificaat wordt opgepikt, staat de monitor weer op "Certificaat is geldig" en lost de waarschuwing zichzelf op.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Daarom staat "verloopt binnenkort" boven "is geldig": een certificaat dat bijna verloopt is nog geldig, en zou dus met beide overeenkomen.
 

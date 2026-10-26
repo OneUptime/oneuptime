@@ -128,7 +128,7 @@ Omfattningen är medvetet snäv. Bara larm som en aviseringsregel för jour skap
 ```mermaid title="När ett jourlarm ringer igenom tyst läge"
 flowchart TB
     Page["Ett jourlarm"]
-    Rule{"Står dess jourregel<br/>på ”Kritisk varning”?"}
+    Rule{"Står dess jourregel<br/>på ”Kritiskt larm”?"}
     Device{"Critical On-Call Alerts<br/>på för den här enheten?"}
     OS{"Tillåter telefonens system<br/>kritiska larm?"}
     Loud["Spelar ett ljud trots<br/>tyst läge och Stör ej"]
@@ -145,7 +145,7 @@ flowchart TB
 Fyra saker måste alla stämma för att ett larm ska åsidosätta tyst läge. Saknas någon av dem levereras larmet ändå – bara tyst.
 
 1. **Personen har slagit på det för den enheten.** Lagras per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon och surfplatta är separata beslut. Versioner av appen nyare än 1.6.0 rapporterar det igen varje gång de öppnas, som avstängt så länge telefonens egna inställningar inte tillåter kritiska larm, så att enhetslistan visar vad telefonen verkligen kommer att göra.
-2. **Jourregeln som skickade larmet ber om det.** Under **Användarinställningar > Jourregler** står varje regel som aviserar en telefon på ”Kritisk varning”, som är standard, eller på ”Normal”, som följer telefonens ljudinställningar – så kan en person väckas av en kritisk incident och aviseras tyst om en mindre. Lagras per regel i `UserNotificationRule.pushNotificationLevel`.
+2. **Jourregeln som skickade larmet ber om det.** Under **Användarinställningar > Jourregler** står varje regel som aviserar en telefon på ”Kritiskt larm”, som är standard, eller på ”Normal”, som följer telefonens ljudinställningar – så kan en person väckas av en kritisk incident och aviseras tyst om en mindre. Lagras per regel i `UserNotificationRule.pushNotificationLevel`.
 3. **Servern markerar larmet som kritiskt.** Den skickar APNs kritiska ljud-payload plus `interruptionLevel: critical` för iOS, och använder en kritisk aviseringskanal för Android: `oncall_critical`, eller det valda larmets egen kanal (se [Välja larmljud](#välja-larmljud)).
 4. **Operativsystemet tillåter det**, och det är här de två plattformarna skiljer sig.
 

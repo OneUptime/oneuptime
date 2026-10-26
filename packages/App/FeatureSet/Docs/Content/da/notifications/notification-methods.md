@@ -169,7 +169,7 @@ En webhook kræver ingen bekræftelse, så når du tilføjer den, tilføjes dens
 
 **SMS**, **Telefonopkald**, **WhatsApp** og **Telegram** er slået fra i hvert nyt projekt, fordi hver besked koster penge: I OneUptime Cloud betales den af projektets saldo, og sms og opkald går i stedet gennem projektets egen Twilio-konto, når projektets standardkonto sender dem. E-mail, push, Slack, Microsoft Teams og webhooks er altid slået til.
 
-Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den: dens kort har ingen tilføj-knap og fortæller, hvem der kan slå den til. En projektejer, en **Billing Admin** eller en person med **Manage Billing** slår den til, i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationsindstillinger**. En projektadministrator kan ikke. I en selvhostet OneUptime kræver sms og opkald desuden en Twilio-konto, og Telegram en bot, som serverens administrator forbinder; se [Twilio-integration](/docs/self-hosted/twilio-integration).
+Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den: dens kort har ingen tilføj-knap og fortæller, hvem der kan slå den til. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår den til, i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationsindstillinger**. En projektadministrator kan ikke. I en selvhostet OneUptime kræver sms og opkald desuden en Twilio-konto, og Telegram en bot, som serverens administrator forbinder; se [Twilio-integration](/docs/self-hosted/twilio-integration).
 
 ## Slet en metode
 

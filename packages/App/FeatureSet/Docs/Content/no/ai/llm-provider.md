@@ -13,7 +13,7 @@ En LLM-leverandør er modellen bak hver AI-funksjon i OneUptime: undersøkelser,
 
 - **Undersøkelser**: OneUptime AI undersøker nye hendelser og varsler og legger ut en rotårsaksanalyse med kilder på tidslinjen. Se [AI SRE](/docs/ai/ai-sre).
 - **Spørsmål**: **Ask AI** svarer ut fra dataene i prosjektet ditt, med en kilde for hver påstand. Se [Spør AI](/docs/ai/ask-ai).
-- **Utkast**: **Draft with AI** i notatene til hendelser, varsler og planlagt vedlikehold, og postmortems, skrevet på forespørsel eller når en hendelse løses.
+- **Utkast**: **Utkast med KI** i notatene til hendelser, varsler og planlagt vedlikehold, og postmortems, skrevet på forespørsel eller når en hendelse løses.
 - **Kode**: pull requests som retter unntak, trege spor og årsakene undersøkelser finner, fra OneUptime eller fra GitHub. Se [Kode](/docs/ai/ai-agent).
 - **Alt annet**: triage i AI Insights, AI-stegene i arbeidsflyter og runbooks, og svar i Slack og Microsoft Teams.
 
@@ -53,7 +53,7 @@ På en selvhostet instans er den raskeste måten å slå på AI for **alle prosj
 | `GLOBAL_LLM_PROVIDER_TYPE` | Påkrevd for å slå den på. En av `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | API-nøkkelen: påkrevd for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; ikke nødvendig for Ollama eller en OpenAI-kompatibel server uten nøkkel |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | Endepunktet: påkrevd for Azure OpenAI, Ollama og OpenAI-kompatible servere |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modellen som skal brukes: påkrevd for OpenAI-kompatible servere, anbefalt for de andre |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modellen som skal brukes. Valgfri: står den ikke satt, bruker OneUptime leverandørens standardmodell, og på en OpenAI-kompatibel server den første modellen på serverens liste |
 | `GLOBAL_LLM_PROVIDER_NAME` | Et valgfritt visningsnavn, vist i dashbordet |
 
 :::tabs
@@ -105,15 +105,15 @@ Under **Tilkobling** spør skjemaet bare om det leverandøren bruker, med egen h
 
 - **API-nøkkel**: API-nøkkelen din, påkrevd for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral og valgfri for en OpenAI-kompatibel server; for Ollama blir det ikke spurt om noen
 - **Basis-URL**: endepunktet, påkrevd for Azure OpenAI, Ollama og OpenAI Compatible; for de andre bare for å gå via en proxy eller en gateway
-- **Modellnavn**: modellen som skal brukes, for eksempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Står det tomt, bruker OneUptime leverandørens standardmodell, unntatt på en OpenAI-kompatibel server, som trenger en
+- **Modellnavn**: modellen som skal brukes, for eksempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Står det tomt, bruker OneUptime leverandørens standardmodell; en OpenAI-kompatibel server har ingen, så OneUptime spør den hvilke modeller den leverer, og bruker den første på listen
 - **Navn**: leverandørens navn til du skriver ditt eget, for eksempel "Production OpenAI" eller "Local Ollama"
 - **Flere felt**, slått sammen under feltene over: en **Beskrivelse**, **Angi som standard**, som er på for en ny leverandør fordi AI-funksjoner bare bruker prosjektets standardleverandør, og **Ekstra parametere**, et valgfritt JSON-objekt med ekstra parametere som sendes til leverandøren med hver forespørsel (for eksempel `{"temperature": 0.2}`)
 
-**Hvem som kan se en leverandør.** Et prosjekts LLM-leverandører leses bare av de medlemmene som kan lese prosjektets innstillinger: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** og **Read LLM**. En leverandørs **API-nøkkel** og **Ekstra parametere** leses bare av prosjektets eiere og administratorer, fordi parameterne sendes til leverandøren med hver forespørsel og kan inneholde et token eller en header akkurat som nøkkelen. De andre medlemmene ser om det er lagret parametere, men ikke hvilke. Medlemmer som kan redigere en leverandør, kan fortsatt erstatte API-nøkkelen eller parameterne uten å lese dem: i redigeringsskjemaet starter de feltene tomme, og et felt som står tomt, beholder det som er lagret. For å fjerne parameterne lagrer du `{}`. Bare prosjektets eiere og administratorer kan endre en leverandørs **Basis-URL**, fordi API-nøkkelen og de ekstra parameterne sendes til den adressen; de andre medlemmene som kan redigere en leverandør, kan endre alt annet. Alle som kan lese en leverandør, kan lese dens **Basis-URL**, så legg aldri en nøkkel, et token eller et passord i den: bruk **API-nøkkel**. Listen **Globale LLM-leverandører** på samme side, de delte leverandørene et prosjekt faller tilbake på, viser navn, beskrivelse og pris til alle som er logget inn, og ingenting annet om dem.
+**Hvem som kan se en leverandør.** Et prosjekts LLM-leverandører leses bare av de medlemmene som kan lese prosjektets innstillinger: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Leser**, **Innstillingsadministrator**, **Innstillingsmedlem**, **Innstillingsleser** og **Read LLM**. En leverandørs **API-nøkkel** og **Ekstra parametere** leses bare av prosjektets eiere og administratorer, fordi parameterne sendes til leverandøren med hver forespørsel og kan inneholde et token eller en header akkurat som nøkkelen. De andre medlemmene ser om det er lagret parametere, men ikke hvilke. Medlemmer som kan redigere en leverandør, kan fortsatt erstatte API-nøkkelen eller parameterne uten å lese dem: i redigeringsskjemaet starter de feltene tomme, og et felt som står tomt, beholder det som er lagret. For å fjerne parameterne lagrer du `{}`. Bare prosjektets eiere og administratorer kan endre en leverandørs **Basis-URL**, fordi API-nøkkelen og de ekstra parameterne sendes til den adressen; de andre medlemmene som kan redigere en leverandør, kan endre alt annet. Alle som kan lese en leverandør, kan lese dens **Basis-URL**, så legg aldri en nøkkel, et token eller et passord i den: bruk **API-nøkkel**. Listen **Globale LLM-leverandører** på samme side, de delte leverandørene et prosjekt faller tilbake på, viser navn, beskrivelse og pris til alle som er logget inn, og ingenting annet om dem.
 
 ### Test den
 
-**Teste en leverandør.** **Test**, på leverandørens side eller i menyen på raden, sender leverandøren en kort prompt med dens **API-nøkkel**, **Modellnavn**, **Basis-URL** og **Ekstra parametere**, og sier om den svarte og kalte et verktøy, noe OneUptimes AI-funksjoner trenger. En mislykket test sier først hva du bør sjekke, deretter hva leverandøren svarte. Den som kan endre en leverandør, kan teste den: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** og **Edit LLM**. Alle andre som kan se leverandøren, finner **Test** låst. En global LLM-leverandør testes av en serveradministrator, i Admin Dashboard under **Innstillinger → Globale LLM-leverandører**.
+**Teste en leverandør.** **Test**, på leverandørens side eller i menyen på raden, sender leverandøren en kort prompt med dens **API-nøkkel**, **Modellnavn**, **Basis-URL** og **Ekstra parametere**, og sier om den svarte og kalte et verktøy, noe OneUptimes AI-funksjoner trenger. En mislykket test sier først hva du bør sjekke, deretter hva leverandøren svarte. Den som kan endre en leverandør, kan teste den: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem** og **Edit LLM**. Alle andre som kan se leverandøren, finner **Test** låst. En global LLM-leverandør testes av en serveradministrator, i Admin Dashboard under **Innstillinger → Globale LLM-leverandører**.
 :::
 
 ## Leverandørspesifikk konfigurasjon
@@ -225,7 +225,7 @@ Bruk leverandøren **OpenAI Compatible** for enhver server som implementerer Ope
 1. Start den OpenAI-kompatible serveren din og noter basis-URL-en (den slutter som regel på `/v1`)
 2. Velg **OpenAI Compatible** som LLM-leverandør
 3. Skriv inn **Basis-URL** (påkrevd), f.eks. `http://your-server:8000/v1`. OneUptime-serveren må kunne nå den, så ikke `localhost`: se [Velge en basis-URL for en selvhostet modell](#velge-en-basis-url-for-en-selvhostet-modell)
-4. Skriv inn **Modellnavn** (påkrevd): det må samsvare med en modell serveren din leverer
+4. Skriv inn **Modellnavn**, eller la det stå tomt: Da spør OneUptime serveren din hvilke modeller den leverer, og bruker den første på listen, som på vLLM er modellen den leverer. Et navn du skriver inn, må samsvare med en modell serveren din leverer
 5. Skriv bare inn **API-nøkkel** hvis serveren din ber om en; la den stå tom for en server uten nøkkel
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Hvis du slo av automatisk registrering (`vllm.globalProvider.enabled: false`), o
 
 1. Velg **OpenAI Compatible** som LLM-leverandør (vLLM snakker OpenAI-API-et)
 2. Skriv inn basis-URL-en i klyngen: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (erstatt `cluster.local` hvis du har endret `global.clusterDomain`)
-3. Skriv inn modellnavnet: den fullstendige Hugging Face-modell-ID-en (eller `vllm.servedModelName` hvis du har satt en)
+3. Skriv inn modellnavnet: den fullstendige Hugging Face-modell-ID-en (eller `vllm.servedModelName` hvis du har satt en), eller la det stå tomt for å bruke modellen vLLM leverer
 4. Skriv bare inn API-nøkkelen hvis du har satt `vllm.apiKey`; la den stå tom for en vLLM uten nøkkel
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Se [Helm-chartets vLLM-veiledning](https://github.com/OneUptime/oneuptime/blob/m
 - **OpenAI eller Anthropic**: sjekk at API-nøkkelen din er gyldig og har kreditter
 - **Azure OpenAI / Microsoft Foundry**: feilen starter med hva som må endres. [Microsoft Foundry og Azure OpenAI](/docs/ai/microsoft-foundry) forklarer hver feil Azure svarer med
 - **Ollama**: sjekk at Ollama-serveren kjører, lytter på en adresse OneUptime-serveren kan nå (`OLLAMA_HOST=0.0.0.0:11434` for en native installasjon), og at basis-URL-en peker til den adressen
-- **OpenAI Compatible**: sjekk at basis-URL-en slutter på `/v1` (eller passer til serveren din), at modellnavnet samsvarer med en modell serveren din leverer, og at du bare har satt en API-nøkkel hvis serveren din ber om en
+- **OpenAI Compatible**: sjekk at basis-URL-en slutter på `/v1` (eller passer til serveren din), at modellnavnet, hvis du har skrevet inn et, samsvarer med en modell serveren din leverer, og at du bare har satt en API-nøkkel hvis serveren din ber om en. Står modellnavnet tomt og serveren ikke viser noen modeller på `/models`-endepunktet sitt, må du skrive inn et
 - **"…points to an address OneUptime is not allowed to connect to"**: basis-URL-en slås opp til en avvist adresse: `localhost` eller en annen loopback-adresse, eller, på OneUptime Cloud, en privat nettverksadresse. (OneUptime Cloud rapporterer i stedet et avvist vertsnavn som "…could not be reached".) Se [Velge en basis-URL for en selvhostet modell](#velge-en-basis-url-for-en-selvhostet-modell)
 - **En brannmur**: sjekk at nettverket ditt tillater utgående tilkoblinger til leverandørens API
 :::

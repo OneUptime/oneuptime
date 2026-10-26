@@ -13,7 +13,7 @@ Um provedor de LLM é o modelo por trás de cada recurso de IA do OneUptime: inv
 
 - **Investigações**: a OneUptime AI investiga novos incidentes e alertas e publica na linha do tempo uma análise de causa raiz com citações. Veja [AI SRE](/docs/ai/ai-sre).
 - **Perguntas**: **Ask AI** responde a partir dos dados do seu projeto, com uma citação em cada afirmação. Veja [Pergunte à IA](/docs/ai/ask-ai).
-- **Rascunhos**: **Draft with AI** nas notas de incidentes, alertas e manutenções programadas, e postmortems, redigidos sob demanda ou quando um incidente é resolvido.
+- **Rascunhos**: **Rascunho com IA** nas notas de incidentes, alertas e manutenções programadas, e postmortems, redigidos sob demanda ou quando um incidente é resolvido.
 - **Código**: pull requests que corrigem exceções, traces lentos e as causas que as investigações encontram, a partir do OneUptime ou do GitHub. Veja [Código](/docs/ai/ai-agent).
 - **Todo o resto**: a triagem do AI Insights, as etapas de IA de fluxos de trabalho e runbooks, e as respostas no Slack e no Microsoft Teams.
 
@@ -53,7 +53,7 @@ Em uma instância auto-hospedada, a forma mais rápida de ativar a IA para **tod
 | `GLOBAL_LLM_PROVIDER_TYPE` | Necessária para ativá-lo. Uma de `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | A chave de API: necessária para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; não é necessária para Ollama ou para um servidor compatível com OpenAI sem chave |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | O endpoint: necessário para Azure OpenAI, Ollama e servidores compatíveis com OpenAI |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | O modelo a usar: necessário para servidores compatíveis com OpenAI, recomendado para os outros |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | O modelo a usar. Opcional: sem ele, o OneUptime usa o modelo padrão do provedor e, em um servidor compatível com OpenAI, o primeiro modelo que o servidor lista |
 | `GLOBAL_LLM_PROVIDER_NAME` | Um nome amigável opcional, mostrado no painel |
 
 :::tabs
@@ -105,15 +105,15 @@ Em **Conexão**, o formulário pede só o que esse provedor usa, com a ajuda del
 
 - **Chave de API**: sua chave de API, necessária para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral e opcional para um servidor compatível com OpenAI; para o Ollama, nenhuma é pedida
 - **URL base**: o endpoint, necessário para Azure OpenAI, Ollama e OpenAI Compatible; para os outros, só para passar por um proxy ou gateway
-- **Nome do Modelo**: o modelo a usar, como `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`. Se ficar vazio, o OneUptime usa o modelo padrão do provedor, exceto em um servidor compatível com OpenAI, que precisa de um
+- **Nome do Modelo**: o modelo a usar, como `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`. Se ficar vazio, o OneUptime usa o modelo padrão do provedor; um servidor compatível com OpenAI não tem um, então o OneUptime pergunta a ele quais modelos oferece e usa o primeiro que ele lista
 - **Nome**: o nome do provedor até você digitar o seu, como "Production OpenAI" ou "Local Ollama"
 - **Mais campos**, recolhido abaixo dos campos acima: uma **Descrição**, **Definir como padrão**, que fica ativado para um provedor novo porque os recursos de IA só usam o provedor padrão do projeto, e **Parâmetros adicionais**, um objeto JSON opcional de parâmetros extras enviados ao provedor em cada requisição (por exemplo `{"temperature": 0.2}`)
 
-**Quem pode ver um provedor.** Os provedores de LLM de um projeto só são lidos pelos membros que podem ler as configurações do projeto: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** e **Read LLM**. A **Chave de API** e os **Parâmetros adicionais** de um provedor só são lidos pelos proprietários e administradores do projeto, porque os parâmetros são enviados ao provedor em cada requisição e podem levar um token ou um cabeçalho, assim como a chave. Os outros membros veem se há parâmetros salvos, não quais são. Membros que podem editar um provedor ainda podem substituir a chave de API ou os parâmetros sem lê-los: no formulário de edição esses campos começam vazios, e deixar um em branco mantém o que está salvo. Para remover os parâmetros, salve `{}`. Só proprietários e administradores do projeto podem mudar a **URL base** de um provedor, porque a chave de API e os parâmetros adicionais dele são enviados para esse endereço; os outros membros que podem editar um provedor podem mudar todo o resto. Quem pode ler um provedor pode ler a **URL base** dele, então nunca coloque nela uma chave, um token ou uma senha: use a **Chave de API**. A lista **Provedores de LLM globais** na mesma página, os provedores compartilhados aos quais um projeto recorre, mostra nome, descrição e preço a qualquer pessoa conectada, e nada mais sobre eles.
+**Quem pode ver um provedor.** Os provedores de LLM de um projeto só são lidos pelos membros que podem ler as configurações do projeto: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Visualizador**, **Administrador de configurações**, **Membro de configurações**, **Visualizador de configurações** e **Read LLM**. A **Chave de API** e os **Parâmetros adicionais** de um provedor só são lidos pelos proprietários e administradores do projeto, porque os parâmetros são enviados ao provedor em cada requisição e podem levar um token ou um cabeçalho, assim como a chave. Os outros membros veem se há parâmetros salvos, não quais são. Membros que podem editar um provedor ainda podem substituir a chave de API ou os parâmetros sem lê-los: no formulário de edição esses campos começam vazios, e deixar um em branco mantém o que está salvo. Para remover os parâmetros, salve `{}`. Só proprietários e administradores do projeto podem mudar a **URL base** de um provedor, porque a chave de API e os parâmetros adicionais dele são enviados para esse endereço; os outros membros que podem editar um provedor podem mudar todo o resto. Quem pode ler um provedor pode ler a **URL base** dele, então nunca coloque nela uma chave, um token ou uma senha: use a **Chave de API**. A lista **Provedores de LLM globais** na mesma página, os provedores compartilhados aos quais um projeto recorre, mostra nome, descrição e preço a qualquer pessoa conectada, e nada mais sobre eles.
 
 ### Teste-o
 
-**Testando um provedor.** **Testar**, na página do provedor ou no menu da linha dele, envia ao provedor um prompt curto com a **Chave de API**, o **Nome do Modelo**, a **URL base** e os **Parâmetros adicionais** dele, e diz se ele respondeu e chamou uma ferramenta, algo de que os recursos de IA do OneUptime precisam. Um teste que falha diz primeiro o que verificar e depois o que o provedor respondeu. Quem pode alterar um provedor pode testá-lo: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** e **Edit LLM**. Todos os outros que podem ver o provedor encontram **Testar** bloqueado. Um provedor de LLM global é testado por um administrador do servidor, no Admin Dashboard em **Configurações → Provedores de LLM globais**.
+**Testando um provedor.** **Testar**, na página do provedor ou no menu da linha dele, envia ao provedor um prompt curto com a **Chave de API**, o **Nome do Modelo**, a **URL base** e os **Parâmetros adicionais** dele, e diz se ele respondeu e chamou uma ferramenta, algo de que os recursos de IA do OneUptime precisam. Um teste que falha diz primeiro o que verificar e depois o que o provedor respondeu. Quem pode alterar um provedor pode testá-lo: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações** e **Edit LLM**. Todos os outros que podem ver o provedor encontram **Testar** bloqueado. Um provedor de LLM global é testado por um administrador do servidor, no Admin Dashboard em **Configurações → Provedores de LLM globais**.
 :::
 
 ## Configuração específica de cada provedor
@@ -225,7 +225,7 @@ Use o provedor **OpenAI Compatible** para qualquer servidor que implemente a API
 1. Inicie seu servidor compatível com OpenAI e anote a URL base dele (ela costuma terminar em `/v1`)
 2. Selecione **OpenAI Compatible** como provedor de LLM
 3. Informe a **URL base** (obrigatória), por ex. `http://your-server:8000/v1`. O servidor do OneUptime precisa alcançá-la, então não `localhost`: veja [Escolhendo uma URL base para um modelo auto-hospedado](#escolhendo-uma-url-base-para-um-modelo-auto-hospedado)
-4. Informe o **Nome do Modelo** (obrigatório): ele precisa corresponder a um modelo que o seu servidor oferece
+4. Informe o **Nome do Modelo** ou deixe-o vazio: nesse caso o OneUptime pergunta ao seu servidor quais modelos ele oferece e usa o primeiro que ele lista, que no vLLM é o modelo que ele oferece. Um nome informado precisa corresponder a um modelo que o seu servidor oferece
 5. Informe a **Chave de API** só se o seu servidor pedir uma; deixe em branco para um servidor sem chave
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Se você desativou o registro automático (`vllm.globalProvider.enabled: false`)
 
 1. Selecione **OpenAI Compatible** como provedor de LLM (o vLLM fala a API da OpenAI)
 2. Informe a URL base dentro do cluster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (substitua `cluster.local` se você mudou `global.clusterDomain`)
-3. Informe o nome do modelo: o id completo do modelo no Hugging Face (ou `vllm.servedModelName`, se você definiu um)
+3. Informe o nome do modelo: o id completo do modelo no Hugging Face (ou `vllm.servedModelName`, se você definiu um), ou deixe-o vazio para usar o modelo que o vLLM oferece
 4. Informe a chave de API só se você definiu `vllm.apiKey`; deixe em branco para um vLLM sem chave
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Veja o [guia do vLLM do chart do Helm](https://github.com/OneUptime/oneuptime/bl
 - **OpenAI ou Anthropic**: verifique se sua chave de API é válida e tem créditos
 - **Azure OpenAI / Microsoft Foundry**: o erro começa pelo que mudar. [Microsoft Foundry e Azure OpenAI](/docs/ai/microsoft-foundry) explica cada erro com que o Azure responde
 - **Ollama**: verifique se o servidor do Ollama está rodando, se escuta em um endereço que o servidor do OneUptime alcança (`OLLAMA_HOST=0.0.0.0:11434` em uma instalação nativa) e se a URL base aponta para esse endereço
-- **OpenAI Compatible**: verifique se a URL base termina em `/v1` (ou corresponde ao seu servidor), se o nome do modelo corresponde a um modelo que o seu servidor oferece e se você só definiu uma chave de API caso o seu servidor peça uma
+- **OpenAI Compatible**: verifique se a URL base termina em `/v1` (ou corresponde ao seu servidor), se o nome do modelo, caso você tenha informado um, corresponde a um modelo que o seu servidor oferece e se você só definiu uma chave de API caso o seu servidor peça uma. Se o nome do modelo estiver vazio e o servidor não listar nenhum modelo no seu endpoint `/models`, informe um
 - **"…points to an address OneUptime is not allowed to connect to"**: a URL base resolve para um endereço recusado: `localhost` ou outro endereço de loopback, ou, no OneUptime Cloud, um endereço de rede privada. (O OneUptime Cloud relata um nome de host recusado como "…could not be reached".) Veja [Escolhendo uma URL base para um modelo auto-hospedado](#escolhendo-uma-url-base-para-um-modelo-auto-hospedado)
 - **Um firewall**: verifique se a sua rede permite conexões de saída para a API do provedor
 :::

@@ -44,20 +44,20 @@ Alerts worden per space opgeslagen. Open de space waarin je regels draaien: de I
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Elastic Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de sleutel in **API-sleutel**.
+Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Elastic Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de sleutel in **API-sleutel**.
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Testen voor het opslaan**. De test authenticeert en leest alerts met de waarden in het formulier, en slaat niets op, dus een verkeerde space of een ontbrekend recht komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test authenticeert en leest alerts met de waarden in het formulier, en slaat niets op, dus een verkeerde space of een ontbrekend recht komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Wat je invult |
 | --- | --- |
 | **Kibana URL** | Het adres waarop Kibana wordt aangeboden, bijvoorbeeld `https://kibana.example.com` of `https://<deployment>.kb.<region>.cloud.es.io`. Zonder pad: geen `/app/security`, geen `/api` en geen deel `/s/<space>`. |
 | **Kibana space** | De ID van de space, niet de naam: letters, cijfers, koppeltekens en onderstrepingstekens. Laat leeg voor de standaardspace. |
-| **API-sleutel** | De waarde **Base64** van de sleutel, op zichzelf: OneUptime voegt het schema `ApiKey` zelf toe. Hij wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang hem met **Update credentials** bij de verbinding. |
+| **API-sleutel** | De waarde **Base64** van de sleutel, op zichzelf: OneUptime voegt het schema `ApiKey` zelf toe. Hij wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang hem met **Inloggegevens bijwerken** bij de verbinding. |
 
-De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
+De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 
 ## Wat er wordt geïmporteerd
 
@@ -94,14 +94,14 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **De aanmaaktijd is de cursor.** Alerts worden getoond op hun eigen `@timestamp`, wanneer de run van de regel ze maakte, nooit op de tijd van de activiteit waarover ze gaan. Een regel die elk uur draait, maakt alerts over activiteit van hooguit een uur oud, en een cursor op activiteitstijd zou ze allemaal overslaan.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente waarschuwingen toont.
 - **Elke volgende poll begint 1 minuut voor de opgeslagen cursor**, zodat een alert die op de grens van twee vensters is gemaakt nooit wordt gemist.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Health** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
 - **Duplicaten worden verwijderd op de `_id` van de alert** binnen het project, zodat de overlap, een herhaald venster en een import een alert nooit twee keer opslaan.
 
 De alertzoekopdracht van Kibana accepteert een grootte en een sortering, maar geen paginatoken. Dus pagineert OneUptime door het begin van het bereik naar de laatste alert van elke pagina te verschuiven, en laat het op `_id` de alerts weg die het op dat moment al heeft gelezen. Eén run van een regel stempelt vaak veel alerts met dezelfde tijd, en zo'n groep wordt pagina voor pagina gelezen, geen twee keer en geen overgeslagen.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen
 
-Een poll leest hooguit 10.000 alerts, in hooguit 20 verzoeken. Wanneer een venster er meer bevat, is de run **Partial**, met een waarschuwing zoals:
+Een poll leest hooguit 10.000 alerts, in hooguit 20 verzoeken. Wanneer een venster er meer bevat, is de run **Gedeeltelijk**, met een waarschuwing zoals:
 
 ```text
 Stopped after collecting 10000 alerts; the window holds more.
@@ -109,28 +109,28 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 Alerts worden de oudste eerst gelezen, dus OneUptime zet de cursor op de aanmaaktijd van de laatst gelezen alert, en de volgende poll begint daar met dezelfde vensterlengte. Een drukke space haalt zo 10.000 alerts per poll in, in plaats van steeds dezelfde opnieuw te lezen. De alerts die op datzelfde moment zijn gemaakt, worden twee keer gelezen, en de duplicaatcontrole verwijdert de tweede kopie.
 
-De weggelaten ID's gaan met elk verzoek mee, en Kibana beperkt de grootte van een verzoek. Wanneer meer alerts één moment delen dan één verzoek kan weglaten, ongeveer 7.800, stopt de run daar als **Partial**, met een waarschuwing die het moment noemt.
+De weggelaten ID's gaan met elk verzoek mee, en Kibana beperkt de grootte van een verzoek. Wanneer meer alerts één moment delen dan één verzoek kan weglaten, ongeveer 7.800, stopt de run daar als **Gedeeltelijk**, met een waarschuwing die het moment noemt.
 
 Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, maakt OneUptime het venster in plaats daarvan korter:
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
 
-Een run die volledig mislukt, met een fout van Kibana, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
+Een run die volledig mislukt, met een fout van Kibana, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
 ### Uitvoeren, bekijken en importeren op verzoek
 
-Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
+Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
-- **Run now** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
+- **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
 - **Preview alerts** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
 - **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
 - **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
-**Verbinding testen** op de rij van een verbinding, en **Test these settings** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
+**Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
 
 | Controle | Wat ze controleert |
 | --- | --- |
@@ -154,7 +154,7 @@ Open in Kibana **Stack Management → API keys**, klik op **Create API key**, ge
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Elastic Security onder **SIEM** en klik op **Volgende**. Vul de **Elasticsearch-URL** in, het Elasticsearch-eindpunt van de deployment en niet dat van Kibana, en plak de sleutel in **API-sleutel**. **Datastream** is optioneel: leeg gelaten gaan documenten naar `logs-oneuptime.security-default`, die Elasticsearch bij de eerste schrijfactie maakt.
+Open **Producten → Security Events → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Elastic Security onder **SIEM** en klik op **Volgende**. Vul de **Elasticsearch-URL** in, het Elasticsearch-eindpunt van de deployment en niet dat van Kibana, en plak de sleutel in **API-sleutel**. **Datastream** is optioneel: leeg gelaten gaan documenten naar `logs-oneuptime.security-default`, die Elasticsearch bij de eerste schrijfactie maakt.
 
 ### Een testgebeurtenis verzenden en beginnen met verzenden
 
@@ -191,7 +191,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 
 :::details Last Error begint met `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana weigerde het statusverzoek.
-  - `HTTP 401`: Kibana accepteerde de API-sleutel niet. Het is niet de waarde **Base64**, of hij is verlopen of ongeldig gemaakt. Maak een nieuwe sleutel en sla hem op met **Update credentials**.
+  - `HTTP 401`: Kibana accepteerde de API-sleutel niet. Het is niet de waarde **Base64**, of hij is verlopen of ongeldig gemaakt. Maak een nieuwe sleutel en sla hem op met **Inloggegevens bijwerken**.
   - `HTTP 404`: de **Kibana URL** heeft een pad, of is geen Kibana.
   - `HTTP 503`: Kibana meldt zichzelf als niet beschikbaar, meestal omdat het Elasticsearch niet kan bereiken.
   - `HTTP 3xx`: Kibana stuurde het verzoek door, en doorverwijzingen worden geweigerd. Gebruik het adres waarop Kibana wordt aangeboden.
@@ -216,8 +216,8 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::
 
 :::details Een run is Partial
-- `Stopped after collecting 10000 alerts; the window holds more`: het venster bevatte meer dan de 10.000 alerts die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen alert. Een verbinding die poll na poll **Partial** blijft, haalt een achterstand in, en haar **Last Polled** en **Last Event Imported** blijven vooruitgaan. Haalt ze die nooit in, dan maakt de space meer dan 10.000 alerts per pollinterval: maak het **Poll Interval (Minutes)** korter.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnostics**. Een import leest net zoveel als een poll.
+- `Stopped after collecting 10000 alerts; the window holds more`: het venster bevatte meer dan de 10.000 alerts die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen alert. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan maakt de space meer dan 10.000 alerts per pollinterval: maak het **Opvraaginterval (minuten)** korter.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd

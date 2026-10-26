@@ -371,7 +371,7 @@ OneUptime biedt OTLP/gRPC aan op dezelfde host als de webapp, op poort 443 via T
 
 Bij een zelf gehoste installatie bereikt gRPC OneUptime alleen via HTTPS: een onversleutelde HTTP-verbinding (h2c) wordt geweigerd. Wordt je instantie via gewoon HTTP aangeboden, gebruik dan OTLP/HTTP.
 
-Twee instellingen van een sleutel gelden alleen voor OTLP/HTTP: de **Requests Per Minute Limit** en de **Pinned Service Name**. Via gRPC verstuurde gegevens houden de `service.name` waarmee ze zijn verstuurd, en tellen niet mee voor de limiet.
+Twee instellingen van een sleutel gelden alleen voor OTLP/HTTP: de **Requests Per Minute Limit** en de **Vastgezette servicenaam**. Via gRPC verstuurde gegevens houden de `service.name` waarmee ze zijn verstuurd, en tellen niet mee voor de limiet.
 
 ### Antwoorden
 
@@ -400,9 +400,9 @@ De pagina van elke sleutel, onder **Projectinstellingen → Telemetrie & APM →
 
 | Instelling | Wat het doet |
 | --- | --- |
-| **Sleuteltype** | **Server** (standaard) voor applicaties, collectors en agents. **Browser** voor sleutels die in een webpagina worden meegeleverd: alleen schrijven, en alleen geaccepteerd vanaf de eigen **Allowed Origins**. Kan niet worden gewijzigd nadat de sleutel is gemaakt. |
-| **Allowed Origins** | De web-origins waarvandaan een browsersleutel werkt, zoals `https://app.example.com`. Genegeerd bij een serversleutel. |
-| **Pinned Service Name** | Indien ingesteld, vervangt `service.name` bij alles wat met deze sleutel via OTLP/HTTP wordt gestuurd. |
+| **Sleuteltype** | **Server** (standaard) voor applicaties, collectors en agents. **Browser** voor sleutels die in een webpagina worden meegeleverd: alleen schrijven, en alleen geaccepteerd vanaf de eigen **Toegestane origins**. Kan niet worden gewijzigd nadat de sleutel is gemaakt. |
+| **Toegestane origins** | De web-origins waarvandaan een browsersleutel werkt, zoals `https://app.example.com`. Genegeerd bij een serversleutel. |
+| **Vastgezette servicenaam** | Indien ingesteld, vervangt `service.name` bij alles wat met deze sleutel via OTLP/HTTP wordt gestuurd. |
 | **Ingeschakeld** | Zet dit uit om met de sleutel gestuurde gegevens meteen niet meer te accepteren, zonder hem te verwijderen. |
 | **Verloopt om** | Na deze datum wordt de sleutel geweigerd. Leeg betekent dat hij nooit verloopt. |
 | **Requests Per Minute Limit** | Het maximale aantal OTLP/HTTP-verzoeken per minuut dat met de sleutel wordt geaccepteerd, over alle clients die hem gebruiken. Leeg betekent geen limiet bij een serversleutel, en 6.000 bij een browsersleutel. |
@@ -420,7 +420,7 @@ Alles op deze pagina werkt op dezelfde manier met je eigen installatie. Gebruik 
 
 ## Uitzonderingen uit logs
 
-OneUptime vindt uitzonderingen in je **logs** en brengt ze samen in dezelfde weergave **Uitzonderingen** die door tracefouten wordt gevoed. Elk log hoort al bij een service of host, dus de uitzondering wordt daaraan toegewezen. Uitzonderingen uit logs en traces delen de groepering op vingerafdruk, zodat een fout die zowel door een trace als door een log wordt gemeld, samenvalt tot één issue.
+OneUptime vindt uitzonderingen in je **logboeken** en brengt ze samen in dezelfde weergave **Uitzonderingen** die door tracefouten wordt gevoed. Elk log hoort al bij een service of host, dus de uitzondering wordt daaraan toegewezen. Uitzonderingen uit logs en traces delen de groepering op vingerafdruk, zodat een fout die zowel door een trace als door een log wordt gemeld, samenvalt tot één issue.
 
 Er zijn twee manieren waarop een log een uitzondering wordt:
 
@@ -460,7 +460,7 @@ Een batch is groter dan de groottelimiet. Verklein de batches, bijvoorbeeld met 
 :::
 
 :::details Gegevens komen binnen onder de verkeerde service, of onder Unknown Service
-De service komt uit het resource-attribuut `service.name`. Stel `OTEL_SERVICE_NAME` in elke applicatie in. Heeft de sleutel een **Pinned Service Name**, dan komt elke OTLP/HTTP-export met die sleutel in plaats daarvan onder die naam terecht.
+De service komt uit het resource-attribuut `service.name`. Stel `OTEL_SERVICE_NAME` in elke applicatie in. Heeft de sleutel een **Vastgezette servicenaam**, dan komt elke OTLP/HTTP-export met die sleutel in plaats daarvan onder die naam terecht.
 :::
 
 ## Volgende stappen

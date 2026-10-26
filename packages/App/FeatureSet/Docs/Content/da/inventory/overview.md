@@ -65,7 +65,7 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 | **Hjælp → Dokumentation** | En kort guide til inventaret med de typer elementer, det genkender. |
 | **Avanceret → Arkiveret** | De elementer, du har arkiveret. Gendan dem herfra. |
 
-Åbn et element, og dets egen sidemenu har dets **Oversigt** (type, kilde og status og hver attribut, der er observeret på det), dets **Connections** og dets **Brugerdefinerede felter**; dets **Protokoller**, **Spor**, **Metrikker**, **Ydeevneprofiler** og **Undtagelser**; og dets **Hændelser**, **Advarsler** og **Planlagt vedligeholdelse**. Under **Avanceret** ligger dets **Indstillinger**, dets **Auditlogs** og **Delete Item**. Telemetrisiderne viser det, elementet selv har sendt. Hændelserne, advarslerne og vedligeholdelsesbegivenhederne er dem for den tjeneste, vært eller Kubernetes-klynge, elementet repræsenterer; på ethvert andet element fortæller de sider, hvilken ressource du skal se på i stedet.
+Åbn et element, og dets egen sidemenu har dets **Oversigt** (type, kilde og status og hver attribut, der er observeret på det), dets **Forbindelser** og dets **Brugerdefinerede felter**; dets **Protokoller**, **Spor**, **Metrikker**, **Ydeevneprofiler** og **Undtagelser**; og dets **Hændelser**, **Advarsler** og **Planlagt vedligeholdelse**. Under **Avanceret** ligger dets **Indstillinger**, dets **Auditlogs** og **Delete Item**. Telemetrisiderne viser det, elementet selv har sendt. Hændelserne, advarslerne og vedligeholdelsesbegivenhederne er dem for den tjeneste, vært eller Kubernetes-klynge, elementet repræsenterer; på ethvert andet element fortæller de sider, hvilken ressource du skal se på i stedet.
 
 ### Aktivdetaljer
 
@@ -80,7 +80,7 @@ De samme oplysninger er kolonner i listen **All Items**, skjult indtil du slår 
 
 ### Forbindelser
 
-Et elements side **Connections** viser dets naboer i begge retninger, grupperet i **Kald**, **Called by**, **Runs on** og **Related**. Hver gruppe viser sit samlede antal (en gruppe med mere end 100.000 forbindelser viser "100.000+"), og **Vis mere** bladrer gennem resten, så en travl klynge, et travlt navnerum eller en travl node viser hver forbindelse i stedet for kun de første. Siden er ikke begrænset til et tidsinterval: den indeholder relationer, der er tilføjet manuelt via API'et, og naboer, der er arkiveret. En nabo, der ikke længere er i inventaret, vises med sin nøgle.
+Et elements side **Forbindelser** viser dets naboer i begge retninger, grupperet i **Kald**, **Kaldt af**, **Kører på** og **Relateret**. Hver gruppe viser sit samlede antal (en gruppe med mere end 100.000 forbindelser viser "100.000+"), og **Vis mere** bladrer gennem resten, så en travl klynge, et travlt navnerum eller en travl node viser hver forbindelse i stedet for kun de første. Siden er ikke begrænset til et tidsinterval: den indeholder relationer, der er tilføjet manuelt via API'et, og naboer, der er arkiveret. En nabo, der ikke længere er i inventaret, vises med sin nøgle.
 
 ## Tilføj noget manuelt
 
@@ -102,8 +102,8 @@ Klik på **Tilføj Item**. Vælg dets **Type**, giv det et **Navn** og eventuelt
 
 Tre typer kan du tilføje manuelt:
 
-- `external.service` (**External Service**): en tredjeparts-API eller en software-as-a-service-afhængighed.
-- `external.database` (**External Database**): en database, der ikke er en server, OneUptime kan modellere. En databaseserver, selvhostet eller administreret, fra PostgreSQL til Snowflake, hører i stedet hjemme under **Databases → Opret Database** ([Databaser](/docs/telemetry/databases)): den post forbindes med de traces, containere og motormetrikker, der nævner samme adresse, hvilket et inventarelement aldrig gør, og tilføjer du samme server begge veje, står du med to uforbundne poster.
+- `external.service` (**Ekstern tjeneste**): en tredjeparts-API eller en software-as-a-service-afhængighed.
+- `external.database` (**Ekstern database**): en database, der ikke er en server, OneUptime kan modellere. En databaseserver, selvhostet eller administreret, fra PostgreSQL til Snowflake, hører i stedet hjemme under **Databases → Opret Database** ([Databaser](/docs/telemetry/databases)): den post forbindes med de traces, containere og motormetrikker, der nævner samme adresse, hvilket et inventarelement aldrig gør, og tilføjer du samme server begge veje, står du med to uforbundne poster.
 - `appliance` (**Appliance**): hardware eller software uden agent.
 
 Begrænsningen forhindrer dubletter. Et manuelt oprettet element af en type, OneUptime kan observere, som en vært, ville blive nøglet på det navn, du skrev, mens det fundne element for samme maskine nøgles på de attributter, den rapporterer. De to ville aldrig smelte sammen, så den samme vært ville stå to gange i din liste for altid.
@@ -125,7 +125,7 @@ For at arkivere elementer markerer du dem i **All Items** og arkiverer dem på �
 
 ## Relationer og topologi
 
-OneUptime forbinder elementer med rettede relationer, efterhånden som det observerer dem. **Inventar → Topology Map** tegner dem, og et elements side **Connections** viser dets egne. Se [Topologi](/docs/telemetry/topology).
+OneUptime forbinder elementer med rettede relationer, efterhånden som det observerer dem. **Inventar → Topology Map** tegner dem, og et elements side **Forbindelser** viser dets egne. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | For eksempel |
 | --- | --- |

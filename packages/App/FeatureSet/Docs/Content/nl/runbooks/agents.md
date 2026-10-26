@@ -147,7 +147,7 @@ Open **Meer velden** van de stap: de vervolgkeuzelijst **Runner** toont elke Run
 
 ### De stappen opslaan
 
-Klik op **Save Steps**. Wanneer een uitvoering de stap bereikt, zet de Worker een taak in de wachtrij voor het ID van die Runner, en alleen die Runner kan hem oppakken. Een stap op **Globale Runner** wacht op de globale Runner die vrij is.
+Klik op **Stappen opslaan**. Wanneer een uitvoering de stap bereikt, zet de Worker een taak in de wachtrij voor het ID van die Runner, en alleen die Runner kan hem oppakken. Een stap op **Globale Runner** wacht op de globale Runner die vrij is.
 :::
 
 Bash wordt uitgevoerd met `bash -c`. JavaScript loopt in een `isolated-vm`-sandbox op de Runner, zonder toegang tot het bestandssysteem of processen; het kan openbare HTTP-API's aanroepen met `axios`, maar geen adressen in een privénetwerk. Een SSH- of kubectl-stap meldt zich aan met een geheime [runbookvariabele](/docs/runbooks/variables), die de Runner van de stap moet vermelden onder **Je Runners die het mogen gebruiken**.

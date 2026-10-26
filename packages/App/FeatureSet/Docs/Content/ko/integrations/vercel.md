@@ -36,11 +36,11 @@ flowchart TB
 :::steps
 ### Vercel Marketplace에서 OneUptime 열기
 
-Vercel 대시보드에서 **Integrations**를 연 다음 **Browse Marketplace**를 열고, **Observability** 아래에서 OneUptime을 찾습니다. **Install**을 클릭하고 OneUptime의 약관에 동의합니다.
+Vercel 대시보드에서 **Integrations**를 연 다음 **Browse Marketplace**를 열고, **Observability** 아래에서 OneUptime을 찾습니다. **설치**를 클릭하고 OneUptime의 약관에 동의합니다.
 
 ### 요금제 고르기
 
-**Free**, **Growth**, **Scale** 중에서 고릅니다. 요금제는 OneUptime 자체의 요금제이며, 가격은 [oneuptime.com/pricing](https://oneuptime.com/pricing)에 나온 그대로입니다.
+**무료**, **Growth**, **Scale** 중에서 고릅니다. 요금제는 OneUptime 자체의 요금제이며, 가격은 [oneuptime.com/pricing](https://oneuptime.com/pricing)에 나온 그대로입니다.
 
 ### 리소스 이름을 정하고 설정 고르기
 
@@ -148,7 +148,7 @@ Vercel 프로젝트를 연결하면 OneUptime은 그 프로젝트의 프로덕�
 
 | | 작동 방식 |
 | --- | --- |
-| 요금제 | **Free**, **Growth**, **Scale**. 가격은 oneuptime.com에 나온 그대로이며, 요금제의 사용자당 가격, 모니터당 월 $1인 활성 모니터, GB당 텔레메트리로 이루어집니다. |
+| 요금제 | **무료**, **Growth**, **Scale**. 가격은 oneuptime.com에 나온 그대로이며, 요금제의 사용자당 가격, 모니터당 월 $1인 활성 모니터, GB당 텔레메트리로 이루어집니다. |
 | 결제하는 곳 | 리소스마다 한 달에 한 번, Vercel 청구서로 결제합니다. Vercel은 이번 달 지금까지의 사용량을 리소스에 표시하며, 매시간 갱신합니다. |
 | 평가판 | 요금제의 평가판 기간 동안에는 사용자, 모니터, 텔레메트리 모두 요금이 청구되지 않습니다. |
 | 요금제 변경 | Vercel의 리소스에서, 또는 OneUptime의 **프로젝트 설정 → 결제 및 청구서 → 결제**에서 변경합니다. 어느 쪽에서 바꾸든 양쪽 모두 바뀝니다. |

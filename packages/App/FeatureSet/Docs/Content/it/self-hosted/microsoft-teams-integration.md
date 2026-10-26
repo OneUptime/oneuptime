@@ -42,7 +42,7 @@ Le videochiamate (una riunione Teams per un incidente) non usano questo bot: ric
 - Un account che possa creare registrazioni di app in Microsoft Entra ID, e un amministratore di Microsoft 365 che conceda il consenso amministratore.
 - Un nome host HTTPS pubblico per OneUptime raggiungibile da Azure Bot Service. Vedi [Accesso di rete](#accesso-di-rete).
 - Accesso alla configurazione del server: `config.env` con Docker Compose, oppure i tuoi values di Helm su Kubernetes.
-- Per collegare un progetto, il ruolo **Project Owner**, **Project Admin** o **Project Member** su quel progetto.
+- Per collegare un progetto, il ruolo **Proprietario del progetto**, **Amministratore del progetto** o **Membro del progetto** su quel progetto.
 
 ## Configura l'integrazione
 
@@ -382,7 +382,7 @@ Quando Microsoft ti riporta indietro e la connessione non è avvenuta (concedend
 | La pagina dice | Cosa fare |
 | --- | --- |
 | **"Questo link di connessione non è valido, è scaduto o è già stato usato. Ricomincia."** | Il link funziona una volta, per 15 minuti, nel browser che l'ha avviato. Ricomincia dalla pagina Microsoft Teams e termina entro 15 minuti, nello stesso browser. |
-| **"Non hai l'autorizzazione per connettere questo progetto a Microsoft Teams."** | Concedere il consenso amministratore per il progetto richiede **Project Owner**, **Project Admin** o **Project Member**. Viene verificato di nuovo quando Microsoft ti riporta indietro. |
+| **"Non hai l'autorizzazione per connettere questo progetto a Microsoft Teams."** | Concedere il consenso amministratore per il progetto richiede **Proprietario del progetto**, **Amministratore del progetto** o **Membro del progetto**. Viene verificato di nuovo quando Microsoft ti riporta indietro. |
 | **"Non sei più membro di questo progetto."** | Per collegare il tuo account Microsoft devi essere membro del progetto quando Microsoft ti riporta indietro. |
 | **"Hai effettuato l'accesso a un'organizzazione Microsoft 365 diversa da quella a cui è destinata questa connessione."** | Accedi con un account dell'organizzazione Microsoft 365 che ha concesso il consenso amministratore, o a cui è collegato il progetto. |
 | **"La tua organizzazione Microsoft 365 non ha ancora team."** | Crea un team in Microsoft Teams, poi concedi di nuovo il consenso amministratore. |

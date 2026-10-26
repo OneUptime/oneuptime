@@ -53,7 +53,7 @@ U hebt een Azure-abonnement nodig, een rol waarmee u de resource kunt maken en l
 
 OneUptime zelf heeft geen Azure-rol nodig. Een sleutel geeft op zichzelf toegang tot elke implementatie op de resource, zonder rolcontrole; behandel hem dus als een wachtwoord.
 
-In OneUptime vraagt het toevoegen van een provider aan een project **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** of **Create LLM**. Een zelf gehoste instantie kan in plaats daarvan uit omgevingsvariabelen één provider voor alle projecten registreren; daarvoor is toegang tot de server nodig.
+In OneUptime vraagt het toevoegen van een provider aan een project **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid** of **Create LLM**. Een zelf gehoste instantie kan in plaats daarvan uit omgevingsvariabelen één provider voor alle projecten registreren; daarvoor is toegang tot de server nodig.
 
 ## Microsoft Foundry instellen
 

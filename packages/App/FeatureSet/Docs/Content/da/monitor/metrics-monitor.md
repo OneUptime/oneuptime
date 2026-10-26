@@ -26,7 +26,7 @@ Hvert minut kører OneUptime hver af monitorens metrikforespørgsler over dens t
 ## Før du starter
 
 - Dine applikationer eller din infrastruktur sender metrikker til OneUptime via OpenTelemetry. Se [OpenTelemetry](/docs/telemetry/open-telemetry).
-- Kend metrikkens navn og de attributter, du vil filtrere eller gruppere på. Listerne **Metrik** og **Group by** tilbyder kun navne og attributter, som OneUptime har modtaget.
+- Kend metrikkens navn og de attributter, du vil filtrere eller gruppere på. Listerne **Metrik** og **Gruppér efter** tilbyder kun navne og attributter, som OneUptime har modtaget.
 
 ## Opret en metrik-monitor
 
@@ -45,11 +45,11 @@ I **Metrik-monitor-konfiguration** vælger du et **Tidsinterval**: hvor langt hv
 
 ### Tilføj metrikforespørgslerne
 
-Under **Vælg målinger** vælger du en **Metrik**, og hvordan den aggregeres med **Aggregate by**. Åbn **Filters & grouping** for at filtrere efter attributter eller gruppere med **Group by**. Klik på **Tilføj metrik** for endnu en forespørgsel eller på **Tilføj formel** for at kombinere dem. Diagrammet under forespørgslerne viser en forhåndsvisning af tidsintervallet, så du kan se de værdier, kriterierne vil tjekke.
+Under **Vælg målinger** vælger du en **Metrik**, og hvordan den aggregeres med **Aggregate by**. Åbn **Filters & grouping** for at filtrere efter attributter eller gruppere med **Gruppér efter**. Klik på **Tilføj metrik** for endnu en forespørgsel eller på **Tilføj formel** for at kombinere dem. Diagrammet under forespørgslerne viser en forhåndsvisning af tidsintervallet, så du kan se de værdier, kriterierne vil tjekke.
 
 ### Angiv kriterierne
 
-I **Monitorkriterier** vælger hvert kriterium den **Metrik**, der skal tjekkes (en forespørgsel eller en formel), sin **Aggregering**, en **Betingelse** og en **Threshold**. Se [Kriterier](#kriterier) for de kriterier, en ny monitor starter med.
+I **Monitorkriterier** vælger hvert kriterium den **Metrik**, der skal tjekkes (en forespørgsel eller en formel), sin **Aggregering**, en **Betingelse** og en **Tærskel**. Se [Kriterier](#kriterier) for de kriterier, en ny monitor starter med.
 
 ### Opret monitoren
 
@@ -65,7 +65,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Metrik** | Den metrik, der forespørges. | Påkrævet |
 | **Aggregate by** | Hvordan værdierne i hvert tidsinterval kombineres til ét datapunkt: Gns., Sum, Min, Max, Antal eller en percentil (P50, P75, P90, P95 eller P99). | Gns. |
 | **Filter by attributes** (under **Filters & grouping**) | Kun serier, hvis attributter opfylder disse betingelser. | Intet filter |
-| **Group by** (under **Filters & grouping**) | Én serie pr. unik værdi af disse attributter (se [Advarsler pr. serie](#advarsler-pr-serie-group-by)). | Én serie |
+| **Gruppér efter** (under **Filters & grouping**) | Én serie pr. unik værdi af disse attributter (se [Advarsler pr. serie](#advarsler-pr-serie-group-by)). | Én serie |
 
 Hver forespørgsel og formel får en variabel (`a`, `b`, `c` og så videre) i den rækkefølge, du tilføjer dem.
 
@@ -79,7 +79,7 @@ En formel kombinerer forespørgselsvariabler med `+`, `-`, `*`, `/`, `%`, `^` og
 
 ### Glidende tidsvindue
 
-**Tidsinterval** bestemmer, hvor langt hver evaluering kigger tilbage: **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
+**Tidsinterval** bestemmer, hvor langt hver evaluering kigger tilbage: **Past 1 Minute**, **Seneste 5 minutter**, **Past 10 Minutes**, **Seneste 15 minutter**, **Seneste 30 minutter**, **Seneste time**, **Seneste 2 timer**, **Seneste 3 timer**, **Past 6 Hours**, **Past 12 Hours**, **Seneste dag**, **Seneste 2 dage**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
 
 Jo længere intervallet er, jo bredere er hvert tidsinterval, så ét datapunkt står for mere tid:
 
@@ -116,7 +116,7 @@ Jo længere intervallet er, jo bredere er hvert tidsinterval, så ét datapunkt 
 
 ## Kriterier
 
-Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Threshold**. Når metrikken har en enhed, vælger du tærsklens enhed ved siden af den.
+Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. Når metrikken har en enhed, vælger du tærsklens enhed ved siden af den.
 
 | Betingelse | Matcher, når værdien er… |
 | --- | --- |
@@ -143,13 +143,13 @@ En ny metrik-monitor starter med to kriterier på sin første forespørgsel, beg
 
 ## Gennemgået eksempel: en voksende kø
 
-Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` er gaugen `checkout.queue.depth` med **Aggregate by** Max, og **Tidsinterval** er **Past 5 Minutes**. Én evaluering ser disse fem datapunkter på ét minut hver:
+Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` er gaugen `checkout.queue.depth` med **Aggregate by** Max, og **Tidsinterval** er **Seneste 5 minutter**. Én evaluering ser disse fem datapunkter på ét minut hver:
 
 | Minut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Et kriterium med **Metrik** `a`, **Betingelse** **Større end** og **Threshold** `1000` giver et forskelligt svar for hver **Aggregering**:
+Et kriterium med **Metrik** `a`, **Betingelse** **Større end** og **Tærskel** `1000` giver et forskelligt svar for hver **Aggregering**:
 
 | Aggregering | Sammenlignet med 1.000 | Matcher? |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ Et kriterium med **Metrik** `a`, **Betingelse** **Større end** og **Threshold**
 
 ## Advarsler pr. serie (Group By)
 
-**Group by** på en metrikforespørgsel deler forespørgslen op i én serie pr. unik attributværdi (én pr. vært, én pr. container, én pr. monteringspunkt), og en monitor med Group By evaluerer hver serie uafhængigt. Den ene indstilling er forskellen mellem "flåden er usund" og "`prod-db-01` er usund".
+**Gruppér efter** på en metrikforespørgsel deler forespørgslen op i én serie pr. unik attributværdi (én pr. vært, én pr. container, én pr. monteringspunkt), og en monitor med Group By evaluerer hver serie uafhængigt. Den ene indstilling er forskellen mellem "flåden er usund" og "`prod-db-01` er usund".
 
 ### Én advarsel pr. gruppe
 
@@ -189,7 +189,7 @@ Hver advarsel pr. gruppe følger sin egen gruppe. Når vært A falder under tær
 
 ### Vælg en attribut at gruppere efter
 
-Gruppér efter en attribut, der virkelig identificerer en særskilt ting, du ville kalde nogen ud for: værtsattributten for en værtsmetrik på tværs af flåden, container- eller pod-attributten for en containermetrik, monteringspunkt- eller enhedsattributten for en filsystem- eller disk-I/O-metrik, interface-attributten for en netværksmetrik. Rullelisten **Group by** udfyldes med de attributter, din collector faktisk sender, så vælg fra listen i stedet for at skrive en nøgle i hånden.
+Gruppér efter en attribut, der virkelig identificerer en særskilt ting, du ville kalde nogen ud for: værtsattributten for en værtsmetrik på tværs af flåden, container- eller pod-attributten for en containermetrik, monteringspunkt- eller enhedsattributten for en filsystem- eller disk-I/O-metrik, interface-attributten for en netværksmetrik. Rullelisten **Gruppér efter** udfyldes med de attributter, din collector faktisk sender, så vælg fra listen i stedet for at skrive en nøgle i hånden.
 
 Gruppér ikke en metrik, der allerede er én skalar for hele systemet (et leder-flag for hele klyngen, et efterslæb i scheduleren eller CPU'en på én vært i en monitor for én vært). At gruppere sådanne metrikker giver præcis én serie og ændrer intet ud over advarslernes titler.
 
@@ -206,7 +206,7 @@ Et tidsinterval uden datapunkter er ikke en værdi på 0. Med **Hvis ingen data*
 :::
 
 :::details Jeg får én advarsel for hele flåden
-Forespørgslen har ingen **Group by**, så alle værter samles i ét tal. Gruppér forespørgslen efter vært-, container- eller monteringspunktattributten (se [Advarsler pr. serie](#advarsler-pr-serie-group-by)).
+Forespørgslen har ingen **Gruppér efter**, så alle værter samles i ét tal. Gruppér forespørgslen efter vært-, container- eller monteringspunktattributten (se [Advarsler pr. serie](#advarsler-pr-serie-group-by)).
 :::
 
 :::details Et anomalikriterium udløses aldrig

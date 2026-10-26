@@ -115,7 +115,7 @@ OneUptime 每 15 分鐘檢查一次所有未驗證的網域，檢查找到記錄
 
 ### 解讀狀態欄
 
-**狀態** 欄說明每個網域在通往 HTTPS 的路上處於哪一步，共有七種狀態之一，與狀態頁相同。訂購失敗時，原因會顯示在下面一行。
+**狀態** 欄說明每個網域在通往 HTTPS 的路上處於哪一步，共有八種狀態之一，與狀態頁相同。訂購失敗時，原因會顯示在下面一行。
 
 | 狀態欄顯示的內容 | 意義 |
 | --- | --- |
@@ -126,6 +126,7 @@ OneUptime 每 15 分鐘檢查一次所有未驗證的網域，檢查找到記錄
 | 憑證已核發，將自動續約。 | 完成。該網域透過 HTTPS 提供憑證，OneUptime 負責續約。 |
 | 憑證已核發，但續約失敗。我們會繼續嘗試。 | 該網域仍在提供有效的憑證，但由於下面一行所示的原因，上一次續約失敗。OneUptime 會在憑證到期前很早就再次嘗試。 |
 | 正在使用您上傳的憑證。 | 記錄已驗證，該網域使用你上傳的憑證提供服務。 |
+| 已驗證。正在使用您自己的 Proxy 提供的 HTTPS。 | 在沒有 Let's Encrypt 帳戶金鑰的自行託管安裝上，記錄已驗證，網域可以存取。除非您上傳憑證，否則其 HTTPS 由您自己的 Proxy 負責。 |
 
 如果訂購失敗，常見原因是你的網域上有不允許 `letsencrypt.org` 的 CAA 記錄，以及在自行託管的安裝中，Let's Encrypt 無法透過 80 連接埠連到伺服器。
 
@@ -135,7 +136,7 @@ OneUptime 每 15 分鐘檢查一次所有未驗證的網域，檢查找到記錄
 
 為某個網域訂購免費憑證後，該列會顯示 **Reissue SSL** ，當你希望在自動續約之前取得新憑證時，它會向 Let's Encrypt 申請一張全新的憑證。每個網域每 24 小時可以重新核發一次。
 
-在自行託管的安裝中，儀表板自訂網域由環境變數 `DASHBOARD_CNAME_RECORD` （Helm chart 中為 `dashboard.cnameRecord` ）開啟，它就是你的 CNAME 記錄所指向的目標。沒有它時，卡片和 **DNS 設定** 對話方塊會顯示 "Custom Domains not enabled for this OneUptime installation" 而不是記錄，OneUptime 也不會為儀表板驗證網域或訂購憑證。
+在自行託管的安裝中，儀表板自訂網域由環境變數 `DASHBOARD_CNAME_RECORD` （Helm chart 中為 `dashboard.cnameRecord` ）開啟，它就是你的 CNAME 記錄所指向的目標。沒有它時，卡片和 **DNS 設定** 對話方塊會顯示 "Custom Domains not enabled for this OneUptime installation" 而不是記錄，OneUptime 也不會為儀表板驗證網域或訂購憑證。沒有 Let's Encrypt 帳戶金鑰（`LETS_ENCRYPT_ACCOUNT_KEY`，Helm chart 中為 `letsEncrypt.accountKey`）的安裝不會訂購憑證：儀表板網域的記錄一經驗證即可存取，並透過你自己 Proxy 的 HTTPS 或你上傳的憑證提供服務。
 
 ### 誰可以檢查和重新核發
 

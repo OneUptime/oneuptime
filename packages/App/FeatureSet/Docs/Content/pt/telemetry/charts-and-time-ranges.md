@@ -20,7 +20,7 @@ Todo gráfico de série temporal no OneUptime também funciona como seletor de i
 
 Os painéis que mostram o estado atual continuam no agora, assim como quando você escolhe um intervalo: contagens de inventário, saúde, maiores consumidores de recursos, avisos recentes, incidentes e alertas abertos e as listas ao vivo de um painel.
 
-Enquanto um zoom está ativo, um botão **Reset zoom** aparece ao lado do seletor de intervalo de tempo da página. Ele faz o mesmo que um clique duplo e é o caminho de volta para quem usa o teclado e em telas sensíveis ao toque.
+Enquanto um zoom está ativo, um botão **Redefinir zoom** aparece ao lado do seletor de intervalo de tempo da página. Ele faz o mesmo que um clique duplo e é o caminho de volta para quem usa o teclado e em telas sensíveis ao toque.
 
 ```mermaid title="O que um arrasto, um clique duplo e o seletor fazem com o intervalo da página"
 stateDiagram-v2
@@ -35,9 +35,9 @@ stateDiagram-v2
 
 ## Como o zoom se comporta
 
-- **Aplique zoom o quanto quiser; uma única redefinição sai de tudo.** Depois de passar de "Past 1 Hour" para dez minutos e depois para um, um único clique duplo (ou **Reset zoom**) devolve a hora inteira em vez de subir um nível de cada vez.
+- **Aplique zoom o quanto quiser; uma única redefinição sai de tudo.** Depois de passar de "Past 1 Hour" para dez minutos e depois para um, um único clique duplo (ou **Redefinir zoom**) devolve a hora inteira em vez de subir um nível de cada vez.
 - **Qualquer gráfico pode redefinir qualquer zoom.** Arraste no gráfico de CPU e clique duas vezes no de memória: quem está com zoom é a página, não o gráfico.
-- **Escolher você mesmo um intervalo recomeça do zero.** Uma predefinição ou um intervalo personalizado no seletor é um novo ponto de partida: o zoom acaba e **Reset zoom** some.
+- **Escolher você mesmo um intervalo recomeça do zero.** Uma predefinição ou um intervalo personalizado no seletor é um novo ponto de partida: o zoom acaba e **Redefinir zoom** some.
 - **Uma janela com zoom é fixa.** "Past 30 Minutes" avança com o relógio; um zoom é uma janela fixa, então para de avançar enquanto a atualização automática está ligada. Redefina o zoom para que volte a avançar.
 - **Um zoom nunca passa do agora.** O bucket mais recente de um gráfico costuma ainda estar se enchendo; um arrasto que termina nele é cortado no horário atual.
 - **Você pode soltar o mouse fora do gráfico**: o arrasto conta mesmo assim.
@@ -47,11 +47,11 @@ stateDiagram-v2
 ### Cliques e arrastos
 
 - **Em gráficos de linhas, áreas e barras, um clique simples não é um zoom.** Isso vale para a maioria dos gráficos: cartões de métricas e o explorador de métricas, visões gerais de recursos, SLOs, monitores e todo gráfico de um painel. Só um arrasto por vários buckets aplica zoom, então clicar em um ponto, uma barra ou uma entrada da legenda continua fazendo o que fazia antes. Enquanto um zoom está ativo, um clique na área de plotagem de um gráfico só tem efeito um instante depois, para ser diferenciado do clique duplo que redefine. A linha do tempo de padrões de erro nos Insights de registros e o Occurrence Trend de uma exceção também só aplicam zoom com um arrasto.
-- **Nos gráficos de volume dos exploradores, um clique em uma barra aplica zoom nessa barra.** Os gráficos de volume dos exploradores de registros, traces, exceções e eventos de segurança, e os gráficos de análise de registros e traces, aplicam zoom nas barras sobre as quais você arrasta, ou na barra em que você clica. Esses gráficos mostram **Click or drag to zoom**.
+- **Nos gráficos de volume dos exploradores, um clique em uma barra aplica zoom nessa barra.** Os gráficos de volume dos exploradores de registros, traces, exceções e eventos de segurança, e os gráficos de análise de registros e traces, aplicam zoom nas barras sobre as quais você arrasta, ou na barra em que você clica. Esses gráficos mostram **Clique ou arraste para ampliar**.
 
 ### Dicas nos gráficos
 
-A maioria dos gráficos com zoom indica o gesto acima da área de plotagem, **Drag to zoom** ou **Click or drag to zoom**, e, enquanto um zoom está ativo, acrescenta o lembrete **double-click to reset**. Os cartões de métricas, o explorador de métricas e os gráficos de volume dos exploradores sempre mostram a dica. Nos cartões de gráficos das visões gerais de recursos e dos SLOs, e em alguns widgets de painel, ela só aparece enquanto você aponta para o cartão ou entra nele com a tecla Tab.
+A maioria dos gráficos com zoom indica o gesto acima da área de plotagem, **Arraste para ampliar** ou **Clique ou arraste para ampliar**, e, enquanto um zoom está ativo, acrescenta o lembrete **double-click to reset**. Os cartões de métricas, o explorador de métricas e os gráficos de volume dos exploradores sempre mostram a dica. Nos cartões de gráficos das visões gerais de recursos e dos SLOs, e em alguns widgets de painel, ela só aparece enquanto você aponta para o cartão ou entra nele com a tecla Tab.
 
 ## Onde funciona
 
@@ -63,13 +63,13 @@ O zoom muda o intervalo da página inteira em:
 - cartões de métricas, incluindo a aba Métricas de um recurso e as métricas de um monitor;
 - o explorador de métricas;
 - gráficos de histórico de SLO;
-- Insights de registros, incluindo a linha do tempo "Quando aconteceu" de um padrão de erro, cujo painel tem o próprio **Reset zoom** porque cobre o seletor da página;
+- Insights de registros, incluindo a linha do tempo "Quando aconteceu" de um padrão de erro, cujo painel tem o próprio **Redefinir zoom** porque cobre o seletor da página;
 - gráficos de volume de registros, traces, exceções e eventos de segurança, e os gráficos de análise de registros e traces, que mudam o intervalo do explorador a que pertencem;
 - [painéis](/docs/dashboards/authoring), onde um arrasto muda o intervalo do painel inteiro.
 
-Gráficos com uma janela própria aplicam zoom só nessa janela, então nunca mudam nada mais na página. Isso inclui a prévia de uma métrica no formulário de um monitor (o monitor continua avaliando a própria janela móvel), o Occurrence Trend de uma exceção, um gráfico aberto em um pop-up ou no painel de investigação e os gráficos nas respostas do chat de IA. Um clique duplo em um deles, ou no seu botão **Reset zoom**, restaura a janela própria dele.
+Gráficos com uma janela própria aplicam zoom só nessa janela, então nunca mudam nada mais na página. Isso inclui a prévia de uma métrica no formulário de um monitor (o monitor continua avaliando a própria janela móvel), o Occurrence Trend de uma exceção, um gráfico aberto em um pop-up ou no painel de investigação e os gráficos nas respostas do chat de IA. Um clique duplo em um deles, ou no seu botão **Redefinir zoom**, restaura a janela própria dele.
 
-O instantâneo de telemetria na página de um incidente, um alerta ou um episódio também tem uma janela própria. Um arrasto no gráfico dele (o gráfico de métrica, ou o gráfico de volume de registros, traces ou exceções quando é isso que o instantâneo mostra) aplica zoom em todo o instantâneo, então as abas Métricas, Registros, Traces e Exceções mostram o trecho que você traçou. **Reset zoom** ao lado do selo do instantâneo, ou um clique duplo nesse gráfico, restaura a janela do instantâneo.
+O instantâneo de telemetria na página de um incidente, um alerta ou um episódio também tem uma janela própria. Um arrasto no gráfico dele (o gráfico de métrica, ou o gráfico de volume de registros, traces ou exceções quando é isso que o instantâneo mostra) aplica zoom em todo o instantâneo, então as abas Métricas, Registros, Traces e Exceções mostram o trecho que você traçou. **Redefinir zoom** ao lado do selo do instantâneo, ou um clique duplo nesse gráfico, restaura a janela do instantâneo.
 
 ## Gráficos sem zoom
 
@@ -79,7 +79,7 @@ Algumas visualizações não têm um eixo de tempo para arrastar, são pequenas 
 - barras de participação e proporção, medidores e barras de progresso;
 - gráficos de chama, mapas de serviços e diagramas de fluxo;
 - as pequenas sparklines de tendência nas listas de métricas, onde um clique abre a métrica: abra-a para ter um gráfico com zoom;
-- pequenas sparklines com uma janela fixa própria, como o tempo de ida e volta de um dispositivo de rede na última hora: o link **Open metrics** delas leva a gráficos em que você pode aplicar zoom.
+- pequenas sparklines com uma janela fixa própria, como o tempo de ida e volta de um dispositivo de rede na última hora: o link **Abrir métricas** delas leva a gráficos em que você pode aplicar zoom.
 
 ## Próximos passos
 

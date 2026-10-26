@@ -79,15 +79,15 @@ Ouvrez le SLO, allez dans **Règles de taux de consommation**, dans la section *
 
 ### Nommer la règle
 
-Dans **Rule**, saisissez un **Nom**, comme « Fast burn ». Une nouvelle règle est active ; pour qu'elle cesse plus tard de se déclencher, désactivez **Activé** dans son formulaire de modification.
+Dans **Règle**, saisissez un **Nom**, comme « Fast burn ». Une nouvelle règle est active ; pour qu'elle cesse plus tard de se déclencher, désactivez **Activé** dans son formulaire de modification.
 
 ### Définir la fenêtre de consommation
 
-Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Short Window (Minutes)**, et éventuellement la **Re-fire Suppression (Minutes)**.
+Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**.
 
 ### Choisir ce qu'elle déclare
 
-Dans **What It Declares**, répondez à **Quand elle se déclenche** : **Créer une alerte**, le choix par défaut, **Déclarer un incident** ou **Les deux**. **Ajouter les propriétaires du SLO comme propriétaires** fait aussi des propriétaires du SLO les propriétaires de tout ce que crée la règle.
+Dans **Ce qu'elle déclare**, répondez à **Quand elle se déclenche** : **Créer une alerte**, le choix par défaut, **Déclarer un incident** ou **Les deux**. **Ajouter les propriétaires du SLO comme propriétaires** fait aussi des propriétaires du SLO les propriétaires de tout ce que crée la règle.
 
 ### Décrire l'alerte et l'incident
 
@@ -99,9 +99,9 @@ OneUptime vérifie les nombres d'une règle quand vous l'enregistrez :
 | Réglage | Doit être |
 | --- | --- |
 | **Seuil de taux de consommation** | Supérieur à 0. |
-| **Short Window (Minutes)** | Supérieure à 0. |
+| **Fenêtre courte (minutes)** | Supérieure à 0. |
 | **Fenêtre longue (minutes)** | Plus longue que la fenêtre courte. |
-| **Re-fire Suppression (Minutes)** | 0 ou plus. Vide signifie la durée de la fenêtre longue. |
+| **Suppression du redéclenchement (minutes)** | 0 ou plus. Vide signifie la durée de la fenêtre longue. |
 
 Chaque réponse à **Quand elle se déclenche** ouvre quelque chose. L'API refuse une règle qui ne créerait aucune alerte et ne déclarerait aucun incident, car elle serait vérifiée à chaque évaluation sans jamais rien déclarer.
 

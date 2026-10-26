@@ -6,9 +6,11 @@ import type EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOp
  * The first run of an infrastructure list (Hosts, Kubernetes clusters,
  * Docker and Podman hosts, Docker Swarm, Proxmox, VMware, Ceph, storage
  * arrays, databases, queues, serverless functions, cloud environments, IoT
- * fleets): until the project has one, the list shows its setup guide under
- * the empty table, and the page keeps watching for the first one. React-free,
- * so App tests can read it; useFirstRecordWatch is the hook.
+ * fleets): until the project has one, the list shows what the product gives
+ * under the empty table - its showcase (Components/ResourceShowcase), with
+ * the list's Add button, which opens the setup guide - and the page keeps
+ * watching for the first one. React-free, so App tests can read it;
+ * useFirstRecordWatch is the hook.
  */
 
 /*
@@ -18,9 +20,11 @@ import type EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOp
 export const FIRST_RECORD_POLL_INTERVAL_MS: number = 10 * 1000;
 
 /*
- * Under the guide's title on an empty list. The empty table above it says
- * what the list is ("No Docker hosts yet" and the list's description), so
- * the guide says only what to do, and that nothing more is needed after.
+ * Under the title of a setup guide shown on an empty list (Cloud > All
+ * Resources folds one under its Connect tiles). The empty table above it
+ * says what the list is ("No cloud resources discovered yet" and the list's
+ * description), so the guide says only what to do, and that nothing more is
+ * needed after.
  */
 export const FIRST_RUN_GUIDE_DESCRIPTION: string = translationKey(
   "Follow the steps below. This list fills in on its own once data arrives.",
@@ -49,8 +53,8 @@ export function getCountAfterCheck(data: {
 
 /*
  * What sits over the table (its filter chips) while the project has none of
- * this resource: nothing - there is nothing to filter yet, and the guide
- * under the table is the one thing to do. The chips come back with the
+ * this resource: nothing - there is nothing to filter yet, and the showcase
+ * under the table is the one thing to read. The chips come back with the
  * first record.
  */
 export function getFirstRunTopContent<T>(data: {
@@ -62,20 +66,20 @@ export function getFirstRunTopContent<T>(data: {
 
 /*
  * The empty table's options while the project has none of this resource:
- * agent-discovered lists do not repeat their Create button there - creating
- * a record by hand does not connect anything, and the guide below is the
- * way in. The card header keeps its Create button for whoever wants one by
- * hand. Lists where adding by hand is a way to connect (a vCenter through a
- * probe, a database or queue endpoint) keep theirs.
+ * it does not repeat the list's Create button - the showcase under it has
+ * the list's Add button (the setup guide, or the create form where adding
+ * one by hand is the way to connect: a vCenter through a probe, a database
+ * or queue endpoint), and the card header keeps its own. Once there are
+ * records, the table's empty state is its own again (a search that finds
+ * nothing).
  */
 export function getFirstRunEmptyState(data: {
   emptyState: EmptyStateOptions | undefined;
   count: number | null;
-  isAddedByHand?: boolean | undefined;
 }): EmptyStateOptions {
   const emptyState: EmptyStateOptions = data.emptyState || {};
 
-  if (data.isAddedByHand || !isWatchingForFirstRecord(data.count)) {
+  if (!isWatchingForFirstRecord(data.count)) {
     return emptyState;
   }
 

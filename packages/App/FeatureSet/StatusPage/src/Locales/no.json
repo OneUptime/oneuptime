@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Hopp til hovedinnhold",
-    "loading": "Laster..."
+    "loading": "Laster...",
+    "moreLinks": "Flere lenker",
+    "navigation": "Navigasjon"
   },
   "common": {
     "save": "Lagre",
@@ -303,7 +305,8 @@
       "loginPrompt": "Vennligst logg inn for å se {{statusPageName}}",
       "noProviders": "Ingen SSO-leverandører er konfigurert eller aktivert",
       "notAvailable": "Single sign-on (SSO) er ikke tilgjengelig for denne statussiden. Logg inn med e-post og passord i stedet.",
-      "backToLogin": "Tilbake til innlogging"
+      "backToLogin": "Tilbake til innlogging",
+      "logInWithPassword": "Logg inn med passord"
     },
     "forgotPassword": {
       "title": "Glemt passord",
@@ -320,13 +323,9 @@
       "knowPassword": "Kjenner du passordet ditt?"
     },
     "masterPassword": {
-      "enterWithName": "Skriv inn passord for {{statusPageName}}",
-      "enterGeneric": "Skriv inn passord",
-      "prompt": "Vennligst skriv inn passordet for å fortsette.",
+      "prompt": "Skriv inn passordet for å se denne statussiden.",
       "passwordRequired": "passord er påkrevd.",
       "passwordLabel": "Passord",
-      "passwordDescription": "Skriv inn passordet for å låse opp denne siden.",
-      "passwordPlaceholder": "Skriv inn passord",
       "submit": "Lås opp statusside"
     },
     "signingOut": "Logger deg ut..."

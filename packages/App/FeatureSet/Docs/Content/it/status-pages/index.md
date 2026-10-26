@@ -87,7 +87,7 @@ Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppa
 | --- | --- |
 | **Base** | **Panoramica**, **Annunci**, **Proprietari**. |
 | **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra). |
-| **Regole** | **Monitor Rules**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
+| **Regole** | **Regole dei monitor**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
 | **Iscritti** | **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams**, **Iscritti webhook**, **Impostazioni iscritti**. |
 | **Registri di notifica** | **Registri di notifica**: ciò che è stato inviato agli iscritti. |
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |
@@ -217,7 +217,7 @@ In **Altre impostazioni** di **Accesso**, la sezione **Lista IP consentiti** (la
 
 Tre modi per mostrare lo stato altrove rispetto alla pagina stessa.
 
-**Badge di stato incorporato.** In **Pagine di stato → la vostra pagina → Avanzato → Stato incorporato**, attivate **Abilita badge di stato incorporato** (`enableEmbeddedOverallStatus`, disattivato per impostazione predefinita). La prima volta che lo attivate, il badge riceve il suo token (`embeddedOverallStatusToken`), e la scheda **Incorpora il badge** mostra il badge, servito da `/api/status-page/badge/<status-page-id>?token=<token>`, con il suo **HTML** e il suo **Markdown, con link alla pagina di stato** da copiare, così potete mettere lo stato generale attuale nella vostra documentazione, nel piè di pagina della vostra app o in una pagina di marketing. Il token si trova nella scheda **Token di sicurezza** sotto **Altre impostazioni**, con **Rigenera token** per quando il link è stato condiviso troppo.
+**Badge di stato incorporato.** In **Pagine di stato → la vostra pagina → Avanzato → Stato incorporato**, attivate **Abilita badge di stato incorporato** (`enableEmbeddedOverallStatus`, disattivato per impostazione predefinita). La prima volta che lo attivate, il badge riceve il suo token (`embeddedOverallStatusToken`), e la scheda **Incorpora il badge** mostra il badge, servito da `/api/status-page/badge/<status-page-id>?token=<token>`, con il suo **HTML** e il suo **Markdown, con link alla pagina di stato** da copiare, così potete mettere lo stato generale attuale nella vostra documentazione, nel piè di pagina della vostra app o in una pagina di marketing. Il Markdown punta al primo dominio personalizzato attivo della pagina, compreso uno con un certificato che avete caricato, oppure al suo indirizzo su OneUptime finché nessuno è attivo. Il token si trova nella scheda **Token di sicurezza** sotto **Altre impostazioni**, con **Rigenera token** per quando il link è stato condiviso troppo.
 
 **Feed RSS.** Ogni pagina di stato serve `/rss`: un feed intitolato "{titolo della pagina} Updates", con il **Titolo della pagina** impostato in **Branding**, o il suo nome se non ne ha uno, e le cui voci iniziano con `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Ogni voce è datata come la data la pagina: un incidente da quando è stato dichiarato, un annuncio da quando è stato pubblicato, e un evento di manutenzione pianificata da quando inizia, con la descrizione che si apre sulla sua finestra. Utile per chi preferisce portare i vostri aggiornamenti in un lettore o in un chatbot invece di iscriversi via email.
 

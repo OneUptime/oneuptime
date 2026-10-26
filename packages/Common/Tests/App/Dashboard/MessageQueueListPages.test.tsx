@@ -12,6 +12,14 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
+import MESSAGE_QUEUE_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueShowcase";
+import {
+  RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+  RESOURCE_SHOWCASE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 
 /*
  * The Queues list and the Archived list, rendered with ModelTable captured
@@ -68,6 +76,7 @@ interface CapturedTableProps {
   noItemsMessage?: string;
   emptyState?: { hideCreateButton?: boolean | undefined } | undefined;
   refreshToggle?: string | undefined;
+  showCreateForm?: boolean | undefined;
   viewPageRoute?: unknown;
   onViewPage: (item: unknown) => Promise<{ toString: () => string }>;
   onBeforeCreate?: (
@@ -124,29 +133,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
-
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueDocumentationCard",
-  () => {
-    return {
-      __esModule: true,
-      default: (props: {
-        title: string;
-        description: string;
-        queue?: unknown;
-      }) => {
-        return (
-          <div
-            data-testid="queue-docs-card"
-            data-queue={props.queue ? "set" : "none"}
-          >
-            {props.title} | {props.description}
-          </div>
-        );
-      },
-    };
-  },
-);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners",
@@ -371,48 +357,84 @@ describe("the Queues list: loading, errors and the setup guide", () => {
     expect(screen.queryByTestId("model-table")).not.toBeInTheDocument();
   });
 
-  test("an empty project keeps the table and shows the setup guide below it", async () => {
+  test("an empty project keeps the table and shows the showcase below it", async () => {
     countMock.mockResolvedValue(0);
 
     await renderList();
 
     const table: HTMLElement = screen.getByTestId("model-table");
-    const guide: HTMLElement = screen.getByTestId("queue-docs-card");
+    const showcase: HTMLElement = screen.getByTestId(RESOURCE_SHOWCASE_TEST_ID);
     expect(
-      table.compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING,
+      table.compareDocumentPosition(showcase) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(guide).toHaveTextContent("Getting Started with Queues");
+    expect(showcase).toHaveTextContent(MESSAGE_QUEUE_SHOWCASE.title);
+    // Not the guide: it opens once a queue is created.
+    expect(showcase).not.toHaveTextContent("Follow the steps below.");
     /*
-     * What to do, and that the list fills in by itself. The empty table
-     * above already says there are none, in the card's words ("... or
-     * added by hand"), and keeps Create Queue: a queue added by hand is
-     * watched like a discovered one.
+     * The empty table above already says there are none, in the card's
+     * words ("... or added by hand"), and does not repeat Create Queue:
+     * the showcase has it.
      */
-    expect(guide).toHaveTextContent(
-      "Follow the steps below. This list fills in on its own once data arrives.",
-    );
     expect(tableProps?.cardProps.description).toContain("or added by hand");
-    expect(tableProps?.emptyState?.hideCreateButton).toBeUndefined();
+    expect(tableProps?.emptyState?.hideCreateButton).toBe(true);
     // The table is the watch's: it reads its rows again when the first arrives.
     expect(tableProps?.refreshToggle).toBe("first-record-0");
-    // The product guide, with its messaging-system picker: no queue of its own.
-    expect(guide).toHaveAttribute("data-queue", "none");
   });
 
-  test("a project with queues shows no guide", async () => {
+  test("the showcase's Create Queue opens the table's own create form", async () => {
+    // A project owner, who may create queues.
+    const spies: Array<{ mockRestore: () => void }> = [
+      jest.spyOn(User, "isMasterAdmin").mockReturnValue(false),
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.ProjectOwner]),
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null),
+    ];
+
+    try {
+      countMock.mockResolvedValue(0);
+
+      await renderList();
+
+      const button: HTMLElement = screen.getByTestId(
+        RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+      );
+      expect(button).toHaveTextContent("Create Queue");
+      expect(tableProps?.showCreateForm).toBe(false);
+
+      await act(async () => {
+        button.click();
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(tableProps?.showCreateForm).toBe(true);
+    } finally {
+      for (const spy of spies) {
+        spy.mockRestore();
+      }
+    }
+  });
+
+  test("a project with queues shows no showcase", async () => {
     countMock.mockResolvedValue(3);
 
     await renderList();
 
     expect(screen.getByTestId("model-table")).toBeInTheDocument();
-    expect(screen.queryByTestId("queue-docs-card")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(tableProps?.emptyState?.hideCreateButton).toBeUndefined();
   });
 
-  test("the first queue created by hand hides the guide at once", async () => {
+  test("the first queue created by hand puts the showcase away at once", async () => {
     countMock.mockResolvedValue(0);
 
     await renderList();
-    expect(screen.getByTestId("queue-docs-card")).toBeInTheDocument();
+    expect(screen.getByTestId(RESOURCE_SHOWCASE_TEST_ID)).toBeInTheDocument();
 
     const created: MessageQueue = queue({ name: "orders" });
     let returned: unknown = null;
@@ -421,7 +443,9 @@ describe("the Queues list: loading, errors and the setup guide", () => {
     });
 
     expect(returned).toBe(created);
-    expect(screen.queryByTestId("queue-docs-card")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 });
 

@@ -15,7 +15,7 @@ Arbeidsflyter opprettes avslått, så triggeren deres starter dem ikke før du s
 
 ## Lerretet
 
-En arbeidsflyt fra bunnen åpnes med én enkelt stiplet blokk med teksten **Choose what starts this workflow**. Den blokken er utgangspunktet — klikk på den for å velge en trigger. En arbeidsflyt som er opprettet fra en mal, åpnes med blokkene allerede på plass.
+En arbeidsflyt fra bunnen åpnes med én enkelt stiplet blokk med teksten **Velg hva som starter denne arbeidsflyten**. Den blokken er utgangspunktet — klikk på den for å velge en trigger. En arbeidsflyt som er opprettet fra en mal, åpnes med blokkene allerede på plass.
 
 Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **komponent** som gjør noe. For å bytte trigger sletter du den: den stiplede plassholderen kommer tilbake på plassen dens, og et klikk på den lar deg velge en annen. Når du sletter en blokk, slettes linjene dens også, så koble den nye triggeren til den første blokken igjen.
 
@@ -25,12 +25,12 @@ Endringer lagres automatisk. En pille i verktøylinjen følger med på det: **La
 
 | For å legge til        | Klikk på                                                       | Panel som åpnes               |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| Triggeren              | Den stiplede plassholderblokken, eller **Legg til trigger** i verktøylinjen | **Legg til trigger**          |
+| Triggeren              | Den stiplede plassholderblokken, eller **Legg til utløser** i verktøylinjen | **Legg til utløser**          |
 | Enhver annen blokk     | **Legg til komponent**, i verktøylinjen over lerretet          | **Legg til komponent**        |
 
-Knappen i verktøylinjen heter **Legg til trigger** så lenge arbeidsflyten ikke har en trigger, og **Legg til komponent** så snart den har en.
+Knappen i verktøylinjen heter **Legg til utløser** så lenge arbeidsflyten ikke har en trigger, og **Legg til komponent** så snart den har en.
 
-Begge panelene åpnes på blokkene de fleste arbeidsflyter bruker, under **Popular**, etterfulgt av de øvrige innebygde blokkene. Under **OneUptime resources** klikker du på en ressurs som **Hendelse** for å se hva du kan gjøre med den; **Browse all resources** viser alle. Eller søk: skriv noen ord, som `create incident`, så kommer det beste treffet først. Trykk på `/` for å hoppe til søkefeltet, på piltastene for å gå gjennom resultatene og på **Enter** for å legge til den uthevede blokken. Et klikk på en blokk legger den til.
+Begge panelene åpnes på blokkene de fleste arbeidsflyter bruker, under **Populære**, etterfulgt av de øvrige innebygde blokkene. Under **OneUptime-ressurser** klikker du på en ressurs som **Hendelse** for å se hva du kan gjøre med den; **Bla gjennom alle ressurser** viser alle. Eller søk: skriv noen ord, som `create incident`, så kommer det beste treffet først. Trykk på `/` for å hoppe til søkefeltet, på piltastene for å gå gjennom resultatene og på **Enter** for å legge til den uthevede blokken. Et klikk på en blokk legger den til.
 
 En ny blokk havner under den nederste blokken på lerretet, og en ny trigger tar plassen til den stiplede blokken øverst. Den nye blokken er merket, og hvis den havner utenfor synsfeltet, ruller lerretet akkurat nok til å vise den. Innstillingene åpnes ikke av seg selv: klikk på blokken når du er klar til å konfigurere den. Inntil de påkrevde innstillingene er fylt ut, står det **Click to set up** på den.
 
@@ -80,11 +80,11 @@ Hver innstilling har det inndatafeltet verdien krever:
 | JSON                                             | En JSON-editor.                                                                |
 | På eller av                                      | En bryter med navnet ved siden av. Klikk på bryteren eller navnet for å bytte den. |
 
-Dialogen åpnes ved det du sannsynligvis kom for. For en **Webhook**-trigger er det URL-en, med en knapp **Kopier URL**, metodene den godtar, og en eksempelforespørsel. For en **Manual**-trigger er det hvordan arbeidsflyten startes. Enhver annen blokk åpnes ved innstillingene sine. En blokk uten innstillinger har ingen del **Innstillinger** i det hele tatt.
+Dialogen åpnes ved det du sannsynligvis kom for. For en **Webhook**-trigger er det URL-en, med en knapp **Kopier URL**, metodene den godtar, og en eksempelforespørsel. For en **Manuell**-trigger er det hvordan arbeidsflyten startes. Enhver annen blokk åpnes ved innstillingene sine. En blokk uten innstillinger har ingen del **Innstillinger** i det hele tatt.
 
 Under det, ovenfra og ned:
 
-- **ID**, **Inputs** og **Outputs**, side om side — blokkens identifikator, hvor den nås fra, og hva som kjører etter den.
+- **ID**, **Inndata** og **Outputs**, side om side — blokkens identifikator, hvor den nås fra, og hva som kjører etter den.
 - **Returns** — dataene denne blokken gir videre til senere trinn. Hver verdi viser den nøyaktige referansen som leser den, med en knapp for å kopiere den.
 - **How to use** — hva blokken gjør i én setning, trinnene for å konfigurere den, et eksempel å kopiere og feilene folk ofte gjør. Eksempelet er bygget ut fra arbeidsflyten din: det bruker ID-en til denne blokken og triggerens verdier der det setter data inn i en melding. **Learn more** åpner den lengre forklaringen, og lenkene går til den fullstendige veiledningen. Hver blokk har en, og knappen **How to use** øverst i dialogen hopper rett dit.
 
@@ -129,9 +129,9 @@ Den fanger opp feilene som ellers er usynlige til en kjøring går galt:
 Den raskeste måten å bli kjent med lerretet på er en arbeidsflyt med to blokker som du starter manuelt:
 
 :::steps
-1. Klikk på den stiplede plassholderblokken, og klikk deretter på **Manual** i panelet **Legg til trigger**.
-2. Klikk på **Legg til komponent**, og klikk deretter på **Logg** under **Popular**. Den nye blokken havner under triggeren. Koble triggerens punkt **Execute** ned til inngangspunktet på Log-blokken.
-3. Klikk på Log-blokken, der det står **Click to set up**, og skriv `Hello from ` i **Value**. Klikk på **{ }**, og klikk deretter på **JSON** under **Manual**. Innstillingen viser **Manual › JSON** og lagrer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klikk på **Lagre**.
+1. Klikk på den stiplede plassholderblokken, og klikk deretter på **Manuell** i panelet **Legg til utløser**.
+2. Klikk på **Legg til komponent**, og klikk deretter på **Logg** under **Populære**. Den nye blokken havner under triggeren. Koble triggerens punkt **Execute** ned til inngangspunktet på Log-blokken.
+3. Klikk på Log-blokken, der det står **Click to set up**, og skriv `Hello from ` i **Value**. Klikk på **{ }**, og klikk deretter på **JSON** under **Manuell**. Innstillingen viser **Manual › JSON** og lagrer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klikk på **Lagre**.
 4. Tilbake i **Bygger** klikker du på **Kjør arbeidsflyt**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kjør arbeidsflyten manuelt** og bekrefter med **Kjør**. Arbeidsflyten er fortsatt slått av, og den trenger ikke være på: en kjøring du starter selv, er en **Testkjøring**.
 5. Et panel **Arbeidsflytkjøring** åpnes av seg selv og følger kjøringen. Øverst står det **Testkjøring**, og loggen viser `Value:` etterfulgt av `Hello from` og JSON-en du skrev.
 :::
@@ -139,7 +139,7 @@ Den raskeste måten å bli kjent med lerretet på er en arbeidsflyt med to blokk
 Den syklusen — legg til, koble, konfigurer, kjør, les loggen — er slik du bygger hver arbeidsflyt.
 
 > [!TIP]
-> JSON som skrives inn i **Kjør arbeidsflyt**, kommer frem til Manual-triggeren som JSON. For å lese et felt i den, som `name`, legger du feltets navn til referansen: `{{local.components.manual-1.returnValues.value.name}}`. Når arbeidsflyten har kjørt, viser verdivelgeren også feltene: åpne **JSON** under **Manual**.
+> JSON som skrives inn i **Kjør arbeidsflyt**, kommer frem til Manual-triggeren som JSON. For å lese et felt i den, som `name`, legger du feltets navn til referansen: `{{local.components.manual-1.returnValues.value.name}}`. Når arbeidsflyten har kjørt, viser verdivelgeren også feltene: åpne **JSON** under **Manuell**.
 
 ## Slå den på
 

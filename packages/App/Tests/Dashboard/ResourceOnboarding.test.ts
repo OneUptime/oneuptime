@@ -34,7 +34,8 @@ import { generatedTexts } from "../../../Common/Tests/Helpers/GeneratedTexts";
  * the list's Add button opens the resource's setup guide in a dialog, the
  * guide asks for the name the agent is told and writes it into every
  * command, and its last step watches for the resource to connect. An empty
- * list shows the same guide as its first-run card. "Make software as simple
+ * list shows what the product gives instead (Components/ResourceShowcase),
+ * with the same Add button. "Make software as simple
  * as possible to use" - so the hand-typed create form of every resource
  * that registers itself is gone: a record typed in by hand only waited for
  * data nothing sent, and a name that did not match registered a second one.
@@ -432,6 +433,8 @@ interface AddedByGuide {
   constant: string;
   modelType: { new (): BaseModel };
   card: string;
+  // What its empty list shows under the table (Components/ResourceShowcase).
+  showcase: string;
   // The column the agent's name lands in, where the guide asks for one.
   nameField?: string | undefined;
   nameProp?: string | undefined;
@@ -445,6 +448,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "KUBERNETES_CLUSTER_ONBOARDING",
     modelType: KubernetesCluster,
     card: "KubernetesDocumentationCard",
+    showcase: "KUBERNETES_CLUSTER_SHOWCASE",
     nameField: "clusterIdentifier",
     nameProp: "clusterName",
   },
@@ -455,6 +459,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "DOCKER_HOST_ONBOARDING",
     modelType: DockerHost,
     card: "DockerDocumentationCard",
+    showcase: "DOCKER_HOST_SHOWCASE",
     nameField: "hostIdentifier",
     nameProp: "hostName",
   },
@@ -465,6 +470,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "PODMAN_HOST_ONBOARDING",
     modelType: PodmanHost,
     card: "PodmanDocumentationCard",
+    showcase: "PODMAN_HOST_SHOWCASE",
     nameField: "hostIdentifier",
     nameProp: "hostName",
   },
@@ -475,6 +481,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "DOCKER_SWARM_CLUSTER_ONBOARDING",
     modelType: DockerSwarmCluster,
     card: "DockerSwarmDocumentationCard",
+    showcase: "DOCKER_SWARM_CLUSTER_SHOWCASE",
     nameField: "name",
     nameProp: "clusterName",
   },
@@ -485,6 +492,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "PROXMOX_CLUSTER_ONBOARDING",
     modelType: ProxmoxCluster,
     card: "ProxmoxDocumentationCard",
+    showcase: "PROXMOX_CLUSTER_SHOWCASE",
     nameField: "name",
     nameProp: "clusterName",
   },
@@ -495,6 +503,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "CEPH_CLUSTER_ONBOARDING",
     modelType: CephCluster,
     card: "CephDocumentationCard",
+    showcase: "CEPH_CLUSTER_SHOWCASE",
     nameField: "name",
     nameProp: "clusterName",
   },
@@ -505,6 +514,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "STORAGE_ARRAY_ONBOARDING",
     modelType: StorageArray,
     card: "StorageArrayDocumentationCard",
+    showcase: "STORAGE_ARRAY_SHOWCASE",
     nameField: "name",
     nameProp: "arrayName",
   },
@@ -515,6 +525,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "IOT_FLEET_ONBOARDING",
     modelType: IoTFleet,
     card: "IoTDocumentationCard",
+    showcase: "IOT_FLEET_SHOWCASE",
     nameField: "name",
     nameProp: "fleetName",
   },
@@ -525,6 +536,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "SERVERLESS_FUNCTION_ONBOARDING",
     modelType: ServerlessFunction,
     card: "ServerlessDocumentationCard",
+    showcase: "SERVERLESS_FUNCTION_SHOWCASE",
   },
   {
     label: "Cloud environments",
@@ -533,6 +545,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
     constant: "CLOUD_ENVIRONMENT_ONBOARDING",
     modelType: CloudResource,
     card: "CloudDocumentationCard",
+    showcase: "CLOUD_ENVIRONMENT_SHOWCASE",
   },
 ];
 
@@ -554,29 +567,34 @@ describe.each(ADDED_BY_GUIDE)("$label", (resource: AddedByGuide) => {
     );
   });
 
-  test("show the same live guide as the empty list's first-run card", () => {
+  test("show the empty list their showcase, whose button opens the same dialog", () => {
     expect(page).toContain(
-      `{firstRecordWatch.count === 0 && ( <AddResourceGuide onboarding={${resource.constant}} title={${resource.constant}.firstRunTitle} description={FIRST_RUN_GUIDE_DESCRIPTION}`,
+      `{firstRecordWatch.count === 0 && ( <ResourceShowcaseCard showcase={${resource.showcase}} addButton={{ title: ${resource.constant}.addTitle,`,
     );
+    // Not the guide itself: that opens from Add.
+    expect(page).not.toContain("<AddResourceGuide");
   });
 
-  test("read the new one at once when it connects, from the dialog or the card", () => {
+  test("read the new one at once when the dialog sees it connect, and put the showcase away", () => {
     expect(page).toContain(
       "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}",
     );
-    expect(page).toContain("firstRecordWatch.onRecordCreated();");
+    const dialog: string = page.slice(
+      page.indexOf(`<AddResourceModal onboarding={${resource.constant}}`),
+    );
+    expect(dialog).toContain(
+      "onConnected={() => { firstRecordWatch.onRecordCreated(); setConnectedCount(",
+    );
   });
 
   test("say what they are in translation keys", () => {
-    for (const key of ["addTitle", "addDescription", "firstRunTitle"]) {
+    for (const key of ["addTitle", "addDescription"]) {
       expect(config).toMatch(new RegExp(`${key}: translationKey\\( ?"`));
     }
     expect(config).toMatch(/viewText: translationKey\( ?"View /);
     expect(config).toMatch(/addTitle: translationKey\( ?"Add /);
-    // The empty list's card keeps the title it had in every language.
-    expect(config).toMatch(
-      /firstRunTitle: translationKey\( ?"Getting Started with /,
-    );
+    // The empty list's card was the guide; it is the showcase now.
+    expect(config).not.toContain("firstRunTitle");
   });
 
   test("draw their own guide, framed by the Add guide", () => {

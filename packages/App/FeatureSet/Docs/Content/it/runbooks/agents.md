@@ -147,7 +147,7 @@ Apri **Altri campi** del passaggio: il suo menu **Runner** elenca ogni Runner de
 
 ### Salva i passaggi
 
-Fai clic su **Save Steps**. Quando un'esecuzione raggiunge il passaggio, il Worker mette in coda un lavoro per l'ID di quel Runner, e solo quel Runner può prenderlo in carico. Un passaggio su **Runner globale** attende il Runner globale che si libera.
+Fai clic su **Salva passaggi**. Quando un'esecuzione raggiunge il passaggio, il Worker mette in coda un lavoro per l'ID di quel Runner, e solo quel Runner può prenderlo in carico. Un passaggio su **Runner globale** attende il Runner globale che si libera.
 :::
 
 Bash viene eseguito con `bash -c`. JavaScript viene eseguito in una sandbox `isolated-vm` sul Runner, senza accesso al file system o ai processi; può chiamare API HTTP pubbliche con `axios`, ma non indirizzi di una rete privata. Un passaggio SSH o kubectl accede con una [variabile di runbook](/docs/runbooks/variables) segreta, che deve elencare il Runner del passaggio in **I tuoi Runner che possono usarlo**.

@@ -18,8 +18,8 @@ flowchart TB
     Probe["Sond"]
     Snmp["Tillverkarmall:<br/>hälso-OID:er och SNMP-tabeller"]
     Syslog["Syslog: loggpipeline,<br/>loggmonitorer, inspelningsregler"]
-    Monitor["Nätverksenhetsmonitor<br/>med de rekommenderade varningarna"]
-    Incident["Incidenter och varningar"]
+    Monitor["Nätverksenhetsmonitor<br/>med de rekommenderade larmen"]
+    Incident["Incidenter och larm"]
     Device -->|"SNMP"| Probe
     Device -->|"Syslog och traps"| Probe
     Probe --> Snmp
@@ -30,8 +30,8 @@ flowchart TB
 ```
 
 - En [nätverksenhet](/docs/monitor/network-device-monitor) per låda, avsökt av en sond som kan nå den, med en tillverkarmall som tar med rätt hälso-OID:er och [SNMP-tabeller](/docs/monitor/network-device-monitor#snmp-tabeller).
-- En nätverksenhetsmonitor per enhet för varningar. Skapa den från enhetens sida så att de [rekommenderade varningarna](/docs/monitor/network-device-monitor#rekommenderat-varningspaket), inklusive en varning per rad för varje tabell som vet hur friskt ser ut, fylls i åt dig. För en flotta håller en [varningspolicy](/docs/monitor/network-device-monitor#varningspolicyer) en på varje enhet.
-- För det som en tillverkare bara rapporterar i sina loggar: syslog till sonden, som OneUptime själv läser som [nätverkshändelser](/docs/monitor/network-events), [loggmonitorer med Group By](/docs/monitor/logs-monitor#varningar-per-grupp-group-by) för att varna en gång per tunnel eller gateway, och [inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för att visa siffrorna i de loggarna i diagram.
+- En nätverksenhetsmonitor per enhet för larm. Skapa den från enhetens sida så att de [rekommenderade larmen](/docs/monitor/network-device-monitor#rekommenderat-larmpaket), inklusive ett larm per rad för varje tabell som vet hur friskt ser ut, fylls i åt dig. För en flotta håller en [larmpolicy](/docs/monitor/network-device-monitor#larmpolicyer) en på varje enhet.
+- För det som en tillverkare bara rapporterar i sina loggar: syslog till sonden, som OneUptime själv läser som [nätverkshändelser](/docs/monitor/network-events), [loggmonitorer med Group By](/docs/monitor/logs-monitor#larm-per-grupp-group-by) för att varna en gång per tunnel eller gateway, och [inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för att visa siffrorna i de loggarna i diagram.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -44,13 +44,13 @@ flowchart TB
 | Gateway uppe och nere, SD-WAN-SLA uppfyllt eller inte, ändringar av SD-WAN-rutter | Brandväggens syslog |
 | SD-WAN-latens, -jitter och -paketförlust per gateway, som diagram | Inspelningsregler för loggar över SD-WAN:s SLA-loggar |
 
-Sophos rapporterar inte gatewayernas eller SD-WAN:s hälsa via SNMP, i någon SFOS-version: den finns bara i brandväggens loggar och i Sophos Centrals varningar, och därför går de tre sista raderna via syslog.
+Sophos rapporterar inte gatewayernas eller SD-WAN:s hälsa via SNMP, i någon SFOS-version: den finns bara i brandväggens loggar och i Sophos Centrals larm, och därför går de tre sista raderna via syslog.
 
 ### Registrera brandväggen
 
 :::steps
 1. Slå på SNMP på brandväggen under **Administration → SNMP**: lägg till en SNMPv3-användare, eller en v2c-community, och tillåt sondens adress att fråga den.
-2. Gå i OneUptime till **Nätverk → Devices** och klicka på **Add Device**. Skriv brandväggens hanteringsadress, välj en sond som kan nå den och lägg till SNMP-autentiseringsuppgifterna under **SNMP**.
+2. Gå i OneUptime till **Nätverk → Devices** och klicka på **Lägg till enhet**. Skriv brandväggens hanteringsadress, välj en sond som kan nå den och lägg till SNMP-autentiseringsuppgifterna under **SNMP**.
 3. På enhetens sida **Inställningar**, under **Polling & Data Collection**, tillämpar du mallen **Sophos Firewall (SFOS / XGS)** från **Vendor Health Template** och lägger till dess tabeller från **Add a Vendor's Tables**. Eller slå på **Auto-Apply Vendor Health Template**, så gör den första avsökningen båda.
 :::
 
@@ -58,7 +58,7 @@ Efter nästa avsökning listar enhetens sida **SNMP-tabeller** varje IPsec-anslu
 
 ### Varna för varje IPsec-tunnel
 
-Klicka på **Skapa monitor** på enhetens sida. De rekommenderade varningarna innefattar **IPsec Tunnels: row unhealthy**, ett kriterium **SNMP Table Row Is Unhealthy** på tabellen `ipsec_tunnels` med Row `*`: det skapar en incident per tunnel som inte är aktiv, namngiven efter tunneln, och löser var och en när dess tunnel kommer tillbaka.
+Klicka på **Skapa monitor** på enhetens sida. De rekommenderade larmen innefattar **IPsec Tunnels: row unhealthy**, ett kriterium **SNMP Table Row Is Unhealthy** på tabellen `ipsec_tunnels` med Row `*`: det skapar en incident per tunnel som inte är aktiv, namngiven efter tunneln, och löser var och en när dess tunnel kommer tillbaka.
 
 En tunnel som Sophos rapporterar som aktiv har bara sina security associations uppe. För att bevisa att trafik går genom den lägger du till en [Ping-monitor](/docs/monitor/ping-monitor) från en sond på en plats till en värd på andra sidan av varje tunnel, och ritar tunneln som en platslänk under **Nätverk → Topologi → Site Links** mellan de två [platserna](/docs/monitor/network-sites), bunden till den monitorn: länken på kartan får då monitorns färg.
 
@@ -74,17 +74,17 @@ En tunnel som Sophos rapporterar som aktiv har bara sina security associations u
 1. Sondens syslog-mottagare är påslagen som standard. Den lyssnar på port 5140, över UDP och TCP (`PROBE_SYSLOG_RECEIVER_PORT` ändrar det); publicera porten om sonden körs i Docker. Meddelanden matchas mot den nätverksenhet vars värdnamn, eller någon av vars **Övriga adresser**, är avsändarens adress, och visas på enhetens sidor **Händelser** och **Loggar**.
 2. Lägg på brandväggen, under **System services → Log settings**, till en syslog-server som pekar på sonden och den porten, och kryssa i loggtyperna **Event** för IPsec och gateways och loggtypen **SD-WAN**: SLA-loggarna förblir avstängda tills den är ikryssad.
 3. Det finns inget att tolka. OneUptime läser brandväggens `key=value`-fält som `sophos.*`-attribut, och läser tunnlar, gatewayer, SD-WAN-SLA-ändringar, failover och inloggningar ur dem som [nätverkshändelser](/docs/monitor/network-events). Öppna en logg på enhetens sida **Loggar** för att se exakt vilka attributnamn din SFOS-version producerar.
-4. Klicka på **Skapa varning** på enhetens sida **Händelser** och välj en varning. Den öppnar en ifylld [loggmonitor](/docs/monitor/logs-monitor), med **Group by Attributes** så att varje tunnel eller gateway varnar för sig, och **Löst av attribut** så att varje varning stängs när brandväggen rapporterar att den är tillbaka. Raderna nedan är de tre att börja med.
+4. Klicka på **Skapa larm** på enhetens sida **Händelser** och välj ett larm. Den öppnar en ifylld [loggmonitor](/docs/monitor/logs-monitor), med **Group by Attributes** så att varje tunnel eller gateway varnar för sig, och **Löst av attribut** så att varje larm stängs när brandväggen rapporterar att den är tillbaka. Raderna nedan är de tre att börja med.
 5. Visa SD-WAN-kvaliteten i diagram: med SD-WAN-loggning påslagen skriver brandväggen en SLA-sammanfattning per profil och gateway (`latency`, `jitter`, `packet_loss`). Skapa under **Loggar → Inställningar → Inspelningsregler** en regel per siffra, till exempel medelvärdet av `sophos.latency` grupperat efter `sophos.gw_name` och `sophos.profile_name`, och visa sedan resultaten i diagram, eller varna för dem med en [mätvärdesmonitor](/docs/monitor/metrics-monitor) som grupperar efter gateway. [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules) går igenom det här exemplet.
 :::
 
-| Varning | Händelse som räknas | En varning per | Stängs av |
+| Larm | Händelse som räknas | Ett larm per | Stängs av |
 | --- | --- | --- | --- |
 | En VPN-tunnel går ner | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
 | En WAN-länk går ner | `gateway.down` | `network.gateway.name` | `gateway.up` |
 | SD-WAN-länk under sitt SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-De två första finns på listan under **Skapa varning**; för den tredje öppnar du en av dess händelser och klickar på **Skapa varning för den här händelsen**. Syslog-händelserna kompletterar SNMP-tabellen: de kommer i samma ögonblick som en tunnel faller, medan tabellen också fångar en tunnel som aldrig kom upp.
+De två första finns på listan under **Skapa larm**; för den tredje öppnar du en av dess händelser och klickar på **Skapa larm för den här händelsen**. Syslog-händelserna kompletterar SNMP-tabellen: de kommer i samma ögonblick som en tunnel faller, medan tabellen också fångar en tunnel som aldrig kom upp.
 
 ### Traps
 
@@ -103,11 +103,11 @@ Varje avisering från Sophos är samma trap, `sfosNotification` (`1.3.6.1.4.1.26
 
 Fabric Engine på Extremes universella hårdvara (5000- och 7000-serierna) rapporterar samma enterprisenummer som EXOS: bara dess systembeskrivning (`7520-48Y-8C-FabricEngine (9.0.4.0)`) säger vilket operativsystem som körs. OneUptime läser båda, så automatisk tillämpning och enhetssidans förslag väljer rätt mall, och äldre VSP-switchar rapporterar Avaya/Nortel-grenen och känns igen direkt som Fabric Engine.
 
-### Varningar för fabric och hårdvara
+### Larm för fabric och hårdvara
 
-De rekommenderade varningarna på en Fabric Engine-switch innefattar **Fabric Adjacencies (IS-IS): row unhealthy**, en incident per granne vars adjacency inte är uppe. Fabric Engine skickar också en trap när en adjacency ändras, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), och ett kriterium **SNMP Trap Received (Trap OID)** på den varnar inom sekunder, före nästa avsökning.
+De rekommenderade larmen på en Fabric Engine-switch innefattar **Fabric Adjacencies (IS-IS): row unhealthy**, en incident per granne vars adjacency inte är uppe. Fabric Engine skickar också en trap när en adjacency ändras, `rcnIsisPlsbAdjStateTrap` (`1.3.6.1.4.1.2272.1.21.0.281`), och ett kriterium **SNMP Trap Received (Trap OID)** på den varnar inom sekunder, före nästa avsökning.
 
-Nätaggregat, fläktar, temperatursensorer och stackmedlemmar är tabeller som anger sina friska värden, så var och en får en varning per rad i de rekommenderade varningarna.
+Nätaggregat, fläktar, temperatursensorer och stackmedlemmar är tabeller som anger sina friska värden, så var och en får ett larm per rad i de rekommenderade larmen.
 
 ### Flöden och Wi-Fi
 
@@ -125,11 +125,11 @@ IQ Engine-accesspunkter (HiveOS) och ExtremeCloud IQ Controller har egna tillver
 3. Öppna enhetens sida **Wi-Fi**. Den visar hur många radior som är påslagna, klienterna och SSID:erna, därefter varje radios band, kanal, frekvens, kanalbredd, sändeffekt, klienter, brusgolv och airtime, och varje SSID med dess klienter. Frekvensen beräknas från bandet och kanalen; accesspunkten rapporterar den inte.
 :::
 
-Användbara varningar, alla på tabellen `wifi_radios` med Row `*`, så att varje radio varnar för sig:
+Användbara larm, alla på tabellen `wifi_radios` med Row `*`, så att varje radio varnar för sig:
 
-| Varning | Kriterium |
+| Larm | Kriterium |
 | --- | --- |
-| En radio avstängd | **SNMP Table Row Is Unhealthy**, en del av de rekommenderade varningarna |
+| En radio avstängd | **SNMP Table Row Is Unhealthy**, en del av de rekommenderade larmen |
 | Sändeffekten ändrad | **SNMP Table Value**, kolumnen TX Power, Inte lika med din planerade effekt |
 | En överbelastad radio | **SNMP Table Value**, kolumnen Clients, Större än din gräns |
 | En brusig kanal | **SNMP Table Value**, kolumnen Noise Floor, Större än `-80` |
@@ -168,7 +168,7 @@ Det totala antalet klienter kräver firmware 6.5.3 eller senare. På äldre firm
 
 :::cards
 - [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor): Allt som en enhet samlar in, och varje kriterium som den kan varna för.
-- [Nätverkshändelser](/docs/monitor/network-events): Vad varje tillverkares syslog säger, som händelser och varningar.
+- [Nätverkshändelser](/docs/monitor/network-events): Vad varje tillverkares syslog säger, som händelser och larm.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Dela upp brandväggsloggar i attribut.
 - [Loggövervakning](/docs/monitor/logs-monitor): Varna en gång per tunnel eller gateway.
 :::

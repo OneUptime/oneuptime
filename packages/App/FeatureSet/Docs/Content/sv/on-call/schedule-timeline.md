@@ -23,7 +23,7 @@ flowchart TB
 - **Jourtjänst** > **Tidslinje för jourscheman** visar alla scheman du kan se, grupperade efter det team som äger dem. Knappen **Tidslinjevy** på **Jourscheman** öppnar samma sida.
 - **Team** > ett team > **Jourscheman** visar bara de scheman som teamet äger.
 
-Ett team äger ett schema när det finns på schemats sida **Ägare**. Scheman utan ett ägande team grupperas under **No owner team**. Stäng av **Group by team** för att se alla scheman i en lista, sorterad efter namn.
+Ett team äger ett schema när det finns på schemats sida **Ägare**. Scheman utan ett ägande team grupperas under **Inget ägarteam**. Stäng av **Gruppera efter team** för att se alla scheman i en lista, sorterad efter namn.
 
 ## Läs rutnätet
 
@@ -34,16 +34,16 @@ Ett team äger ett schema när det finns på schemats sida **Ägare**. Scheman u
 | En stapel märkt **⇄** | En åsidosättning: någon täcker upp för ett pass. Den smala banan under den nämner personen vars pass täcks, överstruken. |
 | Ett skrafferat bärnstensfärgat block | En täckningslucka: ingen har jour. Ett larm som eskalerar till det schemat larmar då ingen. |
 | Den röda linjen | Nu. |
-| Raden under ett schemas namn | Vem som har jour nu, eller **No one on call now**. |
+| Raden under ett schemas namn | Vem som har jour nu, eller **Ingen har jour nu**. |
 
 Håll pekaren över en stapel eller en lucka, eller gå till den med tangentbordet, för att se detaljerna.
 
-Under rutnätet visar **On call this week** (**On call this month** i månadsvyn) alla som har jour under perioden. Håll pekaren över ett namn för att se hur länge personen har jour, och i hur många scheman.
+Under rutnätet visar **Jour den här veckan** (**Jour den här månaden** i månadsvyn) alla som har jour under perioden. Håll pekaren över ett namn för att se hur länge personen har jour, och i hur många scheman.
 
 ## Ändra period och tidszon
 
 - Växla mellan **Vecka** och **Månad**, bläddra med pilarna och gå tillbaka med **Idag**.
-- Tider visas i din egen tidszon. Tidszonsknappen öppnar **View timeline in timezone**, som visar tidslinjen i vilken annan zon som helst utan att ändra när någon har jour: varje schema lämnar fortfarande över i sin egen tidszon.
+- Tider visas i din egen tidszon. Tidszonsknappen öppnar **Visa tidslinjen i tidszon**, som visar tidslinjen i vilken annan zon som helst utan att ändra när någon har jour: varje schema lämnar fortfarande över i sin egen tidszon.
 - Tidslinjen täcker 180 dagar bakåt och 365 dagar framåt.
 
 > [!NOTE]
@@ -52,9 +52,9 @@ Under rutnätet visar **On call this week** (**On call this month** i månadsvyn
 ## Hitta ett schema eller en person
 
 - **Sök** hittar schemanamn, teamnamn och de personer som har jour.
-- Teamfiltret begränsar vyn till ett team eller till **My teams**; **Schedules I'm on** behåller bara de scheman du ingår i.
-- Klicka på **with no one on call now** eller **with coverage gaps this week** (**with coverage gaps this month** i månadsvyn) ovanför rutnätet för att bara se de schemana. Klicka igen för att se alla.
-- Klicka på en person under rutnätet, eller på en av personens staplar, för att markera alla personens pass. **Clear highlight** tar bort markeringen, och **Clear filters** återställer sökningen och filtren.
+- Teamfiltret begränsar vyn till ett team eller till **Mina team**; **Scheman jag ingår i** behåller bara de scheman du ingår i.
+- Klicka på **utan jour just nu** eller **med luckor i täckningen den här veckan** (**med luckor i täckningen den här månaden** i månadsvyn) ovanför rutnätet för att bara se de schemana. Klicka igen för att se alla.
+- Klicka på en person under rutnätet, eller på en av personens staplar, för att markera alla personens pass. **Ta bort markering** tar bort markeringen, och **Rensa filter** återställer sökningen och filtren.
 
 ## Vem som ser vad
 

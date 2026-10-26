@@ -68,7 +68,7 @@ Når noen forlater prosjektet, slettes hver overstyring som nevner dem og ikke h
 
 ## Hvem som kan legge til overstyringer
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member** kan legge til og slette overstyringer; **Viewer** og **On-Call Viewer** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
+**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan legge til og slette overstyringer; **Leser** og **Vaktleser** kan se dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vaktplaner** ser bare folk som kan lese overstyringer, hvem sin vakt som dekkes.
 
 I OneUptime Cloud krever brukeroverstyringer abonnementet **Growth**.
 

@@ -50,19 +50,19 @@ Skriv det du skulle berätta för någon som precis har börjat i teamet:
 
 ## En AI-regels egna anteckningar
 
-En AI-regel kan ha egna anteckningar om de incidenter eller varningar den matchar: tjänsterna i en produkt, vem som äger dem, var deras loggar finns. Skriv dem i regelns **AI-kontext** under **Fler fält**, efter **LLM-leverantör**. En regel som bara kör sina runbooks varje gång frågar inte OneUptime AI om något och har därför ingen AI-kontext att skriva.
+En AI-regel kan ha egna anteckningar om de incidenter eller larm den matchar: tjänsterna i en produkt, vem som äger dem, var deras loggar finns. Skriv dem i regelns **AI-kontext** under **Fler fält**, efter **LLM-leverantör**. En regel som bara kör sina runbooks varje gång frågar inte OneUptime AI om något och har därför ingen AI-kontext att skriva.
 
-- En utredning läser projektets anteckningar och sedan anteckningarna från varje aktiverad AI-regel som utreder och matchar incidenten eller varningen, i ordning efter reglernas namn.
+- En utredning läser projektets anteckningar och sedan anteckningarna från varje aktiverad AI-regel som utreder och matchar incidenten eller larmet, i ordning efter reglernas namn.
 - En åtgärd läser projektets anteckningar och sedan sin egen regels.
-- Samtalet om en incident eller en varning läser samma anteckningar som dess utredning.
+- Samtalet om en incident eller ett larm läser samma anteckningar som dess utredning.
 
 ## Vad som läser den
 
 | Funktion | Vad den läser |
 | --- | --- |
-| Utredningar från AI SRE, och deras nya kontroller när en ny varning öppnas | Projektets anteckningar och anteckningarna från AI-reglerna som matchar |
+| Utredningar från AI SRE, och deras nya kontroller när ett nytt larm öppnas | Projektets anteckningar och anteckningarna från AI-reglerna som matchar |
 | Åtgärderna som en AI-regel startar: deras planer, kommandon och MCP-servrar | Projektets anteckningar och regelns |
-| Fråga AI, och samtalet om en incident eller en varning | Projektets anteckningar; vid en incident eller en varning även anteckningarna från AI-reglerna som matchar |
+| Fråga AI, och samtalet om en incident eller ett larm | Projektets anteckningar; vid en incident eller ett larm även anteckningarna från AI-reglerna som matchar |
 | Svar i Slack och Microsoft Teams | Projektets anteckningar |
 | Utkast till efteranalyser, för incidenter och episoder | Projektets anteckningar |
 | Triage i AI Insights och triage av säkerhetsärenden | Projektets anteckningar |
@@ -87,7 +87,7 @@ Varje körning sparar ord för ord anteckningarna den läste. Dess aktivitet sä
 
 ## Vem som kan ändra den
 
-- **Project Owner** och **Project Admin** kan ändra projektets AI-kontext. **Project Member**, **Viewer** och **Read Project** kan läsa den.
+- **Projektägare** och **Projektadministratör** kan ändra projektets AI-kontext. **Projektmedlem**, **Tittare** och **Read Project** kan läsa den.
 - En AI-regels anteckningar är en del av regeln: den som kan ändra regeln kan ändra dem.
 - Anteckningarna läses bara för sitt eget projekt: ingen körning läser ett annat projekts AI-kontext.
 
@@ -96,7 +96,7 @@ Via API:et eller Terraform är projektets anteckningar projektets `aiContext`, o
 ## Nästa steg
 
 :::cards
-- [AI SRE](/docs/ai/ai-sre): Låt OneUptime AI undersöka varje ny incident och varning.
+- [AI SRE](/docs/ai/ai-sre): Låt OneUptime AI undersöka varje ny incident och larm.
 - [Fråga AI](/docs/ai/ask-ai): Fråga om ditt projekts data i ett samtal.
 - [LLM-leverantörer](/docs/ai/llm-provider): Välj modellen som läser anteckningarna.
 :::

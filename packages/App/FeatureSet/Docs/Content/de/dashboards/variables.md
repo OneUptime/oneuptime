@@ -35,7 +35,7 @@ Klicken Sie auf **Variable hinzufügen**. Eine neue Variable liest ein Telemetri
 
 ### Ausfüllen
 
-Geben Sie ihr einen **Name**, den Widgets und Links verwenden, etwa `service`: Buchstaben, Ziffern und Unterstriche, beginnend mit einem Buchstaben oder einem Unterstrich, und verschieden von den anderen Namen des Dashboards. Fügen Sie auf Wunsch eine **Beschriftung** für die Werkzeugleiste hinzu, einen **Standard** als Startwert, und haken Sie **Allow multi-select** an, damit Betrachter mehrere Werte wählen können.
+Geben Sie ihr einen **Name**, den Widgets und Links verwenden, etwa `service`: Buchstaben, Ziffern und Unterstriche, beginnend mit einem Buchstaben oder einem Unterstrich, und verschieden von den anderen Namen des Dashboards. Fügen Sie auf Wunsch eine **Beschriftung** für die Werkzeugleiste hinzu, einen **Standard** als Startwert, und haken Sie **Mehrfachauswahl zulassen** an, damit Betrachter mehrere Werte wählen können.
 
 ### Speichern
 
@@ -63,7 +63,7 @@ Das ist die häufigste Quelle, weil sie keine eigene Liste braucht: Die Werte si
 
 ### Project Labels
 
-Wählen Sie vorhandene Projektbeschriftungen, die als Auswahl des Dashboards angeboten werden. Erstellen Sie zum Beispiel eine Variable namens `UNIT`, setzen Sie ihre Quelle auf **Project Labels**, und wählen Sie die Beschriftungen `0660` und `0661`.
+Wählen Sie vorhandene Projektbeschriftungen, die als Auswahl des Dashboards angeboten werden. Erstellen Sie zum Beispiel eine Variable namens `UNIT`, setzen Sie ihre Quelle auf **Projektbeschriftungen**, und wählen Sie die Beschriftungen `0660` und `0661`.
 
 Das Dashboard speichert die IDs und Anzeigenamen der gewählten Beschriftungen. Gefiltert wird nach IDs, daher bricht das Umbenennen einer Projektbeschriftung ihre Bindung nicht. Die Anzeigenamen werden mit dem Dashboard gespeichert; wählen Sie eine umbenannte Beschriftung im Variableneditor erneut, um ihren angezeigten Namen zu aktualisieren. Öffentliche Dashboards zeigen dieselben gespeicherten Auswahlen.
 
@@ -81,7 +81,7 @@ Eine Query-Variable aus einem älteren Dashboard bleibt erhalten und zeigt ein T
 
 ## Mehrfachauswahl und Standardwerte
 
-Mit angehaktem **Allow multi-select** wählen Betrachter einen oder mehrere Werte, und die Widgets zeigen jeden davon. Eine leere Auswahl bedeutet **Alle**, und eine Variable mit Mehrfachauswahl beginnt immer mit **Alle**, daher ist ihr **Standard** ausgegraut.
+Mit angehaktem **Mehrfachauswahl zulassen** wählen Betrachter einen oder mehrere Werte, und die Widgets zeigen jeden davon. Eine leere Auswahl bedeutet **Alle**, und eine Variable mit Mehrfachauswahl beginnt immer mit **Alle**, daher ist ihr **Standard** ausgegraut.
 
 Eine Variable mit Einzelauswahl beginnt mit ihrem **Standard**, oder mit **Alle**, wenn sie keinen hat. **Alle** entfernt den Filter der Variablen, sodass die Widgets alles zeigen.
 
@@ -91,8 +91,8 @@ Nutzen Sie die Mehrfachauswahl, um „checkout und payments zusammen“ zu vergl
 
 Jede Quelle erreicht die Widgets auf ihre eigene Weise:
 
-- Variablen vom Typ **Telemetry Attribute** filtern Widgets, ohne dass Sie an ihnen etwas einstellen: jedes Metrikdiagramm, jeden Wert, Messwert und jede Tabelle; das **Protokolldiagramm**, den **Protokoll-Stream**, das **Trace-Diagramm** und die **Trace-Tabelle**; und die Infrastrukturlisten, deren Ressourcen das Attribut tragen, etwa `host.name` bei Hostlisten und `k8s.namespace.name` bei Kubernetes-Listen. Ein Diagramm einer Metrik ohne das Attribut zeigt keine Daten, solange ein Wert gewählt ist: Wählen Sie **Alle**, um es wieder zu sehen. Die **Trace-Liste** sowie die Vorfalls- und Warnungslisten folgen ihnen nicht.
-- Variablen vom Typ **Project Labels** filtern eine **Überwachungsliste** oder eine **SLO-Liste**, deren **Beschriftungsvariable** sie nennt.
+- Variablen vom Typ **Telemetrieattribut** filtern Widgets, ohne dass Sie an ihnen etwas einstellen: jedes Metrikdiagramm, jeden Wert, Messwert und jede Tabelle; das **Protokolldiagramm**, den **Protokoll-Stream**, das **Trace-Diagramm** und die **Trace-Tabelle**; und die Infrastrukturlisten, deren Ressourcen das Attribut tragen, etwa `host.name` bei Hostlisten und `k8s.namespace.name` bei Kubernetes-Listen. Ein Diagramm einer Metrik ohne das Attribut zeigt keine Daten, solange ein Wert gewählt ist: Wählen Sie **Alle**, um es wieder zu sehen. Die **Trace-Liste** sowie die Vorfalls- und Warnungslisten folgen ihnen nicht.
+- Variablen vom Typ **Projektbeschriftungen** filtern eine **Überwachungsliste** oder eine **SLO-Liste**, deren **Beschriftungsvariable** sie nennt.
 - **Jede Variable** lässt sich als `{{name}}` in Text schreiben: in einem [HTML-Widget](/docs/dashboards/widgets#html), in der Abfrage einer [externen Datenquelle](/docs/dashboards/data-sources) und im Titel einer **Überwachungsliste** oder einer **SLO-Liste**. Ein Titel wie `{{UNIT}} NETWORK` zeigt `0660 NETWORK`, `0660, 0661 NETWORK` oder `All NETWORK`. Ein Titel steuert den angezeigten Text; legen Sie **Beschriftungsvariable** fest, um die Monitorabfrage zu filtern.
 
 Das [SLO-Widget](/docs/dashboards/widgets#slo) kann einer Telemetry-Attribute-Variablen auf dem Schlüssel `sloName` folgen, sodass Betrachter wählen, welches SLO es zeigt.

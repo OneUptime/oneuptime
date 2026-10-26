@@ -33,16 +33,16 @@ flowchart TB
 
 Åpne **Produkter → Ressurser → Overvåking av reelle brukere**. **Alle applikasjoner** viser applikasjonene dine med **Klienttype**, **Status** og **Sist sett**. To andre seksjoner i sidemenyen er lukket fra start:
 
-- **Innstillinger**: **Eierregler**, **Etikettregler** og prosjektets felles **Session Replay**-bryter.
+- **Innstillinger**: **Eierregler**, **Etikettregler** og prosjektets felles **Øktavspilling**-bryter.
 - **Avansert**: **Arkivert**, applikasjonene du har arkivert.
 
 Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikler** og **Avansert** er lukket fra start:
 
 | Seksjon | Sider |
 | --- | --- |
-| **Grunnleggende** | **Oversikt**, **Recommendations**, **Dokumentasjon** |
+| **Grunnleggende** | **Oversikt**, **Anbefalinger**, **Dokumentasjon** |
 | **Observerbarhet** | **Målinger**, **Logger**, **Spor**, **Klienter** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Dokumentasjon** |
+| **Øktavspilling** | **Øktavspilling**, **User Flows**, **Replay Users**, **Helse**, **Replay Policy**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
 | **Innstillinger** | **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
 | **Avansert** | **Slett applikasjon** |
@@ -81,8 +81,8 @@ OneUptime finner applikasjonen ut fra `service.name`, uten å skille mellom stor
 | **Core Web Vitals** | Et kort i oversikten med LCP, INP, CLS, FCP og TTFB, hver vurdert mot Googles grenser, og INP for hver rute i en enkeltsideapp. Se [Core Web Vitals](/docs/rum/web-vitals) og [Enkeltsideapper](/docs/rum/web-vitals#enkeltsideapper). |
 | **Målinger**, **Logger**, **Spor** | Telemetriutforskerne, begrenset til denne applikasjonen. |
 | **Klienter** | Nettleserplattformene og enhetsmodellene applikasjonen er brukt på: en kort liste per plattform, aldri én rad per bruker. |
-| **Session Replay** | Opptak av ekte økter, ved siden av feilene, sporene og loggene deres: se [Øktavspilling](/docs/telemetry/session-replay). |
-| **Recommendations** | Ferdige monitorer for applikasjonen: dårlige Core Web Vitals, mislykkede forespørsler, nettleserunntak og, så snart den tar opp, budsjetter for Session Replay. |
+| **Øktavspilling** | Opptak av ekte økter, ved siden av feilene, sporene og loggene deres: se [Øktavspilling](/docs/telemetry/session-replay). |
+| **Anbefalinger** | Ferdige monitorer for applikasjonen: dårlige Core Web Vitals, mislykkede forespørsler, nettleserunntak og, så snart den tar opp, budsjetter for Session Replay. |
 
 Tallene kommer fra spennene instrumenteringen din sender. **Page loads** teller spennet `documentLoad`, som instrumenteringen for sideinnlasting registrerer ved hver fullstendige innlasting, så et ruteskifte i en enkeltsideapp er ikke en sideinnlasting.
 
@@ -93,7 +93,7 @@ En applikasjon viser **Tilkoblet** så lenge telemetri kommer inn, og **Frakoble
 :::steps
 ### Opprett en inntaksnøkkel
 
-Åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og klikk på **Opprett ingestion-nøkkel**. En webapp trenger en **Browser**-nøkkel, som bare virker fra opprinnelsene du lister opp. En mobilapp trenger en **Server**-nøkkel, fordi et mobil-SDK ikke sender en `Origin`-header.
+Åpne **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og klikk på **Opprett ingestion-nøkkel**. En webapp trenger en **Nettleser**-nøkkel, som bare virker fra opprinnelsene du lister opp. En mobilapp trenger en **Server**-nøkkel, fordi et mobil-SDK ikke sender en `Origin`-header.
 
 ### Instrumenter appen din
 

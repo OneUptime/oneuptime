@@ -23,7 +23,7 @@ flowchart LR
 
 ## De feed van de SLO
 
-De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Recent activity** op het **Overzicht** van de SLO. Items linken naar de SLO, de monitoren, de waarschuwingen en de incidenten die ze noemen, en de meeste hebben details met de cijfers of de oude en nieuwe waarden, die **Details tonen** onder het item openklapt.
+De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Recente activiteit** op het **Overzicht** van de SLO. Items linken naar de SLO, de monitoren, de waarschuwingen en de incidenten die ze noemen, en de meeste hebben details met de cijfers of de oude en nieuwe waarden, die **Details tonen** onder het item openklapt.
 
 | Gebeurtenis | Gepubliceerd als |
 | --- | --- |
@@ -31,7 +31,7 @@ De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Rec
 | SLO bijgewerkt | De naam, de beschrijving, de labels, het doel, het compliancevenster, de tijdzone, de risicodrempel, de modus voor meerdere monitoren of de downtime-statussen veranderen. Toont elke oude en nieuwe waarde. |
 | SLO ingeschakeld of uitgeschakeld | De evaluatie wordt aan- of uitgezet. |
 | SLO gearchiveerd of hersteld | De SLO wordt gearchiveerd of uit het archief gehaald. |
-| Status gewijzigd | Een evaluatie brengt de SLO naar een nieuwe status. Toont de SLI, het foutbudget, de verbruikssnelheid en de risicodrempel die haar verklaren, en de reden bij **Gepauzeerd** of **Misconfigured**. |
+| Status gewijzigd | Een evaluatie brengt de SLO naar een nieuwe status. Toont de SLI, het foutbudget, de verbruikssnelheid en de risicodrempel die haar verklaren, en de reden bij **Gepauzeerd** of **Verkeerd geconfigureerd**. |
 | Waarschuwing voor verbruikssnelheid gegeven | Een regel voor verbruikssnelheid maakt een waarschuwing aan. Linkt ernaar en toont de verbruikssnelheden die haar deden afgaan. |
 | Incident voor verbruikssnelheid gemeld | Een regel voor verbruikssnelheid meldt een incident. Linkt ernaar en toont de verbruikssnelheden die het deden afgaan. |
 | Waarschuwing of incident voor verbruikssnelheid opgelost | De waarschuwing of het incident van een regel wordt gesloten: automatisch opgelost, of met de hand terwijl automatisch oplossen uit stond. |

@@ -53,7 +53,7 @@ Il vous faut un abonnement Azure, un rôle qui permet de créer et de lire la re
 
 OneUptime lui-même n'a besoin d'aucun rôle Azure. Une clé donne à elle seule accès à tous les déploiements de la ressource, sans contrôle de rôle : traitez-la comme un mot de passe.
 
-Dans OneUptime, ajouter un fournisseur à un projet demande **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** ou **Create LLM**. Une instance auto-hébergée peut à la place enregistrer un fournisseur pour tous les projets depuis des variables d'environnement, ce qui demande un accès au serveur.
+Dans OneUptime, ajouter un fournisseur à un projet demande **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des paramètres**, **Membre des paramètres** ou **Create LLM**. Une instance auto-hébergée peut à la place enregistrer un fournisseur pour tous les projets depuis des variables d'environnement, ce qui demande un accès au serveur.
 
 ## Configurer Microsoft Foundry
 

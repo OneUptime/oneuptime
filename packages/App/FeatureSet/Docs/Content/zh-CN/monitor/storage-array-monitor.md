@@ -55,11 +55,11 @@ flowchart TB
 
 - **Quick Setup**：点击一个 [模板](#预置告警模板)。它会设置指标、标签过滤器、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
 - **Custom Metric**：从 **Storage Array Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。[过滤器](#监视器设置) 可以把它缩小到一个卷、主机、Pod、组件、文件系统或存储桶。
-- **高级**：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **Group by**，即可分别判断每个对象。
+- **高级**：在 **选择指标** 下自己构建查询和公式，例如用 `purefa_array_space_bytes` 过滤到 `space=capacity`，减去同一指标过滤到 `space=empty`，得到已用容量。用对象的标签 **分组依据**，即可分别判断每个对象。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **Threshold**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 要一次设置多个模板，请从 **产品 → 基础设施 → Storage Arrays** 打开阵列，然后进入 **Recommendations**。选择你需要的模板和要呼叫的人员，OneUptime 会为每个模板创建一个监视器。
+> 要一次设置多个模板，请从 **产品 → 基础设施 → Storage Arrays** 打开阵列，然后进入 **建议**。选择你需要的模板和要呼叫的人员，OneUptime 会为每个模板创建一个监视器。
 
 ## 监视器设置
 
@@ -78,12 +78,12 @@ flowchart TB
 | **主机** | Custom Metric、高级 | 仅限 FlashArray。阵列所知的一台主机，按 `host` 标签，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、高级 | 仅限 FlashArray。一个 ActiveCluster 或 ActiveDR Pod，按 `name` 标签，在副本链接序列上则按 `local_pod`。 |
 | **Hardware Component** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`。 |
-| **File System** | Custom Metric、高级 | 仅限 FlashBlade。一个文件系统，按 `name` 标签。 |
+| **文件系统** | Custom Metric、高级 | 仅限 FlashBlade。一个文件系统，按 `name` 标签。 |
 | **存储桶** | Custom Metric、高级 | 仅限 FlashBlade。一个对象存储桶，按 `name` 标签。 |
 | **Storage Array Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。表单会添加赋予其含义的标签过滤器，并按它描述的对象分组，因此每个卷、主机或组件都会单独判断。 |
 | **聚合** | Custom Metric | 如何合并样本：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。从该指标的常用聚合开始。 |
-| **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 5 Minutes** 开始；文件系统或存储桶的自定义指标从 **Past 15 Minutes** 开始；模板会设置自己的值。 |
-| **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**Group by**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
+| **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **过去 5 分钟** 开始；文件系统或存储桶的自定义指标从 **过去 15 分钟** 开始；模板会设置自己的值。 |
+| **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
 
 代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。
 
@@ -123,9 +123,9 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 | Capacity Above 90% | 容量 | 严重 | `purefa_array_space_utilization`，Max，过去 5 分钟 | > 90 — 阵列即将拒绝写入；≤ 81 时恢复 |
 | High Read Latency | Performance | Warning | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms) — FlashArray 的读取通常远低于 1 ms；≤ 4500 时恢复 |
 | High Write Latency | Performance | Warning | `purefa_array_performance_latency_usec` 过滤到 `dimension=usec_per_write_op`，Avg，过去 10 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
-| Hardware Component Failed | Hardware | 严重 | `purefa_hw_component_status` 过滤到 `component_status=critical`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个控制器、电源、风扇、托架或端口处于严重状态，冗余已经丧失。每个组件一个事件；它报告 ok 时恢复 |
-| Hardware Component Degraded | Hardware | Warning | `purefa_hw_component_status` 过滤到 `component_status=degraded`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个组件已降级。每个组件一个事件；它报告 ok 时恢复 |
-| Drive Failed | Hardware | 严重 | `purefa_drive_capacity_bytes` 过滤到 `component_status=failed`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个 DirectFlash 模块或 SSD 发生故障，阵列正在其余驱动器上重建。每个驱动器一个事件；更换后恢复 |
+| Hardware Component Failed | 硬件 | 严重 | `purefa_hw_component_status` 过滤到 `component_status=critical`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个控制器、电源、风扇、托架或端口处于严重状态，冗余已经丧失。每个组件一个事件；它报告 ok 时恢复 |
+| Hardware Component Degraded | 硬件 | Warning | `purefa_hw_component_status` 过滤到 `component_status=degraded`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个组件已降级。每个组件一个事件；它报告 ok 时恢复 |
+| Drive Failed | 硬件 | 严重 | `purefa_drive_capacity_bytes` 过滤到 `component_status=failed`，按 `component_name` 取 Max，过去 5 分钟 | > 0 — 某个 DirectFlash 模块或 SSD 发生故障，阵列正在其余驱动器上重建。每个驱动器一个事件；更换后恢复 |
 | Host Lost Redundant Paths | 主机 | Warning | `purefa_host_connectivity_info` 过滤到 `status=critical`，按 `host` 取 Max，过去 5 分钟 | > 0 — 主机只能通过一个控制器访问阵列，或完全无法访问；一次控制器故障切换就会让它的存储离线。每台主机一个事件；路径恢复时恢复 |
 | Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`，按 `local_pod` 取 Max，过去 10 分钟 | > 60000 ms (60 s) — 此时故障切换会丢失比计划更多的近期写入。每个 Pod 一个事件；≤ 54000 时恢复 |
 
@@ -137,15 +137,15 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 过滤到 `severity=warning`，按 `summary` 取 Max，过去 5 分钟 | > 0 — FlashBlade 有一个未关闭的警告级告警。每个告警一个事件；告警关闭时恢复 |
 | Capacity Above 80% | 容量 | Warning | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
 | Capacity Above 90% | 容量 | 严重 | `purefb_array_space_utilization` 过滤到 `type=array`，Max，过去 5 分钟 | > 90 — 写满时每个客户端的写入都会失败；≤ 81 时恢复 |
-| Hardware Component Unhealthy | Hardware | 严重 | `purefb_hardware_health`，按 `name` 取 Min，过去 5 分钟 | < 1 — 某个刀片、交换模块、电源或风扇不健康(未使用的插槽报告 2)。每个组件一个事件；≥ 1 时恢复 |
+| Hardware Component Unhealthy | 硬件 | 严重 | `purefb_hardware_health`，按 `name` 取 Min，过去 5 分钟 | < 1 — 某个刀片、交换模块、电源或风扇不健康(未使用的插槽报告 2)。每个组件一个事件；≥ 1 时恢复 |
 | High Read Latency | Performance | Warning | `purefb_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，过去 10 分钟 | > 10000 µs (10 ms)，跨所有协议；≤ 9000 时恢复 |
-| File System Near Full | File Systems | Warning | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
+| File System Near Full | 文件系统 | Warning | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
 
 - **未关闭的告警和硬件状态使用 Max**，因为这类序列只在告警未关闭或组件处于该状态时才存在，所以只要有一次采集显示它，就会越过阈值。
 - **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
-- **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **Max**。延迟固定以微秒为单位，容量固定以百分比为单位。
+- **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。
 - **Hardware Component Unhealthy 按组件使用 Min**：组件健康时其健康值为 1，不健康时降到 0。
 
 没有针对每个卷延迟的模板，因为合适的阈值取决于工作负载：请从目录中按 `name` 分组自行构建。容量预测需要的是增长趋势而不是阈值，而驱动器磨损没有可以告警的序列。
@@ -264,7 +264,7 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 | **指标** | 要检查的查询或公式，按其变量名。 |
 | **聚合** | 窗口中的值如何变成一个答案：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**(整个窗口内每个值都必须匹配)或 **Any Value**(一个就够)。 |
 | **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
-| **Threshold** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
+| **阈值** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
 | **灵敏度** | 仅限异常条件。**低**(4σ)、**中**(3σ，默认)或 **高**(2σ)。 |
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
 | **如果无数据** | 位于 **更多字段** 下。窗口中没有样本时会发生什么：**Ignore**(默认)、**Treat As Zero** 或 **触发器**。 |

@@ -42,18 +42,18 @@ Skjermen er delt i to:
 | Del | Hva den inneholder |
 | ---- | ------------- |
 | **Gruppenavigator** (til venstre) | Alle gruppene på siden som et tre, med feltet **Search groups...** over og en telling under, som `3 groups · 12 resources`. En lang liste slutter med knappen **Show N more of M**. |
-| **Top of page** | Navigatorens første rad: ressurser uten gruppe, som besøkende ser først, over alle grupper. På en side uten grupper heter det høyre panelet i stedet **All resources**. |
+| **Øverst på siden** | Navigatorens første rad: ressurser uten gruppe, som besøkende ser først, over alle grupper. På en side uten grupper heter det høyre panelet i stedet **Alle ressurser**. |
 | **Ressurspanel** (til høyre) | Ressursene i den valgte gruppen. Overskriften inneholder **Edit Group**, hovedknappen **Legg til monitor** og menyen **Flere handlinger**. |
 | Kortets overskrift | **New Group** og en meny med tre prikker med **Import groups from CSV** og **Oppdater**. |
 
-**Tomme tilstander forteller deg hva du skal gjøre.** En tom gruppe viser **No monitors here yet** med **Legg til monitor**, **Add Multiple** og, bare så lenge siden ikke har noen grupper, **Create a Group**. Et søk uten treff viser **No resources match your search**.
+**Tomme tilstander forteller deg hva du skal gjøre.** En tom gruppe viser **No monitors here yet** med **Legg til monitor**, **Add Multiple** og, bare så lenge siden ikke har noen grupper, **Create a Group**. Et søk uten treff viser **Ingen ressurser samsvarer med søket ditt**.
 
 ## Legg til en monitor
 
 :::steps
 ### Velg hvor raden skal stå
 
-Velg i gruppenavigatoren gruppen ressursen hører til i, eller **Top of page** for en rad uten gruppe.
+Velg i gruppenavigatoren gruppen ressursen hører til i, eller **Øverst på siden** for en rad uten gruppe.
 
 ### Klikk på Legg til monitor
 
@@ -196,7 +196,7 @@ Rekkefølgen bestemmer du selv, ikke alfabetet:
 | ---- | ----------------- |
 | Ressurser i en gruppe | Dra en rad. Panelet sier det: **Drag a row to change the order visitors see**. |
 | Grupper i forhold til hverandre | **Flytt opp** / **Flytt ned** i navigatorens radmeny, eller **Move group up** / **Move group down** i **Flere handlinger**. |
-| Ressurser uten gruppe | De står i **Top of page** og vises alltid over alle grupper, så legg det alle sjekker først, der. |
+| Ressurser uten gruppe | De står i **Øverst på siden** og vises alltid over alle grupper, så legg det alle sjekker først, der. |
 
 **To tilfeller der dra er slått av.** Et søk i feltet **Search in {group}...** slår av omorganisering (panelet sier `N of M shown · drag to reorder is off while filtering`), så tøm søket først. Og rutenettgrupper omorganiseres aldri ved å dra, fordi plassen til en monitor kommer fra raden og kolonnen.
 
@@ -204,12 +204,12 @@ Legg tjenesten folk spør mest om, øverst. Besøkende som kommer til siden unde
 
 ## Legg til monitorer automatisk med monitorregler
 
-En monitorregel legger til monitorer på siden for deg: beskriv monitorene én gang, så havner hver monitor som samsvarer, i gruppen du valgte. Du finner dem under **Regler → Monitor Rules**, rett under Ressurser i sidemenyen til siden.
+En monitorregel legger til monitorer på siden for deg: beskriv monitorene én gang, så havner hver monitor som samsvarer, i gruppen du valgte. Du finner dem under **Regler → Monitorregler**, rett under Ressurser i sidemenyen til siden.
 
 :::steps
 ### Åpne Monitor Rules
 
-Åpne statussiden, velg **Monitor Rules** i seksjonen **Regler** i sidemenyen (klikk på tittelen til seksjonen hvis den er slått sammen), og klikk på **Opprett monitorregel**.
+Åpne statussiden, velg **Monitorregler** i seksjonen **Regler** i sidemenyen (klikk på tittelen til seksjonen hvis den er slått sammen), og klikk på **Opprett monitorregel**.
 
 ### Angi hvilke monitorer den samsvarer med
 
@@ -221,7 +221,7 @@ Under **Gruppe** velger du **Legg til monitorer i**, eller du lar det stå tomt 
 
 ### Lagre regelen
 
-Regelen kjøres med en gang mot alle monitorer som allerede finnes, og listen viser under **Adds Monitors To** gruppen den legger til monitorer i. En ny regel er slått på: bryteren **Aktivert** finnes i redigeringsskjemaet.
+Regelen kjøres med en gang mot alle monitorer som allerede finnes, og listen viser under **Legger til monitorer i** gruppen den legger til monitorer i. En ny regel er slått på: bryteren **Aktivert** finnes i redigeringsskjemaet.
 :::
 
 Etter det kjøres en regel på nytt for en monitor hver gang en opprettes, eller når etikettene, navnet eller beskrivelsen endres. En regel fjerner bare ressursene den selv har lagt til: å slå den av eller slette den fjerner dem fra siden, og en monitor du har lagt til for hånd, røres aldri. En monitor som allerede er på siden, legges aldri til to ganger.

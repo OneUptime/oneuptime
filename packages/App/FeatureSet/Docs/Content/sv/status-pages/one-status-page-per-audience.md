@@ -70,7 +70,7 @@ Skapa en sida per målgrupp, till exempel `Site 01` till `Site 10`. Gör dem pri
 
 ### Lägg den delade monitorn på varje sida
 
-Lägg till den delade monitorn på varje sida som en resurs (se [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups)). En regel under **Regler → Monitor Rules** kan göra det åt dig utifrån monitorns etiketter.
+Lägg till den delade monitorn på varje sida som en resurs (se [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups)). En regel under **Regler → Monitorregler** kan göra det åt dig utifrån monitorns etiketter.
 
 ### Slå på Visa bara incidenter som är begränsade till den här sidan
 
@@ -82,7 +82,7 @@ För personal använder du **Lägg till i bulk** under **E-postprenumeranter**, 
 
 ### Låt dem som hanterar incidenter läsa statussidor
 
-Väljaren listar bara de statussidor som personen kan läsa, och incidentrollerna kan inte läsa statussidor. Ge dem som hanterar incidenter rollen **Status Page Viewer** bredvid deras incidentroll; den kan begränsas till sidor med vissa etiketter. Utan den är väljaren tom.
+Väljaren listar bara de statussidor som personen kan läsa, och incidentrollerna kan inte läsa statussidor. Ge dem som hanterar incidenter rollen **Statussidtittare** bredvid deras incidentroll; den kan begränsas till sidor med vissa etiketter. Utan den är väljaren tom.
 
 ### Bestäm vad varje meddelande säger
 
@@ -251,7 +251,7 @@ Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-fe
 
 ## Behörigheter
 
-- **Att välja en statussida kräver läsbehörighet till den.** Statussidor läses under statussiderollerna, inte incidentrollerna, och en statussida kan begränsas efter etikett. Ge dem som hanterar incidenter **Status Page Viewer**, begränsad till etiketter om du vill. Utan den är väljaren tom, och API:et avvisar en sida som anroparen inte kan läsa, både på incidenter och på incidentmallar.
+- **Att välja en statussida kräver läsbehörighet till den.** Statussidor läses under statussiderollerna, inte incidentrollerna, och en statussida kan begränsas efter etikett. Ge dem som hanterar incidenter **Statussidtittare**, begränsad till etiketter om du vill. Utan den är väljaren tom, och API:et avvisar en sida som anroparen inte kan läsa, både på incidenter och på incidentmallar.
 - **Sidor som redaktören inte kan se behålls.** En redaktör som bara kan läsa några av en incidents sidor ser bara dem i väljaren, och när hen sparar behålls sidorna hen inte kan se.
 - **Sidorna som en incident är begränsad till är en del av incidenten.** Liksom dess monitorer ser alla som kan läsa incidenten deras namn, på kortet **Statussideomfång**, på översikten och i incidentflödet, oavsett om de kan läsa de statussidorna.
 - **Det ett utskick nådde är också en del av incidenten.** När en avisering har gått ut anger dess statusmeddelande och dess post i flödet varje statussida den gick till, med vad som skickades och vad som misslyckades på var och en, och alla som kan läsa incidenten ser dem, oavsett om de kan läsa de statussidorna. Bara sammanfattningen och förhandsgranskningen nedan, som blickar framåt, håller sig till de sidor som personen kan läsa.

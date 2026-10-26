@@ -646,3 +646,181 @@ describe("the provider's other answers", () => {
     ).toBe(true);
   });
 });
+
+/*
+ * A provider whose Model Name is blank leaves the model to the server: an
+ * OpenAI-compatible server is asked which models it serves and the first is
+ * used, every other provider uses its default. The person pressing Test is
+ * told which model answered, so they know what AI features will use - and,
+ * when the server cannot name one, what to check.
+ */
+describe("a blank Model Name: the dialog says which model answered", () => {
+  const SERVED_MODEL: string = "Qwen/Qwen3.8-27B";
+  const VLLM_BASE_URL: string = "http://vllm.example.com:8000/v1";
+
+  const VLLM: ProviderCase = {
+    name: "Self-hosted vLLM",
+    row: {
+      llmType: LlmType.OpenAICompatible,
+      baseUrl: VLLM_BASE_URL,
+    },
+    requestUrl: `${VLLM_BASE_URL}/chat/completions`,
+    calledTheTool: OPENAI_TOOL_REPLY,
+  };
+
+  // The server's models list for GET .../models, the reply for the rest.
+  function serve(models: JSONObject, reply: JSONObject): void {
+    mockedAxios.mockImplementation((async (
+      config: AxiosRequestConfig,
+    ): Promise<AxiosResponse> => {
+      const isModelsList: boolean =
+        String(config.method).toLowerCase() === "get" &&
+        String(config.url).endsWith("/models");
+
+      return {
+        status: 200,
+        statusText: "OK",
+        data: isModelsList ? models : reply,
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      } as AxiosResponse;
+    }) as never);
+  }
+
+  beforeEach(() => {
+    LLMService.clearServedModelCache();
+  });
+
+  test("an OpenAI-compatible server: asked for its models, the first answered, and the dialog names it", async () => {
+    useProvider(VLLM);
+    serve(
+      {
+        object: "list",
+        data: [{ id: SERVED_MODEL, object: "model", owned_by: "vllm" }],
+      },
+      OPENAI_TOOL_REPLY,
+    );
+
+    await pressTest();
+
+    expect(dialogSays()).toEqual({
+      success: true,
+      message: `${CONNECTED} Model Name is empty, so it used ${SERVED_MODEL}, the first model the server lists.`,
+    });
+
+    // The list first, then the probe - for the listed model - and nothing else.
+    const sent: Array<AxiosRequestConfig> = requestsSent();
+    expect(sent).toHaveLength(2);
+    expect(String(sent[0]!.method).toLowerCase()).toBe("get");
+    expect(sent[0]!.url?.toString()).toBe(`${VLLM_BASE_URL}/models`);
+    expect(sent[1]!.url?.toString()).toBe(VLLM.requestUrl);
+    expect(JSON.parse(JSON.stringify(sent[1]!.data))["model"]).toBe(
+      SERVED_MODEL,
+    );
+    // A keyless server is sent no Authorization header, asked or tested.
+    for (const request of sent) {
+      expect(
+        Object.keys((request.headers || {}) as Record<string, string>),
+      ).not.toContain("Authorization");
+    }
+  });
+
+  test("OpenAI: its default answered, and the dialog says so", async () => {
+    useProvider({
+      ...caseNamed("OpenAI"),
+      row: { llmType: LlmType.OpenAI, apiKey: apiKeys["openai"] },
+    });
+    answer(OPENAI_TOOL_REPLY);
+
+    await pressTest();
+
+    expect(dialogSays()).toEqual({
+      success: true,
+      message: `${CONNECTED} Model Name is empty, so it used gpt-5.1, the provider's default.`,
+    });
+    // No models list: OpenAI has a default of its own.
+    expect(requestsSent()).toHaveLength(1);
+  });
+
+  test("a typed Model Name: the verdict as it always was", async () => {
+    useProvider({
+      ...VLLM,
+      row: { ...VLLM.row, modelName: "meta-llama/Llama-3.1-8B-Instruct" },
+    });
+    answer(OPENAI_TOOL_REPLY);
+
+    await pressTest();
+
+    expect(dialogSays()).toEqual({ success: true, message: CONNECTED });
+    expect(requestsSent()).toHaveLength(1);
+  });
+
+  test("a model that answers in words: the warning, then which model it was", async () => {
+    useProvider(VLLM);
+    serve(
+      { object: "list", data: [{ id: SERVED_MODEL }] },
+      {
+        choices: [
+          {
+            message: { role: "assistant", content: "OK" },
+            finish_reason: "stop",
+          },
+        ],
+      },
+    );
+
+    await pressTest();
+
+    const said: { success: boolean; message: string } = dialogSays();
+    expect(said.success).toBe(true);
+    expect(
+      said.message.startsWith(
+        "Connection successful, but tool calling could not be verified",
+      ),
+    ).toBe(true);
+    expect(
+      said.message.endsWith(
+        `Model Name is empty, so it used ${SERVED_MODEL}, the first model the server lists.`,
+      ),
+    ).toBe(true);
+  });
+
+  test("a server with no models list: what to check, and no test prompt sent", async () => {
+    useProvider(VLLM);
+    refuse(404, { error: { message: "Not Found", code: 404 } });
+
+    await pressTest();
+
+    expect(dialogSays()).toEqual({
+      success: false,
+      message:
+        "Model Name is empty, so the server was asked which models it serves, and it answered HTTP 404. Check the Base URL and the API Key, or type the name of a model it serves in Model Name.\nThe OpenAI-compatible server answered: Not Found",
+    });
+
+    /*
+     * Only the models list was asked for - once per try, with the tool
+     * offered and then without - and no test prompt was posted.
+     */
+    expect(requestsSent()).toHaveLength(2);
+    for (const request of requestsSent()) {
+      expect(String(request.method).toLowerCase()).toBe("get");
+      expect(request.url?.toString()).toBe(`${VLLM_BASE_URL}/models`);
+    }
+  });
+
+  test("a server that lists no models: asked to type one", async () => {
+    useProvider(VLLM);
+    serve({ object: "list", data: [] }, OPENAI_TOOL_REPLY);
+
+    await pressTest();
+
+    expect(dialogSays()).toEqual({
+      success: false,
+      message:
+        "Model Name is empty, and the server at the Base URL lists no models to use. Check the Base URL, or type the name of a model the server serves in Model Name.",
+    });
+    for (const request of requestsSent()) {
+      expect(String(request.method).toLowerCase()).toBe("get");
+    }
+  });
+});

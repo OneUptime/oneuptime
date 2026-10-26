@@ -57,7 +57,7 @@ In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Ceph** 
 
 ### Scegliere il cluster
 
-In **Ceph Monitor Configuration**, scegli il cluster da **Ceph Cluster**. Ogni cluster che ha inviato dati è nell'elenco.
+In **Ceph Monitor Configuration**, scegli il cluster da **Cluster Ceph**. Ogni cluster che ha inviato dati è nell'elenco.
 
 ### Scegliere cosa sorvegliare
 
@@ -65,11 +65,11 @@ Scegli una delle tre schede:
 
 - **Quick Setup**: fai clic su un [modello](#modelli-di-avviso-predefiniti). Imposta metriche, filtri, aggregazione, intervallo di tempo e soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
 - **Custom Metric**: scegli una metrica da **Ceph Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. **OSD** e **Pool ID** la limitano a un daemon o a un pool.
-- **Avanzato**: costruisci da solo query e formule in **Seleziona metriche**, per esempio un rapporto di capacità usata da `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Group by** `ceph_daemon` o `pool_id` per valutare ogni daemon o pool separatamente.
+- **Avanzato**: costruisci da solo query e formule in **Seleziona metriche**, per esempio un rapporto di capacità usata da `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Usa **Raggruppa per** `ceph_daemon` o `pool_id` per valutare ogni daemon o pool separatamente.
 
 ### Controllare i criteri
 
-Apri ogni criterio in **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Threshold**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta una tua soglia.
+Apri ogni criterio in **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta una tua soglia.
 
 ### Creare il monitor
 
@@ -77,19 +77,19 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 :::
 
 > [!TIP]
-> Per configurare più modelli in una volta, apri il cluster da **Prodotti → Infrastruttura → Ceph** e vai a **Recommendations**. Scegli i modelli che vuoi e chi viene avvisato, e OneUptime crea un monitor per modello.
+> Per configurare più modelli in una volta, apri il cluster da **Prodotti → Infrastruttura → Ceph** e vai a **Raccomandazioni**. Scegli i modelli che vuoi e chi viene avvisato, e OneUptime crea un monitor per modello.
 
 ## Impostazioni del monitor
 
 | Campo | Scheda | A cosa serve |
 | --- | --- | --- |
-| **Ceph Cluster** | Tutte | Obbligatorio. Limita ogni query a `resource.ceph.cluster.name`. |
+| **Cluster Ceph** | Tutte | Obbligatorio. Limita ogni query a `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta con l'etichetta `ceph_daemon`, per esempio `osd.3`. |
 | **Pool ID** | Custom Metric, Avanzato | Facoltativo. Corrispondenza esatta con l'etichetta `pool_id`, per esempio `2`. |
 | **Ceph Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano il proprio. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Group by**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Le serie di dati dei pool hanno solo l'etichetta `pool_id`: il nome del pool esiste solo in `ceph_pool_metadata`. Filtra e raggruppa le serie dei pool per `pool_id`, e cerca il nome in `ceph_pool_metadata` quando ti serve.
 
@@ -220,8 +220,8 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Metrica** | La query o formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
 | **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
-| **Threshold** | Il valore di confronto. Accanto compare un elenco di unità quando la metrica ne ha una. Non visibile per le condizioni di anomalia. |
-| **Sensibilità** | Solo condizioni di anomalia. **Low** (4σ), **Medium** (3σ, predefinito) o **High** (2σ). |
+| **Soglia** | Il valore di confronto. Accanto compare un elenco di unità quando la metrica ne ha una. Non visibile per le condizioni di anomalia. |
+| **Sensibilità** | Solo condizioni di anomalia. **Basso** (4σ), **Medio** (3σ, predefinito) o **Alto** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (predefinito), 28, 60 o 90 giorni di storico. |
 | **Se nessun dato** | In **Altri campi**. Cosa succede quando la finestra non contiene campioni: **Ignore** (predefinito), **Treat As Zero** o **Trigger**. |
 

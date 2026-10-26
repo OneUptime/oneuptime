@@ -160,7 +160,7 @@ name:"SELECT wp_options"
 
 單獨的字詞會搜尋例外訊息。
 
-**Security Events** 瀏覽器使用相同的語言，但有自己的欄位，例如 `severity`、`tactic` 與 `user`，請參閱 [安全性事件](/docs/telemetry/security-events)。
+**安全事件** 瀏覽器使用相同的語言，但有自己的欄位，例如 `severity`、`tactic` 與 `user`，請參閱 [安全性事件](/docs/telemetry/security-events)。
 
 ## 組合篩選條件
 

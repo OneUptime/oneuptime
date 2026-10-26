@@ -41,7 +41,7 @@ Une exécution de runbook peut être créée de cinq façons :
 
 1. **Automatiquement via une règle** : une [règle de runbook](/docs/runbooks/rules) la lance quand un incident, une alerte ou un événement de maintenance planifiée correspondant est créé. Une règle IA peut aussi en lancer une ; voir [AI SRE](/docs/ai/ai-sre).
 2. **Manuellement depuis un événement** : cliquez sur **Exécuter le Runbook** sur un incident, une alerte ou un événement de maintenance planifiée. L'exécution est attachée à cet événement.
-3. **Manuellement depuis la page du runbook** : cliquez sur **Run Now** sur la page **Vue d'ensemble** d'un runbook. L'exécution n'est attachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée.
+3. **Manuellement depuis la page du runbook** : cliquez sur **Exécuter maintenant** sur la page **Vue d'ensemble** d'un runbook. L'exécution n'est attachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée.
 4. **Selon une planification** : la planification du runbook la démarre à heures fixes. Voir [Exécuter selon une planification](/docs/runbooks/triggers#exécuter-selon-une-planification).
 5. **Depuis un autre outil** : un `POST` vers l'URL de webhook du runbook la démarre, avec les valeurs envoyées par l'appel. Voir [Appeler le webhook](/docs/runbooks/triggers#appeler-le-webhook).
 
@@ -54,15 +54,15 @@ Pour en lancer une à la main :
 3. Cliquez sur **Exécuter** à côté du runbook. L'exécution apparaît dans la liste de l'événement : cliquez sur **Voir** pour l'ouvrir.
 @tab Depuis le runbook
 1. Ouvrez le runbook depuis **Runbooks**.
-2. Sur sa **Vue d'ensemble**, cliquez sur **Run Now**.
+2. Sur sa **Vue d'ensemble**, cliquez sur **Exécuter maintenant**.
 3. La page d'exécution s'ouvre.
 :::
 
-Lancer une exécution demande Project Owner, Project Admin, Project Member, Runbook Admin ou Runbook Member, ou l'autorisation **Create Runbook Execution**. Runbook Viewer et Viewer voient **Run Now** verrouillé, avec la raison. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
+Lancer une exécution demande Project Owner, Project Admin, Project Member, Runbook Admin ou Runbook Member, ou l'autorisation **Create Runbook Execution**. Runbook Viewer et Viewer voient **Exécuter maintenant** verrouillé, avec la raison. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
 
 ## La vue d'exécution
 
-Ouvrez n'importe quelle exécution pour voir sa checklist. Le haut de la page montre le **Statut** de l'exécution, son **Progress** (étapes faites sur le total), **Démarrée** (quand elle a commencé) et **Déclenché par** (ce qui l'a lancée). Chaque étape affiche :
+Ouvrez n'importe quelle exécution pour voir sa checklist. Le haut de la page montre le **Statut** de l'exécution, son **Progression** (étapes faites sur le total), **Démarrée** (quand elle a commencé) et **Déclenché par** (ce qui l'a lancée). Chaque étape affiche :
 
 - **Pastille de statut** — En attente, En cours d'exécution, En attente de votre part, En attente d'approbation, Terminé, Ignoré, Échec ou Annulé.
 - **Titre et description** — copiés depuis le runbook au moment de l'exécution.
@@ -113,7 +113,7 @@ La sortie de chaque étape est plafonnée à **50 Ko**, pour qu'un script emball
 
 ## Relancer un runbook
 
-Une exécution est un enregistrement unique et immuable. Pour relancer le runbook, cliquez sur **Exécuter à nouveau** sur une exécution terminée, ou sur **Run Now** sur le runbook. Les deux créent une nouvelle exécution à partir des étapes actuelles du runbook, attachée à aucun événement. Pour le relancer sur un incident, utilisez **Exécuter le Runbook** sur la page **Runbooks** de l'incident. L'exécution d'origine reste intacte pour la piste d'audit.
+Une exécution est un enregistrement unique et immuable. Pour relancer le runbook, cliquez sur **Exécuter à nouveau** sur une exécution terminée, ou sur **Exécuter maintenant** sur le runbook. Les deux créent une nouvelle exécution à partir des étapes actuelles du runbook, attachée à aucun événement. Pour le relancer sur un incident, utilisez **Exécuter le Runbook** sur la page **Runbooks** de l'incident. L'exécution d'origine reste intacte pour la piste d'audit.
 
 ## Retrouver les exécutions passées
 
@@ -130,11 +130,11 @@ Votre rôle lit les runbooks mais ne les exécute pas : le bouton indique « Vou
 :::
 
 :::details Le lancement échoue avec "Runbook is disabled" ou "Runbook has no steps to run"
-L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Save Steps**. Sa **Vue d'ensemble** indique lequel, avec **Activer le runbook** ou **Ajouter des étapes**.
+L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Enregistrer les étapes**. Sa **Vue d'ensemble** indique lequel, avec **Activer le runbook** ou **Ajouter des étapes**.
 :::
 
 :::details Une étape a échoué parce qu'il lui manque un agent Runbook
-Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**, et le projet n'a pas d'[agent Runbook par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet). Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez l'agent Runbook de l'étape sous **Plus de champs**, cliquez sur **Save Steps** et relancez le runbook.
+Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**, et le projet n'a pas d'[agent Runbook par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet). Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez l'agent Runbook de l'étape sous **Plus de champs**, cliquez sur **Enregistrer les étapes** et relancez le runbook.
 :::
 
 :::details Une étape a échoué parce qu'elle nomme des variables qu'elle ne peut pas utiliser

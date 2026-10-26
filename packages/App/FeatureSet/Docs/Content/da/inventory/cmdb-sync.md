@@ -142,13 +142,13 @@ Værter og netværksenheder beskrives med de samme oplysninger, gemt under de sa
 | IP-adresse | `host.ip` | Hver adresse, collectoren rapporterer | Den adresse, OneUptime poller, når den er en IP-adresse, ellers den adresse, dens sonde slog det DNS-navn op til |
 | MAC-adresse | `host.mac` | Registreret | Skrevet på enheden eller lært fra ARP-tabellen i en gennemgået router |
 | Serienummer | `host.serial_number` | Stemplet | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | Stemplet | ENTITY-MIB, ellers det, `sysDescr` eller `sysObjectID` nævner |
+| Producent | `device.manufacturer` | Stemplet | ENTITY-MIB, ellers det, `sysDescr` eller `sysObjectID` nævner |
 | Model | `device.model.name` | Stemplet | ENTITY-MIB, ellers det, `sysDescr` nævner |
 | Firmwareversion | `device.firmware.version` | Stemplet | ENTITY-MIB, ellers det, `sysDescr` nævner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det, `sysDescr` nævner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-version | `os.version` | Registreret | ENTITY-MIB, ellers det, `sysDescr` nævner |
 | Device Type | `device.type` | Stemplet. Ellers klassificerer kortet den ud fra operativsystem og navn (Server, Firewall, ...) | Dens rolle: den, du tildelte, ellers den, topologikortet tegner den som |
-| Location | `device.location` | Stemplet. Ellers viser kortet dens cloudzone | `sysLocation`. Kortet viser først dens site |
+| Placering | `device.location` | Stemplet. Ellers viser kortet dens cloudzone | `sysLocation`. Kortet viser først dens site |
 
 [Værtstabellen](#aktivattributter-for-værter) og [tabellen over netværksenheder](#aktivattributter-for-netværksenheder) nedenfor fortæller i detaljer, hvor hver værdi kommer fra.
 

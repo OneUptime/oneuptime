@@ -396,6 +396,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       "statusPage.logoFile",
     ) as BaseModel) || undefined;
 
+  // The logo made for the dark theme, if the page has one.
+  const darkLogo: BaseModel =
+    (JSONFunctions.getJSONValueInPath(
+      masterPageData || {},
+      "statusPage.darkThemeLogoFile",
+    ) as BaseModel) || undefined;
+
   const links: Array<Link> = (
     (JSONFunctions.getJSONValueInPath(
       masterPageData || {},
@@ -444,6 +451,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             {!canRenderCustomHtml || !headerHtml ? (
               <Header
                 logo={logo}
+                darkLogo={darkLogo}
                 logoAltText={
                   statusPage?.logoAltText ||
                   statusPage?.pageTitle ||

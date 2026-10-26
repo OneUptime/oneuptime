@@ -45,7 +45,7 @@ Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontroll
 
 ### Filtre
 
-Et filter læser én ting fra kontrollen og sammenligner den: en **Filtertype** (hvad der læses, som **Svarstatuskode**), en **Filterbetingelse** (hvordan der sammenlignes, som **Større end**) og en **Værdi**. Monitorer, der sammenligner metrikker, som Kubernetes- og metrikmonitorer, beder i stedet om en **Betingelse** og en **Threshold**. Hver monitortype tilbyder sine egne filtertyper, som står på dens side, for eksempel [Websted-monitor](/docs/monitor/website-monitor#overvågningskriterier).
+Et filter læser én ting fra kontrollen og sammenligner den: en **Filtertype** (hvad der læses, som **Svarstatuskode**), en **Filterbetingelse** (hvordan der sammenlignes, som **Større end**) og en **Værdi**. Monitorer, der sammenligner metrikker, som Kubernetes- og metrikmonitorer, beder i stedet om en **Betingelse** og en **Tærskel**. Hver monitortype tilbyder sine egne filtertyper, som står på dens side, for eksempel [Websted-monitor](/docs/monitor/website-monitor#overvågningskriterier).
 
 Fra to filtre og opefter vises **Matchbetingelse** under dem: **Alle** betyder, at hvert filter skal matche, **Enhver**, at ét er nok. Et nyt kriterium starter på **Alle**.
 

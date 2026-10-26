@@ -29,7 +29,7 @@ Cliquez sur **Créer : Runbook**, saisissez un **Nom** et, si vous le souhaitez,
 
 ### Ajouter des étapes
 
-Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre** et ce dont son type a besoin ; le reste, comme sa **Description** et ses délais, est replié sous **Plus de champs**. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
+Sous **Commencez votre runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre** et ce dont son type a besoin ; le reste, comme sa **Description** et ses délais, est replié sous **Plus de champs**. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
 
 ### Ordonner les étapes
 
@@ -37,7 +37,7 @@ Les étapes s'exécutent **dans l'ordre**. Pour changer l'ordre, faites glisser 
 
 ### Enregistrer les étapes
 
-Cliquez sur **Save Steps**. Tant que vous ne l'avez pas fait, l'éditeur affiche **Modifications non enregistrées**. Une fois l'enregistrement fait, vous voyez **Enregistré**, et le runbook est prêt à être [exécuté](/docs/runbooks/running).
+Cliquez sur **Enregistrer les étapes**. Tant que vous ne l'avez pas fait, l'éditeur affiche **Modifications non enregistrées**. Une fois l'enregistrement fait, vous voyez **Enregistré**, et le runbook est prêt à être [exécuté](/docs/runbooks/running).
 :::
 
 ## Anatomie d'une étape
@@ -102,7 +102,7 @@ Un appel HTTP sortant, fait par le Worker OneUptime. Aucun agent Runbook n'est n
 | **URL** | Le point de terminaison à appeler. | Vide |
 | **En-têtes (JSON)** | Sous **Plus de champs**. Un objet JSON, par exemple `{ "Authorization": "Bearer ..." }`. Des en-têtes qui ne sont pas du JSON valide font échouer l'étape. | Aucun |
 | **Corps** | Affiché pour `POST`, `PUT`, `PATCH` et `DELETE`. Envoyé en JSON s'il s'analyse comme du JSON, sinon en texte. | Aucun |
-| **Request timeout** | Combien de temps attendre la réponse du point de terminaison avant de faire échouer l'étape. | 30 secondes |
+| **Délai d'expiration de la requête** | Combien de temps attendre la réponse du point de terminaison avant de faire échouer l'étape. | 30 secondes |
 
 L'étape réussit sur une réponse `2xx` ou `3xx` et échoue sur tout le reste, avec `HTTP <status>` comme erreur. Les redirections ne sont pas suivies. Le statut, les en-têtes et le corps de la réponse sont capturés, jusqu'à 50 Ko.
 
@@ -190,7 +190,7 @@ Demandez à l'IA d'analyser, de résumer ou de décider quelque chose en cours d
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Prompt** | Ce que l'IA doit faire. Par exemple : « Examine la sortie des étapes précédentes et dis s'il est sûr de poursuivre la remédiation. » |
-| **LLM provider** | Facultatif. **Par défaut du projet** utilise le fournisseur par défaut du projet. Fixez un fournisseur quand l'étape a besoin d'un modèle précis, par exemple un modèle auto-hébergé pour des données qui ne doivent pas quitter votre réseau. Voir [Fournisseurs LLM](/docs/ai/llm-provider). |
+| **Fournisseur LLM** | Facultatif. **Par défaut du projet** utilise le fournisseur par défaut du projet. Fixez un fournisseur quand l'étape a besoin d'un modèle précis, par exemple un modèle auto-hébergé pour des données qui ne doivent pas quitter votre réseau. Voir [Fournisseurs LLM](/docs/ai/llm-provider). |
 | **Inclure le contexte des étapes précédentes** | Si activé, l'IA voit tout des étapes exécutées avant celle-ci : titre, type, statut, sortie et messages d'erreur. Elle reçoit jusqu'à 4 000 caractères de la sortie de chaque étape. |
 | **Inclure le contexte du déclencheur** | Si activé, l'IA voit ce qui a lancé l'exécution : l'incident, l'alerte ou l'événement de maintenance planifiée lié (sa description, sa gravité, son état actuel, les moniteurs touchés, la cause racine, la chronologie des états et les notes publiques), ou la personne qui a lancé le runbook à la main. |
 
@@ -226,7 +226,7 @@ Via l'API et Terraform, l'interrupteur est le champ `requireApprovalBeforeRunnin
 
 ## Enregistrer et modifier
 
-Les modifications des étapes prennent effet quand vous cliquez sur **Save Steps**. Chaque exécution travaille sur l'instantané pris à son démarrage : les exécutions en cours gardent les étapes avec lesquelles elles ont commencé, et une modification ne réécrit jamais l'historique des exécutions passées.
+Les modifications des étapes prennent effet quand vous cliquez sur **Enregistrer les étapes**. Chaque exécution travaille sur l'instantané pris à son démarrage : les exécutions en cours gardent les étapes avec lesquelles elles ont commencé, et une modification ne réécrit jamais l'historique des exécutions passées.
 
 ## Un exemple complet
 

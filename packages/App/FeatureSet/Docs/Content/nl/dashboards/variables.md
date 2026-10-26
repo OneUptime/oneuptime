@@ -27,7 +27,7 @@ flowchart TB
 :::steps
 ### Open het dialoogvenster voor variabelen
 
-Open het dashboard, kies **⋯ → Edit Dashboard** en klik op **Variabelen** in de werkbalk. Het dialoogvenster **Dashboardvariabelen** toont de variabelen van het dashboard; de knop in de werkbalk telt ze.
+Open het dashboard, kies **⋯ → Dashboard bewerken** en klik op **Variabelen** in de werkbalk. Het dialoogvenster **Dashboardvariabelen** toont de variabelen van het dashboard; de knop in de werkbalk telt ze.
 
 ### Voeg er een toe
 
@@ -35,7 +35,7 @@ Klik op **Variabele toevoegen**. Een nieuwe variabele leest een telemetrie-attri
 
 ### Vul haar in
 
-Geef haar een **Naam**, die widgets en links gebruiken, zoals `service`: letters, cijfers en underscores, beginnend met een letter of een underscore, en anders dan de andere namen van het dashboard. Voeg desgewenst een **Label** voor de werkbalk toe, een **Standaard** om mee te beginnen, en vink **Allow multi-select** aan om kijkers meerdere waarden te laten kiezen.
+Geef haar een **Naam**, die widgets en links gebruiken, zoals `service`: letters, cijfers en underscores, beginnend met een letter of een underscore, en anders dan de andere namen van het dashboard. Voeg desgewenst een **Label** voor de werkbalk toe, een **Standaard** om mee te beginnen, en vink **Meervoudige selectie toestaan** aan om kijkers meerdere waarden te laten kiezen.
 
 ### Sla haar op
 
@@ -63,11 +63,11 @@ Dit is de meest gebruikte bron, omdat er geen eigen lijst voor nodig is: de waar
 
 ### Project Labels
 
-Kies bestaande projectlabels om als vervolgkeuzelijst op het dashboard aan te bieden. Maak bijvoorbeeld een variabele met de naam `UNIT`, zet de bron op **Project Labels**, en kies de labels `0660` en `0661`.
+Kies bestaande projectlabels om als vervolgkeuzelijst op het dashboard aan te bieden. Maak bijvoorbeeld een variabele met de naam `UNIT`, zet de bron op **Projectlabels**, en kies de labels `0660` en `0661`.
 
 Het dashboard slaat de ID's en weergavenamen van de gekozen labels op. Filteren gebruikt de ID's, dus het hernoemen van een projectlabel verbreekt de koppeling niet. Weergavenamen worden met het dashboard opgeslagen; selecteer een hernoemd label opnieuw in de variabele-editor om de weergavenaam bij te werken. Openbare dashboards tonen dezelfde opgeslagen keuzes.
 
-Open in een widget **Monitorlijst** **Filters → Label Variable** en selecteer `UNIT`. Als je dan `0660` kiest, zie je de monitors met dat label. Andere widgets worden niet beïnvloed, tenzij ze de variabele uitdrukkelijk ondersteunen en koppelen: de **SLO List** heeft dezelfde instelling **Label Variable**.
+Open in een widget **Monitorlijst** **Filters → Labelvariabele** en selecteer `UNIT`. Als je dan `0660` kiest, zie je de monitors met dat label. Andere widgets worden niet beïnvloed, tenzij ze de variabele uitdrukkelijk ondersteunen en koppelen: de **SLO-lijst** heeft dezelfde instelling **Labelvariabele**.
 
 Vaste widgetfilters blijven gelden. Met een vast label `network` en `UNIT` ingesteld op `0660` moet een monitor bijvoorbeeld beide labels hebben. Meerdere geselecteerde eenheden komen overeen met elk van die eenheden. **Alle** kiezen verwijdert alleen de voorwaarde van de variabele, en behoudt de vaste filters op label, status en monitortype.
 
@@ -81,7 +81,7 @@ Een Query-variabele uit een ouder dashboard blijft behouden en toont een tekstva
 
 ## Meervoudige selectie en standaardwaarden
 
-Met **Allow multi-select** aangevinkt kiezen kijkers een of meer waarden, en tonen de widgets elk daarvan. Een lege selectie betekent **Alle**, en een variabele met meervoudige selectie begint altijd op **Alle**, dus haar **Standaard** is grijs.
+Met **Meervoudige selectie toestaan** aangevinkt kiezen kijkers een of meer waarden, en tonen de widgets elk daarvan. Een lege selectie betekent **Alle**, en een variabele met meervoudige selectie begint altijd op **Alle**, dus haar **Standaard** is grijs.
 
 Een variabele met enkelvoudige selectie begint op haar **Standaard**, of op **Alle** als ze er geen heeft. **Alle** verwijdert het filter van de variabele, zodat de widgets alles tonen.
 
@@ -91,9 +91,9 @@ Gebruik meervoudige selectie om "checkout en payments samen" te vergelijken zond
 
 Elke bron bereikt de widgets op zijn eigen manier:
 
-- **Telemetry Attribute**-variabelen filteren widgets zonder dat je er iets op hoeft in te stellen: elke metric-grafiek, waarde, meter en tabel; de **Log Chart**, de **Logstroom**, de **Trace Chart** en de **Trace Table**; en de infrastructuurlijsten waarvan de resources het attribuut hebben, zoals `host.name` op hostlijsten en `k8s.namespace.name` op Kubernetes-lijsten. Een grafiek van een metric zonder het attribuut toont geen gegevens zolang er een waarde is gekozen: kies **Alle** om hem weer te zien. De **Tracelijst** en de incident- en waarschuwingslijsten volgen ze niet.
-- **Project Labels**-variabelen filteren een **Monitorlijst** of een **SLO List** waarvan de **Label Variable** ze noemt.
-- **Elke variabele** kan in tekst worden geschreven als `{{name}}`: in een [HTML-widget](/docs/dashboards/widgets#html), in de query van een [externe gegevensbron](/docs/dashboards/data-sources), en in de titel van een **Monitorlijst** of een **SLO List**. Een titel zoals `{{UNIT}} NETWORK` toont `0660 NETWORK`, `0660, 0661 NETWORK` of `All NETWORK`. Een titel bepaalt alleen de getoonde tekst; stel **Label Variable** in om de monitorquery te filteren.
+- **Telemetrie-attribuut**-variabelen filteren widgets zonder dat je er iets op hoeft in te stellen: elke metric-grafiek, waarde, meter en tabel; de **Logboekgrafiek**, de **Logstroom**, de **Tracegrafiek** en de **Tracetabel**; en de infrastructuurlijsten waarvan de resources het attribuut hebben, zoals `host.name` op hostlijsten en `k8s.namespace.name` op Kubernetes-lijsten. Een grafiek van een metric zonder het attribuut toont geen gegevens zolang er een waarde is gekozen: kies **Alle** om hem weer te zien. De **Tracelijst** en de incident- en waarschuwingslijsten volgen ze niet.
+- **Projectlabels**-variabelen filteren een **Monitorlijst** of een **SLO-lijst** waarvan de **Labelvariabele** ze noemt.
+- **Elke variabele** kan in tekst worden geschreven als `{{name}}`: in een [HTML-widget](/docs/dashboards/widgets#html), in de query van een [externe gegevensbron](/docs/dashboards/data-sources), en in de titel van een **Monitorlijst** of een **SLO-lijst**. Een titel zoals `{{UNIT}} NETWORK` toont `0660 NETWORK`, `0660, 0661 NETWORK` of `All NETWORK`. Een titel bepaalt alleen de getoonde tekst; stel **Labelvariabele** in om de monitorquery te filteren.
 
 De [SLO-widget](/docs/dashboards/widgets#slo) kan een Telemetry Attribute-variabele volgen op de sleutel `sloName`, zodat kijkers kiezen welke SLO hij toont.
 

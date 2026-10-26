@@ -51,7 +51,7 @@ Geben Sie im Schritt **Absender** die **Absender-E-Mail** und den **Absendername
 
 ### Speichern und eine Test-E-Mail senden
 
-Speichern Sie die Konfiguration. Sobald eine Projektkonfiguration gespeichert ist, prüft **Test-E-Mail senden** in ihrer Zeile, ob sie funktioniert. Dafür braucht es die Berechtigung, SMTP-Konfigurationen hinzuzufügen: **Project Owner**, **Project Admin** oder **Create SMTP Config** und **Read SMTP Config** in einer eigenen Rolle. In OneUptime Cloud braucht es außerdem den Tarif **Growth**, wie das Hinzufügen einer Konfiguration. Für alle anderen ist die Schaltfläche gesperrt, und ihr Tooltip sagt, was sie braucht.
+Speichern Sie die Konfiguration. Sobald eine Projektkonfiguration gespeichert ist, prüft **Test-E-Mail senden** in ihrer Zeile, ob sie funktioniert. Dafür braucht es die Berechtigung, SMTP-Konfigurationen hinzuzufügen: **Projektinhaber**, **Projektadministrator** oder **Create SMTP Config** und **Read SMTP Config** in einer eigenen Rolle. In OneUptime Cloud braucht es außerdem den Tarif **Growth**, wie das Hinzufügen einer Konfiguration. Für alle anderen ist die Schaltfläche gesperrt, und ihr Tooltip sagt, was sie braucht.
 
 Der Test fragt nach einer **E-Mail**-Adresse, an die er sendet, zunächst Ihrer eigenen. Prüfen Sie, ob die Nachricht ankommt.
 :::

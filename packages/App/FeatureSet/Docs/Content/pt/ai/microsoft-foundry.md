@@ -53,7 +53,7 @@ Você precisa de uma assinatura do Azure, de uma função que permita criar e le
 
 O próprio OneUptime não precisa de nenhuma função do Azure. Uma chave dá sozinha acesso a todas as implantações do recurso, sem verificação de função, então trate-a como uma senha.
 
-No OneUptime, adicionar um provedor a um projeto exige **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** ou **Create LLM**. Em vez disso, uma instância auto-hospedada pode registrar um provedor para todos os projetos a partir de variáveis de ambiente, o que exige acesso ao servidor.
+No OneUptime, adicionar um provedor a um projeto exige **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações** ou **Create LLM**. Em vez disso, uma instância auto-hospedada pode registrar um provedor para todos os projetos a partir de variáveis de ambiente, o que exige acesso ao servidor.
 
 ## Configurar o Microsoft Foundry
 

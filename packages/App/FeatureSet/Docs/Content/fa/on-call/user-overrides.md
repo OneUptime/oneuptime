@@ -68,7 +68,7 @@ flowchart TB
 
 ## چه کسی می‌تواند جایگزینی اضافه کند
 
-**Project Owner**، **Project Admin**، **Project Member**، **On-Call Admin** و **On-Call Member** می‌توانند جایگزینی‌ها را اضافه و حذف کنند؛ **Viewer** و **On-Call Viewer** می‌توانند آن‌ها را ببینند. در یک نقش سفارشی، نام مجوزها **Create On-Call Duty Policy User Override**، **Delete On-Call Duty Policy User Override** و **Read On-Call Duty Policy User Override** است. در **خط زمانی زمان‌بندی‌ها** فقط کسانی که می‌توانند جایگزینی‌ها را بخوانند می‌بینند نوبت چه کسی پر شده است.
+**مالک پروژه**، **مدیر پروژه**، **عضو پروژه**، **مدیر آنکال** و **عضو آنکال** می‌توانند جایگزینی‌ها را اضافه و حذف کنند؛ **بیننده** و **بیننده آنکال** می‌توانند آن‌ها را ببینند. در یک نقش سفارشی، نام مجوزها **Create On-Call Duty Policy User Override**، **Delete On-Call Duty Policy User Override** و **Read On-Call Duty Policy User Override** است. در **خط زمانی زمان‌بندی‌ها** فقط کسانی که می‌توانند جایگزینی‌ها را بخوانند می‌بینند نوبت چه کسی پر شده است.
 
 در OneUptime Cloud، جایگزینی‌های کاربر به طرح **Growth** نیاز دارند.
 

@@ -100,11 +100,11 @@ Cherchez, filtrez et choisissez les colonnes que vous voulez garder.
 
 ### L'enregistrer
 
-Ouvrez **Saved Views** et cliquez sur **+ Enregistrer la vue actuelle**. Saisissez un **Nom**, cochez **Définir par défaut** si cette vue doit s'ouvrir chaque fois que quelqu'un ouvre les journaux, et cliquez sur **Enregistrer la vue**.
+Ouvrez **Vues enregistrées** et cliquez sur **+ Enregistrer la vue actuelle**. Saisissez un **Nom**, cochez **Définir par défaut** si cette vue doit s'ouvrir chaque fois que quelqu'un ouvre les journaux, et cliquez sur **Enregistrer la vue**.
 
 ### L'utiliser
 
-Choisissez la vue dans **Saved Views** pour l'appliquer, et **Effacer la vue** pour revenir à la dernière heure sans filtre. Pointez une vue de la liste pour la **Modifier** ou la **Supprimer**, ou, tant qu'elle est appliquée, pour la **Mettre à jour** avec vos changements.
+Choisissez la vue dans **Vues enregistrées** pour l'appliquer, et **Effacer la vue** pour revenir à la dernière heure sans filtre. Pointez une vue de la liste pour la **Modifier** ou la **Supprimer**, ou, tant qu'elle est appliquée, pour la **Mettre à jour** avec vos changements.
 :::
 
 Les vues enregistrées appartiennent au projet : tout le monde y voit la même liste. Une plage glissante comme la dernière heure reste glissante : la vue montre l'heure qui précède son ouverture, pas l'heure où vous l'avez enregistrée. Tant que le projet n'a pas de vue par défaut, la prochaine vue enregistrée le devient, et un projet n'a qu'une vue par défaut à la fois.
@@ -117,7 +117,7 @@ Cliquez sur **Liste** pour revenir aux lignes elles-mêmes.
 
 ## Ouvrir les traces et les métriques liées
 
-Les boutons **Traces** et **Métriques** à côté de **Saved Views** ouvrent l'[Explorateur de traces](/docs/telemetry/traces-explorer) ou l'[Explorateur de métriques](/docs/telemetry/metrics-explorer) sur la même fenêtre de temps, avec autant de votre filtrage que cet explorateur peut en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre.
+Les boutons **Traces** et **Métriques** à côté de **Vues enregistrées** ouvrent l'[Explorateur de traces](/docs/telemetry/traces-explorer) ou l'[Explorateur de métriques](/docs/telemetry/metrics-explorer) sur la même fenêtre de temps, avec autant de votre filtrage que cet explorateur peut en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre.
 
 ## Analyses des journaux
 

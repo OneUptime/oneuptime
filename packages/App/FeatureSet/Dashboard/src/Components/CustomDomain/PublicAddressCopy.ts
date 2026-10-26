@@ -1,7 +1,9 @@
 import {
   CUSTOM_DOMAIN_STATUS,
+  CustomDomainInstallation,
   CustomDomainState,
   CustomDomainStateInput,
+  FREE_CERTIFICATE_INSTALLATION,
   getCustomDomainState,
   isCustomDomainDnsSetupAvailable,
 } from "./CustomDomainCopy";
@@ -37,6 +39,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * uploaded. Until then - no CNAME record yet, the certificate still being
  * issued, an order that keeps failing, an expired certificate - opening it
  * shows a browser warning or nothing at all, so it is not offered as a link.
+ * On an installation that issues no free certificates, a verified domain is
+ * live too: its HTTPS is the installation's own proxy's, and the server
+ * links to it the same way (StatusPageService.getUsableCustomDomain).
  *
  * Kept free of React and of the browser's config, so the components and
  * App/Tests read these exact rules and strings. Every string is a whole
@@ -74,11 +79,12 @@ export interface PublicAddress<TDomain extends PublicAddressDomainInput> {
   certificate?: CustomDomainCertificate | undefined;
 }
 
-// The custom domain states visitors can open over HTTPS.
+// The custom domain states visitors can open.
 export const LIVE_CUSTOM_DOMAIN_STATES: ReadonlyArray<CustomDomainState> = [
   CustomDomainState.CertificateIssued,
   CustomDomainState.RenewalFailed,
   CustomDomainState.UsesUploadedCertificate,
+  CustomDomainState.VerifiedWithoutFreeCertificate,
 ];
 
 export const isCustomDomainLive: (state: CustomDomainState) => boolean = (
@@ -90,11 +96,23 @@ export const isCustomDomainLive: (state: CustomDomainState) => boolean = (
 /*
  * A live custom domain is served over HTTPS - it is live because it has a
  * certificate - at its root: a status page and a dashboard both answer at
- * the root of their own domain.
+ * the root of their own domain. One the installation issues no certificate
+ * for is opened as the installation itself is reached - https, or http on
+ * an installation without TLS - as the server links to it.
  */
-export const getCustomDomainUrl: (fullDomain: string) => string = (
+export const getCustomDomainUrl: (
   fullDomain: string,
+  state?: CustomDomainState | undefined,
+  installation?: CustomDomainInstallation | undefined,
+) => string = (
+  fullDomain: string,
+  state?: CustomDomainState | undefined,
+  installation?: CustomDomainInstallation | undefined,
 ): string => {
+  if (state === CustomDomainState.VerifiedWithoutFreeCertificate) {
+    return `${(installation || FREE_CERTIFICATE_INSTALLATION).protocol}${fullDomain}`;
+  }
+
   return `https://${fullDomain}`;
 };
 
@@ -165,6 +183,7 @@ export const getPublicAddresses: <
     | undefined;
   oneUptimeUrl: string;
   now?: Date | undefined;
+  installation?: CustomDomainInstallation | undefined;
 }) => Array<PublicAddress<TDomain>> = <
   TDomain extends PublicAddressDomainInput,
 >(data: {
@@ -174,6 +193,7 @@ export const getPublicAddresses: <
     | undefined;
   oneUptimeUrl: string;
   now?: Date | undefined;
+  installation?: CustomDomainInstallation | undefined;
 }): Array<PublicAddress<TDomain>> => {
   const customDomains: Array<PublicAddress<TDomain>> = [];
 
@@ -191,8 +211,13 @@ export const getPublicAddresses: <
       domain,
       certificate,
       data.now,
+      data.installation,
     );
-    const url: string = getCustomDomainUrl(fullDomain);
+    const url: string = getCustomDomainUrl(
+      fullDomain,
+      state,
+      data.installation,
+    );
 
     customDomains.push({
       kind: PublicAddressKind.CustomDomain,
@@ -228,13 +253,21 @@ export const getPublicAddresses: <
 
 /*
  * Whether a custom domain needs its certificate to say where it is: a
- * verified domain on the free certificate. The list asks for the
- * certificates only when one does.
+ * verified domain on the free certificate, on an installation that issues
+ * them. The list asks for the certificates only when one does.
  */
 export const isCertificateNeededFor: (
   domain: CustomDomainStateInput,
-) => boolean = (domain: CustomDomainStateInput): boolean => {
-  return Boolean(domain.isCnameVerified) && !domain.isCustomCertificate;
+  installation?: CustomDomainInstallation | undefined,
+) => boolean = (
+  domain: CustomDomainStateInput,
+  installation?: CustomDomainInstallation | undefined,
+): boolean => {
+  return (
+    (installation || FREE_CERTIFICATE_INSTALLATION).issuesFreeCertificates &&
+    Boolean(domain.isCnameVerified) &&
+    !domain.isCustomCertificate
+  );
 };
 
 /*
@@ -263,8 +296,10 @@ export const getNotLiveReason: <TDomain extends PublicAddressDomainInput>(
  */
 export const isDnsSetupOffered: <TDomain extends PublicAddressDomainInput>(
   address: PublicAddress<TDomain>,
+  installation?: CustomDomainInstallation | undefined,
 ) => boolean = <TDomain extends PublicAddressDomainInput>(
   address: PublicAddress<TDomain>,
+  installation?: CustomDomainInstallation | undefined,
 ): boolean => {
   if (
     address.kind !== PublicAddressKind.CustomDomain ||
@@ -274,7 +309,30 @@ export const isDnsSetupOffered: <TDomain extends PublicAddressDomainInput>(
     return false;
   }
 
-  return isCustomDomainDnsSetupAvailable(address.domain, address.certificate);
+  return isCustomDomainDnsSetupAvailable(
+    address.domain,
+    address.certificate,
+    undefined,
+    installation,
+  );
+};
+
+/*
+ * The address visitors are sent to first: the first live address in the
+ * list's order - a live custom domain, alphabetically first, or else the
+ * OneUptime address, which is always live. What the embedded status badge
+ * links to, as the Status Page Link card lists it.
+ */
+export const getFirstLiveAddress: <TDomain extends PublicAddressDomainInput>(
+  addresses: ReadonlyArray<PublicAddress<TDomain>>,
+) => PublicAddress<TDomain> | undefined = <
+  TDomain extends PublicAddressDomainInput,
+>(
+  addresses: ReadonlyArray<PublicAddress<TDomain>>,
+): PublicAddress<TDomain> | undefined => {
+  return addresses.find((address: PublicAddress<TDomain>): boolean => {
+    return address.isLive;
+  });
 };
 
 export const PublicAddressCopy: {

@@ -59,7 +59,7 @@ flowchart TB
 
 ### 篩選和分組
 
-開啟 **Filters & grouping**。**Filter by attributes** 只保留屬性符合的資料點，例如某一個 `http.route`；**Group by** 為你所選屬性的每個值畫一條線，例如每台主機一條線。
+開啟 **Filters & grouping**。**Filter by attributes** 只保留屬性符合的資料點，例如某一個 `http.route`；**分組依據** 為你所選屬性的每個值畫一條線，例如每台主機一條線。
 
 ### 調整圖表
 
@@ -104,7 +104,7 @@ flowchart TB
 - **操作 → 從此檢視建立監測器** 會開啟一個新的指標監測器，並預先填好這些查詢和公式。請參閱 [指標監控](/docs/monitor/metrics-monitor)。
 - **操作 → Add to dashboard** 會把圖表新增到你選擇的儀表板。你需要有編輯該儀表板的權限。
 - **複製連結** 複製指向這個檢視的連結：查詢、公式和時間範圍都完全一致。
-- **Saved Views** 以一個名稱為專案中的每個人保留該檢視。**檢視者** 有自己的儲存檢視，用於它的搜尋和篩選條件。儲存的檢視與 [日誌瀏覽器](/docs/telemetry/logs-explorer#儲存檢視) 中的用法相同。
+- **已儲存的檢視** 以一個名稱為專案中的每個人保留該檢視。**檢視者** 有自己的儲存檢視，用於它的搜尋和篩選條件。儲存的檢視與 [日誌瀏覽器](/docs/telemetry/logs-explorer#儲存檢視) 中的用法相同。
 
 ## 指標洞察
 

@@ -60,11 +60,11 @@ Open de Log Analytics-werkruimte in de Azure-portal. De pagina **Overview** toon
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Sentinel** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Client secret**.
+Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Sentinel** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**.
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt zich aan en leest incidenten met de waarden uit het formulier, en slaat niets op, dus een verkeerd geheim of een ontbrekende rol komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test meldt zich aan en leest incidenten met de waarden uit het formulier, en slaat niets op, dus een verkeerd geheim of een ontbrekende rol komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Waar je haar vindt |
@@ -75,9 +75,9 @@ Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt
 | **Resource group** | De pagina **Overview** van de werkruimte. 1 tot 90 letters, cijfers, underscores, koppeltekens, punten of haakjes, niet eindigend op een punt. |
 | **Workspace name** | De pagina **Overview** van de werkruimte. 3 tot 90 letters, cijfers of koppeltekens, beginnend en eindigend met een letter of cijfer. |
 | **Cloud** | **Openbare Azure-cloud** (`login.microsoftonline.com`, `management.azure.com`) of **Azure Government (VS)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
-| **Client secret** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Update credentials** op de verbinding. |
+| **Clientgeheim** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
-De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
+De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 
 ## Wat er wordt geïmporteerd
 
@@ -114,12 +114,12 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **De aanmaaktijd is de cursor.** Een geplande analyseregel die elk uur draait, opent zijn incident lang na de activiteit die hij opmerkte, en de `firstActivityTimeUtc` van het incident kan uren of dagen eerder liggen. Een cursor op activiteitstijd zou elk zo'n incident overslaan. De activiteitstijden blijven in `attributes`, en de voorbeelden in de diagnose tonen beide.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente incidenten toont.
 - **Elke volgende poll begint 1 minuut voor de opgeslagen cursor**, zodat een incident dat op de grens van twee vensters is gemaakt nooit wordt overgeslagen.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Health** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
 - **Duplicaten worden verwijderd op de GUID van het incident** (`name`) binnen het project, zodat de overlap, een herhaald venster en een import een incident nooit twee keer opslaan.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen
 
-Een poll leest hooguit 20 pagina's van 50 incidenten: 1.000 incidenten. Wanneer die grens hem vóór het einde van zijn venster stopt, is de run **Partial**, met een waarschuwing zoals:
+Een poll leest hooguit 20 pagina's van 50 incidenten: 1.000 incidenten. Wanneer die grens hem vóór het einde van zijn venster stopt, is de run **Gedeeltelijk**, met een waarschuwing zoals:
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, maakt OneUptime
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere incidenten blijven binnenkomen. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere incidenten blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
 
-Een run die volledig mislukt, met een fout van Microsoft Entra ID of Azure Resource Manager, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll start, niet waar zijn venster begint.
+Een run die volledig mislukt, met een fout van Microsoft Entra ID of Azure Resource Manager, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll start, niet waar zijn venster begint.
 
 ### Uitvoeren, bekijken en importeren op verzoek
 
-Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
+Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
-- **Run now** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
+- **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
 - **Preview incidents** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
 - **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde incidenten worden overgeslagen.
 - **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
-**Verbinding testen** op de rij van een verbinding, en **Test these settings** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
+**Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
 
 | Controle | Wat ze controleert |
 | --- | --- |
@@ -174,7 +174,7 @@ Registreer een toepassing en geef haar een clientgeheim, zoals in [Een toepassin
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Microsoft Sentinel onder **SIEM** en klik op **Volgende**. Vul de **Directory-ID (tenant)**, de **Applicatie-ID (client)** en het **Client secret** in, het **Eindpunt voor logopname** van de pagina **Overview** van het eindpunt voor gegevensverzameling (of van de regel), en de **Onveranderlijke ID van de gegevensverzamelingsregel** uit de **JSON View** van de regel. **Stream** is optioneel: leeg gelaten is het `Custom-OneUptimeSecurityEvents_CL`.
+Open **Producten → Security Events → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Microsoft Sentinel onder **SIEM** en klik op **Volgende**. Vul de **Directory-ID (tenant)**, de **Applicatie-ID (client)** en het **Clientgeheim** in, het **Eindpunt voor logopname** van de pagina **Overview** van het eindpunt voor gegevensverzameling (of van de regel), en de **Onveranderlijke ID van de gegevensverzamelingsregel** uit de **JSON View** van de regel. **Stream** is optioneel: leeg gelaten is het `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Een testgebeurtenis verzenden en beginnen met verzenden
 
@@ -234,7 +234,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 
 :::details Last Error begint met `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID weigerde een token uit te geven, dus Azure is nooit benaderd. Het bericht citeert de code van Entra:
-  - `AADSTS7000215` of `invalid_client`: het **Client secret** is verkeerd of verlopen, of het is de ID van het geheim in plaats van de waarde. Maak een nieuw geheim en sla het op met **Update credentials**.
+  - `AADSTS7000215` of `invalid_client`: het **Clientgeheim** is verkeerd of verlopen, of het is de ID van het geheim in plaats van de waarde. Maak een nieuw geheim en sla het op met **Inloggegevens bijwerken**.
   - `AADSTS700016` of `unauthorized_client`: de **Applicatie-ID (client)** staat niet in de opgegeven **Directory-ID (tenant)**. Vergelijk beide met de pagina **Overview** van de app.
   - `AADSTS90002` of `HTTP 404`: die tenant bestaat niet. De **Directory-ID (tenant)** is verkeerd, of hij staat in de andere cloud: controleer **Cloud**.
   - `HTTP 429` of `HTTP 5xx`: Microsoft Entra ID beperkt verzoeken of is niet beschikbaar. De volgende poll probeert het opnieuw.
@@ -258,9 +258,9 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::
 
 :::details Een run is Partial
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: het venster bevatte meer dan de 1.000 incidenten die één run leest. Er gaat niets verloren: de volgende poll begint na het laatst gelezen incident. Een verbinding die poll na poll **Partial** blijft, haalt een achterstand in, en haar **Last Polled** en **Last Event Imported** blijven doorschuiven.
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: het venster bevatte meer dan de 1.000 incidenten die één run leest. Er gaat niets verloren: de volgende poll begint na het laatst gelezen incident. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven doorschuiven.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: de API negeerde de volgorde van oud naar nieuw, dus de run kan de cursor niet op zijn laatste incident zetten, en de volgende poll leest in plaats daarvan een korter venster. Gebeurt het steeds weer, stuur dan het rapport van de run naar de support van OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnostics**. Een import leest net zoveel als een poll.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd

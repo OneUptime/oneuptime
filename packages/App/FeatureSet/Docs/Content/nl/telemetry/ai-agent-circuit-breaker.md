@@ -46,7 +46,7 @@ Uitgaven zijn het zekerste teken van een op hol geslagen agent. Een budget telt 
 :::steps
 1. Open **Producten → AI / LLM → Budgetten** en klik op **LLM Cost Budget aanmaken**. Stel een **Dagbudget (USD)** in, en kies de service van de agent bij **Service (optioneel)** zodat het budget alleen die agent volgt.
 2. Kies in het rijmenu van het nieuwe budget **ID weergeven** en kopieer de ID.
-3. Maak een [Metrics-monitor](/docs/monitor/metrics-monitor) op `oneuptime.llm.budget.percent.used`, gefilterd op het attribuut `oneuptime.llm.budget.id` met de gekopieerde ID, en zet het **Tijdsbereik** op **Past 30 Minutes**.
+3. Maak een [Metrics-monitor](/docs/monitor/metrics-monitor) op `oneuptime.llm.budget.percent.used`, gefilterd op het attribuut `oneuptime.llm.budget.id` met de gekopieerde ID, en zet het **Tijdsbereik** op **Afgelopen 30 minuten**.
 4. Voeg een criterium **Groter dan of gelijk aan** `100` toe dat een waarschuwing maakt, en geef het een **Waarschuwingstitel** die de agent noemt, zoals `LLM budget exceeded: support-bot`. De workflow en je endpoint lezen allebei die titel.
 :::
 
@@ -125,7 +125,7 @@ Open **Producten → Workflows** en klik op **Workflow maken**. Klik op **Vanaf 
 
 ### Voeg de trigger toe
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Alert** in het paneel **Trigger toevoegen**. Klik op de trigger: **Fields to pass on** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Alert** in het paneel **Trigger toevoegen**. Klik op de trigger: **Fields to pass on** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
 ### Controleer de titel
 
@@ -197,7 +197,7 @@ De header `Authorization` komt niet overeen met het token dat je endpoint verwac
 :::
 
 :::details De budgetwaarschuwing gaat steeds open en dicht
-Het **Tijdsbereik** van de monitor is korter dan de 15 minuten tussen twee punten van het budget. Zet het op **Past 30 Minutes**.
+Het **Tijdsbereik** van de monitor is korter dan de 15 minuten tussen twee punten van het budget. Zet het op **Afgelopen 30 minuten**.
 :::
 
 :::details Het verzoek bereikt je endpoint nooit

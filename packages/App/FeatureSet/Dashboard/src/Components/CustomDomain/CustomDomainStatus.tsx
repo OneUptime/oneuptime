@@ -6,6 +6,7 @@ import {
   getCustomDomainState,
   STATUS_TEST_IDS,
 } from "./CustomDomainCopy";
+import { getCustomDomainInstallation } from "./CustomDomainKinds";
 import { CustomDomainCertificate } from "Common/Types/CustomDomain/CustomDomainCertificates";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -31,6 +32,8 @@ const CustomDomainStatus: FunctionComponent<ComponentProps> = (
   const state: CustomDomainState = getCustomDomainState(
     props.domain,
     props.certificate,
+    undefined,
+    getCustomDomainInstallation(),
   );
 
   const certificateError: string | undefined = getCustomDomainCertificateError(

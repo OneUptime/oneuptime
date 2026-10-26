@@ -121,7 +121,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De Webhook-trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **Webhook**. Klik op de trigger, daarna op **URL kopiëren**, en gebruik die URL in het contactpunt in Grafana.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Webhook**. Klik op de trigger, daarna op **URL kopiëren**, en gebruik die URL in het contactpunt in Grafana.
 
 ### Controleren dat de melding afgaat
 

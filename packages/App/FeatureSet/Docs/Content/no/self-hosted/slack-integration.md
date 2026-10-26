@@ -39,7 +39,7 @@ sequenceDiagram
 - Et Slack-arbeidsområde der du kan opprette og installere apper.
 - Et offentlig HTTPS-vertsnavn for OneUptime som Slack kan nå. Se [Nettverkstilgang](#nettverkstilgang-for-selvdriftede-installasjoner).
 - Tilgang til serverens konfigurasjon: `config.env` for Docker Compose, eller Helm-values for Kubernetes.
-- For å koble til et prosjekt: rollen **Project Owner**, **Project Admin** eller **Project Member** i det.
+- For å koble til et prosjekt: rollen **Prosjekteier**, **Prosjektadministrator** eller **Prosjektmedlem** i det.
 
 ## Sett opp Slack-appen
 
@@ -239,7 +239,7 @@ Når Slack sender deg tilbake og tilkoblingen ikke ble opprettet, viser Slack-si
 | Siden sier | Hva du gjør |
 | --- | --- |
 | **"Denne tilkoblingslenken er ugyldig, har utløpt eller er allerede brukt. Start på nytt."** | Lenken virker én gang, i 15 minutter, i nettleseren som startet den. Start på nytt fra Slack-siden, og fullfør i Slack innen 15 minutter i samme nettleser. |
-| **"Du har ikke tillatelse til å koble dette prosjektet til Slack."** | Å installere OneUptime i Slack krever **Project Owner**, **Project Admin** eller **Project Member**. Det kontrolleres på nytt når Slack sender deg tilbake, så en rolle som er fjernet i mellomtiden, avslutter også tilkoblingen her. |
+| **"Du har ikke tillatelse til å koble dette prosjektet til Slack."** | Å installere OneUptime i Slack krever **Prosjekteier**, **Prosjektadministrator** eller **Prosjektmedlem**. Det kontrolleres på nytt når Slack sender deg tilbake, så en rolle som er fjernet i mellomtiden, avslutter også tilkoblingen her. |
 | **"Du er ikke lenger medlem av dette prosjektet."** | For å koble til din egen Slack-konto må du være medlem av prosjektet når Slack sender deg tilbake. |
 | **"Dette prosjektet er ennå ikke koblet til et Slack-arbeidsområde."** | Installer først OneUptime i Slack fra **Prosjektinnstillinger > Arbeidsområde > Slack**, og koble deretter til din egen konto. |
 | **"Du logget på et annet Slack-arbeidsområde enn det dette prosjektet er koblet til."** | Koble til kontoen din mens du er logget på Slack-arbeidsområdet prosjektet er installert i. |

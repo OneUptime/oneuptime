@@ -51,7 +51,7 @@ I steget **Avsändare** anger du **E-post från** och **Från-namn** som dina e-
 
 ### Spara och skicka ett test-e-postmeddelande
 
-Spara konfigurationen. När en projektkonfiguration är sparad kontrollerar **Skicka test-e-post** på dess rad att den fungerar. Det kräver behörighet att lägga till SMTP-konfigurationer: **Project Owner**, **Project Admin**, eller **Create SMTP Config** och **Read SMTP Config** i en anpassad roll. På OneUptime Cloud krävs även planen **Growth**, precis som för att lägga till en konfiguration. För alla andra är knappen låst, och dess verktygstips berättar vad som krävs.
+Spara konfigurationen. När en projektkonfiguration är sparad kontrollerar **Skicka test-e-post** på dess rad att den fungerar. Det kräver behörighet att lägga till SMTP-konfigurationer: **Projektägare**, **Projektadministratör**, eller **Create SMTP Config** och **Read SMTP Config** i en anpassad roll. På OneUptime Cloud krävs även planen **Growth**, precis som för att lägga till en konfiguration. För alla andra är knappen låst, och dess verktygstips berättar vad som krävs.
 
 Testet frågar efter en **E-post**-adress att skicka till, från början din egen. Kontrollera att meddelandet kommer fram.
 :::

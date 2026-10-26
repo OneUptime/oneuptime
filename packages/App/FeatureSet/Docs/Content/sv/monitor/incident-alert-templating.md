@@ -1,9 +1,9 @@
-# Incident- och varningsmallar
+# Incident- och larmmallar
 
-När en monitors kriterier deklarerar en incident eller skapar en varning fyller de i titeln, beskrivningen och åtgärdsanteckningarna utifrån en mall som du skriver själv. Sätt in platshållare `{{variable}}`, som `{{monitorName}}` eller `{{responseStatusCode}}`, så säger varje incident vad som gick fel, med värdena från kontrollen som öppnade den.
+När en monitors kriterier deklarerar en incident eller skapar ett larm fyller de i titeln, beskrivningen och åtgärdsanteckningarna utifrån en mall som du skriver själv. Sätt in platshållare `{{variable}}`, som `{{monitorName}}` eller `{{responseStatusCode}}`, så säger varje incident vad som gick fel, med värdena från kontrollen som öppnade den.
 
 :::cards
-- [Var du skriver en mall](#var-du-skriver-en-mall): Titeln, beskrivningen och åtgärdsanteckningarna för ett kriteriums incident eller varning.
+- [Var du skriver en mall](#var-du-skriver-en-mall): Titeln, beskrivningen och åtgärdsanteckningarna för ett kriteriums incident eller larm.
 - [Grundläggande användning](#grundläggande-användning): Platshållare, sökvägar in i objekt och listor.
 - [Variabler som alla monitorer har](#variabler-som-alla-monitorer-har): Monitorns namn och resursen som överskred gränsen.
 - [Variabler per monitortyp](#variabler-per-monitortyp): Vad varje typ av kontroll rapporterar.
@@ -11,15 +11,15 @@ När en monitors kriterier deklarerar en incident eller skapar en varning fyller
 
 ## Så fungerar mallar
 
-En mall fylls i en gång, när kriteriet skapar incidenten eller varningen. OneUptime samlar variablerna från monitorn och från kontrollen som matchade, sätter in varje värde där dess platshållare står och sparar resultatet. Ändrar du mallen senare ändras de incidenter och varningar som skapas därefter, inte de som redan är öppna.
+En mall fylls i en gång, när kriteriet skapar incidenten eller larmet. OneUptime samlar variablerna från monitorn och från kontrollen som matchade, sätter in varje värde där dess platshållare står och sparar resultatet. Ändrar du mallen senare ändras de incidenter och larm som skapas därefter, inte de som redan är öppna.
 
 ```mermaid title="Från en kontroll till en incidents text"
 flowchart TB
     check["En kontroll av monitorn"] --> criteria{"Ett kriterium matchar"}
-    criteria -->|"deklarerar en incident<br/>eller skapar en varning"| vars["Variabler från monitorn<br/>och den här kontrollen"]
+    criteria -->|"deklarerar en incident<br/>eller skapar ett larm"| vars["Variabler från monitorn<br/>och den här kontrollen"]
     vars --> title["Titel:<br/>ren text"]
     vars --> body["Beskrivning och anteckningar:<br/>Markdown, värden som text"]
-    title --> record["Incidenten eller varningen"]
+    title --> record["Incidenten eller larmet"]
     body --> record
 ```
 
@@ -34,9 +34,9 @@ flowchart TB
 
 Gå till **Monitorer**, öppna monitorn och klicka på **Kriterier** i dess sidomeny. Klicka på **Redigera Övervakningskriterier**.
 
-### Slå på incidenten eller varningen
+### Slå på incidenten eller larmet
 
-Slå på **När filter matchar, deklarera en incident.** eller **När filter matchar, skapa en varning.** under **Åtgärder** i ett kriterium. Formuläret för incidenten eller varningen öppnas nedanför.
+Slå på **När filter matchar, deklarera en incident.** eller **När filter matchar, skapa ett larm.** under **Åtgärder** i ett kriterium. Formuläret för incidenten eller larmet öppnas nedanför.
 
 ### Skriv titeln
 
@@ -48,7 +48,7 @@ Skriv titeln i **Incidenttitel** eller **Larmtitel**, till exempel `{{monitorNam
 
 ### Spara kriterierna
 
-Klicka på **Spara ändringar**. Nästa incident eller varning som det här kriteriet skapar använder de nya mallarna.
+Klicka på **Spara ändringar**. Nästa incident eller larm som det här kriteriet skapar använder de nya mallarna.
 :::
 
 ## Grundläggande användning
@@ -86,16 +86,16 @@ För att skriva en mall som fungerar oavsett om monitorn är grupperad eller int
 
 ### Värden i beskrivningar och åtgärdsanteckningar
 
-En beskrivning och åtgärdsanteckningar är Markdown: de visas på incidentens eller varningens sida, i e-post och i dess Slack- och Microsoft Teams-kanaler. Värdena som en mall sätter in där är det som det övervakade systemet skickade - en svarskropp eller ett svarshuvud, en inkommande förfrågan eller ett inkommande e-postmeddelande, etiketterna för en enhet eller en serie -, så varje värde sätts in som text. Det läses exakt som det skickades, var mallen än placerar det, och en länk, en bild, en HTML-tagg eller ett Slack-omnämnande som `<!channel>` i det visas som text i stället för att verka. En naken webbadress i ett värde blir ändå en länk, en som visar vart den leder. Den Markdown du skriver i själva mallen återges som du skrev den.
+En beskrivning och åtgärdsanteckningar är Markdown: de visas på incidentens eller larmets sida, i e-post och i dess Slack- och Microsoft Teams-kanaler. Värdena som en mall sätter in där är det som det övervakade systemet skickade - en svarskropp eller ett svarshuvud, en inkommande förfrågan eller ett inkommande e-postmeddelande, etiketterna för en enhet eller en serie -, så varje värde sätts in som text. Det läses exakt som det skickades, var mallen än placerar det, och en länk, en bild, en HTML-tagg eller ett Slack-omnämnande som `<!channel>` i det visas som text i stället för att verka. En naken webbadress i ett värde blir ändå en länk, en som visar vart den leder. Den Markdown du skriver i själva mallen återges som du skrev den.
 
 Ett värde kan ha vilken storlek som helst - en svarskropp eller en logg på många megabyte - och aviseringen går ändå ut med det. Varje kanal bär det den tar emot, och en beskrivning som är för lång för den kapas vid en radbrytning om det finns en, och slutar med "… (truncated — see OneUptime for the full text)":
 
-- **E-post**: varje beskrivning, anteckning eller grundorsak bär upp till ungefär 256 KB av e-postens text, och anteckningen i slutet av en längre text länkar till incidenten eller varningen. Ett helt e-postmeddelande - texten och skärmbilderna - håller sig under 3 MB, vilket alla e-postservrar och Microsoft Graph tar emot: en skärmbild som inte får plats bredvid texten utelämnas, med en anteckning i stället.
-- **Incidentens eller varningens sida** visar allt. En beskrivning på över 128 KB som skulle ta lång tid att formatera visas som ren text, rad för rad.
+- **E-post**: varje beskrivning, anteckning eller grundorsak bär upp till ungefär 256 KB av e-postens text, och anteckningen i slutet av en längre text länkar till incidenten eller larmet. Ett helt e-postmeddelande - texten och skärmbilderna - håller sig under 3 MB, vilket alla e-postservrar och Microsoft Graph tar emot: en skärmbild som inte får plats bredvid texten utelämnas, med en anteckning i stället.
+- **Incidentens eller larmets sida** visar allt. En beskrivning på över 128 KB som skulle ta lång tid att formatera visas som ren text, rad för rad.
 - **Slack** bär högst det Slack visar av ett meddelande (ungefär 30 000 tecken). **Microsoft Teams** bär ungefär 40 000 tecken i ett meddelande från OneUptime-appen och ungefär 12 000 via en inkommande webhook (prenumeranter på statussidor, arbetsflöden) - mätt när meddelandet skickas, så en tabell räknas som den HTML den blir.
 - **SMS, telefonsamtal, push-aviseringar, WhatsApp och Telegram** bär det som deras leverantörer tar emot: se [Så larmar nivåerna personer](/docs/on-call/escalation-rules#så-larmar-nivåerna-personer).
 
-Varje kanal återger texten på en tid som växer med längden. En del som skulle ta en renderare mycket längre tid - en rad på över 64 KB, ett långt stycke med enkla rader, ett stycke fullt av `*`, `_` eller `[` som aldrig stängs, citat eller listor som är nästlade mer än sexton nivåer och, på incidentens eller varningens sida, en tabell eller lista på mer än tusen rader - läses som ren text där den står, och resten av beskrivningen återges som vanligt.
+Varje kanal återger texten på en tid som växer med längden. En del som skulle ta en renderare mycket längre tid - en rad på över 64 KB, ett långt stycke med enkla rader, ett stycke fullt av `*`, `_` eller `[` som aldrig stängs, citat eller listor som är nästlade mer än sexton nivåer och, på incidentens eller larmets sida, en tabell eller lista på mer än tusen rader - läses som ren text där den står, och resten av beskrivningen återges som vanligt.
 
 ## Avancerad användning
 
@@ -117,7 +117,7 @@ Inne i loopen:
 - En loop över en sökväg som inte är en lista, eller över en tom lista, skriver ingenting.
 - Loopar kan nästlas: en `{{#each}}` inuti en annan läser den inre listan för varje yttre element.
 
-Till exempel en [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor) som tar emot den här varningsaviseringen:
+Till exempel en [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor) som tar emot den här larmaviseringen:
 
 ```json title="Request body"
 {
@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### Värden från en grupperad monitor
 
-En metrikbaserad monitor med attribut i **Group by** öppnar en incident per serie, och varje attributs värde är en variabel under attributets namn. Gruppering efter `host.name` ger `{{host.name}}`, och gruppering efter `resource.k8s.pod.name` ger `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` innehåller alla, som ett objekt.
+En metrikbaserad monitor med attribut i **Gruppera efter** öppnar en incident per serie, och varje attributs värde är en variabel under attributets namn. Gruppering efter `host.name` ger `{{host.name}}`, och gruppering efter `resource.k8s.pod.name` ger `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` innehåller alla, som ett objekt.
 
 En grupperad [Loggövervakning](/docs/monitor/logs-monitor) fungerar på samma sätt: varje grupperingsattributs värde är en variabel under sin nyckel.
 
@@ -199,7 +199,7 @@ Dessa beskriver serien som en grupperad monitor öppnade incidenten för: en pod
 När kriteriet har **Group incidents and alerts by a payload field** påslaget är grupperingsnyckeln också en variabel, uppkallad efter det **sista segmentet** av grupperingssökvägen: gruppering efter `requestBody.alerts[*].labels.alertname` ger `{{alertname}}`, och gruppering efter `requestBody.alerts[*].fingerprint` ger `{{fingerprint}}`. Hela `requestBody` finns fortfarande bredvid.
 
 > [!NOTE]
-> `[*]` fungerar bara i fälten för grupperingssökvägen. I en mall läser den ingenting, så platshållaren blir kvar som den skrevs. `{{requestBody.alerts[0].annotations.summary}}` läser alltid den första varningen i payloaden, inte den som incidenten öppnades för: använd grupperingsvariabeln och payloadens gemensamma fält, som `commonLabels` och `commonAnnotations`. Se [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor).
+> `[*]` fungerar bara i fälten för grupperingssökvägen. I en mall läser den ingenting, så platshållaren blir kvar som den skrevs. `{{requestBody.alerts[0].annotations.summary}}` läser alltid det första larmet i payloaden, inte den som incidenten öppnades för: använd grupperingsvariabeln och payloadens gemensamma fält, som `commonLabels` och `commonAnnotations`. Se [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor).
 
 ### Monitorer för inkommande e-post
 
@@ -351,7 +351,7 @@ En syntetisk monitor kör sitt skript en gång för varje webbläsare och skärm
 
 #### Visa en skärmbild
 
-Varje post i `screenshots` är en skärmbild som skriptet tog, under namnet som skriptet gav den (`screenshots["login-page"] = await page.screenshot()`), som base64-text. För att visa en i en incidents eller varnings beskrivning eller åtgärdsanteckningar skriver du en bild runt den:
+Varje post i `screenshots` är en skärmbild som skriptet tog, under namnet som skriptet gav den (`screenshots["login-page"] = await page.screenshot()`), som base64-text. För att visa en i en incidents eller ett larms beskrivning eller åtgärdsanteckningar skriver du en bild runt den:
 
 ```text title="Description template"
 {{syntheticResponses[0].scriptError}}
@@ -359,7 +359,7 @@ Varje post i `screenshots` är en skärmbild som skriptet tog, under namnet som 
 ![Login page](data:image/png;base64,{{syntheticResponses[0].screenshots.login-page}})
 ```
 
-Skärmbilden visas då på incidentens eller varningens sida, på de statussidor som visar incidenten, i e-postaviseringarna om den och i Slack- och Microsoft Teams-meddelandena om den. I ett e-postmeddelande bifogas den och visas i själva meddelandet, vilket Gmail, Outlook och Apple Mail alla visar, så den som har jouren kan se hur sidan såg ut utan att öppna OneUptime.
+Skärmbilden visas då på incidentens eller larmets sida, på de statussidor som visar incidenten, i e-postaviseringarna om den och i Slack- och Microsoft Teams-meddelandena om den. I ett e-postmeddelande bifogas den och visas i själva meddelandet, vilket Gmail, Outlook och Apple Mail alla visar, så den som har jouren kan se hur sidan såg ut utan att öppna OneUptime.
 
 - Skärmbilder i PNG, JPEG, GIF och WebP visas. `image/png` fungerar också för en JPEG-skärmbild (`page.screenshot({ type: "jpeg" })`).
 - Ett e-postmeddelande bär högst 2 MB bilder, och högst 20. En bild som inte får plats ersätts av en anteckning med dess alt-text, så ge varje bild en alt-text. En JPEG-skärmbild är mycket mindre än en PNG, och en skärmbild av den misslyckade körningen säger oftast mer än alla skärmbilder av alla körningar.
@@ -411,8 +411,8 @@ För att visa skärmbilden från varje misslyckad körning lägger du bilden i e
 | `interfacesDown` | Gränssnitt som är administrativt uppe men operativt nere. | `number` |
 | `interfaceWalkFailure` | Felet, när genomgången av gränssnitt misslyckades. | `string` |
 | `tables` | Enhetens SNMP-tabeller, efter nyckel: `rowCount`, `rows`, `unhealthyRowCount` och `unhealthyRows` för var och en, som i `{{tables.ipsec_tunnels.unhealthyRowCount}}`. | `Object` |
-| `snmpTable` | SNMP-tabellen som en varning per rad gäller. | `string` |
-| `snmpTableRow` | Raden som en varning per rad gäller: en tunnel, en radio, en granne. | `string` |
+| `snmpTable` | SNMP-tabellen som ett larm per rad gäller. | `string` |
+| `snmpTableRow` | Raden som ett larm per rad gäller: en tunnel, en radio, en granne. | `string` |
 | `trapOid` | Trapens OID. Bara när en SNMP-trap utlöste kontrollen. | `string` |
 | `trapSourceIp` | Adressen som trapen kom från. Bara när en SNMP-trap utlöste kontrollen. | `string` |
 | `trapVarbinds` | Trapens varbinds, var och en som `{oid, value}`. Bara när en SNMP-trap utlöste kontrollen. | `Array<Object>` |
@@ -457,7 +457,7 @@ Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-
 | --- | --- | --- |
 | `metricName` | Namnet på mätvärdet som monitorns första fråga läser, som `container.cpu.time`. | `string` |
 
-Grupperade har de också värdet för varje attribut i **Group by**, och `seriesLabels`: se [Värden från en grupperad monitor](#värden-från-en-grupperad-monitor). Mallarna för IoT Device-monitorn grupperar efter enhet, så en monitor som skapats från en av dem har också `{{device.id}}`.
+Grupperade har de också värdet för varje attribut i **Gruppera efter**, och `seriesLabels`: se [Värden från en grupperad monitor](#värden-från-en-grupperad-monitor). Mallarna för IoT Device-monitorn grupperar efter enhet, så en monitor som skapats från en av dem har också `{{device.id}}`.
 
 ### Andra monitortyper
 
@@ -546,7 +546,7 @@ SNMP walk: {{responseTimeInMs}} ms
 {{/each}}
 ```
 
-### Varningar från Alertmanager eller Grafana
+### Larm från Alertmanager eller Grafana
 
 ```text title="Title"
 [{{requestBody.status}}] {{requestBody.receiver}}
@@ -590,5 +590,5 @@ Kontrollera bildens format och storlek mot [Visa en skärmbild](#visa-en-skärmb
 - [JavaScript-uttryck](/docs/monitor/javascript-expression): Samma platshållare, i ett kriteriums villkor.
 - [Deklarera en incident](/docs/incidents/declaring-incidents): Vad som händer efter att ett kriterium har deklarerat en.
 - [Syntetisk övervakning](/docs/monitor/synthetic-monitor): Ta skärmbilderna som en beskrivning kan visa.
-- [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Gör webhooks till incidenter uppkallade efter varje varning.
+- [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Gör webhooks till incidenter uppkallade efter varje larm.
 :::

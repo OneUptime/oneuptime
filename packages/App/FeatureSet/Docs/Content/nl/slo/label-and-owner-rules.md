@@ -73,13 +73,13 @@ Een nieuwe voorwaarde op de naam of de beschrijving begint op **Bevat**. Een pat
 ## Wanneer regels worden uitgevoerd
 
 - **Als een SLO wordt aangemaakt**, vanuit het dashboard of via de API: elke ingeschakelde labelregel, dan elke ingeschakelde eigenaarsregel.
-- **Als u een regel uitvoert** met **Run Now**: zie hieronder.
+- **Als u een regel uitvoert** met **Nu uitvoeren**: zie hieronder.
 
 Een SLO bewerken past de regels niet opnieuw toe, en een regel verwijdert nooit iets: geen labels of eigenaren die iemand met de hand heeft toegevoegd, en ook niet die hij zelf heeft toegevoegd. Een uitgeschakelde regel doet niets.
 
 ## Een regel uitvoeren op bestaande SLO's
 
-Een regel die u vandaag schrijft, geldt voor de SLO's die daarna worden aangemaakt. Om hem toe te passen op de SLO's die u al hebt, klikt u op **Run Now** in de rij van de regel, of op **Bekijken** en dan op **Run Now** op de eigen pagina van de regel. U kunt ook meerdere regels selecteren en ze uitvoeren via de bulkacties van de tabel.
+Een regel die u vandaag schrijft, geldt voor de SLO's die daarna worden aangemaakt. Om hem toe te passen op de SLO's die u al hebt, klikt u op **Nu uitvoeren** in de rij van de regel, of op **Bekijken** en dan op **Nu uitvoeren** op de eigen pagina van de regel. U kunt ook meerdere regels selecteren en ze uitvoeren via de bulkacties van de tabel.
 
 Een uitvoering controleert elke SLO in het project, ook de gearchiveerde, en meldt op hoeveel hij van toepassing was en hoeveel hij heeft gewijzigd. Eigenaren die een uitvoering toevoegt, krijgen alleen een melding als u dat in het uitvoeringsdialoogvenster kiest en de regel **Eigenaren op de hoogte stellen** aan heeft. Zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
 

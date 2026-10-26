@@ -60,7 +60,7 @@ Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não pr
 ## Antes de começar
 
 - **Um plano que inclua workflows.** No OneUptime Cloud, os workflows exigem o plano **Growth** ou superior, e cada plano permite um número de execuções a cada 30 dias — veja [Limites do plano](/docs/workflows/configuration#limites-do-plano). Instalações self-hosted sem cobrança não têm nenhum desses limites.
-- **Permissão para montar.** Criar e alterar workflows exige **Workflow Admin**, **Project Admin** ou **Project Owner**, ou um papel personalizado com as permissões correspondentes. Um **Workflow Member** pode abrir workflows e executá-los manualmente, mas não alterá-los. Veja [Permissões](/docs/workflows/configuration#permissões).
+- **Permissão para montar.** Criar e alterar workflows exige **Administrador de fluxos de trabalho**, **Administrador do projeto** ou **Proprietário do projeto**, ou um papel personalizado com as permissões correspondentes. Um **Membro de fluxos de trabalho** pode abrir workflows e executá-los manualmente, mas não alterá-los. Veja [Permissões](/docs/workflows/configuration#permissões).
 
 ## Onde encontrar os workflows no OneUptime
 
@@ -122,7 +122,7 @@ O novo workflow abre no **Construtor**, desligado.
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e depois em **On Create Incident**, em **Popular**, no painel **Adicionar gatilho**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e depois em **On Create Incident**, em **Populares**, no painel **Adicionar gatilho**.
 
 O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-create-1`, é como os blocos seguintes se referem a ele.
 
@@ -134,7 +134,7 @@ O gatilho repassa o novo incidente com esses campos. Um campo que você não sel
 
 ### Adicionar o bloco de API
 
-Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Popular**. Arraste do ponto **Success** do gatilho até o ponto superior do novo bloco.
+Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Populares**. Arraste do ponto **Success** do gatilho até o ponto superior do novo bloco.
 
 ### Preencher a requisição
 

@@ -31,12 +31,12 @@ flowchart TB
 
 聚合是指 SLO 自身的图表和 SLO Dashboard 模板如何合并落入同一图表区间的点。百分比和时长取平均值。消耗率和状态取最大值，这样短暂的消耗峰值或短暂进入 Budget Exhausted 不会被平均掉。
 
-对于 **Monitor Seconds Average** 模式的 SLO，`oneuptime.slo.error.budget.remaining.seconds` 计算的是其所有监视器合计的监视器秒，与其错误预算相同：请参阅[错误预算](/docs/slo/error-budget)。
+对于 **监视器秒数平均** 模式的 SLO，`oneuptime.slo.error.budget.remaining.seconds` 计算的是其所有监视器合计的监视器秒，与其错误预算相同：请参阅[错误预算](/docs/slo/error-budget)。
 
 ### 不写入数据点的情况
 
 - 已关闭或已归档的 SLO 不会被评估，因此不写入任何内容。
-- **已暂停** 或 **Misconfigured** 的 SLO 不测量任何内容，因此只写入 `oneuptime.slo.target.percent`，它是配置而不是测量值。其 SLI、预算、消耗率和状态图表会出现空缺。
+- **已暂停** 或 **配置错误** 的 SLO 不测量任何内容，因此只写入 `oneuptime.slo.target.percent`，它是配置而不是测量值。其 SLI、预算、消耗率和状态图表会出现空缺。
 - 不是实数的值，例如没有数据的窗口上的消耗率，会被跳过，绝不会写为 0。
 
 ### 属性
@@ -66,7 +66,7 @@ SLO 的 **指标** 页面有四个选项卡：
 
 | 选项卡 | 显示内容 |
 | --- | --- |
-| **SLO Metrics** | `oneuptime.slo.*` 时间序列，显示在共享同一时间范围（默认为过去一天）的三张卡片中：**Objective**（叠加了目标的 SLI，以及剩余预算）、**Burn**（消耗率和剩余预算时间）和 **状态**。 |
+| **SLO Metrics** | `oneuptime.slo.*` 时间序列，显示在共享同一时间范围（默认为过去一天）的三张卡片中：**目标**（叠加了目标的 SLI，以及剩余预算）、**消耗**（消耗率和剩余预算时间）和 **状态**。 |
 | **Error Budget History** | 长期历史中的 SLI、剩余预算和消耗率，并在目标、风险和耗尽边界以及每条已启用消耗率规则的阈值处画线。 |
 | **事件指标** | 影响此 SLO 的事件的数量、确认时间、解决时间和持续时间，默认为过去一周。包括其消耗率规则声明的事件。 |
 | **警报指标** | 警报的相同内容。包括其消耗率规则触发的警报。 |
@@ -98,7 +98,7 @@ SLO 的 **指标** 页面有四个选项卡：
 | 设置 | 行为 |
 | --- | --- |
 | **Service Level Objective** | 把小部件固定到一个 SLO。选择器列出未归档的 SLO。 |
-| **Follow SLO Variable** | 显示在仪表板变量中选中的 SLO：一个基于 `sloName` 键的 **Telemetry Attribute** 变量。固定了 SLO 时会被忽略。 |
+| **Follow SLO Variable** | 显示在仪表板变量中选中的 SLO：一个基于 `sloName` 键的 **遥测属性** 变量。固定了 SLO 时会被忽略。 |
 
 在[公共仪表板](/docs/dashboards/sharing)上，跟随变量的小部件允许查看者按名称选择项目中任何未归档的 SLO。固定的小部件只显示自己的 SLO，并会继续显示之后被归档的 SLO 的最后数字。
 
@@ -115,7 +115,7 @@ SLO 的 **指标** 页面有四个选项卡：
 ## 故障排除
 
 :::details 工具栏的 SLO 选择器中缺少某个 SLO
-选择器列出过去一天内写入过的 SLO 名称。新 SLO 在第一次评估后出现；**已暂停** 或 **Misconfigured** 的 SLO 仍可选择，因为它仍在写入目标；已关闭或已归档的 SLO 会在其最后一个数据点之后大约一天消失。
+选择器列出过去一天内写入过的 SLO 名称。新 SLO 在第一次评估后出现；**已暂停** 或 **配置错误** 的 SLO 仍可选择，因为它仍在写入目标；已关闭或已归档的 SLO 会在其最后一个数据点之后大约一天消失。
 :::
 
 :::details 选择一个名称时显示了两个 SLO

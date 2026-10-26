@@ -25,7 +25,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 
 La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi** e **Numerazione**, trattati più sotto.
 
-Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [AI SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Summary**. Vedere [Slack](/docs/workspace-connections/slack).
+Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [AI SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Riepilogo**. Vedere [Slack](/docs/workspace-connections/slack).
 
 ## Le regole che un nuovo avviso attraversa
 
@@ -59,7 +59,7 @@ Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 
 **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Alert Rules**, per gli avvisi, ed **Episode Rules**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
 
-La maggior parte delle regole agisce sugli avvisi e sugli episodi creati dopo il salvataggio. Per applicare una regola del proprietario, delle etichette o di privacy a quelli che avete già, usate **Run Now**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole di promemoria sono l'eccezione: salvarne una ricalcola ogni avviso aperto.
+La maggior parte delle regole agisce sugli avvisi e sugli episodi creati dopo il salvataggio. Per applicare una regola del proprietario, delle etichette o di privacy a quelli che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole di promemoria sono l'eccezione: salvarne una ricalcola ogni avviso aperto.
 
 ### Condizioni
 
@@ -157,7 +157,7 @@ Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: 
 
 ## Chi può modificarle
 
-Regole, campi personalizzati e misurazioni richiedono un Project Owner o un Project Admin, o un ruolo personalizzato con il permesso specifico di quella regola. **Alert Member** lavora con avvisi ed episodi, le loro note, i proprietari e le cronologie degli stati, e con i modelli di note, e **Alert Admin** gestisce anche gli stati e le gravità degli avvisi. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
+Regole, campi personalizzati e misurazioni richiedono un Project Owner o un Project Admin, o un ruolo personalizzato con il permesso specifico di quella regola. **Membro degli avvisi** lavora con avvisi ed episodi, le loro note, i proprietari e le cronologie degli stati, e con i modelli di note, e **Amministratore degli avvisi** gestisce anche gli stati e le gravità degli avvisi. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Passi successivi
 

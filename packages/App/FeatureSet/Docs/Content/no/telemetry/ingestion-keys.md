@@ -32,7 +32,7 @@ flowchart TB
 
 Velg typen etter hvor nøkkelen skal ligge. Typen kan ikke endres etter at nøkkelen er opprettet.
 
-| | **Server** | **Browser** |
+| | **Server** | **Nettleser** |
 | --- | --- | --- |
 | For | Applikasjoner, collectors og agenter på maskiner du drifter | Nettsider, og React Native Session Replay |
 | Sender | All slags telemetri, til alle endepunkter | Spor, logger, målinger og Session Replays |
@@ -60,7 +60,7 @@ Klikk på **Opprett ingestion-nøkkel**. Dialogen starter med navnet **Servernø
 
 ### Legg til origins for en nettlesernøkkel
 
-En **Browser**-nøkkel ber om sine **Allowed Origins** i neste trinn, **Nettleserinnstillinger**, med sitt **Pinned Service Name** under **Avansert**. Se [Lås ned en nettlesernøkkel](#lås-ned-en-nettlesernøkkel).
+En **Nettleser**-nøkkel ber om sine **Tillatte opprinnelser** i neste trinn, **Nettleserinnstillinger**, med sitt **Festet tjenestenavn** under **Avansert**. Se [Lås ned en nettlesernøkkel](#lås-ned-en-nettlesernøkkel).
 
 ### Opprett nøkkelen, og kopier hemmeligheten
 
@@ -88,8 +88,8 @@ En nettlesernøkkel ligger i siden din, der alle kan kopiere den. Disse innstill
 
 | Innstilling | Hva den gjør |
 | --- | --- |
-| **Allowed Origins** | De eneste origins nøkkelen godtas fra. En forespørsel fra en hvilken som helst annen origin, eller helt uten `Origin`-header, avvises. En nettlesernøkkel må beholde minst én. |
-| **Pinned Service Name** | Legger alt nøkkelen sender over OTLP/HTTP, under denne ene tjenesten, uansett hvilket `service.name` avsenderen har satt. En kopi av nøkkelen kan da bare skrive til den tjenesten. |
+| **Tillatte opprinnelser** | De eneste origins nøkkelen godtas fra. En forespørsel fra en hvilken som helst annen origin, eller helt uten `Origin`-header, avvises. En nettlesernøkkel må beholde minst én. |
+| **Festet tjenestenavn** | Legger alt nøkkelen sender over OTLP/HTTP, under denne ene tjenesten, uansett hvilket `service.name` avsenderen har satt. En kopi av nøkkelen kan da bare skrive til den tjenesten. |
 | **Requests Per Minute Limit** | Det største antallet forespørsler nøkkelen godtas for hvert minutt, delt av alle besøkende. En nettlesernøkkel får 6 000 når du lar feltet stå tomt. |
 | **Utløper** | Datoen nøkkelen avvises etter, slik at en publisert kopi slutter å virke. |
 
@@ -130,8 +130,8 @@ En avvist forespørsel får en status og en setning som sier hvorfor.
 | `422` med `This telemetry ingestion key has been disabled.` | Noen har slått av **Aktivert**. |
 | `422` med `A browser ingestion key cannot be used for` | En nettlesernøkkel nådde et endepunkt som bare tar servernøkler. |
 | `422` med `did not send an Origin header` | En nettlesernøkkel ble sendt fra utenfor en nettleser. Bruk en servernøkkel der. |
-| `422` med `is not allowed for this browser ingestion key` | Sidens origin står ikke i **Allowed Origins**. |
-| `422` med `is pinned to a single service` | En nøkkel med et **Pinned Service Name** ble brukt til å registrere en agent. Bruk en servernøkkel uten fastlåst navn. |
+| `422` med `is not allowed for this browser ingestion key` | Sidens origin står ikke i **Tillatte opprinnelser**. |
+| `422` med `is pinned to a single service` | En nøkkel med et **Festet tjenestenavn** ble brukt til å registrere en agent. Bruk en servernøkkel uten fastlåst navn. |
 | `429` med `Too many telemetry requests for this ingestion key` | Nøkkelen nådde sin **Requests Per Minute Limit**. Eksportører prøver igjen etter `Retry-After`-tiden. |
 
 For de andre svarene en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).

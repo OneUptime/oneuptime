@@ -15,6 +15,7 @@ import {
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1704,8 +1705,8 @@ describe("the Persian mirrors carry the playback sections", (): void => {
       '`<use href="/icons.svg#close">`',
       "`Content-Security-Policy`",
       "`.oneuptime-block`",
-      "**Block selectors**",
-      "**Missing assets**",
+      `**${drawnDashboardLabel("fa", "Block selectors")}**`,
+      `**${drawnDashboardLabel("fa", "Missing assets")}**`,
       "اینترانت",
       "محتوای مختلط",
       "نامزدهای `srcset` و تصویرهای درون `<picture>`",
@@ -1736,14 +1737,15 @@ describe("the Persian mirrors carry the playback sections", (): void => {
       "`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`",
       "`(blocked:mixed-content)`",
       "`(blocked:csp)`",
-      "**Session details** (`I`) > **Fidelity** > **Missing assets**",
+      // The Dashboard's own path, in the Persian Dashboard's words.
+      `**${drawnDashboardLabel("fa", "Session details")}** (\`I\`) > **${drawnDashboardLabel("fa", "Fidelity")}** > **${drawnDashboardLabel("fa", "Missing assets")}**`,
       "نه [حالت آفلاین](/docs/telemetry/session-replay#",
     ]) {
       expect([token, entry.includes(token)]).toEqual([token, true]);
     }
 
     expect(section(troubleshooting, "## هنوز گیر کرده‌اید")).toContain(
-      "**Missing assets**",
+      `**${drawnDashboardLabel("fa", "Missing assets")}**`,
     );
   });
 
@@ -1824,7 +1826,7 @@ describe("the Persian mirrors carry the playback sections", (): void => {
       `\`width\` و \`height\` آن هر دو ${toPersianDigits(1)} یا کمتر`,
       "هنگام پخش هرگز درخواست نمی‌شود",
       "هر بار که بازپخش تماشا شود",
-      "**Block selectors**",
+      `**${drawnDashboardLabel("fa", "Block selectors")}**`,
       "`.oneuptime-block`",
     ]) {
       expect([token, pixels.includes(token)]).toEqual([token, true]);

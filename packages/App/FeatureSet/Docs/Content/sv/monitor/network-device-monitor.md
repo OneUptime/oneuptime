@@ -2,13 +2,13 @@
 
 Övervaka switchar, routrar, brandväggar, accesspunkter, PDU:er, kameror och skrivare: allt som har en adress i ditt nätverk, oavsett om det talar SNMP eller inte.
 
-Lägg till en enhet med dess adress och en sond, så pingar sonden den enligt ett schema: enheten får statusen uppe eller nere, en plats på nätverkskartan och en röst i sin plats hälsa. Ge den SNMP-autentiseringsuppgifter så gör samma sond också en SNMP-walk av den: gränssnitt och optiken i dem, hårdvaruinventarium, LLDP- och CDP-grannar och hälso-OID:er. Lägg till en monitor, eller en varningspolicy för en hel flotta, så skapar dess avsökningar och traps incidenter och varningar.
+Lägg till en enhet med dess adress och en sond, så pingar sonden den enligt ett schema: enheten får statusen uppe eller nere, en plats på nätverkskartan och en röst i sin plats hälsa. Ge den SNMP-autentiseringsuppgifter så gör samma sond också en SNMP-walk av den: gränssnitt och optiken i dem, hårdvaruinventarium, LLDP- och CDP-grannar och hälso-OID:er. Lägg till en monitor, eller en larmpolicy för en hel flotta, så skapar dess avsökningar och traps incidenter och larm.
 
 :::cards
 - [Lägg till en enhet](#lägg-till-en-nätverksenhet): Dess adress och en sond, på en sida.
 - [Upptäck ett nätverk](#upptäck-enheter-med-en-nätverksskanning): Skanna ett adressintervall och importera det som svarar.
 - [Läs enheter via SNMP](#snmp-autentiseringsuppgifter-och-autentiseringsprofiler): Gränssnitt, optik, inventarium och hälsa.
-- [Få varningar](#varningar): En monitor för en enhet, en policy för en flotta.
+- [Få larm](#larm): En monitor för en enhet, en policy för en flotta.
 - [Se kartan](#nätverkstopologi): Grannar ritade live, exporterade som PDF.
 - [Lös ett problem](#felsökning): Enheter som väntar, walks som misslyckas, traps som inte kommer fram.
 :::
@@ -21,8 +21,8 @@ flowchart TB
     Device["Nätverksenhet"]
     Data["Status, mätvärden,<br/>gränssnitt, karta"]
     Monitor["Nätverksenhetsmonitor"]
-    Policy["Varningspolicy"]
-    Incident["Incident eller varning"]
+    Policy["Larmpolicy"]
+    Incident["Incident eller larm"]
     Probe -->|"Ping, varje<br/>avsökning"| Device
     Probe -->|"SNMP-walk,<br/>med uppgifter"| Device
     Device -->|"SNMP-traps"| Probe
@@ -37,7 +37,7 @@ Enheten och monitorn gör olika jobb:
 | Del | Vad den gör | När du behöver den |
 | --- | --- | --- |
 | Enheten | Dess sond avsöker den enligt enhetens eget schema. Varje avsökning registrerar nåbarhet, pingens svarstid och paketförlust; en avsökning med SNMP-autentiseringsuppgifter läser också enhetens identitet, gränssnitt, grannar och hälso-OID:er. | Alltid: enheten är det du lägger till. |
-| En monitor | Utvärderar kriterier mot varje avsökningsresultat och varje trap från enheten, och skapar incidenter och varningar. | Bara för incidenter och varningar. Status, inventarium, diagram och kartan behöver ingen monitor. |
+| En monitor | Utvärderar kriterier mot varje avsökningsresultat och varje trap från enheten, och skapar incidenter och larm. | Bara för incidenter och larm. Status, inventarium, diagram och kartan behöver ingen monitor. |
 
 ## Innan du börjar
 
@@ -58,11 +58,11 @@ Enheten och monitorn gör olika jobb:
 | **Väntar på första kontrollen** | Enheter har lagts till och deras sond har inte kontrollerat dem än. |
 | **Alla 40 enheter är uppe** | Alla enheter svarar. Enheter som fortfarande väntar på sin första kontroll räknas på en egen rad. |
 
-Under den säger en rad om något skapar en incident när en enhet går ner: hur många [varningspolicyer](#varningspolicyer) som är påslagna, eller en länk **Set up alerts** när det inte finns någon. Knapparna **Add Device** och **Discover Devices** bredvid öppnar de formulären, och rutorna och listorna nedanför ger detaljerna: enheter och platser som behöver uppmärksamhet, flottan per tillverkare och de senaste skanningarna.
+Under den säger en rad om något skapar en incident när en enhet går ner: hur många [larmpolicyer](#larmpolicyer) som är påslagna, eller en länk **Konfigurera larm** när det inte finns någon. Knapparna **Lägg till enhet** och **Discover Devices** bredvid öppnar de formulären, och rutorna och listorna nedanför ger detaljerna: enheter och platser som behöver uppmärksamhet, flottan per tillverkare och de senaste skanningarna.
 
-Innan något har lagts till leder översikten dig i stället genom tre steg. **Placera en sond i ditt nätverk**: en sond pingar och går igenom dina enheter inifrån deras nätverk, så **Lägg till en sond** namnger en, visar kommandot som startar den och följer när den ansluter. **Lägg till dina enheter**: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn. **Få veta när en enhet går ner**: **Set up alerts** öppnar [varningspolicyerna](#varningspolicyer), där den rekommenderade policyn är ett klick bort. På OneUptime Cloud kräver det Growth-abonnemanget att [lägga till en sond](/docs/probe/custom-probe): under det säger steget det och länkar i stället till dina faktureringsinställningar, och OneUptimes egna sonder på internet kan fortfarande kontrollera enheter med en offentlig adress.
+Innan något har lagts till leder översikten dig i stället genom tre steg. **Placera en sond i ditt nätverk**: en sond pingar och går igenom dina enheter inifrån deras nätverk, så **Lägg till en sond** namnger en, visar kommandot som startar den och följer när den ansluter. **Lägg till dina enheter**: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn. **Få veta när en enhet går ner**: **Konfigurera larm** öppnar [larmpolicyerna](#larmpolicyer), där den rekommenderade policyn är ett klick bort. På OneUptime Cloud kräver det Growth-abonnemanget att [lägga till en sond](/docs/probe/custom-probe): under det säger steget det och länkar i stället till dina faktureringsinställningar, och OneUptimes egna sonder på internet kan fortfarande kontrollera enheter med en offentlig adress.
 
-Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Devices**, **Platser**, **Map**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
+Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Devices**, **Platser**, **Karta**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
 
 | Avsnitt | Sidor |
 | --- | --- |
@@ -75,16 +75,16 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Device
 
 :::steps
 ### Öppna listan över enheter
-Gå till **Nätverk → Devices** och klicka på **Add Device**. **Add Device** på Nätverk-**Översikt** öppnar samma formulär.
+Gå till **Nätverk → Devices** och klicka på **Lägg till enhet**. **Lägg till enhet** på Nätverk-**Översikt** öppnar samma formulär.
 
 ### Skriv enhetens adress
 Skriv dess IP-adress eller värdnamn i **Värdnamn**. Lämna **Namn** tomt för att namnge enheten efter dess värdnamn.
 
 ### Kontrollera platsen och sonden
-Välj den **Site** som enheten finns på, om du använder platser. **Sond** fyller i sig själv med platsens standardsond, eller med projektets enda anpassade sond; se till att det är en sond som kan nå enheten.
+Välj den **Plats** som enheten finns på, om du använder platser. **Sond** fyller i sig själv med platsens standardsond, eller med projektets enda anpassade sond; se till att det är en sond som kan nå enheten.
 
 ### Lägg till enheten
-Klicka på **Add Device**. Inom ett par minuter pingar sonden enheten och dess status blir **Up** eller **Down**. Med SNMP-autentiseringsuppgifter fylls även enhetens översikt i med dess identitet, gränssnitt och hälsa efter den första lyckade walken.
+Klicka på **Lägg till enhet**. Inom ett par minuter pingar sonden enheten och dess status blir **Uppe** eller **Nere**. Med SNMP-autentiseringsuppgifter fylls även enhetens översikt i med dess identitet, gränssnitt och hälsa efter den första lyckade walken.
 :::
 
 Formuläret är en sida — värdnamnet, ett namn, platsen och sonden — med **SNMP** och **Fler fält** hopfällda nedanför. Det frågar inget om hur enheten övervakas: varje enhet du lägger till avsöks av sin sond, och [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) finns på enhetens sida **Inställningar** för de få enheter som behöver den.
@@ -107,11 +107,11 @@ En enhets uppgifter — namn, beskrivning, roll, plats, etiketter och adresser �
 | Fält | Beskrivning | Obligatoriskt |
 | --- | --- | --- |
 | Beskrivning | Fritext. | Nej |
-| Device Role | Kärnswitch, accessswitch, brandvägg och så vidare. Bestämmer enhetens nivå på kartan och avgränsar varningspolicyer. | Nej |
+| Device Role | Kärnswitch, accessswitch, brandvägg och så vidare. Bestämmer enhetens nivå på kartan och avgränsar larmpolicyer. | Nej |
 | MAC-adress | Enhetens egen MAC. Kartan använder den för att placera en enhet som varken talar LLDP eller CDP på den switchport som lärde sig den; se [Enheter med bara ping och deras switchport](#enheter-med-bara-ping-och-deras-switchport). Lärs oftast in åt dig från en routers ARP-tabell. | Nej |
 | Skapa även en Ping-övervakare för incidenter | Sonden pingar redan enheten och ger den en status; en Ping-monitor är det som gör misslyckade pingar till en incident. Markera rutan så skapas en på värdnamnet, bunden till enheten, när du sparar. Den räknas mot din plan, och dess incidenter är avstängda tills du slår på dem från monitorns sida. | Nej |
 
-När du markerar Ping-monitorn visas **Ping from probes**, monitorns egna sonder. De måste nå enhetens nätverk; lämna fältet tomt för att använda projektets standardsonder. Använd hellre [varningspolicyer](#varningspolicyer) för att varna om många enheter samtidigt.
+När du markerar Ping-monitorn visas **Ping from probes**, monitorns egna sonder. De måste nå enhetens nätverk; lämna fältet tomt för att använda projektets standardsonder. Använd hellre [larmpolicyer](#larmpolicyer) för att varna om många enheter samtidigt.
 
 ### SNMP (hopfällt, valfritt)
 
@@ -158,7 +158,7 @@ De övriga massåtgärderna beskrivs där de hör hemma: **Set OID Collection Te
 
 ## Vad en avsökning faktiskt gör
 
-Varje avsökning av en sondavsökt enhet är en ping. När enheten har användbara SNMP-autentiseringsuppgifter kör sonden också en fullständig SNMP-walk. De två körs sida vid sida och walken väntar aldrig på pingen, så SNMP-utrustning bakom en ACL som kastar ICMP rapporterar ändå **Up**.
+Varje avsökning av en sondavsökt enhet är en ping. När enheten har användbara SNMP-autentiseringsuppgifter kör sonden också en fullständig SNMP-walk. De två körs sida vid sida och walken väntar aldrig på pingen, så SNMP-utrustning bakom en ACL som kastar ICMP rapporterar ändå **Uppe**.
 
 | Resultat | Enhet med bara ping | Enhet med SNMP-autentiseringsuppgifter |
 | --- | --- | --- |
@@ -175,12 +175,12 @@ Paketförlusten återanvänder [Ping-monitorns](/docs/monitor/ping-monitor) seri
 
 ### "SNMP failing" är inte "Down"
 
-En enhet som svarar på ping men vars walk misslyckas är **Up**, markerad med **SNMP failing**, och båda halvorna spelar roll:
+En enhet som svarar på ping men vars walk misslyckas är **Uppe**, markerad med **SNMP failing**, och båda halvorna spelar roll:
 
 - Den är uppe eftersom något svarar på den adressen. Att färga den röd skulle lägga en enhet som fungerar utmärkt i din incidentstatistik.
 - Den är SNMP failing eftersom dess gränssnitt, inventarium och hälso-OID:er har slutat uppdateras, nästan alltid på grund av autentiseringsuppgifter, en avstängd SNMP-agent eller en ACL. Inget annat på sidan skulle tala om för dig att siffrorna har frusit.
 
-En enhet vars ping och walk båda misslyckas är helt enkelt **Down**, så markeringen visas bara någonsin bredvid en grön status.
+En enhet vars ping och walk båda misslyckas är helt enkelt **Nere**, så markeringen visas bara någonsin bredvid en grön status.
 
 ### Läsa en enhets status
 
@@ -188,8 +188,8 @@ Varje ställe som visar en enhet — listan Devices, en plats Devices-sida, öve
 
 | Utslag | Betyder |
 | --- | --- |
-| **Up** | Den senaste avsökningen (ping eller SNMP), eller den bundna monitorn, nådde enheten. |
-| **Down** | Den senaste avsökningen (ping eller SNMP), eller den bundna monitorn, kunde inte nå enheten. |
+| **Uppe** | Den senaste avsökningen (ping eller SNMP), eller den bundna monitorn, nådde enheten. |
+| **Nere** | Den senaste avsökningen (ping eller SNMP), eller den bundna monitorn, kunde inte nå enheten. |
 | **Väntar** | Inget utslag än: aldrig avsökt, ingen sond tilldelad eller ingen monitor bunden. |
 
 | Tillägg | Visas när | Vad du gör |
@@ -269,7 +269,7 @@ De flesta enheter behöver inte det här. Varje sondavsökt enhet har redan en n
 
 ## Avsökning och datainsamling
 
-Avsökningen finns på enhetens sida **Inställningar**, på kortet **Polling & Data Collection** (**Redigera Polling**). Standardvärdena passar en ny enhet, så den behöver ingen finjustering:
+Avsökningen finns på enhetens sida **Inställningar**, på kortet **Polling & Data Collection** (**Redigera Hämtning**). Standardvärdena passar en ny enhet, så den behöver ingen finjustering:
 
 | Inställning | Beskrivning | Standard |
 | --- | --- | --- |
@@ -289,7 +289,7 @@ Allt från **Walk Interfaces** och nedåt kräver SNMP-autentiseringsuppgifter: 
 
 Med **Walk Interfaces** påslaget och autentiseringsuppgifter hittade följer varje avsökning varje gränssnitts drifts- och administrativa status, bitar in och ut, utnyttjande och fel. Samma walk samlar in LLDP- och CDP-grannarna för kartan.
 
-Tysta ett gränssnitt på enhetens sida **Interfaces**, för en labbport eller en länk som är urkopplad med flit, så stannar det i inventariet men lämnar varningar och mätvärden. En misslyckad walk rensar aldrig halva det insamlade: den senaste ögonblicksbilden av gränssnitten ligger kvar, och enheten markeras med **SNMP failing** så att ingen tar den för en aktuell.
+Tysta ett gränssnitt på enhetens sida **Gränssnitt**, för en labbport eller en länk som är urkopplad med flit, så stannar det i inventariet men lämnar larm och mätvärden. En misslyckad walk rensar aldrig halva det insamlade: den senaste ögonblicksbilden av gränssnitten ligger kvar, och enheten markeras med **SNMP failing** så att ingen tar den för en aktuell.
 
 ### Tillverkarnas hälsomallar
 
@@ -322,7 +322,7 @@ I redigeraren **Health OIDs** tillämpar **Vendor Health Template** en färdig u
 
 Mallens OID:er kopieras till enhetens egen lista, där du kan beskära eller utöka dem. När den första walken har identifierat tillverkaren erbjuder enhetens översikt den matchande mallen så länge den skulle lägga till något, och **Lägg till hälsokontroller** lägger till den med ett klick. Matchningen läser enhetens `sysObjectID`, och dess `sysDescr` där ett enterprisenummer rymmer två operativsystem: Extreme Fabric Engine på universell hårdvara rapporterar samma enterprisenummer (1916) som EXOS, och bara dess beskrivning (`…-FabricEngine (9.0.4.0)`) skiljer dem åt. UniFi-accesspunkter skiljs från Ubiquitis routrar på samma sätt (`U6-Pro 6.6.50.15098`), även när äldre firmware svarar med Net-SNMP:s gren, och IQ Engine-accesspunkter från de Aerohive-switchar som delar deras gren (`AP230, HiveOS 8.2r1`).
 
-Enheter med **Auto-Apply Vendor Health Template** påslaget får mallens OID:er och tabeller vid sin första avsökning: enheter som en regel för automatisk import tar in, och enheter som importeras från **Review Results** med reglaget för tillverkarmall påslaget, vilket det är om du inte stänger av det. För att ge många enheter deras mall på en gång, som en upptäckt flotta från tiden innan reglaget fanns, markerar du dem i listan **Devices** och använder **Tillämpa tillverkarmall** (se [Ändra många enheter på en gång](#ändra-många-enheter-på-en-gång)).
+Enheter med **Auto-Apply Vendor Health Template** påslaget får mallens OID:er och tabeller vid sin första avsökning: enheter som en regel för automatisk import tar in, och enheter som importeras från **Granska resultat** med reglaget för tillverkarmall påslaget, vilket det är om du inte stänger av det. För att ge många enheter deras mall på en gång, som en upptäckt flotta från tiden innan reglaget fanns, markerar du dem i listan **Devices** och använder **Tillämpa tillverkarmall** (se [Ändra många enheter på en gång](#ändra-många-enheter-på-en-gång)).
 
 Att tillämpa en tillverkarmall är en engångskopia, så inget sprids när mallen ändras. Använd hellre en **OID Collection Template** för allt utöver en enskild enhet; tillverkarmallarna erbjuds som utgångspunkt när du skapar en.
 
@@ -330,7 +330,7 @@ Att tillämpa en tillverkarmall är en engångskopia, så inget sprids när mall
 
 En **OID Collection Template** (**Nätverk → Inställningar → OID Collection Templates**) är en namngiven OID-lista, oftast namngiven efter en enhetstyp som "Cisco Catalyst 9300", som hur många enheter som helst kopplas till. Kopplingen är levande, inte en kopia: en enhets OID-lista sätts ihop vid varje avsökning, så att redigera en mall ändrar vad varje kopplad enhet samlar in vid sin nästa avsökning, utan något synkroniseringssteg.
 
-Innan du bygger en, kontrollera att du behöver den. Bitar in och ut per port, driftstatus, utnyttjande och fel per sekund samlas in för varje port vid varje avsökning utan några OID:er alls (se [Walk av gränssnitt](#walk-av-gränssnitt)), och de kan redan ge varningar per port. Mallar är till för det som inte är per port: CPU, minne, temperatur, fläktar, nätaggregat, BGP-peers.
+Innan du bygger en, kontrollera att du behöver den. Bitar in och ut per port, driftstatus, utnyttjande och fel per sekund samlas in för varje port vid varje avsökning utan några OID:er alls (se [Walk av gränssnitt](#walk-av-gränssnitt)), och de kan redan ge larm per port. Mallar är till för det som inte är per port: CPU, minne, temperatur, fläktar, nätaggregat, BGP-peers.
 
 Om du kommer från Zabbix:
 
@@ -345,14 +345,14 @@ Om du kommer från Zabbix:
 | Trigger-prototyp på en sådan tabell | Ett kriterium SNMP Table Value eller SNMP Table Row Is Unhealthy med **Row** satt till `*` |
 | Värdgrupp | Etiketter |
 | Åtgärden "Link template on host discovery" | En regels **OID Collection Template** för automatisk import |
-| Åtgärd på en värdgrupp ("varna för varje switch") | En [varningspolicy](#varningspolicyer) |
+| Åtgärd på en värdgrupp ("varna för varje switch") | En [larmpolicy](#larmpolicyer) |
 
-En OID i en mall samlas in som den är skriven, så en OID som anger en rad i en tabell (`…ifSpeed.3`) samlar bara in den raden, vad som än finns på index 3 den dag som avsöks. Allt som är en lista — tunnlar, radior, fläktar, grannar — hör hemma i en [SNMP-tabell](#snmp-tabeller), som walkar varje rad och följer rader när de kommer och går. Gränssnittsdata per port behöver ingetdera: gränssnittswalken registrerar driftstatus, bitar in och ut per sekund, utnyttjande och en sammanlagd felfrekvens per sekund som serier. Fel per riktning, kasserade paket, administrativ status och länkhastighet går till enhetens gränssnittsinventarium, men är inte serier och kan inte ge varningar.
+En OID i en mall samlas in som den är skriven, så en OID som anger en rad i en tabell (`…ifSpeed.3`) samlar bara in den raden, vad som än finns på index 3 den dag som avsöks. Allt som är en lista — tunnlar, radior, fläktar, grannar — hör hemma i en [SNMP-tabell](#snmp-tabeller), som walkar varje rad och följer rader när de kommer och går. Gränssnittsdata per port behöver ingetdera: gränssnittswalken registrerar driftstatus, bitar in och ut per sekund, utnyttjande och en sammanlagd felfrekvens per sekund som serier. Fel per riktning, kasserade paket, administrativ status och länkhastighet går till enhetens gränssnittsinventarium, men är inte serier och kan inte ge larm.
 
 Det finns tre sätt att koppla enheter, och i en flotta som discovery fortsätter att hitta spelar det tredje störst roll:
 
 - En enhet i taget, på enhetens kort **Polling & Data Collection**.
-- I bulk, genom att markera enheter i listan **Devices** och använda **Set OID Collection Template**. Listans kolumn **Template** visar vilka enheter som är kopplade till vad.
+- I bulk, genom att markera enheter i listan **Devices** och använda **Set OID Collection Template**. Listans kolumn **Mall** visar vilka enheter som är kopplade till vad.
 - Automatiskt, genom att sätta en OID Collection Template på en regel för automatisk import, så att varje enhet som en skanning importerar kopplas i samma ögonblick som den skapas.
 
 En enhet samlar först in mallens OID:er och sedan sina egna **Device-Specific Health OIDs**. När båda anger samma OID samlas den in en gång, med enhetens namn och beskrivning som vinnare, och mallens poster behåller sin plats, så enhetsspecifika tillägg kan aldrig tränga undan dem.
@@ -386,12 +386,12 @@ Långa OID-listor delas upp på flera SNMP GET-förfrågningar så att varje få
 
 En enhets sida **SNMP-walk**, under **Mer** i dess meny, visar varje OID som enheten svarar på, med typ, värde och, där OneUptime känner MIB:en, namn. Det är den `snmpwalk` du annars skulle köra från sondens nätverk, körd av enhetens egen sond med de autentiseringsuppgifter som OneUptime sparar för den, och som aldrig når din webbläsare.
 
-Skriv en numerisk OID under **Start-OID**, eller tryck på en av startpunkterna under det: **Allt**, **System**, **Interfaces**, **Värdresurser** eller **Leverantörsspecifik**. Tryck sedan på **Starta walk**. Sonden plockar upp walken inom tio sekunder och skickar en förfrågan i taget, högst 1 000 OID:er på högst 45 sekunder, så att en walk aldrig översvämmar enheten. Finns det mer att läsa läser **Fortsätt walk** nästa 1 000 från där den stannade. En enhet har en walk åt gången, och dess walkar sparas i två dagar.
+Skriv en numerisk OID under **Start-OID**, eller tryck på en av startpunkterna under det: **Allt**, **System**, **Gränssnitt**, **Värdresurser** eller **Leverantörsspecifik**. Tryck sedan på **Starta walk**. Sonden plockar upp walken inom tio sekunder och skickar en förfrågan i taget, högst 1 000 OID:er på högst 45 sekunder, så att en walk aldrig översvämmar enheten. Finns det mer att läsa läser **Fortsätt walk** nästa 1 000 från där den stannade. En enhet har en walk åt gången, och dess walkar sparas i två dagar.
 
 Varje rad säger var dess OID är känd: ett värde som en leverantörs hälsomall samlar in, en kolumn i en leverantörsmalls SNMP-tabell, en räknare som gränssnittswalken redan visar i diagram för varje port, eller en OID under leverantörens MIB. Från en rad:
 
 - **Samla in** lägger till OID:n i enhetens **Device-Specific Health OIDs**: varje avsökning samlar in den från och med nästa, och enhetens sida **Mätvärden** visar den i ett diagram. På en enhet som är kopplad till en OID Collection Template kan radens meny i stället lägga till den i mallen, för varje enhet som använder den.
-- **Skapa varning** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium på OID:n. En räknare börjar på **SNMP OID Rate (per second)** och en mätare på **SNMP OID Value**, båda över ett tröskelvärde du själv anger; en drifttid varnar under tio minuter (enheten startade om), allt annat när det ändras från det lästa värdet.
+- **Skapa larm** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium på OID:n. En räknare börjar på **SNMP OID Rate (per second)** och en mätare på **SNMP OID Value**, båda över ett tröskelvärde du själv anger; en drifttid varnar under tio minuter (enheten startade om), allt annat när det ändras från det lästa värdet.
 - **Kopiera OID**, i radens meny, kopierar OID:n.
 
 En walk som misslyckas säger varför, och vad du ska kontrollera: en enhet som inte svarar (SNMP avstängt, UDP 161 blockerad eller, för v1 och v2c, en felaktig community-sträng, som en agent ignorerar utan ett ord), en SNMPv3-användare, ett lösenord eller ett protokoll som enheten avvisade, eller en del av trädet som autentiseringsuppgifternas SNMP-vy utelämnar. En walk som stannar halvvägs behåller det den har läst. En walk kräver behörigheten **Create Network Device Diagnostic** och en sond som är ny nog för SNMP-walk: med en äldre ber sidan dig att uppdatera den.
@@ -402,7 +402,7 @@ En del av det en enhet vet är en lista: en rad per IPsec-tunnel, Wi-Fi-radio, S
 
 | Fält | Vad det gör |
 | --- | --- |
-| Namn och nyckel | Vad tabellen heter. Nyckeln (bokstäver, siffror och understreck, skapad från namnet när den lämnas tom) är det som kriterier, mätvärden och mallvariabler använder, så att byta namn på en tabell bryter aldrig en varning. |
+| Namn och nyckel | Vad tabellen heter. Nyckeln (bokstäver, siffror och understreck, skapad från namnet när den lämnas tom) är det som kriterier, mätvärden och mallvariabler använder, så att byta namn på en tabell bryter aldrig ett larm. |
 | Typ | Vad raderna är: VPN-tunnlar, Wi-Fi-accesspunkter, Wi-Fi-radior, Wi-Fi-SSID:er, routinggrannar, hårdvara eller generiskt. Wi-Fi-typerna matar enhetens [Wi-Fi-sida](#fliken-wi-fi). |
 | Kolumner | Kolumn-OID:erna som ska samlas in (tabellpostens OID plus kolumnnumret, till exempel `1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9` för en Sophos-tunnels status), var och en med ett namn och eventuellt en enhet, en roll (status, band, kanal, kanalbredd, sändeffekt, klienter, brusgolv, utnyttjande, SSID), värdeetiketter och friska värden. |
 | Radnamn | Valfria kolumner vars värden namnger varje rad, till exempel en tunnels anslutningsnamn. Utan dem namnges rader efter sitt index. Ett namn kan komma från en syskontabell som delar indexet (Fabric Engine namnger IS-IS-adjacencies från `rcIsisAdjHostName`), eller från en överordnad tabell vars index inleder den här tabellens (Aruba Instant namnger varje radio efter dess accesspunkt). En tabell som indexeras efter ett namn (ArubaOS indexerar sina SSID:er efter SSID) namnges efter sitt avkodade index. |
@@ -469,7 +469,7 @@ SFP-, SFP+-, SFP28- och QSFP-optiken i en enhets portar läses vid varje avsökn
 - Enhetens egna tröskelvärden: de låga och höga varnings- och larmgränser som switchen rapporterar för varje mätning. En modul bedöms mot dem och inget annat; OneUptime hittar aldrig på egna gränser.
 - En månads mottagen effekt: dygnsgenomsnittet för den svagaste lanen under de senaste 30 dagarna. En smutsig kontakt, en böjd fiber eller en modul som slits syns här veckor innan länken faller.
 
-Enhetens sida **Interfaces** öppnas med ett kort **Transceivrar**: problemen först, sedan en rad per modul med dess port, vad den är, en status i ord och dess mätningar. En mätning över ett tröskelvärde färgas och namnges (**Lågt larm**, **Hög varning**), och ett litet diagram över månadens mottagna effekt står bredvid RX-värdet; en QSFP:s rad visar dess sämsta lane. Klicka på en rad för att se varje lane mot varje tröskelvärde, trenden för mottagen effekt med den bästa dagen och modulens identitet. En enhet som inte rapporterar någon optik, med bara kopparportar eller en agent som inte exponerar dem, visar inget kort alls.
+Enhetens sida **Gränssnitt** öppnas med ett kort **Transceivrar**: problemen först, sedan en rad per modul med dess port, vad den är, en status i ord och dess mätningar. En mätning över ett tröskelvärde färgas och namnges (**Lågt larm**, **Hög varning**), och ett litet diagram över månadens mottagna effekt står bredvid RX-värdet; en QSFP:s rad visar dess sämsta lane. Klicka på en rad för att se varje lane mot varje tröskelvärde, trenden för mottagen effekt med den bästa dagen och modulens identitet. En enhet som inte rapporterar någon optik, med bara kopparportar eller en agent som inte exponerar dem, visar inget kort alls.
 
 | Status | Betyder |
 | --- | --- |
@@ -496,11 +496,11 @@ Enhetens `sysObjectID` väljer var mätningarna kommer ifrån: tillverkarens ege
 
 Den första avsökningen läser allt. Senare avsökningar läser bara det som ändras — mätningarna, och de serienummer som avslöjar en utbytt modul — och resten (tröskelvärden, identitet, vilken modul som sitter i vilken port) läses om när en modul sätts i, tas ut eller byts, och minst en gång i timmen. En enhet utan någon av dessa MIB:ar kostar en förfrågan per provad MIB. Läsningen har en egen budget på 20 sekunder, och en läsning som får timeout eller avbryts behåller enhetens senaste bra moduler i stället för att rapportera dem som borta.
 
-En modul som saknas i en aktiverad port visas direkt som **Inte identifierad** på sidan, och räknas som saknad för varningar efter två avsökningar i rad, så en agent som svarar tomt en gång kallar inte ut någon. En modul som dras ur en avstängd port glöms helt enkelt bort, och ett tystat gränssnitt behåller sin modul på sidan men ger aldrig varningar.
+En modul som saknas i en aktiverad port visas direkt som **Inte identifierad** på sidan, och räknas som saknad för larm efter två avsökningar i rad, så en agent som svarar tomt en gång kallar inte ut någon. En modul som dras ur en avstängd port glöms helt enkelt bort, och ett tystat gränssnitt behåller sin modul på sidan men ger aldrig larm.
 
 Varje mätning är också ett enhetsmätvärde, en serie per port och lane, i de enheter som sidan visar: `oneuptime.monitor.snmp.transceiver.temperature` (°C), `oneuptime.monitor.snmp.transceiver.voltage` (V), `oneuptime.monitor.snmp.transceiver.bias.current` (mA), `oneuptime.monitor.snmp.transceiver.tx.power` och `oneuptime.monitor.snmp.transceiver.rx.power` (dBm), med attributen `interfaceName`, `interfaceIndex` och `lane`. En instrumentpanel kan visa en länks ljus över månader, och en mätvärdesmonitor kan varna för det.
 
-En utredning av OneUptime AI av en incident eller varning från en nätverksenhetsmonitor börjar med optiken i de berörda portarna: fortfarande identifierad eller inte, varje mätning mot enhetens tröskelvärden och de senaste veckornas mottagna effekt. AI:n kan också läsa vilken enhets optik som helst när du frågar om den.
+En utredning av OneUptime AI av en incident eller larm från en nätverksenhetsmonitor börjar med optiken i de berörda portarna: fortfarande identifierad eller inte, varje mätning mot enhetens tröskelvärden och de senaste veckornas mottagna effekt. AI:n kan också läsa vilken enhets optik som helst när du frågar om den.
 
 ### Enhetsidentitet
 
@@ -553,7 +553,7 @@ Bara en SNMP-skanning ber om autentiseringsuppgifter: väljer du **SNMP** tillko
 Klicka på **Starta skanning**. Sonden skannar intervallet och rapporterar hur många värdar den skannade och hur många som svarade: hur många som svarade på SNMP, eller, vid en ICMP-skanning, hur många som svarade på ping.
 
 ### Importera det den hittade
-Klicka på **Review Results** på skanningen, välj de värdar som ska importeras och klicka på **Nästa**. Välj hur ofta de kontrolleras och om var och en får en monitor, och importera dem sedan; se [Import av det en skanning hittade](#import-av-det-en-skanning-hittade).
+Klicka på **Granska resultat** på skanningen, välj de värdar som ska importeras och klicka på **Nästa**. Välj hur ofta de kontrolleras och om var och en får en monitor, och importera dem sedan; se [Import av det en skanning hittade](#import-av-det-en-skanning-hittade).
 :::
 
 | Fält | Beskrivning | Obligatoriskt |
@@ -570,7 +570,7 @@ Hopfällda under **Fler fält** i första steget, för de skanningar som behöve
 | Namn | Vad skanningen är till för, så att du kan skilja den från andra skanningar. Listan visar skanningsmålet när detta är tomt. | Tomt |
 | Slå upp Windows-namn (NetBIOS) | Fråga varje värd som saknar SNMP-systemnamn efter dess NetBIOS-namn, dess Windows-datornamn, via UDP 137. Det namnet vinner över värdens omvända DNS-namn. Bara privata adresser och anpassade sonder; se [Så namnges upptäckta enheter](#så-namnges-upptäckta-enheter). | På |
 | Name devices by their short hostname | Namnge importerade enheter efter första delen av ett fullständigt kvalificerat värdnamn: `core-sw-01` i stället för `core-sw-01.corp.example.com`. | Av |
-| Repeat this scan | Kör skanningen igen med ett intervall, **Rescan Interval (Minutes)**, på minst 15 minuter, för att hålla discovery igång; se [regler för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import). Värdar som en upprepad skanning hittar väntar på din granskning om inte en regel för automatisk import matchar dem. | Av |
+| Repeat this scan | Kör skanningen igen med ett intervall, **Intervall för ny skanning (minuter)**, på minst 15 minuter, för att hålla discovery igång; se [regler för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import). Värdar som en upprepad skanning hittar väntar på din granskning om inte en regel för automatisk import matchar dem. | Av |
 
 ### Notation för skanningsmål
 
@@ -609,16 +609,16 @@ Varje värd som en skanning hittar importeras som en sondavsökt enhet, med skan
 - Värdar som svarade på SNMP importeras med adressen som svarade som värdnamn, namnet valt enligt nedan och de autentiseringsuppgifter som svarade, så en v3-skanning importerar enheter som är redo att walkas via v3 och som genast börjar samla in gränssnitt och inventarium.
 - Värdar som svarade på ping men inte på SNMP — varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och de värdar som en SNMP-skanning inte kunde identifiera — importeras utan autentiseringsuppgifter. Sonden pingar dem enligt deras schema; lägg till autentiseringsuppgifter senare, på enheten eller som en profil på den eller dess plats, så börjar samma sond också walka dem.
 
-En värd som redan är registrerad som enhet är markerad **Redan tillagd** och importeras aldrig två gånger. Avsökningen ger varje importerad enhet en status; för att få veta när en går ner ger du den en monitor: välj **En övervakning för varje enhet** när du importerar, eller låt en [varningspolicy](#varningspolicyer) ge en till varje enhet den täcker.
+En värd som redan är registrerad som enhet är markerad **Redan tillagd** och importeras aldrig två gånger. Avsökningen ger varje importerad enhet en status; för att få veta när en går ner ger du den en monitor: välj **En övervakning för varje enhet** när du importerar, eller låt en [larmpolicy](#larmpolicyer) ge en till varje enhet den täcker.
 
 När värdarna du importerar omfattar SNMP-värdar erbjuder importens steg **Övervakning** reglaget **Tillämpa varje SNMP-värds tillverkarmall vid första avsökningen (rekommenderas)**, påslaget som standard: varje importerad SNMP-enhet får den [tillverkarmall](#tillverkarnas-hälsomallar) som passar det dess första walk rapporterar, dess hälso-OID:er och SNMP-tabeller, precis som enheter som en regel för automatisk import tar in. En enhet vars tillverkare saknar mall lämnas som den är. Stäng av reglaget för en batch som ska börja utan.
 
 ### Import av det en skanning hittade
 
-**Review Results** öppnar skanningens värdar, de som hittats hittills om den fortfarande pågår, i en dialogruta som importerar dem i tre steg:
+**Granska resultat** öppnar skanningens värdar, de som hittats hittills om den fortfarande pågår, i en dialogruta som importerar dem i tre steg:
 
 1. Steget **Välj enheter** visar varje värd under det namn dess enhet får, med adress och tillverkare; alla värdar som inte lagts till ännu är markerade från början. Sök på namn, DNS-namn, adress eller tillverkare, eller skriv ett subnät (`10.48.11.0/24`) eller ett oktettintervall (`10.48.11-12.0-255`) för att visa värdarna i det. **Svar** (**SNMP** eller **Ingen SNMP**) och **Namn** (**Namngivna** eller **Endast adress**) smalnar av listan ytterligare. Kryssrutan ovanför listan markerar eller avmarkerar alla värdar som visas, på alla sidor, och bara de markerade värdar som listan visar importeras.
-2. Steget **Övervakning** frågar med **Kontrollera var** hur ofta skanningens sond kontrollerar enheterna, vilket blir varje enhets **Polling Interval (Minutes)**, och vem som får veta när en går ner. **Endast status** importerar dem med en status och utan monitor. **En övervakning för varje enhet** ger var och en en monitor från den mall du väljer under **Övervakningsmall**: monitorn från en mall för nätverksenheter läser enhetens avfrågningar, och monitorn från en Ping-, IP-, Port- eller NTP-mall kontrollerar enhetens egen adress från skanningens sond enligt mallens schema. Mallar av andra typer kan inte kontrollera en enhet och visas inte; **Hantera mallar** öppnar dina mallar i en ny flik, och en mall du lägger till där finns i listan när du kommer tillbaka. Före importen visar steget vad var och en av mallens kontroller utlöser: en incident, en varning eller bara monitorns status. Kontrollerna i en mall för nätverksenheter som läser en SNMP-walk står under **Endast SNMP-enheter**, eftersom värdar som bara svarade på ping pingas, men walkas inte, förrän de har SNMP-autentiseringsuppgifter; när alla värdar bara svarade på ping ryms de kontrollerna på en rad. Mallen **Network device alert pack (recommended)** erbjuds först, och ett projekt som inte har den ännu får den när du importerar. Sammanfattningen bredvid valen säger vad importen kommer att skapa, även hur många enheter din plan inte har plats att övervaka.
+2. Steget **Övervakning** frågar med **Kontrollera var** hur ofta skanningens sond kontrollerar enheterna, vilket blir varje enhets **Polling Interval (Minutes)**, och vem som får veta när en går ner. **Endast status** importerar dem med en status och utan monitor. **En övervakning för varje enhet** ger var och en en monitor från den mall du väljer under **Övervakningsmall**: monitorn från en mall för nätverksenheter läser enhetens avfrågningar, och monitorn från en Ping-, IP-, Port- eller NTP-mall kontrollerar enhetens egen adress från skanningens sond enligt mallens schema. Mallar av andra typer kan inte kontrollera en enhet och visas inte; **Hantera mallar** öppnar dina mallar i en ny flik, och en mall du lägger till där finns i listan när du kommer tillbaka. Före importen visar steget vad var och en av mallens kontroller utlöser: en incident, ett larm eller bara monitorns status. Kontrollerna i en mall för nätverksenheter som läser en SNMP-walk står under **Endast SNMP-enheter**, eftersom värdar som bara svarade på ping pingas, men walkas inte, förrän de har SNMP-autentiseringsuppgifter; när alla värdar bara svarade på ping ryms de kontrollerna på en rad. Mallen **Network device alert pack (recommended)** erbjuds först, och ett projekt som inte har den ännu får den när du importerar. Sammanfattningen bredvid valen säger vad importen kommer att skapa, även hur många enheter din plan inte har plats att övervaka.
 3. Steget **Importera** räknar enheter och monitorer var för sig, allteftersom var och en skapas, redan finns eller misslyckas. I slutet länkar det till det som skapades och visar under orsaken varje värd det inte importerade och varje enhet det importerade utan dess monitor. Ett nytt försök provar bara de misslyckade värdarna igen och skapar aldrig något två gånger. **Stoppa importen** stannar efter värden som importeras nu och behåller det som skapades.
 
 Importen körs på servern och agerar för din räkning: varje enhet och varje monitor skapas med dina behörigheter, och det du inte får skapa listas med orsaken. Du kan stänga dialogrutan när som helst: skanningens rad visar hur långt importen har kommit, och **Visa förlopp** öppnar den igen. **Importera fler enheter** börjar om med de värdar som är kvar. En import tar upp till 5 000 värdar; importera en större skanning i delar, per subnät eller efter vad värdarna svarade på. Ett projekts importer körs en i taget: en som begärs medan en annan körs väntar på den.
@@ -632,11 +632,11 @@ En upptäckt värd namnges efter det första av dessa som den har:
 3. Dess omvända DNS-namn, den PTR-post som sonden slår upp efter skanningen.
 4. Dess IP-adress.
 
-Enhetens egna namn kommer först eftersom det är de namn som dess ägare använder: en Windows-värd som heter `WB0024KDS03` behåller det namnet även när dess omvända zon kallar den `wb-0024-kds03.wbhq.com`. Det omvända DNS-namnet behålls också: **Review Results** visar det bredvid adressen, och enheten behåller det som sitt **DNS Name**. NetBIOS kortar ett datornamn till 15 tecken, så ett NetBIOS-namn som är början på ett längre omvänt DNS-namn (`WB-0024-KITCHEN` för `wb-0024-kitchen-display-03.wbhq.com`) får ge vika för det omvända DNS-namnet.
+Enhetens egna namn kommer först eftersom det är de namn som dess ägare använder: en Windows-värd som heter `WB0024KDS03` behåller det namnet även när dess omvända zon kallar den `wb-0024-kds03.wbhq.com`. Det omvända DNS-namnet behålls också: **Granska resultat** visar det bredvid adressen, och enheten behåller det som sitt **DNS Name**. NetBIOS kortar ett datornamn till 15 tecken, så ett NetBIOS-namn som är början på ett längre omvänt DNS-namn (`WB-0024-KITCHEN` för `wb-0024-kitchen-display-03.wbhq.com`) får ge vika för det omvända DNS-namnet.
 
-**Review Results** visar det namn en enhet kommer att få, och den får samma namn oavsett om du importerar den där eller om en [regel för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import) gör det. Enhetens värdnamn är alltid dess IP-adress. Så länge en enhets namn fortfarande är det som discovery gav den, visar dess översikt var namnet kom ifrån som **Namnkälla**.
+**Granska resultat** visar det namn en enhet kommer att få, och den får samma namn oavsett om du importerar den där eller om en [regel för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import) gör det. Enhetens värdnamn är alltid dess IP-adress. Så länge en enhets namn fortfarande är det som discovery gav den, visar dess översikt var namnet kom ifrån som **Namnkälla**.
 
-**Name devices by their short hostname** kortar ett fullständigt kvalificerat namn till dess första etikett: `core-sw-01.corp.example.com` importeras som `core-sw-01`. Det gäller ett omvänt DNS-namn och ett `sysName` som är ett fullständigt kvalificerat värdnamn; allt annat (`Core Switch`, `ubuntu-22.04`, en IP-adress) lämnas som det är. Det ändrar bara vad enheter heter, så ingen ny skanning behövs: **Review Results** och regler för automatisk import använder det nästa gång de namnger en värd, och enheter som redan är importerade behåller sina namn.
+**Namnge enheter efter deras korta värdnamn** kortar ett fullständigt kvalificerat namn till dess första etikett: `core-sw-01.corp.example.com` importeras som `core-sw-01`. Det gäller ett omvänt DNS-namn och ett `sysName` som är ett fullständigt kvalificerat värdnamn; allt annat (`Core Switch`, `ubuntu-22.04`, en IP-adress) lämnas som det är. Det ändrar bara vad enheter heter, så ingen ny skanning behövs: **Granska resultat** och regler för automatisk import använder det nästa gång de namnger en värd, och enheter som redan är importerade behåller sina namn.
 
 En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS Name**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Devices** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
 
@@ -656,7 +656,7 @@ Windows- och Samba-värdar saknar ofta SNMP-agent, så utan detta listas de med 
 :::
 
 :::details När en värd saknar namn
-En värd som listas med sin adress i **Review Results** visar **No name found** och ett (i) bredvid. Håll muspekaren över (i), eller ge den fokus, för att se vad varje sätt att namnge den gav:
+En värd som listas med sin adress i **Granska resultat** visar **No name found** och ett (i) bredvid. Håll muspekaren över (i), eller ge den fokus, för att se vad varje sätt att namnge den gav:
 
 - SNMP: skanningen kontrollerade inte SNMP, värden svarade inte, eller den svarade utan systemnamn eller med ett som inte kan vara ett namn, som `localhost` eller en IP-adress.
 - NetBIOS: alternativet är avslaget för skanningen, skanningen kördes på en global sond, adressen tillfrågades inte (en publik adress, eller värd- eller tidsgränsen nåddes), eller värden svarade inte på UDP 137.
@@ -666,7 +666,7 @@ Sonden slår upp namn via sina egna DNS-servrar, de i `/etc/resolv.conf` där de
 :::
 
 :::details Bättre namn som hittas senare
-En skanning hittar inte alltid en värds bästa namn första gången. De delresultat som en pågående skanning laddar upp har inga namn, eftersom omvända DNS- och NetBIOS-namn slås upp en gång, efter skanningen, så en värd som importeras från dem — av en regel för automatisk import, eller från **Review Results** medan skanningen fortfarande pågår — namnges först efter sin IP-adress. Ett NetBIOS-svar kan gå förlorat, och en värd kan få en SNMP-agent efter att den har importerats.
+En skanning hittar inte alltid en värds bästa namn första gången. De delresultat som en pågående skanning laddar upp har inga namn, eftersom omvända DNS- och NetBIOS-namn slås upp en gång, efter skanningen, så en värd som importeras från dem — av en regel för automatisk import, eller från **Granska resultat** medan skanningen fortfarande pågår — namnges först efter sin IP-adress. Ett NetBIOS-svar kan gå förlorat, och en värd kan få en SNMP-agent efter att den har importerats.
 
 Därför kommer en enhet som discovery har namngett ihåg var dess namn kom ifrån. När en färdig skanning av dess adress hittar ett bättre namn — dess SNMP-systemnamn eller NetBIOS-namn i stället för dess omvända DNS-namn, vilket namn som helst i stället för dess IP-adress — byter enheten namn till det namn som en import skulle ge den nu, och dess DNS Name fylls i om den saknar ett. Om en annan enhet redan har det namnet namnges enheten med sin adress inom parentes (`FILESRV01 (10.0.0.5)`), och om även det är upptaget behåller den sitt namn.
 
@@ -677,16 +677,16 @@ Ett namn blir bara bättre: en enhet behåller sitt namn när dess DNS-post änd
 
 Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Auto Import Rules** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#oid-collection-templates) de enheter den importerar får. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
 
-I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Review Results**; tomt är det var 5:e minut. En regel med **Include Ping-Only Hosts** påslaget importerar också värdar som bara svarade på ping, bland dem varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
+I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Granska resultat**; tomt är det var 5:e minut. En regel med **Include Ping-Only Hosts** påslaget importerar också värdar som bara svarade på ping, bland dem varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
 
-Regler har inget eget schema och behöver inget. Aktiverade regler körs själva mot varje skannings resultat när de kommer in, inklusive de delresultat som en lång skanning laddar upp medan den fortfarande pågår, så värdar importeras inom en minut efter att de hittats i stället för i slutet av intervallet. Slå på **Repeat this scan** på en discovery-skanning så blir paret ett stående arrangemang: skanningen skannar sitt intervall igen med ditt intervall, och varje ny värd den hittar importeras utan att någon trycker på något.
+Regler har inget eget schema och behöver inget. Aktiverade regler körs själva mot varje skannings resultat när de kommer in, inklusive de delresultat som en lång skanning laddar upp medan den fortfarande pågår, så värdar importeras inom en minut efter att de hittats i stället för i slutet av intervallet. Slå på **Upprepa den här skanningen** på en discovery-skanning så blir paret ett stående arrangemang: skanningen skannar sitt intervall igen med ditt intervall, och varje ny värd den hittar importeras utan att någon trycker på något.
 
 Att spara en regel tillämpar den också på resultat som projektet redan har: en regel som du skriver eller aktiverar i dag når värdar som upptäckts under de senaste 24 timmarna inom ungefär en minut, så en regel som skrivs efter en enstaka skanning blir inte stående och väntar på en skanning som aldrig körs igen. Äldre resultat lämnas orörda, eftersom att importera en miljö som upptäcktes förra månaden är ett beslut, inte en bieffekt av att spara en regel. Regelns två knappar är sättet att fatta det beslutet, och de når varje skanning i projektet, hur gammal den än är:
 
 - **Dry Run** utvärderar varje färdig skanning och rapporterar vad regeln skulle importera och övervaka. Inget skrivs, så det är det säkra sättet att se vad en regel skulle göra anspråk på innan du aktiverar den i en miljö i drift. En avaktiverad regel kan köras som Dry Run; bara en riktig körning kräver att den är aktiverad, och därför börjar en regel som skapas i instrumentpanelen med **Aktiverad** avslaget: kör en Dry Run och slå sedan på den.
 - **Run Rule** gör samma utvärdering och utför importen.
 
-**Vem får köra en regel.** En körning når varje skanning i projektet, så att trycka på **Dry Run** eller **Run Rule** kräver behörigheter som når hela projektet: behörighet att redigera regeln, att skapa nätverksenheter och - när regeln har en monitormall - att skapa monitorer, var och en med omfattning över alla resurser i projektet. En behörighet som är begränsad till etiketter eller till ägda enheter räcker inte, och ett teams blockering med etiketter på att skapa enheter eller monitorer nekar körningen. **Run Now** för en platstilldelningsregel eller en regel för enhetsetiketter kräver behörighet att redigera regeln och att redigera nätverksenheter, med omfattning över hela projektet på samma sätt (se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now#innan-du-börjar), som namnger varje behörighet).
+**Vem får köra en regel.** En körning når varje skanning i projektet, så att trycka på **Dry Run** eller **Run Rule** kräver behörigheter som når hela projektet: behörighet att redigera regeln, att skapa nätverksenheter och - när regeln har en monitormall - att skapa monitorer, var och en med omfattning över alla resurser i projektet. En behörighet som är begränsad till etiketter eller till ägda enheter räcker inte, och ett teams blockering med etiketter på att skapa enheter eller monitorer nekar körningen. **Kör nu** för en platstilldelningsregel eller en regel för enhetsetiketter kräver behörighet att redigera regeln och att redigera nätverksenheter, med omfattning över hela projektet på samma sätt (se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now#innan-du-börjar), som namnger varje behörighet).
 
 Stora miljöer importeras i avvägda batcher. Att skapa en enhet eller en monitor kör hela pipelinen — platstilldelning, ägare, etiketter och, för monitorer, planen, statusen och arbetet med statussidor — så en körning skapar några hundra av varje åt gången i stället för tiotusentals på en gång. Ett tryck på **Run Rule** driver så många batcher som miljön behöver och rapporterar totalen, så en skanning av 900 routrar är ett tryck. Om en körning stannar med arbete kvar säger rapporten exakt hur mycket ("Stopped at the run cap with 409 active Network Device monitors still to create"), och att trycka på knappen igen fortsätter: värdar som redan är importerade och monitorer som redan är skapade hoppas över, så att köra igen lägger aldrig till två gånger.
 
@@ -710,21 +710,21 @@ Två saker att veta innan du kör en:
 
 En ICMP-skanning hittar bara värdar som svarar på ICMP-eko. Värdar som kastar ping (Windows-värdar som standard, och ofta hanterings-VLAN:er) förblir osynliga för den även när de svarar på SNMP. En SNMP-skanning täcker det fallet: när dess pingomgång inte hittar någon SNMP-svarare alls går den tillbaka och frågar även de tysta adresserna via SNMP. Så om du förväntar dig hanterade enheter i ett intervall och en ICMP-skanning kommer tillbaka tom, byter du dess **Skanningsmetod** till **SNMP**.
 
-## Varningar
+## Larm
 
-Avsökning ger dig status, inventarium och diagram. Incidenter, varningar och utkallningar behöver en monitor, och det finns två sätt att få en: en varningspolicy som håller en monitor på varje enhet i en uppsättning, eller en monitor som du skapar för en enhet.
+Avsökning ger dig status, inventarium och diagram. Incidenter, larm och utkallningar behöver en monitor, och det finns två sätt att få en: en larmpolicy som håller en monitor på varje enhet i en uppsättning, eller en monitor som du skapar för en enhet.
 
-### Varningspolicyer
+### Larmpolicyer
 
-**Nätverk → Inställningar → Alert Policies** är där en flottas varningar skrivs ner en gång. En policy anger vilka enheter (en omfattning av platser, enhetsroller och etiketter) och vad de varnar för (en monitormall för nätverksenheter), så "varje lagerswitch skapar en incident när den blir onåbar" är en rad i stället för tvåhundra monitorer.
+**Nätverk → Inställningar → Alert Policies** är där en flottas larm skrivs ner en gång. En policy anger vilka enheter (en omfattning av platser, enhetsroller och etiketter) och vad de varnar för (en monitormall för nätverksenheter), så "varje lagerswitch skapar en incident när den blir onåbar" är en rad i stället för tvåhundra monitorer.
 
-```mermaid title="Vad en varningspolicy underhåller"
+```mermaid title="Vad en larmpolicy underhåller"
 flowchart TB
     Scope["Omfattning: platser, roller<br/>och etiketter"]
     Template["Monitormall för<br/>nätverksenheter"]
     Match["Varje sondavsökt enhet<br/>som matchar omfattningen"]
     Monitors["En monitor per enhet,<br/>namngiven efter den"]
-    Alerts["Incidenter och varningar"]
+    Alerts["Incidenter och larm"]
     Scope --> Match
     Match --> Monitors
     Template --> Monitors
@@ -741,18 +741,18 @@ OneUptime håller sedan en nätverksenhetsmonitor per matchande enhet, skapad fr
 > [!IMPORTANT]
 > Varje monitor som en policy skapar räknas mot din plan. En policy över en stor miljö är många monitorer från en sparning, så bekräftelsen av den rekommenderade policyn anger projektets antal enheter innan den skapar något.
 
-Tabellens kolumn **Covered Devices** visar **Not counted yet** fram till policyns första synkronisering, och **Last Sync** säger när den var, eller varför den misslyckades.
+Tabellens kolumn **Covered Devices** visar **Inte räknat ännu** fram till policyns första synkronisering, och **Last Sync** säger när den var, eller varför den misslyckades.
 
-Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en monitormall **Network device alert pack (recommended)**, som bär det [rekommenderade varningspaketet](#rekommenderat-varningspaket), och en policy **Alert on every device** som tillämpar den på hela projektet. Mallen hittas igen via en markör i dess beskrivning, så åtgärden skapar aldrig en andra kopia, och det är en monitormall som du också kan använda för monitorer du skapar själv. Smalna av policyns omfattning efteråt om hela projektet är för mycket.
+Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en monitormall **Network device alert pack (recommended)**, som bär det [rekommenderade larmpaketet](#rekommenderat-larmpaket), och en policy **Alert on every device** som tillämpar den på hela projektet. Mallen hittas igen via en markör i dess beskrivning, så åtgärden skapar aldrig en andra kopia, och det är en monitormall som du också kan använda för monitorer du skapar själv. Smalna av policyns omfattning efteråt om hela projektet är för mycket.
 
 ### En enhet i taget
 
-Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade varningspaketet](#rekommenderat-varningspaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
+Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
 
 För att i stället skapa en från **Monitorer**:
 
 1. Gå till **Monitorer** och klicka på **Skapa monitor**.
-2. Välj **Network Device** som monitortyp.
+2. Välj **Nätverksenhet** som monitortyp.
 3. Välj den nätverksenhet som ska varnas för. Allt som rör insamling av data — värdnamn, autentiseringsuppgifter, schema, gränssnittswalks, hälso-OID:er — kommer från enheten; monitorn väljer bara vad som ska varnas för, genom sina kriterier.
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
@@ -761,7 +761,7 @@ En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång 
 
 Om ditt projekt definierar anpassade monitorfält — tillverkare, konfigurationsobjekt, ansvarig tjänst, vad din CMDB än behöver — kan en monitormall fylla i dem. Öppna mallen från **Monitorer → Inställningar → Mallar** och ange dess **Custom Field Defaults**.
 
-Varje monitor som därefter skapas från den mallen får de värdena: de som du skapar med **Skapa övervakning från mall**, och de som en regel för automatisk import eller en varningspolicy skapar när en [discovery-skanning](#upptäck-enheter-med-en-nätverksskanning) tar in tusen enheter på en gång.
+Varje monitor som därefter skapas från den mallen får de värdena: de som du skapar med **Skapa övervakning från mall**, och de som en regel för automatisk import eller en larmpolicy skapar när en [discovery-skanning](#upptäck-enheter-med-en-nätverksskanning) tar in tusen enheter på en gång.
 
 - Ett fält som lämnas tomt i mallen är inget standardvärde: varje monitor fortsätter att fylla i det själv, så en mall kan sätta tillverkaren för en hel switchflotta medan konfigurationsobjektet förblir per enhet.
 - Standardvärden gäller när en monitor skapas, inte för monitorer som redan finns. **Sync Custom Fields to Linked Monitors**, på samma kort, för ut dem till de befintliga monitorerna. Den skriver över de fält som mallen anger, inklusive värden som skrivits för hand, och dess bekräftelse namnger de fälten först; fält som mallen lämnar tomma rörs aldrig.
@@ -770,7 +770,7 @@ En vanlig **Synkronisera från mall** lämnar anpassade fält orörda: att föra
 
 ## Övervakningskriterier
 
-Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar incidenter eller varningar.
+Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar incidenter eller larm.
 
 ### Tillgängliga filtertyper
 
@@ -790,8 +790,8 @@ Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar inci
 | SNMP Transceiver Past Warning Threshold | Samma sak vid varningströskelvärdena; en modul över ett larmtröskelvärde räknas också. | Utvärderas inte |
 | SNMP Transceiver RX Power Drop (in dB) | Hur långt under sitt bästa dygnsgenomsnitt för de senaste 30 dagarna en moduls mottagna effekt ligger. | Utvärderas inte |
 | SNMP Transceiver Reading | En mätning — RX- eller TX-effekt (dBm), temperatur (°C), matningsspänning (V) eller biasström (mA) — mot ett eget värde, för enheter som inte rapporterar tröskelvärden. Uppfyllt när någon lane på någon modul inom omfattningen matchar. | Utvärderas inte |
-| SNMP Table Value | En kolumn i en [SNMP-tabell](#snmp-tabeller), rad för rad. Uppfyllt när någon rad inom omfattningen matchar; Row `*` ger en varning per rad. | Utvärderas inte |
-| SNMP Table Row Is Unhealthy | Sant när en rad inom omfattningen har en status utanför kolumnens friska värden. Row `*` ger en varning per rad. | Utvärderas inte |
+| SNMP Table Value | En kolumn i en [SNMP-tabell](#snmp-tabeller), rad för rad. Uppfyllt när någon rad inom omfattningen matchar; Row `*` ger ett larm per rad. | Utvärderas inte |
+| SNMP Table Row Is Unhealthy | Sant när en rad inom omfattningen har en status utanför kolumnens friska värden. Row `*` ger ett larm per rad. | Utvärderas inte |
 | SNMP Table Row Count | Hur många rader en tabell, eller raderna inom omfattningen, har. | Utvärderas inte |
 | SNMP Trap Received (Trap OID) | Uppfyllt när en trap med den angivna OID:n kommer in från enheten. | Drivs av traps |
 | SNMP Trap Varbind Value | De värden som en trap bär, eller en varbind i den. | Drivs av traps |
@@ -800,30 +800,30 @@ Vid en avsökning där ingen walk kördes ger kriterierna markerade "Utvärderas
 
 Gränssnittskontrollerna kräver **Walk Interfaces** påslaget i enhetens avsökningsinställningar, vilket det är som standard. OID-kontrollerna läser enhetens konfigurerade hälso-OID:er. Administrativt avaktiverade gränssnitt är nere med avsikt och räknas aldrig som fel.
 
-Kriterier för SNMP-tabeller väljer en tabell, en kolumn (för SNMP Table Value) och en radomfattning. Tomt bedömer varje rad som en sammanslagen varning; `*` ger en separat varning för varje rad, som var och en löses för sig och är namngiven efter sin rad; allt annat namnger en rad efter namn eller index. Tal jämförs som tal, och text jämförs både med det råa värdet och med dess etikett, så Inte lika med `active` och Inte lika med `1` fångar båda en Sophos-tunnel som är nere. En tabell vars walk misslyckades vid den här avsökningen utvärderas inte i stället för att läsas som tom, och tabellkriterier bedömer bara den aktuella walken, inte ett tidsintervall.
+Kriterier för SNMP-tabeller väljer en tabell, en kolumn (för SNMP Table Value) och en radomfattning. Tomt bedömer varje rad som ett sammanslaget larm; `*` ger ett separat larm för varje rad, som var och en löses för sig och är namngiven efter sin rad; allt annat namnger en rad efter namn eller index. Tal jämförs som tal, och text jämförs både med det råa värdet och med dess etikett, så Inte lika med `active` och Inte lika med `1` fångar båda en Sophos-tunnel som är nere. En tabell vars walk misslyckades vid den här avsökningen utvärderas inte i stället för att läsas som tom, och tabellkriterier bedömer bara den aktuella walken, inte ett tidsintervall.
 
-Transceiverkriterier har omfattning som gränssnittskontrollerna: tomt bedömer varje modul som en sammanslagen varning, `*` ger en separat varning för varje port med en modul (var och en löses för sig och är namngiven efter sin port), och allt annat namnger en port efter namn eller alias. De bedömer enhetens [transceivrar](#transceivrar) så som de är vid den här avsökningen, som redan bär sin historik — hur många avsökningar en modul har saknats, en månads mottagen effekt — så inte heller de utvärderas över ett tidsintervall. En avsökning vars läsning av transceivrar misslyckades låter dem bedöma den senaste bra läsningen, så en öppen varning löses inte vid en avsökning som inte kunde titta.
+Transceiverkriterier har omfattning som gränssnittskontrollerna: tomt bedömer varje modul som ett sammanslaget larm, `*` ger ett separat larm för varje port med en modul (var och en löses för sig och är namngiven efter sin port), och allt annat namnger en port efter namn eller alias. De bedömer enhetens [transceivrar](#transceivrar) så som de är vid den här avsökningen, som redan bär sin historik — hur många avsökningar en modul har saknats, en månads mottagen effekt — så inte heller de utvärderas över ett tidsintervall. En avsökning vars läsning av transceivrar misslyckades låter dem bedöma den senaste bra läsningen, så ett öppet larm löses inte vid en avsökning som inte kunde titta.
 
-### Rekommenderat varningspaket
+### Rekommenderat larmpaket
 
-Klicka på **Add Recommended Alerts** i kriterieformuläret för att lägga till en färdig uppsättning kriterier: de varningar som de flesta nätverksoperatörer vill ha, utan att bygga dem för hand varje gång. Paketet fylls i när du skapar en monitor från enhetens sida, och det är det som mallen i den rekommenderade varningspolicyn bär.
+Klicka på **Add Recommended Alerts** i kriterieformuläret för att lägga till en färdig uppsättning kriterier: de larm som de flesta nätverksoperatörer vill ha, utan att bygga dem för hand varje gång. Paketet fylls i när du skapar en monitor från enhetens sida, och det är det som mallen i den rekommenderade larmpolicyn bär.
 
 | Kriterium | Utlöses när | Skapar |
 | --- | --- | --- |
 | Device unreachable | Enheten slutar svara på ping och SNMP. | Incident |
-| SNMP walk failing | Enheten svarar på ping men dess SNMP-walk misslyckas. | Varning |
+| SNMP walk failing | Enheten svarar på ping men dess SNMP-walk misslyckas. | Larm |
 | Interface down | Ett administrativt aktiverat gränssnitt går ner i drift. | Incident |
-| Interface saturated | Ett gränssnitt går över 80 % utnyttjande. | Varning |
-| Interface errors | Ett gränssnitt registrerar mer än 1 fel per sekund. | Varning |
-| Transceiver not detected | En modul identifieras inte längre i en port som fortfarande är aktiverad, under två avsökningar i rad. | Varning |
-| Transceiver past its alarm threshold | En moduls mätning ligger över ett larmtröskelvärde som enheten rapporterar, eller enheten flaggar signalförlust eller sändarfel. | Varning |
-| Transceiver RX power dropping | En modul tar emot minst 2 dB mindre ljus än på sin bästa dag under de senaste 30. | Varning |
+| Interface saturated | Ett gränssnitt går över 80 % utnyttjande. | Larm |
+| Interface errors | Ett gränssnitt registrerar mer än 1 fel per sekund. | Larm |
+| Transceiver not detected | En modul identifieras inte längre i en port som fortfarande är aktiverad, under två avsökningar i rad. | Larm |
+| Transceiver past its alarm threshold | En moduls mätning ligger över ett larmtröskelvärde som enheten rapporterar, eller enheten flaggar signalförlust eller sändarfel. | Larm |
+| Transceiver RX power dropping | En modul tar emot minst 2 dB mindre ljus än på sin bästa dag under de senaste 30. | Larm |
 
-När enheten walkar [SNMP-tabeller](#snmp-tabeller) som anger friska värden lägger paketet också till ett kriterium **SNMP Table Row Is Unhealthy** per sådan tabell, med Row `*`: en incident per rad för tunnlar, routinggrannar och en kontrollers accesspunkter ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" för en accesspunkt som har försvunnit från sin kontroller), och en varning per rad för hårdvarutabeller och radior.
+När enheten walkar [SNMP-tabeller](#snmp-tabeller) som anger friska värden lägger paketet också till ett kriterium **SNMP Table Row Is Unhealthy** per sådan tabell, med Row `*`: en incident per rad för tunnlar, routinggrannar och en kontrollers accesspunkter ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" för en accesspunkt som har försvunnit från sin kontroller), och ett larm per rad för hårdvarutabeller och radior.
 
-SNMP walk failing är med avsikt en varning och inte en incident: enheten är inte nere, så att väcka någon klockan 2 på natten för det vore fel, men dess inventarium har slutat uppdateras och någon borde rätta autentiseringsuppgifterna. Den utlöses aldrig på en enhet med bara ping, eftersom kriteriet inte utvärderas när ingen walk kördes.
+SNMP walk failing är med avsikt ett larm och inte en incident: enheten är inte nere, så att väcka någon klockan 2 på natten för det vore fel, men dess inventarium har slutat uppdateras och någon borde rätta autentiseringsuppgifterna. Den utlöses aldrig på en enhet med bara ping, eftersom kriteriet inte utvärderas när ingen walk kördes.
 
-De tre transceiverkriterierna ger en varning per port (`*`), och är varningar i stället för incidenter av samma skäl: en mörk modul tar redan ner sitt gränssnitt, och Interface down kallar ut jouren för det, medan dessa säger varför, eller varnar innan det händer. 2 dB är ungefär en tredjedel av ljuset borta: långt över de få tiondelar av en dB som en frisk länk svajar med från dag till dag, och tidigt nog att rengöra en kontakt innan länken förlorar sin marginal. Ingen av dem kan utlösas på en enhet som inte rapporterar någon optik.
+De tre transceiverkriterierna ger ett larm per port (`*`), och är larm i stället för incidenter av samma skäl: en mörk modul tar redan ner sitt gränssnitt, och Interface down kallar ut jouren för det, medan dessa säger varför, eller varnar innan det händer. 2 dB är ungefär en tredjedel av ljuset borta: långt över de få tiondelar av en dB som en frisk länk svajar med från dag till dag, och tidigt nog att rengöra en kontakt innan länken förlorar sin marginal. Ingen av dem kan utlösas på en enhet som inte rapporterar någon optik.
 
 När du har lagt till paketet väljer du allvarlighetsgrader och jourpolicyer för varje kriterium som vanligt; tröskelvärdena går att redigera som för alla kriterier du bygger själv.
 
@@ -837,7 +837,7 @@ flowchart TB
     Probe["Sondens trapmottagare<br/>UDP 162"]
     Match["OneUptime matchar<br/>käll-IP:n mot en enhet"]
     Monitors["Enhetens nätverks-<br/>enhetsmonitorer"]
-    Incident["Incident eller varning"]
+    Incident["Incident eller larm"]
     Device -->|"Trap"| Probe
     Probe -->|"Vidarebefordrad"| Match
     Match --> Monitors
@@ -895,9 +895,9 @@ Vissa tillverkare skickar varje händelse som samma trap och lägger händelsen 
 
 Ett negativt filter (Innehåller inte, Inte lika med, Är tom) är bara uppfyllt när ingen varbind inom omfattningen matchar dess positiva form. Lämna varbind-OID:n tom för att söka i varje varbind som trapen bär.
 
-## Mallvariabler för varningar
+## Mallvariabler för larm
 
-Incident- och varningsmallar på en nätverksenhetsmonitor kan använda dessa variabler:
+Incident- och larmmallar på en nätverksenhetsmonitor kan använda dessa variabler:
 
 | Variabel | Beskrivning |
 | --- | --- |
@@ -922,7 +922,7 @@ Incident- och varningsmallar på en nätverksenhetsmonitor kan använda dessa va
 | `{{tables.<key>.rowCount}}` | Raderna som walkades i en [SNMP-tabell](#snmp-tabeller), efter dess nyckel: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Raderna med en status utanför sina friska värden, var och en med `name`, `index` och `values.<column>` |
 | `{{tables.<key>.rows}}` | Varje rad (upp till 50), var och en med `name`, `index` och `values.<column>`, med kolumnnamn i gemener och mellanslag som `_` |
-| `{{snmpTable}}` / `{{snmpTableRow}}` | Vid en varning per rad (Row `*`), tabellen och raden som det gäller |
+| `{{snmpTable}}` / `{{snmpTableRow}}` | Vid ett larm per rad (Row `*`), tabellen och raden som det gäller |
 
 `{{isOnline}}` fylls i vid varje avsökning. Alla andra variabler kommer från SNMP-walken, så vid en avsökning med bara ping är de alla tomma: skriv mallar som inleds med `{{isOnline}}` och enhetens namn om en policys omfattning kan omfatta enheter utan autentiseringsuppgifter. Gränssnitts- och systemvariablerna kräver också att gränssnittswalk är påslaget, och trapvariablerna sätts bara när en trap utlöste kontrollen. En incidenttitel som den här:
 
@@ -930,7 +930,7 @@ Incident- och varningsmallar på en nätverksenhetsmonitor kan använda dessa va
 {{downInterfaces.0.name}} on {{sysName}} is down
 ```
 
-blir "Gi0/1 on core-switch-01 is down". [Mallar för incidenter och varningar](/docs/monitor/incident-alert-templating) förklarar mallar i allmänhet.
+blir "Gi0/1 on core-switch-01 is down". [Mallar för incidenter och larm](/docs/monitor/incident-alert-templating) förklarar mallar i allmänhet.
 
 ## Nätverkstopologi
 
@@ -946,7 +946,7 @@ Klicka på en ohanterad peer så registrerar **Add to Monitoring** den som en so
 
 ### Exportera kartan som PDF
 
-**Exportera PDF**, överst på kartan, laddar ner kartan som du tittar på som en PDF som du kan bifoga en bedömning, en ändringsbegäran eller en incidentgenomgång, eller läsa offline. Varje vy av enhetskartan har den: **Device Topology**, en plats på **Map** och fliken **Nätverk** under **Topologi**.
+**Exportera PDF**, överst på kartan, laddar ner kartan som du tittar på som en PDF som du kan bifoga en bedömning, en ändringsbegäran eller en incidentgenomgång, eller läsa offline. Varje vy av enhetskartan har den: **Device Topology**, en plats på **Karta** och fliken **Nätverk** under **Topologi**.
 
 PDF:en innehåller:
 
@@ -959,9 +959,9 @@ En liten plats får plats på en A4-sida. Ett större nätverk får en större f
 
 ### Ping och traceroute från kartan
 
-Ett klick på en hanterad enhet på kartan öppnar dess panel, och panelens avsnitt **Connectivity** svarar på de två frågor som brukar följa på "är den uppe?": hur har den mått, och kan jag nå den just nu.
+Ett klick på en hanterad enhet på kartan öppnar dess panel, och panelens avsnitt **Anslutning** svarar på de två frågor som brukar följa på "är den uppe?": hur har den mått, och kan jag nå den just nu.
 
-- **Round-trip time, past hour** är ett litet diagram över enhetens pingsvarstid från dess egna avsökningar, med det aktuella, genomsnittliga och högsta värdet under och timmens värsta paketförlust bredvid. **Open metrics** öppnar enhetens sida **Mätvärden**. En enhet som inte har pingats den senaste timmen visar **No ping data in the last hour.**
+- **Round-trip time, past hour** är ett litet diagram över enhetens pingsvarstid från dess egna avsökningar, med det aktuella, genomsnittliga och högsta värdet under och timmens värsta paketförlust bredvid. **Öppna mätvärden** öppnar enhetens sida **Mätvärden**. En enhet som inte har pingats den senaste timmen visar **No ping data in the last hour.**
 - **Ping** skickar fem ICMP-ekoförfrågningar till enheten och rapporterar om den svarade, lägsta, genomsnittliga och högsta svarstid, jitter och paketförlust. En enhet som svarar på några av dem rapporteras som nåbar, med paketförlust.
 - **Traceroute** rapporterar vägen från sonden till enheten hopp för hopp — hoppets nummer, värden som svarade och dess svarstid — med hopp utan svar markerade `* * *` och, när rutten inte nådde enheten, det hopp där den bröts.
 
@@ -980,7 +980,7 @@ För det måste kartan veta vilken inlärd MAC som är enhetens. Det finns två 
 
 Switchen som enheten hänger på behöver också **Collect Connected Endpoints** påslaget: det är därifrån porten kommer. Adresser matchas inom enhetens plats, eftersom varje filial har en `10.0.0.5`; en MAC matchar oavsett plats.
 
-Enhetens översikt har ett kort **Connected to** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Connected to**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
+Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Ansluten till**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
 
 ![Parent-Child-topologivy som ritar en kassa med bara ping under dess switch via en inlärd länk](/docs/static/images/NetworkTopologyLearnedLink.png)
 
@@ -994,9 +994,9 @@ Enhetens översikt har ett kort **Connected to** som namnger switchen, porten oc
 - **Ange standardvärden för övervakning på dina platser.** En standardsond och en standardautentiseringsprofil per plats betyder att en ny enhet kan läggas till med bara sin adress, och att ett byte av autentiseringsuppgifter för en hel plats är en redigering.
 - **Föredra autentiseringsprofiler framför autentiseringsuppgifter per enhet, och SNMPv3 framför v2c.** Att byta en community string berör då en profil i stället för hundratals enheter, och v3 lägger till autentisering och kryptering.
 - **Upptäck, importera sedan.** En discovery-skanning är snabbare och mindre felbenägen än att lägga till enheter för hand, och allt den hittar avsöks från det ögonblick det importeras.
-- **Skriv ner en flottas varningar som en policy.** En policy täcker de enheter du är på väg att upptäcka såväl som dem du har; monitorer som byggs för hand täcker bara dem du hade.
+- **Skriv ner en flottas larm som en policy.** En policy täcker de enheter du är på väg att upptäcka såväl som dem du har; monitorer som byggs för hand täcker bara dem du hade.
 - **Registrera enheter med den adress som de skickar traps från**, eller ange den adressen under **Övriga adresser**: traps matchas på käll-IP.
-- **Håll gränssnittswalk påslaget för switchar och routrar, och slå på Collect Connected Endpoints på varje plats switchar och router.** Gränssnittswalken driver gränssnittsvarningar, utnyttjande och kartan; slutpunktswalkarna placerar varje enhet med bara ping på den port den är ansluten till.
+- **Håll gränssnittswalk påslaget för switchar och routrar, och slå på Collect Connected Endpoints på varje plats switchar och router.** Gränssnittswalken driver gränssnittslarm, utnyttjande och kartan; slutpunktswalkarna placerar varje enhet med bara ping på den port den är ansluten till.
 - **Reservera åsidosättningen med bunden monitor för utrustning som ingen sond kan nå.** Den stänger av avsökningen, och med den gränssnitt, inventarium och enhetens egna mätvärden.
 
 ## Felsökning
@@ -1034,7 +1034,7 @@ Enheten avsöktes och ingen walk försöktes, eftersom inga användbara autentis
 :::details En enhet med bara ping är inte kopplad till sin switch
 Kartan ritar kabeln för en enhet med bara ping från dess switchs vidarebefordringstabell, och för det måste tre saker stämma:
 
-- Switchen samlar in slutpunkter: **Collect Connected Endpoints** påslaget i dess avsökningsinställningar, med autentiseringsuppgifter som låter walken lyckas. Enhetens översikt visar ett kort **Connected to** så snart en switch har lärt sig den.
+- Switchen samlar in slutpunkter: **Collect Connected Endpoints** påslaget i dess avsökningsinställningar, med autentiseringsuppgifter som låter walken lyckas. Enhetens översikt visar ett kort **Ansluten till** så snart en switch har lärt sig den.
 - Enhetens MAC är känd: dess **MAC-adress** är angiven, eller så samlar en router på platsen in slutpunkter och enhetens värdnamn är den adress som routerns ARP-tabell binder. En enhet som är registrerad efter DNS-namn utan MAC kan inte matchas, så skriv in MAC:en.
 - Samma plats: en adress matchas bara mot en enhet på samma plats som switchen som lärde sig den. En enhet utan plats matchas bara på adress när den switchen inte heller har någon plats; om switchen finns på en plats, lägg enheten på samma. En MAC matchar oavsett plats.
 
@@ -1042,7 +1042,7 @@ Om enheten sitter bakom en ohanterad switch eller en hubb lär sig den hanterade
 :::
 
 :::details Bara några av de upptäckta enheterna importerades
-En import från **Review Results** svarar på det i sitt sista steg: varje värd den inte importerade och varje enhet den importerade utan dess monitor står under orsaken, och ett nytt försök provar bara de misslyckade värdarna igen. För att se den senare klickar du på **Review Results** på skanningen och sedan på **Visa resultat**.
+En import från **Granska resultat** svarar på det i sitt sista steg: varje värd den inte importerade och varje enhet den importerade utan dess monitor står under orsaken, och ett nytt försök provar bara de misslyckade värdarna igen. För att se den senare klickar du på **Granska resultat** på skanningen och sedan på **Visa resultat**.
 
 För en regel för automatisk import svarar körningsrapporten på det, i dialogrutan som öppnas när en körning är klar, inte i en logg. En körning som stannade vid sin batchgräns säger det och namnger vad som återstår: tryck på **Run Rule** igen så fortsätter den där den stannade. En körning som blev klar men gjorde anspråk på färre värdar än du väntade dig säger vart resten tog vägen: stoppad av en undantagsregel, redan registrerad på den adressen, eller inte matchad av regelns kriterier.
 
@@ -1094,7 +1094,7 @@ När enheten har lagts till kör dess sida **SNMP-walk** det testet åt dig frå
 :::cards
 - [Nätverksplatser](/docs/monitor/network-sites): Gruppera enheter i platser och sammanfatta deras hälsa uppåt i trädet.
 - [Nätverkstrafik](/docs/monitor/network-traffic): Se vem som pratar med vem utifrån dina enheters flödesposter.
-- [Nätverkshändelser](/docs/monitor/network-events): Se vad dina enheter rapporterar i sin syslog, och få varningar om det.
+- [Nätverkshändelser](/docs/monitor/network-events): Se vad dina enheter rapporterar i sin syslog, och få larm om det.
 - [Guider per nätverksleverantör](/docs/monitor/network-vendor-guides): Sophos, Extreme och Cambium, från början till slut.
 - [Paketinspelning](/docs/probe/packet-capture): Spela in paket på en enhets sond för Wireshark.
 :::

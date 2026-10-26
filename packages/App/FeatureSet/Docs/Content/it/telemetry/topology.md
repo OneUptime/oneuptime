@@ -21,7 +21,7 @@ flowchart LR
     neighbours["Vicini che i vostri<br/>dispositivi segnalano<br/>via LLDP"] --> network["Rete"]
 ```
 
-- **Viene disegnato solo ciò che era attivo.** Una vista mostra i servizi e le risorse che hanno inviato dati nell'intervallo di tempo, e le connessioni viste in esso. Attivate **Show inactive** per disegnare anche quelli rimasti in silenzio.
+- **Viene disegnato solo ciò che era attivo.** Una vista mostra i servizi e le risorse che hanno inviato dati nell'intervallo di tempo, e le connessioni viste in esso. Attivate **Mostra inattivi** per disegnare anche quelli rimasti in silenzio.
 - **Le chiamate sono contate su una finestra recente.** OneUptime cerca le chiamate tra servizi ogni 10 minuti, e i dati di traffico coprono gli ultimi 15 minuti, non l'intero intervallo di tempo.
 - **La vista di rete è in tempo reale.** Mostra i vostri dispositivi come sono collegati adesso, quindi non ha un intervallo di tempo.
 
@@ -32,7 +32,7 @@ flowchart LR
 
 ## Aprire la topologia
 
-Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Topology Map** apre la stessa pagina. Si apre sulla **Service Map**, per il periodo **Past 1 Day**.
+Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Topology Map** apre la stessa pagina. Si apre sulla **Service Map**, per il periodo **Ultimo giorno**.
 
 | Vista | La domanda a cui risponde |
 | --- | --- |
@@ -40,7 +40,7 @@ Andate in **Prodotti → Osservabilità → Topologia**. **Inventario → Topolo
 | **Infrastruttura** | Che cosa gira dove nella vostra infrastruttura? |
 | **Rete** | Come sono collegati i vostri dispositivi di rete? |
 
-Accanto al selettore del tempo, **Show inactive** aggiunge ciò che non ha inviato dati nell'intervallo, e il pulsante di aggiornamento ricarica la vista. **What is shown · About this data** spiega che cosa disegna la vista e ogni quanto viene calcolata. La barra degli indirizzi mantiene la vista in cui vi trovate, quindi un link che condividete apre la stessa vista.
+Accanto al selettore del tempo, **Mostra inattivi** aggiunge ciò che non ha inviato dati nell'intervallo, e il pulsante di aggiornamento ricarica la vista. **Cosa viene mostrato · Informazioni su questi dati** spiega che cosa disegna la vista e ogni quanto viene calcolata. La barra degli indirizzi mantiene la vista in cui vi trovate, quindi un link che condividete apre la stessa vista.
 
 ## Leggere la mappa dei servizi
 
@@ -65,21 +65,21 @@ Fate clic su **Richiede attenzione** per tenere solo quei servizi e le loro conn
 
 ### Aprire un servizio
 
-Fate clic su un servizio per vederne le richieste, gli errori e la latenza media degli ultimi 15 minuti, i suoi **Incidenti attivi** e **Avvisi attivi**, e i link a **Traces for this service** e ai suoi **Inventory details**.
+Fate clic su un servizio per vederne le richieste, gli errori e la latenza media degli ultimi 15 minuti, i suoi **Incidenti attivi** e **Avvisi attivi**, e i link a **Tracce di questo servizio** e ai suoi **Dettagli dell'inventario**.
 
 ### Aprire una connessione
 
 Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di errore e la latenza media. Tra due servizi che strumentate, ha anche una **History** di chiamate, errori e latenza.
 :::
 
-**Connection labels** scrive un valore su ogni freccia: **Request rate**, **Tasso di errore** o **Average latency**, oppure nessuno finché non ci passate sopra con il mouse. **Tabella** elenca gli stessi servizi con le loro **Richieste**, **Tasso di errore**, **Avg latency** e **Connections**, e **Show on map** ne disegna uno.
+**Etichette delle connessioni** scrive un valore su ogni freccia: **Frequenza delle richieste**, **Tasso di errore** o **Latenza media**, oppure nessuno finché non ci passate sopra con il mouse. **Tabella** elenca gli stessi servizi con le loro **Richieste**, **Tasso di errore**, **Latenza media** e **Connessioni**, e **Mostra sulla mappa** ne disegna uno.
 
 ## Esplorare la vostra infrastruttura
 
 **Infrastruttura** mostra dove girano i vostri servizi: cluster, host, pod, container e le altre risorse che inviano dati. Le repliche di uno stesso carico di lavoro sono raggruppate in una sola voce, e potete aprire qualsiasi cosa per guardarci dentro.
 
-- **Sfogliatela a modo vostro.** Mostratela come **Elenco** o come **Map**, da tutta la vostra infrastruttura fino a un singolo pod. I conteggi in alto dicono quante risorse e quanti carichi di lavoro disegna, quanti servizi riesce a collocare e quante risorse silenziose lascia fuori.
-- **Trovate una risorsa.** Cercatela per nome e fate clic su **View details** per aprirne la pagina.
+- **Sfogliatela a modo vostro.** Mostratela come **Elenco** o come **Mappa**, da tutta la vostra infrastruttura fino a un singolo pod. I conteggi in alto dicono quante risorse e quanti carichi di lavoro disegna, quanti servizi riesce a collocare e quante risorse silenziose lascia fuori.
+- **Trovate una risorsa.** Cercatela per nome e fate clic su **Visualizza dettagli** per aprirne la pagina.
 - **Passate da una vista all'altra.** Un servizio elencato su una risorsa si apre sulla **Service Map**, e le risorse su cui gira un servizio si aprono su **Infrastruttura**.
 
 ## Aprire la mappa di una risorsa
@@ -103,11 +103,11 @@ OneUptime cerca le chiamate tra servizi nelle vostre tracce ogni 10 minuti. Ne v
 :::
 
 :::details Un servizio che ho rimosso è ancora sulla mappa
-Ha inviato dati entro l'intervallo di tempo. Scegliete un intervallo più breve, o aspettate che la sua ultima telemetria esca dall'intervallo. Con **Show inactive** attivo, la mappa disegna anche ciò che ha smesso di inviare dati.
+Ha inviato dati entro l'intervallo di tempo. Scegliete un intervallo più breve, o aspettate che la sua ultima telemetria esca dall'intervallo. Con **Mostra inattivi** attivo, la mappa disegna anche ciò che ha smesso di inviare dati.
 :::
 
 :::details La mappa dice che ne è mostrata solo una parte
-Un progetto molto grande raggiunge i limiti della mappa, e un avviso dice quante risorse o connessioni mostra. Cercate un servizio, oppure usate **Show on map** nella tabella, per disegnarne una parte leggibile.
+Un progetto molto grande raggiunge i limiti della mappa, e un avviso dice quante risorse o connessioni mostra. Cercate un servizio, oppure usate **Mostra sulla mappa** nella tabella, per disegnarne una parte leggibile.
 :::
 
 ## Passaggi successivi

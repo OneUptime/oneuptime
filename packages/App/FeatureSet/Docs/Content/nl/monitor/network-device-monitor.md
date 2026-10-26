@@ -58,11 +58,11 @@ Het apparaat en de monitor doen verschillend werk:
 | **Wachten op de eerste controle** | Er zijn apparaten toegevoegd en hun sonde heeft ze nog niet gecontroleerd. |
 | **Alle 40 apparaten zijn bereikbaar** | Elk apparaat antwoordt. Apparaten die nog op hun eerste controle wachten, worden op een eigen regel geteld. |
 
-Daaronder zegt één regel of er iets een incident opent als een apparaat uitvalt: hoeveel [waarschuwingsbeleidsregels](#waarschuwingsbeleid) aan staan, of een link **Set up alerts** als er geen is. De knoppen **Add Device** en **Discover Devices** ernaast openen die formulieren, en de tegels en lijsten eronder geven de details: apparaten en locaties die aandacht nodig hebben, de vloot per leverancier en recente scans.
+Daaronder zegt één regel of er iets een incident opent als een apparaat uitvalt: hoeveel [waarschuwingsbeleidsregels](#waarschuwingsbeleid) aan staan, of een link **Waarschuwingen instellen** als er geen is. De knoppen **Apparaat toevoegen** en **Discover Devices** ernaast openen die formulieren, en de tegels en lijsten eronder geven de details: apparaten en locaties die aandacht nodig hebben, de vloot per leverancier en recente scans.
 
-Zolang er nog niets is toegevoegd, leidt het overzicht je in plaats daarvan door drie stappen. **Zet een sonde in je netwerk**: een sonde pingt en leest je apparaten uit vanuit hun eigen netwerk, dus **Een sonde toevoegen** geeft er een een naam, toont de opdracht die hem start en kijkt toe hoe hij verbinding maakt. **Voeg je apparaten toe**: **Apparaten ontdekken** scant een adresbereik zodat je kunt kiezen wat je toevoegt, het beste voor een heel netwerk of een nieuwe locatie, en **Eén apparaat toevoegen** voegt er één toe op IP-adres of hostnaam. **Krijg een melding als een apparaat uitvalt**: **Set up alerts** opent de [waarschuwingsbeleidsregels](#waarschuwingsbeleid), waar het aanbevolen beleid één klik is. Op OneUptime Cloud vraagt [een sonde toevoegen](/docs/probe/custom-probe) het Growth-abonnement: daaronder zegt de stap dat en verwijst hij in plaats daarvan naar je factureringsinstellingen, en de eigen sondes van OneUptime op internet kunnen nog steeds apparaten met een openbaar adres controleren.
+Zolang er nog niets is toegevoegd, leidt het overzicht je in plaats daarvan door drie stappen. **Zet een sonde in je netwerk**: een sonde pingt en leest je apparaten uit vanuit hun eigen netwerk, dus **Een sonde toevoegen** geeft er een een naam, toont de opdracht die hem start en kijkt toe hoe hij verbinding maakt. **Voeg je apparaten toe**: **Apparaten ontdekken** scant een adresbereik zodat je kunt kiezen wat je toevoegt, het beste voor een heel netwerk of een nieuwe locatie, en **Eén apparaat toevoegen** voegt er één toe op IP-adres of hostnaam. **Krijg een melding als een apparaat uitvalt**: **Waarschuwingen instellen** opent de [waarschuwingsbeleidsregels](#waarschuwingsbeleid), waar het aanbevolen beleid één klik is. Op OneUptime Cloud vraagt [een sonde toevoegen](/docs/probe/custom-probe) het Growth-abonnement: daaronder zegt de stap dat en verwijst hij in plaats daarvan naar je factureringsinstellingen, en de eigen sondes van OneUptime op internet kunnen nog steeds apparaten met een openbaar adres controleren.
 
-Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices**, **Locaties**, **Map**, **Traffic**, **Gebeurtenissen** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
+Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices**, **Locaties**, **Kaart**, **Traffic**, **Gebeurtenissen** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
 
 | Sectie | Pagina's |
 | --- | --- |
@@ -75,16 +75,16 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices*
 
 :::steps
 ### De lijst met apparaten openen
-Ga naar **Netwerk → Devices** en klik op **Add Device**. **Add Device** op het Netwerk-**Overzicht** opent hetzelfde formulier.
+Ga naar **Netwerk → Devices** en klik op **Apparaat toevoegen**. **Apparaat toevoegen** op het Netwerk-**Overzicht** opent hetzelfde formulier.
 
 ### Het adres van het apparaat typen
 Typ bij **Hostnaam** het IP-adres of de hostnaam. Laat **Naam** leeg om het apparaat naar zijn hostnaam te noemen.
 
 ### De locatie en de sonde controleren
-Kies de **Site** waar het apparaat staat, als je locaties gebruikt. **Sonde** vult zichzelf in met de standaardsonde van de locatie, of met de enige eigen sonde van het project; controleer dat het een sonde is die het apparaat kan bereiken.
+Kies de **Locatie** waar het apparaat staat, als je locaties gebruikt. **Sonde** vult zichzelf in met de standaardsonde van de locatie, of met de enige eigen sonde van het project; controleer dat het een sonde is die het apparaat kan bereiken.
 
 ### Het apparaat toevoegen
-Klik op **Add Device**. Binnen een paar minuten pingt de sonde het apparaat en wordt de status **Up** of **Down**. Met SNMP-inloggegevens vult ook het overzicht van het apparaat zich met de identiteit, interfaces en gezondheid na de eerste geslaagde walk.
+Klik op **Apparaat toevoegen**. Binnen een paar minuten pingt de sonde het apparaat en wordt de status **Online** of **Offline**. Met SNMP-inloggegevens vult ook het overzicht van het apparaat zich met de identiteit, interfaces en gezondheid na de eerste geslaagde walk.
 :::
 
 Het formulier is één pagina — de hostnaam, een naam, de locatie en de sonde — met **SNMP** en **Meer velden** eronder ingeklapt. Het vraagt niets over hoe het apparaat gemonitord wordt: elk apparaat dat je toevoegt wordt door zijn sonde gepolld, en de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) staat op de pagina **Instellingen** van het apparaat voor de paar apparaten die hem nodig hebben.
@@ -158,7 +158,7 @@ De andere bulkacties komen aan bod waar ze thuishoren: **Set OID Collection Temp
 
 ## Wat een poll echt doet
 
-Elke poll van een door een sonde gepold apparaat is een ping. Als het apparaat bruikbare SNMP-inloggegevens heeft, voert de sonde ook een volledige SNMP-walk uit. De twee lopen naast elkaar en de walk wacht nooit op de ping, dus SNMP-apparatuur achter een ACL die ICMP laat vallen, meldt nog steeds **Up**.
+Elke poll van een door een sonde gepold apparaat is een ping. Als het apparaat bruikbare SNMP-inloggegevens heeft, voert de sonde ook een volledige SNMP-walk uit. De twee lopen naast elkaar en de walk wacht nooit op de ping, dus SNMP-apparatuur achter een ACL die ICMP laat vallen, meldt nog steeds **Online**.
 
 | Resultaat | Apparaat met alleen ping | Apparaat met SNMP-inloggegevens |
 | --- | --- | --- |
@@ -175,12 +175,12 @@ Pakketverlies hergebruikt de reeks van de [Ping-monitor](/docs/monitor/ping-moni
 
 ### "SNMP failing" is niet "Down"
 
-Een apparaat dat op ping antwoordt maar waarvan de walk mislukt, is **Up**, gemarkeerd met **SNMP failing**, en beide helften tellen:
+Een apparaat dat op ping antwoordt maar waarvan de walk mislukt, is **Online**, gemarkeerd met **SNMP failing**, en beide helften tellen:
 
 - Het is bereikbaar omdat er iets antwoordt op dat adres. Het rood kleuren zou een apparaat dat prima draait in je incidenttelling zetten.
 - Het is SNMP failing omdat zijn interfaces, inventaris en gezondheids-OID's niet meer worden ververst, bijna altijd door inloggegevens, een uitgeschakelde SNMP-agent of een ACL. Niets anders op de pagina zou je vertellen dat de getallen bevroren zijn.
 
-Een apparaat waarvan zowel de ping als de walk mislukt, is gewoon **Down**, dus de markering staat altijd naast een groene status.
+Een apparaat waarvan zowel de ping als de walk mislukt, is gewoon **Offline**, dus de markering staat altijd naast een groene status.
 
 ### De status van een apparaat lezen
 
@@ -188,8 +188,8 @@ Elke plek die een apparaat toont — de lijst Devices, de Devices-pagina van een
 
 | Oordeel | Betekent |
 | --- | --- |
-| **Up** | De laatste poll (ping of SNMP), of de gekoppelde monitor, heeft het apparaat bereikt. |
-| **Down** | De laatste poll (ping of SNMP), of de gekoppelde monitor, kon het apparaat niet bereiken. |
+| **Online** | De laatste poll (ping of SNMP), of de gekoppelde monitor, heeft het apparaat bereikt. |
+| **Offline** | De laatste poll (ping of SNMP), of de gekoppelde monitor, kon het apparaat niet bereiken. |
 | **In behandeling** | Nog geen oordeel: nooit gepolld, geen sonde toegewezen, of geen monitor gekoppeld. |
 
 | Toevoeging | Verschijnt wanneer | Wat te doen |
@@ -269,7 +269,7 @@ De meeste apparaten hebben dit niet nodig. Elk door een sonde gepold apparaat he
 
 ## Pollen en gegevensverzameling
 
-Pollen staat op de pagina **Instellingen** van het apparaat, op de kaart **Polling & Data Collection** (**Polling bewerken**). De standaarden passen bij een nieuw apparaat, dus dat hoeft niet afgesteld te worden:
+Pollen staat op de pagina **Instellingen** van het apparaat, op de kaart **Polling & Data Collection** (**Opvragen bewerken**). De standaarden passen bij een nieuw apparaat, dus dat hoeft niet afgesteld te worden:
 
 | Instelling | Beschrijving | Standaard |
 | --- | --- | --- |
@@ -322,7 +322,7 @@ In de editor **Health OIDs** past **Vendor Health Template** een kant-en-klare s
 
 De OID's van het sjabloon worden naar de eigen lijst van het apparaat gekopieerd, waar je ze kunt inkorten of uitbreiden. Nadat de eerste walk de leverancier heeft herkend, biedt het overzicht van het apparaat het bijbehorende sjabloon aan zolang het iets toevoegt, en **Gezondheidscontroles toevoegen** voegt het met één klik toe. Het herkennen leest de `sysObjectID` van het apparaat, en zijn `sysDescr` waar één enterprisenummer twee besturingssystemen huisvest: Extreme Fabric Engine op universele hardware meldt hetzelfde enterprisenummer (1916) als EXOS, en alleen zijn beschrijving (`…-FabricEngine (9.0.4.0)`) onderscheidt ze. UniFi-access points worden op dezelfde manier van de routers van Ubiquiti onderscheiden (`U6-Pro 6.6.50.15098`), ook als oudere firmware antwoordt met de tak van Net-SNMP, en IQ Engine-access points van de Aerohive-switches die hun tak delen (`AP230, HiveOS 8.2r1`).
 
-Apparaten met **Auto-Apply Vendor Health Template** aan krijgen de OID's en tabellen van het sjabloon bij hun eerste poll: apparaten die een auto-importregel binnenbrengt, en apparaten die zijn geïmporteerd vanuit **Review Results** met de schakelaar voor het leverancierssjabloon aan, wat zo is tenzij je hem uitzet. Om veel apparaten tegelijk hun sjabloon te geven, zoals een ontdekte vloot van voor de schakelaar bestond, selecteer je ze in de lijst **Devices** en gebruik je **Leverancierssjabloon toepassen** (zie [Veel apparaten tegelijk wijzigen](#veel-apparaten-tegelijk-wijzigen)).
+Apparaten met **Auto-Apply Vendor Health Template** aan krijgen de OID's en tabellen van het sjabloon bij hun eerste poll: apparaten die een auto-importregel binnenbrengt, en apparaten die zijn geïmporteerd vanuit **Resultaten bekijken** met de schakelaar voor het leverancierssjabloon aan, wat zo is tenzij je hem uitzet. Om veel apparaten tegelijk hun sjabloon te geven, zoals een ontdekte vloot van voor de schakelaar bestond, selecteer je ze in de lijst **Devices** en gebruik je **Leverancierssjabloon toepassen** (zie [Veel apparaten tegelijk wijzigen](#veel-apparaten-tegelijk-wijzigen)).
 
 Een leverancierssjabloon toepassen is een eenmalige kopie, dus niets verspreidt zich als het sjabloon verandert. Gebruik voor alles voorbij één apparaat liever een **OID Collection Template**; de leverancierssjablonen worden als startpunt aangeboden als je er een maakt.
 
@@ -352,7 +352,7 @@ Een OID op een sjabloon wordt verzameld zoals het geschreven staat, dus een OID 
 Er zijn drie manieren om apparaten te koppelen, en bij een vloot die discovery blijft vinden is de derde het belangrijkst:
 
 - Eén apparaat tegelijk, op de kaart **Polling & Data Collection** van het apparaat.
-- In bulk, door apparaten in de lijst **Devices** te selecteren en **Set OID Collection Template** te gebruiken. De kolom **Template** van de lijst toont welke apparaten waaraan gekoppeld zijn.
+- In bulk, door apparaten in de lijst **Devices** te selecteren en **Set OID Collection Template** te gebruiken. De kolom **Sjabloon** van de lijst toont welke apparaten waaraan gekoppeld zijn.
 - Automatisch, door een OID Collection Template in te stellen op een auto-importregel, zodat elk apparaat dat een scan importeert, gekoppeld wordt op het moment dat het wordt aangemaakt.
 
 Een apparaat verzamelt eerst de OID's van zijn sjabloon en daarna zijn eigen **Device-Specific Health OIDs**. Als beide dezelfde OID noemen, wordt die één keer verzameld, met de naam en beschrijving van het apparaat als winnaar, en de sjabloonregels houden hun plek, zodat apparaatspecifieke toevoegingen ze nooit kunnen wegdrukken.
@@ -553,7 +553,7 @@ Alleen een SNMP-scan vraagt om inloggegevens: kies je **SNMP**, dan komt de stap
 Klik op **Scan starten**. De sonde scant het bereik en meldt hoeveel hosts ze heeft gescand en hoeveel er antwoordden: hoeveel er op SNMP antwoordden, of, bij een ICMP-scan, hoeveel er op ping antwoordden.
 
 ### Importeren wat er gevonden is
-Klik op **Review Results** bij de scan, kies de hosts om te importeren en klik op **Volgende**. Kies hoe vaak ze worden gecontroleerd en of elk een monitor krijgt, en importeer ze dan; zie [Importeren wat een scan heeft gevonden](#importeren-wat-een-scan-heeft-gevonden).
+Klik op **Resultaten bekijken** bij de scan, kies de hosts om te importeren en klik op **Volgende**. Kies hoe vaak ze worden gecontroleerd en of elk een monitor krijgt, en importeer ze dan; zie [Importeren wat een scan heeft gevonden](#importeren-wat-een-scan-heeft-gevonden).
 :::
 
 | Veld | Beschrijving | Verplicht |
@@ -570,7 +570,7 @@ Ingeklapt onder **Meer velden** in de eerste stap, voor de scans die ze nodig he
 | Naam | Waar de scan voor is, zodat je hem van andere scans kunt onderscheiden. De lijst toont het scandoel als dit leeg is. | Leeg |
 | Windows-namen opzoeken (NetBIOS) | Vraagt elke host zonder SNMP-systeemnaam om zijn NetBIOS-naam, zijn Windows-computernaam, via UDP 137. Die naam gaat voor de reverse-DNS-naam van de host. Alleen privéadressen en eigen sondes; zie [Hoe ontdekte apparaten hun naam krijgen](#hoe-ontdekte-apparaten-hun-naam-krijgen). | Aan |
 | Name devices by their short hostname | Geeft geïmporteerde apparaten de naam van het eerste deel van een volledig gekwalificeerde hostnaam: `core-sw-01` in plaats van `core-sw-01.corp.example.com`. | Uit |
-| Repeat this scan | Voert de scan opnieuw uit met een interval, het **Rescan Interval (Minutes)**, van minstens 15 minuten, om discovery gaande te houden; zie [auto-importregels](#automatisch-importeren-met-auto-importregels). Hosts die een herhaalde scan vindt, wachten op je beoordeling tenzij een auto-importregel erop past. | Uit |
+| Repeat this scan | Voert de scan opnieuw uit met een interval, het **Interval voor opnieuw scannen (minuten)**, van minstens 15 minuten, om discovery gaande te houden; zie [auto-importregels](#automatisch-importeren-met-auto-importregels). Hosts die een herhaalde scan vindt, wachten op je beoordeling tenzij een auto-importregel erop past. | Uit |
 
 ### Notatie van het scandoel
 
@@ -615,7 +615,7 @@ Als de hosts die je importeert SNMP-hosts bevatten, biedt de stap **Bewaking** v
 
 ### Importeren wat een scan heeft gevonden
 
-**Review Results** opent de hosts van de scan, de tot nu toe gevonden als hij nog loopt, in een dialoogvenster dat ze in drie stappen importeert:
+**Resultaten bekijken** opent de hosts van de scan, de tot nu toe gevonden als hij nog loopt, in een dialoogvenster dat ze in drie stappen importeert:
 
 1. De stap **Apparaten kiezen** toont elke host onder de naam die zijn apparaat krijgt, met zijn adres en leverancier; alle nog niet toegevoegde hosts zijn eerst geselecteerd. Zoek op naam, DNS-naam, adres of leverancier, of typ een subnet (`10.48.11.0/24`) of een octetbereik (`10.48.11-12.0-255`) om de hosts daarin te tonen. **Antwoord** (**SNMP** of **Geen SNMP**) en **Naam** (**Met naam** of **Alleen adres**) beperken de lijst verder. Het selectievakje boven de lijst selecteert of wist alle getoonde hosts, op alle pagina's, en alleen de geselecteerde hosts die de lijst toont worden geïmporteerd.
 2. De stap **Bewaking** vraagt met **Controleer elke** hoe vaak de sonde van de scan de apparaten controleert, wat het **Polling Interval (Minutes)** van elk apparaat wordt, en wie het hoort als er een uitvalt. **Alleen status** importeert ze met een status en zonder monitor. **Een monitor per apparaat** geeft elk een monitor uit het sjabloon dat je kiest bij **Monitorsjabloon**: de monitor van een netwerkapparaatsjabloon leest de bevragingen van het apparaat, en die van een Ping-, IP-, poort- of NTP-sjabloon controleert het eigen adres van het apparaat vanaf de sonde van de scan, volgens het schema van het sjabloon. Sjablonen van andere soorten kunnen geen apparaat controleren en worden niet getoond; **Sjablonen beheren** opent je sjablonen in een nieuw tabblad, en een sjabloon dat je daar toevoegt, staat in de lijst als je terugkomt. Vóór de import toont de stap wat elke controle van het sjabloon oplevert: een incident, een waarschuwing of alleen de status van de monitor. De controles van een netwerkapparaatsjabloon die een SNMP-walk lezen, staan onder **Alleen SNMP-apparaten**, omdat hosts die alleen op ping antwoordden, worden gepingd, maar niet gewalkt, tot ze SNMP-inloggegevens hebben; als alle hosts alleen op ping antwoordden, passen die controles in één regel. Het sjabloon **Network device alert pack (recommended)** wordt als eerste aangeboden, en een project dat het nog niet heeft, krijgt het bij de import. De samenvatting naast de keuzes zegt wat de import zal maken, ook hoeveel apparaten je abonnement niet meer kan bewaken.
@@ -632,11 +632,11 @@ Een ontdekte host krijgt de eerste van deze namen die hij heeft:
 3. Zijn reverse-DNS-naam, het PTR-record dat de sonde na de scan opzoekt.
 4. Zijn IP-adres.
 
-De eigen namen van het apparaat komen eerst omdat het de namen zijn die zijn eigenaren gebruiken: een Windows-host die `WB0024KDS03` heet, houdt die naam ook als zijn reverse-zone hem `wb-0024-kds03.wbhq.com` noemt. De reverse-DNS-naam blijft ook bewaard: **Review Results** toont hem naast het adres, en het apparaat bewaart hem als zijn **DNS Name**. NetBIOS kort een computernaam in tot 15 tekens, dus een NetBIOS-naam die het begin is van een langere reverse-DNS-naam (`WB-0024-KITCHEN` voor `wb-0024-kitchen-display-03.wbhq.com`) wijkt voor de reverse-DNS-naam.
+De eigen namen van het apparaat komen eerst omdat het de namen zijn die zijn eigenaren gebruiken: een Windows-host die `WB0024KDS03` heet, houdt die naam ook als zijn reverse-zone hem `wb-0024-kds03.wbhq.com` noemt. De reverse-DNS-naam blijft ook bewaard: **Resultaten bekijken** toont hem naast het adres, en het apparaat bewaart hem als zijn **DNS Name**. NetBIOS kort een computernaam in tot 15 tekens, dus een NetBIOS-naam die het begin is van een langere reverse-DNS-naam (`WB-0024-KITCHEN` voor `wb-0024-kitchen-display-03.wbhq.com`) wijkt voor de reverse-DNS-naam.
 
-**Review Results** toont de naam die een apparaat krijgt, en het krijgt dezelfde naam of je het daar importeert of een [auto-importregel](#automatisch-importeren-met-auto-importregels) dat doet. De hostnaam van het apparaat is altijd zijn IP-adres. Zolang de naam van een apparaat nog de naam is die discovery het gaf, toont het overzicht waar de naam vandaan kwam als **Naambron**.
+**Resultaten bekijken** toont de naam die een apparaat krijgt, en het krijgt dezelfde naam of je het daar importeert of een [auto-importregel](#automatisch-importeren-met-auto-importregels) dat doet. De hostnaam van het apparaat is altijd zijn IP-adres. Zolang de naam van een apparaat nog de naam is die discovery het gaf, toont het overzicht waar de naam vandaan kwam als **Naambron**.
 
-**Name devices by their short hostname** kort een volledig gekwalificeerde naam in tot zijn eerste label: `core-sw-01.corp.example.com` wordt geïmporteerd als `core-sw-01`. Het geldt voor een reverse-DNS-naam en voor een `sysName` die een volledig gekwalificeerde hostnaam is; al het andere (`Core Switch`, `ubuntu-22.04`, een IP-adres) blijft zoals het is. Het verandert alleen hoe apparaten heten, dus er is geen nieuwe scan nodig: **Review Results** en auto-importregels gebruiken het de volgende keer dat ze een host een naam geven, en al geïmporteerde apparaten houden hun naam.
+**Apparaten een naam geven op basis van de korte hostnaam** kort een volledig gekwalificeerde naam in tot zijn eerste label: `core-sw-01.corp.example.com` wordt geïmporteerd als `core-sw-01`. Het geldt voor een reverse-DNS-naam en voor een `sysName` die een volledig gekwalificeerde hostnaam is; al het andere (`Core Switch`, `ubuntu-22.04`, een IP-adres) blijft zoals het is. Het verandert alleen hoe apparaten heten, dus er is geen nieuwe scan nodig: **Resultaten bekijken** en auto-importregels gebruiken het de volgende keer dat ze een host een naam geven, en al geïmporteerde apparaten houden hun naam.
 
 Een apparaat dat is geïmporteerd van een host met een reverse-DNS-naam, bewaart de volledige naam als zijn **DNS Name**, of de scan nu korte namen gebruikt of niet. Die wordt getoond op het overzicht van het apparaat, de zoekfunctie van de lijst **Devices** vindt hem, en locatietoewijzingsregels toetsen hostnaampatronen eraan, zodat een regel `*.store-0660.corp.example.com` een apparaat waarvan de naam zijn domein kwijt is, blijft plaatsen. Een NetBIOS-naam wordt nooit als DNS Name opgeslagen: de host meldt hem over zichzelf, en het is geen DNS-record.
 
@@ -656,7 +656,7 @@ Windows- en Samba-hosts hebben vaak geen SNMP-agent, dus zonder dit worden ze ge
 :::
 
 :::details Als een host geen naam heeft
-Een host die in **Review Results** met zijn adres wordt getoond, toont **No name found** en een (i) ernaast. Beweeg de muis over de (i) of geef hem focus om te zien wat elke manier om hem een naam te geven opleverde:
+Een host die in **Resultaten bekijken** met zijn adres wordt getoond, toont **No name found** en een (i) ernaast. Beweeg de muis over de (i) of geef hem focus om te zien wat elke manier om hem een naam te geven opleverde:
 
 - SNMP: de scan controleerde SNMP niet, de host antwoordde niet, of antwoordde zonder systeemnaam of met een naam die geen naam kan zijn, zoals `localhost` of een IP-adres.
 - NetBIOS: de optie staat uit voor de scan, de scan draaide op een globale sonde, het adres werd niet gevraagd (een openbaar adres, of de host- of tijdslimiet was bereikt), of de host antwoordde niet op UDP 137.
@@ -666,7 +666,7 @@ De sonde zoekt namen op via haar eigen DNS-servers, die in `/etc/resolv.conf` wa
 :::
 
 :::details Betere namen die later gevonden worden
-Een scan vindt niet altijd de eerste keer de beste naam van een host. De deelresultaten die een lopende scan uploadt, hebben geen namen, omdat reverse-DNS- en NetBIOS-namen één keer worden opgezocht, na de scan, dus een host die daaruit wordt geïmporteerd — door een auto-importregel, of vanuit **Review Results** terwijl de scan nog loopt — krijgt eerst de naam van zijn IP-adres. Een NetBIOS-antwoord kan verloren gaan, en een host kan een SNMP-agent krijgen nadat hij is geïmporteerd.
+Een scan vindt niet altijd de eerste keer de beste naam van een host. De deelresultaten die een lopende scan uploadt, hebben geen namen, omdat reverse-DNS- en NetBIOS-namen één keer worden opgezocht, na de scan, dus een host die daaruit wordt geïmporteerd — door een auto-importregel, of vanuit **Resultaten bekijken** terwijl de scan nog loopt — krijgt eerst de naam van zijn IP-adres. Een NetBIOS-antwoord kan verloren gaan, en een host kan een SNMP-agent krijgen nadat hij is geïmporteerd.
 
 Daarom onthoudt een apparaat dat door discovery een naam kreeg, waar die naam vandaan kwam. Als een voltooide scan van zijn adres een betere naam vindt — zijn SNMP-systeemnaam of NetBIOS-naam in plaats van zijn reverse-DNS-naam, welke naam dan ook in plaats van zijn IP-adres —, wordt het apparaat hernoemd naar de naam die een import het nu zou geven, en wordt zijn DNS Name ingevuld als het er geen heeft. Als een ander apparaat die naam al heeft, krijgt het apparaat de naam met zijn adres tussen haakjes (`FILESRV01 (10.0.0.5)`), en als die ook bezet is, houdt het zijn naam.
 
@@ -677,16 +677,16 @@ Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-recor
 
 Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Auto Import Rules** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#oid-collection-templates) de apparaten krijgen die hij importeert. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
 
-In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Review Results**; leeg is het elke 5 minuten. Een regel met **Include Ping-Only Hosts** aan importeert ook hosts die alleen op ping antwoordden, waaronder elke host die een [ICMP-scan](#icmp-scans) vindt, en geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
+In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Resultaten bekijken**; leeg is het elke 5 minuten. Een regel met **Include Ping-Only Hosts** aan importeert ook hosts die alleen op ping antwoordden, waaronder elke host die een [ICMP-scan](#icmp-scans) vindt, en geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
 
-Regels hebben geen eigen schema en hebben er ook geen nodig. Ingeschakelde regels draaien vanzelf tegen de resultaten van elke scan zodra die binnenkomen, inclusief de deelresultaten die een lange scan uploadt terwijl hij nog loopt, dus hosts worden binnen een minuut na het vinden geïmporteerd in plaats van aan het einde van het bereik. Zet **Repeat this scan** aan op een discovery-scan en het paar wordt een vaste afspraak: de scan scant zijn bereik opnieuw met jouw interval, en elke nieuwe host die hij vindt, wordt geïmporteerd zonder dat iemand ergens op drukt.
+Regels hebben geen eigen schema en hebben er ook geen nodig. Ingeschakelde regels draaien vanzelf tegen de resultaten van elke scan zodra die binnenkomen, inclusief de deelresultaten die een lange scan uploadt terwijl hij nog loopt, dus hosts worden binnen een minuut na het vinden geïmporteerd in plaats van aan het einde van het bereik. Zet **Deze scan herhalen** aan op een discovery-scan en het paar wordt een vaste afspraak: de scan scant zijn bereik opnieuw met jouw interval, en elke nieuwe host die hij vindt, wordt geïmporteerd zonder dat iemand ergens op drukt.
 
 Een regel opslaan past hem ook toe op resultaten die het project al heeft: een regel die je vandaag schrijft of inschakelt, bereikt binnen ongeveer een minuut de hosts die in de afgelopen 24 uur zijn ontdekt, zodat een regel die na een eenmalige scan is geschreven niet blijft wachten op een scan die nooit meer draait. Oudere resultaten blijven met rust, omdat een omgeving importeren die vorige maand is ontdekt een beslissing is, geen bijwerking van het opslaan van een regel. De twee knoppen van een regel zijn hoe je die beslissing neemt, en ze bereiken elke scan in het project, hoe oud ook:
 
 - **Dry Run** beoordeelt elke voltooide scan en meldt wat de regel zou importeren en monitoren. Er wordt niets weggeschreven, dus het is de veilige manier om te zien wat een regel zou claimen voordat je hem op een productieomgeving inschakelt. Een uitgeschakelde regel kan een Dry Run krijgen; alleen een echte run vereist dat hij is ingeschakeld, daarom begint een regel die in het dashboard is gemaakt met **Ingeschakeld** uit: doe een Dry Run en zet hem dan aan.
 - **Run Rule** doet dezelfde beoordeling en voert de import uit.
 
-**Wie een regel mag uitvoeren.** Een run bereikt elke scan van het project, dus op **Dry Run** of **Run Rule** drukken vereist rechten die het hele project bereiken: recht om de regel te bewerken, om netwerkapparaten te maken en - als de regel een monitorsjabloon heeft - om monitors te maken, elk met bereik over alle resources in het project. Een recht dat beperkt is tot labels of tot eigen apparaten is niet genoeg, en een teamblokkade met labels op het maken van apparaten of monitors weigert de run. **Run Now** van een locatietoewijzingsregel of een regel voor apparaatlabels vereist recht om de regel te bewerken en om netwerkapparaten te bewerken, op dezelfde manier met bereik over het hele project (zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now#voordat-u-begint), dat elk recht noemt).
+**Wie een regel mag uitvoeren.** Een run bereikt elke scan van het project, dus op **Dry Run** of **Run Rule** drukken vereist rechten die het hele project bereiken: recht om de regel te bewerken, om netwerkapparaten te maken en - als de regel een monitorsjabloon heeft - om monitors te maken, elk met bereik over alle resources in het project. Een recht dat beperkt is tot labels of tot eigen apparaten is niet genoeg, en een teamblokkade met labels op het maken van apparaten of monitors weigert de run. **Nu uitvoeren** van een locatietoewijzingsregel of een regel voor apparaatlabels vereist recht om de regel te bewerken en om netwerkapparaten te bewerken, op dezelfde manier met bereik over het hele project (zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now#voordat-u-begint), dat elk recht noemt).
 
 Grote omgevingen worden in gedoseerde batches geïmporteerd. Een apparaat of monitor maken doorloopt de volledige pipeline — locatietoewijzing, eigenaren, labels en, voor monitors, het abonnement, de status en het werk aan statuspagina's — dus een run maakt er een paar honderd van elk tegelijk in plaats van tienduizenden in één keer. Eén keer op **Run Rule** drukken stuurt zoveel batches aan als de omgeving nodig heeft en meldt het totaal, dus een scan van 900 routers is één druk op de knop. Als een run stopt terwijl er nog werk is, zegt het rapport precies hoeveel ("Stopped at the run cap with 409 active Network Device monitors still to create"), en nogmaals op de knop drukken gaat verder: al geïmporteerde hosts en al gemaakte monitors worden overgeslagen, dus opnieuw uitvoeren voegt nooit dubbel toe.
 
@@ -741,7 +741,7 @@ OneUptime houdt dan één netwerkapparaat-monitor bij per apparaat dat past, gem
 > [!IMPORTANT]
 > Elke monitor die een beleid inricht, telt mee voor je abonnement. Een beleid over een grote omgeving is veel monitors uit één keer opslaan, dus de bevestiging van het aanbevolen beleid noemt het aantal apparaten van het project voordat het iets maakt.
 
-De kolom **Covered Devices** van de tabel toont **Not counted yet** tot de eerste synchronisatie van het beleid, en **Last Sync** zegt wanneer dat was, of waarom het mislukte.
+De kolom **Covered Devices** van de tabel toont **Nog niet geteld** tot de eerste synchronisatie van het beleid, en **Last Sync** zegt wanneer dat was, of waarom het mislukte.
 
 Zolang er nog geen beleid is, biedt de pagina **Create the recommended policy** aan: een monitorsjabloon **Network device alert pack (recommended)**, met het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket), en een beleid **Alert on every device** dat het op het hele project toepast. Het sjabloon wordt teruggevonden aan een markering in zijn beschrijving, dus de actie maakt nooit een tweede kopie, en het is een monitorsjabloon dat je ook kunt gebruiken voor monitors die je zelf maakt. Versmal daarna het bereik van het beleid als het hele project te veel is.
 
@@ -752,7 +752,7 @@ Open de pagina van het apparaat en klik op **Monitor maken** op de kaart **Monit
 Om er een te maken vanuit **Monitoren**:
 
 1. Ga naar **Monitoren** en klik op **Monitor maken**.
-2. Kies **Network Device** als monitortype.
+2. Kies **Netwerkapparaat** als monitortype.
 3. Kies het netwerkapparaat waarop gewaarschuwd moet worden. Alles over het verzamelen van gegevens — hostnaam, inloggegevens, schema, interfacewalks, gezondheids-OID's — komt van het apparaat; de monitor kiest alleen waarop gewaarschuwd wordt, via zijn criteria.
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
@@ -946,7 +946,7 @@ Klik op een onbeheerde peer en **Add to Monitoring** registreert hem als door ee
 
 ### De kaart als pdf exporteren
 
-**PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Device Topology**, een locatie op de **Map**, en het tabblad **Netwerk** van **Topologie**.
+**PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Device Topology**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**.
 
 De pdf bevat:
 
@@ -959,9 +959,9 @@ Een kleine locatie past op één A4-pagina. Een groter netwerk krijgt een groter
 
 ### Ping en traceroute vanaf de kaart
 
-Klikken op een beheerd apparaat op de kaart opent zijn zijpaneel, en de sectie **Connectivity** van het paneel beantwoordt de twee vragen die meestal volgen op "is het bereikbaar?": hoe is het gegaan, en kan ik het nu bereiken.
+Klikken op een beheerd apparaat op de kaart opent zijn zijpaneel, en de sectie **Connectiviteit** van het paneel beantwoordt de twee vragen die meestal volgen op "is het bereikbaar?": hoe is het gegaan, en kan ik het nu bereiken.
 
-- **Round-trip time, past hour** is een kleine grafiek van de ping-rondetijd van het apparaat uit zijn eigen polls, met de huidige, gemiddelde en piekwaarde eronder en het slechtste pakketverlies van het uur ernaast. **Open metrics** opent de pagina **Metrieken** van het apparaat. Een apparaat dat het laatste uur niet is gepingd, toont **No ping data in the last hour.**
+- **Round-trip time, past hour** is een kleine grafiek van de ping-rondetijd van het apparaat uit zijn eigen polls, met de huidige, gemiddelde en piekwaarde eronder en het slechtste pakketverlies van het uur ernaast. **Metrieken openen** opent de pagina **Metrieken** van het apparaat. Een apparaat dat het laatste uur niet is gepingd, toont **No ping data in the last hour.**
 - **Ping** stuurt vijf ICMP-echoverzoeken naar het apparaat en meldt of het antwoordde, de minimale, gemiddelde en maximale rondetijd, de jitter en het pakketverlies. Een apparaat dat op een deel ervan antwoordt, wordt als bereikbaar gemeld, met pakketverlies.
 - **Traceroute** meldt het pad van de sonde naar het apparaat hop voor hop — het hopnummer, de host die antwoordde en zijn rondetijd —, met hops zonder antwoord gemarkeerd als `* * *` en, als de route het apparaat niet bereikte, de hop waarop ze brak.
 
@@ -980,7 +980,7 @@ Daarvoor moet de kaart weten welk geleerd MAC-adres dat van het apparaat is. Er 
 
 De switch waaraan het apparaat hangt, heeft ook **Collect Connected Endpoints** aan nodig: daar komt de poort vandaan. Adressen worden binnen de locatie van het apparaat gekoppeld, aangezien elk filiaal een `10.0.0.5` heeft; een MAC-adres past ongeacht de locatie.
 
-Het overzicht van het apparaat heeft een kaart **Connected to** die de switch, de poort en de VLAN noemt. Een switch, router of firewall die zijn buren via LLDP of CDP meldt, toont die daar in plaats daarvan: zijn eigen poort, de buur (een link als het hier een apparaat is) en de poort aan de andere kant, met **Open de kaart** ernaast. Op de kaart toont het zijpaneel van het apparaat hetzelfde onder **Connected to**, en het paneel van de verbinding zegt dat ze is geleerd uit de forwardingtabel van de switch. De Parent-Child-weergave tekent het apparaat onder zijn switch. Een verbinding die je met de hand onder **Device Links** voor hetzelfde paar hebt getekend, gaat op in de geleerde in plaats van haar te verdubbelen: de geleerde poort vervangt een verkeerd getypte, en een ouder die je op de handgetekende verbinding hebt ingesteld, blijft behouden.
+Het overzicht van het apparaat heeft een kaart **Verbonden met** die de switch, de poort en de VLAN noemt. Een switch, router of firewall die zijn buren via LLDP of CDP meldt, toont die daar in plaats daarvan: zijn eigen poort, de buur (een link als het hier een apparaat is) en de poort aan de andere kant, met **Open de kaart** ernaast. Op de kaart toont het zijpaneel van het apparaat hetzelfde onder **Verbonden met**, en het paneel van de verbinding zegt dat ze is geleerd uit de forwardingtabel van de switch. De Parent-Child-weergave tekent het apparaat onder zijn switch. Een verbinding die je met de hand onder **Device Links** voor hetzelfde paar hebt getekend, gaat op in de geleerde in plaats van haar te verdubbelen: de geleerde poort vervangt een verkeerd getypte, en een ouder die je op de handgetekende verbinding hebt ingesteld, blijft behouden.
 
 ![Parent-Child-topologieweergave die een kassa met alleen ping onder zijn switch tekent via een geleerde verbinding](/docs/static/images/NetworkTopologyLearnedLink.png)
 
@@ -1034,7 +1034,7 @@ Het apparaat is gepolld en er is geen walk geprobeerd, omdat nergens in zijn ket
 :::details Een apparaat met alleen ping is niet aan zijn switch gekoppeld
 De kaart tekent de kabel van een apparaat met alleen ping uit de forwardingtabel van zijn switch, en daarvoor moeten drie dingen kloppen:
 
-- De switch verzamelt endpoints: **Collect Connected Endpoints** aan in zijn pollinstellingen, met inloggegevens waarmee de walk slaagt. Het overzicht van het apparaat toont een kaart **Connected to** zodra een switch het heeft geleerd.
+- De switch verzamelt endpoints: **Collect Connected Endpoints** aan in zijn pollinstellingen, met inloggegevens waarmee de walk slaagt. Het overzicht van het apparaat toont een kaart **Verbonden met** zodra een switch het heeft geleerd.
 - Het MAC-adres van het apparaat is bekend: zijn **MAC-adres** is ingesteld, of een router op de locatie verzamelt endpoints en de hostnaam van het apparaat is het adres dat de ARP-tabel van die router koppelt. Een apparaat dat op DNS-naam is geregistreerd zonder MAC-adres, kan niet worden gekoppeld, dus typ het MAC-adres in.
 - Dezelfde locatie: een adres wordt alleen gekoppeld aan een apparaat in dezelfde locatie als de switch die het leerde. Een apparaat zonder locatie wordt alleen op adres gekoppeld als die switch ook geen locatie heeft; als de switch in een locatie zit, zet het apparaat dan in dezelfde. Een MAC-adres past ongeacht de locatie.
 
@@ -1042,7 +1042,7 @@ Als het apparaat achter een onbeheerde switch of een hub zit, leert de beheerde 
 :::
 
 :::details Maar een deel van de ontdekte apparaten is geïmporteerd
-Een import vanuit **Review Results** beantwoordt dit in zijn laatste stap: elke host die hij niet importeerde en elk apparaat dat hij zonder zijn monitor importeerde, staat onder de reden, en een nieuwe poging probeert alleen de mislukte hosts opnieuw. Om hem later te zien, klik je bij de scan op **Review Results** en daarna op **Resultaten bekijken**.
+Een import vanuit **Resultaten bekijken** beantwoordt dit in zijn laatste stap: elke host die hij niet importeerde en elk apparaat dat hij zonder zijn monitor importeerde, staat onder de reden, en een nieuwe poging probeert alleen de mislukte hosts opnieuw. Om hem later te zien, klik je bij de scan op **Resultaten bekijken** en daarna op **Resultaten bekijken**.
 
 Voor een auto-importregel beantwoordt het rapport van de run dit, in het dialoogvenster dat opent als een run klaar is, niet in een log. Een run die stopte bij zijn batchlimiet, zegt dat en noemt wat er nog over is: druk opnieuw op **Run Rule** en hij gaat verder waar hij stopte. Een run die klaar is maar minder hosts claimde dan je verwachtte, zegt waar de rest bleef: tegengehouden door een uitsluitingsregel, al geregistreerd op dat adres, of niet passend op de criteria van de regel.
 
