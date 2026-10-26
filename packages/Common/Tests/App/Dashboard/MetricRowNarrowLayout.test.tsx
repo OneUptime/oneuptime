@@ -195,9 +195,7 @@ describe("a metrics list row lays itself out by its own width", () => {
     cleanup();
 
     render(<MetricRow metric={{} as MetricType} lastValue={1} />);
-    expect(screen.getByTestId("metric-row-name").textContent).toBe(
-      "(unnamed)",
-    );
+    expect(screen.getByTestId("metric-row-name").textContent).toBe("(unnamed)");
   });
 
   test("stacked, the sparkline comes first and the value follows it; side by side, the value is before it", () => {

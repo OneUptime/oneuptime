@@ -136,9 +136,7 @@ describe("BreakableName", () => {
   });
 
   test("adds no element of its own around the text: the holder sets how it wraps", () => {
-    const holder: HTMLElement = draw(
-      "container.network.io.usage.rx_bytes",
-    );
+    const holder: HTMLElement = draw("container.network.io.usage.rx_bytes");
 
     for (const child of Array.from(holder.children)) {
       expect(child.tagName).toBe("WBR");

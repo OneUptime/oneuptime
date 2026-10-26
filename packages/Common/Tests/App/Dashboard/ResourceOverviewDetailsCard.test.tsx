@@ -477,9 +477,7 @@ describe("the record's own ID is the card's ID line", () => {
     );
     const line: HTMLElement = within(body).getByTestId("detail-id-line");
 
-    expect(within(line).getByTestId("detail-id-label")).toHaveTextContent(
-      "ID",
-    );
+    expect(within(line).getByTestId("detail-id-label")).toHaveTextContent("ID");
     // The whole ID is its text, for a copy and find-in-page.
     expect(within(line).getByTestId("detail-id-value").textContent).toBe(
       RECORD_ID,
@@ -503,9 +501,9 @@ describe("the record's own ID is the card's ID line", () => {
     const body: HTMLElement = screen.getByTestId(
       "resource-overview-details-body",
     );
-    expect(within(body).getByTestId("resource-overview-no-details")).toHaveTextContent(
-      "No details reported yet.",
-    );
+    expect(
+      within(body).getByTestId("resource-overview-no-details"),
+    ).toHaveTextContent("No details reported yet.");
     expect(within(body).getByTestId("detail-id-line")).toBeInTheDocument();
     expect(
       screen.queryByTestId("resource-overview-details"),
@@ -590,9 +588,7 @@ describe("a long value wraps inside its row, where it reads", () => {
       { label: "Version", value: "16.4" },
     ]);
 
-    expect(classesOf(valueOfRow("Discovered from"))).not.toContain(
-      "font-mono",
-    );
+    expect(classesOf(valueOfRow("Discovered from"))).not.toContain("font-mono");
     expect(classesOf(valueOfRow("Version"))).toContain("font-mono");
   });
 });

@@ -728,6 +728,19 @@ test.describe("the Overview's name on a phone", () => {
  * ---------------------------------------------------------------------------
  */
 
+// A hovered point's time, as the row writes it: "Oct 26 2026, 14:37 GMT".
+const TIME_OF_DAY: RegExp = /\d{2}:\d{2}/;
+
+// A task's image, exactly.
+const TASK_IMAGE: RegExp =
+  /^registry\.acme-swarm\.example\/shop\/checkout:2\.7\.0$/;
+
+// A line that ends after one of a name's own separators.
+const ENDS_AT_A_NAME_BREAK: RegExp = /[./]$/;
+
+// The long description's last words, in the hover title.
+const LONG_DESCRIPTION_END: RegExp = /nightly batch jobs\.$/;
+
 // The text of each line an element's words are laid out on, in order.
 async function linesOf(locator: Locator): Promise<Array<string>> {
   return await locator.evaluate((element: Element): Array<string> => {
@@ -876,7 +889,7 @@ test.describe("the Metrics tab: names break after their dots, sparklines line up
      */
     for (const offset of [4, 40, before.width / 2, before.width - 4]) {
       await page.mouse.move(before.x + offset, before.y + before.height / 2);
-      await expect(valueText).toContainText(/\d{2}:\d{2}/);
+      await expect(valueText).toContainText(TIME_OF_DAY);
 
       const during: Box = await boxOf(sparkline);
       expect(during.x).toBe(before.x);
@@ -885,7 +898,7 @@ test.describe("the Metrics tab: names break after their dots, sparklines line up
 
     // Still the point's, a moment later: nothing moved, nothing left.
     await page.waitForTimeout(300);
-    await expect(valueText).toContainText(/\d{2}:\d{2}/);
+    await expect(valueText).toContainText(TIME_OF_DAY);
     await screenshot(page, "docker-swarm-metrics-hover-768");
 
     // Leaving it, the row's newest value again.
@@ -923,7 +936,7 @@ test.describe("the Metrics tab: names break after their dots, sparklines line up
     await page.mouse.move(before.x + 4, before.y + before.height / 2);
     await expect(
       rows.first().getByTestId("metric-row-value-text"),
-    ).toContainText(/\d{2}:\d{2}/);
+    ).toContainText(TIME_OF_DAY);
     expect((await boxOf(first)).x).toBe(before.x);
   });
 });
@@ -937,11 +950,9 @@ test.describe("a task's image breaks after its own dots and slashes", () => {
     await page.setViewportSize(PHONE);
     await openTaskPage(page);
 
-    const image: Locator = page
-      .getByTestId("info-card-value")
-      .filter({
-        hasText: /^registry\.acme-swarm\.example\/shop\/checkout:2\.7\.0$/,
-      });
+    const image: Locator = page.getByTestId("info-card-value").filter({
+      hasText: TASK_IMAGE,
+    });
     await expect(image).toHaveText(
       "registry.acme-swarm.example/shop/checkout:2.7.0",
     );
@@ -950,7 +961,7 @@ test.describe("a task's image breaks after its own dots and slashes", () => {
     expect(lines.length).toBeGreaterThan(1);
     // Every line but the last ends after one of the name's own dots or slashes.
     for (const line of lines.slice(0, -1)) {
-      expect({ line, endsAtABreak: /[./]$/.test(line) }).toEqual({
+      expect({ line, endsAtABreak: ENDS_AT_A_NAME_BREAK.test(line) }).toEqual({
         line,
         endsAtABreak: true,
       });
@@ -1013,7 +1024,7 @@ test.describe("the Overview hero's description", () => {
     expect(descriptionBox.x + descriptionBox.width).toBeLessThanOrEqual(
       controlsBox.x,
     );
-    await expect(description).toHaveAttribute("title", /nightly batch jobs\.$/);
+    await expect(description).toHaveAttribute("title", LONG_DESCRIPTION_END);
 
     await screenshot(page, "docker-swarm-overview-long-description-laptop");
   });

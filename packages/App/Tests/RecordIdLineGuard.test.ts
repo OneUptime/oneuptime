@@ -799,8 +799,8 @@ function scanResourceOverviews(): {
           rows.push({
             file: relative(file),
             line:
-              source.getLineAndCharacterOfPosition(node.getStart(source))
-                .line + 1,
+              source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+              1,
             label: ts.isStringLiteral(labelExpression)
               ? labelExpression.text
               : labelExpression.getText(source),
