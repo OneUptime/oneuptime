@@ -171,23 +171,23 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Incidents/View/StateTimeline.tsx",
-    "Each status this incident has been in, when it began and how long it lasted.",
+    "Each state this incident has been in, when it began and how long it lasted.",
   ],
   [
     "Pages/Alerts/View/StateTimeline.tsx",
-    "Each status this alert has been in, when it began and how long it lasted.",
+    "Each state this alert has been in, when it began and how long it lasted.",
   ],
   [
     "Pages/Incidents/EpisodeView/StateTimeline.tsx",
-    "Each status this episode has been in, when it began and how long it lasted.",
+    "Each state this episode has been in, when it began and how long it lasted.",
   ],
   [
     "Pages/Alerts/EpisodeView/StateTimeline.tsx",
-    "Each status this episode has been in, when it began and how long it lasted.",
+    "Each state this episode has been in, when it began and how long it lasted.",
   ],
   [
     "Pages/ScheduledMaintenanceEvents/View/StateTimeline.tsx",
-    "Each status this maintenance event has been in, when it began and how long it lasted.",
+    "Each state this maintenance event has been in, when it began and how long it lasted.",
   ],
 ];
 
