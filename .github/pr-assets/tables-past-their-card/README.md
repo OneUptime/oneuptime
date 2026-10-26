@@ -17,3 +17,14 @@ branch.
   768px, beside the cluster's side menu.
 - `plain-table-edge-*` is the ModelTables fixture's table drawn without a
   card (`?table=plain`), its top edge at 3x.
+
+The UI review's shots are `review-<name>-before.png` (the branch as it was
+built, at 9065217bcc) and `review-<name>-after.png` (after the review), from
+the same lab, its SMS numbers drawn as phone numbers:
+
+- `review-smtp-emails-1280-*`: a value cut short runs to its column's end
+  ("grace@acme-commerce.examp...", not "grace@acme-...").
+- `review-twilio-numbers-1280-de-*`: a Twilio config's numbers stay whole;
+  "+2 weitere" goes under the number where the column is narrow.
+- `review-postmortem-rules-1280-de-*`: the postmortem rules fit their card
+  in German, Status in sight.
