@@ -17823,3 +17823,114 @@ test.describe("the Remediation card of a record linked to nothing (issue #5293)"
     );
   });
 });
+
+/*
+ * Issue #5293: asked to link the incident to the host it is about,
+ * OneUptime AI waits for approval of add_incident_affected_resources. The
+ * server prepared the action (prepareMutation), so the card says what it
+ * links by name - Adds host "checkout-api-7f9c". - and leaves the list's
+ * IDs out of the arguments line, where they would only repeat it.
+ * ?thread=linking is that conversation, on incident #1042 and alert #311.
+ */
+test.describe("an action linking what a record is about waits for approval (issue #5293)", () => {
+  const HOST_ID: string = uuid("84000000", 1);
+  const ADDS_HOST: string = 'Adds host "checkout-api-7f9c".';
+
+  function approvalPrompt(page: Page): Locator {
+    return answers(page).first().getByRole("group", {
+      name: "Actions waiting for approval",
+    });
+  }
+
+  test("the card names the host it links, and running it links it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking");
+    const answer: Locator = answers(page).first();
+    const prompt: Locator = approvalPrompt(page);
+
+    await expect(prompt).toContainText("The AI wants to perform 1 action");
+    await expect(prompt).toContainText(
+      "Link this incident to affected resources",
+    );
+    await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
+      ADDS_HOST,
+    );
+    // The arguments line keeps the incident and leaves the list out.
+    await expect(prompt).toContainText(`incidentId: ${INCIDENT_ID}`);
+    await expect(prompt).not.toContainText("affectedResources");
+    await expect(prompt).not.toContainText(HOST_ID);
+
+    await prompt.getByRole("button", { name: /Run 1 action/ }).click();
+
+    const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/conversation/respond-to-approval",
+    );
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]!.body["decisions"]).toEqual([
+      { toolCallId: "call_link", approved: true },
+    ]);
+
+    await expect(answer).toContainText(
+      "Done — incident #1042 is linked to host checkout-api-7f9c.",
+    );
+    await expect(prompt).toHaveCount(0);
+    await expect(
+      answer.getByRole("list", { name: "Actions" }).getByRole("listitem"),
+    ).toHaveText(["Link this incident to affected resources · Done"]);
+  });
+
+  test("an alert's card names the host the same way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking", ALERT_PATH);
+    const prompt: Locator = approvalPrompt(page);
+
+    await expect(prompt).toContainText("Link this alert to affected resources");
+    await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
+      ADDS_HOST,
+    );
+    await expect(prompt).toContainText(`alertId: ${ALERT_ID}`);
+    await expect(prompt).not.toContainText(HOST_ID);
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`on a phone the line stays inside the card (${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openConversation(
+        page,
+        `thread=linking${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+      const prompt: Locator = approvalPrompt(page);
+      const description: Locator = prompt.getByTestId(
+        "tool-approval-description",
+      );
+
+      await expect(description).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+
+      // The line wraps inside the card rather than running past it.
+      const promptBox: { x: number; width: number } | null =
+        await prompt.boundingBox();
+      const descriptionBox: { x: number; width: number } | null =
+        await description.boundingBox();
+      expect(promptBox).not.toBeNull();
+      expect(descriptionBox).not.toBeNull();
+      expect(descriptionBox!.x).toBeGreaterThanOrEqual(promptBox!.x);
+      expect(descriptionBox!.x + descriptionBox!.width).toBeLessThanOrEqual(
+        promptBox!.x + promptBox!.width + 0.5,
+      );
+
+      await screenshotElement(prompt, `tool-approval-linking-390-${theme}`);
+    });
+  }
+});
