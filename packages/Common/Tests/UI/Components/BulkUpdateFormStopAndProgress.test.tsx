@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   act,
   fireEvent,
@@ -13,6 +15,9 @@ import BulkUpdateForm, {
   BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE,
   BULK_NOT_STARTED_COUNT,
   BULK_STOPPING,
+  BULK_TIME_LEFT_HOURS,
+  BULK_TIME_LEFT_MINUTES,
+  BULK_TIME_LEFT_UNDER_A_MINUTE,
   BulkActionButtonSchema,
   BulkActionOnClickProps,
   getBulkTimeLeftText,
@@ -198,9 +203,9 @@ describe("BulkUpdateForm while a run goes on", () => {
     expect(screen.getByTestId("bulk-action-succeeded-count")).toHaveTextContent(
       "2 Devices succeeded",
     );
-    expect(screen.getByTestId("bulk-action-not-started-count")).toHaveTextContent(
-      "4 Devices not started: you stopped the action",
-    );
+    expect(
+      screen.getByTestId("bulk-action-not-started-count"),
+    ).toHaveTextContent("4 Devices not started: you stopped the action");
     expect(footerButton()).toHaveTextContent("Close");
     expect(footerButton()).not.toBeDisabled();
   });
@@ -268,9 +273,9 @@ describe("BulkUpdateForm while a run goes on", () => {
     await flush();
 
     await waitFor(() => {
-      expect(screen.getByTestId("bulk-action-live-succeeded")).toHaveTextContent(
-        "1 Device succeeded",
-      );
+      expect(
+        screen.getByTestId("bulk-action-live-succeeded"),
+      ).toHaveTextContent("1 Device succeeded");
     });
     expect(screen.getByTestId("bulk-action-live-failed")).toHaveTextContent(
       "1 Device failed",
@@ -363,6 +368,188 @@ describe("the words", () => {
     );
     expect(BULK_NOT_STARTED_COUNT.other).toBe(
       "{{count}} {{itemsName}} not started: you stopped the action",
+    );
+  });
+});
+
+describe("the words in every language", () => {
+  /*
+   * The dialog is drawn by the Dashboard and the Admin Dashboard, each
+   * looking its strings up in its own locale files: a string missing from
+   * one stays English there.
+   */
+  const LOCALE_DIRECTORIES: Array<[string, string]> = [
+    [
+      "Dashboard",
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales",
+      ),
+    ],
+    [
+      "Admin Dashboard",
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/AdminDashboard/src/Locales",
+      ),
+    ],
+  ];
+
+  const OTHER_LANGUAGES: Array<string> = [
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ];
+
+  // Each key with the English the dialog shows for it.
+  const KEYS: Array<[string, string]> = [
+    [BULK_KEEP_PAGE_OPEN, BULK_KEEP_PAGE_OPEN],
+    [BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE, BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE],
+    [BULK_STOPPING, BULK_STOPPING],
+    [BULK_TIME_LEFT_UNDER_A_MINUTE, BULK_TIME_LEFT_UNDER_A_MINUTE],
+    [BULK_TIME_LEFT_MINUTES.other, BULK_TIME_LEFT_MINUTES.other],
+    [`${BULK_TIME_LEFT_MINUTES.other}_one`, BULK_TIME_LEFT_MINUTES.one],
+    [BULK_TIME_LEFT_HOURS.other, BULK_TIME_LEFT_HOURS.other],
+    [`${BULK_TIME_LEFT_HOURS.other}_one`, BULK_TIME_LEFT_HOURS.one],
+    [BULK_NOT_STARTED_COUNT.other, BULK_NOT_STARTED_COUNT.other],
+    [`${BULK_NOT_STARTED_COUNT.other}_one`, BULK_NOT_STARTED_COUNT.one],
+  ];
+
+  const PLACEHOLDER: RegExp = /{{\s*(\w+)\s*}}/g;
+
+  const placeholdersOf: (text: string) => Array<string> = (
+    text: string,
+  ): Array<string> => {
+    return (text.match(PLACEHOLDER) || []).sort();
+  };
+
+  const localeCache: Map<string, Record<string, unknown>> = new Map<
+    string,
+    Record<string, unknown>
+  >();
+
+  const readLocale: (
+    directory: string,
+    language: string,
+  ) => Record<string, unknown> = (
+    directory: string,
+    language: string,
+  ): Record<string, unknown> => {
+    // The Dashboard's files are large: each is read once.
+    const file: string = path.join(directory, `${language}.json`);
+
+    if (!localeCache.has(file)) {
+      localeCache.set(
+        file,
+        JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>,
+      );
+    }
+
+    return localeCache.get(file)!;
+  };
+
+  test.each(LOCALE_DIRECTORIES)(
+    "the %s has each in English and translated in every other language, with its placeholders",
+    (_frontend: string, directory: string) => {
+      const english: Record<string, unknown> = readLocale(directory, "en");
+
+      for (const [key, englishText] of KEYS) {
+        expect({ key, english: english[key] }).toEqual({
+          key,
+          english: englishText,
+        });
+
+        for (const language of OTHER_LANGUAGES) {
+          const translated: unknown = readLocale(directory, language)[key];
+
+          expect({
+            key,
+            language,
+            isText: typeof translated === "string",
+          }).toEqual({ key, language, isText: true });
+          expect({ key, language, same: translated === englishText }).toEqual({
+            key,
+            language,
+            same: false,
+          });
+          expect(placeholdersOf(translated as string)).toEqual(
+            placeholdersOf(englishText),
+          );
+        }
+      }
+    },
+  );
+
+  test.each(LOCALE_DIRECTORIES)(
+    "the %s says the same as the other in each language",
+    (_frontend: string, directory: string) => {
+      const dashboard: string = LOCALE_DIRECTORIES[0]![1];
+
+      for (const language of OTHER_LANGUAGES) {
+        const here: Record<string, unknown> = readLocale(directory, language);
+        const there: Record<string, unknown> = readLocale(dashboard, language);
+
+        for (const [key] of KEYS) {
+          expect({ key, language, text: here[key] }).toEqual({
+            key,
+            language,
+            text: there[key],
+          });
+        }
+      }
+    },
+  );
+
+  test("the old note, which no dialog shows any more, is gone from both", () => {
+    for (const [, directory] of LOCALE_DIRECTORIES) {
+      for (const language of ["en", ...OTHER_LANGUAGES]) {
+        expect(
+          Object.keys(readLocale(directory, language)).filter((key: string) => {
+            return key.startsWith("Please wait while the bulk action");
+          }),
+        ).toEqual([]);
+      }
+    }
+  });
+
+  test("a German reader is told how long is left in German", () => {
+    const german: Record<string, unknown> = readLocale(
+      LOCALE_DIRECTORIES[0]![1],
+      "de",
+    );
+
+    const translator: ReturnType<typeof createTranslator> = createTranslator(
+      (key: string): string | undefined => {
+        const value: unknown = german[key];
+        return typeof value === "string" ? value : undefined;
+      },
+      "de",
+    );
+
+    expect(getBulkTimeLeftText(30 * 1000, translator)).toBe(
+      "Noch weniger als eine Minute",
+    );
+    expect(getBulkTimeLeftText(60 * 1000, translator)).toBe(
+      "Noch etwa 1 Minute",
+    );
+    expect(getBulkTimeLeftText(12 * 60 * 1000, translator)).toBe(
+      "Noch etwa 12 Minuten",
+    );
+    expect(getBulkTimeLeftText(3 * 60 * 60 * 1000, translator)).toBe(
+      "Noch etwa 3 Stunden",
     );
   });
 });
