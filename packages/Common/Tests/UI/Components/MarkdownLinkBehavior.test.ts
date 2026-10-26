@@ -77,6 +77,7 @@ describe("a link to another site opens in a new tab", () => {
       opensInNewTab: true,
       needsSignedInSession: false,
       absoluteUrl: "https://evil.example/path",
+      inAppPath: null,
     });
   });
 
@@ -135,13 +136,127 @@ describe("a link into the app the reader is in stays in the tab", () => {
     expect(opensIn("#top", "")).toBe("same tab");
   });
 
-  test("and keeps its absolute address, with nothing to open specially", () => {
+  test("and keeps its absolute address, to open inside the app", () => {
     expect(getMarkdownLinkBehavior("../monitors", DASHBOARD_PAGE)).toEqual({
       opensInNewTab: false,
       needsSignedInSession: false,
       absoluteUrl:
         "https://oneuptime.example/dashboard/5f1c0b5e-7a4e-4d8e-9f61-0c2f1b0a7d11/monitors",
+      inAppPath: "/dashboard/5f1c0b5e-7a4e-4d8e-9f61-0c2f1b0a7d11/monitors",
     });
+  });
+});
+
+/*
+ * A link that stays in the tab and goes to another page of the same app
+ * opens inside the app (inAppPath) instead of loading the whole app again;
+ * another project, status page or public dashboard is loaded in full, and a
+ * section of the page it is on is left to the browser.
+ */
+const inAppPathOf: (href: string, page: string) => string | null = (
+  href: string,
+  page: string,
+): string | null => {
+  return getMarkdownLinkBehavior(href, page).inAppPath;
+};
+
+describe("a link to another page of the same app opens inside the app", () => {
+  const PROJECT: string = "5f1c0b5e-7a4e-4d8e-9f61-0c2f1b0a7d11";
+
+  test.each([
+    [
+      "an incident of the same project, written absolute",
+      "https://oneuptime.example/dashboard/" + PROJECT + "/incidents/1",
+      "/dashboard/" + PROJECT + "/incidents/1",
+    ],
+    [
+      "a path from the root",
+      "/dashboard/" + PROJECT + "/monitors?page=2#top",
+      "/dashboard/" + PROJECT + "/monitors?page=2#top",
+    ],
+    [
+      "a path relative to the page",
+      "../monitors",
+      "/dashboard/" + PROJECT + "/monitors",
+    ],
+    [
+      "a query on this page",
+      "?tab=feed",
+      "/dashboard/" +
+        PROJECT +
+        "/incidents/9a3c0f6e-2b1d-4c5e-8f7a-1d2e3f4a5b6c?tab=feed",
+    ],
+    [
+      "the project's id in another case",
+      "/dashboard/" + PROJECT.toUpperCase() + "/alerts",
+      "/dashboard/" + PROJECT.toUpperCase() + "/alerts",
+    ],
+  ])("%s", (_name: string, href: string, path: string) => {
+    expect(inAppPathOf(href, DASHBOARD_PAGE)).toBe(path);
+  });
+
+  test.each([
+    [
+      "another project: loaded in full, as switching projects is",
+      "/dashboard/0b0b0b0b-0000-4000-8000-000000000000/incidents/1",
+    ],
+    ["a page of the Dashboard outside a project", "/dashboard/welcome"],
+    ["a section of this page: the browser scrolls to it", "#root-cause"],
+    ["the page itself", DASHBOARD_PAGE],
+    ["the page itself, with a section", DASHBOARD_PAGE + "#notes"],
+    ["an email address", "mailto:oncall@example.com"],
+    ["another site", "https://example.com/dashboard/" + PROJECT],
+    ["the docs", "/docs/incidents"],
+    ["an attachment", "/api/incident-internal-note/attachment/a/b/c"],
+  ])("never %s", (_name: string, href: string) => {
+    expect(inAppPathOf(href, DASHBOARD_PAGE)).toBeNull();
+  });
+
+  test("a status page: its own pages, never another status page's", () => {
+    expect(
+      inAppPathOf(
+        "/status-page/2a1b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/announcements",
+        STATUS_PAGE,
+      ),
+    ).toBe("/status-page/2a1b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/announcements");
+    expect(
+      inAppPathOf(
+        "/status-page/7e7e7e7e-0000-4000-8000-000000000000/announcements",
+        STATUS_PAGE,
+      ),
+    ).toBeNull();
+  });
+
+  test("a status page on its own domain: any page of the domain", () => {
+    expect(inAppPathOf("/incidents/42", CUSTOM_DOMAIN_STATUS_PAGE)).toBe(
+      "/incidents/42",
+    );
+    expect(
+      inAppPathOf(
+        "https://status.acme.example/announcements/1",
+        CUSTOM_DOMAIN_STATUS_PAGE,
+      ),
+    ).toBe("/announcements/1");
+  });
+
+  test("a public dashboard: its own pages, never another dashboard's", () => {
+    expect(
+      inAppPathOf(PUBLIC_DASHBOARD_PAGE + "?time=24h", PUBLIC_DASHBOARD_PAGE),
+    ).toBe("/public-dashboard/2a1b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d?time=24h");
+    expect(
+      inAppPathOf("/public-dashboard/another-dashboard", PUBLIC_DASHBOARD_PAGE),
+    ).toBeNull();
+  });
+
+  test("the Admin Dashboard and Accounts: any of their pages", () => {
+    expect(inAppPathOf("/admin/users", ADMIN_PAGE)).toBe("/admin/users");
+    expect(inAppPathOf("/accounts/login", ACCOUNTS_PAGE)).toBe(
+      "/accounts/login",
+    );
+  });
+
+  test("no page to read it against: the browser loads it", () => {
+    expect(inAppPathOf("/dashboard/" + PROJECT + "/monitors", "")).toBeNull();
   });
 });
 
@@ -215,6 +330,7 @@ describe("an attachment or another file opens in a new tab", () => {
       opensInNewTab: true,
       needsSignedInSession: true,
       absoluteUrl: `https://oneuptime.example${attachment}`,
+      inAppPath: null,
     });
     expect(
       getMarkdownLinkBehavior(attachment, ADMIN_PAGE).needsSignedInSession,
@@ -234,6 +350,7 @@ describe("an attachment or another file opens in a new tab", () => {
         opensInNewTab: true,
         needsSignedInSession: false,
         absoluteUrl: new URL(attachment, page).href,
+        inAppPath: null,
       });
     }
   });
@@ -263,6 +380,7 @@ describe("what a browser hands to another program stays as it is", () => {
       opensInNewTab: false,
       needsSignedInSession: false,
       absoluteUrl: null,
+      inAppPath: null,
     });
   });
 });
@@ -281,6 +399,7 @@ describe("nothing to open", () => {
         opensInNewTab: false,
         needsSignedInSession: false,
         absoluteUrl: null,
+        inAppPath: null,
       });
     },
   );
