@@ -520,7 +520,14 @@ jobs:
           # phone and beside a side menu, open sections at their full height,
           # the pills, stat tiles and chips, and a team's avatar on a dark
           # card - at 1280 and 390 pixels, dark, German, Persian, Japanese and
-          # Chinese) joined them later that day: about 19.5.
+          # Chinese) joined them later that day: about 19.5. Docker Swarm
+          # Pages (1.7 minutes locally with its bundle, Chromium only: a
+          # swarm's Metrics tab and a task's Container ID on a phone, beside
+          # the side menu and at a laptop's width, and the Overview's name
+          # and agent version sign, dark and German) joined them on
+          # 2026-10-26, when this group's run step took 15.1 minutes on
+          # master's run of 03:08 that day, the lightest that holds several
+          # suites: about 17.
           - group: 8
             browsers: chromium
             suites: >-
@@ -535,6 +542,7 @@ jobs:
               test-meraki-traffic-ui
               test-new-version-ui
               test-shared-ui-ui
+              test-docker-swarm-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -844,4 +852,6 @@ jobs:
             output/playwright/snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png
             output/playwright/asset-details-ui/test-results
+            output/playwright/docker-swarm-pages-ui/*.png
+            output/playwright/docker-swarm-pages-ui/test-results
           retention-days: 7
