@@ -19,6 +19,7 @@ import {
   getDateLocale,
   getDateTimeFormat,
   isEnglishDateLanguage,
+  writeDigitsInLocale,
   writeInDateDisplayLanguage,
 } from "./DateLanguage";
 
@@ -111,6 +112,26 @@ export default class OneUptimeDate {
 
   private static padDatePart(value: number): string {
     return value.toString().padStart(2, "0");
+  }
+
+  /*
+   * A time moment wrote ("09:05", "14:30:12") in the digits the reader's
+   * language writes: Persian's own on a Persian page, as every date Intl
+   * writes there (DateLanguage's getDateLocale), so a page never mixes
+   * "۲۶ اکتبر" with "21:16". Unchanged in every language that writes Latin
+   * digits, and remembered with its English as every localized date is.
+   */
+  private static inReaderDigits(write: () => string): string {
+    return writeInDateDisplayLanguage(
+      write,
+      (_language: string, locale: string): string | null => {
+        const text: string = write();
+        const written: string = writeDigitsInLocale(text, locale);
+
+        // Latin digits: the English as it is, with nothing to remember.
+        return written === text ? null : written;
+      },
+    );
   }
 
   private static isUtcDateTimeString(value: string): boolean {
@@ -427,7 +448,11 @@ export default class OneUptimeDate {
       timeFormat += " A";
     }
 
-    return this.inCurrentTimezone(date).format(timeFormat);
+    const instant: Date = date;
+
+    return this.inReaderDigits((): string => {
+      return this.inCurrentTimezone(instant).format(timeFormat);
+    });
   }
 
   public static getDateAsLocalDayMonthString(date: Date | string): string {
@@ -455,9 +480,12 @@ export default class OneUptimeDate {
   }
 
   public static getDateAsLocalDayMonthHourString(date: Date | string): string {
-    date = this.fromString(date);
+    const instant: Date = this.fromString(date);
 
-    return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(date, { includeMinutes: false })}:00`;
+    // The minutes it adds itself in the reader's digits too.
+    return this.inReaderDigits((): string => {
+      return `${this.getDateAsLocalDayMonthString(instant)}, ${this.getLocalTimeString(instant, { includeMinutes: false })}:00`;
+    });
   }
 
   /**
@@ -645,9 +673,13 @@ export default class OneUptimeDate {
       return this.getLocalHourAndMinuteFromDate(date);
     }
     const use12HourFormat: boolean = this.getUserPrefers12HourFormat();
-    return moment
-      .tz(date, timezone)
-      .format(use12HourFormat ? "h:mm A" : "HH:mm");
+    const instant: Date = date;
+
+    return this.inReaderDigits((): string => {
+      return moment
+        .tz(instant, timezone)
+        .format(use12HourFormat ? "h:mm A" : "HH:mm");
+    });
   }
 
   /**

@@ -63,6 +63,10 @@ const DISPLAY_HELPERS: ReadonlySet<string> = new Set<string>([
   "getDateString",
   // "1,72 s" in German: the decimal comma.
   "getHumanizedDurationFromNanoseconds",
+  // A time of day in the reader's digits: "۲۱:۱۶" in Persian.
+  "getLocalTimeString",
+  "getLocalHourAndMinuteFromDate",
+  "getHourAndMinuteInTimezoneString",
 ]);
 
 // Helpers of their own the Dashboard writes the same words with.
