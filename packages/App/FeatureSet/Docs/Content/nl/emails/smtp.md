@@ -51,7 +51,7 @@ Vul in de stap **Afzender** de **E-mail van** en de **Van naam** in waarvan uw e
 
 ### Opslaan en een testmail sturen
 
-Sla de configuratie op. Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt. Daarvoor is de machtiging nodig om SMTP-configuraties toe te voegen: **Project Owner**, **Project Admin**, of **Create SMTP Config** en **Read SMTP Config** in een aangepaste rol. Op OneUptime Cloud is ook het abonnement **Growth** nodig, net als voor het toevoegen van een configuratie. Voor anderen is de knop vergrendeld, en de tooltip zegt wat ervoor nodig is.
+Sla de configuratie op. Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** in haar rij of ze werkt. Daarvoor is de machtiging nodig om SMTP-configuraties toe te voegen: **Projecteigenaar**, **Projectbeheerder**, of **Create SMTP Config** en **Read SMTP Config** in een aangepaste rol. Op OneUptime Cloud is ook het abonnement **Growth** nodig, net als voor het toevoegen van een configuratie. Voor anderen is de knop vergrendeld, en de tooltip zegt wat ervoor nodig is.
 
 De test vraagt om een **E-mail**-adres om naartoe te sturen, eerst het uwe. Controleer of het bericht aankomt.
 :::

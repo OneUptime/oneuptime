@@ -55,7 +55,7 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 
 ## O que cada item mostra
 
-- Os seus sinais, cada um abrindo no item e no período do caso: **Registros**, **Traços** e **Métricas**, as **Exceções** de um serviço, os **Eventos do Kubernetes** de um cluster, a **Topologia** do item e o seu item de **Inventory** quando o inventário tem um.
+- Os seus sinais, cada um abrindo no item e no período do caso: **Registros**, **Traços** e **Métricas**, as **Exceções** de um serviço, os **Eventos do Kubernetes** de um cluster, a **Topologia** do item e o seu item de **Inventário** quando o inventário tem um.
 - Os incidentes e alertas abertos nele agora e os monitores que o vigiam, cada um abrindo a sua página.
 - O que mudou nele no período: as implantações de um serviço, os rollouts de um cluster e as correções de um host.
 

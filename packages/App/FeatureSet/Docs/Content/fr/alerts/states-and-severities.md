@@ -100,9 +100,9 @@ Chaque nouveau projet commence avec deux gravités d'alerte, de la plus grave à
 | Gravité   | `order` | Couleur   | Description prédéfinie                                                            |
 | --------- | ------- | --------- | --------------------------------------------------------------------------------- |
 | **Élevé** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**   | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Faible**   | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Les incidents commencent avec trois gravités et les alertes avec deux. Quand le modèle d'une recommandation de moniteur indique **Critique** ou **Warning**, OneUptime le fait correspondre à votre première et deuxième gravité d'alerte, qui sont **Élevé** et **Low** dans un nouveau projet.
+Les incidents commencent avec trois gravités et les alertes avec deux. Quand le modèle d'une recommandation de moniteur indique **Critique** ou **Warning**, OneUptime le fait correspondre à votre première et deuxième gravité d'alerte, qui sont **Élevé** et **Faible** dans un nouveau projet.
 
 ## Modifier les gravités
 

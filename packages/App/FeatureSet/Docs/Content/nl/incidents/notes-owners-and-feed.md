@@ -64,7 +64,7 @@ Open het incident en kies **Notities → Openbare notities** in het zijmenu. De 
 
 ### Schrijf de update
 
-Schrijf de notitie in Markdown, of begin vanuit een van je **Sjablonen** of vanuit **Draft with AI**. Voeg met **Attach** bestanden toe als abonnees ze moeten zien.
+Schrijf de notitie in Markdown, of begin vanuit een van je **Sjablonen** of vanuit **Concept met AI**. Voeg met **Attach** bestanden toe als abonnees ze moeten zien.
 
 ### Bepaal wie bericht krijgt
 
@@ -81,7 +81,7 @@ Dezelfde editor opent in een dialoogvenster vanuit **Add Public Note** in het me
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | De notitie                         | De tekst, in Markdown. Verplicht.                                                                                                             |
 | **Sjablonen**                      | Zet een van je notitiesjablonen in de notitie, na wat je al hebt getypt. Zie [Notitiesjablonen](#notitiesjablonen).                             |
-| **Draft with AI**                  | Schrijft vanuit het incident een concept van de notitie, dat je zelf bewerkt. Zie [Een notitie met AI genereren](#een-notitie-met-ai-genereren). |
+| **Concept met AI**                  | Schrijft vanuit het incident een concept van de notitie, dat je zelf bewerkt. Zie [Een notitie met AI genereren](#een-notitie-met-ai-genereren). |
 | **Attach**                         | Bestanden die met abonnees op de statuspagina worden gedeeld. Optioneel.                                                                      |
 | **Posted now**                     | Wanneer de notitie zegt geplaatst te zijn: het moment dat je haar plaatst, tenzij je hier een eerder tijdstip kiest, in je huidige tijdzone.   |
 | **Notify status page subscribers** | Selectievakje. Standaard aan, tenzij het incident werd gemeld zonder abonnees op de hoogte te stellen — dan begint het uit. Zet het uit om stil te publiceren. |
@@ -99,7 +99,7 @@ Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdow
 
 ## Een privénotitie plaatsen
 
-**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Private · Only your team can see this**, met de notitie, **Sjablonen**, **Draft with AI** en **Attach** voor bestanden die bedoeld zijn voor het team dat op het incident reageert. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
+**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Private · Only your team can see this**, met de notitie, **Sjablonen**, **Concept met AI** en **Attach** voor bestanden die bedoeld zijn voor het team dat op het incident reageert. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
 
 Geen plaatsingstijd, geen selectievakje voor abonnees — de notitie wordt gestempeld wanneer ze wordt aangemaakt.
 
@@ -138,7 +138,7 @@ Een notitie lezen via de API, Terraform of een workflow toont alleen de bijlagen
 
 ## Een notitie met AI genereren
 
-De editor heeft een knop **Draft with AI**, op beide notitiepagina's en in de dialoogvensters **Add Public Note** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de AI-provider van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
+De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Add Public Note** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de AI-provider van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
 
 | Dialoogvenster                     | Wat het schrijft                                                     | Sjablonen                                                         |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -250,7 +250,7 @@ De kop van de kaart heeft ook een menu **Acties**, zodat je kunt handelen zonder
 
 - **Execute Runbook** — start een [runbook](/docs/runbooks/index) voor dit incident.
 - **Bereikbaarheidsdienstbeleid uitvoeren** — roep op verzoek een beleid op. Een gearchiveerd beleid roept niemand op: zijn uitvoeringslogboek op het incident zegt dat het niet is uitgevoerd omdat het beleid gearchiveerd is.
-- **Add Public Note** — de editor van de pagina **Openbare notities**, in een dialoogvenster: schrijf de notitie, en daarna **Post update**. Sjablonen, **Draft with AI**, bijlagen, **Notify status page subscribers** met wie de notitie bereikt, en **Voorbeeld** zijn er allemaal. De notitie wordt nu geplaatst; om haar terug te dateren, kies je **Posted now**.
+- **Add Public Note** — de editor van de pagina **Openbare notities**, in een dialoogvenster: schrijf de notitie, en daarna **Post update**. Sjablonen, **Concept met AI**, bijlagen, **Notify status page subscribers** met wie de notitie bereikt, en **Voorbeeld** zijn er allemaal. De notitie wordt nu geplaatst; om haar terug te dateren, kies je **Posted now**.
 - **Privénotitie toevoegen** — de editor van de pagina **Privénotities**, in een dialoogvenster: schrijf de notitie, en daarna **Add note**.
 
 Beide notitieacties zijn vergrendeld, met de naam van de ontbrekende machtiging, voor iemand die geen notities mag schrijven. Nadat een notitie is geplaatst, sluit het dialoogvenster en toont de feed haar.

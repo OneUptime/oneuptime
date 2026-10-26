@@ -1,6 +1,6 @@
 # Kopplade signaler
 
-Ett säkerhetsärende säger vilka användare, värdar och adresser det handlar om. Kopplade signaler säger vilka av dem OneUptime redan känner till - dina värdar, containervärdar, Kubernetes-kluster, nätverksenheter, tjänster och medlemmar - och vad som hände på var och en kring ärendet: dess loggar, spår och mätvärden, incidenterna och varningarna som är öppna på den, monitorerna som bevakar den och vad som ändrades på den. Åt andra hållet säger sidan för en värd, ett kluster, en tjänst eller en medlem vad Security Events har hittat om den.
+Ett säkerhetsärende säger vilka användare, värdar och adresser det handlar om. Kopplade signaler säger vilka av dem OneUptime redan känner till - dina värdar, containervärdar, Kubernetes-kluster, nätverksenheter, tjänster och medlemmar - och vad som hände på var och en kring ärendet: dess loggar, spår och mätvärden, incidenterna och larmen som är öppna på den, monitorerna som bevakar den och vad som ändrades på den. Åt andra hållet säger sidan för en värd, ett kluster, en tjänst eller en medlem vad Security Events har hittat om den.
 
 :::cards
 - [Var du ser det](#var-du-ser-det): Ett ärendes sida, en händelses flik, en entitets sida och sidorna för det de nämner.
@@ -55,8 +55,8 @@ Varje användare, värd och adress som ett ärende eller en händelse nämner sl
 
 ## Vad varje post visar
 
-- Dess signaler, var och en öppnad på posten och ärendets period: **Loggar**, **Spår** och **Mätvärden**, en tjänsts **Undantag**, ett klusters **Kubernetes-händelser**, postens **Topologi** och dess post i **Inventory** när inventariet har en.
-- Incidenterna och varningarna som är öppna på den nu, och monitorerna som bevakar den, var och en med sin egen sida.
+- Dess signaler, var och en öppnad på posten och ärendets period: **Loggar**, **Spår** och **Mätvärden**, en tjänsts **Undantag**, ett klusters **Kubernetes-händelser**, postens **Topologi** och dess post i **Inventarie** när inventariet har en.
+- Incidenterna och larmen som är öppna på den nu, och monitorerna som bevakar den, var och en med sin egen sida.
 - Vad som ändrades på den under perioden: en tjänsts driftsättningar, ett klusters utrullningar och en värds åtgärder.
 
 | Var | Period |

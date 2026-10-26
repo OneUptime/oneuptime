@@ -73,13 +73,13 @@ Ett nytt villkor på namn eller beskrivning börjar på **Innehåller**. Ett mö
 ## När regler körs
 
 - **När ett SLO skapas**, från instrumentpanelen eller via API:et: varje aktiverad etikettregel, sedan varje aktiverad ägarregel.
-- **När du kör en regel** med **Run Now**: se nedan.
+- **När du kör en regel** med **Kör nu**: se nedan.
 
 Att redigera ett SLO tillämpar inte reglerna igen, och en regel tar aldrig bort något: varken etiketter eller ägare som någon lagt till för hand, eller sådana som den själv lagt till. En avstängd regel gör ingenting.
 
 ## Kör en regel på befintliga SLO:er
 
-En regel som du skriver i dag gäller för de SLO:er som skapas efter den. För att tillämpa den på de SLO:er du redan har klickar du på **Run Now** på regelns rad, eller på **Visa** och sedan **Run Now** på regelns egen sida. Du kan också markera flera regler och köra dem från tabellens massåtgärder.
+En regel som du skriver i dag gäller för de SLO:er som skapas efter den. För att tillämpa den på de SLO:er du redan har klickar du på **Kör nu** på regelns rad, eller på **Visa** och sedan **Kör nu** på regelns egen sida. Du kan också markera flera regler och köra dem från tabellens massåtgärder.
 
 En körning kontrollerar varje SLO i projektet, även de arkiverade, och rapporterar hur många den matchade och hur många den ändrade. Ägare som en körning lägger till aviseras bara när du väljer att avisera dem i körningsdialogen och regeln har **Avisera ägare** påslaget. Se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now).
 

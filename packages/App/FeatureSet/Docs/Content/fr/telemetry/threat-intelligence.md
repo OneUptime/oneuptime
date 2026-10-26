@@ -31,7 +31,7 @@ flowchart TB
 
 ## Ajouter une liste gratuite
 
-La carte **Listes gratuites** de **Threat Intel** ajoute une liste de blocage gratuite en un clic : cliquez sur **Ajouter la liste** sur une liste, et OneUptime crée un flux qui la télécharge selon le calendrier de la liste. Une liste que le projet lit déjà indique **Ajouté**.
+La carte **Listes gratuites** de **Renseignement sur les menaces** ajoute une liste de blocage gratuite en un clic : cliquez sur **Ajouter la liste** sur une liste, et OneUptime crée un flux qui la télécharge selon le calendrier de la liste. Une liste que le projet lit déjà indique **Ajouté**.
 
 | Liste | Publiée par | Lue | Confiance | Une correspondance ouvre |
 | --- | --- | --- | --- | --- |
@@ -46,7 +46,7 @@ La tuile d'une liste renvoie à ses conditions : Feodo Tracker est libre pour to
 :::steps
 ### Ouvrir Threat Intel
 
-Ouvrez **Produits → Événements de sécurité → Détections → Threat Intel**.
+Ouvrez **Produits → Événements de sécurité → Détections → Renseignement sur les menaces**.
 
 ### Créer le flux
 
@@ -63,24 +63,24 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 | **URL de la liste** | Pour une liste : l'adresse `https` d'un fichier texte avec une adresse IP, un domaine, une URL ou un hachage de fichier par ligne. |
 | **Confiance** | Pour une liste : le degré de certitude de la liste, de 1 à 100. Chaque indicateur de la liste le reçoit, et il fixe le [niveau de menace](#niveaux-de-menace) ; vide, c'est Medium. |
 | **Connexion Google SecOps** | Pour Google SecOps : la connexion dont la clé lit les indicateurs que Google SecOps a trouvés. **Connecter Google SecOps** ouvre **Connexions** quand il n'y en a aucune. |
-| **TAXII API Root URL** | La racine de l'API TAXII 2.1 du serveur, par exemple `https://taxii.example.com/api1/`. Les collections sont adressées en dessous. |
+| **URL racine de l'API TAXII** | La racine de l'API TAXII 2.1 du serveur, par exemple `https://taxii.example.com/api1/`. Les collections sont adressées en dessous. |
 | **ID de la collection** | La collection qui publie les indicateurs. |
-| **Poll Interval (Minutes)** | La fréquence de lecture de la source : de 1 à 1440 minutes, 60 par défaut. Une liste est lue au plus toutes les 15 minutes. |
+| **Intervalle d'interrogation (minutes)** | La fréquence de lecture de la source : de 1 à 1440 minutes, 60 par défaut. Une liste est lue au plus toutes les 15 minutes. |
 | **Confiance minimale** | Pour une collection TAXII ou Google SecOps : les indicateurs de confiance inférieure sont ignorés, de 0 à 100, et 0 garde tout. Les indicateurs sans confiance passent toujours. |
 | **Connexion** | La façon dont OneUptime se connecte : **Sans connexion** pour une collection publique, **Jeton bearer** pour un jeton fourni par l'opérateur du serveur, ou **Nom d'utilisateur et mot de passe** pour l'authentification HTTP basique. |
 | **Jeton d'API**, **Nom d'utilisateur Basic Auth** et **Mot de passe Basic Auth** | Demandés seulement pour la connexion choisie. |
-| **Open a Case on Match** | Activé par défaut : chaque événement qui nomme un indicateur ouvre un [dossier](/docs/telemetry/security-cases) sur cet indicateur, ou rejoint le dossier ouvert qui porte déjà sur lui. |
+| **Ouvrir un dossier en cas de correspondance** | Activé par défaut : chaque événement qui nomme un indicateur ouvre un [dossier](/docs/telemetry/security-cases) sur cet indicateur, ou rejoint le dossier ouvert qui porte déjà sur lui. |
 | **Alertes et incidents** | **Créer une alerte** par défaut : chaque indicateur correspondant ouvre une alerte. |
 | **Gravité de l'alerte** | La gravité de chaque alerte ouverte par ce flux. Laissez-la vide pour prendre le niveau de menace de chaque indicateur. |
 | **Déclarer un incident** ou **Les deux** | Sous **Alertes et incidents**. Les incidents déclenchent l'escalade d'astreinte, les SLA et les pages de statut, et pour les correspondances d'indicateurs les alertes suffisent en général. |
 | **Gravité de l'incident** | Comme **Gravité de l'alerte**, pour les incidents. |
-| **Write Detection Finding on Match** | Activé par défaut : chaque correspondance écrit un constat dans le flux d'événements. |
+| **Écrire un Detection Finding en cas de correspondance** | Activé par défaut : chaque correspondance écrit un constat dans le flux d'événements. |
 
-Les jetons et les mots de passe d'un flux TAXII sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Update Credentials** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
+Les jetons et les mots de passe d'un flux TAXII sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Mettre à jour les identifiants** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
 
 ### Comment un flux est interrogé
 
-Chaque interrogation demande les objets ajoutés depuis la précédente, via le curseur TAXII `added_after`, et lit jusqu'à 10 pages de 500 objets. Une grande collection se synchronise donc en plusieurs interrogations : **Résumé de la dernière interrogation** indique quand il reste des pages. Pour terminer plus vite une grosse première synchronisation, baissez le **Poll Interval (Minutes)**, jusqu'à 1, le temps qu'elle rattrape son retard.
+Chaque interrogation demande les objets ajoutés depuis la précédente, via le curseur TAXII `added_after`, et lit jusqu'à 10 pages de 500 objets. Une grande collection se synchronise donc en plusieurs interrogations : **Résumé de la dernière interrogation** indique quand il reste des pages. Pour terminer plus vite une grosse première synchronisation, baissez le **Intervalle d'interrogation (minutes)**, jusqu'à 1, le temps qu'elle rattrape son retard.
 
 Les interrogations se présentent avec l'user agent `OneUptime/<version> (+https://oneuptime.com)`. Si le pare-feu du fournisseur répond `403`, demandez-lui de l'autoriser : beaucoup de pare-feux bloquent les requêtes qui ressemblent à un script anonyme.
 
@@ -129,7 +129,7 @@ Tout autre motif, avec `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, un qualifi
 - Un indicateur révoqué, ou mis à jour avec un `valid_until` dans le passé, cesse de correspondre dès que la mise à jour est interrogée. De même pour une valeur que le fournisseur retire d'un motif mis à jour.
 - Les valeurs sont stockées en minuscules et confrontées sans tenir compte de la casse.
 
-Le tableau **Indicateurs** liste les indicateurs tels qu'ils sont stockés, avec un **Statut** **Actif**, **Expiré** ou **Revoked**. Un indicateur interrogé de nouveau peut apparaître deux fois pendant un moment, et une ligne expirée ou révoquée reste listée jusqu'à ce que le nettoyage du stockage la retire, jusqu'à environ un mois après son expiration. La confrontation vérifie toujours la validité et la révocation, donc une telle ligne ne correspond jamais.
+Le tableau **Indicateurs** liste les indicateurs tels qu'ils sont stockés, avec un **Statut** **Actif**, **Expiré** ou **Révoqué**. Un indicateur interrogé de nouveau peut apparaître deux fois pendant un moment, et une ligne expirée ou révoquée reste listée jusqu'à ce que le nettoyage du stockage la retire, jusqu'à environ un mois après son expiration. La confrontation vérifie toujours la validité et la révocation, donc une telle ligne ne correspond jamais.
 
 ## Comment les correspondances sont trouvées
 
@@ -176,7 +176,7 @@ Chaque minute, les indicateurs actifs de chaque flux activé sont confrontés au
 
 - Une alerte, intitulée `[Threat Intel] <feed name> — <indicator value>`, une par flux et par valeur tant qu'elle reste ouverte. Une fois résolue, la correspondance suivante en ouvre une nouvelle. Les alertes ne sont pas résolues automatiquement.
 - Un incident, uniquement avec **Déclarer un incident** ou **Les deux** sous **Alertes et incidents**, dédupliqué de la même façon.
-- Un constat de renseignement, avec **Write Detection Finding on Match** : un événement `Detection Finding` (classe OCSF 2004) du produit `OneUptime Threat Intel`, avec le niveau de menace de l'indicateur comme gravité, et ces attributs :
+- Un constat de renseignement, avec **Écrire un Detection Finding en cas de correspondance** : un événement `Detection Finding` (classe OCSF 2004) du produit `OneUptime Threat Intel`, avec le niveau de menace de l'indicateur comme gravité, et ces attributs :
 
 | Attribut | Valeur |
 | --- | --- |
@@ -219,7 +219,7 @@ Les indicateurs sont de la configuration, pas de la télémétrie, et ne sont pa
 ## Dépannage
 
 :::details Dernière erreur est renseignée après une interrogation
-`401` ou `403` : les identifiants sont faux ou absents ; remplacez-les avec **Update Credentials**. Un `403` peut aussi venir du pare-feu du fournisseur qui bloque l'user agent. `404` : vérifiez la **TAXII API Root URL**, qui se termine généralement par un chemin comme `/api1/`, et l'**ID de la collection**. L'erreur disparaît à la prochaine interrogation réussie.
+`401` ou `403` : les identifiants sont faux ou absents ; remplacez-les avec **Mettre à jour les identifiants**. Un `403` peut aussi venir du pare-feu du fournisseur qui bloque l'user agent. `404` : vérifiez la **URL racine de l'API TAXII**, qui se termine généralement par un chemin comme `/api1/`, et l'**ID de la collection**. L'erreur disparaît à la prochaine interrogation réussie.
 :::
 
 :::details Le flux est interrogé, mais aucun indicateur n'apparaît

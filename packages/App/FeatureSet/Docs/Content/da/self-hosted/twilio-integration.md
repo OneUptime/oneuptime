@@ -35,8 +35,8 @@ Gem legitimationsoplysningerne for ét projekt eller én gang for hele installat
 | | Projektkonfiguration | Konfiguration for hele installationen |
 | --- | --- | --- |
 | Hvor | Kortet **Twilio-konfiguration** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** | **Admin Dashboard > Indstillinger > Opkald og SMS** |
-| Hvem kan sætte den | **Project Owner**, **Project Admin** eller **Create Call and SMS** i en brugerdefineret rolle | En master-admin |
-| Hvem kan læse dens Auth Token | **Project Owner**, **Project Admin** eller **Read Call and SMS** i en brugerdefineret rolle. Andre, der kan se konfigurationen, ser resten af den; tokenet gemmes krypteret | En master-admin |
+| Hvem kan sætte den | **Projektejer**, **Projektadministrator** eller **Create Call and SMS** i en brugerdefineret rolle | En master-admin |
+| Hvem kan læse dens Auth Token | **Projektejer**, **Projektadministrator** eller **Read Call and SMS** i en brugerdefineret rolle. Andre, der kan se konfigurationen, ser resten af den; tokenet gemmes krypteret | En master-admin |
 | Bruges til | SMS og opkald til projektets medlemmer, så længe den er projektstandarden, de statussider, den er tildelt, og de politikker for indgående opkald, der bruger den | SMS og opkald til medlemmerne af ethvert projekt, der ikke har en standardkonfiguration |
 
 Sådan tilføjer du en projektkonfiguration:
@@ -44,12 +44,12 @@ Sådan tilføjer du en projektkonfiguration:
 :::steps
 1. Gå til **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 2. Vælg **Opret Twilio-konfiguration** i **Twilio-konfiguration**.
-3. Angiv et navn, og vælg under **Brug denne konto til**, hvad kontoen sender: **Opkald og SMS**, **Kun SMS** eller **Kun opkald**. Angiv derefter **Twilio Account SID**, **Twilio Auth Token** og det nummer, valget beder om: **Twilio primært telefonnummer** til opkald eller **Twilio SMS-telefonnumre** til **Kun SMS**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
+3. Angiv et navn, og vælg under **Brug denne konto til**, hvad kontoen sender: **Opkald og SMS**, **Kun SMS** eller **Kun opkald**. Angiv derefter **Twilio-konto-SID**, **Twilio-godkendelsestoken** og det nummer, valget beder om: **Twilio primært telefonnummer** til opkald eller **Twilio SMS-telefonnumre** til **Kun SMS**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS og opkald til projektets medlemmer, herunder vagtnotifikationer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. En senere konfiguration starter med kontakten slået fra: Slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu for at flytte de beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
 5. Gem. Kun én konfiguration kan være projektstandarden. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
 > [!IMPORTANT]
-> **SMS** og **Telefonopkald** er slået fra fra start i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer, en **Billing Admin** eller en person med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
+> **SMS** og **Telefonopkald** er slået fra fra start i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
 :::
 
 For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Indstillinger > Opkald og SMS**, vælge, hvad kontoen sender, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemmernes notifikationer bruger denne globale konfiguration, når deres projekt ikke har en standard. Hold Auth Token fortroligt.
@@ -150,7 +150,7 @@ Til udvikling beskriver Twilios [vejledning i test af webhooks](https://www.twil
 
 :::steps
 1. Kontrollér uden for firmanetværket og VPN'en, at callback-værtsnavnet slås op til den offentlige gateway og leverer et gyldigt TLS-certifikat. En GET fra browseren tester ikke disse POST-callbacks.
-2. Brug **Send test-SMS** og **Send testopkald** på projektets Twilio-konfiguration. Bekræft modtagelsen på destinationstelefonen. Begge kræver tilladelse til at tilføje Twilio-konfigurationer: **Project Owner**, **Project Admin** eller **Create Call and SMS** og **Read Call and SMS** i en brugerdefineret rolle.
+2. Brug **Send test-SMS** og **Send testopkald** på projektets Twilio-konfiguration. Bekræft modtagelsen på destinationstelefonen. Begge kræver tilladelse til at tilføje Twilio-konfigurationer: **Projektejer**, **Projektadministrator** eller **Create Call and SMS** og **Read Call and SMS** i en brugerdefineret rolle.
 3. Konfigurer brugerens bekræftede SMS- eller opkaldskontakt og notifikationsregler, og udløs derefter en kontrolleret vagtalarm. Tryk 1, og bekræft kvitteringen i OneUptime. Hvis du bruger politikker for indgående opkald, så ring til det konfigurerede nummer, og tjek dets routing og opkaldslog.
 4. Bekræft SMS'ens leveringsstatus i OneUptime og i Twilios beskedlogs. En accepteret afsendelse er ikke bevis for levering; [Twilio rapporterer senere statusændringer via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

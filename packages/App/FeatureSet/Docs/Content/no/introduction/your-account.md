@@ -109,7 +109,7 @@ Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUpt
 Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venstre i dashbordet viser dem: velg ett for å bytte.
 
 - **Opprett et prosjekt**: åpne prosjektvelgeren, og klikk på **Opprett nytt prosjekt**. På en selvhostet installasjon kan administratoren forbeholde oppretting av prosjekter for administratorer.
-- **Godta en invitasjon**: når noen inviterer deg, viser klokken øverst til høyre den ventende invitasjonen og åpner **Prosjektinvitasjoner**. Der velger du **Godta** eller **Reject**.
+- **Godta en invitasjon**: når noen inviterer deg, viser klokken øverst til høyre den ventende invitasjonen og åpner **Prosjektinvitasjoner**. Der velger du **Godta** eller **Avvis**.
 - **Forlat et prosjekt**: be noen som administrerer prosjektets brukere om å fjerne deg, med **Fjern fra prosjekt** på prosjektets side **Brukere**.
 
 ## Det hvert prosjekt tar vare på for deg

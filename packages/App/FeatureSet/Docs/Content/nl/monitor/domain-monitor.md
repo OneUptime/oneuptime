@@ -126,7 +126,7 @@ Een nieuwe domeinmonitor begint met drie criteria, zodat hij u zonder instellen 
 2. **Domein verloopt binnenkort** — de registratie is niet verlopen, maar verloopt binnen 30 dagen. Er wordt een **waarschuwing** met de naam "_monitor name_ domain expires soon" aangemaakt.
 3. **Domein is niet verlopen** — de monitor wordt als **Operationeel** gemarkeerd.
 
-De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Low** in een nieuw project. Zodra de verlenging in de registratie verschijnt, lost de waarschuwing zichzelf op. Een registry die geen vervaldatum publiceert, geeft de waarschuwing niets om op af te gaan, dus die blijft stil.
+De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Laag** in een nieuw project. Zodra de verlenging in de registratie verschijnt, lost de waarschuwing zichzelf op. Een registry die geen vervaldatum publiceert, geeft de waarschuwing niets om op af te gaan, dus die blijft stil.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Daarom staat "verloopt binnenkort" boven "is niet verlopen": een domein dat bijna verloopt, is nog niet verlopen en zou dus met beide overeenkomen.
 

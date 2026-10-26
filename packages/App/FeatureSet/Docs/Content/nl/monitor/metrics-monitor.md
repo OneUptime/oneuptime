@@ -26,7 +26,7 @@ Elke minuut voert OneUptime elke metriekquery van de monitor uit over het tijdsb
 ## Voordat u begint
 
 - Uw applicaties of infrastructuur sturen metrieken naar OneUptime via OpenTelemetry. Zie [OpenTelemetry](/docs/telemetry/open-telemetry).
-- Ken de naam van de metriek en de attributen waarop u wilt filteren of groeperen. De lijsten **Metriek** en **Group by** bieden alleen namen en attributen die OneUptime al heeft ontvangen.
+- Ken de naam van de metriek en de attributen waarop u wilt filteren of groeperen. De lijsten **Metriek** en **Groeperen op** bieden alleen namen en attributen die OneUptime al heeft ontvangen.
 
 ## Een metrics-monitor maken
 
@@ -45,11 +45,11 @@ Kies in **Metriekmonitorconfiguratie** een **Tijdsbereik**: hoe ver elke evaluat
 
 ### De metriekquery's toevoegen
 
-Kies onder **Selecteer metrieken** een **Metriek** en hoe u die aggregeert met **Aggregate by**. Open **Filters & grouping** om op attributen te filteren of om te groeperen met **Group by**. Klik op **Metriek toevoegen** voor nog een query, of op **Formule toevoegen** om ze te combineren. De grafiek onder de query's toont een voorbeeld van het tijdsbereik, zodat u de waarden ziet die de criteria gaan controleren.
+Kies onder **Selecteer metrieken** een **Metriek** en hoe u die aggregeert met **Aggregate by**. Open **Filters & grouping** om op attributen te filteren of om te groeperen met **Groeperen op**. Klik op **Metriek toevoegen** voor nog een query, of op **Formule toevoegen** om ze te combineren. De grafiek onder de query's toont een voorbeeld van het tijdsbereik, zodat u de waarden ziet die de criteria gaan controleren.
 
 ### De criteria instellen
 
-In **Monitorcriteria** kiest elk criterium de te controleren **Metriek** (een query of een formule), zijn **Aggregatie**, een **Voorwaarde** en een **Threshold**. Zie [Criteria](#criteria) voor de criteria waarmee een nieuwe monitor begint.
+In **Monitorcriteria** kiest elk criterium de te controleren **Metriek** (een query of een formule), zijn **Aggregatie**, een **Voorwaarde** en een **Drempel**. Zie [Criteria](#criteria) voor de criteria waarmee een nieuwe monitor begint.
 
 ### De monitor maken
 
@@ -65,7 +65,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Metriek** | De metriek die wordt opgevraagd. | Verplicht |
 | **Aggregate by** | Hoe de waarden in elk tijdsinterval tot één datapunt worden gecombineerd: Gem., Som, Min, Max, Aantal, of een percentiel (P50, P75, P90, P95 of P99). | Gem. |
 | **Filter by attributes** (onder **Filters & grouping**) | Alleen reeksen waarvan de attributen aan deze voorwaarden voldoen. | Geen filter |
-| **Group by** (onder **Filters & grouping**) | Eén reeks per unieke waarde van deze attributen (zie [Waarschuwingen per reeks](#waarschuwingen-per-reeks-group-by)). | Eén reeks |
+| **Groeperen op** (onder **Filters & grouping**) | Eén reeks per unieke waarde van deze attributen (zie [Waarschuwingen per reeks](#waarschuwingen-per-reeks-group-by)). | Eén reeks |
 
 Elke query en formule krijgt een variabele (`a`, `b`, `c` enzovoort), in de volgorde waarin u ze toevoegt.
 
@@ -79,7 +79,7 @@ Een formule combineert queryvariabelen met `+`, `-`, `*`, `/`, `%`, `^` en haakj
 
 ### Voortschrijdend tijdvenster
 
-**Tijdsbereik** bepaalt hoe ver elke evaluatie terugkijkt: **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** of **Past 365 Days**.
+**Tijdsbereik** bepaalt hoe ver elke evaluatie terugkijkt: **Past 1 Minute**, **Afgelopen 5 minuten**, **Past 10 Minutes**, **Afgelopen 15 minuten**, **Afgelopen 30 minuten**, **Afgelopen uur**, **Afgelopen 2 uur**, **Afgelopen 3 uur**, **Past 6 Hours**, **Past 12 Hours**, **Afgelopen dag**, **Afgelopen 2 dagen**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** of **Past 365 Days**.
 
 Hoe langer het bereik, hoe breder elk tijdsinterval, dus één datapunt staat voor meer tijd:
 
@@ -116,7 +116,7 @@ Hoe langer het bereik, hoe breder elk tijdsinterval, dus één datapunt staat vo
 
 ## Criteria
 
-Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van de ingestelde metriekquery of formule. Het criteriaformulier heeft geen keuzelijst voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Threshold**. Heeft de metriek een eenheid, kies dan de eenheid van de drempel ernaast.
+Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van de ingestelde metriekquery of formule. Het criteriaformulier heeft geen keuzelijst voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Heeft de metriek een eenheid, kies dan de eenheid van de drempel ernaast.
 
 | Voorwaarde | Komt overeen wanneer de waarde… |
 | --- | --- |
@@ -143,13 +143,13 @@ Een nieuwe metrics-monitor begint met twee criteria op zijn eerste query, allebe
 
 ## Uitgewerkt voorbeeld: een groeiende wachtrij
 
-U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de gauge `checkout.queue.depth`, met **Aggregate by** Max, en het **Tijdsbereik** is **Past 5 Minutes**. Eén evaluatie ziet deze vijf datapunten van één minuut:
+U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de gauge `checkout.queue.depth`, met **Aggregate by** Max, en het **Tijdsbereik** is **Afgelopen 5 minuten**. Eén evaluatie ziet deze vijf datapunten van één minuut:
 
 | Minuut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Een criterium met **Metriek** `a`, **Voorwaarde** **Groter dan** en **Threshold** `1000` geeft voor elke **Aggregatie** een ander antwoord:
+Een criterium met **Metriek** `a`, **Voorwaarde** **Groter dan** en **Drempel** `1000` geeft voor elke **Aggregatie** een ander antwoord:
 
 | Aggregatie | Vergeleken met 1.000 | Overeenkomst? |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ Een criterium met **Metriek** `a`, **Voorwaarde** **Groter dan** en **Threshold*
 
 ## Waarschuwingen per reeks (Group By)
 
-**Group by** op een metriekquery splitst die query op in één reeks per unieke attribuutwaarde (één per host, één per container, één per koppelpunt), en een monitor met Group By evalueert elke reeks afzonderlijk. Die ene instelling is het verschil tussen "de vloot is ongezond" en "`prod-db-01` is ongezond".
+**Groeperen op** op een metriekquery splitst die query op in één reeks per unieke attribuutwaarde (één per host, één per container, één per koppelpunt), en een monitor met Group By evalueert elke reeks afzonderlijk. Die ene instelling is het verschil tussen "de vloot is ongezond" en "`prod-db-01` is ongezond".
 
 ### Eén waarschuwing per groep
 
@@ -189,7 +189,7 @@ Elke waarschuwing per groep volgt haar eigen groep. Wanneer host A weer onder de
 
 ### Een attribuut kiezen om op te groeperen
 
-Groepeer op een attribuut dat echt iets afzonderlijks aanduidt waarvoor u iemand zou oproepen: het host-attribuut voor een hostmetriek van de hele vloot, het container- of pod-attribuut voor een containermetriek, het koppelpunt- of apparaat-attribuut voor een metriek van een bestandssysteem of van schijf-I/O, het interface-attribuut voor een netwerkmetriek. De keuzelijst **Group by** wordt gevuld met de attributen die uw collector echt stuurt, dus kies uit de lijst in plaats van een sleutel met de hand te typen.
+Groepeer op een attribuut dat echt iets afzonderlijks aanduidt waarvoor u iemand zou oproepen: het host-attribuut voor een hostmetriek van de hele vloot, het container- of pod-attribuut voor een containermetriek, het koppelpunt- of apparaat-attribuut voor een metriek van een bestandssysteem of van schijf-I/O, het interface-attribuut voor een netwerkmetriek. De keuzelijst **Groeperen op** wordt gevuld met de attributen die uw collector echt stuurt, dus kies uit de lijst in plaats van een sleutel met de hand te typen.
 
 Groepeer geen metriek die al één scalair voor het hele systeem is (een leidersvlag voor het hele cluster, een achterstand van de scheduler, of de CPU van één host in een monitor voor één host). Zulke metrieken groeperen levert precies één reeks op en verandert niets behalve de titels van de waarschuwingen.
 
@@ -206,7 +206,7 @@ Een tijdsbereik zonder datapunten is geen waarde van 0. Met **Als geen gegevens*
 :::
 
 :::details Ik krijg één waarschuwing voor de hele vloot
-De query heeft geen **Group by**, dus alle hosts worden samengevoegd tot één getal. Groepeer de query op het host-, container- of koppelpunt-attribuut (zie [Waarschuwingen per reeks](#waarschuwingen-per-reeks-group-by)).
+De query heeft geen **Groeperen op**, dus alle hosts worden samengevoegd tot één getal. Groepeer de query op het host-, container- of koppelpunt-attribuut (zie [Waarschuwingen per reeks](#waarschuwingen-per-reeks-group-by)).
 :::
 
 :::details Een anomaliecriterium gaat nooit af

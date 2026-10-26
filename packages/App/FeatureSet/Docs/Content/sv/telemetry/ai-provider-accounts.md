@@ -108,7 +108,7 @@ Ge appen rollen Monitoring Reader på prenumerationen.
 
 ### Anslut Azure
 
-Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)**, **Prenumerations-ID** och **Client secret**. För Azure Government ändrar du **Moln** under **Fler fält**.
+Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)**, **Prenumerations-ID** och **Klienthemlighet**. För Azure Government ändrar du **Moln** under **Fler fält**.
 :::
 
 ## Amazon Bedrock

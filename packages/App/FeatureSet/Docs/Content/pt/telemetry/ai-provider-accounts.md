@@ -108,7 +108,7 @@ Na assinatura, dê ao app a função Monitoring Reader.
 
 ### Conecte o Azure
 
-Preencha **ID do diretório (tenant)**, **ID do aplicativo (cliente)**, **ID da assinatura** e **Client secret**. Para o Azure Government, altere **Nuvem** em **Mais campos**.
+Preencha **ID do diretório (tenant)**, **ID do aplicativo (cliente)**, **ID da assinatura** e **Segredo do cliente**. Para o Azure Government, altere **Nuvem** em **Mais campos**.
 :::
 
 ## Amazon Bedrock
@@ -141,7 +141,7 @@ Preencha **ID do Projeto** e cole o arquivo de chave inteiro como **Chave da con
 
 ## Ver o uso
 
-Abra **Uso** e escolha **Contas de provedor**. Ali aparecem o custo, os tokens e as requisições que suas contas informaram para o período, ordenados por **Modelo**, **Person**, **Provedor**, **Projeto ou recurso**, **Chave de API** ou **Conexão**. O período começa à meia-noite UTC do primeiro dia, porque os provedores informam dias inteiros.
+Abra **Uso** e escolha **Contas de provedor**. Ali aparecem o custo, os tokens e as requisições que suas contas informaram para o período, ordenados por **Modelo**, **Pessoa**, **Provedor**, **Projeto ou recurso**, **Chave de API** ou **Conexão**. O período começa à meia-noite UTC do primeiro dia, porque os provedores informam dias inteiros.
 
 **Contas de provedor** e **Suas chamadas de IA** nunca são somados. Uma chamada que sua aplicação faz com uma chave de uma conta conectada está nos dois, então somá-los a contaria duas vezes.
 

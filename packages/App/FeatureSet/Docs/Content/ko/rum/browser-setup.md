@@ -11,7 +11,7 @@ OpenTelemetry 브라우저 SDK로 웹 앱을 계측해 RUM 애플리케이션으
 
 ## 작동 방식
 
-SDK는 방문자의 브라우저에서 실행됩니다. 페이지 로드와 요청마다 스팬을 기록하고, **Browser** 수집 키로 OneUptime에 직접 내보냅니다. 중간에 별도의 수집기나 프록시가 필요 없습니다.
+SDK는 방문자의 브라우저에서 실행됩니다. 페이지 로드와 요청마다 스팬을 기록하고, **브라우저** 수집 키로 OneUptime에 직접 내보냅니다. 중간에 별도의 수집기나 프록시가 필요 없습니다.
 
 ```mermaid title="브라우저 텔레메트리가 가는 곳"
 flowchart TB
@@ -35,8 +35,8 @@ flowchart TB
 
 1. **제품 → 프로젝트 설정**으로 이동합니다.
 2. 사이드 메뉴에서 **텔레메트리 및 APM**을 열고 **수집 키**를 선택합니다.
-3. **수집 키 생성**을 클릭하고 **키 유형**으로 **Browser**를 고릅니다.
-4. **브라우저 설정** 단계에서 **Allowed Origins**에 출처를 JSON 배열로 입력하고(예: `["https://app.example.com"]`) 키를 만듭니다. OneUptime Cloud의 Free 요금제에서는 마지막 **결제** 단계에서 텔레메트리 가격을 먼저 보여 줍니다.
+3. **수집 키 생성**을 클릭하고 **키 유형**으로 **브라우저**를 고릅니다.
+4. **브라우저 설정** 단계에서 **허용된 출처**에 출처를 JSON 배열로 입력하고(예: `["https://app.example.com"]`) 키를 만듭니다. OneUptime Cloud의 Free 요금제에서는 마지막 **결제** 단계에서 텔레메트리 가격을 먼저 보여 줍니다.
 
 ![프로젝트 설정의 텔레메트리 수집 키 페이지](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 | 설정 | 역할 |
 | --- | --- |
-| **Allowed Origins** | 이 출처에서 온 요청만 받습니다. 각 출처에는 스킴과, 있다면 포트를 포함합니다. 호스트는 `*.` 와일드카드 하나로 시작할 수 있습니다. `https://*.example.com`은 `example.com`의 모든 하위 도메인에 해당하지만 `example.com` 자체는 포함하지 않습니다. |
+| **허용된 출처** | 이 출처에서 온 요청만 받습니다. 각 출처에는 스킴과, 있다면 포트를 포함합니다. 호스트는 `*.` 와일드카드 하나로 시작할 수 있습니다. `https://*.example.com`은 `example.com`의 모든 하위 도메인에 해당하지만 `example.com` 자체는 포함하지 않습니다. |
 | **Requests Per Minute Limit** | 키를 쓰는 모든 방문자가 함께 쓰는 하나의 상한입니다. 직접 정하지 않으면 분당 6000건입니다. |
-| **Pinned Service Name** | 키가 쓰는 모든 데이터에 `service.name`을 강제하므로, 복사본이 텔레메트리를 백엔드 서비스인 것처럼 꾸밀 수 없습니다. |
+| **고정된 서비스 이름** | 키가 쓰는 모든 데이터에 `service.name`을 강제하므로, 복사본이 텔레메트리를 백엔드 서비스인 것처럼 꾸밀 수 없습니다. |
 | **만료 시각** | 이 날짜가 지나면 키가 더는 수락되지 않습니다. |
 | **활성화됨** | 끄면 유출된 키를 즉시 막을 수 있습니다. |
 
@@ -245,7 +245,7 @@ new FetchInstrumentation({
 
 [세션 리플레이](/docs/telemetry/session-replay)도 사용한다면, **백엔드** 텔레메트리는 여기서 코드를 쓰지 않아도 녹화에 연결됩니다. 세션이 업로드되는 동안 레코더는 페이지가 자신의 출처로 보내는 요청에 세션 ID를 담은 `tracestate` 멤버를 추가하고, `traceparent`는 `FetchInstrumentation` / `XMLHttpRequestInstrumentation`에 맡깁니다. W3C 트레이스 컨텍스트를 이어 가는 모든 서비스에서 백엔드 스팬에는 수집 시 세션 ID가 찍히고, 그 로그와 예외는 트레이스 ID로 녹화에 연결됩니다. 작동 방식, 다루지 않는 범위, 끄는 스위치는 [다른 텔레메트리와 상관관계 분석](/docs/telemetry/session-replay#나머지-텔레메트리와-연결하기)을 참고하세요.
 
-레코더는 호출이 URL(init 객체가 있든 없든)을 넘기든 `Request` 객체를 넘기든 계측이 설정한 `traceparent`를 다시 읽으므로, 리플레이의 요청 행마다 해당 백엔드 트레이스로 연결됩니다. 다른 출처의 API는 위의 `propagateTraceHeaderCorsUrls`에 등록하세요. 그 요청에는 세션 ID가 붙지 않고 트레이스 ID로 녹화에 연결됩니다. 이 SDK를 *쓰지 않는* 페이지에서는 애플리케이션 리플레이 정책의 **Trace propagation origins**가 같은 역할을 합니다.
+레코더는 호출이 URL(init 객체가 있든 없든)을 넘기든 `Request` 객체를 넘기든 계측이 설정한 `traceparent`를 다시 읽으므로, 리플레이의 요청 행마다 해당 백엔드 트레이스로 연결됩니다. 다른 출처의 API는 위의 `propagateTraceHeaderCorsUrls`에 등록하세요. 그 요청에는 세션 ID가 붙지 않고 트레이스 ID로 녹화에 연결됩니다. 이 SDK를 *쓰지 않는* 페이지에서는 애플리케이션 리플레이 정책의 **트레이스 전파 출처**가 같은 역할을 합니다.
 
 헤더가 닿지 않는 것은 이 SDK 자신의 브라우저 스팬, 즉 문서 로드, 경로 변경, 직접 보고한 오류입니다. 이것들도 녹화에 연결하려면 각 스팬이 시작될 때 `session.id`를 찍으세요. 레코더는 `onSessionChange`로 ID를 알려 줍니다. 세션이 이미 있으면 바로 호출되고, 그 뒤로는 ID가 바뀔 때마다 다시 호출됩니다. 방문자가 30분 동안 활동이 없다가 돌아왔을 때, 4시간 상한에 이르렀을 때, `identify()`가 다른 사용자를 지정했을 때, 같은 방문자의 다른 탭이 먼저 바꿨을 때입니다.
 
@@ -430,7 +430,7 @@ metrics.setGlobalMeterProvider(
 :::
 
 :::details OneUptime이 요청을 거부함
-- `Origin https://app.example.com is not allowed for this browser ingestion key.`와 함께 오는 `422`는 페이지의 정확한 출처(스킴, 호스트, 포트)가 키의 **Allowed Origins**에 없다는 뜻입니다.
+- `Origin https://app.example.com is not allowed for this browser ingestion key.`와 함께 오는 `422`는 페이지의 정확한 출처(스킴, 호스트, 포트)가 키의 **허용된 출처**에 없다는 뜻입니다.
 - `This telemetry ingestion key has been disabled.`와 함께 오는 `422`는 누군가 키를 껐다는 뜻입니다. 다시 켜거나 다른 키를 쓰세요.
 - `401`은 키가 알 수 없거나, 취소되었거나, 만료되었다는 뜻입니다. [설정하기](#설정하기)의 키 확인을 실행한 뒤 유효한 Browser 키를 만드세요.
 - `404`는 URL이 잘못되었다는 뜻입니다. 트레이스 내보내기에는 전체 경로 `/otlp/v1/traces`가 필요합니다.

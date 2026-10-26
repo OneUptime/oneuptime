@@ -68,7 +68,7 @@ flowchart TB
 
 ## 誰可以新增覆寫
 
-**Project Owner** 、 **Project Admin** 、 **Project Member** 、 **On-Call Admin** 和 **On-Call Member** 可以新增和刪除覆寫； **Viewer** 和 **On-Call Viewer** 可以檢視。在自訂角色中，權限名稱為 **Create On-Call Duty Policy User Override** 、 **Delete On-Call Duty Policy User Override** 和 **Read On-Call Duty Policy User Override** 。在 **待命時間軸** 上，只有可以讀取覆寫的人才能看到誰的班次正在被代。
+**專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **待命管理員** 和 **待命成員** 可以新增和刪除覆寫； **檢視者** 和 **待命檢視者** 可以檢視。在自訂角色中，權限名稱為 **Create On-Call Duty Policy User Override** 、 **Delete On-Call Duty Policy User Override** 和 **Read On-Call Duty Policy User Override** 。在 **待命時間軸** 上，只有可以讀取覆寫的人才能看到誰的班次正在被代。
 
 在 OneUptime Cloud 上，使用者覆寫需要 **Growth** 方案。
 

@@ -228,7 +228,7 @@ Le unità sono le unità OTLP del receiver, che OneUptime scala per la visualizz
 
 ### Stato di alimentazione delle VM
 
-Il receiver non invia alcuna metrica sullo stato di alimentazione di una VM. Invia `vcenter.vm.cpu.*` **solo per le VM accese**, quindi OneUptime ricava lo stato da ciò che è arrivato in ogni raccolta: una VM che ha riportato metriche della CPU è **Powered on**; una che ha riportato solo l'uso di memoria e disco è **Powered off** (o sospesa: qui vSphere non distingue i due casi). I template di VM non hanno uno stato di alimentazione. Questo legge **un'intera raccolta alla volta**, ed è per questo che il processor `batch` fornito ha un `send_batch_size` grande e, di proposito, nessun `send_batch_max_size`: una raccolta divisa tra due esportazioni azzererebbe i conteggi dell'inventario e "spegnerebbe" le VM. Mantieni le impostazioni del batch come fornite.
+Il receiver non invia alcuna metrica sullo stato di alimentazione di una VM. Invia `vcenter.vm.cpu.*` **solo per le VM accese**, quindi OneUptime ricava lo stato da ciò che è arrivato in ogni raccolta: una VM che ha riportato metriche della CPU è **Powered on**; una che ha riportato solo l'uso di memoria e disco è **Spenta** (o sospesa: qui vSphere non distingue i due casi). I template di VM non hanno uno stato di alimentazione. Questo legge **un'intera raccolta alla volta**, ed è per questo che il processor `batch` fornito ha un `send_batch_size` grande e, di proposito, nessun `send_batch_max_size`: una raccolta divisa tra due esportazioni azzererebbe i conteggi dell'inventario e "spegnerebbe" le VM. Mantieni le impostazioni del batch come fornite.
 
 ## Il vCenter in OneUptime
 
@@ -249,7 +249,7 @@ Seleziona un host per aprire la sua pagina. Risponde a ciò a cui risponde la pa
 
 Quando vCenter smette di riportare un host, la pagina lo dice sopra le sue schede, con il momento in cui vCenter l'ha riportato l'ultima volta. Dopo 15 minuti senza rapporti l'host esce dall'inventario: la sua pagina allora lo dice, e mostra ancora le sue metriche precedenti.
 
-I cinque avvisi dell'host (saturazione di CPU e memoria, latenza del disco alta, errori dei pacchetti di rete e pacchetti scartati) sorvegliano ciascuno tutti gli host del vCenter e scattano per ogni host che supera la soglia. La scheda **Avvisi dell'host** nella pagina di un host mostra quali sono attivi, e il suo pulsante apre le **Recommendations** del vCenter con quelli mancanti già selezionati: creali lì, una volta, per tutti gli host.
+I cinque avvisi dell'host (saturazione di CPU e memoria, latenza del disco alta, errori dei pacchetti di rete e pacchetti scartati) sorvegliano ciascuno tutti gli host del vCenter e scattano per ogni host che supera la soglia. La scheda **Avvisi dell'host** nella pagina di un host mostra quali sono attivi, e il suo pulsante apre le **Raccomandazioni** del vCenter con quelli mancanti già selezionati: creali lì, una volta, per tutti gli host.
 
 ### Macchine virtuali
 

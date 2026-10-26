@@ -42,7 +42,7 @@ Videoanrufe (ein Teams-Meeting für einen Vorfall) nutzen diesen Bot nicht: Sie 
 - Ein Konto, das in Microsoft Entra ID App-Registrierungen anlegen kann, und einen Microsoft-365-Administrator, der die Administratorzustimmung erteilt.
 - Einen öffentlichen HTTPS-Hostnamen für OneUptime, den Azure Bot Service erreichen kann. Siehe [Netzwerkzugriff](#netzwerkzugriff).
 - Zugriff auf die Konfiguration des Servers: `config.env` bei Docker Compose oder Ihre Helm-Values bei Kubernetes.
-- Um ein Projekt zu verbinden, die Rolle **Project Owner**, **Project Admin** oder **Project Member** darin.
+- Um ein Projekt zu verbinden, die Rolle **Projektinhaber**, **Projektadministrator** oder **Projektmitglied** darin.
 
 ## Die Integration einrichten
 
@@ -382,7 +382,7 @@ Wenn Microsoft Sie zurückschickt und die Verbindung nicht zustande gekommen ist
 | Die Seite sagt | Was zu tun ist |
 | --- | --- |
 | **"Dieser Verbindungslink ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte beginnen Sie erneut."** | Der Link funktioniert einmal, 15 Minuten lang, in dem Browser, in dem er gestartet wurde. Beginnen Sie auf der Microsoft-Teams-Seite erneut und schließen Sie innerhalb von 15 Minuten im selben Browser ab. |
-| **"Sie haben keine Berechtigung, dieses Projekt mit Microsoft Teams zu verbinden."** | Die Administratorzustimmung für das Projekt zu erteilen, erfordert **Project Owner**, **Project Admin** oder **Project Member**. Das wird erneut geprüft, wenn Microsoft Sie zurückschickt. |
+| **"Sie haben keine Berechtigung, dieses Projekt mit Microsoft Teams zu verbinden."** | Die Administratorzustimmung für das Projekt zu erteilen, erfordert **Projektinhaber**, **Projektadministrator** oder **Projektmitglied**. Das wird erneut geprüft, wenn Microsoft Sie zurückschickt. |
 | **"Sie sind kein Mitglied dieses Projekts mehr."** | Um Ihr eigenes Microsoft-Konto zu verbinden, müssen Sie Mitglied des Projekts sein, wenn Microsoft Sie zurückschickt. |
 | **"Sie haben sich bei einer anderen Microsoft 365-Organisation angemeldet als der, für die diese Verbindung bestimmt ist."** | Melden Sie sich mit einem Konto der Microsoft-365-Organisation an, die die Administratorzustimmung erteilt hat bzw. mit der das Projekt verbunden ist. |
 | **"Ihre Microsoft 365-Organisation hat noch keine Teams."** | Erstellen Sie ein Team in Microsoft Teams und erteilen Sie dann die Administratorzustimmung erneut. |

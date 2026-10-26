@@ -37,6 +37,7 @@ import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * The docs for incident custom fields, their values in subscriber messages
@@ -1069,7 +1070,12 @@ describe("incident custom fields docs", () => {
         ];
 
         for (const role of allowedRoles) {
-          expect(named.has(PermissionHelper.getTitle(role))).toBe(true);
+          // The role, as the language's Dashboard names it.
+          expect(
+            named.has(
+              writtenPermissionTitle(language, PermissionHelper.getTitle(role)),
+            ),
+          ).toBe(true);
 
           for (const permissions of requirements) {
             expect(permissions).toContain(role);
@@ -1080,7 +1086,11 @@ describe("incident custom fields docs", () => {
           Permission.StatusPageAdmin,
           Permission.StatusPageMember,
         ]) {
-          expect(named.has(PermissionHelper.getTitle(role))).toBe(true);
+          expect(
+            named.has(
+              writtenPermissionTitle(language, PermissionHelper.getTitle(role)),
+            ),
+          ).toBe(true);
           expect(
             requirements.every((permissions: Array<Permission>) => {
               return permissions.includes(role);

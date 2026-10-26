@@ -68,7 +68,7 @@ Quando qualcuno lascia il progetto, ogni sostituzione che lo nomina e che non è
 
 ## Chi può aggiungere sostituzioni
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member** possono aggiungere ed eliminare sostituzioni; **Viewer** e **On-Call Viewer** possono vederle. In un ruolo personalizzato, i permessi sono **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** e **Read On-Call Duty Policy User Override**. Nella **Cronologia delle reperibilità**, solo chi può leggere le sostituzioni vede di chi è il turno sostituito.
+**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono aggiungere ed eliminare sostituzioni; **Visualizzatore** e **Visualizzatore della reperibilità** possono vederle. In un ruolo personalizzato, i permessi sono **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** e **Read On-Call Duty Policy User Override**. Nella **Cronologia delle reperibilità**, solo chi può leggere le sostituzioni vede di chi è il turno sostituito.
 
 Su OneUptime Cloud, le sostituzioni utente richiedono il piano **Growth**.
 

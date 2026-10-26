@@ -77,7 +77,7 @@ Sidemenyen på siden samler det du gjør med et unntak:
 | **Context** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
 | **Logger** | Loggene som ble skrevet rundt den siste forekomsten. |
 | **AI Assistance** | AI-oppgaver som retter unntaket eller tester det. |
-| **Innstillinger** | Løs eller arkiver unntaket. Den ligger under **Manage**, som er lukket i starten. |
+| **Innstillinger** | Løs eller arkiver unntaket. Den ligger under **Administrer**, som er lukket i starten. |
 
 ## Løs, gjenåpne og arkiver
 
@@ -86,7 +86,7 @@ Knappene øverst på siden til unntaket, og siden **Innstillinger**, endrer stat
 | Handling | Når du bruker den | Hva som skjer etterpå |
 | --- | --- | --- |
 | **Løs** | Du har rullet ut rettingen. | Det forlater listen **Uløst**. En ny forekomst gjenåpner det. |
-| **Reopen** | Rettingen virket ikke. | Det er uløst igjen. |
+| **Gjenåpne** | Rettingen virket ikke. | Det er uløst igjen. |
 | **Arkiver** | Det er støy du ikke tenker å rette. | Det forlater listen. Nye forekomster telles, men sender ikke lenger varsler. |
 | **Fjern fra arkiv** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
 
@@ -124,8 +124,8 @@ Hvert 15. minutt går OneUptime gjennom unntakene dine etter nye, etter dem som 
 
 | Funn | Når OneUptime registrerer det | Pull requesten |
 | --- | --- | --- |
-| **New Exception** | Et unntak som ble sett for første gang i løpet av de siste 24 timene, og som allerede har skjedd 3 ganger eller mer. | Retter unntaket, eller håndterer det bedre. |
-| **Exception Spike** | Et unntak som har skjedd 10 ganger eller mer i løpet av den siste timen, med 5 ganger eller mer sin timerate fra de 24 timene før. | Retter unntaket, eller håndterer det bedre. |
+| **Nytt unntak** | Et unntak som ble sett for første gang i løpet av de siste 24 timene, og som allerede har skjedd 3 ganger eller mer. | Retter unntaket, eller håndterer det bedre. |
+| **Topp i unntak** | Et unntak som har skjedd 10 ganger eller mer i løpet av den siste timen, med 5 ganger eller mer sin timerate fra de 24 timene før. | Retter unntaket, eller håndterer det bedre. |
 | **Manglende stack trace** | Unntakene en tjeneste registrerte det siste døgnet har ingen stack trace og har til sammen skjedd 20 ganger eller mer. | Får tjenesten til å registrere en stack trace med hvert unntak. |
 
 Pull requesten for et nytt eller økende unntak er unntakets egen AI-oppgave, den som siden **AI Assistance** til unntaket starter, og den venter til OneUptime AI har undersøkt funnet. Finner den koden som har skylden (`code-fault`), retter pull requesten den, slik **Fix this exception with AI** gjør. Finner den en forventet feil (`user-error` eller `expected-denial`), håndterer pull requesten feilen bedre, slik **Forbedre feilhåndtering** gjør. Enhver annen konklusjon åpner ingen pull request av seg selv. Med **Arkiver forventede unntak** slått på arkiveres en forventet avvisning i stedet og får ingen pull request.

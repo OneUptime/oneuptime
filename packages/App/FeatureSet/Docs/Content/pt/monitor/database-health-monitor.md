@@ -225,9 +225,9 @@ Um grupo é uma unidade que você liga ou desliga, e a unidade para a qual uma p
 
 | Grupo | O que coleta | Precisa de |
 |---|---|---|
-| Connections | Contagens de conexões, o limite configurado, conexões abortadas, tempo de atividade do servidor | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Conexões | Contagens de conexões, o limite configurado, conexões abortadas, tempo de atividade do servidor | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Activity | Consulta em execução mais longa, transação aberta mais longa, transações abertas | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
-| Throughput | Transações, consultas, taxa de acerto do cache, leituras e gravações em disco, tempo de E/S | PostgreSQL: nada além de `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Taxa de transferência | Transações, consultas, taxa de acerto do cache, leituras e gravações em disco, tempo de E/S | PostgreSQL: nada além de `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | Sessões bloqueadas, esperas por lock, deadlocks, esperas por lock de tabela | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Storage | Tamanho do banco de dados, uso de arquivos temporários, espaço do log, espaço livre do tempdb | PostgreSQL: nada além de `CONNECT`. MySQL: `SELECT` no banco de dados. SQL Server: nada para o tamanho do banco de dados; `VIEW SERVER STATE` para o espaço do log e o espaço livre do tempdb |
 | Replication | Réplicas conectadas, atraso de replicação em segundos e em bytes, slots inativos, estado de recuperação | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; não coletado no Azure SQL Database |
@@ -274,28 +274,28 @@ Quarenta e uma séries em oito categorias. Engines lista os mecanismos que conse
 
 | Métrica | Série | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Conexões | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Conexões | PostgreSQL, MySQL, SQL Server |
 
 ### Conexões
 
 | Métrica | Série | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | Conexões | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | Conexões | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Conexões | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Conexões | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Conexões | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Conexões | MySQL |
 
 ### Vazão
 
 | Métrica | Série | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | Taxa de transferência | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | Taxa de transferência | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Taxa de transferência | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Taxa de transferência | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ O MySQL padrão não expõe nenhum tipo de contador de deadlocks, e é por isso 
 
 | Métrica | Série | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Taxa de transferência | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Taxa de transferência | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Taxa de transferência | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Taxa de transferência | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Taxa de transferência | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Taxa de transferência | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Taxa de transferência | SQL Server |
 
 O PostgreSQL só mede os tempos de leitura e gravação de E/S quando `track_io_timing` está ligado. Ele vem desligado por padrão, e então o PostgreSQL informa os dois como `0` — no PostgreSQL, um zero constante nessas duas séries costuma significar "não medido", e não "rápido". É uma configuração do servidor, não um problema de permissões.
 

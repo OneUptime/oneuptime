@@ -53,7 +53,7 @@ Sie benötigen ein Azure-Abonnement, eine Rolle, mit der Sie die Ressource erste
 
 OneUptime selbst benötigt keine Azure-Rolle. Ein Schlüssel gewährt für sich allein Zugriff auf jede Bereitstellung der Ressource, ohne Rollenprüfung. Behandeln Sie ihn deshalb wie ein Passwort.
 
-In OneUptime darf einen Anbieter zu einem Projekt hinzufügen, wer **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder **Create LLM** hat. Eine selbst gehostete Instanz kann stattdessen aus Umgebungsvariablen einen Anbieter für alle Projekte registrieren; dafür ist Zugriff auf den Server nötig.
+In OneUptime darf einen Anbieter zu einem Projekt hinzufügen, wer **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Einstellungs-Administrator**, **Einstellungs-Mitglied** oder **Create LLM** hat. Eine selbst gehostete Instanz kann stattdessen aus Umgebungsvariablen einen Anbieter für alle Projekte registrieren; dafür ist Zugriff auf den Server nötig.
 
 ## Microsoft Foundry einrichten
 

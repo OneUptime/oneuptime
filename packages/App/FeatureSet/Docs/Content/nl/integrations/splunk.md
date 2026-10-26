@@ -44,11 +44,11 @@ Wil je in plaats daarvan met een wachtwoord authenticeren, sla deze stap dan ove
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Splunk Enterprise Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **Authentication token**, of het wachtwoord in **Wachtwoord**.
+Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Splunk Enterprise Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **Authentication token**, of het wachtwoord in **Wachtwoord**.
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Testen voor het opslaan**. De test authenticeert en voert je zoekopdracht uit met de waarden in het formulier, en slaat niets op, dus een verkeerde poort of een ontbrekende rol komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test authenticeert en voert je zoekopdracht uit met de waarden in het formulier, en slaat niets op, dus een verkeerde poort of een ontbrekende rol komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Wat je invult |
@@ -59,9 +59,9 @@ Klik op **Test these settings** onder **Testen voor het opslaan**. De test authe
 | **Authentication token** | Het token uit de eerste stap. Wanneer er een token is opgeslagen, wordt dat gebruikt, en niet de gebruikersnaam of het wachtwoord. |
 | **Wachtwoord** | Het wachtwoord van de Splunk-gebruiker, alleen wanneer er geen token wordt gebruikt. |
 
-**Authentication token** en **Wachtwoord** worden versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang er een met **Update credentials** bij de verbinding. Om van de ene authenticatie naar de andere over te stappen, vul je daar de nieuwe in en zet je **Remove the stored Authentication token** of **Remove the stored Password** aan.
+**Authentication token** en **Wachtwoord** worden versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang er een met **Inloggegevens bijwerken** bij de verbinding. Om van de ene authenticatie naar de andere over te stappen, vul je daar de nieuwe in en zet je **Remove the stored Authentication token** of **Remove the stored Password** aan.
 
-De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
+De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 
 ## Wat er wordt geïmporteerd
 
@@ -101,14 +101,14 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **De aanmaaktijd is de cursor.** Het venster gaat over `_time`, wat voor een notable event het moment is waarop de correlatiezoekopdracht het maakte, niet wanneer de gevonden activiteit plaatsvond. Een zoekopdracht die elk uur draait, dateert haar notable events op het tijdstip van haar run, dus er valt er geen achter de cursor.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente notable events toont.
 - **Elke volgende poll begint 1 minuut voor de opgeslagen cursor**, zodat een rij die op de grens van twee vensters is gemaakt nooit wordt gemist.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Health** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
 - **Duplicaten worden verwijderd op `event_id`**, of op de eigen `_bkt` en `_cd` van Splunk, binnen het project, zodat de overlap, een herhaald venster en een import een rij nooit twee keer opslaan.
 
 Een search head van vóór 9.0.1 antwoordt `404` op het verzoek aan `search/v2/jobs/export`. OneUptime stuurt het dan naar het verouderde `search/jobs/export`, en de run zegt dat in een waarschuwing. Werk de search head bij: huidige versies schakelen dat endpoint uit.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen
 
-Een poll leest hooguit 10.000 rijen. Wanneer een venster er meer bevat, is de run **Partial**, met een waarschuwing zoals:
+Een poll leest hooguit 10.000 rijen. Wanneer een venster er meer bevat, is de run **Gedeeltelijk**, met een waarschuwing zoals:
 
 ```text
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
@@ -120,22 +120,22 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, maakt OneUptime
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere notable events blijven binnenkomen. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere notable events blijven binnenkomen. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
 
-Een run die volledig mislukt, met een fout van Splunk, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
+Een run die volledig mislukt, met een fout van Splunk, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
 ### Uitvoeren, bekijken en importeren op verzoek
 
-Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
+Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
-- **Run now** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
+- **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
 - **Preview notable events** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
 - **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde rijen worden overgeslagen.
 - **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
-**Verbinding testen** op de rij van een verbinding, en **Test these settings** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
+**Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
 
 | Controle | Wat ze controleert |
 | --- | --- |
@@ -159,7 +159,7 @@ Open in Splunk Web **Settings → Data inputs → HTTP Event Collector** en klik
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Splunk onder **SIEM** en klik op **Volgende**. Vul de **HEC-URL** in en plak het token in **HEC-token**. **Index** en **Brontype** zijn optioneel: leeg gelaten gaan gebeurtenissen naar de standaardindex van het token met de sourcetype `oneuptime:security`.
+Open **Producten → Security Events → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Splunk onder **SIEM** en klik op **Volgende**. Vul de **HEC-URL** in en plak het token in **HEC-token**. **Index** en **Brontype** zijn optioneel: leeg gelaten gaan gebeurtenissen naar de standaardindex van het token met de sourcetype `oneuptime:security`.
 
 ### Een testgebeurtenis verzenden en beginnen met verzenden
 
@@ -176,7 +176,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 
 :::details Last Error begint met `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk weigerde te zeggen wie de aanroeper is.
-  - `HTTP 401`: Splunk accepteerde de referenties niet. Het token is fout, verlopen of verwijderd, tokenauthenticatie is uitgeschakeld op de search head, of de gebruikersnaam of het wachtwoord is fout. Maak een nieuw token en sla het op met **Update credentials**.
+  - `HTTP 401`: Splunk accepteerde de referenties niet. Het token is fout, verlopen of verwijderd, tokenauthenticatie is uitgeschakeld op de search head, of de gebruikersnaam of het wachtwoord is fout. Maak een nieuw token en sla het op met **Inloggegevens bijwerken**.
   - `HTTP 404`: de **Splunk management URL** is niet de REST API. Hij wijst naar Splunk Web op poort `8000`, of heeft een pad dat de search head niet aanbiedt.
 - `Splunk Enterprise Security authentication request returned ...`: iets anders dan de REST API van de search head antwoordde, zoals de HTML van Splunk Web op poort `8000` of de pagina van een proxy. Laat de URL naar de beheerpoort wijzen.
 :::
@@ -201,8 +201,8 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::
 
 :::details Een run is Partial
-- `Stopped after collecting 10000 records; the window holds more`: het venster bevatte meer dan de 10.000 rijen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen rij. Een verbinding die poll na poll **Partial** blijft, haalt een achterstand in, en haar **Last Polled** en **Last Event Imported** blijven vooruitgaan. Haalt ze die nooit in, dan vindt de zoekopdracht uit **Zoeken** meer dan 10.000 rijen per pollinterval: beperk haar, of maak het **Poll Interval (Minutes)** korter.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnostics**. Een import leest net zoveel als een poll.
+- `Stopped after collecting 10000 records; the window holds more`: het venster bevatte meer dan de 10.000 rijen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen rij. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan vindt de zoekopdracht uit **Zoeken** meer dan 10.000 rijen per pollinterval: beperk haar, of maak het **Opvraaginterval (minuten)** korter.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd

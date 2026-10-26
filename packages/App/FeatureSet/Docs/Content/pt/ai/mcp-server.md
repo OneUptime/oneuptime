@@ -115,7 +115,7 @@ O que um cliente conectado pode fazer:
 
 Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
 
-Clique em **Disconnect** para desconectar um cliente. Ele para de funcionar na hora.
+Clique em **Desconectar** para desconectar um cliente. Ele para de funcionar na hora.
 
 Um cliente continua conectado enquanto for usado. Um que não é usado há 30 dias precisa fazer login de novo.
 
@@ -140,7 +140,7 @@ Vá para **Configurações do projeto → Avançado → Chaves de API** e clique
 
 ### Escolha o que ela pode fazer
 
-Em **Acesso**, escolha **Viewer** para um agente que só lê, ou **Project Admin** para um que também cria, atualiza e exclui (veja [Permissões das chaves de API](#permissões-das-chaves-de-api)).
+Em **Acesso**, escolha **Visualizador** para um agente que só lê, ou **Administrador do projeto** para um que também cria, atualiza e exclui (veja [Permissões das chaves de API](#permissões-das-chaves-de-api)).
 
 ### Copie a chave
 
@@ -422,8 +422,8 @@ Estas funcionam sem credenciais, só com as ferramentas de páginas de status p�
 
 | O que o agente faz | Escolha em **Acesso** |
 | --- | --- |
-| Só lê | **Viewer**, ou adicione permissões de leitura na página da chave |
-| Também cria, atualiza e exclui | **Project Admin**, ou adicione o papel Project Admin na página da chave |
+| Só lê | **Visualizador**, ou adicione permissões de leitura na página da chave |
+| Também cria, atualiza e exclui | **Administrador do projeto**, ou adicione o papel Project Admin na página da chave |
 
 Dê a cada chave o mínimo de que ela precisa, rotacione as chaves com regularidade, mantenha uma chave separada para cada ambiente e acompanhe no OneUptime o que cada chave faz.
 

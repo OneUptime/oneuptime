@@ -29,9 +29,9 @@ Die Seite **Einstellungen** des SLO zeigt das Budget, das sein Ziel erlaubt, neb
 
 ### Das Budget eines SLO mit mehreren Monitoren
 
-Im Modus **Any Monitor Down** ist das Budget `(100% − target) × window`, egal wie viele Monitore das SLO misst: Das Zeitfenster ist eine einzige Zeitleiste.
+Im Modus **Beliebiger Monitor ausgefallen** ist das Budget `(100% − target) × window`, egal wie viele Monitore das SLO misst: Das Zeitfenster ist eine einzige Zeitleiste.
 
-Im Modus **Monitor Seconds Average** wird das Budget in Monitorsekunden gezählt, summiert über alle Monitore, und wächst daher mit der Zahl der Monitore: Ein SLO mit drei Monitoren und 99,9 % über 30 Tage hat etwa 129 Minuten Budget statt 43. Die Prozentwerte (SLI, verbleibendes Budget, Burn-Rate) bedeuten dasselbe; nur die Dauern ändern sich.
+Im Modus **Durchschnitt der Monitorsekunden** wird das Budget in Monitorsekunden gezählt, summiert über alle Monitore, und wächst daher mit der Zahl der Monitore: Ein SLO mit drei Monitoren und 99,9 % über 30 Tage hat etwa 129 Minuten Budget statt 43. Die Prozentwerte (SLI, verbleibendes Budget, Burn-Rate) bedeuten dasselbe; nur die Dauern ändern sich.
 
 ### Das Budget eines Kalendermonats
 
@@ -68,7 +68,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 Bei Kalendermonat-SLOs sagt die Kachel außerdem, wann das Budget zurückgesetzt wird.
 
-Die Reichweite ist eine gerade Linie. In einem rollierenden Zeitfenster gibt herausfallende alte Ausfallzeit Budget zurück, was die Linie nicht berücksichtigt, lesen Sie sie also als die kürzeste Zeit, die Ihnen bleibt. Sie wird vor der ersten Auswertung nicht angezeigt, ebenso wenig für SLOs im Modus **Monitor Seconds Average**, deren Budget in Monitorsekunden statt in Uhrzeit gezählt wird.
+Die Reichweite ist eine gerade Linie. In einem rollierenden Zeitfenster gibt herausfallende alte Ausfallzeit Budget zurück, was die Linie nicht berücksichtigt, lesen Sie sie also als die kürzeste Zeit, die Ihnen bleibt. Sie wird vor der ersten Auswertung nicht angezeigt, ebenso wenig für SLOs im Modus **Durchschnitt der Monitorsekunden**, deren Budget in Monitorsekunden statt in Uhrzeit gezählt wird.
 
 ## Fehlerbudget-Burn-down
 

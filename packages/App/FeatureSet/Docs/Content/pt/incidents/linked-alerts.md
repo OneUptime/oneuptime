@@ -121,7 +121,7 @@ Seja qual for o caminho, você cai no formulário de costume **Declarar novo inc
 | **Rótulos**                  | Todo rótulo de todo alerta selecionado.                                                                                                                                                                                                                                                |
 | **Incidente privado**        | Ativado se algum dos alertas for privado. O formulário diz isso, e os proprietários dos alertas se tornam proprietários do incidente — veja abaixo.                                                                                                                                     |
 
-«Mais severo» segue a ordem das suas severidades de alerta: a primeira severidade de alerta da lista é a mais severa. Com as severidades com que todo projeto começa, um alerta **High** vira um **Critical Incident** e um alerta **Low** um **Major Incident**.
+«Mais severo» segue a ordem das suas severidades de alerta: a primeira severidade de alerta da lista é a mais severa. Com as severidades com que todo projeto começa, um alerta **Alto** vira um **Critical Incident** e um alerta **Baixo** um **Major Incident**.
 
 Tudo pode ser editado antes do envio. **Rótulos** e **Incidente privado** ficam em **Mais campos** na primeira etapa do formulário, cujo cabeçalho recolhido mostra qualquer um dos dois enquanto estiver definido.
 

@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### 데이터 소스 열기
 
-**제품 → 대시보드**를 열고, 사이드 메뉴에서 **설정**을 펼친 다음 **Data Sources**를 클릭합니다.
+**제품 → 대시보드**를 열고, 사이드 메뉴에서 **설정**을 펼친 다음 **데이터 소스**를 클릭합니다.
 
 ### 유형 고르기
 
@@ -62,20 +62,20 @@ flowchart TB
 
 ### 로그인 방법 알려 주기
 
-**인증**에서 **사용자 이름**과 **비밀번호**를 입력하거나, HTTP 소스라면 Bearer 토큰으로 보내는 **API Token**을 입력합니다. **추가 필드**에는 `{ "X-Scope-OrgID": "tenant-1" }` 같은 **Custom HTTP Headers**와 **Additional Options**가 있습니다. Additional Options는 데이터베이스용 `sslEnabled`와 `sslRejectUnauthorized`, Elasticsearch용 `elasticsearchIndex`이며, Elasticsearch는 이것이 없으면 모든 인덱스(`*`)를 읽습니다.
+**인증**에서 **사용자 이름**과 **비밀번호**를 입력하거나, HTTP 소스라면 Bearer 토큰으로 보내는 **API 토큰**을 입력합니다. **추가 필드**에는 `{ "X-Scope-OrgID": "tenant-1" }` 같은 **Custom HTTP Headers**와 **Additional Options**가 있습니다. Additional Options는 데이터베이스용 `sslEnabled`와 `sslRejectUnauthorized`, Elasticsearch용 `elasticsearchIndex`이며, Elasticsearch는 이것이 없으면 모든 인덱스(`*`)를 읽습니다.
 
 ### 테스트하기
 
 **Data Source 만들기**를 클릭한 다음, 그 행의 **테스트**를 클릭합니다. OneUptime이 입력한 정보로 연결해 보고, 성공했는지 아니면 무엇이 잘못되었는지 알려 줍니다.
 :::
 
-나중에 데이터 소스를 바꾸려면 목록에서 엽니다. **Data Source Details**의 **편집**은 비밀 값을 뺀 모든 것을 바꿉니다. **Update Credentials**는 비밀번호, 토큰, 헤더를 바꾸고, 비워 둔 필드는 그대로 둡니다. **테스트**로 다시 확인할 수 있습니다.
+나중에 데이터 소스를 바꾸려면 목록에서 엽니다. **Data Source Details**의 **편집**은 비밀 값을 뺀 모든 것을 바꿉니다. **자격 증명 업데이트**는 비밀번호, 토큰, 헤더를 바꾸고, 비워 둔 필드는 그대로 둡니다. **테스트**로 다시 확인할 수 있습니다.
 
 ## 위젯에서 사용
 
 대시보드를 편집하고 **위젯 추가**를 클릭한 다음, 외부 데이터 소스 그룹의 위젯(**차트**, **값**, **게이지**, **테이블**)을 고릅니다. 설정에서는 다음을 할 수 있습니다.
 
-- **Data Source**를 고르고 **Query**를 작성합니다. 편집기는 쿼리 언어 이름과 그 유형의 예시를 보여 줍니다.
+- **Data Source**를 고르고 **쿼리**를 작성합니다. 편집기는 쿼리 언어 이름과 그 유형의 예시를 보여 줍니다.
 - 차트에서는 **쿼리 추가**로 같은 축에 쿼리를 더 겹치고, **Legend (optional)** 설정으로 각 계열의 이름을 레이블에서 만듭니다. `{{instance}} — errors`는 계열의 `instance` 레이블을 앞에 씁니다.
 - 값이나 게이지에서는 **Reduce**가 점들을 숫자 하나로 줄입니다. 마지막 값(기본값), 첫 값, 평균, 합계, 최솟값, 최댓값 중 하나입니다. **Unit**은 접미사를 붙이고, 알려진 단위는 크기도 맞춥니다. `Bytes`는 1.5 MB로, `ms`는 2.4 s로 읽힙니다.
 - 테이블에서는 읽기 전용 쿼리라면 무엇이든 쓸 수 있고, 행은 돌아온 그대로 표시됩니다.
@@ -162,7 +162,7 @@ Prometheus와 Loki의 범위 쿼리는 시간 범위 전체에 걸쳐 약 250개
 ## 안전하게 지키기
 
 - **SQL은 읽기 전용으로 유지됩니다.** 쿼리는 `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE`, `DESC` 중 하나로 시작하는 문 하나여야 합니다. `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO`, `SET`처럼 쓰기를 하거나 세션을 바꾸는 단어는 문자열과 따옴표로 묶은 이름 밖에서는 어디서든 거부되므로, 이런 단어와 이름이 같은 열은 따옴표로 묶으세요. 문자열 안의 따옴표는 따옴표 두 개(`''`)로 씁니다. 따옴표 앞의 백슬래시는 거부됩니다. PostgreSQL, MySQL, ClickHouse 세션도 읽기 전용입니다. SQL Server에는 읽기 전용 세션이 없으므로 읽기 전용 로그인으로 연결하세요.
-- **자격 증명은 쓰기 전용입니다.** **비밀번호**, **API Token**, **Custom HTTP Headers**는 저장할 때 암호화되며, API는 이를 절대 돌려주지 않습니다. 나에게도 마찬가지입니다.
+- **자격 증명은 쓰기 전용입니다.** **비밀번호**, **API 토큰**, **Custom HTTP Headers**는 저장할 때 암호화되며, API는 이를 절대 돌려주지 않습니다. 나에게도 마찬가지입니다.
 - **주소를 검사합니다.** 루프백, 링크 로컬(클라우드 메타데이터가 있는 곳) 등 예약된 주소는 어디서든 거부됩니다. 사설 주소는 OneUptime Cloud에서는 거부되고, 자체 호스팅 설치에서는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`가 `true`가 아니면 허용됩니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참고하세요.
 - **공개 대시보드에서는 절대 실행되지 않습니다.** 외부 데이터 소스 위젯은 쿼리와 함께 [공개 대시보드](/docs/dashboards/sharing)에서 빠집니다.
 

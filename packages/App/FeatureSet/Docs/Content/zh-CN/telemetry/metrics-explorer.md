@@ -59,7 +59,7 @@ flowchart TB
 
 ### 过滤和分组
 
-打开 **Filters & grouping**。**Filter by attributes** 只保留属性匹配的数据点，例如某一个 `http.route`；**Group by** 为你所选属性的每个值画一条线，例如每台主机一条线。
+打开 **Filters & grouping**。**Filter by attributes** 只保留属性匹配的数据点，例如某一个 `http.route`；**分组依据** 为你所选属性的每个值画一条线，例如每台主机一条线。
 
 ### 调整图表
 
@@ -104,7 +104,7 @@ flowchart TB
 - **操作 → 从此视图创建监视器** 会打开一个新的指标监视器，并预先填好这些查询和公式。参见 [指标监控](/docs/monitor/metrics-monitor)。
 - **操作 → Add to dashboard** 会把图表添加到你选择的仪表板。你需要有编辑该仪表板的权限。
 - **复制链接** 复制指向这个视图的链接：查询、公式和时间范围都完全一致。
-- **Saved Views** 以一个名称为项目中的每个人保留该视图。**查看者** 有自己的保存视图，用于它的搜索和过滤条件。保存的视图与 [日志浏览器](/docs/telemetry/logs-explorer#保存视图) 中的用法相同。
+- **已保存的视图** 以一个名称为项目中的每个人保留该视图。**查看者** 有自己的保存视图，用于它的搜索和过滤条件。保存的视图与 [日志浏览器](/docs/telemetry/logs-explorer#保存视图) 中的用法相同。
 
 ## 指标洞察
 

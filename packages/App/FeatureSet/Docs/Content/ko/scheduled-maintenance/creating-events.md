@@ -22,7 +22,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **역할.** 이벤트를 만들려면 **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin**, **Scheduled Maintenance Member** 중 하나이거나 **Create Scheduled Maintenance** 권한이 있는 사용자 지정 역할이 필요합니다.
+- **역할.** 이벤트를 만들려면 **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **예정된 유지 관리 관리자**, **예정된 유지 관리 구성원** 중 하나이거나 **Create Scheduled Maintenance** 권한이 있는 사용자 지정 역할이 필요합니다.
 - **상태 페이지.** 고객에게 알리려면 예정된 유지 관리 이벤트를 표시하는 상태 페이지가 필요합니다. [상태 페이지 개요](/docs/status-pages/index) 를 참조하세요.
 
 ## 이벤트 만들기

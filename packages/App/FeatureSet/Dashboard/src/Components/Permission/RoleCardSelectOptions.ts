@@ -209,6 +209,68 @@ export const ROLE_CARD_SUMMARIES: Partial<Record<Permission, string>> = {
   ),
 };
 
+/*
+ * EACH BUILT-IN ROLE'S NAME, AS A KEY OF ITS OWN.
+ *
+ * The names are Common/Types/Permission's titles - the server's words too,
+ * in its refusals - and the extractor does not read that catalog (its 1,500
+ * permission titles are mostly the server's). The roles are what people
+ * pick and read, so their names are listed here, written out one by one for
+ * the extractor, and every place that draws a role looks its name up: the
+ * role picker, the Built-in Roles card, the team and API key permission
+ * tables and the "You need one of these permissions" sentences
+ * (Common/UI/Utils/PermissionGate). A test holds this list to Permission's
+ * role permissions, name for name.
+ */
+export const ROLE_NAMES: Partial<Record<Permission, string>> = {
+  [Permission.ProjectOwner]: translationKey("Project Owner"),
+  [Permission.ProjectAdmin]: translationKey("Project Admin"),
+  [Permission.ProjectMember]: translationKey("Project Member"),
+  [Permission.Viewer]: translationKey("Viewer"),
+  [Permission.IncidentAdmin]: translationKey("Incident Admin"),
+  [Permission.IncidentMember]: translationKey("Incident Member"),
+  [Permission.IncidentViewer]: translationKey("Incident Viewer"),
+  [Permission.AlertAdmin]: translationKey("Alert Admin"),
+  [Permission.AlertMember]: translationKey("Alert Member"),
+  [Permission.AlertViewer]: translationKey("Alert Viewer"),
+  [Permission.MonitorAdmin]: translationKey("Monitor Admin"),
+  [Permission.MonitorMember]: translationKey("Monitor Member"),
+  [Permission.MonitorViewer]: translationKey("Monitor Viewer"),
+  [Permission.StatusPageAdmin]: translationKey("Status Page Admin"),
+  [Permission.StatusPageMember]: translationKey("Status Page Member"),
+  [Permission.StatusPageViewer]: translationKey("Status Page Viewer"),
+  [Permission.OnCallAdmin]: translationKey("On-Call Admin"),
+  [Permission.OnCallMember]: translationKey("On-Call Member"),
+  [Permission.OnCallViewer]: translationKey("On-Call Viewer"),
+  [Permission.ScheduledMaintenanceAdmin]: translationKey(
+    "Scheduled Maintenance Admin",
+  ),
+  [Permission.ScheduledMaintenanceMember]: translationKey(
+    "Scheduled Maintenance Member",
+  ),
+  [Permission.ScheduledMaintenanceViewer]: translationKey(
+    "Scheduled Maintenance Viewer",
+  ),
+  [Permission.TelemetryAdmin]: translationKey("Telemetry Admin"),
+  [Permission.TelemetryMember]: translationKey("Telemetry Member"),
+  [Permission.TelemetryViewer]: translationKey("Telemetry Viewer"),
+  [Permission.SecurityAdmin]: translationKey("Security Admin"),
+  [Permission.SecurityMember]: translationKey("Security Member"),
+  [Permission.SecurityViewer]: translationKey("Security Viewer"),
+  [Permission.SettingsAdmin]: translationKey("Settings Admin"),
+  [Permission.SettingsMember]: translationKey("Settings Member"),
+  [Permission.SettingsViewer]: translationKey("Settings Viewer"),
+  [Permission.BillingAdmin]: translationKey("Billing Admin"),
+  [Permission.BillingMember]: translationKey("Billing Member"),
+  [Permission.BillingViewer]: translationKey("Billing Viewer"),
+  [Permission.WorkflowAdmin]: translationKey("Workflow Admin"),
+  [Permission.WorkflowMember]: translationKey("Workflow Member"),
+  [Permission.WorkflowViewer]: translationKey("Workflow Viewer"),
+  [Permission.RunbookAdmin]: translationKey("Runbook Admin"),
+  [Permission.RunbookMember]: translationKey("Runbook Member"),
+  [Permission.RunbookViewer]: translationKey("Runbook Viewer"),
+};
+
 // A role's line on its card: its summary, else its full description.
 export const getRoleCardSummary: (props: PermissionProps) => string = (
   props: PermissionProps,

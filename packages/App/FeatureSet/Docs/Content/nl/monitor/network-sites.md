@@ -2,7 +2,7 @@
 
 Een netwerklocatie is een plaats: een regio, een markt, een franchisenemer, een distributiecentrum, één winkel. Locaties liggen in elkaar genest, netwerkapparaten hangen eraan, en OneUptime vat de gezondheid van de apparaten samen omhoog in de boom, zodat één status op een regio antwoord geeft op "is er daarbuiten iets mis?".
 
-Je vindt ze onder **Netwerk → Locaties**, en op een kaart onder **Netwerk → Map**. Deze pagina legt vast hoe de status van een locatie wordt bepaald uit wat eronder hangt, wat haar uptime betekent en hoe gepland onderhoud allebei verandert.
+Je vindt ze onder **Netwerk → Locaties**, en op een kaart onder **Netwerk → Kaart**. Deze pagina legt vast hoe de status van een locatie wordt bepaald uit wat eronder hangt, wat haar uptime betekent en hoe gepland onderhoud allebei verandert.
 
 :::cards
 - [Een locatie toevoegen](#een-locatie-toevoegen): Drie stappen, of een CSV-bestand voor een hele omgeving.
@@ -51,7 +51,7 @@ Elk apparaat hangt aan één locatie. De subboom van een locatie is de locatie z
 
 :::steps
 ### Een nieuwe locatie beginnen
-Ga naar **Netwerk → Locaties** en klik op **Site toevoegen**.
+Ga naar **Netwerk → Locaties** en klik op **Locatie toevoegen**.
 
 ### Zeggen wat de locatie is
 Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in.
@@ -60,7 +60,7 @@ Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een 
 Kies in de stap **Hierarchy** de **Parent Site** als de locatie onder een andere valt. Laat het leeg om de locatie op het hoogste niveau te houden.
 
 ### Haar standaarden instellen
-Kies in de stap **Monitoring Defaults** de [standaardsonde en het standaard-inloggegevensprofiel](#monitoringstandaarden) voor apparaten die aan de locatie worden toegevoegd, en klik op **Site toevoegen**.
+Kies in de stap **Monitoring Defaults** de [standaardsonde en het standaard-inloggegevensprofiel](#monitoringstandaarden) voor apparaten die aan de locatie worden toegevoegd, en klik op **Locatie toevoegen**.
 :::
 
 Op de pagina **Child Sites** van een locatie vraagt **Onderliggende locatie toevoegen** alleen het type en de naam, op één pagina met de ligging ingeklapt, en plaatst de nieuwe locatie onder die locatie.
@@ -82,7 +82,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 ## De kaart
 
-**Netwerk → Map** toont je locaties op een kaart, ingekaderd waar ze ook liggen; klik op een locatie om in te zoomen. Een locatie met locaties eronder toont die, op de kaart en als een graaf van de verbindingen ertussen. Een locatie zonder locaties eronder maar met eigen apparaten, of een locatie waarvan het type op unitniveau ligt, opent de live topologie van die apparaten.
+**Netwerk → Kaart** toont je locaties op een kaart, ingekaderd waar ze ook liggen; klik op een locatie om in te zoomen. Een locatie met locaties eronder toont die, op de kaart en als een graaf van de verbindingen ertussen. Een locatie zonder locaties eronder maar met eigen apparaten, of een locatie waarvan het type op unitniveau ligt, opent de live topologie van die apparaten.
 
 Een project dat nog geen locaties heeft, heeft toch een kaart: de Map toont dan de topologie van zijn apparaten, en apparaten in locaties groeperen zet ze op ligging op de kaart.
 

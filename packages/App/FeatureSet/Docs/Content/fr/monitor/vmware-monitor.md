@@ -60,7 +60,7 @@ Choisissez l'un des trois onglets :
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Threshold**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro, donc définissez votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur démarre avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro, donc définissez votre propre seuil.
 
 ### Créer le moniteur
 
@@ -68,7 +68,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 :::
 
 > [!TIP]
-> Pour configurer plusieurs modèles à la fois, ouvrez le vCenter depuis **Produits → Infrastructure → VMware** et allez dans **Recommendations**. Choisissez les modèles voulus, indiquez qui est alerté, et OneUptime crée un moniteur par modèle.
+> Pour configurer plusieurs modèles à la fois, ouvrez le vCenter depuis **Produits → Infrastructure → VMware** et allez dans **Recommandations**. Choisissez les modèles voulus, indiquez qui est alerté, et OneUptime crée un moniteur par modèle.
 
 ## Paramètres du moniteur
 
@@ -78,12 +78,12 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | **Datacenter** | Custom Metric, Avancé | Facultatif. Un datacenter : `resource.vcenter.datacenter.name`. Chaque série le porte. |
 | **Cluster** | Custom Metric, Avancé | Facultatif. Un cluster : `resource.vcenter.cluster.name`. Correspond aux propres séries du cluster et à celles des hôtes, VM et pools de ressources qu'il contient ; un hôte ESXi autonome n'en a pas. |
 | **Hôte ESXi** | Custom Metric, Avancé | Facultatif. Un hôte ESXi : `resource.vcenter.host.name`. Correspond aux propres séries de l'hôte **et** à celles de chaque VM qu'il exécute, car une VM porte le nom de son hôte. |
-| **Virtual Machine** | Custom Metric, Avancé | Facultatif. Une VM : `resource.vcenter.vm.name`. Les noms de VM ne sont pas forcément uniques : ajoutez un hôte ou un cluster lorsque deux VM partagent un nom. |
+| **Machine virtuelle** | Custom Metric, Avancé | Facultatif. Une VM : `resource.vcenter.vm.name`. Les noms de VM ne sont pas forcément uniques : ajoutez un hôte ou un cluster lorsque deux VM partagent un nom. |
 | **Datastore** | Custom Metric, Avancé | Facultatif. Un datastore : `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, Avancé | Facultatif. Un pool de ressources, par son chemin d'inventaire (`/DC/host/Cluster/Resources/pool`) : `resource.vcenter.resource_pool.inventory_path`. Un chemin, car les noms de pools ne sont uniques qu'au sein de leur parent. |
 | **VMware Metric** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). |
 | **Agrégation** | Custom Metric | La façon dont les échantillons sont combinés : **Moyenne**, **Maximum**, **Minimum**, **Somme** ou **Comptage**. Commence à l'agrégation habituelle de la métrique. |
-| **Plage temporelle** | Tous | La fenêtre glissante que lit la requête, de **Past 1 Minute** à **Past 365 Days**. Un nouveau moniteur commence à **Past 5 Minutes** ; les modèles définissent la leur. |
+| **Plage temporelle** | Tous | La fenêtre glissante que lit la requête, de **Past 1 Minute** à **Past 365 Days**. Un nouveau moniteur commence à **5 dernières minutes** ; les modèles définissent la leur. |
 | **Sélectionner les métriques** | Avancé | Le constructeur de requêtes : **Métrique**, **Agréger par**, **Filtrer par attributs**, **Regrouper par**, plus **Ajouter une métrique** et **Ajouter une formule** pour combiner des requêtes. |
 
 vCenter est lu une fois par intervalle de collecte, 2 minutes par défaut, donc une fenêtre de 1 minute peut ne contenir aucun échantillon. Gardez une fenêtre de 5 minutes ou plus, et plus longue si vous avez augmenté l'intervalle de collecte pour un grand inventaire.
@@ -117,13 +117,13 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire du table
 | Host Disk Latency High | Hôte | Warning | `vcenter.host.disk.latency.max`, Max par hôte | Au-dessus de 50 ms : chaque VM dont les disques passent par ce chemin attend le stockage. Nécessite le niveau de compteurs de performance 3 | À 45 ms ou moins |
 | Host Network Packet Errors | Hôte | Warning | `vcenter.host.network.packet.error.rate`, Max par hôte | Au-dessus de 0 : presque toujours un défaut de câble, de SFP ou de port de switch | À 0 |
 | Host Network Packet Drops | Hôte | Warning | `vcenter.host.network.packet.drop.rate`, Max par hôte | Au-dessus de 0 : un uplink sursouscrit, ou des tampons circulaires de NIC qui débordent | À 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, Avg par `resource.vcenter.vm.name`, **15 dernières minutes** | Au-dessus de 90 % des vCPU de la VM pendant les 15 minutes : une VM peut utiliser ce qu'on lui a donné, donc seule une VM qui ne redescend jamais alerte | À 81 % ou moins |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg par VM | Au-dessus de 10 % : la VM était prête à s'exécuter, mais l'hôte n'avait aucun cœur physique pour elle. Invisible depuis l'intérieur de l'invité | À 9 % ou moins |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg par VM | Au-dessus de 90 % de sa mémoire : l'invité est sur le point de paginer | À 81 % ou moins |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max par VM | Au-dessus de 0 : l'hôte manque de mémoire et la reprend à cet invité | À 0 |
-| VM Memory Swapping | Virtual Machine | Critique | `vcenter.vm.memory.swapped`, Max par VM | Au-dessus de 0 : l'hôte swappe la mémoire de la VM, le dernier recours après le ballooning et la compression | À 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max par VM | Au-dessus de 50 ms : les applications de l'invité expirent sur les E/S | À 45 ms ou moins |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg par VM | Au-dessus de 90 % de son stockage provisionné engagé : une VM en provisionnement fin est sur le point de réclamer sa taille complète | À 81 % ou moins |
+| VM CPU Saturation | Machine virtuelle | Warning | `vcenter.vm.cpu.utilization`, Avg par `resource.vcenter.vm.name`, **15 dernières minutes** | Au-dessus de 90 % des vCPU de la VM pendant les 15 minutes : une VM peut utiliser ce qu'on lui a donné, donc seule une VM qui ne redescend jamais alerte | À 81 % ou moins |
+| VM CPU Ready Contention | Machine virtuelle | Warning | `vcenter.vm.cpu.readiness`, Avg par VM | Au-dessus de 10 % : la VM était prête à s'exécuter, mais l'hôte n'avait aucun cœur physique pour elle. Invisible depuis l'intérieur de l'invité | À 9 % ou moins |
+| VM Memory Saturation | Machine virtuelle | Warning | `vcenter.vm.memory.utilization`, Avg par VM | Au-dessus de 90 % de sa mémoire : l'invité est sur le point de paginer | À 81 % ou moins |
+| VM Memory Ballooning | Machine virtuelle | Warning | `vcenter.vm.memory.ballooned`, Max par VM | Au-dessus de 0 : l'hôte manque de mémoire et la reprend à cet invité | À 0 |
+| VM Memory Swapping | Machine virtuelle | Critique | `vcenter.vm.memory.swapped`, Max par VM | Au-dessus de 0 : l'hôte swappe la mémoire de la VM, le dernier recours après le ballooning et la compression | À 0 |
+| VM Disk Latency High | Machine virtuelle | Warning | `vcenter.vm.disk.latency.max`, Max par VM | Au-dessus de 50 ms : les applications de l'invité expirent sur les E/S | À 45 ms ou moins |
+| VM Disk Usage High | Machine virtuelle | Warning | `vcenter.vm.disk.utilization`, Avg par VM | Au-dessus de 90 % de son stockage provisionné engagé : une VM en provisionnement fin est sur le point de réclamer sa taille complète | À 81 % ou moins |
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg par `resource.vcenter.datastore.name` | Au-dessus de 80 % : un avertissement précoce, car les disques fins et les snapshots consomment vite le reste | À 72 % ou moins |
 | Datastore Capacity Critical | Datastore | Critique | `vcenter.datastore.disk.utilization`, Avg par datastore | Au-dessus de 90 % : un datastore plein met en pause chaque VM qui y a un disque | À 81 % ou moins |
 | Cluster Host Not Effective | Cluster | Critique | `vcenter.cluster.host.count` filtrée sur `effective = false`, Max par `resource.vcenter.cluster.name` | Au-dessus de 0 : un hôte est en mode maintenance, déconnecté ou ne répond pas, donc le cluster tourne avec moins de capacité que prévu | À 0 |
@@ -260,7 +260,7 @@ Envoyées uniquement pour les clusters avec vSAN, leurs hôtes et les VM d'un da
 | `vcenter.vm.vsan.throughput`        | `By/s`            | Débit vSAN de la VM, par `direction`                                                                                                            |
 
 > [!NOTE]
-> L'état d'alimentation d'une VM n'est pas une métrique. Le récepteur n'envoie `vcenter.vm.cpu.*` que pour les VM allumées, donc OneUptime distingue **Powered on** de **Powered off** selon que des données CPU sont arrivées dans la même collecte que les données mémoire et disque de la VM ; la page **Machines virtuelles** du vCenter affiche le résultat. Pour alerter sur des hôtes éteints ou sur le nombre de VM en cours d'exécution, utilisez l'attribut `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
+> L'état d'alimentation d'une VM n'est pas une métrique. Le récepteur n'envoie `vcenter.vm.cpu.*` que pour les VM allumées, donc OneUptime distingue **Powered on** de **Éteinte** selon que des données CPU sont arrivées dans la même collecte que les données mémoire et disque de la VM ; la page **Machines virtuelles** du vCenter affiche le résultat. Pour alerter sur des hôtes éteints ou sur le nombre de VM en cours d'exécution, utilisez l'attribut `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
 
 ## Critères de surveillance
 
@@ -271,7 +271,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | La façon dont les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
 | **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
-| **Threshold** | La valeur à laquelle comparer. Une liste d'unités se trouve à côté lorsque la métrique a une unité. Non affiché pour les conditions d'anomalie. |
+| **Seuil** | La valeur à laquelle comparer. Une liste d'unités se trouve à côté lorsque la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
 | **En l'absence de données** | Sous **Plus de champs**. Ce qui se passe lorsque la fenêtre n'a aucun échantillon : **Ignore** (la valeur par défaut), **Treat As Zero** ou **Déclencheur**. |

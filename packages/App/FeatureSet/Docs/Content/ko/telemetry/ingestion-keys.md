@@ -32,7 +32,7 @@ flowchart TB
 
 키가 놓일 위치에 따라 유형을 고릅니다. 키를 만든 뒤에는 유형을 바꿀 수 없습니다.
 
-| | **서버** | **Browser** |
+| | **서버** | **브라우저** |
 | --- | --- | --- |
 | 용도 | 직접 운영하는 머신의 애플리케이션, collector, 에이전트 | 웹 페이지, 그리고 React Native Session Replay |
 | 보내는 것 | 모든 종류의 텔레메트리를 모든 엔드포인트로 | 트레이스, 로그, 메트릭, Session Replay |
@@ -60,7 +60,7 @@ flowchart TB
 
 ### 브라우저 키의 출처 추가하기
 
-**Browser** 키는 다음 단계인 **브라우저 설정**에서 **Allowed Origins** 목록을 묻고, **고급** 아래에서 **Pinned Service Name** 값을 묻습니다. [브라우저 키 잠그기](#브라우저-키-잠그기)를 참고하세요.
+**브라우저** 키는 다음 단계인 **브라우저 설정**에서 **허용된 출처** 목록을 묻고, **고급** 아래에서 **고정된 서비스 이름** 값을 묻습니다. [브라우저 키 잠그기](#브라우저-키-잠그기)를 참고하세요.
 
 ### 키를 만들고 시크릿 복사하기
 
@@ -88,8 +88,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 | 설정 | 하는 일 |
 | --- | --- |
-| **Allowed Origins** | 키를 수락하는 유일한 출처입니다. 다른 출처에서 온 요청이나 `Origin` 헤더가 아예 없는 요청은 거부됩니다. 브라우저 키에는 출처가 적어도 하나 있어야 합니다. |
-| **Pinned Service Name** | 보내는 쪽이 어떤 `service.name`을 설정했든, 키가 OTLP/HTTP로 보내는 모든 것을 이 서비스 하나 아래에 기록합니다. 그러면 키의 복사본은 그 서비스에만 쓸 수 있습니다. |
+| **허용된 출처** | 키를 수락하는 유일한 출처입니다. 다른 출처에서 온 요청이나 `Origin` 헤더가 아예 없는 요청은 거부됩니다. 브라우저 키에는 출처가 적어도 하나 있어야 합니다. |
+| **고정된 서비스 이름** | 보내는 쪽이 어떤 `service.name`을 설정했든, 키가 OTLP/HTTP로 보내는 모든 것을 이 서비스 하나 아래에 기록합니다. 그러면 키의 복사본은 그 서비스에만 쓸 수 있습니다. |
 | **Requests Per Minute Limit** | 키가 매분 수락되는 최대 요청 수이며, 모든 방문자가 함께 씁니다. 비워 두면 브라우저 키에는 6,000이 적용됩니다. |
 | **만료 시각** | 이 날짜 이후에는 키가 거부되므로, 공개된 복사본이 더 이상 작동하지 않습니다. |
 
@@ -130,8 +130,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 | `422`와 `This telemetry ingestion key has been disabled.` | 누군가 **활성화됨**을 껐습니다. |
 | `422`와 `A browser ingestion key cannot be used for` | 브라우저 키가 서버 키만 받는 엔드포인트에 도달했습니다. |
 | `422`와 `did not send an Origin header` | 브라우저 키가 브라우저 밖에서 전송되었습니다. 그곳에서는 서버 키를 쓰세요. |
-| `422`와 `is not allowed for this browser ingestion key` | 페이지의 출처가 **Allowed Origins** 목록에 없습니다. |
-| `422`와 `is pinned to a single service` | **Pinned Service Name** 값이 있는 키로 에이전트를 등록하려 했습니다. 이름이 고정되지 않은 서버 키를 쓰세요. |
+| `422`와 `is not allowed for this browser ingestion key` | 페이지의 출처가 **허용된 출처** 목록에 없습니다. |
+| `422`와 `is pinned to a single service` | **고정된 서비스 이름** 값이 있는 키로 에이전트를 등록하려 했습니다. 이름이 고정되지 않은 서버 키를 쓰세요. |
 | `429`와 `Too many telemetry requests for this ingestion key` | 키가 **Requests Per Minute Limit** 값에 도달했습니다. 익스포터는 `Retry-After` 시간이 지난 뒤 다시 시도합니다. |
 
 OTLP 익스포터가 받을 수 있는 다른 응답은 [응답](/docs/telemetry/open-telemetry#응답)을 참고하세요.

@@ -46,11 +46,11 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 
 | Källa | Öppnar ett ärende när | Stängs av med |
 | --- | --- | --- |
-| Detektionsregler | En regel träffar | **Open a Case on Match**, i regelns steg **Vid träff** |
-| Hotunderrättelser | En händelse nämner en känd indikator | **Open a Case on Match**, i flödets steg **Vid träff** |
-| Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Polling** |
+| Detektionsregler | En regel träffar | **Öppna ett ärende vid matchning**, i regelns steg **Vid träff** |
+| Hotunderrättelser | En händelse nämner en känd indikator | **Öppna ett ärende vid matchning**, i flödets steg **Vid träff** |
+| Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Hämtning** |
 | Entitetsrisk | En användares, värds eller adress risk når projektets tröskel | **Riskärenden** under **Inställningar → Riskbedömning** |
-| Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Open Case** i en händelses panel | Går inte |
+| Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Öppna ärende** i en händelses panel | Går inte |
 
 Alla källor öppnar ärenden som standard, utom entitetsrisk i projekt som skapades innan den fanns: slå först på **Riskärenden** där ([Entitetsrisk](/docs/telemetry/security-entity-risk)). En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
 
@@ -88,17 +88,17 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | Avsnitt i sidomenyn | Sidor |
 | --- | --- |
 | **Översikt** | **Översikt**, **Tidslinje** |
-| **Utredning** | **Detections**, **Entiteter**, **Kopplade signaler**, **Playbooks** |
+| **Utredning** | **Detektioner**, **Entiteter**, **Kopplade signaler**, **Playbooks** |
 | **Anteckningar** | **Privata anteckningar** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
-Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Run Playbook**, **Deklarera incident** och **Close Case**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Tilldela någon annan**, **Ändra status**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**.
+Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och titel, **Tilldela mig**, **Kör playbook**, **Deklarera incident** och **Stäng ärende**, och i menyn ⋯ bredvid dem **Ange prioritet**, **Tilldela någon annan**, **Ändra status**, **Redigera ärende** och **Ta bort ärende**. Så kan ärendet hanteras från vilken av dess sidor som helst, och en länk till ärendet öppnar fortfarande dess **Översikt**.
 
 - **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det.
 - **OneUptime AI**, på **Översikt**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 - **MITRE ATT&CK**, på **Översikt**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
 - **Tidslinje**: allt som hände med ärendet, med vem som gjorde det.
-- **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
+- **Detektioner**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).
 - **Playbooks**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbooks**.
@@ -111,12 +111,12 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 Du behöver inte öppna ett ärende för att arbeta med det. I köns listor har menyn ⋯ på ett ärendes rad **Tilldela mig**, **Tilldela någon annan**, **Ändra status** och **Ändra prioritet**. För att arbeta med flera ärenden samtidigt markerar du dem och använder samma åtgärder under **Massåtgärder**: där står vilka ärenden som ändrades, vilka som lämnades som de var, och varför.
 
 - För att ge ett ärende till någon annan använder du **Tilldela någon annan** och väljer en person eller ett team. Ett teams ärende väntar under **Ej tilldelad** tills någon i teamet tar det.
-- En status som stänger ett ärende ber om en bedömning och en avslutande anteckning, som **Close Case** gör.
+- En status som stänger ett ärende ber om en bedömning och en avslutande anteckning, som **Stäng ärende** gör.
 - Ett stängt ärende tilldelas ingen. För att arbeta med det igen öppnar du det på nytt med **Ändra status**.
 
 ### Stäng ett ärende
 
-**Close Case** ber om en bedömning och en valfri avslutande anteckning:
+**Stäng ärende** ber om en bedömning och en valfri avslutande anteckning:
 
 | Bedömning | Betyder |
 | --- | --- |
@@ -127,7 +127,7 @@ Du behöver inte öppna ett ärende för att arbeta med det. I köns listor har 
 
 Bedömningarna räknas på översikten. En regel vars ärenden gång på gång stängs som False Positive är en regel som behöver finjusteras.
 
-Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google SecOps, med utlåtandet och avslutningsanteckningen, när dess anslutning har **Stäng varningar när deras ärende stängs** påslaget: se [Google SecOps](/docs/integrations/google-secops#stäng-varningar-när-deras-ärende-stängs).
+Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google SecOps, med utlåtandet och avslutningsanteckningen, när dess anslutning har **Stäng larm när deras ärende stängs** påslaget: se [Google SecOps](/docs/integrations/google-secops#stäng-larm-när-deras-ärende-stängs).
 
 ### Deklarera en incident
 
@@ -142,13 +142,13 @@ Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn 
 | Inbyggd | Vad OneUptime gör med den |
 | --- | --- |
 | Den nya statusen | Nya ärenden börjar i den |
-| Den kvitterade statusen | När ett ärende når den sparas när det kvitterades, och **Reopen** flyttar tillbaka ett stängt ärende dit |
+| Den kvitterade statusen | När ett ärende når den sparas när det kvitterades, och **Öppna igen** flyttar tillbaka ett stängt ärende dit |
 | Den begränsade statusen | När ett ärende når den sparas när det begränsades |
-| Den stängda statusen | **Close Case** flyttar ett ärende dit, med en bedömning |
+| Den stängda statusen | **Stäng ärende** flyttar ett ärende dit, med en bedömning |
 | Prioriteterna Critical, High, Medium, Low och Informational | En detektion öppnar sitt ärende med prioriteten för sin allvarlighetsgrad, och ett ärende som någon öppnar börjar på Medium |
 
 - Var en status står avgör vad ett ärende i den räknas som, som kolumnen **Räknas som** visar: från den kvitterade statusen och nedåt som kvitterat, från den begränsade statusen och nedåt som begränsat, från den stängda statusen och nedåt som stängt. En status du lägger till hamnar strax ovanför den stängda statusen, och när du flyttar ett ärende till en status som stänger det får du först ange en bedömning.
-- En prioritets plats är hur brådskande den är, den mest brådskande först: **For Cases At Least**, valen för aviseringar och reglerna för Slack och Microsoft Teams läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
+- En prioritets plats är hur brådskande den är, den mest brådskande först: **För ärenden med minst**, valen för aviseringar och reglerna för Slack och Microsoft Teams läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
 
 För att sluta använda en egen status eller prioritet använder du **Arkivera** på dess rad. Ingen kan välja den igen, och API:t, Terraform och MCP avvisar den, men ärendena som har den behåller den, och du kan fortfarande filtrera på den. Arkiverade värden listas i den hopfällda sektionen **Arkiverade ärendestatusar** eller **Arkiverade ärendeprioriteter** under tabellen, där **Avarkivera** tar tillbaka ett. **Ta bort** avvisas så länge ärenden har värdet eller en playbook körs från prioriteten.
 
@@ -197,7 +197,7 @@ För att posta i en kanal lägger du till en regel under **Produkter → Securit
 | Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk eller Manual |
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
-Var och en av de tre aviseringarna postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **High** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
+Var och en av de tre aviseringarna postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
 
 ## Playbooks
 
@@ -212,11 +212,11 @@ En playbook är en lista med steg som körs på ett ärende. Skapa en under **Pr
 | Bedömd som troligen skadlig | En gång, när OneUptime AI:s bedömning läser ärendet som Troligen skadlig |
 | Manual | Bara när någon kör den från ett ärende |
 
-Alla aktiverade playbooks kan också köras manuellt, med **Run Playbook** på ett ärende. En playbook som körs av sig själv kan begränsas:
+Alla aktiverade playbooks kan också köras manuellt, med **Kör playbook** på ett ärende. En playbook som körs av sig själv kan begränsas:
 
-- **For Cases At Least**: bara ärenden med den här prioriteten eller högre.
-- **Only For Detections From**: bara när detektionen bakom ärendet kom från den här källan.
-- **Only For These Detection Rules**: bara när den kom från någon av de här reglerna.
+- **För ärenden med minst**: bara ärenden med den här prioriteten eller högre.
+- **Bara för detektioner från**: bara när detektionen bakom ärendet kom från den här källan.
+- **Bara för de här detektionsreglerna**: bara när den kom från någon av de här reglerna.
 
 En inaktiverad playbook körs varken av sig själv eller manuellt.
 
@@ -248,9 +248,9 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
-- **Needs Approval**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den.
-- **Only If Threat Intel Matched**: hoppar över steget om inte ett tidigare steg **Check entities against threat intel** i körningen hittade en känd indikator.
-- **Carry On If It Fails**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen.
+- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den.
+- **Bara vid träff i hotinformation**: hoppar över steget om inte ett tidigare steg **Kontrollera entiteter mot hotinformation** i körningen hittade en känd indikator.
+- **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen.
 
 ### Begränsning
 
@@ -271,15 +271,15 @@ Ett ärende som grupperas efter en adress, till exempel en brute force-attack mo
 
 #### Skyddade entiteter
 
-**Protected Entities**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Security Admin.
+**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Security Admin.
 
 #### Godkännande
 
-De fyra stegen som stänger ute någon väntar på godkännande. Bara en Security Admin kan slå av **Needs Approval** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Act On**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
+De fyra stegen som stänger ute någon väntar på godkännande. Bara en Security Admin kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
 
 #### Ångra
 
-Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Unsuspend**, **Lift Containment** eller **Frigör**. En avslutad Okta-session kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
+Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning** eller **Frigör**. En avslutad Okta-session kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
 
 ### Meddelanden
 
@@ -311,7 +311,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
-Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget, på ärendets tidslinje och i projektets granskningslogg. Sidan **Godkännanden**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning. På **Playbook-körningar** och på en playbooks sida är varje körning en rad som säger hur långt den kom, eller vid vilket steg den stannade; **Visa steg** öppnar dess steg. En körning som väntar på godkännande öppnas av sig själv.
+Ett steg som väntar på godkännande visar **Godkänn** och **Avvisa** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget, på ärendets tidslinje och i projektets granskningslogg. Sidan **Godkännanden**, under **Playbooks** i menyn, listar körningarna som väntar på ett beslut och räknar dem; **Playbook-körningar** listar varje körning. På **Playbook-körningar** och på en playbooks sida är varje körning en rad som säger hur långt den kom, eller vid vilket steg den stannade; **Visa steg** öppnar dess steg. En körning som väntar på godkännande öppnas av sig själv.
 
 En körning vars worker slutar höra av sig, till exempel efter en omstart, tas upp igen: en köad körning läggs i kö på nytt efter 2 minuter, och en körning som inte har hörts av på 30 minuter markeras som misslyckad.
 
@@ -329,12 +329,12 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Hitta hot
 
 - **Entiteter** rangordnar användarna, värdarna, adresserna och hasharna som dina fynd nämner oftast, under det senaste dygnet, den senaste veckan eller månaden, och slår upp vilket värde som helst i 30 dagars händelser. Välj en entitet för att öppna den i **Korrelera**.
-- **Rule Library** har färdiga detektionsregler för hot mot identiteter, slutpunkter, moln, nätverk, webb och Kubernetes. Var och en är en Sigma-regel skriven för fälten som varje ansluten källa normaliseras till. Dess rad visar vad den hittar, MITRE ATT&CK-taktikerna och -teknikerna den är märkt med, händelserna den läser och om några har kommit in de senaste 7 dagarna (**Tas emot** eller **Tas inte emot**), och dess allvarlighetsgrad. Begränsa listan efter kategori, efter de data reglerna läser och efter om du har lagt till dem, eller sök i den efter namn, ATT&CK-teknik eller allvarlighetsgrad; sidans adress behåller filtren. Välj en regel för dess detaljer: hur du börjar skicka händelserna den läser, hur den körs och dess Sigma-regel. **Lägg till** skapar den som en egen detektionsregel, påslagen och med ärenden i stället för larm; ändra den under **Detection Rules** som vilken annan regel som helst. Reglerna markerade **Rekommenderade** hittar hot i data som OneUptime redan har, och en knapp lägger till dem du inte har än.
-- **ATT&CK Coverage** listar taktikerna i MITRE ATT&CK, var och en med hur många av dess tekniker dina aktiverade regler täcker och för hur många fler **Rule Library** har regler. Öppna en taktik för dess tekniker, eller byt till **Matris** för hela matrisen. Välj en teknik för att se reglerna i biblioteket som täcker den, och öppna **Rule Library** med dem.
+- **Regelbibliotek** har färdiga detektionsregler för hot mot identiteter, slutpunkter, moln, nätverk, webb och Kubernetes. Var och en är en Sigma-regel skriven för fälten som varje ansluten källa normaliseras till. Dess rad visar vad den hittar, MITRE ATT&CK-taktikerna och -teknikerna den är märkt med, händelserna den läser och om några har kommit in de senaste 7 dagarna (**Tas emot** eller **Tas inte emot**), och dess allvarlighetsgrad. Begränsa listan efter kategori, efter de data reglerna läser och efter om du har lagt till dem, eller sök i den efter namn, ATT&CK-teknik eller allvarlighetsgrad; sidans adress behåller filtren. Välj en regel för dess detaljer: hur du börjar skicka händelserna den läser, hur den körs och dess Sigma-regel. **Lägg till** skapar den som en egen detektionsregel, påslagen och med ärenden i stället för larm; ändra den under **Detektionsregler** som vilken annan regel som helst. Reglerna markerade **Rekommenderade** hittar hot i data som OneUptime redan har, och en knapp lägger till dem du inte har än.
+- **ATT&CK-täckning** listar taktikerna i MITRE ATT&CK, var och en med hur många av dess tekniker dina aktiverade regler täcker och för hur många fler **Regelbibliotek** har regler. Öppna en taktik för dess tekniker, eller byt till **Matris** för hela matrisen. Välj en teknik för att se reglerna i biblioteket som täcker den, och öppna **Regelbibliotek** med dem.
 
 ## Automatisera
 
-- **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Run a workflow** startar ett arbetsflöde vars utlösare är en webhook.
+- **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Kör ett arbetsflöde** startar ett arbetsflöde vars utlösare är en webhook.
 - **API**: ärenden, anteckningar, detektioner, playbooks, körningar, skyddade entiteter och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
 - AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, detektioner, playbooks och ärendeprioriteter och ärendestatusar. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: resurserna `oneuptime_security_case_priority` och `oneuptime_security_case_status` håller ett projekts prioriteter och statusar som kod.
@@ -342,7 +342,7 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Felsökning
 
 :::details En regel träffar, men inget ärende öppnas
-Kontrollera **Open a Case on Match** i regelns steg **Vid träff**. En detektion om en entitet som redan har ett öppet ärende läggs till i det ärendet i stället för att öppna ett nytt: leta efter den under **Detections** i det öppna ärendet.
+Kontrollera **Öppna ett ärende vid matchning** i regelns steg **Vid träff**. En detektion om en entitet som redan har ett öppet ärende läggs till i det ärendet i stället för att öppna ett nytt: leta efter den under **Detektioner** i det öppna ärendet.
 :::
 
 :::details Ingen fick veta om ett ärende
@@ -350,7 +350,7 @@ Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om
 :::
 
 :::details En playbook kördes inte
-Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (Case Opened körs en gång, när ett ärende öppnas), och att ärendet uppfyller dess inställningar **For Cases At Least**, **Only For Detections From** och **Only For These Detection Rules**. Ett ärende som öppnats manuellt har ingen detektion, så en playbook som är begränsad till en källa eller till regler körs inte på det.
+Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (Case Opened körs en gång, när ett ärende öppnas), och att ärendet uppfyller dess inställningar **För ärenden med minst**, **Bara för detektioner från** och **Bara för de här detektionsreglerna**. Ett ärende som öppnats manuellt har ingen detektion, så en playbook som är begränsad till en källa eller till regler körs inte på det.
 :::
 
 :::details Ett begränsningssteg misslyckades

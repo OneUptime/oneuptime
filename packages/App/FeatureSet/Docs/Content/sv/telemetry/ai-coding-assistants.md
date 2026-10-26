@@ -211,5 +211,5 @@ Rulla ut i den här ordningen; varje steg är användbart för sig. Använd ett 
 - [Claude Code](/docs/telemetry/claude-code): Slå på Claude Codes export för en dator eller hela flottan.
 - [Cursor](/docs/telemetry/cursor): Skicka Cursors teamtelemetri från Cursors dashboard.
 - [OpenAI Codex](/docs/telemetry/openai-codex): Konfigurera Codex tre exportörer och sätt en identitet på dess spans.
-- [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Konversationer, varningar, kostnad och budgetar för varje AI-anrop.
+- [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Konversationer, larm, kostnad och budgetar för varje AI-anrop.
 :::

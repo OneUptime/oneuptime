@@ -69,7 +69,7 @@ Ga naar **Incidenten → Regels → Bereikbaarheidsregels** of **Waarschuwingen 
 
 ### Controleren of iedereen bereikbaar is
 
-Open **Bereikbaarheidsdienst → Gereedheid**. Iedereen die je beleid kan oproepen staat daar als **Gereed**, **Needs setup** of **Unreachable**, met wat er ontbreekt. Zie [Gereedheid en rapporten](/docs/on-call/readiness).
+Open **Bereikbaarheidsdienst → Gereedheid**. Iedereen die je beleid kan oproepen staat daar als **Gereed**, **Moet worden ingesteld** of **Onbereikbaar**, met wat er ontbreekt. Zie [Gereedheid en rapporten](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

@@ -2,7 +2,7 @@
 
 En netværkslokation er et sted: en region, et marked, en franchisetager, et distributionscenter, én butik. Lokationer ligger inden i hinanden, netværksenheder knyttes til dem, og OneUptime opsummerer enhedernes tilstand op gennem træet, så én status på en region besvarer "er der noget galt derude?".
 
-Du finder dem under **Netværk → Lokationer** og på et kort under **Netværk → Map**. Denne side fastlægger, hvordan en lokations status udledes af det, der ligger under den, hvad dens oppetid betyder, og hvordan planlagt vedligeholdelse ændrer begge dele.
+Du finder dem under **Netværk → Lokationer** og på et kort under **Netværk → Kort**. Denne side fastlægger, hvordan en lokations status udledes af det, der ligger under den, hvad dens oppetid betyder, og hvordan planlagt vedligeholdelse ændrer begge dele.
 
 :::cards
 - [Tilføj en lokation](#tilføj-en-lokation): Tre trin, eller en CSV-fil til et helt miljø.
@@ -51,7 +51,7 @@ Hver enhed knyttes til én lokation. En lokations undertræ er lokationen selv p
 
 :::steps
 ### Start en ny lokation
-Gå til **Netværk → Lokationer**, og klik på **Tilføj Site**.
+Gå til **Netværk → Lokationer**, og klik på **Tilføj Lokation**.
 
 ### Sig, hvad lokationen er
 I trinnet **Site Details** vælger du **Site Type** (hvilken slags sted det er: en region, en butik, et datacenter) og skriver et **Navn**. Beskrivelsen, adressen og den bredde- og længdegrad, der placerer lokationen på kortet, er foldet sammen under **Flere felter**: udfyld dem nu eller senere.
@@ -60,7 +60,7 @@ I trinnet **Site Details** vælger du **Site Type** (hvilken slags sted det er: 
 I trinnet **Hierarchy** vælger du **Parent Site**, hvis lokationen ligger under en anden. Lad det være tomt for at holde lokationen på øverste niveau.
 
 ### Sæt dens standarder
-I trinnet **Monitoring Defaults** vælger du [standardsonden og standardloginprofilen](#overvågningsstandarder) til enheder, der tilføjes til lokationen, og klikker på **Tilføj Site**.
+I trinnet **Monitoring Defaults** vælger du [standardsonden og standardloginprofilen](#overvågningsstandarder) til enheder, der tilføjes til lokationen, og klikker på **Tilføj Lokation**.
 :::
 
 På en lokations egen side **Child Sites** spørger **Tilføj Underordnet lokation** kun om typen og navnet, på én side med placeringen foldet sammen, og placerer den nye lokation under den.
@@ -82,7 +82,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 ## Kortet
 
-**Netværk → Map** viser dine lokationer på et kort, beskåret til der, hvor de ligger; klik på en lokation for at gå ned i den. En lokation med lokationer under sig viser dem, på kortet og som en graf over forbindelserne mellem dem. En lokation uden lokationer under sig, men med egne enheder, eller en lokation, hvis type er på enhedsniveau, åbner disse enheders live topologi.
+**Netværk → Kort** viser dine lokationer på et kort, beskåret til der, hvor de ligger; klik på en lokation for at gå ned i den. En lokation med lokationer under sig viser dem, på kortet og som en graf over forbindelserne mellem dem. En lokation uden lokationer under sig, men med egne enheder, eller en lokation, hvis type er på enhedsniveau, åbner disse enheders live topologi.
 
 Et projekt uden lokationer endnu har stadig et kort: Map viser i stedet dets enheders topologi, og at gruppere enheder i lokationer sætter dem på kortet efter placering.
 

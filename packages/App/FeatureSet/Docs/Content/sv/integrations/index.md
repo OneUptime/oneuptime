@@ -40,7 +40,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 
 | Verktyg | Riktning | Vad det gör |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Båda | Gör Zabbix-problem till incidenter eller varningar, löser dem när de återhämtat sig, och kvitterar eller stänger problemen från OneUptime. |
+| [Zabbix](/docs/integrations/zabbix) | Båda | Gör Zabbix-problem till incidenter eller larm, löser dem när de återhämtat sig, och kvitterar eller stänger problemen från OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande | Gör aviseringar från Alertmanager till incidenter. |
 | [Grafana](/docs/integrations/grafana) | Inkommande | Gör larm från Grafana till incidenter. |
 | [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter. |
@@ -113,7 +113,7 @@ För ett larmverktyg börjar du med en [Incoming Request-monitor](/docs/monitor/
 
 :::steps
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Namnge arbetsflödet och klicka på **Skapa arbetsflöde**.
-2. Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren och sedan på **Kopiera URL**.
+2. Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren och sedan på **Kopiera URL**.
 3. Skicka det andra verktygets webhook till den URL:en som en `POST` med `Content-Type: application/json`.
 4. Lägg till blocken som agerar på den. De läser begäran med referenser som `{{local.components.webhook-1.returnValues.request-body.status}}`: ett **If / Else**-block för att kontrollera ett fält och sedan **Create One Incident** för att deklarera en incident.
 5. Slå på **Aktiverad** högst upp i **Byggare**, skicka ett test från det andra verktyget och öppna **Loggar → Körningar** för att se vad som kom in.

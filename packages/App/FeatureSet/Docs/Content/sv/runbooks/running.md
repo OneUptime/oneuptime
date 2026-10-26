@@ -41,7 +41,7 @@ Det finns fem sätt som en runbook-körning skapas på:
 
 1. **Automatiskt via en regel**: en [runbook-regel](/docs/runbooks/rules) startar den när en matchande incident, ett matchande larm eller en matchande schemalagd underhållshändelse skapas. En AI-regel kan också starta en; se [AI SRE](/docs/ai/ai-sre).
 2. **Manuellt från en händelse**: klicka på **Kör Runbook** på en incident, ett larm eller en schemalagd underhållshändelse. Körningen kopplas till den händelsen.
-3. **Manuellt från runbookets sida**: klicka på **Run Now** på ett runbooks sida **Översikt**. Körningen kopplas inte till någon incident, något larm eller någon schemalagd underhållshändelse.
+3. **Manuellt från runbookets sida**: klicka på **Kör nu** på ett runbooks sida **Översikt**. Körningen kopplas inte till någon incident, något larm eller någon schemalagd underhållshändelse.
 4. **Enligt ett schema**: runbookets schema startar den vid bestämda tider. Se [Kör enligt ett schema](/docs/runbooks/triggers#kör-enligt-ett-schema).
 5. **Från ett annat verktyg**: en `POST` till runbookets webhook-URL startar den, med värdena som anropet skickar. Se [Anropa webhooken](/docs/runbooks/triggers#anropa-webhooken).
 
@@ -54,15 +54,15 @@ Så startar du en manuellt:
 3. Klicka på **Kör** bredvid runbooket. Körningen visas i händelsens lista: klicka på **Visa** för att öppna den.
 @tab Från runbooket
 1. Öppna runbooket från **Runbooks**.
-2. Klicka på **Run Now** på dess **Översikt**.
+2. Klicka på **Kör nu** på dess **Översikt**.
 3. Körningssidan öppnas.
 :::
 
-För att starta en körning krävs Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member, eller behörigheten **Create Runbook Execution**. Runbook Viewer och Viewer ser **Run Now** låst, med skälet. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
+För att starta en körning krävs Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member, eller behörigheten **Create Runbook Execution**. Runbook Viewer och Viewer ser **Kör nu** låst, med skälet. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
 
 ## Körningsvyn
 
-Öppna en körning för att se dess checklista. Högst upp på sidan visas körningens **Status**, dess **Progress** (klara steg av alla steg), **Startade** (när den började) och **Utlöst av** (vad som startade den). Varje steg visar:
+Öppna en körning för att se dess checklista. Högst upp på sidan visas körningens **Status**, dess **Förlopp** (klara steg av alla steg), **Startade** (när den började) och **Utlöst av** (vad som startade den). Varje steg visar:
 
 - **Statusmärke** — Väntar, Körs, Väntar på dig, Väntar på godkännande, Klar, Hoppade över, Misslyckades eller Avbruten.
 - **Titel och beskrivning** — kopierade från runbooket när körningen startade.
@@ -113,7 +113,7 @@ Output per steg är begränsad till **50 KB**, så att ett skenande skript inte 
 
 ## Köra ett runbook igen
 
-En körning är en engångspost som inte ändras. Klicka på **Kör igen** på en avslutad körning, eller på **Run Now** på runbooket, för att köra det igen. Båda skapar en ny körning utifrån runbookets nuvarande steg, inte kopplad till någon händelse. Använd **Kör Runbook** på incidentens sida **Runbooks** för att köra det igen på en incident. Den ursprungliga körningen förblir oförändrad för revisionsspåret.
+En körning är en engångspost som inte ändras. Klicka på **Kör igen** på en avslutad körning, eller på **Kör nu** på runbooket, för att köra det igen. Båda skapar en ny körning utifrån runbookets nuvarande steg, inte kopplad till någon händelse. Använd **Kör Runbook** på incidentens sida **Runbooks** för att köra det igen på en incident. Den ursprungliga körningen förblir oförändrad för revisionsspåret.
 
 ## Hitta tidigare körningar
 
@@ -130,11 +130,11 @@ Din roll läser runbooks men kör dem inte: knappen säger "Du har inte behörig
 :::
 
 :::details Att starta en körning misslyckas med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Save Steps**. Dess **Översikt** säger vilket, med **Slå på runbook** eller **Lägg till steg**.
+Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Spara steg**. Dess **Översikt** säger vilket, med **Slå på runbook** eller **Lägg till steg**.
 :::
 
 :::details Ett steg misslyckades för att det saknar en Runner
-Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Steget sparades utan **Runner**, och projektet har ingen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner). Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj stegets Runner under **Fler fält**, klicka på **Save Steps** och kör runbooket igen.
+Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Steget sparades utan **Runner**, och projektet har ingen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner). Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj stegets Runner under **Fler fält**, klicka på **Spara steg** och kör runbooket igen.
 :::
 
 :::details Ett steg misslyckades för att det nämner variabler som det inte kan använda

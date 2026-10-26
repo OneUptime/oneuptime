@@ -245,5 +245,5 @@ Sonden läser högst 512 KiB av ett svar, och det här är större. Anropa en sl
 - [JavaScript-uttryck](/docs/monitor/javascript-expression): Kontrollera fält djupt inne i ett JSON-svar.
 - [Övervakningshemligheter](/docs/monitor/monitor-secrets): Håll API-nycklar och tokens utanför monitorinställningarna.
 - [Webbplatsövervakning](/docs/monitor/website-monitor): Kontrollera en webbsida i stället för en slutpunkt.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Lägg in detaljer från svaret i rubrikerna på incidenter och larm.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in detaljer från svaret i rubrikerna på incidenter och larm.
 :::

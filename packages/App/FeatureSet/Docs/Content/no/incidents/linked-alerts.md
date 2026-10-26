@@ -121,7 +121,7 @@ Uansett hvilken du bruker, havner du på det vanlige skjemaet **Erklær ny hende
 | **Etiketter**          | Hver etikett fra hvert valgte varsel.                                                                                                                                                                                                                                                  |
 | **Privat hendelse**    | Slått på hvis noen av varslene er private. Skjemaet sier det, og eierne av varslene blir eiere av hendelsen — se nedenfor.                                                                                                                                                              |
 
-"Mest alvorlig" følger rekkefølgen av alvorlighetsgradene for varsler: den første alvorlighetsgraden for varsler i listen er den mest alvorlige. Med alvorlighetsgradene hvert prosjekt starter med, blir et varsel **High** til en **Critical Incident** og et varsel **Low** til en **Major Incident**.
+"Mest alvorlig" følger rekkefølgen av alvorlighetsgradene for varsler: den første alvorlighetsgraden for varsler i listen er den mest alvorlige. Med alvorlighetsgradene hvert prosjekt starter med, blir et varsel **Høy** til en **Critical Incident** og et varsel **Lav** til en **Major Incident**.
 
 Alt kan redigeres før du sender. **Etiketter** og **Privat hendelse** ligger under **Flere felt** på skjemaets første trinn, der den sammenbrettede overskriften viser hver av dem mens den er satt.
 

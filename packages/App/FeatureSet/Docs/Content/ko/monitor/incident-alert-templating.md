@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### 그룹화된 모니터의 값
 
-**Group by** 속성을 쓰는 메트릭 기반 모니터는 시리즈마다 인시던트를 하나씩 열며, 각 속성의 값은 속성 이름으로 된 변수가 됩니다. `host.name` 으로 그룹화하면 `{{host.name}}` 이, `resource.k8s.pod.name` 으로 그룹화하면 `{{resource.k8s.pod.name}}` 이 생깁니다. `{{seriesLabels}}` 는 이 값들을 모두 객체로 담습니다.
+**그룹화 기준** 속성을 쓰는 메트릭 기반 모니터는 시리즈마다 인시던트를 하나씩 열며, 각 속성의 값은 속성 이름으로 된 변수가 됩니다. `host.name` 으로 그룹화하면 `{{host.name}}` 이, `resource.k8s.pod.name` 으로 그룹화하면 `{{resource.k8s.pod.name}}` 이 생깁니다. `{{seriesLabels}}` 는 이 값들을 모두 객체로 담습니다.
 
 그룹화된 [로그 모니터](/docs/monitor/logs-monitor)도 같은 방식으로 동작합니다. 각 그룹화 속성의 값은 그 키로 된 변수가 됩니다.
 
@@ -457,7 +457,7 @@ Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, 
 | --- | --- | --- |
 | `metricName` | 모니터의 첫 번째 쿼리가 읽는 메트릭의 이름(예: `container.cpu.time`). | `string` |
 
-그룹화되면 각 **Group by** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT Device 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
+그룹화되면 각 **그룹화 기준** 속성의 값과 `seriesLabels` 도 있습니다. [그룹화된 모니터의 값](#그룹화된-모니터의-값)을 참고하세요. IoT Device 모니터 템플릿은 디바이스별로 그룹화하므로, 템플릿으로 만든 모니터에는 `{{device.id}}` 도 있습니다.
 
 ### 기타 모니터 유형
 

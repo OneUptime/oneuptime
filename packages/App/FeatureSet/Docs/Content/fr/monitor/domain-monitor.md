@@ -126,7 +126,7 @@ Un nouveau moniteur de domaine commence avec trois critères, donc il vous avert
 2. **Domaine bientôt expiré** — l'enregistrement n'a pas expiré mais expire dans 30 jours ou moins. Une **alerte** appelée « _monitor name_ domain expires soon » est créée.
 3. **Domaine non expiré** — le moniteur est marqué **Opérationnel**.
 
-L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'apparaît pas sur vos pages de statut, il ne prévient personne tant que vous n'y ajoutez pas une politique d'astreinte, et il ne change pas l'état du moniteur. Il utilise la deuxième gravité d'alerte de votre projet, **Low** sur un nouveau projet. Dès que le renouvellement apparaît dans l'enregistrement, l'alerte se résout d'elle-même. Un registre qui ne publie aucune date d'expiration ne donne rien à l'avertissement, qui reste donc silencieux.
+L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'apparaît pas sur vos pages de statut, il ne prévient personne tant que vous n'y ajoutez pas une politique d'astreinte, et il ne change pas l'état du moniteur. Il utilise la deuxième gravité d'alerte de votre projet, **Faible** sur un nouveau projet. Dès que le renouvellement apparaît dans l'enregistrement, l'alerte se résout d'elle-même. Un registre qui ne publie aucune date d'expiration ne donne rien à l'avertissement, qui reste donc silencieux.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. C'est pourquoi « bientôt expiré » se trouve au-dessus de « non expiré » : un domaine sur le point d'expirer n'a pas encore expiré, il correspondrait donc aux deux.
 

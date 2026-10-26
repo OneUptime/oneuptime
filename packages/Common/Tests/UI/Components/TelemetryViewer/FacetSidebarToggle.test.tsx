@@ -515,11 +515,15 @@ describe("LogsFacetSidebar: a click on a value", () => {
 describe("the chip row draws an exclusion in the sidebar's red", () => {
   test("an excluded chip is red, an included one indigo, and both come off with x", () => {
     const onRemove: MockFunction = getJestMockFunction();
+    /*
+     * Both chips name the field alike; the row says the exclusion excludes
+     * ("Severity is not"), in words as well as in red.
+     */
     render(
       <TelemetryActiveFilterChips
         filters={[
           chip("severityName", "Critical", { displayKey: "Severity" }),
-          chip("!severityName", "Low", { displayKey: "Severity is not" }),
+          chip("!severityName", "Low", { displayKey: "Severity" }),
         ]}
         onRemove={onRemove as any}
         onClearAll={jest.fn()}
@@ -529,12 +533,17 @@ describe("the chip row draws an exclusion in the sidebar's red", () => {
     const excluded: HTMLElement = screen.getByTestId(
       EXCLUDED_FILTER_CHIP_TEST_ID,
     );
-    expect(excluded).toHaveTextContent("Severity is not:Low");
+    expect(excluded).toHaveTextContent(/^Severity is not:Low$/);
     expect(excluded).toHaveClass("border-red-200", "bg-red-50", "text-red-700");
+    expect(within(excluded).getByRole("button")).toHaveAttribute(
+      "title",
+      "Remove Severity is not: Low",
+    );
 
     const included: HTMLElement = screen
       .getByText("Critical")
       .closest("span.inline-flex") as HTMLElement;
+    expect(included).toHaveTextContent(/^Severity:Critical$/);
     expect(included).toHaveClass("bg-indigo-50");
     expect(included).not.toHaveAttribute("data-testid");
 

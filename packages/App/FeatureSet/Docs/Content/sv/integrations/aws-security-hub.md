@@ -60,23 +60,23 @@ Anslutningen signerar sina begäranden med en IAM-åtkomstnyckel. Nyckelns ident
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **AWS Security Hub** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemligheten i **Hemlig åtkomstnyckel**.
+Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **AWS Security Hub** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemligheten i **Hemlig åtkomstnyckel**.
 
 ### Testa den innan du sparar
 
-Klicka på **Test these settings** under **Testa innan du sparar**. Testet signerar en begäran med värdena i formuläret och sparar ingenting, så en fel nyckel eller en saknad behörighet syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
+Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. Testet signerar en begäran med värdena i formuläret och sparar ingenting, så en fel nyckel eller en saknad behörighet syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
 :::
 
 | Inställning | Vad du anger |
 | --- | --- |
 | **Region** | Regionens kod, till exempel `us-east-1`, `eu-central-1` eller `us-gov-west-1`: för andra kontons fynd administratörskontots hemregion. |
 | **Åtkomstnyckel-ID** | Nyckelns ID: 16 till 128 bokstäver eller siffror, oftast 20 som börjar med `AKIA`, eller `ASIA` för tillfälliga autentiseringsuppgifter. |
-| **Hemlig åtkomstnyckel** | Nyckelns hemlighet. Den krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt den med **Update credentials** på anslutningen. |
+| **Hemlig åtkomstnyckel** | Nyckelns hemlighet. Den krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt den med **Uppdatera inloggningsuppgifter** på anslutningen. |
 | **Session token** | Bara för tillfälliga autentiseringsuppgifter, som behöver den: en `ASIA`-nyckel avvisas utan den, och en `AKIA`-nyckel avvisas med den. |
 
-Tillfälliga autentiseringsuppgifter från `aws sts assume-role` eller `aws sts get-session-token` går ut, för en antagen roll efter högst 12 timmar, och avsökningen stannar tills du klistrar in nya med **Update credentials**. En långlivad nyckel med den här snäva policyn, roterad enligt ditt eget schema, fortsätter att avsöka utan tillsyn. För att byta från tillfälliga autentiseringsuppgifter till en långlivad nyckel anger du den nya nyckeln i **Update credentials** och slår på **Remove the stored Session token**.
+Tillfälliga autentiseringsuppgifter från `aws sts assume-role` eller `aws sts get-session-token` går ut, för en antagen roll efter högst 12 timmar, och avsökningen stannar tills du klistrar in nya med **Uppdatera inloggningsuppgifter**. En långlivad nyckel med den här snäva policyn, roterad enligt ditt eget schema, fortsätter att avsöka utan tillsyn. För att byta från tillfälliga autentiseringsuppgifter till en långlivad nyckel anger du den nya nyckeln i **Uppdatera inloggningsuppgifter** och slår på **Remove the stored Session token**.
 
-Steget **Polling** har också en valfri **Beskrivning**, **Poll Interval (Minutes)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
+Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall (minuter)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
 
 ## Vad som importeras
 
@@ -114,12 +114,12 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **Skapandetiden är markören.** Fynd listas efter `CreatedAt`, aldrig efter `FirstObservedAt`. GuardDuty skapar ett fynd när den har sett tillräckligt med aktivitet, och en kontrollkontroll när Security Hub kontrollerar resursen första gången, timmar eller dagar efter att aktiviteten började. En markör på observationstiden skulle hoppa över dem.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste fynd.
 - **Varje senare avsökning börjar 30 minuter före den sparade markören.** `CreatedAt` sätts av tjänsten som hittade problemet, och fyndet når Security Hub senare: GuardDuty skickar nya fynd inom fem minuter, och en misslyckad leverans via EventBridge försöks igen i upp till 24 timmar. Överlappningen läser sådana fynd vid nästa avsökning. Ett fynd som kommer mer än 30 minuter efter sitt `CreatedAt` kan hamna bakom markören: importera dess tidsintervall för att hämta det.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Health** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
 - **Dubbletter tas bort efter fyndets `Id`** inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar ett fynd två gånger.
 
 ### När ett fönster innehåller mer än en avsökning kan läsa
 
-En avsökning skickar högst 20 begäranden med 100 fynd: 2 000 fynd. När ett fönster innehåller fler blir körningen **Partial**, med en varning som:
+En avsökning skickar högst 20 begäranden med 100 fynd: 2 000 fynd. När ett fönster innehåller fler blir körningen **Delvis**, med en varning som:
 
 ```text
 Stopped after 20 findings requests (the per-run request limit) before the window was fully read. The last finding read was created at 2026-09-14T08:12:44.000Z.
@@ -131,22 +131,22 @@ När en körning inte alls kommer förbi den sparade markören, till exempel fö
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare fynd fortsätter att komma, och senare avsökningars överlappning når inte längre tillbaka till den. Körningen förblir **Partial**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare fynd fortsätter att komma, och senare avsökningars överlappning når inte längre tillbaka till den. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
 
-En körning som misslyckas helt, med ett fel från AWS, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Poll Interval (Minutes)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
+En körning som misslyckas helt, med ett fel från AWS, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
 ### Kör, förhandsgranska och importera vid behov
 
-Klicka på **Diagnostics** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
+Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
-- **Run now** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
+- **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
 - **Preview findings** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
 - **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Fynd som redan har importerats hoppas över.
 - **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
-**Testa anslutningen** på en anslutnings rad och **Test these settings** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
+**Testa anslutningen** på en anslutnings rad och **Testa de här inställningarna** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
 
 | Kontroll | Vad den kontrollerar |
 | --- | --- |
@@ -168,7 +168,7 @@ AWS avvisade begäran. Meddelandet citerar AWS felkod, eller AWS egna ord när i
 
 - `AccessDeniedException`, eller `is not authorized to perform`: nyckeln är rätt, men dess identitet får inte anropa `securityhub:GetFindings`. Koppla policyn från [Konfigurera anslutningen](#konfigurera-anslutningen). En permissions boundary eller en service control policy kan också neka den.
 - `InvalidAccessException`, eller `is not subscribed to AWS Security Hub`: Security Hub är inte aktiverat för det här kontot i den här **Region**, eller så är kontot inte dess administratör där.
-- `InvalidSignatureException` eller `SignatureDoesNotMatch`, eller `The request signature we calculated does not match`: **Hemlig åtkomstnyckel** hör inte till **Åtkomstnyckel-ID**. Skapa en ny åtkomstnyckel och spara den med **Update credentials**.
+- `InvalidSignatureException` eller `SignatureDoesNotMatch`, eller `The request signature we calculated does not match`: **Hemlig åtkomstnyckel** hör inte till **Åtkomstnyckel-ID**. Skapa en ny åtkomstnyckel och spara den med **Uppdatera inloggningsuppgifter**.
 - `UnrecognizedClientException` eller `InvalidClientTokenId`, eller `The security token included in the request is invalid`: AWS känner inte till **Åtkomstnyckel-ID**. Det är felstavat, borttaget, inaktiverat eller från en annan partition, eller så är det en tillfällig nyckel utan sin **Session token**.
 - `ExpiredTokenException`, eller `The security token included in the request is expired`: de tillfälliga autentiseringsuppgifterna har gått ut. Utfärda nya, eller byt till en långlivad nyckel.
 - `RequestTimeTooSkewed` eller `RequestExpired`, eller `Signature expired`: klockan på OneUptime-värdarna går mer än 5 minuter fel. Rätta NTP på app- och workervärdarna.
@@ -192,8 +192,8 @@ Ingen avsökning har slutförts för den här anslutningen. Kör **Testa anslutn
 :::
 
 :::details En körning är Partial
-- `Stopped after 20 findings requests`: fönstret innehöll mer än de 2 000 fynd som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter det senast lästa fyndet. En anslutning som förblir **Partial** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Last Polled** och **Last Event Imported** fortsätter att flytta fram. Om den aldrig kommer ikapp skapar kontot mer än 2 000 fynd per avsökningsintervall: gör **Poll Interval (Minutes)** kortare.
-- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostics**. En import läser lika mycket som en avsökning.
+- `Stopped after 20 findings requests`: fönstret innehöll mer än de 2 000 fynd som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter det senast lästa fyndet. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta fram. Om den aldrig kommer ikapp skapar kontot mer än 2 000 fynd per avsökningsintervall: gör **Hämtningsintervall (minuter)** kortare.
+- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Testet lyckas, men ingenting importeras

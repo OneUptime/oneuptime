@@ -78,7 +78,7 @@ Teamen **Owners** och **Admin** är avsiktligt låsta: deras behörigheter går 
 
 `ProjectOwner` är den högsta åtkomstnivån: fakturering, radera projektet och allt en administratör kan göra. `ProjectAdmin` täcker allt utom fakturering och radering av projektet.
 
-Att slå på eller av SMS, telefonsamtal, WhatsApp eller Telegram för projektet räknas som fakturering, eftersom varje meddelande kostar pengar. Bara `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) och behörigheten `ManageProjectBilling` (**Manage Billing**) kan ändra de reglagen, under **Projektinställningar > Aviseringar > Aviseringsinställningar** — inte `ProjectAdmin`.
+Att slå på eller av SMS, telefonsamtal, WhatsApp eller Telegram för projektet räknas som fakturering, eftersom varje meddelande kostar pengar. Bara `ProjectOwner`, rollen `BillingAdmin` (**Faktureringsadministratör**) och behörigheten `ManageProjectBilling` (**Manage Billing**) kan ändra de reglagen, under **Projektinställningar > Aviseringar > Aviseringsinställningar** — inte `ProjectAdmin`.
 
 Att fylla på projektets förbetalda saldon räknas också som fakturering. På OneUptime Cloud betalas SMS, telefonsamtal, WhatsApp och Telegram från saldot under **Projektinställningar > Aviseringar > Aviseringsinställningar**, och AI från AI-krediterna under **Projektinställningar > AI > AI-krediter**. Bara en projektägare eller någon med **Manage Billing** kan fylla på dem eller ändra deras **Automatisk påfyllning** — inte en projektadministratör. Ett meddelande om ett saldo som håller på att ta slut säger vem som kan fylla på det, och bara de personerna får en knapp **Fyll på saldo** som fungerar, eller en länk till sidan.
 
@@ -202,7 +202,7 @@ Varje tillåten behörighet ges med en omfattning: när du lägger till den ligg
 
 **Etiketter** är den mer manuella varianten av samma idé: märk resurser och ge sedan behörigheter som är begränsade till de märkningarna.
 
-**Att agera på hela projektet kräver en behörighet som når det.** En regels **Run Now** tillämpar regeln på alla resurser i projektet, och ett nätverks regler för platstilldelning, enhetsetiketter och automatisk import på alla nätverksenheter eller skanningar, så det kräver behörigheter med omfattning över alla resurser i projektet: en behörighet som är begränsad till etiketter eller till ägda resurser räcker inte, och en blockering med etiketter på resurserna som en körning ändrar avvisar körningen, eftersom den också skulle ändra resurserna med de etiketterna.
+**Att agera på hela projektet kräver en behörighet som når det.** En regels **Kör nu** tillämpar regeln på alla resurser i projektet, och ett nätverks regler för platstilldelning, enhetsetiketter och automatisk import på alla nätverksenheter eller skanningar, så det kräver behörigheter med omfattning över alla resurser i projektet: en behörighet som är begränsad till etiketter eller till ägda resurser räcker inte, och en blockering med etiketter på resurserna som en körning ändrar avvisar körningen, eftersom den också skulle ändra resurserna med de etiketterna.
 
 Vissa roller gäller per definition hela projektet och erbjuder ingen omfattning alls, eftersom en avgränsning vore meningslös — "Billing Admin, men bara för den fakturering jag äger" beskriver ingenting:
 

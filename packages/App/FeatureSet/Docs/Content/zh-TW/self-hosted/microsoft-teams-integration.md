@@ -42,7 +42,7 @@ Incoming Webhook 或 Teams 工作流程 URL 都無法取代此機器人的訊息
 - 一個可以在 Microsoft Entra ID 中建立應用程式註冊的帳號，以及一位可以授予管理員同意的 Microsoft 365 管理員。
 - 一個 Azure Bot Service 能夠連到的 OneUptime 公開 HTTPS 主機名稱。請參閱 [網路存取](#網路存取)。
 - 伺服器設定的存取權：Docker Compose 下的 `config.env`，或 Kubernetes 下的 Helm values。
-- 要連接專案，需要在該專案中具備 **Project Owner**、**Project Admin** 或 **Project Member** 角色。
+- 要連接專案，需要在該專案中具備 **專案擁有者**、**專案管理員** 或 **專案成員** 角色。
 
 ## 設定整合
 
@@ -382,7 +382,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 | 頁面顯示 | 處理方式 |
 | --- | --- |
 | **"此連接連結無效、已過期或已被使用。請重新開始。"** | 該連結只能在發起它的瀏覽器中、在 15 分鐘內使用一次。請從 Microsoft Teams 頁面重新開始，並在同一個瀏覽器中於 15 分鐘內完成。 |
-| **"您沒有將此專案連接到 Microsoft Teams 的權限。"** | 為專案授予管理員同意需要 **Project Owner**、**Project Admin** 或 **Project Member**。Microsoft 把你送回來時會再次檢查。 |
+| **"您沒有將此專案連接到 Microsoft Teams 的權限。"** | 為專案授予管理員同意需要 **專案擁有者**、**專案管理員** 或 **專案成員**。Microsoft 把你送回來時會再次檢查。 |
 | **"您已不再是此專案的成員。"** | 要連接你自己的 Microsoft 帳號，在 Microsoft 把你送回來時你必須是該專案的成員。 |
 | **"您登入的 Microsoft 365 組織與此連接所針對的組織不同。"** | 請使用授予了管理員同意的 Microsoft 365 組織（或專案所連接的組織）中的帳號登入。 |
 | **"您的 Microsoft 365 組織尚無任何團隊。"** | 在 Microsoft Teams 中建立一個團隊，然後再次授予管理員同意。 |

@@ -18,7 +18,7 @@ Configurar la seguridad requiere el rol Project Owner, Project Admin o Security 
 :::steps
 ### Activar lo que la mayoría de los equipos necesita
 
-Abra **Productos → Eventos de seguridad**. En **Vista general**, haga clic en **Activar lo recomendado**. Se activan tres cosas a la vez: **Encontrar eventos de seguridad en tus registros**, las reglas de detección recomendadas y **Enrich New Cases**, un playbook que contrasta cada caso nuevo con la inteligencia de amenazas y deja en él una lista de comprobación para la clasificación.
+Abra **Productos → Eventos de seguridad**. En **Vista general**, haga clic en **Activar lo recomendado**. Se activan tres cosas a la vez: **Encontrar eventos de seguridad en tus registros**, las reglas de detección recomendadas y **Enriquecer casos nuevos**, un playbook que contrasta cada caso nuevo con la inteligencia de amenazas y deja en él una lista de comprobación para la clasificación.
 
 ### Enviar un ataque de prueba
 
@@ -26,7 +26,7 @@ Haga clic en **Enviar un ataque de prueba**. Una docena de inicios de sesión fa
 
 ### Abrir el caso
 
-Haga clic en **Abrir el caso**. Así es un hallazgo real: los eventos que lo respaldan, la dirección a la que se refiere y lo que encontró **Enrich New Cases**. Ciérrelo como prueba cuando termine.
+Haga clic en **Abrir el caso**. Así es un hallazgo real: los eventos que lo respaldan, la dirección a la que se refiere y lo que encontró **Enriquecer casos nuevos**. Ciérrelo como prueba cuando termine.
 :::
 
 A partir de entonces, **Vista general** se abre con lo que necesita a alguien, bajo **Requiere atención**: sus casos abiertos, los que nadie ha asumido y los pasos de playbook que esperan una aprobación. Cuando no hay ninguno, indica **Todo tranquilo**.

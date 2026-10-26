@@ -35,8 +35,8 @@ Lagre påloggingsinformasjonen for ett prosjekt, eller én gang for hele install
 | | Prosjektkonfigurasjon | Konfigurasjon for hele installasjonen |
 | --- | --- | --- |
 | Hvor | Kortet **Twilio-konfigurasjon** under **Prosjektinnstillinger > Varsler > Varselinnstillinger** | **Admin Dashboard > Innstillinger > Anrop og SMS** |
-| Hvem kan angi den | **Project Owner**, **Project Admin** eller **Create Call and SMS** i en egendefinert rolle | En master-admin |
-| Hvem kan lese dens Auth Token | **Project Owner**, **Project Admin** eller **Read Call and SMS** i en egendefinert rolle. Andre som ser konfigurasjonen, ser resten av den; tokenet lagres kryptert | En master-admin |
+| Hvem kan angi den | **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** i en egendefinert rolle | En master-admin |
+| Hvem kan lese dens Auth Token | **Prosjekteier**, **Prosjektadministrator** eller **Read Call and SMS** i en egendefinert rolle. Andre som ser konfigurasjonen, ser resten av den; tokenet lagres kryptert | En master-admin |
 | Brukes til | SMS og anrop til prosjektets medlemmer så lenge den er prosjektstandarden, statussidene den er tildelt, og retningslinjene for innkommende anrop som bruker den | SMS og anrop til medlemmene i alle prosjekter som ikke har en standardkonfigurasjon |
 
 Slik legger du til en prosjektkonfigurasjon:
@@ -44,12 +44,12 @@ Slik legger du til en prosjektkonfigurasjon:
 :::steps
 1. Gå til **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 2. Velg **Opprett Twilio-konfigurasjon** i **Twilio-konfigurasjon**.
-3. Skriv inn et navn, og velg under **Bruk denne kontoen til** hva kontoen sender: **Anrop og SMS**, **Bare SMS** eller **Bare anrop**. Skriv deretter inn **Twilio Account SID**, **Twilio Auth Token** og nummeret valget ber om: **Twilio primært telefonnummer** for anrop, eller **Twilio SMS-telefonnumre** for **Bare SMS**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
+3. Skriv inn et navn, og velg under **Bruk denne kontoen til** hva kontoen sender: **Anrop og SMS**, **Bare SMS** eller **Bare anrop**. Skriv deretter inn **Twilio-konto-SID**, **Twilio-autentiseringstoken** og nummeret valget ber om: **Twilio primært telefonnummer** for anrop, eller **Twilio SMS-telefonnumre** for **Bare SMS**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
 4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarsler, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
 5. Lagre. Bare én konfigurasjon kan være prosjektstandarden. Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
 > [!IMPORTANT]
-> **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier, en **Billing Admin** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
+> **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
 :::
 
 For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Innstillinger > Anrop og SMS**, velge hva kontoen sender, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemmenes varsler bruker denne globale konfigurasjonen når prosjektet deres ikke har en standard. Hold Auth Token hemmelig.
@@ -150,7 +150,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 
 :::steps
 1. Kontroller fra utsiden av bedriftsnettverket og VPN at vertsnavnet for tilbakekall slås opp til den offentlige gatewayen og leverer et gyldig TLS-sertifikat. En GET fra nettleseren tester ikke disse POST-tilbakekallene.
-2. Bruk **Send test-SMS** og **Send testanrop** på prosjektets Twilio-konfigurasjon. Bekreft at meldingen kommer fram på mottakertelefonen. Begge krever tillatelse til å legge til Twilio-konfigurasjoner: **Project Owner**, **Project Admin** eller **Create Call and SMS** og **Read Call and SMS** i en egendefinert rolle.
+2. Bruk **Send test-SMS** og **Send testanrop** på prosjektets Twilio-konfigurasjon. Bekreft at meldingen kommer fram på mottakertelefonen. Begge krever tillatelse til å legge til Twilio-konfigurasjoner: **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** og **Read Call and SMS** i en egendefinert rolle.
 3. Sett opp brukerens bekreftede SMS- eller anropskontakt og varslingsregler, og utløs så et kontrollert vaktvarsel. Trykk 1, og bekreft kvitteringen i OneUptime. Hvis du bruker retningslinjer for innkommende anrop, ringer du det konfigurerte nummeret og sjekker rutingen og anropsloggen.
 4. Bekreft leveringsstatusen for SMS i OneUptime og i Twilios meldingslogger. En godtatt sending beviser ikke levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

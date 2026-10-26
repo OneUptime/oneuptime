@@ -11,20 +11,20 @@ Un trigger è il primo blocco di un workflow: decide quando il workflow viene es
 - [Trigger di eventi OneUptime](#trigger-di-eventi-oneuptime): Reagisci quando un record viene creato, aggiornato o eliminato.
 :::
 
-Per aggiungere il trigger, fai clic sul blocco tratteggiato **Choose what starts this workflow** sulla tela di un nuovo workflow. Per cambiarlo, elimina il blocco del trigger e il blocco tratteggiato ricompare. Vedi [Creare un workflow](/docs/workflows/authoring#aggiungere-blocchi).
+Per aggiungere il trigger, fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** sulla tela di un nuovo workflow. Per cambiarlo, elimina il blocco del trigger e il blocco tratteggiato ricompare. Vedi [Creare un workflow](/docs/workflows/authoring#aggiungere-blocchi).
 
 ## Quale trigger usare?
 
 | Se vuoi…                                       | Scegli                      |
 | ---------------------------------------------- | --------------------------- |
-| Fare clic su un pulsante per eseguire il workflow | **Manual**               |
+| Fare clic su un pulsante per eseguire il workflow | **Manuale**               |
 | Eseguirlo con una pianificazione ricorrente    | **Pianificazione**          |
 | Far inviare dati da un altro sistema           | **Webhook**                 |
 | Avviarlo da un'email                           | **Incoming Email**          |
 | Agire sui rapporti di incidente di Huntress    | **Huntress Incident Report** |
 | Reagire a qualcosa all'interno di OneUptime    | **Evento OneUptime**        |
 
-Un workflow può avere un solo trigger. Se ti servono due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow con un trigger **Manual** e avvialo da due workflow «involucro» leggeri con un blocco **Execute Workflow**.
+Un workflow può avere un solo trigger. Se ti servono due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow con un trigger **Manuale** e avvialo da due workflow «involucro» leggeri con un blocco **Execute Workflow**.
 
 ## Manual
 
@@ -39,7 +39,7 @@ Ideale per: automazioni con un clic per cui vuoi un pulsante, come «ruota quest
 
 ## Schedule
 
-Esegui il workflow con una pianificazione ricorrente. Imposta la frequenza in **Schedule at**: scegli una delle **Common schedules**, scrivi un'espressione **Custom cron** o scegli una **Variabile** che ne contenga una. Sotto il campo, la pianificazione viene descritta a parole con le sue **Next runs**.
+Esegui il workflow con una pianificazione ricorrente. Imposta la frequenza in **Schedule at**: scegli una delle **Common schedules**, scrivi un'espressione **Custom cron** o scegli una **Variabile** che ne contenga una. Sotto il campo, la pianificazione viene descritta a parole con le sue **Prossime esecuzioni**.
 
 Ideale per: pulizia notturna, sincronizzazione oraria, report settimanali.
 
@@ -206,7 +206,7 @@ Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui 
 | **Pagina di stato Iscritto**              | Dare il benvenuto a chi si iscrive a una pagina di stato.                                 |
 | **Policy di reperibilità**                | Sincronizzare le modifiche della policy con un altro sistema di turni.                    |
 
-Nel pannello **Aggiungi trigger** si trovano sotto **OneUptime resources**: fai clic sulla risorsa, poi sul trigger. **Browse all resources** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
+Nel pannello **Aggiungi trigger** si trovano sotto **Risorse OneUptime**: fai clic sulla risorsa, poi sul trigger. **Sfoglia tutte le risorse** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
 
 ## Prossimi passi
 

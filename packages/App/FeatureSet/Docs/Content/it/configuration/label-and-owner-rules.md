@@ -5,7 +5,7 @@ Le regole per le etichette e le regole per i proprietari organizzano le risorse 
 :::cards
 - [Creare una regola](#creare-una-regola): Due passaggi: a cosa corrisponde la regola, poi cosa aggiunge.
 - [Ereditare etichette e proprietari](#ereditare-etichette-e-proprietari): Trasmettere ciò che portano i monitor, gli host e i servizi di un evento.
-- [Quando vengono eseguite le regole](#quando-vengono-eseguite-le-regole): Le nuove risorse, e **Run Now** per quelle che hai già.
+- [Quando vengono eseguite le regole](#quando-vengono-eseguite-le-regole): Le nuove risorse, e **Esegui ora** per quelle che hai già.
 :::
 
 ## Come funziona
@@ -115,7 +115,7 @@ Ogni regola abilitata viene eseguita quando si crea una risorsa, dalla dashboard
 - Una regola non toglie mai nulla: né le etichette o i proprietari aggiunti a mano, né quelli che ha aggiunto lei stessa.
 - Una regola disabilitata non fa nulla.
 
-Una regola scritta oggi si applica alle risorse create dopo. Per applicarla a quelle che hai già, usa **Run Now**: vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole per etichette si possono anche copiare tra progetti: vedi [Importare ed esportare regole per etichette](/docs/configuration/label-rule-import-export).
+Una regola scritta oggi si applica alle risorse create dopo. Per applicarla a quelle che hai già, usa **Esegui ora**: vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole per etichette si possono anche copiare tra progetti: vedi [Importare ed esportare regole per etichette](/docs/configuration/label-rule-import-export).
 
 ## Pattern
 

@@ -412,7 +412,7 @@ Nur **Aufgezeichnet**-Werte werden zu Diagrammpunkten. Ein übersprungener Zeitp
 
 ### Auf der Seite jedes Vorfalls
 
-Die Seite jedes Vorfalls zeigt seine eigenen Messungen in einer Karte **Messungen**, direkt unter **Vorfalldetails**, in der Reihenfolge der Liste auf dieser Einstellungsseite. Jede sagt, was sie misst – **Erklärt → Bestätigt** –, und was sie für diesen Vorfall anzeigt:
+Die Seite jedes Vorfalls zeigt seine eigenen Messungen in einer Karte **Messungen**, direkt unter **Vorfalldetails**, in der Reihenfolge der Liste auf dieser Einstellungsseite. Jede sagt, was sie misst – **Gemeldet → Bestätigt** –, und was sie für diesen Vorfall anzeigt:
 
 | Sie zeigt                         | Wann                                                                                                                              |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -662,7 +662,7 @@ Um zu sehen, was passiert ist, öffnen Sie den Vorfall und wählen **Bereitschaf
 
 ## Vorfälle aus Workflows steuern
 
-Workflow-Trigger für Vorfälle sind nicht von Hand geschrieben – OneUptime erzeugt sie aus den Datenmodellen, sodass jedes Modell der Vorfall-Familie die Komponenten **On Create X**, **On Update X**, **On Create or Update X** und **On Delete X** bekommt, benannt nach dem Singularnamen des Modells. Die wichtigsten sind **On Create Incident**, **On Update Incident**, **On Create or Update Incident** und **On Delete Incident**. Sie finden sie im Panel **Add Trigger** unter `/dashboard/{projectId}/workflows`, unter **OneUptime resources** → **Incident**; die ersten beiden stehen auch unter **Popular**.
+Workflow-Trigger für Vorfälle sind nicht von Hand geschrieben – OneUptime erzeugt sie aus den Datenmodellen, sodass jedes Modell der Vorfall-Familie die Komponenten **On Create X**, **On Update X**, **On Create or Update X** und **On Delete X** bekommt, benannt nach dem Singularnamen des Modells. Die wichtigsten sind **On Create Incident**, **On Update Incident**, **On Create or Update Incident** und **On Delete Incident**. Sie finden sie im Panel **Add Trigger** unter `/dashboard/{projectId}/workflows`, unter **OneUptime-Ressourcen** → **Incident**; die ersten beiden stehen auch unter **Beliebt**.
 
 Dieselbe Erzeugung liefert Trigger für die Konfiguration selbst: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** und weitere. Jedes Modell bekommt außerdem passende Aktionskomponenten – **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** und ihre Gegenstücke für viele Zeilen –, sodass ein Trigger und eine Aktion mit ähnlichen Namen in derselben Kategorie nebeneinanderstehen. **On Create Incident** startet einen Workflow; **Create One Incident** öffnet einen Vorfall.
 

@@ -11,7 +11,7 @@ För att skapa en instrumentpanel öppnar du **Produkter → Instrumentpaneler**
 
 ## Innan du börjar
 
-Projektägare och -administratörer kan skapa och redigera alla instrumentpaneler. Alla andra behöver en teambehörighet: `CreateDashboard` för att skapa instrumentpaneler och `EditDashboard` för att ändra dem. Projektmedlemmar och läsare kan läsa instrumentpaneler utan någon av dem. Den som inte får redigera en instrumentpanel kan ändå öppna dess **⋯**-meny, där **Edit Dashboard** är låst och talar om vilken behörighet som krävs.
+Projektägare och -administratörer kan skapa och redigera alla instrumentpaneler. Alla andra behöver en teambehörighet: `CreateDashboard` för att skapa instrumentpaneler och `EditDashboard` för att ändra dem. Projektmedlemmar och läsare kan läsa instrumentpaneler utan någon av dem. Den som inte får redigera en instrumentpanel kan ändå öppna dess **⋯**-meny, där **Redigera instrumentpanel** är låst och talar om vilken behörighet som krävs.
 
 ## Skapa instrumentpanelen
 
@@ -45,7 +45,7 @@ Mallarna, efter den kategori som väljaren listar dem under:
 
 ## Redigera och spara
 
-En instrumentpanel öppnas i visningsläge, för läsning. För att ändra den öppnar du **⋯**-menyn i dess verktygsfält och väljer **Edit Dashboard**. Verktygsfältet visar **Editing** bredvid namnet och byter ut tidsintervallet och de andra kontrollerna mot **Lägg till widget**, **Variabler**, **Avbryt** och **Spara ändringar**, med en rad under dem för instrumentpanelens **Standardtidsintervall** och **Standard för automatisk uppdatering**.
+En instrumentpanel öppnas i visningsläge, för läsning. För att ändra den öppnar du **⋯**-menyn i dess verktygsfält och väljer **Redigera instrumentpanel**. Verktygsfältet visar **Redigerar** bredvid namnet och byter ut tidsintervallet och de andra kontrollerna mot **Lägg till widget**, **Variabler**, **Avbryt** och **Spara ändringar**, med en rad under dem för instrumentpanelens **Standardtidsintervall** och **Standard för automatisk uppdatering**.
 
 ```mermaid title="Från att läsa en instrumentpanel till att ändra den, och tillbaka"
 flowchart TB
@@ -122,7 +122,7 @@ Det första valet i varje väljare visar instrumentpanelens standard, som i Stan
 
 Du behöver inte ta till tidsintervallväljaren för att titta på en topp. Dra över det intressanta avsnittet i ett linje- eller ytdiagram, så flyttar **hela instrumentpanelen** till det fönstret, precis som om du hade valt det i tidsintervallväljaren: varje widget som använder tidsintervallet frågar om samtidigt, så du läser ett ögonblick över hela instrumentpanelen i stället för ett diagram i en annan skala än grannarna. Livelistor fortsätter att visa vad som händer nu, som de alltid gör.
 
-**Dubbelklicka på ett valfritt diagram** för att ångra: instrumentpanelen går tillbaka till intervallet den hade innan du började zooma, oavsett hur många gånger du har zoomat vidare. En knapp **Reset zoom** visas bredvid tidsintervallväljaren medan en zoom är aktiv, och ett dubbelklick på en instrumentpanel som inte är inzoomad gör ingenting.
+**Dubbelklicka på ett valfritt diagram** för att ångra: instrumentpanelen går tillbaka till intervallet den hade innan du började zooma, oavsett hur många gånger du har zoomat vidare. En knapp **Återställ zoom** visas bredvid tidsintervallväljaren medan en zoom är aktiv, och ett dubbelklick på en instrumentpanel som inte är inzoomad gör ingenting.
 
 Ett inzoomat fönster ligger fast, så det slutar rulla framåt medan automatisk uppdatering är på; det är avsiktligt, eftersom ett fönster som gled undan mitt i en felsökning vore värre. Återställ zoomen för att få det att rulla igen.
 
@@ -130,7 +130,7 @@ Zoom fungerar bara i visningsläge; i redigeringsläge flyttar och ändrar dragn
 
 ## Helskärm
 
-**⋯ → Full Screen** visar instrumentpanelens widgetar på hela skärmen, för en väggskärm eller ett möte. Tryck på Esc för att lämna den.
+**⋯ → Helskärm** visar instrumentpanelens widgetar på hela skärmen, för en väggskärm eller ett möte. Tryck på Esc för att lämna den.
 
 ## Tips för instrumentpaneler som håller över tid
 

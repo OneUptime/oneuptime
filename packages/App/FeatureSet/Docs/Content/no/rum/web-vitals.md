@@ -292,7 +292,7 @@ histogram.record(metric.value, {
 
 ## Varsle på en vital
 
-Applikasjonens side **Recommendations** tilbyr en ferdig monitor for hver vital. Hver av dem leser femminuttersgjennomsnittet av målingen sin og utløses når det når Googles grense for dårlig:
+Applikasjonens side **Anbefalinger** tilbyr en ferdig monitor for hver vital. Hver av dem leser femminuttersgjennomsnittet av målingen sin og utløses når det når Googles grense for dårlig:
 
 | Anbefaling | Måling | Utløses ved | Alvorlighetsgrad |
 | --- | --- | --- | --- |

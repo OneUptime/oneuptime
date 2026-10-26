@@ -69,7 +69,7 @@ Gå til **Hendelser → Regler → Vaktregler** eller **Varsler → Regler → V
 
 ### Sjekk at alle kan nås
 
-Åpne **Vakttjeneste → Beredskap**. Alle retningslinjene dine kan tilkalle, står oppført som **Klar**, **Needs setup** eller **Unreachable**, med det som mangler. Se [Beredskap og rapporter](/docs/on-call/readiness).
+Åpne **Vakttjeneste → Beredskap**. Alle retningslinjene dine kan tilkalle, står oppført som **Klar**, **Må settes opp** eller **Utilgjengelig**, med det som mangler. Se [Beredskap og rapporter](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

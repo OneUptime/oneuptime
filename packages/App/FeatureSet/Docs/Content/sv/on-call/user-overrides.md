@@ -68,7 +68,7 @@ När någon lämnar projektet tas varje åsidosättning som nämner hen och inte
 
 ## Vem som får lägga till åsidosättningar
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member** får lägga till och ta bort åsidosättningar; **Viewer** och **On-Call Viewer** får se dem. I en anpassad roll heter behörigheterna **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** och **Read On-Call Duty Policy User Override**. På **Tidslinje för jourscheman** ser bara personer som får läsa åsidosättningar vems pass som täcks upp.
+**Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får lägga till och ta bort åsidosättningar; **Tittare** och **Jourtittare** får se dem. I en anpassad roll heter behörigheterna **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** och **Read On-Call Duty Policy User Override**. På **Tidslinje för jourscheman** ser bara personer som får läsa åsidosättningar vems pass som täcks upp.
 
 I OneUptime Cloud kräver användaråsidosättningar abonnemanget **Growth**.
 

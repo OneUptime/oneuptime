@@ -55,7 +55,7 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 
 ## Cosa mostra ogni record
 
-- I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Registri**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventory** quando l'inventario ne ha uno.
+- I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Registri**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventario** quando l'inventario ne ha uno.
 - Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina.
 - Cosa vi è cambiato nell'intervallo: i deploy di un servizio, i rollout di un cluster e le correzioni di un host.
 

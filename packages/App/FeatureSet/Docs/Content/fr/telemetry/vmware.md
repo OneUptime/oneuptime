@@ -228,7 +228,7 @@ Les unités sont les unités OTLP propres au récepteur, que OneUptime met à l'
 
 ### État d'alimentation des VM
 
-Le récepteur n'envoie aucune métrique d'état d'alimentation pour une VM. Il envoie `vcenter.vm.cpu.*` **uniquement pour les VM allumées** : OneUptime déduit donc l'état de ce qui est arrivé dans chaque collecte. Une VM qui a remonté des métriques CPU est **Powered on** ; une VM qui n'a remonté que l'utilisation mémoire et disque est **Powered off** (ou suspendue : vSphere ne distingue pas les deux ici). Les modèles de VM n'ont pas d'état d'alimentation. Cela lit **une collecte entière à la fois**, c'est pourquoi le processeur `batch` fourni a un grand `send_batch_size` et, à dessein, aucun `send_batch_max_size` : une collecte répartie sur deux exports remettrait à zéro les comptages d'inventaire et ferait passer des VM à « éteintes ». Conservez les réglages de batch tels que livrés.
+Le récepteur n'envoie aucune métrique d'état d'alimentation pour une VM. Il envoie `vcenter.vm.cpu.*` **uniquement pour les VM allumées** : OneUptime déduit donc l'état de ce qui est arrivé dans chaque collecte. Une VM qui a remonté des métriques CPU est **Powered on** ; une VM qui n'a remonté que l'utilisation mémoire et disque est **Éteinte** (ou suspendue : vSphere ne distingue pas les deux ici). Les modèles de VM n'ont pas d'état d'alimentation. Cela lit **une collecte entière à la fois**, c'est pourquoi le processeur `batch` fourni a un grand `send_batch_size` et, à dessein, aucun `send_batch_max_size` : une collecte répartie sur deux exports remettrait à zéro les comptages d'inventaire et ferait passer des VM à « éteintes ». Conservez les réglages de batch tels que livrés.
 
 ## Le vCenter dans OneUptime
 
@@ -249,7 +249,7 @@ Sélectionnez un hôte pour ouvrir sa page. Elle répond à ce que répond la pa
 
 Quand vCenter cesse de signaler un hôte, la page le dit au-dessus de ses onglets, avec le moment où vCenter l'a signalé pour la dernière fois. Après 15 minutes sans rapport, l'hôte quitte l'inventaire : sa page le dit alors, et affiche toujours ses métriques précédentes.
 
-Les cinq alertes d'hôte (saturation du CPU et de la mémoire, latence disque élevée, erreurs de paquets réseau et paquets abandonnés) surveillent chacune tous les hôtes du vCenter et se déclenchent pour chaque hôte qui dépasse leur seuil. La carte **Alertes d'hôte** sur la page d'un hôte indique celles qui sont activées, et son bouton ouvre les **Recommendations** du vCenter avec les manquantes déjà sélectionnées : créez-les là, une fois, pour tous les hôtes.
+Les cinq alertes d'hôte (saturation du CPU et de la mémoire, latence disque élevée, erreurs de paquets réseau et paquets abandonnés) surveillent chacune tous les hôtes du vCenter et se déclenchent pour chaque hôte qui dépasse leur seuil. La carte **Alertes d'hôte** sur la page d'un hôte indique celles qui sont activées, et son bouton ouvre les **Recommandations** du vCenter avec les manquantes déjà sélectionnées : créez-les là, une fois, pour tous les hôtes.
 
 ### Machines virtuelles
 

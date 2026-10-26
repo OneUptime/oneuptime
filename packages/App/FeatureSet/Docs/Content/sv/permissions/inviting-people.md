@@ -64,7 +64,7 @@ Inbjudningsmeddelandet nämner projektet. Knappen i det är **Create Your Accoun
 | Var personen är | Vad personen ser | Vad personen klickar på |
 | --- | --- | --- |
 | Ännu inte med i något projekt | Inbjudan, på sidan personen kommer till efter inloggningen | **Accept & Join** eller **Decline** |
-| Redan med i ett annat projekt | Den väntande inbjudan vid klockan uppe till höger, som öppnar **Projektinbjudningar** | **Acceptera** eller **Reject** |
+| Redan med i ett annat projekt | Den väntande inbjudan vid klockan uppe till höger, som öppnar **Projektinbjudningar** | **Acceptera** eller **Avvisa** |
 
 När personen accepterar är den med i projektet direkt, med teamets behörigheter och de aviseringsinställningar som alla medlemmar börjar med: se [Det här börjar du med](/docs/notifications/index#det-här-börjar-du-med). Att avböja tar bort inbjudan, så det krävs en ny för att gå med senare.
 

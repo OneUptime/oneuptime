@@ -57,7 +57,7 @@ Telegram에서 [@BotFather](https://t.me/BotFather)에게 `/newbot`을 보내고
 @tab 처음부터
 1. 토큰을 시크릿 전역 변수로 저장합니다. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기**를 클릭하고, 이름을 `TELEGRAM_BOT_TOKEN`으로 지정한 뒤 **다음**을 클릭합니다. 토큰을 **콘텐츠**에 붙여 넣고 **시크릿**을 켠 뒤 **워크플로 변수 만들기**를 클릭합니다.
 2. **워크플로**로 이동해 **워크플로 생성**을 클릭하고 **처음부터 시작**을 고른 뒤, 워크플로 이름을 지정하고 **워크플로 생성**을 클릭합니다.
-3. **빌더**에서 **Choose what starts this workflow**를 클릭하고 **Popular** 아래의 **On Create Alert**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 메시지에 표시할 다른 필드(예: **Alert Number With Prefix**)를 고릅니다.
+3. **빌더**에서 **이 워크플로를 시작할 항목 선택**을 클릭하고 **인기** 아래의 **On Create Alert**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 메시지에 표시할 다른 필드(예: **Alert Number With Prefix**)를 고릅니다.
 4. **구성 요소 추가**를 클릭하고 `telegram`을 검색한 뒤 **Send Message to Telegram**을 클릭합니다. 트리거의 **Success** 출력을 이 단계에 연결합니다.
 5. 새 단계를 클릭합니다. **Telegram Bot Token**에서 **{ }** 버튼을 클릭하고 **Global variables** 아래의 `TELEGRAM_BOT_TOKEN`을 고릅니다. 채팅 ID를 **Chat ID**에 입력하고, **Message Text**에 메시지를 쓴 뒤, **{ }** 버튼으로 알림의 필드를 넣습니다.
 :::

@@ -187,7 +187,7 @@ Alertmanager와 인시던트 사이에 직접 만든 단계가 필요하면 [워
 
 ### 웹훅 트리거 추가
 
-점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **Webhook**을 고릅니다. 트리거를 클릭한 다음 **URL 복사**를 클릭하고, 그 URL을 `alertmanager.yml`의 수신기에 사용합니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **Webhook**을 고릅니다. 트리거를 클릭한 다음 **URL 복사**를 클릭하고, 그 URL을 `alertmanager.yml`의 수신기에 사용합니다.
 
 ### 통지가 발생 중인지 확인
 

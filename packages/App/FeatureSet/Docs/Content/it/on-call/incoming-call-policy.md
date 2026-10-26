@@ -38,11 +38,11 @@ flowchart TB
 :::steps
 ### Aggiungi il tuo account Twilio
 
-Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**. Nella scheda **Configurazione Twilio**, fai clic su **Crea: Configurazione Twilio** e compila il modulo:
+Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**. Nella scheda **Configurazione Twilio**, fai clic su **Crea configurazione Twilio** e compila il modulo:
 
 - **Nome** e **Descrizione**: a che cosa serve l'account, ad esempio «Linea di supporto».
-- **Twilio Account SID**: dalla console di Twilio. Inizia con `AC`.
-- **Twilio Auth Token**: dalla console di Twilio.
+- **SID dell'account Twilio**: dalla console di Twilio. Inizia con `AC`.
+- **Token di autenticazione Twilio**: dalla console di Twilio.
 - **Numero di telefono principale Twilio**: un numero di quell'account, per gli SMS e le chiamate che invia. In **Altri campi**, facoltativi: numeri per i destinatari di altri paesi e numeri per gli SMS se i numeri dell'account possono solo effettuare chiamate (vedi [Numeri separati per chiamate e SMS](/docs/self-hosted/twilio-integration#numeri-separati-per-chiamate-e-sms)).
 - **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, così anche gli SMS e le chiamate ai membri del progetto passano da questo account. Disattivalo se l'account serve solo per le chiamate in entrata.
 
@@ -56,7 +56,7 @@ La **Panoramica** della policy mostra una scheda **Configurazione** con tre pass
 
 ### Aggiungi un numero di telefono
 
-Nel secondo passaggio, fai clic su **Add Phone Number**. Scegli **Use Existing Phone Number** per usare un numero che il tuo account Twilio ha già, oppure **Reserve New Phone Number** per ottenerne uno nuovo. OneUptime fa puntare il numero verso di sé, quindi in Twilio non c'è nulla da configurare. Vedi [Numeri di telefono](#numeri-di-telefono).
+Nel secondo passaggio, fai clic su **Aggiungi numero di telefono**. Scegli **Usa un numero di telefono esistente** per usare un numero che il tuo account Twilio ha già, oppure **Riserva un nuovo numero di telefono** per ottenerne uno nuovo. OneUptime fa puntare il numero verso di sé, quindi in Twilio non c'è nulla da configurare. Vedi [Numeri di telefono](#numeri-di-telefono).
 
 ### Aggiungi le regole di escalation
 
@@ -68,7 +68,7 @@ Ogni persona che una regola può far squillare aggiunge e verifica il proprio nu
 
 ### Chiama il numero
 
-Quando i tre passaggi sono completati, la scheda diventa **Phone Numbers & Twilio Configuration**. Chiama il numero da un telefono qualsiasi, poi apri i **Registri chiamate** della policy per vedere chi ha squillato.
+Quando i tre passaggi sono completati, la scheda diventa **Numeri di telefono e configurazione Twilio**. Chiama il numero da un telefono qualsiasi, poi apri i **Registri chiamate** della policy per vedere chi ha squillato.
 :::
 
 ## Come viene instradata una chiamata
@@ -127,16 +127,16 @@ Ad esempio, tre regole che provano due rotazioni e poi un responsabile:
 
 ## Numeri di telefono
 
-Una policy può avere più numeri, e ognuno fa squillare le stesse regole. Ogni numero appartiene a una sola policy. Aggiungili con **Add Phone Number** nella **Panoramica** della policy:
+Una policy può avere più numeri, e ognuno fa squillare le stesse regole. Ogni numero appartiene a una sola policy. Aggiungili con **Aggiungi numero di telefono** nella **Panoramica** della policy:
 
 :::tabs
 @tab Usare un numero che hai già
-1. Fai clic su **Add Phone Number**, poi su **Use Existing Phone Number**. OneUptime elenca i numeri dell'account Twilio della policy.
+1. Fai clic su **Aggiungi numero di telefono**, poi su **Usa un numero di telefono esistente**. OneUptime elenca i numeri dell'account Twilio della policy.
 2. Fai clic su **Seleziona** accanto al numero, poi su **Assegna numero**.
 
 Un numero le cui chiamate vanno già altrove lo indica con «Currently has a webhook configured». Assegnarlo invia invece le sue chiamate a OneUptime.
 @tab Prenotare un numero nuovo
-1. Fai clic su **Add Phone Number**, poi su **Reserve New Phone Number** e **Cerca numeri**.
+1. Fai clic su **Aggiungi numero di telefono**, poi su **Riserva un nuovo numero di telefono** e **Cerca numeri**.
 2. Scegli un **Paese**. Se vuoi, compila **Prefisso (facoltativo)**, ad esempio 415, o **Contiene (facoltativo)** con le cifre che il numero deve contenere. Fai clic su **Cerca**: vengono elencati fino a 10 numeri locali.
 3. Fai clic su **Prenota** accanto a un numero e conferma con **Prenota**. Twilio addebita il numero sul tuo account Twilio.
 :::
@@ -146,7 +146,7 @@ OneUptime imposta il webhook vocale del numero su `https://<your host>/notificat
 Per rilasciare un numero, fai clic su **Rilascia** accanto a esso e conferma con **Rilascia numero**.
 
 > [!CAUTION]
-> Rilasciare un numero lo restituisce a Twilio, anche un numero portato con **Use Existing Phone Number**, e potresti non riaverlo. Eliminare una policy, o la configurazione Twilio che usa, rilascia anche i suoi numeri.
+> Rilasciare un numero lo restituisce a Twilio, anche un numero portato con **Usa un numero di telefono esistente**, e potresti non riaverlo. Eliminare una policy, o la configurazione Twilio che usa, rilascia anche i suoi numeri.
 
 ## Numeri delle persone reperibili
 
@@ -160,7 +160,7 @@ Una regola fa squillare una persona sul numero che ha verificato per le chiamate
 
 Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
-I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Billing Admin** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
 
 ## Messaggi vocali e impostazioni della policy
 
@@ -182,19 +182,19 @@ Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che su
 
 ## Registri chiamate
 
-Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Registri** nel suo menu laterale: il **Chiamante**, il **Number Called**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **View Timeline** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
+Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Registri** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 
 | Stato | Che cosa è successo |
 | --- | --- |
-| **Initiated**, **Escalato** | La chiamata è ancora in corso: è arrivata e un telefono sta squillando, o è passata a una regola successiva. |
+| **Avviata**, **Escalato** | La chiamata è ancora in corso: è arrivata e un telefono sta squillando, o è passata a una regola successiva. |
 | **Completato** | Qualcuno ha risposto e chi chiamava è stato messo in contatto. |
 | **Nessuna risposta** | Sono state provate tutte le regole di escalation e nessuno ha risposto. Chi chiamava ha sentito il tuo **Messaggio di mancata risposta**. |
-| **Caller Hung Up** | Chi chiamava ha riagganciato mentre il telefono di una persona squillava. |
+| **Il chiamante ha riattaccato** | Chi chiamava ha riagganciato mentre il telefono di una persona squillava. |
 | **Non riuscito** | Non è stato possibile far squillare nessuno: nessuna regola di escalation aveva una persona reperibile con un numero verificato per le chiamate in entrata (chi chiamava ha sentito il tuo **Messaggio di nessuno disponibile**), oppure **Rispondi alle chiamate** è disattivato. |
 
 ## Chiamate perse
 
-Una chiamata è persa quando termina senza raggiungere nessuno: il suo stato è **Nessuna risposta**, **Caller Hung Up** o **Non riuscito**.
+Una chiamata è persa quando termina senza raggiungere nessuno: il suo stato è **Nessuna risposta**, **Il chiamante ha riattaccato** o **Non riuscito**.
 
 ### Chi viene avvisato
 
@@ -225,10 +225,10 @@ Un workflow può leggere i registri chiamate con **Find One** e **Find Many**, m
 
 I numeri di telefono di una policy seguono gli stessi ruoli della policy stessa:
 
-- **Cercare numeri** - cercare su Twilio un numero da prenotare, o elencare i numeri che il tuo account Twilio ha già - richiede il permesso di leggere le policy chiamate in entrata e di leggere le configurazioni di chiamate e SMS, perché legge il tuo account Twilio tramite una di esse. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** e **Settings Viewer** li hanno entrambi. In un ruolo personalizzato, sono **Read Incoming Call Policy** e **Read Call and SMS**.
-- **Prenotare un numero, usarne uno esistente e rilasciarne uno** richiedono il permesso di modificare le policy chiamate in entrata: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** e **Settings Member**, oppure **Edit Incoming Call Policy** in un ruolo personalizzato. Cambiano i numeri di una policy che puoi modificare: con un ruolo limitato ad alcune etichette, le policy che hanno quelle etichette.
+- **Cercare numeri** - cercare su Twilio un numero da prenotare, o elencare i numeri che il tuo account Twilio ha già - richiede il permesso di leggere le policy chiamate in entrata e di leggere le configurazioni di chiamate e SMS, perché legge il tuo account Twilio tramite una di esse. **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Visualizzatore**, **Amministratore delle impostazioni**, **Membro delle impostazioni** e **Visualizzatore delle impostazioni** li hanno entrambi. In un ruolo personalizzato, sono **Read Incoming Call Policy** e **Read Call and SMS**.
+- **Prenotare un numero, usarne uno esistente e rilasciarne uno** richiedono il permesso di modificare le policy chiamate in entrata: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore delle impostazioni** e **Membro delle impostazioni**, oppure **Edit Incoming Call Policy** in un ruolo personalizzato. Cambiano i numeri di una policy che puoi modificare: con un ruolo limitato ad alcune etichette, le policy che hanno quelle etichette.
 
-Un blocco di team senza etichette su uno di questi permessi lo toglie. Per chiunque altro, **Add Phone Number** e **Rilascia** restano nella pagina, bloccati, e il loro suggerimento dice che cosa serve. L'API rifiuta la richiesta con una frase che dice che cosa serve: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oppure "Adding or releasing a phone number needs permission to edit incoming call policies." Prenotare un numero viene addebitato sul tuo account Twilio, non sul saldo di OneUptime, quindi non richiede alcun permesso di fatturazione.
+Un blocco di team senza etichette su uno di questi permessi lo toglie. Per chiunque altro, **Aggiungi numero di telefono** e **Rilascia** restano nella pagina, bloccati, e il loro suggerimento dice che cosa serve. L'API rifiuta la richiesta con una frase che dice che cosa serve: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." oppure "Adding or releasing a phone number needs permission to edit incoming call policies." Prenotare un numero viene addebitato sul tuo account Twilio, non sul saldo di OneUptime, quindi non richiede alcun permesso di fatturazione.
 
 ## Creare policy con l'API o Terraform
 
@@ -255,7 +255,7 @@ Una regola creata tramite l'API senza `escalateAfterSeconds` squilla per 20 seco
 :::details Le chiamate non arrivano a OneUptime
 - Nella console di Twilio, apri il numero: **A call comes in** deve essere il webhook `https://<your host>/notification/incoming-call/voice`, con HTTP POST. OneUptime lo imposta quando il numero viene aggiunto, da `HOST` e `HTTP_PROTOCOL`. Se nel frattempo sono cambiati, correggi il webhook in Twilio.
 - Un OneUptime self-hosted deve essere raggiungibile da Internet via https. Il registro chiamate del numero nella console di Twilio, e il **Debugger** di Twilio, mostrano che cosa ha risposto OneUptime.
-- Una risposta `403` significa che la firma della richiesta non è risultata valida. Verifica che la configurazione Twilio contenga l'attuale **Twilio Auth Token** dell'account, e che un proxy davanti a OneUptime inoltri l'host e lo schema chiamati da Twilio (`X-Forwarded-Host` e `X-Forwarded-Proto`).
+- Una risposta `403` significa che la firma della richiesta non è risultata valida. Verifica che la configurazione Twilio contenga l'attuale **Token di autenticazione Twilio** dell'account, e che un proxy davanti a OneUptime inoltri l'host e lo schema chiamati da Twilio (`X-Forwarded-Host` e `X-Forwarded-Proto`).
 :::
 
 :::details La chiamata viene presa, ma non squilla nessuno
@@ -267,7 +267,7 @@ Se le chiamate finiscono nella segreteria di una persona, imposta la **Durata de
 :::
 
 :::details Non è possibile prenotare un numero nuovo
-In molti paesi Twilio richiede un regulatory bundle approvato prima di vendere numeri locali, e alcuni numeri richiedono un saldo Twilio positivo. Configuralo nella console di Twilio, oppure ottieni lì il numero e aggiungilo con **Use Existing Phone Number**.
+In molti paesi Twilio richiede un regulatory bundle approvato prima di vendere numeri locali, e alcuni numeri richiedono un saldo Twilio positivo. Configuralo nella console di Twilio, oppure ottieni lì il numero e aggiungilo con **Usa un numero di telefono esistente**.
 :::
 
 :::details Non è possibile cambiare l'account Twilio della policy

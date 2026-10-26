@@ -122,7 +122,7 @@ Le premier choix de chaque sélecteur indique la valeur par défaut du tableau d
 
 Inutile de passer par le sélecteur de plage temporelle pour examiner un pic. Faites glisser sur le passage intéressant de n'importe quel graphique en lignes ou en aires, et **tout le tableau de bord** passe à cette fenêtre, exactement comme si vous l'aviez choisie dans le sélecteur de plage temporelle — chaque widget qui utilise la plage temporelle relance sa requête en même temps, si bien que vous lisez un même moment sur tout le tableau de bord plutôt qu'un graphique à une échelle différente de ses voisins. Les listes en direct continuent de montrer ce qui se passe maintenant, comme toujours.
 
-**Double-cliquez sur n'importe quel graphique** pour annuler : le tableau de bord revient à la plage qu'il avait avant le zoom, quel que soit le nombre de fois où vous avez zoomé. Un bouton **Reset zoom** apparaît à côté du sélecteur de plage temporelle tant qu'un zoom est actif, et un double-clic sur un tableau de bord non zoomé ne fait rien.
+**Double-cliquez sur n'importe quel graphique** pour annuler : le tableau de bord revient à la plage qu'il avait avant le zoom, quel que soit le nombre de fois où vous avez zoomé. Un bouton **Réinitialiser le zoom** apparaît à côté du sélecteur de plage temporelle tant qu'un zoom est actif, et un double-clic sur un tableau de bord non zoomé ne fait rien.
 
 Une fenêtre zoomée est fixe : elle cesse donc d'avancer pendant l'actualisation automatique — c'est voulu, car une fenêtre qui se déroberait au milieu d'une enquête serait pire. Réinitialisez le zoom pour qu'elle avance de nouveau.
 

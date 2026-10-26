@@ -9,6 +9,7 @@ import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * Three checks the server makes, and the guides that describe them:
@@ -162,10 +163,11 @@ describe("Test Rule, in the Slack and Microsoft Teams guides", () => {
           language,
           true,
         ]);
-        expect([language, guide.includes("**Viewer**")]).toEqual([
+        // The Viewer role, as the language's Dashboard names it.
+        expect([
           language,
-          true,
-        ]);
+          guide.includes(`**${writtenPermissionTitle(language, "Viewer")}**`),
+        ]).toEqual([language, true]);
       }
     },
   );

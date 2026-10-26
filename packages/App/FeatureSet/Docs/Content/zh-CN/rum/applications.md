@@ -66,7 +66,7 @@ flowchart TB
 
 | 方式 | 位置 |
 | --- | --- |
-| 手动 | 在创建表单的 **更多字段** 下，或之后在应用程序 **设置** 页面的 **应用程序详情** 卡片上通过 **编辑详情** 。 要一次为多个应用程序添加标签，请在列表中选中它们，选择 **Add Labels** ，它位于 **批量操作** 中。 |
+| 手动 | 在创建表单的 **更多字段** 下，或之后在应用程序 **设置** 页面的 **应用程序详情** 卡片上通过 **编辑详情** 。 要一次为多个应用程序添加标签，请在列表中选中它们，选择 **添加标签** ，它位于 **批量操作** 中。 |
 | 来自遥测 | 名为 `oneuptime.label.<name>` 的资源属性会添加标签 `<name>:<value>` ，如下所示。 |
 | 来自标签规则 | 规则会为它匹配的每个新应用程序添加标签。参见 [标签规则与所有者规则](#标签规则与所有者规则) 。 |
 
@@ -91,11 +91,11 @@ const resource = defaultResource().merge(
 1. 在 **匹配** 中，新规则默认的 **所有 RUM 应用程序** 匹配所有应用程序。要缩小范围，请选择 **仅符合条件的 RUM 应用程序** ，然后针对 **应用标签** （包含所选标签中的任意一个、全部或一个都不包含）、 **应用名称** 或 **应用描述** （等于、包含、开头是、结尾是或匹配某个模式）添加条件。
 2. 在 **标签** 中（所有者规则则是 **所有者** ），选择规则要添加的内容。新规则必须至少添加一个标签或所有者。在你输入自己的名称之前， **名称** 会根据你的选择自动填写，例如 _Add team:payments_ 或 _Add Payments as owners_ 。 **描述** 以及所有者规则的 **通知所有者** 位于 **更多字段** 下。
 
-规则在应用程序创建时运行，包括自动发现的应用程序。要将规则应用到已有的应用程序，打开其所在行的 **⋯** 菜单并选择 **Run Now** ：参见 [对现有资源运行规则](/docs/configuration/run-rules-now) 。因编辑而没有任何内容可添加的规则，会在列表中标记为 **不添加任何内容** 。 [标签与所有者规则](/docs/configuration/label-and-owner-rules) 完整介绍了这些表单。
+规则在应用程序创建时运行，包括自动发现的应用程序。要将规则应用到已有的应用程序，打开其所在行的 **⋯** 菜单并选择 **立即运行** ：参见 [对现有资源运行规则](/docs/configuration/run-rules-now) 。因编辑而没有任何内容可添加的规则，会在列表中标记为 **不添加任何内容** 。 [标签与所有者规则](/docs/configuration/label-and-owner-rules) 完整介绍了这些表单。
 
 ### 所有者
 
-所有者是对应用程序负责的人员和团队。所有者规则会为新应用程序添加所有者。要手动添加或移除所有者，请在列表中选择应用程序，选择 **Add Owner** 或 **Remove Owner** ，它们位于 **批量操作** 中；API 通过 `/rum-application-owner-user` 和 `/rum-application-owner-team` 添加所有者。在默认开启 **通知所有者** 时，规则添加的每个所有者都会收到通知。如果不希望通知任何人，请在对大量应用程序运行规则之前将其关闭。
+所有者是对应用程序负责的人员和团队。所有者规则会为新应用程序添加所有者。要手动添加或移除所有者，请在列表中选择应用程序，选择 **添加所有者** 或 **移除所有者** ，它们位于 **批量操作** 中；API 通过 `/rum-application-owner-user` 和 `/rum-application-owner-team` 添加所有者。在默认开启 **通知所有者** 时，规则添加的每个所有者都会收到通知。如果不希望通知任何人，请在对大量应用程序运行规则之前将其关闭。
 
 ## 保留
 
@@ -104,7 +104,7 @@ const resource = defaultResource().merge(
 | 数据 | 保留时长 | 设置位置 |
 | --- | --- | --- |
 | 日志、指标、追踪和性能剖析 | 项目的保留期，除非应用程序覆盖了它 | 应用程序的 **设置** 页面 |
-| 会话回放录制 | 默认 7 天，或 1、14、30、90 天 | **Replay Policy** ，通过 **Edit Policy → Limits** |
+| 会话回放录制 | 默认 7 天，或 1、14、30、90 天 | **Replay Policy** ，通过 **编辑策略 → 限制** |
 
 ### 遥测数据保留
 
@@ -119,7 +119,7 @@ const resource = defaultResource().merge(
 
 ### 会话回放保留
 
-录制有自己的保留期，在应用程序的 **Replay Policy** 页面上通过 **Edit Policy → Limits** 设置：默认 7 天，也可选 1、14、30 或 90 天。这个保留期有意设得很短，因为录制远比 span 敏感，也远比 span 大。 **设置** 页面上的 **Session Replay Retention** 卡片会显示它（ _Session replays are kept for 7 days._ ），其 **在 Replay Policy 中编辑** 按钮会打开该策略。
+录制有自己的保留期，在应用程序的 **Replay Policy** 页面上通过 **编辑策略 → 限制** 设置：默认 7 天，也可选 1、14、30 或 90 天。这个保留期有意设得很短，因为录制远比 span 敏感，也远比 span 大。 **设置** 页面上的 **会话回放保留期** 卡片会显示它（ _Session replays are kept for 7 days._ ），其 **在 Replay Policy 中编辑** 按钮会打开该策略。
 
 更长的遥测保留期不会让录制保留得更久。会话的计数、信号和设备随录制一起过期；只有会话的日志、span 和异常遵循遥测保留期。参见 [保留与删除](/docs/telemetry/session-replay#保留与删除) 。
 
@@ -147,17 +147,17 @@ const resource = defaultResource().merge(
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | 添加、编辑和删除应用程序。 |
 | `ReadRumSessionReplay` (_List Session Replays_) | 列出已录制的会话及其详情，但不能播放，也无法得知用户是谁。 |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | 播放录制，并读取已识别用户的引用和特征。 |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | 读取 **Replay Access Log** ：谁观看了哪个录制。 |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | 读取 **回放访问日志** ：谁观看了哪个录制。 |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | 删除录制。 |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | 提交擦除请求并跟进。 |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` （及其 Create、Edit 和 Delete） | 管理标签规则和所有者规则。 |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` （及其 Create、Edit 和 Delete） | 通过 API 添加和移除所有者。 |
 
-一种实用的分工：给支持工程师 `ReadRumApplication` 和 `ReadRumSessionReplay` 。他们可以看到哪些会话出现了错误，而无需观看任何人的屏幕，也不会得知用户是谁。只把 `ReadRumSessionReplayPayload` 授予需要的人；这样，拥有 `ReadRumSessionReplayAudit` 的成员就能在应用程序的 **Replay Access Log** 页面上看到每一次观看。 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 说明了每项权限在会话列表和播放器中解锁了什么。
+一种实用的分工：给支持工程师 `ReadRumApplication` 和 `ReadRumSessionReplay` 。他们可以看到哪些会话出现了错误，而无需观看任何人的屏幕，也不会得知用户是谁。只把 `ReadRumSessionReplayPayload` 授予需要的人；这样，拥有 `ReadRumSessionReplayAudit` 的成员就能在应用程序的 **回放访问日志** 页面上看到每一次观看。 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 说明了每项权限在会话列表和播放器中解锁了什么。
 
 ## 针对 RUM 数据设置告警
 
-RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM 监控器：常规监控器都适用于它。最快的入门方式是应用程序的 **Recommendations** 页面，它会提供已限定到该应用程序的监控器：
+RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM 监控器：常规监控器都适用于它。最快的入门方式是应用程序的 **建议** 页面，它会提供已限定到该应用程序的监控器：
 
 | 分组 | 推荐 |
 | --- | --- |

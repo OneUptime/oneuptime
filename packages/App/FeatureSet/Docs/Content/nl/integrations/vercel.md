@@ -36,11 +36,11 @@ De integratie is voor OneUptime Cloud (`oneuptime.com`). Een zelf gehoste OneUpt
 :::steps
 ### OneUptime openen in de Vercel Marketplace
 
-Open in het Vercel-dashboard **Integrations**, dan **Browse Marketplace**, en zoek OneUptime onder **Observability**. Klik op **Install** en accepteer de voorwaarden van OneUptime.
+Open in het Vercel-dashboard **Integrations**, dan **Browse Marketplace**, en zoek OneUptime onder **Observability**. Klik op **Installeren** en accepteer de voorwaarden van OneUptime.
 
 ### Een abonnement kiezen
 
-Kies **Free**, **Growth** of **Scale**. Het zijn de eigen abonnementen van OneUptime, tegen de prijzen op [oneuptime.com/pricing](https://oneuptime.com/pricing).
+Kies **Gratis**, **Growth** of **Scale**. Het zijn de eigen abonnementen van OneUptime, tegen de prijzen op [oneuptime.com/pricing](https://oneuptime.com/pricing).
 
 ### De resource een naam geven en de instellingen kiezen
 
@@ -148,7 +148,7 @@ Bestaat er al een OneUptime-account met dat e-mailadres, dan meld je je bij dat 
 
 | | Hoe het werkt |
 | --- | --- |
-| Abonnementen | **Free**, **Growth** en **Scale**, tegen de prijzen op oneuptime.com: de prijs van het abonnement per gebruiker, actieve monitors voor $1 per monitor per maand, en telemetrie per GB. |
+| Abonnementen | **Gratis**, **Growth** en **Scale**, tegen de prijzen op oneuptime.com: de prijs van het abonnement per gebruiker, actieve monitors voor $1 per monitor per maand, en telemetrie per GB. |
 | Waar je betaalt | Op je Vercel-factuur, één keer per maand, voor elke resource. Vercel toont bij de resource het gebruik van de maand tot nu toe, elk uur bijgewerkt. |
 | Proefperiodes | Geen kosten zolang de proefperiode van het abonnement loopt: niet voor de gebruikers, niet voor de monitors en niet voor de telemetrie. |
 | Van abonnement wisselen | In Vercel, bij de resource, of in OneUptime onder **Projectinstellingen → Facturering en facturen → Facturering**. Een wijziging op de ene plek geldt voor beide. |

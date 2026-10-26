@@ -9,6 +9,7 @@ import ProjectNotificationChannelsCopy, {
   getProjectNotificationChannel,
 } from "../../../FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -96,8 +97,9 @@ const PAGE: string =
 /*
  * How each language names a project owner, the first of the people who may
  * turn a channel on: a project owner, a Billing Admin or someone with Manage
- * Billing. The role and the permission keep their English names, as the
- * dashboard's permission picker shows them.
+ * Billing. The permission keeps its English name, as the dashboard's
+ * permission picker shows it; the Billing Admin role reads as each
+ * language's Dashboard names it (billingAdmin).
  */
 const PROJECT_OWNER: Record<string, string> = {
   en: "project owner",
@@ -119,7 +121,10 @@ const PROJECT_OWNER: Record<string, string> = {
   "zh-TW": "專案擁有者",
 };
 
-const BILLING_ADMIN: string = "**Billing Admin**";
+// The Billing Admin role, bold, as a language's Dashboard names it.
+function billingAdmin(lang: string): string {
+  return `**${writtenPermissionTitle(lang, "Billing Admin")}**`;
+}
 const MANAGE_BILLING: string = "**Manage Billing**";
 
 /*
@@ -129,14 +134,14 @@ const MANAGE_BILLING: string = "**Manage Billing**";
  */
 function expectNamesWhoMay(lang: string, text: string): void {
   const owner: number = text.indexOf(PROJECT_OWNER[lang] || "-");
-  const billingAdmin: number = text.indexOf(BILLING_ADMIN, owner + 1);
-  const manageBilling: number = text.indexOf(MANAGE_BILLING, billingAdmin + 1);
+  const admin: number = text.indexOf(billingAdmin(lang), owner + 1);
+  const manageBilling: number = text.indexOf(MANAGE_BILLING, admin + 1);
 
   expect({
     lang,
     namesTheOwner: owner >= 0,
-    thenTheBillingAdmin: owner >= 0 && billingAdmin > owner,
-    thenManageBilling: billingAdmin >= 0 && manageBilling > billingAdmin,
+    thenTheBillingAdmin: owner >= 0 && admin > owner,
+    thenManageBilling: admin >= 0 && manageBilling > admin,
   }).toEqual({
     lang,
     namesTheOwner: true,
@@ -338,7 +343,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
 
     expect(found.paragraph).toContain("`ProjectOwner`");
     expect(found.paragraph).toContain("`BillingAdmin`");
-    expect(found.paragraph).toContain(BILLING_ADMIN);
+    expect(found.paragraph).toContain(billingAdmin(lang));
     expect(found.paragraph).toContain(MANAGE_BILLING);
     expect(found.paragraph).toContain("`ProjectAdmin`");
     expect(found.paragraph).toContain(settingsPath);

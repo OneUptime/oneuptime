@@ -29,9 +29,9 @@ A página **Configurações** do SLO mostra o orçamento que a meta permite ao l
 
 ### O orçamento de um SLO com vários monitores
 
-No modo **Any Monitor Down**, o orçamento é `(100% − target) × window`, não importa quantos monitores o SLO mede: a janela é uma única linha do tempo.
+No modo **Qualquer monitor fora do ar**, o orçamento é `(100% − target) × window`, não importa quantos monitores o SLO mede: a janela é uma única linha do tempo.
 
-No modo **Monitor Seconds Average**, o orçamento é contado em segundos-monitor, somados entre os monitores, então cresce com o número de monitores: um SLO de três monitores com 99,9% em 30 dias tem cerca de 129 minutos de orçamento em vez de 43. As porcentagens (SLI, orçamento restante, taxa de consumo) significam a mesma coisa; só as durações mudam.
+No modo **Média de segundos dos monitores**, o orçamento é contado em segundos-monitor, somados entre os monitores, então cresce com o número de monitores: um SLO de três monitores com 99,9% em 30 dias tem cerca de 129 minutos de orçamento em vez de 43. As porcentagens (SLI, orçamento restante, taxa de consumo) significam a mesma coisa; só as durações mudam.
 
 ### O orçamento de um mês do calendário
 
@@ -39,7 +39,7 @@ Um SLO de mês do calendário tem o orçamento do mês inteiro desde o primeiro 
 
 ## Orçamento restante
 
-À medida que a indisponibilidade se acumula, a **Visão geral** mostra o orçamento restante no bloco **Error budget left**:
+À medida que a indisponibilidade se acumula, a **Visão geral** mostra o orçamento restante no bloco **Orçamento de erros restante**:
 
 - como porcentagem do total, que também decide o status do SLO e preenche a barra. A barra tem uma marca no limite de risco do SLO;
 - como duração, por exemplo "31m 4s left of 43m 12s".
@@ -48,11 +48,11 @@ Quando o orçamento acaba, o bloco mostra **No budget left**. Quando a indisponi
 
 O orçamento restante é guardado como número com sinal para cálculos e gráficos de histórico, então ali um orçamento ultrapassado aparece como porcentagem negativa. Uma porcentagem muito negativa significa que o excesso é grande em relação ao orçamento; não é a parcela do tempo em que o serviço ficou fora do ar.
 
-Quais segundos contam como indisponibilidade é decidido pelos status de indisponibilidade do SLO e, para um SLO de vários monitores, pelo modo de vários monitores, ambos em **Configurações** → **Downtime Calculation**. Veja [Visão geral dos SLOs](/docs/slo/introduction).
+Quais segundos contam como indisponibilidade é decidido pelos status de indisponibilidade do SLO e, para um SLO de vários monitores, pelo modo de vários monitores, ambos em **Configurações** → **Cálculo de inatividade**. Veja [Visão geral dos SLOs](/docs/slo/introduction).
 
 ## Autonomia do orçamento
 
-O bloco **Budget runway** da **Visão geral** responde a "se continuar assim, quando acaba o orçamento?". Ele divide o orçamento restante pela taxa de consumo dos últimos 60 minutos:
+O bloco **Autonomia do orçamento** da **Visão geral** responde a "se continuar assim, quando acaba o orçamento?". Ele divide o orçamento restante pela taxa de consumo dos últimos 60 minutos:
 
 ```text
 runway = budget left ÷ (burn rate × (100% − target))
@@ -68,18 +68,18 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 Para SLOs de mês do calendário, o bloco também diz quando o orçamento é zerado.
 
-A autonomia é uma projeção em linha reta. Em uma janela móvel, a indisponibilidade antiga que sai da janela devolve orçamento, o que a projeção ignora: leia-a como o tempo mínimo que você tem. Ela não é mostrada antes da primeira avaliação, nem para SLOs no modo **Monitor Seconds Average**, cujo orçamento é contado em segundos-monitor e não em tempo real.
+A autonomia é uma projeção em linha reta. Em uma janela móvel, a indisponibilidade antiga que sai da janela devolve orçamento, o que a projeção ignora: leia-a como o tempo mínimo que você tem. Ela não é mostrada antes da primeira avaliação, nem para SLOs no modo **Média de segundos dos monitores**, cujo orçamento é contado em segundos-monitor e não em tempo real.
 
 ## Consumo do orçamento de erros
 
-O gráfico **Error budget burn-down** da **Visão geral** traça o orçamento restante, em porcentagem, ao longo da janela de conformidade atual:
+O gráfico **Burn-down do orçamento de erros** da **Visão geral** traça o orçamento restante, em porcentagem, ao longo da janela de conformidade atual:
 
 - Uma linha em 0% marca onde o orçamento acaba, e uma linha tracejada marca o limite de risco do SLO.
 - Para SLOs de mês do calendário, uma linha suave desce de forma constante de um orçamento cheio no início do mês até um vazio no reinício. Abaixo dessa linha, o mês está gastando o orçamento rápido demais.
 - Um ponto é registrado a cada avaliação, a cada 5 minutos, então o gráfico de um SLO novo fica vazio até a primeira avaliação.
-- Arraste no gráfico para ampliar uma parte da janela. Clique duas vezes, ou clique em **Reset zoom**, para voltar a ver a janela inteira.
+- Arraste no gráfico para ampliar uma parte da janela. Clique duas vezes, ou clique em **Redefinir zoom**, para voltar a ver a janela inteira.
 
-**Open metrics** abre a página **Métricas** do SLO, cuja aba **Error Budget History** vai até 400 dias para trás. Veja [Métricas e painéis de SLO](/docs/slo/metrics).
+**Abrir métricas** abre a página **Métricas** do SLO, cuja aba **Error Budget History** vai até 400 dias para trás. Veja [Métricas e painéis de SLO](/docs/slo/metrics).
 
 ## Como o orçamento se recupera
 
@@ -96,7 +96,7 @@ Um SLO de mês do calendário é zerado à meia-noite do primeiro dia de cada m�
 
 ### SLOs novos
 
-Um SLO de janela móvel mais novo que a própria janela é medido com os dados que existem até agora, e o orçamento total cresce com eles: um SLO de 30 dias criado há uma semana tem, por enquanto, um orçamento de 7 dias. Até a janela ficar cheia, a **Visão geral** mostra o quanto ela está preenchida, com um indicador **Window 23% full** e a mesma nota no bloco **Error budget left**. Espere que os números se estabilizem à medida que a janela se enche.
+Um SLO de janela móvel mais novo que a própria janela é medido com os dados que existem até agora, e o orçamento total cresce com eles: um SLO de 30 dias criado há uma semana tem, por enquanto, um orçamento de 7 dias. Até a janela ficar cheia, a **Visão geral** mostra o quanto ela está preenchida, com um indicador **Window 23% full** e a mesma nota no bloco **Orçamento de erros restante**. Espere que os números se estabilizem à medida que a janela se enche.
 
 ## Mudanças de status e o limite de risco
 
@@ -108,7 +108,7 @@ O orçamento restante decide o status do SLO:
 | **Em risco** | O orçamento restante está no limite de risco ou abaixo dele: 20% por padrão. |
 | **Orçamento esgotado** | O orçamento restante está em zero ou abaixo. |
 
-Defina o limite de risco em **Configurações** → **Objective**.
+Defina o limite de risco em **Configurações** → **Objetivo**.
 
 Janelas móveis se recuperam um segundo de cada vez, então um SLO perto de um limite poderia ficar indo e voltando entre dois status. Para que cada mudança de status tenha significado, um SLO só sai de um status quando passou claramente do limite:
 

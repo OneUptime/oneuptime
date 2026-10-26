@@ -4,7 +4,7 @@ En Proxmox-monitor övervakar ett Proxmox VE-kluster – dess noder, VM:ar och L
 
 :::cards
 - [Skapa monitorn](#skapa-en-proxmox-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-varningsmallar): Elva färdiga varningar, en incident per nod, gäst eller volym.
+- [Mallar](#färdiga-larmmallar): Elva färdiga larm, en incident per nod, gäst eller volym.
 - [Resursidentitet](#resursidentitet): Så riktar du in dig på en nod, gäst eller lagringsvolym.
 - [Mätvärden](#insamlade-mätvärden): Varje serie `pve_*` som monitorn kan varna på.
 :::
@@ -26,7 +26,7 @@ flowchart TB
     oneuptime -->|"första data"| registered["Kluster registrerat"]
     oneuptime --> monitor["Proxmox-monitor"]
     monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    criteria -->|"ja"| incident["Incident eller larm"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 
@@ -44,37 +44,37 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj Proxmox
 
-Klicka på **Fler monitortyper** under **Monitortyp** och välj **Proxmox** under **Infrastruktur**, eller skriv `proxmox` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och varningar – och klicka på **Nästa**.
+Klicka på **Fler monitortyper** under **Monitortyp** och välj **Proxmox** under **Infrastruktur**, eller skriv `proxmox` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och larm – och klicka på **Nästa**.
 
 ### Välj klustret
 
-Välj klustret i **Proxmox Cluster** under **Proxmox Monitor Configuration**. Varje kluster som har skickat data finns i listan.
+Välj klustret i **Proxmox-kluster** under **Proxmox Monitor Configuration**. Varje kluster som har skickat data finns i listan.
 
 ### Välj vad som ska övervakas
 
 Välj en av de tre flikarna:
 
-- **Quick Setup** – klicka på en [mall](#färdiga-varningsmallar). Den anger mätvärdena, filtren, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Quick Setup** – klicka på en [mall](#färdiga-larmmallar). Den anger mätvärdena, filtren, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** – välj ett mätvärde i **Proxmox Metric** och ange sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en typ av resurs eller till en resurs.
-- **Avancerad** – bygg frågor och formler själv under **Välj mått**, till exempel en minnesprocent från `pve_memory_usage_bytes / pve_memory_size_bytes`. Använd **Group by** `id` för att bedöma varje resurs för sig.
+- **Avancerad** – bygg frågor och formler själv under **Välj mått**, till exempel en minnesprocent från `pve_memory_usage_bytes / pve_memory_size_bytes`. Använd **Gruppera efter** `id` för att bedöma varje resurs för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Threshold**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
 
 ### Skapa monitorn
 
-Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och varningar som den öppnar visas också på klustrets sidor **Incidenter** och **Varningar**.
+Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och larm som den öppnar visas också på klustrets sidor **Incidenter** och **Larm**.
 :::
 
 > [!TIP]
-> För att ställa in flera mallar på en gång öppnar du klustret från **Produkter → Infrastruktur → Proxmox** och går till **Recommendations**. Välj de mallar du vill ha och vem som ska larmas, så skapar OneUptime en monitor per mall.
+> För att ställa in flera mallar på en gång öppnar du klustret från **Produkter → Infrastruktur → Proxmox** och går till **Rekommendationer**. Välj de mallar du vill ha och vem som ska larmas, så skapar OneUptime en monitor per mall.
 
 ## Monitorinställningar
 
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
-| **Proxmox Cluster** | Alla | Krävs. Begränsar varje fråga till `resource.proxmox.cluster.name`. |
+| **Proxmox-kluster** | Alla | Krävs. Begränsar varje fråga till `resource.proxmox.cluster.name`. |
 | **Resursomfattning** | Custom Metric, Avancerad | Valfritt. **Nod**, **Guest (VM / container)**, **Lagring** eller **Kluster** – en exakt matchning mot `pve.scope`. |
 | **PVE ID** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `pve.id`: ett nodnamn (`pve1`), ett VMID (`100`) eller `<node>/<storage>` (`pve1/local`). Kombinera det med en omfattning för att rikta in dig på en resurs. |
 | **Nodnamn** | Custom Metric, Avancerad | Valfritt. Bara en nods egna serier (`pve.scope = node` och `pve.id`). Det kan inte välja gästerna eller lagringen på den noden. |
@@ -82,7 +82,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Proxmox Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 ## Resursidentitet
 
@@ -107,9 +107,9 @@ Filter matchar på likhet, inte på ett prefix, så agenten delar också upp `id
 
 Filtrera på `pve.scope` eller `pve.type` för en typ av resurs, på `pve.id` eller `id` för en resurs, och gruppera efter `id` för att bedöma varje resurs för sig.
 
-## Färdiga varningsmallar
+## Färdiga larmmallar
 
-**Quick Setup** erbjuder 11 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och en egen varning. Trösklarna är utgångspunkter som du kan redigera.
+**Quick Setup** erbjuder 11 mallar. Varje mall bygger en komplett monitor – frågor, attributfilter, en gruppering, ett kriterium som utlöses och ett som återställer. De flesta grupperar efter `id`, så att varje nod, gäst, volym eller jobb får en egen incident och ett eget larm. Trösklarna är utgångspunkter som du kan redigera.
 
 Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och ett tröskelkriterium återställs 10 % förbi sin tröskel, så att ett värde som pendlar vid gränsen inte fladdrar.
 
@@ -127,7 +127,7 @@ Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett
 | Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (en klusteromfattande serie) | Över 0 | Vid 0 |
 | Replication Failing | Kritisk | `pve_replication_failed_syncs`, Max per `id` (jobbets id) | Över 0 | Vid 0 |
 
-**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och varningen som en mall skapar börjar på projektets allvarligaste incident- och varningsgrad; ändra dem i kriterierna.
+**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 
 - **Mallarna för nedtid använder Minimum**, så att en enda insamling där resursen var nere utlöser dem i stället för att döljas av insamlingar där den var igång.
 - **Guest Down** tittar bara på gäster som är inställda på att starta vid uppstart, så en gäst som du har stoppat med avsikt larmar aldrig någon.
@@ -224,14 +224,14 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
+| **Tröskel** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar mätningar: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
 
 Avvikelsevillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i ett "Learning"-läge och ger ingenting förrän baslinjefönstret innehåller tillräckligt med historik.
 
-Varje kriterium anger också vad som ska hända när det matchar: ändra monitorns status, skapa en varning eller deklarera en incident. Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör.
+Varje kriterium anger också vad som ska hända när det matchar: ändra monitorns status, skapa ett larm eller deklarera en incident. Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör.
 
 ### Standardkriterier
 
@@ -260,7 +260,7 @@ Mallen tar genomsnittet av `pve_cpu_usage_ratio` per `id`, så varje nod kontrol
 :::
 
 :::details Node Offline fortsätter att utlösas för en nod som du har tagit bort från klustret
-Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likadan ut som en som har gått ned: den slutade rapportera, så de noder som fortfarande lever fortsätter att rapportera den som nere. Öppna nodens sida och klicka på **Remove Node** – noden försvinner och dess varning löses. Annars förblir den offline i upp till 7 dagar. Agenten har inte det här problemet: den frågar klustret, som inte längre listar noden.
+Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likadan ut som en som har gått ned: den slutade rapportera, så de noder som fortfarande lever fortsätter att rapportera den som nere. Öppna nodens sida och klicka på **Remove Node** – noden försvinner och dess larm löses. Annars förblir den offline i upp till 7 dagar. Agenten har inte det här problemet: den frågar klustret, som inte längre listar noden.
 :::
 
 :::details Mått för säkerhetskopiering eller replikering saknas

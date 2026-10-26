@@ -45,7 +45,7 @@ HTTP- och AI-steg körs på OneUptime Worker. Bash-, SSH- och kubectl-steg körs
 | **Runbook** | Mallen. En namngiven, återanvändbar procedur med en ordnad lista med steg och en brytare **Kör det här runbooket**. |
 | **Steg** | En punkt i ett runbook. Den har en typ (Manual, JavaScript, HTTP request, Bash, SSH, kubectl eller AI), en titel, en beskrivning och typspecifika inställningar. |
 | **Runbook-regel** | En regel som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller schemalagda underhållshändelser som uppfyller dess villkor: deras monitorer, allvarlighetsgrad, etiketter, monitoretiketter, titel eller beskrivning. |
-| **Körning** | En körning av ett runbook. Skapas när en regel utlöses, när någon klickar på **Kör Runbook** på en händelse eller när någon klickar på **Run Now** på själva runbooket. Den innehåller en ögonblicksbild av stegen och varje stegs status och output. |
+| **Körning** | En körning av ett runbook. Skapas när en regel utlöses, när någon klickar på **Kör Runbook** på en händelse eller när någon klickar på **Kör nu** på själva runbooket. Den innehåller en ögonblicksbild av stegen och varje stegs status och output. |
 | **Ögonblicksbild** | Den frysta kopian av runbookets steg som ligger på varje körning. Du kan redigera runbooket senare utan att skriva om historiken för tidigare körningar. |
 | **Runner** | En liten agent som du kör på en värd i din egen infrastruktur. Den kör de JavaScript-, Bash-, SSH- och kubectl-steg som pekar på den. Kallas även en runbook-agent. En global Runner, en av dem som OneUptime kör för alla projekt, kör de JavaScript-steg som inte nämner någon, om inte projektet har en standard-Runner. |
 | **Variabel** | Ett värde som steg använder via namnet, till exempel en värd eller en URL: `{{global.variables.NAME}}` för ett av projektets, som varje runbook kan använda, eller `{{local.variables.NAME}}` för ett av runbookens egna. |
@@ -71,9 +71,9 @@ Ett runbook kan blanda alla. Styrkan med runbooks är att väva samman mänsklig
 
 | Hur | Var | Körningen kopplas till |
 | --- | --- | --- |
-| En runbook-regel | **Incidenter**, **Varningar** eller **Schemalagt underhåll** → **Regler** → **Runbook-regler** | Den nya incidenten, larmet eller händelsen |
+| En runbook-regel | **Incidenter**, **Larm** eller **Schemalagt underhåll** → **Regler** → **Runbook-regler** | Den nya incidenten, larmet eller händelsen |
 | **Kör Runbook** | Sidan **Runbooks** för en incident, ett larm eller en schemalagd underhållshändelse | Den händelsen |
-| **Run Now** | Runbookets sida **Översikt** | Ingenting: en ad hoc-körning |
+| **Kör nu** | Runbookets sida **Översikt** | Ingenting: en ad hoc-körning |
 | En AI-regel | Se [AI SRE](/docs/ai/ai-sre) | Incidenten eller larmet |
 | Runbookets schema | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#kör-enligt-ett-schema) | Ingenting: en obevakad körning |
 | Ett anrop till runbookets webhook-URL | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#anropa-webhooken) | Ingenting: körningen sparar värdena som anropet skickade |
@@ -87,8 +87,8 @@ Runbooks finns under **Produkter**, i gruppen **Instrumentpaneler och automatise
 | Sida | Vad du gör där |
 | --- | --- |
 | **Produkter → Runbooks** | Bläddra bland, skapa och öppna runbooks. |
-| Ett runbooks **Steg** | Skriv och ordna om dess steg och välj sedan **Save Steps**. |
-| Ett runbooks **Översikt** | Se den senaste körningen och resultaten, och klicka på **Run Now**. |
+| Ett runbooks **Steg** | Skriv och ordna om dess steg och välj sedan **Spara steg**. |
+| Ett runbooks **Översikt** | Se den senaste körningen och resultaten, och klicka på **Kör nu**. |
 | Ett runbooks **Körningar** | Alla körningar av det här runbooket, filtrerade efter status eller startdatum. |
 | Ett runbooks **Utlösare** | Kör det enligt ett [schema](/docs/runbooks/triggers#kör-enligt-ett-schema), eller från ett annat verktyg via dess [webhook-URL](/docs/runbooks/triggers#anropa-webhooken). |
 | Ett runbooks **Variabler** | Hantera de [variabler](/docs/runbooks/variables) som bara det runbookets steg använder. |
@@ -97,7 +97,7 @@ Runbooks finns under **Produkter**, i gruppen **Instrumentpaneler och automatise
 | **Runbooks → Körningar** | Alla körningar av alla runbooks i projektet. |
 | **Runbooks → Runbook-agenter** | Installera de [Runners](/docs/runbooks/agents) som dina runbook-steg körs på. |
 | **Runbooks → Inställningar** | Hantera under **Globala variabler** de variabler som varje runbook kan [använda](/docs/runbooks/variables), samt de **Ägarregler** och **Etikettregler** som lägger till ägare och etiketter på nya runbooks. |
-| **Incidenter / Varningar / Schemalagt underhåll → Regler → Runbook-regler** | Skapa de regler som startar runbooks automatiskt. |
+| **Incidenter / Larm / Schemalagt underhåll → Regler → Runbook-regler** | Skapa de regler som startar runbooks automatiskt. |
 | En incident, ett larm eller en underhållshändelse → **Runbooks** | Se de körningar som är kopplade till den och klicka på **Kör Runbook** för att starta en. |
 
 Ett runbooks egen sidomeny grupperar dess sidor så här. Bara **Grundläggande** är öppet från början: klicka på ett avsnitts rubrik för att öppna det. Ett avsnitt öppnas av sig självt på varje sida i det.
@@ -118,7 +118,7 @@ Anta att varje incident med "db-primary" i titeln ska starta ett runbook för da
 :::steps
 ### Skapa runbooket
 
-Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Det öppnas på **Steg**: lägg till de här stegen och klicka sedan på **Save Steps**:
+Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Det öppnas på **Steg**: lägg till de här stegen och klicka sedan på **Spara steg**:
 
 | # | Typ | Titel |
 | --- | --- | --- |

@@ -53,7 +53,7 @@ Necesitas una suscripción de Azure, un rol que te permita crear y leer el recur
 
 OneUptime en sí no necesita ningún rol de Azure. Una clave da por sí sola acceso a todos los despliegues del recurso, sin comprobar roles, así que trátala como una contraseña.
 
-En OneUptime, añadir un proveedor a un proyecto requiere **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create LLM**. En su lugar, una instancia autoalojada puede registrar un proveedor para todos los proyectos desde variables de entorno, lo que requiere acceso al servidor.
+En OneUptime, añadir un proveedor a un proyecto requiere **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de ajustes**, **Miembro de ajustes** o **Create LLM**. En su lugar, una instancia autoalojada puede registrar un proveedor para todos los proyectos desde variables de entorno, lo que requiere acceso al servidor.
 
 ## Configurar Microsoft Foundry
 

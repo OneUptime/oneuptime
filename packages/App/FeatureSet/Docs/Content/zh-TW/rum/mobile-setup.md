@@ -39,7 +39,7 @@ flowchart TB
 ## 開始之前
 
 - 一個具備 OpenTelemetry SDK 的應用程式：OpenTelemetry Java SDK 或 OpenTelemetry Android、opentelemetry-swift，或用於 React Native 的 OpenTelemetry JavaScript SDK。
-- 一個 **伺服器** 擷取金鑰，在 **專案設定 → 遙測與 APM → 擷取金鑰** 中以 **建立擷取金鑰** 建立。行動應用程式送出的 **Browser** 金鑰會被拒絕：它要依 `Origin` 標頭檢查，而行動 SDK 不會傳送這個標頭。
+- 一個 **伺服器** 擷取金鑰，在 **專案設定 → 遙測與 APM → 擷取金鑰** 中以 **建立擷取金鑰** 建立。行動應用程式送出的 **瀏覽器** 金鑰會被拒絕：它要依 `Origin` 標頭檢查，而行動 SDK 不會傳送這個標頭。
 - 下列 OTLP 設定。如果你自行託管 OneUptime，請把 `https://oneuptime.com` 換成你自己的主機。
 
 | 設定 | 值 |
@@ -51,7 +51,7 @@ flowchart TB
 | 日誌 | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> 金鑰會隨應用程式一起發布，而應用程式可以被解開，所以請假設有人會複製它。在金鑰的頁面上設定 **Pinned Service Name** ，讓副本無法以你的後端服務名稱寫入，再加上 **Requests Per Minute Limit** 和 **到期於** 日期，並隨每次發布輪替金鑰。
+> 金鑰會隨應用程式一起發布，而應用程式可以被解開，所以請假設有人會複製它。在金鑰的頁面上設定 **固定的服務名稱** ，讓副本無法以你的後端服務名稱寫入，再加上 **Requests Per Minute Limit** 和 **到期於** 日期，並隨每次發布輪替金鑰。
 
 ## 設定你的平台
 
@@ -193,9 +193,9 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 行動端的工作階段重播
 
-React Native 應用程式可以使用 `@oneuptime/react-native-replay` 錄製工作階段。它會把原生檢視樹記錄為線框，絕不記錄螢幕截圖或畫面上的文字，其錄製與 Web 錄製在同一個播放器中開啟。它使用 **Browser** 金鑰傳送，該金鑰的 **Allowed Origins** 以 `app://` 加上 Android 應用程式 ID 或 iOS 套件組合 ID 的形式列出你的應用程式：這是一個獨立的金鑰，不同於 OpenTelemetry SDK 使用的伺服器金鑰。 [在 React Native 中安裝](/docs/telemetry/session-replay#在-react-native-中安裝) 會逐步說明。
+React Native 應用程式可以使用 `@oneuptime/react-native-replay` 錄製工作階段。它會把原生檢視樹記錄為線框，絕不記錄螢幕截圖或畫面上的文字，其錄製與 Web 錄製在同一個播放器中開啟。它使用 **瀏覽器** 金鑰傳送，該金鑰的 **允許的來源** 以 `app://` 加上 Android 應用程式 ID 或 iOS 套件組合 ID 的形式列出你的應用程式：這是一個獨立的金鑰，不同於 OpenTelemetry SDK 使用的伺服器金鑰。 [在 React Native 中安裝](/docs/telemetry/session-replay#在-react-native-中安裝) 會逐步說明。
 
-原生 Android 和 iOS 應用程式以及其他平台沒有工作階段錄製器：它們的 **Session Replay** 頁面會保持空白，而追蹤、日誌、指標、例外和 **用戶端** 頁面照常運作。
+原生 Android 和 iOS 應用程式以及其他平台沒有工作階段錄製器：它們的 **工作階段重播** 頁面會保持空白，而追蹤、日誌、指標、例外和 **用戶端** 頁面照常運作。
 
 ## 疑難排解
 

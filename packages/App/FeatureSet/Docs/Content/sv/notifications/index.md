@@ -43,14 +43,14 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 | Avsnitt | Sidor |
 | --- | --- |
 | **Kom igång** | **Checklista för konfiguration**: det som återstår att ställa in, i den ordning som spelar roll |
-| **Varningar och aviseringar** | **Aviseringsmetoder**, **Jourregler**, **Aviseringsinställningar** och **E-postinställningar**, där du bestämmer hur många e-postmeddelanden dina uppdateringar blir |
+| **Larm och aviseringar** | **Aviseringsmetoder**, **Jourregler**, **Aviseringsinställningar** och **E-postinställningar**, där du bestämmer hur många e-postmeddelanden dina uppdateringar blir |
 | **Jourloggar** | **Jourloggar**: varje gång du larmades i det här projektet, och vad som skickades |
 | **Inkommande samtalspolicy** | **Inkommande telefonnummer**: numret som en policy för inkommande samtal ringer dig på |
 | **Kalender** | **Kalenderflöde**: dina jourpass i din kalenderapp, och påminnelser innan de börjar |
 | **Profil** | **Anpassade fält**: uppgifter som ditt projekt ber sina medlemmar om |
 | **Arbetsyta** | **Slack** och **Microsoft Teams**: ditt eget konto, i varje arbetsyta som projektet har anslutit |
 
-**Kom igång** och **Varningar och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack eller Microsoft Teams.
+**Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack eller Microsoft Teams.
 
 Projektägare och administratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Jourregler**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
 
@@ -66,7 +66,7 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 
 ## Checklistan för konfiguration
 
-**Användarinställningar → Checklista för konfiguration** öppnar **Your setup checklist**: allt som OneUptime behöver för att nå dig, i den ordning som spelar roll. Ett steg länkar till sidan där det görs, och **Recheck** läser in allt igen.
+**Användarinställningar → Checklista för konfiguration** öppnar **Your setup checklist**: allt som OneUptime behöver för att nå dig, i den ordning som spelar roll. Ett steg länkar till sidan där det görs, och **Kontrollera igen** läser in allt igen.
 
 | Avsnitt | Vad det kontrollerar |
 | --- | --- |

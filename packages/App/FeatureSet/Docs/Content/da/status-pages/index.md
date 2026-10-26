@@ -87,7 +87,7 @@ Når du har åbnet en statusside, er dens egen venstremenu delt op i ti sektione
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Meddelelser**, **Ejere**. |
 | **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre). |
-| **Regler** | **Monitor Rules**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
+| **Regler** | **Monitorregler**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
 | **Abonnenter** | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**. |
 | **Notifikationslogs** | **Notifikationslogs**: hvad der er sendt til abonnenterne. |
 | **Branding** | **Branding** (logo, titel, favicon, links, sidefod, farver og sprog, på én side), **Brugerdefinerede domæner**, **HTML, CSS og JavaScript**. |

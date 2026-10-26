@@ -23,7 +23,7 @@ flowchart LR
 
 ## SLO'ets feed
 
-Feedet ligger på SLO'ets side **Feed**, og dets nyeste elementer under **Recent activity** på SLO'ets **Oversigt**. Elementerne linker til det SLO, de monitorer, advarsler og hændelser, de nævner, og de fleste har detaljer med tallene eller de gamle og nye værdier, som **Vis detaljer** folder ud under elementet.
+Feedet ligger på SLO'ets side **Feed**, og dets nyeste elementer under **Seneste aktivitet** på SLO'ets **Oversigt**. Elementerne linker til det SLO, de monitorer, advarsler og hændelser, de nævner, og de fleste har detaljer med tallene eller de gamle og nye værdier, som **Vis detaljer** folder ud under elementet.
 
 | Begivenhed | Offentliggøres, når |
 | --- | --- |
@@ -31,7 +31,7 @@ Feedet ligger på SLO'ets side **Feed**, og dets nyeste elementer under **Recent
 | SLO opdateret | Navnet, beskrivelsen, etiketterne, målet, compliancevinduet, tidszonen, risikotærsklen, tilstanden for flere monitorer eller nedetidsstatusserne ændres. Viser hver gammel og ny værdi. |
 | SLO aktiveret eller deaktiveret | Evalueringen slås til eller fra. |
 | SLO arkiveret eller gendannet | SLO'et arkiveres eller fjernes fra arkivet. |
-| Status ændret | En evaluering flytter SLO'et til en ny status. Viser den SLI, det fejlbudget, den forbrugsrate og den risikotærskel, der forklarer den, og årsagen ved **Sat på pause** eller **Misconfigured**. |
+| Status ændret | En evaluering flytter SLO'et til en ny status. Viser den SLI, det fejlbudget, den forbrugsrate og den risikotærskel, der forklarer den, og årsagen ved **Sat på pause** eller **Forkert konfigureret**. |
 | Forbrugsrateadvarsel udløst | En forbrugsrateregel opretter en advarsel. Linker til den og viser de forbrugsrater, der udløste den. |
 | Forbrugsratehændelse erklæret | En forbrugsrateregel erklærer en hændelse. Linker til den og viser de forbrugsrater, der udløste den. |
 | Forbrugsrateadvarsel eller -hændelse løst | En regels advarsel eller hændelse lukkes: løst automatisk eller manuelt, mens automatisk løsning var slået fra. |

@@ -64,7 +64,7 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test se connecte et lit les incidents avec les valeurs du formulaire, et n'enregistre rien, un secret erroné ou un rôle manquant apparaît donc avant que la connexion existe. Cliquez ensuite sur **Suivant**, donnez à la connexion un **Nom**, et créez-la.
+Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le test se connecte et lit les incidents avec les valeurs du formulaire, et n'enregistre rien, un secret erroné ou un rôle manquant apparaît donc avant que la connexion existe. Cliquez ensuite sur **Suivant**, donnez à la connexion un **Nom**, et créez-la.
 :::
 
 | Réglage | Où le trouver |
@@ -75,9 +75,9 @@ Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test
 | **Resource group** | La page **Overview** de l'espace de travail. De 1 à 90 lettres, chiffres, traits de soulignement, tirets, points ou parenthèses, sans point à la fin. |
 | **Workspace name** | La page **Overview** de l'espace de travail. De 3 à 90 lettres, chiffres ou tirets, commençant et finissant par une lettre ou un chiffre. |
 | **Cloud** | **Cloud public Azure** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (États-Unis)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
-| **Secret client** | La **Value** du secret. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Update credentials** sur la connexion. |
+| **Secret client** | La **Value** du secret. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
 
-L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
+L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
@@ -119,7 +119,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
-Une interrogation lit au plus 20 pages de 50 incidents : 1 000 incidents. Quand cette limite l'arrête avant la fin de sa fenêtre, l'exécution est **Partial**, avec un avertissement comme celui-ci :
+Une interrogation lit au plus 20 pages de 50 incidents : 1 000 incidents. Quand cette limite l'arrête avant la fin de sa fenêtre, l'exécution est **Partiel**, avec un avertissement comme celui-ci :
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, la suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les incidents plus récents continuent d'arriver. L'exécution reste **Partial**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les incidents plus récents continuent d'arriver. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
 
-Une exécution qui échoue complètement, avec une erreur de Microsoft Entra ID ou d'Azure Resource Manager, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Poll Interval (Minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
+Une exécution qui échoue complètement, avec une erreur de Microsoft Entra ID ou d'Azure Resource Manager, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
 ### Exécuter, prévisualiser et importer à la demande
 
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
-- **Run now** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
+- **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
 - **Preview incidents** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les incidents déjà importés sont sautés.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
 ## Tester la connexion
 
-**Tester la connexion** sur la ligne d'une connexion, et **Test these settings** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
+**Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
@@ -234,7 +234,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 
 :::details Dernière erreur commence par `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)` : Microsoft Entra ID a refusé de délivrer un jeton, Azure n'a donc jamais été contacté. Le message cite le code d'Entra :
-  - `AADSTS7000215` ou `invalid_client` : le **Secret client** est erroné ou expiré, ou c'est l'ID du secret au lieu de sa valeur. Créez un nouveau secret, et enregistrez-le avec **Update credentials**.
+  - `AADSTS7000215` ou `invalid_client` : le **Secret client** est erroné ou expiré, ou c'est l'ID du secret au lieu de sa valeur. Créez un nouveau secret, et enregistrez-le avec **Mettre à jour les identifiants**.
   - `AADSTS700016` ou `unauthorized_client` : l'**ID d'application (client)** n'est pas dans le **ID de l'annuaire (tenant)** indiqué. Comparez les deux avec la page **Overview** de l'application.
   - `AADSTS90002` ou `HTTP 404` : ce locataire n'existe pas. Le **ID de l'annuaire (tenant)** est erroné, ou il est dans l'autre cloud : vérifiez **Cloud**.
   - `HTTP 429` ou `HTTP 5xx` : Microsoft Entra ID limite les requêtes ou est indisponible. L'interrogation suivante réessaie.
@@ -258,7 +258,7 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window` : la fenêtre contenait plus que les 1 000 incidents qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier incident lu. Une connexion qui reste **Partial** d'une interrogation à l'autre rattrape un retard, et sa **Dernière interrogation** et son **Dernier événement importé** continuent d'avancer.
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window` : la fenêtre contenait plus que les 1 000 incidents qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier incident lu. Une connexion qui reste **Partiel** d'une interrogation à l'autre rattrape un retard, et sa **Dernière interrogation** et son **Dernier événement importé** continuent d'avancer.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.` : l'API a ignoré l'ordre des plus anciens aux plus récents, l'exécution ne peut donc pas déplacer le curseur sur son dernier incident, et l'interrogation suivante lit plutôt une fenêtre plus courte. Si cela se répète, envoyez le rapport de l'exécution au support de OneUptime.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::

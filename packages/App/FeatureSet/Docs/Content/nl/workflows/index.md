@@ -60,7 +60,7 @@ Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaa
 ## Voordat je begint
 
 - **Een abonnement met workflows.** In OneUptime Cloud hebben workflows het abonnement **Growth** of hoger nodig, en elk abonnement staat een aantal uitvoeringen per 30 dagen toe — zie [Planlimieten](/docs/workflows/configuration#planlimieten). Zelf gehoste installaties zonder facturering hebben geen van beide limieten.
-- **Toestemming om te bouwen.** Workflows maken en wijzigen vereist **Workflow Admin**, **Project Admin** of **Project Owner**, of een aangepaste rol met de bijbehorende machtigingen. Een **Workflow Member** kan workflows openen en handmatig uitvoeren, maar niet wijzigen. Zie [Machtigingen](/docs/workflows/configuration#machtigingen).
+- **Toestemming om te bouwen.** Workflows maken en wijzigen vereist **Workflowbeheerder**, **Projectbeheerder** of **Projecteigenaar**, of een aangepaste rol met de bijbehorende machtigingen. Een **Workflowlid** kan workflows openen en handmatig uitvoeren, maar niet wijzigen. Zie [Machtigingen](/docs/workflows/configuration#machtigingen).
 
 ## Waar je workflows vindt in OneUptime
 
@@ -122,7 +122,7 @@ De nieuwe workflow opent in de **Bouwer**, uitgeschakeld.
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en klik daarna op **On Create Incident** onder **Popular** in het paneel **Trigger toevoegen**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en klik daarna op **On Create Incident** onder **Populair** in het paneel **Trigger toevoegen**.
 
 De trigger neemt de plaats van het gestippelde blok in. De ID erop, `incident-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
@@ -134,7 +134,7 @@ De trigger geeft het nieuwe incident met deze velden door. Een veld dat je niet 
 
 ### Het API-blok toevoegen
 
-Klik op **Component toevoegen** en daarna op **API Post (JSON)** onder **Popular**. Sleep van het punt **Success** van de trigger naar beneden naar het bovenste punt van het nieuwe blok.
+Klik op **Component toevoegen** en daarna op **API Post (JSON)** onder **Populair**. Sleep van het punt **Success** van de trigger naar beneden naar het bovenste punt van het nieuwe blok.
 
 ### Het verzoek invullen
 

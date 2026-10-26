@@ -50,7 +50,6 @@ import {
   FORM_LOGO_TOO_LARGE_MESSAGE,
   FORM_LOGO_TYPE_MESSAGE,
 } from "Common/Types/Form/FormBranding";
-import { PermissionHelper } from "Common/Types/Permission";
 import {
   TemplateValues,
   Translator,
@@ -60,6 +59,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 19: the Slack, Microsoft Teams and Video Calls pages,
@@ -744,14 +744,6 @@ function keysOf<T>(
   return Object.keys(lists[page] || {});
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 // The bold spans of a page's prose, once each.
 function boldLabels(markdown: string): Array<string> {
   return boldSpans(prose(markdown));
@@ -941,7 +933,7 @@ function isKeptInEnglish(page: string, name: string): boolean {
   return (
     listed(KEPT_IN_ENGLISH, page).includes(name) ||
     listed(SHOWN_IN_ENGLISH, page).includes(name) ||
-    isPermissionOrRole(name)
+    isPermissionTitleKeptInEnglish(name)
   );
 }
 
@@ -1210,7 +1202,7 @@ describe("the lists this test keeps", () => {
         expect({ page, name, permission: false }).toEqual({
           page,
           name,
-          permission: isPermissionOrRole(name),
+          permission: isPermissionTitleKeptInEnglish(name),
         });
       }
     }
@@ -1330,7 +1322,7 @@ describe("the lists this test keeps", () => {
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {
-          return !known.includes(span) && !isPermissionOrRole(span);
+          return !known.includes(span) && !isPermissionTitleKeptInEnglish(span);
         },
       );
 
