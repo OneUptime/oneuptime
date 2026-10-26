@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   CRITICAL_ALERT_SOUND_OPTIONS,
@@ -17,6 +17,7 @@ import {
   CriticalAlertAvailability,
   CriticalAlertStatus,
   getCriticalAlertStatus,
+  openAndroidDoNotDisturbAccessSettings,
 } from "../notifications/criticalAlerts";
 import {
   getCriticalAlertSound,
@@ -54,6 +55,11 @@ export interface CriticalAlertSoundState {
   channelWarning: string;
   // The sound whose preview is playing, if one is.
   previewingSound: CriticalAlertSoundIdValue | null;
+  /*
+   * Android only: opens the Do Not Disturb access list the warning names.
+   * Coming back to the app checks the chosen sound's channel again.
+   */
+  openDoNotDisturbAccess: () => Promise<void>;
   setSound: (sound: CriticalAlertSoundIdValue) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
   preview: (sound: CriticalAlertSoundIdValue) => Promise<void>;
@@ -72,8 +78,13 @@ const VOLUME_SAVE_ERROR: string =
 const PREVIEW_ERROR: string =
   "Could not play the preview. Check that notifications are allowed for this app.";
 
-const CHANNEL_WARNING: string =
-  "Pages with this sound would arrive silently while Do Not Disturb is on. Allow OneUptime On-Call in Settings > Notifications > Do Not Disturb access, or let this sound's channel override Do Not Disturb in the app's notification settings.";
+/*
+ * While the chosen sound's channel cannot ring through Do Not Disturb, the
+ * server is told this phone's critical alerts are off (criticalAlertsReport),
+ * so pages come as ordinary notifications: said as it is, with where to fix it.
+ */
+export const CHANNEL_WARNING: string =
+  "Critical alerts are off on this phone until it can: on-call pages arrive as ordinary notifications, silent while Do Not Disturb is on. Allow OneUptime On-Call in Settings > Notifications > Do Not Disturb access, or let this sound's channel override Do Not Disturb in the app's notification settings.";
 
 /*
  * The alarm sound and volume for critical pages on this phone, for the screen
@@ -380,6 +391,44 @@ export function useCriticalAlertSound(): CriticalAlertSoundState {
       [clearPreview, stopPreview],
     );
 
+  /*
+   * Granting Do Not Disturb access happens in the phone's settings, with this
+   * app in the background: coming back is the moment to check the channel
+   * again, so the warning goes as soon as the alarm can ring through.
+   */
+  useEffect((): (() => void) => {
+    if (Platform.OS !== "android" || !isLoaded) {
+      return (): void => {
+        // Nothing was listened to.
+      };
+    }
+
+    const subscription: { remove: () => void } = AppState.addEventListener(
+      "change",
+      (nextState: AppStateStatus): void => {
+        if (nextState !== "active") {
+          return;
+        }
+
+        checkChannel(sound).catch((checkError: unknown): void => {
+          logger.warn(
+            "[CriticalAlerts] Could not check the alarm sound's channel:",
+            checkError,
+          );
+        });
+      },
+    );
+
+    return (): void => {
+      subscription.remove();
+    };
+  }, [checkChannel, isLoaded, sound]);
+
+  const openDoNotDisturbAccess: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      await openAndroidDoNotDisturbAccessSettings();
+    }, []);
+
   return {
     sounds: CRITICAL_ALERT_SOUND_OPTIONS,
     sound,
@@ -390,6 +439,7 @@ export function useCriticalAlertSound(): CriticalAlertSoundState {
     error,
     channelWarning,
     previewingSound,
+    openDoNotDisturbAccess,
     setSound,
     setVolume,
     preview,

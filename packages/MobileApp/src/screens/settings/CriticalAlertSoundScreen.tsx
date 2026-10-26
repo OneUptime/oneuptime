@@ -326,6 +326,10 @@ export default function CriticalAlertSoundScreen(): React.JSX.Element {
           tone="warning"
           title="This sound cannot ring through Do Not Disturb"
           message={alarm.channelWarning}
+          actionLabel="Open Do Not Disturb access"
+          onAction={() => {
+            void alarm.openDoNotDisturbAccess();
+          }}
         />
       ) : null}
 

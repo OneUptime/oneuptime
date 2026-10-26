@@ -13,6 +13,10 @@ import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
 import { setupNotificationChannels } from "../notifications/setup";
 import { NotificationChannelId } from "../notifications/channels";
 import { FakeAndroidNotificationChannels } from "../__tests__/fakeAndroidNotificationChannels";
+import {
+  CriticalAlertSettingsPlace,
+  IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+} from "../notifications/criticalAlerts";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 jest.mock("../api/pushDevice", () => {
@@ -591,6 +595,132 @@ describe("useCriticalAlerts when the permission is revoked later", () => {
     await waitFor(() => {
       expect(result.current.isEnabled).toBe(true);
     });
+  });
+});
+
+/*
+ * The switch reads off while iOS Settings turns critical alerts off, and it
+ * used to say nothing about why (the maintainer's screenshot): the responder
+ * saw their own choice undone with no reason. It says why now, what pages
+ * do meanwhile and where to turn them back on - only for a choice the
+ * phone's settings undid, never for a switch turned off by choice.
+ */
+describe("useCriticalAlerts says why the phone's settings turned it off", () => {
+  let addListenerSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockClear();
+    serverSpy().mockResolvedValue(undefined as never);
+    addListenerSpy = jest.spyOn(AppState, "addEventListener");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("chosen, then switched off in iOS Settings: the switch reads off, and says why", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    denyIos();
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.offInPhoneSettings).toEqual({
+      message: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+      place: CriticalAlertSettingsPlace.IosAppSettings,
+    });
+    // Nothing was asked of the responder: an explanation, not an error.
+    expect(result.current.error).toBe("");
+  });
+
+  test("never chosen: off is the responder's own choice, with nothing to explain", async () => {
+    denyIos();
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.offInPhoneSettings).toBeNull();
+  });
+
+  test("chosen and allowed: nothing to explain", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    grantIos();
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    expect(result.current.offInPhoneSettings).toBeNull();
+  });
+
+  test("an OS read that failed explains nothing: the phone said nothing", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("unavailable") as never);
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.offInPhoneSettings).toBeNull();
+  });
+
+  test("its button opens this app's page in iOS Settings", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    denyIos();
+    const openSettings: jest.SpyInstance = jest
+      .spyOn(Linking, "openSettings")
+      .mockResolvedValue(undefined as never);
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.openPhoneSettings();
+    });
+
+    expect(openSettings).toHaveBeenCalledTimes(1);
+  });
+
+  test("turned back on in iOS Settings: coming back to the app clears it, and the switch reads on", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    denyIos();
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.offInPhoneSettings).not.toBeNull();
+
+    grantIos();
+    const handler: (state: string) => void = addListenerSpy.mock
+      .calls[0]![1] as (state: string) => void;
+
+    await act(async () => {
+      handler("active");
+    });
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    expect(result.current.offInPhoneSettings).toBeNull();
+  });
+
+  test("turning the switch off by hand clears it: off is now the responder's choice", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    denyIos();
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.offInPhoneSettings).not.toBeNull();
+
+    await act(async () => {
+      await result.current.setEnabled(false);
+    });
+
+    expect(result.current.offInPhoneSettings).toBeNull();
+    expect(await getCriticalAlertsEnabled()).toBe(false);
   });
 });
 

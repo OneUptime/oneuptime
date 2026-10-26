@@ -72,6 +72,29 @@ export interface CriticalAlertStatus {
    * through over a failed read (notifications/criticalAlertsReport.ts).
    */
   isUncertain?: boolean | undefined;
+  /*
+   * On a denied status: what the Settings screen says when the responder has
+   * Critical On-Call Alerts on and the phone's own settings turn them off -
+   * why the switch reads off, what pages do meanwhile, and where to turn
+   * them back on. `reason` says what to do when turning the switch on.
+   */
+  offInPhoneSettings?: CriticalAlertsOffInPhoneSettings | undefined;
+}
+
+export interface CriticalAlertsOffInPhoneSettings {
+  message: string;
+  place: CriticalAlertSettingsPlace;
+}
+
+/*
+ * Where offInPhoneSettings sends the responder: the phone's settings page
+ * that turns critical alerts back on (openCriticalAlertSettings), or the App
+ * Store, which the app does not open for them.
+ */
+export enum CriticalAlertSettingsPlace {
+  IosAppSettings = "ios-app-settings",
+  AndroidDoNotDisturbAccess = "android-do-not-disturb-access",
+  AppStore = "app-store",
 }
 
 const IOS_DENIED_REASON: string =
@@ -91,6 +114,24 @@ const UNSUPPORTED_REASON: string =
 
 const GRANTED_REASON: string =
   "On-call pages will play a sound even when this device is silenced or in Do Not Disturb.";
+
+/*
+ * What the Settings screen says when the responder turned Critical On-Call
+ * Alerts on and the phone's settings have turned them off since - the
+ * switch reads off, and the server sends pages as ordinary notifications
+ * (criticalAlertsReport), so the responder is told why, and where to undo it.
+ */
+export const IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS: string =
+  "Off in iOS Settings: Critical Alerts are turned off for OneUptime On-Call, so on-call pages arrive as ordinary notifications. Turn them back on in iOS Settings > Notifications > OneUptime On-Call.";
+
+export const IOS_NOTIFICATIONS_OFF_IN_SETTINGS: string =
+  "Off in iOS Settings: notifications are turned off for OneUptime On-Call, so on-call pages do not reach this phone at all. Turn on Allow Notifications in iOS Settings > Notifications > OneUptime On-Call.";
+
+export const IOS_CRITICAL_ALERTS_NOT_OFFERED: string =
+  "Off: iOS does not offer critical alerts to this version of the app, so on-call pages arrive as ordinary notifications. Update OneUptime On-Call from the App Store.";
+
+export const ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS: string =
+  "Off in Android settings: your alarm cannot ring through Do Not Disturb, so on-call pages arrive as ordinary notifications, silent in Do Not Disturb. Allow OneUptime On-Call in Settings > Notifications > Do Not Disturb access.";
 
 /*
  * Write the critical channels again, then report whether Android really lets
@@ -226,15 +267,31 @@ async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
     return {
       availability: CriticalAlertAvailability.Denied,
       reason: IOS_NOTIFICATIONS_OFF_REASON,
+      offInPhoneSettings: {
+        message: IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
+        place: CriticalAlertSettingsPlace.IosAppSettings,
+      },
+    };
+  }
+
+  if (allowsCriticalAlerts === false) {
+    return {
+      availability: CriticalAlertAvailability.Denied,
+      reason: IOS_DENIED_REASON,
+      offInPhoneSettings: {
+        message: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+        place: CriticalAlertSettingsPlace.IosAppSettings,
+      },
     };
   }
 
   return {
     availability: CriticalAlertAvailability.Denied,
-    reason:
-      allowsCriticalAlerts === false
-        ? IOS_DENIED_REASON
-        : IOS_NOT_OFFERED_REASON,
+    reason: IOS_NOT_OFFERED_REASON,
+    offInPhoneSettings: {
+      message: IOS_CRITICAL_ALERTS_NOT_OFFERED,
+      place: CriticalAlertSettingsPlace.AppStore,
+    },
   };
 }
 
@@ -253,6 +310,10 @@ async function getAndroidCriticalAlertStatus(
   return {
     availability: CriticalAlertAvailability.Denied,
     reason: ANDROID_DENIED_REASON,
+    offInPhoneSettings: {
+      message: ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+      place: CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
+    },
     ...(bypassesDnd === null ? { isUncertain: true } : {}),
   };
 }
@@ -352,6 +413,32 @@ export async function requestCriticalAlertPermission(
   await openAndroidDoNotDisturbAccessSettings();
 
   return getCriticalAlertStatus(options);
+}
+
+/*
+ * Open the place in the phone's settings that turns critical alerts back on
+ * (CriticalAlertsOffInPhoneSettings.place): this app's page in iOS Settings,
+ * where its Notifications and Critical Alerts switches are, or Android's Do
+ * Not Disturb access list. The App Store is not opened for the responder.
+ * Never throws: a phone that cannot open it leaves the words to say where.
+ */
+export async function openCriticalAlertSettings(
+  place: CriticalAlertSettingsPlace,
+): Promise<void> {
+  if (place === CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess) {
+    await openAndroidDoNotDisturbAccessSettings();
+    return;
+  }
+
+  if (place !== CriticalAlertSettingsPlace.IosAppSettings) {
+    return;
+  }
+
+  try {
+    await Linking.openSettings();
+  } catch (error: unknown) {
+    logger.warn("[CriticalAlerts] Could not open the app's settings:", error);
+  }
 }
 
 /*

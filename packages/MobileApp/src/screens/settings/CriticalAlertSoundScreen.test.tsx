@@ -69,6 +69,9 @@ function stateWith(
     error: "",
     channelWarning: "",
     previewingSound: null,
+    openDoNotDisturbAccess: jest.fn(async () => {
+      return undefined;
+    }) as unknown as CriticalAlertSoundState["openDoNotDisturbAccess"],
     setSound: jest.fn(async () => {
       return undefined;
     }) as unknown as CriticalAlertSoundState["setSound"],
@@ -366,6 +369,25 @@ describe("what the screen tells the responder", () => {
       screen.getByText("This sound cannot ring through Do Not Disturb"),
     ).toBeTruthy();
     expect(screen.getByText("Allow it in Settings.")).toBeTruthy();
+  });
+
+  test("the warning opens Do Not Disturb access, where the alarm is let through", async () => {
+    setPlatform("android");
+    const openDoNotDisturbAccess: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+    await renderScreen({
+      isVolumeAdjustable: false,
+      channelWarning: "Allow it in Settings.",
+      openDoNotDisturbAccess:
+        openDoNotDisturbAccess as unknown as CriticalAlertSoundState["openDoNotDisturbAccess"],
+    });
+
+    fireEvent.press(
+      screen.getByRole("button", { name: "Open Do Not Disturb access" }),
+    );
+
+    expect(openDoNotDisturbAccess).toHaveBeenCalledTimes(1);
   });
 
   test("with nothing wrong, there is neither banner", async () => {
