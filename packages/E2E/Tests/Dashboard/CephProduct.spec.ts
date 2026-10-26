@@ -57,15 +57,24 @@ test.describe.skip("Ceph Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // Empty state renders the setup guide (SetupGuideCard).
+    /*
+     * The empty list shows what Ceph monitoring gives (its showcase). Its
+     * Add Ceph Cluster opens the setup guide in a dialog.
+     */
+    const showcase: Locator = page.getByTestId("resource-showcase");
+    await expect(showcase).toBeVisible({ timeout: 60000 });
+    await expect(showcase.getByRole("heading", { level: 2 })).toHaveText(
+      "See your Ceph cluster's health, and when it will fill up",
+    );
+    await showcase.getByTestId("resource-showcase-add-button").click();
     await expect(
-      page.getByText("Getting Started with Ceph Monitoring"),
-    ).toBeVisible({ timeout: 60000 });
+      page.getByRole("dialog", { name: "Add Ceph Cluster" }),
+    ).toBeVisible({ timeout: 30000 });
     await expect(page.getByText("No ingestion keys yet")).toBeVisible({
       timeout: 30000,
     });
 
-    // Create a telemetry ingestion key from the inline ModelFormModal.
+    // Create a telemetry ingestion key from the guide's ModelFormModal.
     const keyName: string = "E2E Ceph Key " + Faker.generateName().toString();
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({ page, keyName });
@@ -187,7 +196,7 @@ test.describe.skip("Ceph Product Onboarding", () => {
   /*
    * Stretch (WI-22): post a minimal OTLP metrics fixture with the
    * ingestion key minted above and assert the clusters page flips from
-   * the install guide to a Connected cluster row without a reload
+   * the showcase to a Connected cluster row without a reload
    * (exercises the WI-18 first-data poll).
    */
   test("should flip the empty state to a Connected cluster row when first OTLP metrics arrive", async ({
@@ -203,14 +212,23 @@ test.describe.skip("Ceph Product Onboarding", () => {
     const cephPageUrl: string = URL.fromString(BASE_URL.toString())
       .addRoute(`/dashboard/${projectId}/ceph`)
       .toString();
+    const addButton: Locator = page.getByTestId("resource-showcase-add-button");
     await gotoProjectPage({
       page,
       projectId,
       url: cephPageUrl,
-      ready: page.getByText("Getting Started with Ceph Monitoring"),
+      ready: addButton,
     });
 
-    // Mint a key, then read the interpolated secret back out of the guide.
+    /*
+     * The showcase's Add Ceph Cluster opens the guide: mint a key, then
+     * read the interpolated secret back out of it.
+     */
+    await addButton.click();
+    const addCluster: Locator = page.getByRole("dialog", {
+      name: "Add Ceph Cluster",
+    });
+    await expect(addCluster).toBeVisible({ timeout: 30000 });
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({
       page,
@@ -228,6 +246,13 @@ test.describe.skip("Ceph Product Onboarding", () => {
 
     const bodyText: string = await page.locator("body").innerText();
     const ingestionKey: string = bodyText.match(ingestionKeyEnvLineRegex)![1]!;
+
+    /*
+     * Done leaves the list, still empty. What flips it is the list's own
+     * check: the dialog, left open, would name the new cluster too.
+     */
+    await addCluster.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(addCluster).toHaveCount(0);
 
     const clusterName: string =
       "e2e-ceph-" + Faker.generateName().toString().toLowerCase();
@@ -293,6 +318,8 @@ test.describe.skip("Ceph Product Onboarding", () => {
     await expect(page.getByText(clusterName, { exact: true })).toBeVisible({
       timeout: 120000,
     });
+    // The showcase, whose example says Connected too, gives way to the table.
+    await expect(page.getByTestId("resource-showcase")).toHaveCount(0);
     await expect(
       page.getByText("Connected", { exact: true }).first(),
     ).toBeVisible({ timeout: 30000 });

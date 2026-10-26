@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> As mesmas etapas estão no painel, com seu token já preenchido: em **Nuvem → All Environments** até seu primeiro ambiente chegar, e na aba **Documentação** de cada ambiente.
+> As mesmas etapas estão no painel, com seu token já preenchido: em **Nuvem → All Environments**, clique em **Adicionar ambiente de nuvem**. A aba **Documentação** de cada ambiente também as mostra.
 
 ## O que você recebe
 
