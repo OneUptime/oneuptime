@@ -375,7 +375,7 @@ describe("scrolling the menu's own list (revealCurrentSideMenuEntry)", () => {
     const ownScrollIntoView: typeof Element.prototype.scrollIntoView =
       Element.prototype.scrollIntoView;
     Element.prototype.scrollIntoView = scrollIntoView;
-    const scrollTo: SpyInstance = jest
+    const scrollTo: SpyInstance<(x: number, y: number) => void> = jest
       .spyOn(window, "scrollTo")
       .mockImplementation(() => {});
     layOut({ list, entry, entryTopInList: 900 });
