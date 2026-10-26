@@ -79,6 +79,7 @@ Cada conversación tiene un modo de permiso, que eliges en el compositor, junto 
 Lo que Preguntar a la IA puede hacer cuando un modo lo permite:
 
 - Crear un incidente, reconocer o resolver incidentes y alertas, y cambiar la gravedad de un incidente.
+- Vincular un incidente o una alerta a la infraestructura y los servicios a los que se refiere. Un incidente que crea en la página de un recurso, como la de un host, queda vinculado a ese recurso, y la tarjeta de aprobación indica qué vincula cada acción. OneUptime AI investiga y corrige aquello a lo que está vinculado un incidente o una alerta.
 - Publicar una nota interna en un incidente o una alerta. Las notas internas nunca aparecen en una página de estado.
 - Publicar una actualización de estado pública en un incidente. Es una acción aparte, porque avisa a los suscriptores de la página de estado.
 - Avisar a una política de guardia, ejecutar un runbook o iniciar una investigación de IA de un incidente o una alerta.

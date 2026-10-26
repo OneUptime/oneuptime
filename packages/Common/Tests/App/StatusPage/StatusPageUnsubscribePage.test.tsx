@@ -296,7 +296,8 @@ describe("Status page unsubscribe page", () => {
   test("on a status page's own address, the manage page is the preview route, token-free too", async () => {
     isPrivate = false;
     getJestSpyOn(StatusPageUtil, "isPreviewPage").mockReturnValue(true);
-    window.localStorage.setItem("statusPageId", STATUS_PAGE_ID.toString());
+    // The page this tab shows, as the master page sets it.
+    StatusPageUtil.setStatusPageId(STATUS_PAGE_ID);
 
     await renderPage();
 
@@ -306,7 +307,7 @@ describe("Status page unsubscribe page", () => {
       `/status-page/${STATUS_PAGE_ID.toString()}/update-subscription`,
     );
 
-    window.localStorage.removeItem("statusPageId");
+    StatusPageUtil.setStatusPageId(null);
   });
 
   test("a subscription already cancelled says so and offers nothing to press", async () => {

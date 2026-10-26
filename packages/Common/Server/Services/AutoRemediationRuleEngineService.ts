@@ -26,9 +26,14 @@ import {
   mayAiPickedRunbookStartWithoutAsking,
 } from "../../Types/AutoRemediation/AutoRemediationFix";
 import {
+  AutoRemediationDecisionEntry,
+  AutoRemediationDecisionHelper,
   AutoRemediationDecisionLane,
   AutoRemediationDecisionReason,
+  AutoRemediationDecisionStage,
 } from "../../Types/AutoRemediation/AutoRemediationDecision";
+import AutoRemediationDecision from "../../Models/DatabaseModels/AutoRemediationDecision";
+import AutoRemediationDecisionService from "./AutoRemediationDecisionService";
 import {
   APPROVED_COMMAND_STEP_ID_PREFIX,
   INLINE_COMMAND_STEP_ID_PREFIX,
@@ -96,6 +101,10 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import { getFixingAiRules } from "../../Types/AI/AiRule";
+import {
+  AI_AFFECTED_RESOURCE_KINDS,
+  AiAffectedResourceKindInfo,
+} from "../../Types/AI/AiAffectedResources";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -475,6 +484,64 @@ export function mayMcpFixChangeWithoutAsking(data: {
     !data.anotherRuleAsksFirst &&
     !data.agentRoundStarted &&
     !data.unattendedPickStarted
+  );
+}
+
+/*
+ * What an update of an incident or alert writes when it links it to
+ * something a fix can act on: its lists of Kubernetes clusters and of
+ * resources with an AI agent, and its monitors (a fix finds the cluster or
+ * resource a monitor watches through its configuration when the incident
+ * is linked to none). Writing one may make OneUptime AI try again
+ * (onSubjectLinksChanged).
+ */
+export const REMEDIATION_LINK_COLUMNS: ReadonlyArray<string> = [
+  ...AI_AFFECTED_RESOURCE_KINDS.filter(
+    (info: AiAffectedResourceKindInfo): boolean => {
+      return info.isFixedByOneUptimeAi;
+    },
+  ).map((info: AiAffectedResourceKindInfo): string => {
+    return info.relation;
+  }),
+  "monitors",
+  "monitor",
+  "monitorId",
+];
+
+// Whether an update's data writes one of REMEDIATION_LINK_COLUMNS.
+export function doesWriteRemediationLinks(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  return REMEDIATION_LINK_COLUMNS.some((column: string): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(data, column) &&
+      (data as Record<string, unknown>)[column] !== undefined
+    );
+  });
+}
+
+/*
+ * Whether an evaluation found its subject linked to nothing a fix can act
+ * on: no Kubernetes cluster and no resource with an AI agent - the line the
+ * Remediation card folds into one (RemediationDecisionLines).
+ */
+export function isLinkedToNothing(entries: unknown): boolean {
+  const parsed: Array<AutoRemediationDecisionEntry> =
+    AutoRemediationDecisionHelper.parseEntries(entries);
+
+  const has: (reason: AutoRemediationDecisionReason) => boolean = (
+    reason: AutoRemediationDecisionReason,
+  ): boolean => {
+    return parsed.some((entry: AutoRemediationDecisionEntry): boolean => {
+      return entry.reason === reason;
+    });
+  };
+
+  return (
+    has(AutoRemediationDecisionReason.ClusterNoneLinked) &&
+    has(AutoRemediationDecisionReason.ResourceNoneLinked)
   );
 }
 
@@ -1450,6 +1517,189 @@ class AutoRemediationRuleEngineServiceClass {
       incidentId: data.incidentId,
       alertId: data.alertId,
     });
+  }
+
+  /*
+   * An update of an incident or alert, as its service's onUpdateSuccess
+   * hands it over: when the update writes what links it to something a fix
+   * acts on (REMEDIATION_LINK_COLUMNS), OneUptime AI may try again
+   * (onSubjectLinksChanged). Resolves whether it did; never throws.
+   */
+  public async onSubjectUpdated(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    // The update's data.
+    written: unknown;
+  }): Promise<boolean> {
+    if (!doesWriteRemediationLinks(data.written)) {
+      return false;
+    }
+
+    return await this.onSubjectLinksChanged({
+      projectId: data.projectId,
+      incidentId: data.incidentId,
+      alertId: data.alertId,
+    });
+  }
+
+  /*
+   * Someone linked an incident or alert to what it is about - its Affected
+   * Resources Edit, add_incident_affected_resources in Ask AI, the API -
+   * after auto-remediation found nothing it could fix on it because it was
+   * linked to nothing (#5293). Its Remediation card asked them to add the
+   * cluster or host it is about; once they have, OneUptime AI tries again,
+   * as it would for a new incident: Enable AI, the fixing switch, the AI
+   * rules, each cluster's and resource's own fix mode and the per-subject
+   * cap all decide as they do then. Only:
+   *
+   *   - when its latest evaluation found it linked to nothing (one waiting
+   *     for its investigation reads the new links when the investigation
+   *     hands it over, and one that found something says why it did what
+   *     it did - turning a cluster's fixes on, say, is not a link);
+   *   - while it is open;
+   *   - and when it is now linked to a cluster or resource remediation can
+   *     reach.
+   *
+   * Serialized per subject and decided again inside the lock, so two edits
+   * made together evaluate it once; without the lock (Valkey unreachable)
+   * it does not try again rather than risk two fixes at once. Never throws.
+   */
+  @CaptureSpan()
+  public async onSubjectLinksChanged(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    const subjectId: ObjectID | undefined = data.incidentId || data.alertId;
+
+    if (!subjectId) {
+      return false;
+    }
+
+    try {
+      if (!(await this.mayTryAgainAfterLinking(data))) {
+        return false;
+      }
+
+      let mutex: SemaphoreMutex;
+
+      try {
+        mutex = await Semaphore.lock({
+          key: `auto-remediation-relinked-${subjectId.toString()}`,
+          namespace: "AutoRemediationRuleEngine",
+          lockTimeout: 2 * 60 * 1000,
+          acquireTimeout: 30 * 1000,
+        });
+      } catch (error) {
+        logger.warn(
+          `AutoRemediationRuleEngine: could not take the lock to try again on a newly linked subject; not trying again: ${error}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return false;
+      }
+
+      try {
+        // Another edit may have made it try again while this one waited.
+        if (!(await this.mayTryAgainAfterLinking(data))) {
+          return false;
+        }
+
+        if (data.incidentId) {
+          await this.applyRulesToIncidentById({
+            incidentId: data.incidentId,
+            projectId: data.projectId,
+          });
+        } else if (data.alertId) {
+          await this.applyRulesToAlertById({
+            alertId: data.alertId,
+            projectId: data.projectId,
+          });
+        }
+
+        return true;
+      } finally {
+        try {
+          await Semaphore.release(mutex);
+        } catch (error) {
+          logger.error(
+            `AutoRemediationRuleEngine: failed to release the lock of a newly linked subject: ${error}`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not try again on a newly linked subject: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+          incidentId: data.incidentId?.toString(),
+          alertId: data.alertId?.toString(),
+        } as LogAttributes,
+      );
+      return false;
+    }
+  }
+
+  /*
+   * Whether linking may make OneUptime AI try again (onSubjectLinksChanged):
+   * the latest evaluation found the subject linked to nothing, it is open,
+   * and it is now linked to a cluster or resource remediation can reach.
+   */
+  private async mayTryAgainAfterLinking(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    const latest: AutoRemediationDecision | null =
+      await AutoRemediationDecisionService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          stage: AutoRemediationDecisionStage.Evaluated,
+          ...(data.incidentId
+            ? { incidentId: data.incidentId }
+            : { alertId: data.alertId! }),
+        },
+        select: { _id: true, entries: true },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+    if (!latest || !isLinkedToNothing(latest.entries)) {
+      return false;
+    }
+
+    const isResolved: boolean = data.incidentId
+      ? await IncidentService.isIncidentResolved({
+          incidentId: data.incidentId,
+        })
+      : await AlertService.isAlertResolved({ alertId: data.alertId! });
+
+    if (isResolved) {
+      return false;
+    }
+
+    const subject: {
+      projectId: ObjectID;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+    } = {
+      projectId: data.projectId,
+      incidentId: data.incidentId,
+      alertId: data.alertId,
+    };
+
+    const clusters: Array<unknown> =
+      await KubernetesClusterAiAccessService.getClustersForSubject(subject);
+
+    if (clusters.length > 0) {
+      return true;
+    }
+
+    const resources: Array<unknown> =
+      await ResourceAiAccessService.getResourcesForSubject(subject);
+
+    return resources.length > 0;
   }
 
   @CaptureSpan()

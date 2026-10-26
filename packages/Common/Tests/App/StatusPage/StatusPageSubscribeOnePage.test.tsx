@@ -20,7 +20,6 @@ import {
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import SubscriberUtil from "../../../UI/Utils/StatusPage";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -103,6 +102,10 @@ jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      // The page this tab shows, from where RouteMap reads it too.
+      getStatusPageId: (): ObjectID | null => {
+        return StatusPageInTab.get();
+      },
       checkIfUserHasLoggedIn: (): void => {},
       isPreviewPage: (): boolean => {
         return false;
@@ -162,6 +165,8 @@ import SlackSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subs
 import MicrosoftTeamsSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/MicrosoftTeamsSubscribe";
 import WebhookSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/WebhookSubscribe";
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
+import ObjectID from "../../../Types/ObjectID";
+import StatusPageInTab from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageInTab";
 
 const STATUS_PAGE_ID: string = "11111111-1111-4111-8111-111111111111";
 
@@ -327,7 +332,7 @@ async function pickEventType(label: string): Promise<void> {
 
 describe("Subscribing on a status page", () => {
   beforeEach(() => {
-    LocalStorage.setItem("statusPageId", STATUS_PAGE_ID);
+    StatusPageInTab.set(STATUS_PAGE_ID);
     createOrUpdateMock.mockReset();
     createOrUpdateMock.mockResolvedValue({ data: {} });
 

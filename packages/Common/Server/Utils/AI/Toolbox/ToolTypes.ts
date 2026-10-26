@@ -14,6 +14,7 @@ import {
   AIChatWidget,
 } from "../../../../Types/AI/AIChatTypes";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
+import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
 
 /*
  * The execution context for a tool call. projectId is ALWAYS the tenant from
@@ -31,6 +32,43 @@ export interface ToolContext {
    * through findReadableRepositories, which holds them to it.
    */
   codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
+  /*
+   * What the conversation is about: the page Ask AI was asked from, else
+   * the subject the conversation kept (ChatAgentRunner.resolvePageContext),
+   * or the incident or alert of its shared thread. A hint for the tools
+   * that act from a page - an incident declared on a host's page is linked
+   * to that host (create_incident) - never a permission: every read and
+   * write is still the person's own. Left out where a run has no page:
+   * Slack, Microsoft Teams, an autonomous investigation.
+   */
+  pageContext?: AIChatPageContext | undefined;
+}
+
+/*
+ * What a mutation will do, settled before it is shown for approval and run
+ * (ObservabilityTool.prepareMutation).
+ */
+export interface PreparedMutation {
+  /*
+   * The arguments that run once approved: the model's, with what the tool
+   * fills in from the conversation written out, so the person approves
+   * exactly what runs.
+   */
+  arguments: JSONObject;
+  /*
+   * The approval card's title, when the prepare names the record better
+   * than buildActionTitle can from the arguments alone: "Link incident
+   * #42 to affected resources", by the number the person knows it by,
+   * never its ID. Read with the person's own permissions; left out,
+   * buildActionTitle's title stands.
+   */
+  title?: string | undefined;
+  /*
+   * One sentence for the approval card, under its title, naming what the
+   * arguments name by ID: "Linked to host "test01"." Read with the
+   * person's own permissions.
+   */
+  description?: string | undefined;
 }
 
 export interface ToolExecutionResult {
@@ -86,6 +124,18 @@ export interface ObservabilityTool {
    * Falls back to the tool name when omitted.
    */
   buildActionTitle?: ((args: JSONObject) => string) | undefined;
+  /*
+   * For a mutation: what it will do, settled from the conversation before
+   * the person approves it (ChatAgentRunner calls it as the model asks for
+   * the action, in every permission mode). It writes out what the tool
+   * would otherwise fill in when it runs - the page's resource of an
+   * incident declared from it - so the approval card and the run agree,
+   * and names what the IDs stand for. Reads only, with ctx.props; never
+   * throws for the model's mistakes - execute reports those.
+   */
+  prepareMutation?:
+    | ((args: JSONObject, ctx: ToolContext) => Promise<PreparedMutation>)
+    | undefined;
   execute(args: JSONObject, ctx: ToolContext): Promise<ToolExecutionResult>;
 }
 

@@ -32,11 +32,12 @@ const Logout: () => JSX.Element = () => {
     }
   };
 
+  // Once for the page: keyed by the id's value, not a new ObjectID each render.
   useEffect(() => {
     logout().catch((error: Error) => {
       setError(error.message || error.toString());
     });
-  }, [StatusPageUtil.getStatusPageId()]);
+  }, [StatusPageUtil.getStatusPageId()?.toString() || ""]);
 
   if (error) {
     return <ErrorMessage message={error} />;

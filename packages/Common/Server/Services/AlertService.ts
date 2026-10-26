@@ -2179,6 +2179,27 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
         const alertNumberWithPrefix: string | undefined =
           alert!.alertNumberWithPrefix || undefined;
 
+        /*
+         * Linked to what it is about - a cluster, a host, its monitor -
+         * after auto-remediation found nothing it could fix on it because
+         * it was linked to nothing (#5293): OneUptime AI tries again, when
+         * the engine finds it may (onSubjectUpdated). Not awaited: an edit
+         * never waits for a fix to start.
+         */
+        AutoRemediationRuleEngineService.onSubjectUpdated({
+          projectId: projectId,
+          alertId: alertId,
+          written: onUpdate.updateBy.data,
+        }).catch((relinkError: unknown) => {
+          logger.error(
+            `Trying auto-remediation again failed in AlertService.onUpdateSuccess: ${relinkError}`,
+            {
+              projectId: projectId?.toString(),
+              alertId: alertId?.toString(),
+            } as LogAttributes,
+          );
+        });
+
         let feedInfoInMarkdown: string =
           mdText`**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`.toString();
 
