@@ -166,11 +166,13 @@ function readIntervalField(defaultMinutes: number): CloudConnectionField {
 /*
  * The two choices, and the line under the title, in the cloud's own words:
  * an AWS account of an organization, an Azure subscription of a tenant, a
- * Google Cloud project of an organization.
+ * Google Cloud project of an organization. Each choice is written as a
+ * label, so the Dashboard's string extraction finds it and the form shows
+ * it in the reader's language.
  */
 function readScopeField(data: {
-  one: string;
-  every: string;
+  one: { label: string };
+  every: { label: string };
   description: string;
   authMethods?: Array<CloudConnectionAuthMethod> | undefined;
 }): CloudConnectionField {
@@ -181,8 +183,8 @@ function readScopeField(data: {
     type: "dropdown",
     required: false,
     options: [
-      { label: data.one, value: "account" },
-      { label: data.every, value: "organization" },
+      { label: data.one.label, value: "account" },
+      { label: data.every.label, value: "organization" },
     ],
     defaultValue: "account",
     authMethods: data.authMethods,
@@ -239,8 +241,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         authMethods: [CloudConnectionAuthMethod.AwsAccessKey],
       },
       readScopeField({
-        one: "This account",
-        every: "Every account in the organization",
+        one: { label: "This account" },
+        every: { label: "Every account in the organization" },
         description:
           "One account, or every account of the organization. The command changes with it.",
         authMethods: [CloudConnectionAuthMethod.AwsRole],
@@ -310,8 +312,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         placeholder: "00000000-0000-0000-0000-000000000000",
       },
       readScopeField({
-        one: "This subscription",
-        every: "Every subscription in the tenant",
+        one: { label: "This subscription" },
+        every: { label: "Every subscription in the tenant" },
         description:
           "One subscription, or every subscription of the tenant. The command changes with it.",
       }),
@@ -386,8 +388,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
     ],
     configFields: [
       readScopeField({
-        one: "This project",
-        every: "Every project in the organization",
+        one: { label: "This project" },
+        every: { label: "Every project in the organization" },
         description:
           "One project, or every project of the organization. The command changes with it.",
       }),

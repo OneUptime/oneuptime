@@ -39,7 +39,7 @@ import {
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../../../Components/AppLink/AppLink";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import CloudResourceInventoryCards from "../../../Components/Cloud/CloudResourceInventoryCards";
@@ -293,7 +293,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         chips={chips}
         tiles={[]}
         detailRows={detailRows}
-        detailsDescription="What its cloud says it is, where it is, and how OneUptime reads it."
+        detailsDescription={translationKey(
+          "What its cloud says it is, where it is, and how OneUptime reads it.",
+        )}
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}

@@ -40,7 +40,7 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -371,7 +371,9 @@ const CloudAccountOverview: FunctionComponent<
         chips={chips}
         tiles={tiles}
         detailRows={detailRows}
-        detailsDescription="Which account it is in its cloud, and the connection that reads it."
+        detailsDescription={translationKey(
+          "Which account it is in its cloud, and the connection that reads it.",
+        )}
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS)}
         labels={account.labels}
