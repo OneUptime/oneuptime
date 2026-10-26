@@ -558,10 +558,11 @@ jobs:
           # refresh, links, Subscribe form and password its own, and another
           # page's address opened in full) joined them the same day, still
           # the lightest: about 18. #5298's UI review grew Docker Swarm Pages
-          # by nine tests (where names break, sparklines that line up and
+          # by twelve tests (where names break, sparklines that line up and
           # stay under the pointer, the hero's description and its Show more,
-          # right to left: 1.5 minutes locally for its 28 with the bundle) and
-          # added Resource Overviews (1.2 minutes locally with its bundle,
+          # its pills in German and for an agent that stopped reporting,
+          # right to left: 1.3 minutes locally for its 31 with the bundle) and
+          # added Resource Overviews (1.3 minutes locally with its bundle,
           # Chromium only: a service's, a database's and a queue's Overview -
           # the Details card's ID line, the labels card on a phone only, long
           # values, the description under the name and the hero's controls -
