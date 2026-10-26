@@ -450,6 +450,11 @@ describe("a screenshot in an incident description, over SMTP", () => {
   });
 });
 
+/*
+ * The attachments MailService hands @sendgrid/mail, which sends them as
+ * they are: SendGrid reads the Content-ID from content_id (issue #5308).
+ * InlineImagesOnEveryMailTransport sends them through the real client.
+ */
 describe("a screenshot in an incident description, over SendGrid", () => {
   test("goes out as an inline attachment with its Content-ID", async () => {
     jest.mocked(getEmailServerType).mockResolvedValue("Sendgrid" as never);
@@ -485,14 +490,14 @@ describe("a screenshot in an incident description, over SendGrid", () => {
         filename: "oneuptime-logo.png",
         type: "image/png",
         disposition: "inline",
-        contentId: contentIds[0],
+        content_id: contentIds[0],
       },
       {
         content: PNG,
         filename: "image-1.png",
         type: "image/png",
         disposition: "inline",
-        contentId: contentIds[1],
+        content_id: contentIds[1],
       },
     ]);
     expect(message.html).not.toContain("data:image");
@@ -525,7 +530,7 @@ describe("a screenshot in an incident description, over SendGrid", () => {
         filename: "oneuptime-logo.png",
         type: "image/png",
         disposition: "inline",
-        contentId: contentIdsIn(message.html)[0],
+        content_id: contentIdsIn(message.html)[0],
       },
     ]);
   });

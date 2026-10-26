@@ -8,6 +8,7 @@ import Markdown, {
   MarkdownContentType,
 } from "../../../../Server/Types/Markdown";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Just before an email is sent, every inline raster image its HTML holds
@@ -519,5 +520,118 @@ describe("EmailInlineImages.attachImage - an image of the email's own", () => {
 
     expect(Date.now() - startedAt).toBeLessThan(2000);
     expect(attached.html).toBe(html);
+  });
+});
+
+/*
+ * An email a mail service would not take with its images goes once more
+ * without them (MailService, InlineImageRefusal): each image a text placed
+ * becomes a note, as an image too large for the email does, saying it could
+ * not be included.
+ */
+describe("EmailInlineImages.leaveOut - an email without its images", () => {
+  test("each inline image becomes a note with its alt text", () => {
+    expect(
+      EmailInlineImages.leaveOut(
+        `<p>Before</p>${image(PNG)}<p>After</p>${image(JPEG, "image/jpeg")}`,
+      ),
+    ).toBe(
+      '<p>Before</p><span style="color:#64748b;font-style:italic;">[Shot: image could not be included in this email]</span><p>After</p><span style="color:#64748b;font-style:italic;">[Shot: image could not be included in this email]</span>',
+    );
+  });
+
+  test("an image without alt text says so plainly", () => {
+    expect(
+      EmailInlineImages.leaveOut(
+        `<img src="data:image/png;base64,${PNG}" alt="">`,
+      ),
+    ).toBe(
+      '<span style="color:#64748b;font-style:italic;">[Image could not be included in this email]</span>',
+    );
+  });
+
+  test("the note keeps the alt text escaped, as the renderer wrote it", async () => {
+    const description: string = await Markdown.convertToHTML(
+      `![a <b>bold</b> & "quoted" shot](data:image/png;base64,${PNG})`,
+      MarkdownContentType.Email,
+    );
+
+    expect(EmailInlineImages.leaveOut(description)).toBe(
+      '<p><span style="color:#64748b;font-style:italic;">[a &lt;b&gt;bold&lt;/b&gt; &amp; &quot;quoted&quot; shot: image could not be included in this email]</span></p>\n',
+    );
+  });
+
+  test("leaves out exactly what attach() would attach, and nothing else", () => {
+    const html: string = [
+      image(PNG),
+      '<img src="https://oneuptime.example.com/logo.png" alt="Logo">',
+      `<img src="data:image/svg+xml;base64,${Buffer.from("<svg/>").toString("base64")}" alt="Vector">`,
+      "<p>The response was data:image/png;base64,iVBORw0KGgo=</p>",
+      `<img alt="Second" src="data:image/png;base64,${PNG}">`,
+    ].join("");
+
+    const left: string = EmailInlineImages.leaveOut(html);
+
+    expect(sourcesIn(left)).toEqual(
+      sourcesIn(EmailInlineImages.attach(html).html).filter(
+        (source: string): boolean => {
+          return !source.startsWith("cid:");
+        },
+      ),
+    );
+    expect(left).toContain(
+      '<img src="https://oneuptime.example.com/logo.png" alt="Logo">',
+    );
+    expect(left).toContain('alt="Vector"');
+    expect(left).toContain(
+      "<p>The response was data:image/png;base64,iVBORw0KGgo=</p>",
+    );
+    expect(left).toContain("[Second: image could not be included");
+    expect(left).not.toContain(PNG);
+  });
+
+  test("no limit applies: every image is left out, however small or few", () => {
+    const html: string = `${image(PNG)}${image(PNG)}`;
+
+    expect(
+      EmailInlineImages.leaveOut(html).match(/could not be included/g),
+    ).toHaveLength(2);
+    expect(EmailInlineImages.attach(EmailInlineImages.leaveOut(html))).toEqual({
+      html: EmailInlineImages.leaveOut(html),
+      inlineImages: [],
+    });
+  });
+
+  test.each([
+    ["an empty body", ""],
+    ["a body with no image", "<p>Hello <strong>world</strong></p>"],
+    [
+      "an https image",
+      '<img src="https://oneuptime.example.com/logo.png" alt="Logo">',
+    ],
+    ["an image already a Content-ID", '<img src="cid:a@oneuptime" alt="">'],
+  ])("%s comes back exactly as it was", (_name: string, html: string) => {
+    expect(EmailInlineImages.leaveOut(html)).toBe(html);
+  });
+
+  test("is done once: leaving out again changes nothing", () => {
+    const once: string = EmailInlineImages.leaveOut(image(PNG));
+
+    expect(EmailInlineImages.leaveOut(once)).toBe(once);
+  });
+
+  test("a body full of unclosed <img tags, in linear time", () => {
+    const html: string = `${"<img src='data:image/png;base64,".repeat(20000)}`;
+
+    const run: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return EmailInlineImages.leaveOut(html);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(html.length).toBeGreaterThan(400000);
+    expect(run.inMs).toBeLessThan(2000);
+    expect(run.result).toBe(html);
   });
 });

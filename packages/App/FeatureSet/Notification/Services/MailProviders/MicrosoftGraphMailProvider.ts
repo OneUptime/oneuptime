@@ -1,4 +1,8 @@
 import SMTPOAuthService from "../SMTPOAuthService";
+import InlineImageAttachments from "./InlineImageAttachments";
+import InlineImageRefusal, {
+  InlineImageRefusalFlag,
+} from "./InlineImageRefusal";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import URL from "Common/Types/API/URL";
@@ -22,13 +26,22 @@ interface GraphErrorBody {
  * Extends BadDataException so the message still surfaces cleanly in the email
  * log / on-call timeline once retries are exhausted.
  */
-class GraphSendException extends BadDataException {
+export class GraphSendException
+  extends BadDataException
+  implements InlineImageRefusalFlag
+{
   /*
    * Whether retrying this request could plausibly succeed (throttling, 5xx,
    * network blips). False for auth/permission/mailbox errors that will fail
    * identically on every retry.
    */
   public readonly isRetryable: boolean;
+
+  /*
+   * Whether Graph refused the email for its inline images
+   * (InlineImageRefusal): MailService then sends it once more without them.
+   */
+  public readonly refusedInlineImages: boolean;
 
   /*
    * Value of Graph's `Retry-After` header (seconds), when present. The server
@@ -39,11 +52,16 @@ class GraphSendException extends BadDataException {
 
   public constructor(
     message: string,
-    options: { isRetryable: boolean; retryAfterSeconds?: number | undefined },
+    options: {
+      isRetryable: boolean;
+      retryAfterSeconds?: number | undefined;
+      refusedInlineImages?: boolean | undefined;
+    },
   ) {
     super(message);
     this.isRetryable = options.isRetryable;
     this.retryAfterSeconds = options.retryAfterSeconds;
+    this.refusedInlineImages = options.refusedInlineImages === true;
   }
 }
 
@@ -332,24 +350,15 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
           },
         },
         /*
-         * Images the body points at by Content-ID. The caller keeps them
-         * small enough (EmailInlineImages) for this whole request to stay
-         * under Graph's 4 MB limit on sendMail.
+         * Images the body points at by Content-ID, as inline file
+         * attachments (InlineImageAttachments). The caller keeps them small
+         * enough (EmailInlineImages) for this whole request to stay under
+         * Graph's 4 MB limit on sendMail.
          */
         ...(inlineImages.length > 0
           ? {
-              attachments: inlineImages.map(
-                (image: EmailInlineImage): Record<string, unknown> => {
-                  return {
-                    "@odata.type": "#microsoft.graph.fileAttachment",
-                    name: image.fileName,
-                    contentType: image.mimeType,
-                    contentBytes: image.base64,
-                    contentId: image.contentId,
-                    isInline: true,
-                  };
-                },
-              ),
+              attachments:
+                InlineImageAttachments.forMicrosoftGraph(inlineImages),
             }
           : {}),
       },
@@ -435,7 +444,13 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
 
     throw new GraphSendException(
       MicrosoftGraphMailProvider.explainGraphError(response.status, detail),
-      { isRetryable, retryAfterSeconds },
+      {
+        isRetryable,
+        retryAfterSeconds,
+        refusedInlineImages:
+          inlineImages.length > 0 &&
+          InlineImageRefusal.isMicrosoftGraphRefusal(response.status, detail),
+      },
     );
   }
 
