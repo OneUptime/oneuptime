@@ -237,12 +237,11 @@ export function splitTableHeaderButtons(
 
 /*
  * The main button, as the header draws it. On a phone it says its short
- * words, when
- * it has them (CardButtonSchema.phoneTitle): beside the ⋯ there,
- * "Create Scheduled Maintenance Event" broke onto two lines and stood
- * twice as tall as the ⋯. Named by its whole title, which holds the short
- * words (ShortButtonWords), so a voice command and a screen reader still
- * find it by what it does; from md up it says the whole title.
+ * words when it has them (CardButtonSchema.phoneTitle): beside the ⋯
+ * there, "Create Scheduled Maintenance Event" broke onto two lines and
+ * stood twice as tall as the ⋯. Named by its whole title, which holds the
+ * short words (ShortButtonWords), so a voice command and a screen reader
+ * still find it by what it does; from md up it says the whole title.
  */
 const TableHeaderMainButton: FunctionComponent<{
   button: CardButtonSchema;
