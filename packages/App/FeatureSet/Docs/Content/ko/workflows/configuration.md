@@ -175,7 +175,7 @@ API 블록과 그 밖의 HTTP 블록은 OneUptime에서 요청을 보내고, IRC
 정확히 한 가지만 필요한 팀이나 API 키를 위한 개별 권한:
 
 - **Create / Read / Edit / Delete Workflow** — 워크플로 자체에 대한 기본 권한입니다. 워크플로를 바꾸는 것은, 켜고 끄거나 보관하는 것을 포함해 **Edit Workflow**가 필요합니다. **Delete Workflow**는 삭제만 합니다.
-- **Edit Workflow** — **Run just this step**으로 단계 하나를 따로 실행하거나, 워크플로의 웹훅 URL과 수신 이메일 주소를 보거나 재설정할 때도 필요합니다. 워크플로 전체를 수동으로 실행하려면 **Edit Workflow**, **워크플로 관리자** 또는 **워크플로 구성원**가 필요합니다.
+- **Edit Workflow** — **Run just this step**으로 단계 하나를 따로 실행하거나, 워크플로의 웹훅 URL과 수신 이메일 주소를 보거나 재설정할 때도 필요합니다. 워크플로 전체를 수동으로 실행하려면 **Edit Workflow**, **워크플로 관리자** 또는 **워크플로 구성원**이 필요합니다.
 - **Read Workflow Log** — 실행을 보는 데 필요합니다.
 - **Create / Read / Edit / Delete Workflow Variables** — 전역 변수와 워크플로 변수 관리.
 
@@ -185,7 +185,7 @@ API 블록과 그 밖의 HTTP 블록은 OneUptime에서 요청을 보내고, IRC
 
 ## 워크플로 단계가 할 수 있는 일
 
-OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 구성 요소와 On Create, On Update, On Create or Update, On Delete 트리거 — 는 워크플로 프로젝트의 **프로젝트 관리자**으로 동작합니다. 누가 워크플로를 만들었든, 단계는 Project Admin이 대시보드와 API에서 받는 것과 같은 검사를 받습니다.
+OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 구성 요소와 On Create, On Update, On Create or Update, On Delete 트리거 — 는 워크플로 프로젝트의 **프로젝트 관리자**로 동작합니다. 누가 워크플로를 만들었든, 단계는 Project Admin이 대시보드와 API에서 받는 것과 같은 검사를 받습니다.
 
 - **워크플로 자체의 프로젝트만.** 단계는 워크플로가 속한 프로젝트의 레코드만 읽고 쓰며 다른 프로젝트는 건드리지 않고, Update는 레코드를 다른 프로젝트로 옮기지 않습니다.
 - **Project Admin에게 허용된 것만.** 단계는 **프로젝트 소유자**, 청구, 프로젝트 삭제 권한으로만 할 수 있는 일을 할 수 없으며, 프로브나 AI 에이전트를 누가 만들었는지 읽을 수 없습니다. 그것은 프로젝트 소유자만 봅니다.

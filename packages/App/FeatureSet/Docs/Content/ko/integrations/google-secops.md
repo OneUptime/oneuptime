@@ -152,7 +152,7 @@ flowchart TB
 
 커넥터는 각 폴링에 고정된 예산을 줍니다. 규칙 탐지 패스는 검색 페이지 **20**개, 큐레이션 패스는 최대 **200**개의 요청(개수 조회 하나와, 지난 일주일 동안 발동한 큐레이션된 규칙마다 최소 한 페이지, 가장 바쁜 규칙부터), 알림 뷰와 늦은 알림 훑기는 함께 **16**개의 요청을 쓰며, 전체 읽기는 **4분** 뒤에 멈춥니다. 큐레이션 패스는 그 시간의 60%가 지나면 새로운 큐레이션된 규칙을 더 시작하지 않으므로, 알림 뷰는 여전히 실행됩니다. 폴링이 활성화된 큐레이션된 규칙을 모두 검색할 수 없으면, 커서를 붙잡아 두는 대신 검색하지 못한 규칙 수를 밝힌 경고를 기록합니다. 구간을 줄여도 그 규칙들을 모두 검색해야 하는 것은 마찬가지이기 때문입니다. 예산 때문에 도중에 멈춘 패스는 그 예산을 밝힌 경고 검사로 기록되고(예: `Read rule detections by created time was stopped by the request budget after 20 requests.`), 예산 때문에 시작조차 못 한 패스는 같은 이유가 실행의 경고에 적힌 건너뛴 검사가 되며, 절대 성공으로 기록되지 않습니다. 그보다 많은 탐지가 있는 구간은 한 번의 폴링으로 읽을 수 없으며, 폴링이 같은 구간을 영원히 다시 읽는 일은 없습니다:
 
-1. **좁히기.** Google의 검색 엔드포인트는 가장 새로운 탐지부터 반환하므로, 일찍 멈춘 폴링에는 다시 시작할 지점이 없습니다. 폴링은 **부분**로 기록되고, 커서는 그대로 머물며, 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽고 `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 경고를 남깁니다. 구간이 한도 안에 들어올 때까지 1분까지 계속 절반으로 줄입니다.
+1. **좁히기.** Google의 검색 엔드포인트는 가장 새로운 탐지부터 반환하므로, 일찍 멈춘 폴링에는 다시 시작할 지점이 없습니다. 폴링은 **부분**으로 기록되고, 커서는 그대로 머물며, 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽고 `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 경고를 남깁니다. 구간이 한도 안에 들어올 때까지 1분까지 계속 절반으로 줄입니다.
 2. **다시 늘리기.** 완전한 폴링마다 다음 구간이 최대 24시간까지 두 배가 되므로, 폭주는 연결을 영구적으로 느리게 만드는 대신 짧은 폴링 몇 번으로 끝납니다.
 3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 탐지가 있으면, 더 새로운 탐지가 계속 도착하도록 폴링이 커서를 그 1분 너머로 옮깁니다. 실행은 **부분**이 되고 **마지막 오류**의 맨 앞에 같은 문장이 옵니다: `More records were created in the one minute from {start} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 한 번의 실행으로 읽을 수 있는 만큼 되찾으려면 **진단**을 열고, 그 1분을 포함하는 사용자 지정 범위를 고른 다음(범위 입력은 현지 시각을 쓰고, 메시지는 UTC입니다) **Import this time range**를 실행합니다. 가져오기에는 폴링과 같은 실행당 한도가 있습니다. 이미 가져온 탐지는 건너뜁니다.
 
@@ -247,7 +247,7 @@ Google Cloud에서 SecOps 인스턴스가 연결된 프로젝트에 서비스 �
 
 ### 대상 추가하기
 
-**제품 → Security Events → 연결**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Google SecOps를 고른 뒤 **다음** 을 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
+**제품 → Security Events → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Google SecOps를 고른 뒤 **다음** 을 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
 
 ### 테스트 이벤트 보내기
 
@@ -285,7 +285,7 @@ Diagnostics에서 정확한 시간 구간, 시간 기준, 저장된 **Data to im
 :::
 
 :::details 상태가 비활성화됨
-예약된 폴링이 이 연결을 건너뜁니다. 권한이 있는 사용자는 여전히 Diagnostics에서 테스트하고, 미리 보고, **지금 실행**로 폴링을 실행하거나, 가져올 수 있습니다.
+예약된 폴링이 이 연결을 건너뜁니다. 권한이 있는 사용자는 여전히 Diagnostics에서 테스트하고, 미리 보고, **지금 실행**으로 폴링을 실행하거나, 가져올 수 있습니다.
 :::
 
 :::details Last Polled가 `Never`이고 Last Error가 비어 있음
@@ -321,7 +321,7 @@ OAuth 토큰 교환에 성공했다면 Google이 서비스 계정 자격 증명�
 1. **실행 중인 앱과 워커 이미지 버전**을 확인합니다. 로컬 커넥터 소스 파일을 업데이트하거나 서비스 계정 JSON을 다시 업로드해도 배포된 컨테이너는 업데이트되지 않습니다. 폴링 작업을 실행하는 모든 앱이나 전용 워커에 커넥터 수정이 담긴 이미지를 배포하세요. 직접 이미지를 빌드한다면 수정된 소스로 다시 빌드하고 새로운 불변 태그로 배포하세요. 이전 이미지로 파드를 다시 시작하는 것만으로는 부족합니다.
 2. [Google API 레퍼런스](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView)와 비교해 알림 뷰 요청을 확인합니다. 요청은 `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=`(빈 값은 모든 알림 상태를 포함), `alertListOptions.maxReturnedAlerts`, 그리고 저장된 **Data to import** 선택에서 명시적으로 설정한 `includeNonAlertingDetections`를 사용합니다. 그 엔드포인트에 `pageSize`나 `pageToken`을 보내면 안 됩니다. 두 생성 시각 패스는 [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections)와 `legacySearchCuratedDetections`를 사용하며, 여기서는 `ruleId`, `listBasis`, `alertState`, `pageSize`, `pageToken`이 문서화된 매개변수이고, 그 실패에는 대신 탐지 검색 접두사가 붙습니다. `legacySearchCuratedDetections`는 항상 큐레이션된 규칙 ID 하나를 받으며, `-`는 절대 받지 않습니다. 닫힌 알림을 제외하는 필터로 대신하지 마세요. 탐지를 잃게 됩니다.
 3. 전체 `projects/{project}/locations/{location}/instances/{instance}` 리소스를 Google SecOps 테넌트 설정의 값과 비교합니다. instance 부분은 SecOps 인스턴스 ID여야 합니다. 연결의 표시 이름이나 서비스 계정 이름으로 대신할 수 없습니다. 지역 엔드포인트가 인스턴스 위치와 일치하는지 확인합니다.
-4. 롤아웃이 끝난 뒤 구성된 다음 폴링 간격까지 기다립니다. 완전한 폴링이 끝나면 **마지막 폴링**가 앞으로 나아가고 **마지막 오류**가 지워져야 합니다. 구간에 탐지가 있다면 **제품 → Security Events** 아래에 나타나야 합니다. 조용한 구간이라면 가져온 이벤트가 0개인 것이 정상일 수 있습니다.
+4. 롤아웃이 끝난 뒤 구성된 다음 폴링 간격까지 기다립니다. 완전한 폴링이 끝나면 **마지막 폴링**이 앞으로 나아가고 **마지막 오류**가 지워져야 합니다. 구간에 탐지가 있다면 **제품 → Security Events** 아래에 나타나야 합니다. 조용한 구간이라면 가져온 이벤트가 0개인 것이 정상일 수 있습니다.
 
 같은 오류가 계속되면 연결의 **작업** 열에서 **오류 보기**를 열고, 대화 상자의 **오류 복사**를 사용해 그 메시지와 이미지 태그 또는 다이제스트, 지역, 인스턴스 리소스 이름을 지원팀에 제공하세요. 기록된 메시지의 자격 증명은 가려져 있습니다. 서비스 계정 비공개 키, JWT 어설션, 액세스 토큰을 따로 보내지 마세요. 업그레이드 전에 기록된 오류는 이미 잘려 있을 수 있으며, 이후 실패한 폴링이 전체 메시지를 기록합니다. 실패한 폴링은 다시 시도하기 위해 구간을 유지하고, 부분 폴링은 다음 구간을 좁히거나 Last Error에 적힌 1분을 넘어갑니다. 예약된 따라잡기는 실행마다 최대 24시간을 처리합니다.
 

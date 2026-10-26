@@ -58,7 +58,7 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 3. 실행 페이지가 열립니다.
 :::
 
-실행을 시작하려면 Project Owner, Project Admin, Project Member, Runbook Admin, Runbook Member 중 하나 또는 **Create Runbook Execution** 권한이 필요합니다. Runbook Viewer와 Viewer에게는 **지금 실행**가 이유와 함께 잠겨 표시됩니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
+실행을 시작하려면 Project Owner, Project Admin, Project Member, Runbook Admin, Runbook Member 중 하나 또는 **Create Runbook Execution** 권한이 필요합니다. Runbook Viewer와 Viewer에게는 **지금 실행**이 이유와 함께 잠겨 표시됩니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
 
 ## 실행 보기
 

@@ -109,13 +109,13 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 알림은 오래된 것부터 읽히므로, OneUptime은 커서를 마지막으로 읽은 알림의 생성 시각으로 옮기고, 다음 폴링은 같은 구간 길이로 거기서 시작합니다. 바쁜 스페이스는 같은 알림을 다시 읽는 대신 폴링마다 10,000개씩 따라잡습니다. 정확히 같은 순간에 만들어진 알림은 두 번 읽히며, 중복 검사가 두 번째 사본을 걸러 냅니다.
 
-제외한 ID는 모든 요청에 함께 보내지며, Kibana는 요청의 크기를 제한합니다. 한 요청이 제외할 수 있는 것보다 많은 알림(약 7,800개)이 같은 순간을 공유하면, 실행은 거기서 **부분**로 멈추며 그 순간을 알려 주는 경고가 나옵니다.
+제외한 ID는 모든 요청에 함께 보내지며, Kibana는 요청의 크기를 제한합니다. 한 요청이 제외할 수 있는 것보다 많은 알림(약 7,800개)이 같은 순간을 공유하면, 실행은 거기서 **부분**으로 멈추며 그 순간을 알려 주는 경고가 나옵니다.
 
 실행이 저장된 커서를 전혀 넘어서지 못하면, OneUptime은 대신 구간을 줄입니다:
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
 Kibana의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
@@ -154,7 +154,7 @@ Kibana에서 **Stack Management → API keys** 를 열고 **Create API key** 를
 
 ### 대상 추가하기
 
-**제품 → Security Events → 연결**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Elastic Security를 고른 뒤 **다음** 을 클릭합니다. **Elasticsearch URL** 에 Kibana가 아니라 배포의 Elasticsearch 엔드포인트를 입력하고, 키를 **API 키** 에 붙여 넣습니다. **데이터 스트림** 은 선택 사항입니다. 비워 두면 문서는 `logs-oneuptime.security-default` 로 가며, Elasticsearch가 처음 쓸 때 이를 만듭니다.
+**제품 → Security Events → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Elastic Security를 고른 뒤 **다음** 을 클릭합니다. **Elasticsearch URL** 에 Kibana가 아니라 배포의 Elasticsearch 엔드포인트를 입력하고, 키를 **API 키** 에 붙여 넣습니다. **데이터 스트림** 은 선택 사항입니다. 비워 두면 문서는 `logs-oneuptime.security-default` 로 가며, Elasticsearch가 처음 쓸 때 이를 만듭니다.
 
 ### 테스트 이벤트를 보내고 전송 시작하기
 
@@ -216,7 +216,7 @@ Kibana에서 **Stack Management → API keys** 를 열고 **Create API key** 를
 :::
 
 :::details 실행이 Partial임
-- `Stopped after collecting 10000 alerts; the window holds more`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 알림이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 알림 다음부터 시작합니다. 폴링할 때마다 **부분**로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 스페이스가 폴링 간격마다 10,000개가 넘는 알림을 만들고 있는 것입니다. **폴링 간격(분)** 값을 줄이세요.
+- `Stopped after collecting 10000 alerts; the window holds more`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 알림이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 알림 다음부터 시작합니다. 폴링할 때마다 **부분**으로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 스페이스가 폴링 간격마다 10,000개가 넘는 알림을 만들고 있는 것입니다. **폴링 간격(분)** 값을 줄이세요.
 - `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 

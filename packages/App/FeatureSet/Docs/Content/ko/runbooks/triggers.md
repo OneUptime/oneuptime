@@ -136,7 +136,7 @@ URL이 유출되면 **URL 재설정** 을 클릭하세요. Runbook에 새 URL이
 | --- | --- |
 | Bash, kubectl | 환경 변수: 최상위 값마다 하나씩인 `ONEUPTIME_INPUT_<NAME>`, 개체 전체를 JSON으로 담은 `ONEUPTIME_INPUTS`, 실행을 시작한 것을 담은 `ONEUPTIME_TRIGGER` (예: `Webhook` 또는 `Schedule`). |
 | JavaScript | 보낸 그대로의 개체인 `args.inputs` 와 `args.trigger`. |
-| AI | **트리거 컨텍스트 포함** 가 켜져 있으면 프롬프트 안에서 OneUptime 외부의 데이터로 표시됩니다. |
+| AI | **트리거 컨텍스트 포함** 이 켜져 있으면 프롬프트 안에서 OneUptime 외부의 데이터로 표시됩니다. |
 | HTTP request, SSH | 전혀 읽지 않습니다. URL, 스크립트, 대상은 Runbook에 적힌 그대로이며 호출자가 보내는 어떤 것도 이를 바꾸지 못합니다. |
 
 변수 이름은 값의 이름을 대문자로 바꾼 것이며, 문자나 숫자가 아닌 모든 문자는 `_` 로 씁니다. `host-name` 은 `ONEUPTIME_INPUT_HOST_NAME` 이 됩니다. 텍스트는 그대로, 숫자와 `true` 또는 `false` 는 쓰인 그대로, 개체와 목록은 JSON으로 전달됩니다. 단계는 이런 변수를 최대 100개까지 받고, 100자보다 긴 이름은 변수가 되지 않습니다. 모든 값은 여전히 `ONEUPTIME_INPUTS` 에 있습니다. 모든 이름이 `ONEUPTIME_` 으로 시작하므로 호출자는 `PATH` 나 Runner가 읽는 다른 변수를 설정할 수 없습니다.
