@@ -3345,7 +3345,9 @@ describe("reminder rules", () => {
       ),
     ).toContain("SCHEDULED_MAINTENANCE_REMINDER_TIMING_RULE,");
     expect(
-      readCommonSource("Types/Reminder/ScheduledMaintenanceReminderNeverReminds.ts"),
+      readCommonSource(
+        "Types/Reminder/ScheduledMaintenanceReminderNeverReminds.ts",
+      ),
     ).toContain(
       "values.remindWhileScheduled !== true &&\n    values.stopRemindersOnState ===\n      ScheduledMaintenanceReminderStopState.Ongoing",
     );

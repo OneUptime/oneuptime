@@ -13132,9 +13132,7 @@ test.describe("Escalate", () => {
       .getByTestId("modal-footer-submit-button")
       .click();
     await expect(escalateDialog(page)).toHaveCount(0);
-    await expect(heroActions(page).getByRole("button")).toHaveText([
-      "Resolve",
-    ]);
+    await expect(heroActions(page).getByRole("button")).toHaveText(["Resolve"]);
     await expectRenderedText(heroChips(page), "Acknowledged SEV-2");
   });
 
