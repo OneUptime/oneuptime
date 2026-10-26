@@ -1,6 +1,13 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import RemediationDecisionList, {
   goToPagePlace,
@@ -13,7 +20,10 @@ import {
   RemediationDecisionLine,
   RemediationDecisionTone,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
-import { PAGE_ANCHOR_LANDED_ATTRIBUTE } from "../../../UI/Utils/PageAnchor";
+import {
+  PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_ATTRIBUTE,
+} from "../../../UI/Utils/PageAnchor";
 import Route from "../../../Types/API/Route";
 import {
   AutoRemediationDecisionLane,
@@ -620,7 +630,7 @@ describe("RemediationDecisionList - the place a line sends the reader to", () =>
     ).toHaveAttribute("aria-hidden", "true");
   });
 
-  test("brings the Affected Resources card into view and marks where it landed", () => {
+  test("brings the Affected Resources card into view and marks where it landed", async () => {
     const place: HTMLElement = placeOnPage();
 
     render(<RemediationDecisionList lines={nothingLinkedLines()} />);
@@ -630,6 +640,48 @@ describe("RemediationDecisionList - the place a line sends the reader to", () =>
       .click();
 
     expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    // Its top under the sticky header, once the browser has drawn it.
+    await waitFor(() => {
+      expect(place.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    });
+  });
+
+  /*
+   * Clicking or pressing the button gives it the focus. The card takes it
+   * on, as a link to a place on a page hands it on: Tab goes on from the
+   * card's Edit, not from a button scrolled out of sight, and a screen
+   * reader reads where the page went.
+   */
+  test("hands the button's focus on to the card it lands on", () => {
+    const place: HTMLElement = placeOnPage();
+
+    render(<RemediationDecisionList lines={nothingLinkedLines()} />);
+
+    const go: HTMLElement = within(lines()[0]!).getByRole("button", {
+      name: "Go to Affected Resources",
+    });
+    go.focus();
+    expect(document.activeElement).toBe(go);
+
+    fireEvent.click(go);
+
+    expect(document.activeElement).toBe(place);
+    expect(place).toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE, "true");
+  });
+
+  test("never takes focus held anywhere else", () => {
+    const place: HTMLElement = placeOnPage();
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+
+    expect(goToPagePlace(AFFECTED_RESOURCES_PLACE_ID, null)).toBe(true);
+
+    expect(document.activeElement).toBe(field);
+    expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(place).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+
+    field.remove();
   });
 
   test("goToPagePlace says whether the place was on the page, and changes nothing when it was not", () => {

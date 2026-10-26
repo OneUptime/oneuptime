@@ -60,9 +60,14 @@ const DECISION_LINK_CLASS_NAME: string =
  * Takes the reader to a place on the page - the Affected Resources card -
  * the way a link to a place on a page lands (Utils/PageAnchor): brought
  * into view under the sticky header and tinted for a moment, so the eye
- * finds it. A place that is not on the page leaves the page as it is.
+ * finds it, and given the focus of the control that went there (`from`),
+ * so Tab goes on from the card and a screen reader reads it. A place that
+ * is not on the page leaves the page as it is.
  */
-export function goToPagePlace(placeId: string): boolean {
+export function goToPagePlace(
+  placeId: string,
+  from?: Element | null | undefined,
+): boolean {
   const element: HTMLElement | null = document.getElementById(placeId);
 
   if (!element) {
@@ -70,7 +75,7 @@ export function goToPagePlace(placeId: string): boolean {
   }
 
   bringPageAnchorIntoView(element);
-  markPageAnchorLanded(element);
+  markPageAnchorLanded(element, { takesFocusFrom: from || null });
   return true;
 }
 
@@ -169,9 +174,12 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         data-testid="remediation-decision-place"
-                        onClick={() => {
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ) => {
                           goToPagePlace(
                             (line.place as RemediationDecisionPlace).placeId,
+                            event.currentTarget,
                           );
                         }}
                         className={`text-start ${DECISION_LINK_CLASS_NAME}`}
