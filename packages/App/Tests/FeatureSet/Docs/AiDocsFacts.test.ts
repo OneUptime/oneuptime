@@ -2,6 +2,7 @@ import {
   AI_SRE,
   ASK_AI,
   CODE_PAGE,
+  EXTERNAL_MCP_SERVERS,
   GITHUB_APP,
   INFRASTRUCTURE_AI_AGENTS,
   LLM_PROVIDERS,
@@ -866,9 +867,20 @@ describe("Code", () => {
     // Improve Logging / Tracing: AI on and a repository, never a setup link.
     expect(telemetry).toContain("if (!isAiOffered) { return; }");
     expect(telemetryRule).toContain("isBackedByEvidence: false,");
+    /*
+     * ... and nothing Code's gate says stops the run (CodeFixStartGate: the
+     * plan, AI credits, a Runner online): the card is not drawn then
+     * either, for the same reason.
+     */
+    expect(telemetryRule).toContain("isBlocked: input.isBlocked,");
+    expect(
+      readRepoFile(
+        "Common/Server/Utils/AI/SRE/TelemetryImprovementTaskTrigger.ts",
+      ),
+    ).toContain("CodeFixStartGate.check(");
 
     expect(section).toContain(
-      `These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no ${bold("AI Assistance")}. ${bold("Improve Logging")} and ${bold("Improve Tracing")} show once a repository is connected, and ${bold("Fix performance with AI")} only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).`,
+      `These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no ${bold("AI Assistance")}. ${bold("Improve Logging")} and ${bold("Improve Tracing")} show once a repository is connected and nothing stops AI working in it (such as the plan, used-up AI credits or no Runner online), and ${bold("Fix performance with AI")} only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).`,
     );
     expect(rowStartingWith(starts, "A trace worth fixing")?.[2]).toBe(
       "Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel.",
@@ -1752,6 +1764,36 @@ describe("MCP Server", () => {
       })
       .sort();
   }
+
+  /*
+   * The two MCP pages point at each other: this one is about assistants
+   * that connect to OneUptime, External MCP Servers about the servers
+   * OneUptime AI connects to - as the Dashboard's MCP Server page points to
+   * External MCP Servers.
+   */
+  it("points the other way, to External MCP Servers, as that page points here and the Dashboard's page does", () => {
+    const opening: string = englishPage(MCP_SERVER).split("\n## ")[0] || "";
+
+    expect(opening).toContain(
+      "This page is about AI assistants that connect to OneUptime. To let OneUptime AI use the tools of other MCP servers instead, such as AWS's or GitHub's, see [External MCP Servers](/docs/ai/external-mcp-servers).",
+    );
+    expect(
+      (englishPage(EXTERNAL_MCP_SERVERS).split("\n## ")[0] || "").includes(
+        "](/docs/ai/mcp-server)",
+      ),
+    ).toBe(true);
+
+    const dashboardPage: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Pages/Settings/McpServer.tsx",
+    );
+
+    expect(dashboardPage).toContain(
+      "RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS]",
+    );
+    expect(dashboardPage).toContain(
+      "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}.",
+    );
+  });
 
   it("lists every record with CRUD tools, by its model's name", () => {
     /*

@@ -8,6 +8,8 @@ import ServiceService from "../../../Services/ServiceService";
 import AIService from "../../../Services/AIService";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
+import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import {
   getTelemetryImprovementOffer,
   NO_TELEMETRY_IMPROVEMENT_SUGGESTION,
@@ -34,15 +36,18 @@ import SuggestionOffer from "../../../../Utils/Suggestions/SuggestionOffer";
  *
  * The service's page asks first (getSuggestion, POST /ai-investigation/
  * telemetry-improvement-suggestion) and draws the card only when these same
- * gates would let the click through.
+ * gates would let the click through - Code's own gate among them
+ * (CodeFixStartGate: the plan, AI credits or an LLM provider, the daily AI
+ * limit, a Runner online for the repository the run will be queued on).
  */
 export default class TelemetryImprovementTaskTrigger {
   /*
    * What a service's Logs or Traces page offers: the card (Act), a link to
    * the improvement already on its way (InProgress), or nothing (None) -
    * decided by the gates createTelemetryImprovementTask enforces: AI on, a
-   * repository, no run of the same recipe in flight for the service. The
-   * caller has already checked the person may read the service.
+   * repository, no run of the same recipe in flight for the service, and
+   * nothing Code's gate says stops the run. The caller has already checked
+   * the person may read the service.
    */
   @CaptureSpan()
   public static async getSuggestion(data: {
@@ -76,10 +81,28 @@ export default class TelemetryImprovementTaskTrigger {
       ? true
       : await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
+    /*
+     * Code's gate, asked only where it decides the answer: nothing in
+     * flight, and a repository to work in.
+     */
+    let isBlocked: boolean = false;
+
+    if (!activeRun && hasConnectedRepository) {
+      const start: CodeFixStart =
+        await TelemetryImprovementTaskTrigger.checkStart({
+          projectId: data.projectId,
+          telemetryServiceId: data.telemetryServiceId,
+          taskType: data.taskType,
+        });
+
+      isBlocked = Boolean(start.blocker);
+    }
+
     const offer: SuggestionOffer = getTelemetryImprovementOffer({
       isAiEnabled: true,
       hasActiveFix: Boolean(activeRun),
       hasConnectedRepository,
+      isBlocked,
     });
 
     return {
@@ -91,6 +114,52 @@ export default class TelemetryImprovementTaskTrigger {
     };
   }
 
+  // The context an ImproveLogging / ImproveTracing run carries.
+  public static buildTaskContext(data: {
+    telemetryServiceId: ObjectID;
+    serviceName?: string | undefined;
+  }): CodeFixTaskContext {
+    return {
+      telemetryServiceId: data.telemetryServiceId.toString(),
+      serviceName: data.serviceName || undefined,
+    };
+  }
+
+  /*
+   * What Code's gate says about the run the card would queue, and the
+   * repository it would be queued on - found from the service's name, as
+   * the run finds it (CodeFixRunRepository). The name is read as OneUptime:
+   * the caller has checked the person may read the service.
+   */
+  @CaptureSpan()
+  public static async checkStart(data: {
+    projectId: ObjectID;
+    telemetryServiceId: ObjectID;
+    taskType: CodeFixTaskType;
+    serviceName?: string | undefined;
+  }): Promise<CodeFixStart> {
+    let serviceName: string | undefined = data.serviceName;
+
+    if (serviceName === undefined) {
+      const service: Service | null = await ServiceService.findOneById({
+        id: data.telemetryServiceId,
+        select: { _id: true, name: true },
+        props: { isRoot: true },
+      });
+
+      serviceName = service?.name || undefined;
+    }
+
+    return CodeFixStartGate.check({
+      projectId: data.projectId,
+      taskType: data.taskType,
+      taskContext: TelemetryImprovementTaskTrigger.buildTaskContext({
+        telemetryServiceId: data.telemetryServiceId,
+        serviceName,
+      }),
+    });
+  }
+
   /*
    * Gate and enqueue an ImproveLogging / ImproveTracing CodeFix run for a
    * telemetry service. The caller must already have loaded the service
@@ -99,8 +168,9 @@ export default class TelemetryImprovementTaskTrigger {
    *
    * Throws naming the failed gate: unsupported recipe, AI switched off for
    * the project, no GitHub-App repository, a duplicate active run for the
-   * same service, or (via enqueueSubjectCodeFixRun) the daily fix-run
-   * budget.
+   * same service, what Code's gate says about the run (CodeFixStartGate,
+   * as an error of its kind), or (via enqueueSubjectCodeFixRun) the daily
+   * fix-run budget.
    */
   @CaptureSpan()
   public static async createTelemetryImprovementTask(data: {
@@ -169,16 +239,34 @@ export default class TelemetryImprovementTaskTrigger {
       );
     }
 
-    const taskContext: CodeFixTaskContext = {
-      telemetryServiceId: data.telemetryServiceId.toString(),
-      serviceName: service.name || undefined,
-    };
+    /*
+     * Gate — what Code's gate says about the repository the run will be
+     * queued on; the run is queued on that very repository.
+     */
+    const start: CodeFixStart =
+      await TelemetryImprovementTaskTrigger.checkStart({
+        projectId: data.projectId,
+        telemetryServiceId: data.telemetryServiceId,
+        taskType: data.taskType,
+        serviceName: service.name || "",
+      });
+
+    if (start.blocker) {
+      throw CodeTaskGate.toException(start.blocker);
+    }
+
+    const taskContext: CodeFixTaskContext =
+      TelemetryImprovementTaskTrigger.buildTaskContext({
+        telemetryServiceId: data.telemetryServiceId,
+        serviceName: service.name || undefined,
+      });
 
     return SubjectCodeFixRun.enqueueSubjectCodeFixRun({
       projectId: data.projectId,
       taskType: data.taskType,
       userId: data.userId,
       taskContext,
+      codeRepositoryId: start.codeRepositoryId,
     });
   }
 }

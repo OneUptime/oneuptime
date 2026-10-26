@@ -351,7 +351,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ### Se vad den gjorde
 
 - **Produkter → Prestandaprofiler → AI → Insikter** visar den långsamma kod som hittats, varje fynd med sina bevis och **Öppna i Profilerare**.
-- **Produkter → Prestandaprofiler → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står.
+- **Produkter → Prestandaprofiler → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Datalagring

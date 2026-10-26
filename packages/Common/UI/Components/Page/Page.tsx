@@ -71,6 +71,12 @@ export interface ComponentProps {
   headerRight?: ReactElement | undefined;
 }
 
+// The header's right side (headerRight): its classes, for the tests.
+export const PAGE_HEADER_RIGHT_CLASS_NAME: string =
+  "flex min-w-0 max-w-full flex-wrap items-center sm:justify-end gap-3";
+
+export const PAGE_HEADER_RIGHT_TEST_ID: string = "page-header-right";
+
 const Page: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -177,8 +183,19 @@ const Page: FunctionComponent<ComponentProps> = (
                     </p>
                   )}
                 </div>
+                {/*
+                 * Never wider than the header: what sits here shrinks to
+                 * the line it is put on, so a wide tab bar (the telemetry
+                 * products', which scrolls sideways) stays inside the page
+                 * from a phone up. Without min-w-0 it kept the width of all
+                 * its tabs, and from 640px to about 700px German pushed the
+                 * page sideways.
+                 */}
                 {props.headerRight && (
-                  <div className="flex flex-wrap items-center sm:justify-end gap-3">
+                  <div
+                    className={PAGE_HEADER_RIGHT_CLASS_NAME}
+                    data-testid={PAGE_HEADER_RIGHT_TEST_ID}
+                  >
                     {props.headerRight}
                   </div>
                 )}

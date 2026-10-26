@@ -8,6 +8,10 @@ import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
 import AiRulesTable from "../../../Components/AISettings/AiRulesTable";
 import AIPostmortemRulesTable from "../../../Components/AISettings/AIPostmortemRulesTable";
 import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
+import { useAiRulesFixNothingSwitchWarning } from "../../../Components/AISettings/AiRulesFixNothingWarning";
+import { AiRulesFixNothingLaneKind } from "../../../Components/AISettings/AiRulesFixNothing";
+import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   AI_LANE_ADVANCED_SECTION_TEST_ID,
   AI_LANE_PAGE_COPY,
@@ -28,7 +32,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Project from "Common/Models/DatabaseModels/Project";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export type ComponentProps = PageComponentProps;
 
@@ -54,6 +58,25 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const advanced: AiLaneAdvanced = useAiLaneAdvancedState(AiLane.Incident);
+
+  /*
+   * With rules that all say Don't fix, nothing is fixed while "Fix new
+   * incidents automatically" still says it fixes each one: the switch says
+   * so, with the way to the rules (AiRulesFixNothing).
+   */
+  const fixNothing: {
+    getWarning: (column: string, isOn: boolean) => ReactNode;
+    refresh: () => void;
+  } = useAiRulesFixNothingSwitchWarning({
+    triggerEntityType: AutoRemediationTriggerEntity.Incident,
+    switchColumn:
+      AUTOMATIC_FIX_SWITCH_COLUMNS[AutoRemediationTriggerEntity.Incident],
+    kind: AiRulesFixNothingLaneKind.Signal,
+    rulesAnchor: AiLaneAdvancedCard.AiRules,
+  });
+  const onAiRulesLoaded: (count: number) => void = advanced.onRulesLoaded(
+    AiLaneAdvancedCard.AiRules,
+  );
 
   /*
    * The limits take Project Owner or Project Admin; the Project table's
@@ -89,6 +112,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
           AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardDescription
         }
         switches={AI_LANE_SWITCHES[AiLane.Incident]}
+        getWarning={fixNothing.getWarning}
         dataTestId={AI_LANE_SWITCHES_TEST_ID[AiLane.Incident]}
       />
 
@@ -100,7 +124,11 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
       >
         <AiRulesTable
           lane={AiLane.Incident}
-          onRulesLoaded={advanced.onRulesLoaded(AiLaneAdvancedCard.AiRules)}
+          onRulesLoaded={(count: number): void => {
+            onAiRulesLoaded(count);
+            // A rule added, changed or turned off: read what they fix again.
+            fixNothing.refresh();
+          }}
         />
 
         <CardModelDetail<Project>

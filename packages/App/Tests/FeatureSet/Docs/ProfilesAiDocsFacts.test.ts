@@ -19,6 +19,7 @@ import {
   PROFILE_INSIGHT_WINDOW_MINUTES,
 } from "Common/Utils/Profiles/ProfileInsight";
 import { ProfileCategory } from "Common/Utils/Profiles/ProfileTypes";
+import ErrorClass from "Common/Types/Telemetry/ErrorClass";
 import { InvestigationRuleTiming } from "../../../FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
 import {
   TELEMETRY_AI_LANE_COPY,
@@ -133,6 +134,22 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
         `**Products → Performance Profiles → AI → ${page}**`,
       );
     }
+  });
+
+  /*
+   * The Profiler's AI → Logs says, under each finished investigation, what
+   * it found (TelemetryAiLogsPage, the lane's investigationVerdicts): slow
+   * code's avoidable work, a cost from outside the code, or no cause told.
+   */
+  it("says AI → Logs tells what each investigation found, as the page does", () => {
+    expect(section).toContain(
+      "- **Products → Performance Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.",
+    );
+    expect(
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].investigationVerdicts[
+        ErrorClass.CodeFault
+      ],
+    ).toBe("Found avoidable work in the code");
   });
 
   it("names the rules' answers as their form draws them", () => {

@@ -579,6 +579,94 @@ describe("CodeTaskGate.getBlocker", () => {
   });
 });
 
+/*
+ * Work whose repository is not known yet - a code-fix run a person asks for
+ * on a trace or a service, which finds its repository as it starts
+ * (CodeFixStartGate passes null when none resolves): everything that does
+ * not depend on a repository is asked all the same, and nothing about a
+ * repository's connection or its Runner.
+ */
+describe("CodeTaskGate.getBlocker, before the repository is known", () => {
+  async function blockerWithoutRepository(
+    data: { props?: DatabaseCommonInteractionProps } = {},
+  ): Promise<CodeTaskBlocker | null> {
+    return await CodeTaskGate.getBlocker({
+      props: data.props || props(),
+      projectId: PROJECT_ID,
+      repository: null,
+      canAsk: true,
+      billingEnabled: true,
+    });
+  }
+
+  test("nothing stops it when the project's gates are open", async () => {
+    expect(await blockerWithoutRepository()).toBeNull();
+  });
+
+  test("no repository's connection or Runner is read", async () => {
+    const connections: jest.Mock = jest.spyOn(
+      CodeHostAccess,
+      "getConnectionSummaries",
+    ) as unknown as jest.Mock;
+    // Even with every Runner offline: there is no repository to ask about.
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+    };
+
+    expect(await blockerWithoutRepository()).toBeNull();
+    expect(connections).not.toHaveBeenCalled();
+    expect(CodeRepositoryService.findOneById).not.toHaveBeenCalled();
+    expect(
+      CodeRepositoryRunnerChoice.getStatusForRepository,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("the bill and the plan are asked all the same", async () => {
+    expect(
+      (
+        await blockerWithoutRepository({
+          props: props({ isSubscriptionUnpaid: true }),
+        })
+      )?.type,
+    ).toBe(CodeTaskBlockerType.SubscriptionUnpaid);
+    expect(
+      await blockerWithoutRepository({
+        props: props({ currentPlan: PlanType.Free }),
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.PlanRequired,
+      message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+    });
+  });
+
+  test("the AI switch, the LLM provider and the daily limit are asked all the same", async () => {
+    world.enableAi = false;
+    expect((await blockerWithoutRepository())?.type).toBe(
+      CodeTaskBlockerType.AiDisabled,
+    );
+
+    world.enableAi = true;
+    world.llmOk = false;
+    world.llmDetail = CODE_FIX_AI_CREDITS_USED_UP_DETAIL;
+    expect(await blockerWithoutRepository()).toEqual({
+      type: CodeTaskBlockerType.NoAiCredits,
+      message: CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+    });
+
+    world.llmOk = true;
+    world.reachedLimit = {
+      reachedLimit: ProjectAiDailyLimit.Tokens,
+      tokenLimit: 100000,
+      spendLimitInUSD: null,
+      usage: { usedTokensToday: 100500, spentTodayInUSDCents: 0 },
+    } as unknown as ProjectAiDailyLimitStatus;
+    expect((await blockerWithoutRepository())?.type).toBe(
+      CodeTaskBlockerType.DailyLimitReached,
+    );
+  });
+});
+
 describe("CodeTaskGate.assertCanStart", () => {
   async function thrown(data: {
     canAsk?: boolean;

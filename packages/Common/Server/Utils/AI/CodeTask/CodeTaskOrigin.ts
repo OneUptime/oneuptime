@@ -220,6 +220,10 @@ export default class CodeTaskOrigin {
         type: CodeTaskOriginType.Insight,
         label: insight ? CodeTaskOrigin.shorten(insight.title || "") : "",
         recordId: run.triggeredByAiInsightId!.toString(),
+        // Where it opens: a lane's finding, in its lane's own AI section.
+        ...(insight?.insightType
+          ? { insightType: insight.insightType.toString() }
+          : {}),
       };
     }
 
@@ -322,10 +326,17 @@ export default class CodeTaskOrigin {
     }
 
     if (run.triggeredByAiInsightId) {
+      const insight: AIInsight | undefined = data.subjects.insights?.get(
+        run.triggeredByAiInsightId.toString(),
+      );
+
       return {
         type: CodeTaskOriginType.Insight,
         label: "",
         recordId: run.triggeredByAiInsightId.toString(),
+        ...(insight?.insightType
+          ? { insightType: insight.insightType.toString() }
+          : {}),
       };
     }
 

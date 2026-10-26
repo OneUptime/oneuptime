@@ -2,6 +2,11 @@ import { CodeTaskBlockerType } from "../../Types/AI/CodeTask";
 import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import { JSONObject } from "../../Types/JSON";
 import { getCodeFixOffer } from "./CodeFixSuggestion";
+import {
+  parseSuggestionBlocker,
+  SuggestionBlocker,
+  suggestionBlockerToJSON,
+} from "./SuggestionBlocker";
 import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
 
 /*
@@ -33,15 +38,11 @@ export interface TelemetryAiFixRepository {
   name: string;
 }
 
-// What stands between the person and the fix (a SetUp offer).
-export interface TelemetryAiFixBlocker {
-  type: CodeTaskBlockerType;
-  message: string;
-  // RunnerNotOnline: the Runner the repository picks, by name.
-  runnerName?: string | undefined;
-  // The repository Code's gate was asked about.
-  repositoryId?: string | undefined;
-}
+/*
+ * What stands between the person and the fix (a SetUp offer): Code's gate,
+ * as every suggestion carries it (SuggestionBlocker).
+ */
+export type TelemetryAiFixBlocker = SuggestionBlocker;
 
 export interface TelemetryAiFixSuggestion {
   offer: SuggestionOffer;
@@ -128,13 +129,6 @@ export function getTelemetryAiFixOffer(
   return { offer, blocker: null };
 }
 
-function isBlockerType(value: unknown): value is CodeTaskBlockerType {
-  return (
-    typeof value === "string" &&
-    (Object.values(CodeTaskBlockerType) as Array<string>).includes(value)
-  );
-}
-
 function readText(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
@@ -149,43 +143,6 @@ function parseRepository(value: unknown): TelemetryAiFixRepository | null {
   const name: string | null = readText(record["name"]);
 
   return id && name ? { id, name } : null;
-}
-
-function parseBlocker(value: unknown): TelemetryAiFixBlocker | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const record: JSONObject = value as JSONObject;
-
-  if (!isBlockerType(record["type"])) {
-    return null;
-  }
-
-  const message: string | null = readText(record["message"]);
-
-  if (!message) {
-    return null;
-  }
-
-  const blocker: TelemetryAiFixBlocker = {
-    type: record["type"] as CodeTaskBlockerType,
-    message,
-  };
-
-  const runnerName: string | null = readText(record["runnerName"]);
-
-  if (runnerName) {
-    blocker.runnerName = runnerName;
-  }
-
-  const repositoryId: string | null = readText(record["repositoryId"]);
-
-  if (repositoryId) {
-    blocker.repositoryId = repositoryId;
-  }
-
-  return blocker;
 }
 
 /*
@@ -216,12 +173,19 @@ export function parseTelemetryAiFixSuggestion(
       : NO_TELEMETRY_AI_FIX_SUGGESTION;
   }
 
-  const blocker: TelemetryAiFixBlocker | null = parseBlocker(record["blocker"]);
+  const blocker: TelemetryAiFixBlocker | null = parseSuggestionBlocker(
+    record["blocker"],
+  );
 
   if (offer === SuggestionOffer.SetUp) {
     return blocker
       ? { ...NO_TELEMETRY_AI_FIX_SUGGESTION, offer, blocker }
       : NO_TELEMETRY_AI_FIX_SUGGESTION;
+  }
+
+  // A finished fix is something this suggestion never says (it says None).
+  if (offer !== SuggestionOffer.Act) {
+    return NO_TELEMETRY_AI_FIX_SUGGESTION;
   }
 
   const repository: TelemetryAiFixRepository | null = parseRepository(
@@ -265,16 +229,7 @@ export function telemetryAiFixSuggestionToJSON(
   suggestion: TelemetryAiFixSuggestion,
 ): JSONObject {
   const blocker: JSONObject | null = suggestion.blocker
-    ? {
-        type: suggestion.blocker.type,
-        message: suggestion.blocker.message,
-        ...(suggestion.blocker.runnerName
-          ? { runnerName: suggestion.blocker.runnerName }
-          : {}),
-        ...(suggestion.blocker.repositoryId
-          ? { repositoryId: suggestion.blocker.repositoryId }
-          : {}),
-      }
+    ? suggestionBlockerToJSON(suggestion.blocker)
     : null;
 
   return {

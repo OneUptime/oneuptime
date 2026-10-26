@@ -319,7 +319,13 @@ describe("the folded line", () => {
     expect(onAskAi).toHaveBeenCalledTimes(1);
   });
 
-  test("lays out by the line's own width: the chevron on the first row, Ask beside it or after the reason", () => {
+  /*
+   * The parts in the order they are read, tabbed to and heard - on every
+   * width: what is off, its chevron, why, then Ask OneUptime AI. They were
+   * reordered by CSS, which put Ask before the chevron in tab order while
+   * a phone drew it after why.
+   */
+  test("its parts are in the order they are read, tabbed to and heard: title, chevron, why, then Ask", () => {
     renderLine({
       summary: summaryFor({ code: "automatic_investigation_disabled" }),
       onAskAi: (): void => {},
@@ -328,29 +334,56 @@ describe("the folded line", () => {
     const title: HTMLElement = screen.getByTestId("ai-off-summary-title");
     const ask: HTMLElement = screen.getByTestId("ai-off-summary-ask");
     const reason: HTMLElement = screen.getByTestId("ai-off-summary-reason");
+    const header: HTMLElement = screen.getByTestId("ai-off-summary-header");
 
-    // The column the container queries measure.
-    expect(title.parentElement?.parentElement?.className).toContain(
-      "[container-type:inline-size]",
-    );
+    // Document order: what a keyboard and a screen reader follow.
+    const parts: Array<HTMLElement> = [title, toggle(), reason, ask];
+
+    for (let index: number = 1; index < parts.length; index++) {
+      expect(
+        parts[index - 1]!.compareDocumentPosition(parts[index]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    // The focusable ones, as Tab meets them: the chevron, then Ask.
+    expect(
+      Array.from(header.querySelectorAll("button")).map(
+        (button: HTMLButtonElement): string => {
+          return button.getAttribute("data-testid") || "";
+        },
+      ),
+    ).toEqual(["ai-off-summary-toggle", "ai-off-summary-ask"]);
+
+    // Nothing is moved by CSS: the eye meets them in the same order.
+    for (const element of [title, toggle(), reason, ask]) {
+      expect(element.className).not.toMatch(/(?:^|\s|:)order-/);
+    }
+
+    // The chevron shares the title's row; Ask follows why, at its start.
+    expect(title.parentElement).toBe(toggle().parentElement);
+    expect(reason.parentElement).toBe(ask.parentElement);
 
     for (const [element, className] of [
       [title, AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.title],
       [ask, AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.ask],
       [toggle(), AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.toggle],
       [reason, AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.reason],
+      [title.parentElement!, AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.titleRow],
+      [reason.parentElement!, AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.reasonRow],
     ] as Array<[HTMLElement, string]>) {
       for (const token of className.split(" ")) {
         expect(element.className.split(" ")).toContain(token);
       }
     }
 
-    // Narrow: title, chevron, reason, then Ask. From 28rem: title, Ask, chevron, reason.
     expect(AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES).toEqual({
-      title: "order-1 min-w-0 grow basis-0",
-      ask: "order-4 -ml-2 [@container(min-width:28rem)]:order-2 [@container(min-width:28rem)]:ml-0",
-      toggle: "order-2 -mr-1.5 [@container(min-width:28rem)]:order-3",
-      reason: "order-3 basis-full [@container(min-width:28rem)]:order-4",
+      titleRow: "flex items-start gap-x-1",
+      title: "min-w-0 grow basis-0",
+      toggle: "-me-1.5 flex-none",
+      reasonRow: "flex flex-wrap items-start gap-y-0.5",
+      reason: "min-w-0 basis-full",
+      ask: "-ms-2",
     });
   });
 });

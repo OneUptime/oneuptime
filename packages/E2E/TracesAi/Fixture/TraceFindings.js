@@ -389,18 +389,21 @@ export function aiLogs(now, skip) {
     return { entries: [], totalCount: 0 };
   }
 
-  const insight = (id, title, serviceName) => {
-    return { id, title, serviceName };
+  // Its kind too, as the server sends it: a verdict is said in its words.
+  const insight = (id, title, serviceName, type) => {
+    return { id, title, serviceName, type };
   };
   const failing = insight(
     AI_INSIGHT_IDS.failing,
     "POST /checkout in checkout fails 12% of the time",
     "checkout",
+    AIInsightType.TraceFailingOperation,
   );
   const slow = insight(
     AI_INSIGHT_IDS.slow,
     "GET /orders in checkout runs the same database query 40 times",
     "checkout",
+    AIInsightType.TraceSlowOperation,
   );
 
   const entries = [
@@ -443,6 +446,18 @@ export function aiLogs(now, skip) {
       at: new Date(now - 27 * HOUR).toISOString(),
       state: "Failed",
       insight: slow,
+    },
+    /*
+     * The slow operation's first look, which found avoidable work in the
+     * code: a slow operation's verdict in its own words, not a fault.
+     */
+    {
+      runId: "50930000-0000-4000-8000-0000000000d3",
+      kind: "Investigation",
+      at: new Date(now - 30 * HOUR).toISOString(),
+      state: "Done",
+      insight: slow,
+      classification: "code-fault",
     },
   ];
 

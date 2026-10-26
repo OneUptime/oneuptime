@@ -91,7 +91,7 @@ Klik in een willekeurige weergave op een span om het paneel ervan te openen, met
 Een grote trace laadt 500 spans tegelijk. Klik op de knop onderaan de trace om meer of alle spans te laden.
 
 > [!TIP]
-> **Versnellen met AI** verschijnt alleen bij een trace die het verhelpen waard is: een met een N+1-query, aanroepen na elkaar die parallel zouden kunnen lopen, of één aanroep die het grootste deel van de aanvraag neemt, als dat echt tijd kost (samen 100 ms of meer voor de aanroepen, 500 ms of meer voor één aanroep, en minstens een tiende van de aanvraag). Het noemt wat het vond, zoals "Dezelfde databasequery werd 40 keer uitgevoerd in ReportService.build", en start een AI-taak die een pull request opent om het te verhelpen. Zie [Code](/docs/ai/ai-agent).
+> **Versnellen met AI** verschijnt alleen bij een trace die het verhelpen waard is: een met een N+1-query, aanroepen na elkaar die parallel zouden kunnen lopen, of één aanroep die het grootste deel van de aanvraag neemt, als dat echt tijd kost (samen 100 ms of meer voor de aanroepen, 500 ms of meer voor één aanroep, en minstens een tiende van de aanvraag). Het noemt wat het vond, zoals "Dezelfde databasequery werd 40 keer uitgevoerd in ReportService.build", en start een AI-taak die een pull request opent om het te verhelpen. Heeft een oplossing voor de trace haar werk al gedaan, dan linkt de trace naar haar taak in plaats van een tweede aan te bieden. Houdt iets anders de AI tegen, zoals het abonnement, opgebruikte AI-tegoeden of geen Runner die online is, dan zegt de trace wat, met de link die het verhelpt. Zie [Code](/docs/ai/ai-agent).
 
 ## Uw spans in grafieken zetten
 
@@ -150,7 +150,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Traces → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Traces**, dat de spans waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Bij een falende bewerking stelt **Monitor maken** een tracesmonitor in op haar mislukte spans.
-- **Traces → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- **Traces → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met spans gebeurt als ze binnenkomen

@@ -55,7 +55,11 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * The repository page asks first, so the request box says what is missing
  * before anyone types; the create, reply and retry routes ask again and
- * refuse with the same sentence. The LLM call itself (executeWithLogging)
+ * refuse with the same sentence. A code-fix run a person asks for outside
+ * Code - a trace's Fix performance with AI, a service's Improve logging or
+ * tracing - is asked about the repository it will be queued on
+ * (CodeFixStartGate), or, when none is known yet, about everything that
+ * does not depend on one. The LLM call itself (executeWithLogging)
  * still enforces the switch, the credits and the limits for every completion
  * the Runner asks for, so a task that starts and then crosses one of them
  * fails honestly rather than running on.
@@ -111,12 +115,19 @@ export default class CodeTaskGate {
   /*
    * What stops AI working in the repository for this person now, or null.
    * `billingEnabled` overrides the IsBillingEnabled flag, for tests.
+   *
+   * `repository` is null for work whose repository is not known yet - a
+   * code-fix run that finds its repository as it starts
+   * (CodeFixRunRepository), and says so then if it cannot. Nothing is
+   * asked of a repository's connection or its Runner then; the bill, the
+   * plan, the AI switch, the LLM provider and the daily limits are asked
+   * all the same.
    */
   @CaptureSpan()
   public static async getBlocker(data: {
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID;
-    repository: CodeRepository;
+    repository: CodeRepository | null;
     canAsk: boolean;
     billingEnabled?: boolean | undefined;
   }): Promise<CodeTaskBlocker | null> {
@@ -177,14 +188,19 @@ export default class CodeTaskGate {
       };
     }
 
-    const connection: CodeHostConnectionSummary | undefined = (
-      await CodeHostAccess.getConnectionSummaries({
-        projectId: data.projectId,
-        repositoryIds: [data.repository.id!],
-      })
-    ).get(data.repository.id!.toString());
+    const connection: CodeHostConnectionSummary | undefined = data.repository
+      ? (
+          await CodeHostAccess.getConnectionSummaries({
+            projectId: data.projectId,
+            repositoryIds: [data.repository.id!],
+          })
+        ).get(data.repository.id!.toString())
+      : undefined;
 
-    if (!connection || connection.state !== CodeHostConnectionState.Connected) {
+    if (
+      data.repository &&
+      (!connection || connection.state !== CodeHostConnectionState.Connected)
+    ) {
       return {
         type:
           connection?.state === CodeHostConnectionState.TokenRefused
@@ -221,6 +237,11 @@ export default class CodeTaskGate {
         type: CodeTaskBlockerType.DailyLimitReached,
         message: getProjectDailyLimitMessage(reachedLimit),
       };
+    }
+
+    // No repository yet: no Runner of its own to ask about.
+    if (!data.repository || !connection) {
+      return null;
     }
 
     /*
