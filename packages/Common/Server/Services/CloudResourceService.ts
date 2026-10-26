@@ -116,7 +116,12 @@ export interface CloudResourceInventoryColumns {
   cloudProperties: JSONObject;
   cloudRelationships: Array<CloudResourceRelationship>;
   cloudEndpoints: Array<string>;
+  // A hash of all of it (CloudConnectionResourceSync.getInventoryFingerprint).
+  cloudInventoryFingerprint?: string | undefined;
 }
+
+// Rows marked listed in one statement at most.
+const INVENTORY_TOUCH_BATCH_SIZE: number = 1000;
 
 export interface CloudMonitoredResourceFindOrCreateResult {
   // The row, or null when it does not exist and may not be created now.
@@ -699,6 +704,50 @@ export class Service extends ProjectReferencesService<Model> {
       } as never,
       props: { isRoot: true, ignoreHooks: true },
     });
+  }
+
+  /**
+   * Resources a listing said the same of as the last one did: only marked
+   * listed - when, and alive (lastSeenAt never moves back) - in one
+   * statement per thousand rows, pinned to the project. Raw SQL on purpose:
+   * a listing is a reading, not an edit, and writes no feed item. Returns
+   * how many rows were marked.
+   */
+  @CaptureSpan()
+  public async markListedUnchanged(data: {
+    projectId: ObjectID;
+    cloudResourceIds: Array<ObjectID>;
+    listedAt: Date;
+  }): Promise<number> {
+    let marked: number = 0;
+
+    for (
+      let start: number = 0;
+      start < data.cloudResourceIds.length;
+      start += INVENTORY_TOUCH_BATCH_SIZE
+    ) {
+      const ids: Array<string> = data.cloudResourceIds
+        .slice(start, start + INVENTORY_TOUCH_BATCH_SIZE)
+        .map((id: ObjectID): string => {
+          return id.toString();
+        });
+
+      const rows: unknown = await this.getRepository().manager.query(
+        `UPDATE "CloudResource"
+          SET "inventoriedAt" = $3,
+            "lastSeenAt" = GREATEST(COALESCE("lastSeenAt", $3), $3),
+            "otelCollectorStatus" = 'connected'
+          WHERE "projectId" = $1
+            AND "_id" = ANY($2::uuid[])
+            AND "deletedAt" IS NULL
+          RETURNING "_id"`,
+        [data.projectId.toString(), ids, data.listedAt],
+      );
+
+      marked += countReturnedRows(rows);
+    }
+
+    return marked;
   }
 
   /**

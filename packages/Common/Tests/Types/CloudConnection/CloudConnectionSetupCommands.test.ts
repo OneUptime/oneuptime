@@ -2,11 +2,10 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAuthMethod } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { isAwsRoleArn } from "../../../Types/CloudConnection/CloudConnectionPaste";
 import {
-  AWS_ORGANIZATION_STACK_SET_NAME,
+  AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTIONS,
   AWS_READ_ONLY_ACTION_GROUPS,
   AWS_SCOPED_READ_RESOURCES,
-  AZURE_COST_READ_ROLE,
   AZURE_READ_ONLY_ROLE,
   CLOUD_CONNECTION_READ_ONLY_NAME,
   CloudConnectionSetupScope,
@@ -20,6 +19,7 @@ import {
   getAwsAccessKeySetupCommand,
   getAwsExternalIdForProject,
   getAwsOrganizationSetupCommand,
+  getAwsOrganizationStackSetName,
   getAwsReadOnlyPolicy,
   getAwsReadOnlyPolicyDocument,
   getAwsReadOnlyRoleTemplate,
@@ -34,14 +34,17 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * The one command each cloud's setup step shows creates access that can
- * only read - and these hold it to that: every AWS action reads (Describe,
- * List, Get or Lookup) and none reads data or writes, API Gateway's one
- * read action is held to the APIs' own definitions, the role trusts this
- * OneUptime with this project's own external id only, Azure's app gets the
- * built-in Monitoring Reader and Cost Management Reader roles, Google
- * Cloud's service account Monitoring Viewer, Cloud Asset Viewer and Logs
- * Viewer. Each command can be run again, for one account or a whole
- * organization.
+ * only read, and nothing a connection does not use - and these hold it to
+ * that: every AWS action reads (Describe, List, Get or Lookup), none reads
+ * data or writes, and none is one no reader calls (no billing, no health
+ * entities); API Gateway's one read action is held to the APIs' own
+ * definitions; only an organization's management account may list its
+ * accounts; the role trusts this OneUptime with this project's own
+ * external id only, and a project's organization StackSet is its own;
+ * Azure's app gets the built-in Monitoring Reader role, Google Cloud's
+ * service account Monitoring Viewer, Cloud Asset Viewer, Logs Viewer and
+ * Service Health Viewer. Each command can be run again, for one account or
+ * a whole organization.
  */
 
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
@@ -125,6 +128,40 @@ describe("AWS", () => {
 
     expect(AWS_READ_ONLY_ACTIONS).not.toContain("*");
     expect(AWS_READ_ONLY_ACTIONS).not.toContain("lambda:GetFunction");
+  });
+
+  test("no action is one no reader calls: no billing, no health entities", () => {
+    for (const action of AWS_READ_ONLY_ACTIONS) {
+      expect(action.startsWith("ce:")).toBe(false);
+      expect(action.startsWith("aws-portal:")).toBe(false);
+    }
+
+    expect(AWS_READ_ONLY_ACTIONS).not.toContain(
+      "health:DescribeAffectedEntities",
+    );
+    expect(AWS_READ_ONLY_ACTIONS).toContain("health:DescribeEvents");
+    expect(AWS_READ_ONLY_ACTIONS).toContain("health:DescribeEventDetails");
+  });
+
+  test("an account's own role may not list an organization's accounts", () => {
+    expect(AWS_READ_ONLY_ACTIONS).not.toContain("organizations:ListAccounts");
+    expect(getAwsReadOnlyPolicyDocument()).not.toContain("organizations:");
+    expect(AWS_ORGANIZATION_ACTION_GROUP.actions).toEqual([
+      "organizations:ListAccounts",
+    ]);
+  });
+
+  test("the management account's role may, and nothing else besides", () => {
+    const policy: ReturnType<typeof getAwsReadOnlyPolicy> =
+      getAwsReadOnlyPolicy({ organization: true });
+
+    expect(policy.Statement[0]!.Action).toEqual([
+      ...getAwsReadOnlyPolicy().Statement[0]!.Action,
+      "organizations:ListAccounts",
+    ]);
+    expect(policy.Statement.slice(1)).toEqual(
+      getAwsReadOnlyPolicy().Statement.slice(1),
+    );
   });
 
   test("each action is named once, in a group that says what it is for", () => {
@@ -319,19 +356,52 @@ describe("AWS organizations", () => {
       JSON.parse(getAwsReadOnlyRoleTemplate(data)),
     );
     expect(lines[2]).toBe("TEMPLATE");
-    expect(lines[3]).toContain(
-      `aws cloudformation create-stack-set --stack-set-name ${AWS_ORGANIZATION_STACK_SET_NAME}`,
+    // StackSets' trusted access to the organization, turned on (a no-op when it is).
+    expect(lines[3]).toBe(
+      "aws cloudformation activate-organizations-access > /dev/null 2>&1 || true",
     );
-    expect(lines[3]).toContain("--permission-model SERVICE_MANAGED");
-    expect(lines[3]).toContain("--auto-deployment Enabled=true");
+    expect(lines[4]).toContain(
+      `aws cloudformation create-stack-set --stack-set-name ${getAwsOrganizationStackSetName(data.externalId)} `,
+    );
+    expect(lines[4]).toContain("--permission-model SERVICE_MANAGED");
+    expect(lines[4]).toContain("--auto-deployment Enabled=true");
     // Run again: the StackSet is updated rather than failing.
-    expect(lines[3]).toContain("|| aws cloudformation update-stack-set");
-    expect(lines[4]).toContain("aws cloudformation create-stack-instances");
-    expect(lines[4]).toContain("OrganizationalUnitIds=");
-    expect(command.endsWith(getAwsRoleSetupCommand(data))).toBe(true);
+    expect(lines[4]).toContain("|| aws cloudformation update-stack-set");
+    expect(lines[5]).toContain("aws cloudformation create-stack-instances");
+    expect(lines[5]).toContain("OrganizationalUnitIds=");
+    // The management account's role: the one that may list the accounts.
+    expect(
+      command.endsWith(getAwsRoleSetupCommand({ ...data, organization: true })),
+    ).toBe(true);
     expect(lines[lines.length - 1]).toBe(
       'aws iam get-role --role-name "$ROLE" --query Role.Arn --output text',
     );
+  });
+
+  test("the StackSet is the project's own: a second project connecting the same organization adds its roles, never replaces the first's", () => {
+    const other: string = getAwsExternalIdForProject(OTHER_PROJECT);
+
+    expect(getAwsOrganizationStackSetName(data.externalId)).toBe(
+      getAwsRoleNameForExternalId(data.externalId),
+    );
+    expect(getAwsOrganizationStackSetName(data.externalId)).not.toBe(
+      getAwsOrganizationStackSetName(other),
+    );
+    // CloudFormation StackSet names: letters, digits and hyphens, at most 128.
+    expect(getAwsOrganizationStackSetName(data.externalId)).toMatch(
+      /^[A-Za-z][A-Za-z0-9-]{0,127}$/,
+    );
+  });
+
+  test("the roles the StackSet puts in every member account may not list the organization", () => {
+    expect(getAwsReadOnlyRoleTemplate(data)).not.toContain("organizations:");
+    expect(
+      getAwsOrganizationSetupCommand(data)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.includes("organizations:ListAccounts");
+        }),
+    ).toHaveLength(1);
   });
 
   test("an organization is set up through a role only: an access key's user cannot sign in to the members' roles", () => {
@@ -358,19 +428,20 @@ describe("AWS organizations", () => {
 });
 
 describe("Azure", () => {
-  test("creates an app with Monitoring Reader on the subscription the shell is in, adds Cost Management Reader, and prints what it made with the password's expiry", () => {
+  test("creates an app with Monitoring Reader on the subscription the shell is in, and prints what it made with the password's expiry", () => {
     const lines: Array<string> = getAzureSetupCommand().split("\n");
 
     expect(lines).toEqual([
       'SCOPE="/subscriptions/$(az account show --query id --output tsv)"',
       `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "Monitoring Reader" --scopes "$SCOPE")`,
       'APP=$(echo "$OUT" | jq -r .appId)',
-      'az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null',
       'END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)',
       `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
     ]);
     expect(AZURE_READ_ONLY_ROLE).toBe("Monitoring Reader");
-    expect(AZURE_COST_READ_ROLE).toBe("Cost Management Reader");
+    // No role a connection does not use: no billing reader.
+    expect(getAzureSetupCommand()).not.toContain("Cost Management");
+    expect(getAzureSetupCommand()).not.toContain("role assignment create");
   });
 
   test("for every subscription, the same on the tenant's root management group", () => {

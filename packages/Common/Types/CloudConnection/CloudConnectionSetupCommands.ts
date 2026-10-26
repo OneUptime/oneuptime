@@ -9,21 +9,22 @@ import { CloudConnectionAuthMethod } from "./CloudConnectionCatalog";
  * browser terminal (AWS CloudShell, Azure Cloud Shell, Google Cloud Shell),
  * runs the command shown, and pastes back what it printed. Each command
  * creates access that can only read - metrics, the resources and how they
- * are configured, what changed, the provider's health events and the bill,
- * never data or secrets - and nothing else:
+ * are configured, what changed and the provider's health events, never
+ * data or secrets - and nothing more than a connection uses:
  *
  *   - AWS, IAM role: a role trusting this OneUptime's AWS account with an
  *     external id only this project's connections use, with an inline
  *     read-only policy (AWS_READ_ONLY_ACTION_GROUPS). Prints the role's ARN.
  *     For a whole organization, the same role in every account through a
- *     CloudFormation StackSet, and in the management account itself.
+ *     CloudFormation StackSet of this project's own, and in the management
+ *     account itself - the one role that may also list the organization's
+ *     accounts (AWS_ORGANIZATION_ACTION_GROUP).
  *   - AWS, access key: a user with the same policy, and an access key.
  *     Prints the key.
  *   - Azure: an app registration (service principal) with the built-in
- *     Monitoring Reader and Cost Management Reader roles on the current
- *     subscription - or on the tenant's root management group, for every
- *     subscription. Prints its app id, password, tenant and when the
- *     password expires.
+ *     Monitoring Reader role on the current subscription - or on the
+ *     tenant's root management group, for every subscription. Prints its
+ *     app id, password, tenant and when the password expires.
  *   - Google Cloud: a service account with the built-in Monitoring Viewer,
  *     Cloud Asset Viewer, Logs Viewer and Service Health Viewer roles on the
  *     current project - or on its organization, for every project - and a
@@ -122,21 +123,19 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
   },
   {
     purpose: "Read AWS's own health events for the account",
-    actions: [
-      "health:DescribeEvents",
-      "health:DescribeEventDetails",
-      "health:DescribeAffectedEntities",
-    ],
-  },
-  {
-    purpose: "Read what the account costs, per service and resource",
-    actions: ["ce:GetCostAndUsage", "ce:GetCostAndUsageWithResources"],
-  },
-  {
-    purpose: "List the organization's accounts, from its management account",
-    actions: ["organizations:ListAccounts"],
+    actions: ["health:DescribeEvents", "health:DescribeEventDetails"],
   },
 ];
+
+/*
+ * What only the organization's management account's role may do besides:
+ * list the accounts the other roles are in. Never in an account's own
+ * role, nor in the roles the StackSet puts in every member account.
+ */
+export const AWS_ORGANIZATION_ACTION_GROUP: AwsReadOnlyActionGroup = {
+  purpose: "List the organization's accounts, from its management account",
+  actions: ["organizations:ListAccounts"],
+};
 
 export const AWS_READ_ONLY_ACTIONS: Array<string> =
   AWS_READ_ONLY_ACTION_GROUPS.flatMap(
@@ -161,7 +160,6 @@ export const AWS_SCOPED_READ_RESOURCES: Record<string, Array<string>> = {
 
 // The built-in roles Azure and Google Cloud connections are given.
 export const AZURE_READ_ONLY_ROLE: string = "Monitoring Reader";
-export const AZURE_COST_READ_ROLE: string = "Cost Management Reader";
 export const GCP_READ_ONLY_ROLE: string = "roles/monitoring.viewer";
 export const GCP_INVENTORY_ROLE: string = "roles/cloudasset.viewer";
 export const GCP_AUDIT_LOG_ROLE: string = "roles/logging.viewer";
@@ -180,10 +178,6 @@ export const GCP_SERVICES: Array<string> = [
   "cloudresourcemanager.googleapis.com",
   "servicehealth.googleapis.com",
 ];
-
-// The StackSet that puts the role in every account of an AWS Organization.
-export const AWS_ORGANIZATION_STACK_SET_NAME: string =
-  CLOUD_CONNECTION_READ_ONLY_NAME;
 
 const EXTERNAL_ID_PREFIX: string = "oneuptime-";
 
@@ -217,8 +211,24 @@ export function getAwsRoleNameForExternalId(externalId: string): string {
   return `${CLOUD_CONNECTION_READ_ONLY_NAME}-${suffix}`;
 }
 
-// The read-only policy as an object, for the commands and the template.
-export function getAwsReadOnlyPolicy(): {
+/*
+ * The StackSet that puts the role in every account of an AWS Organization:
+ * one per project, named like the project's role, so a second project that
+ * connects the same organization adds its own roles instead of replacing
+ * the first project's.
+ */
+export function getAwsOrganizationStackSetName(externalId: string): string {
+  return getAwsRoleNameForExternalId(externalId);
+}
+
+/*
+ * The read-only policy as an object, for the commands and the template.
+ * An organization's management account's role (organization: true) may
+ * also list the organization's accounts.
+ */
+export function getAwsReadOnlyPolicy(
+  options: { organization?: boolean | undefined } = {},
+): {
   Version: string;
   Statement: Array<{
     Effect: string;
@@ -233,9 +243,14 @@ export function getAwsReadOnlyPolicy(): {
     Statement: [
       {
         Effect: "Allow",
-        Action: AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
-          return !scoped.includes(action);
-        }),
+        Action: [
+          ...AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
+            return !scoped.includes(action);
+          }),
+          ...(options.organization
+            ? AWS_ORGANIZATION_ACTION_GROUP.actions
+            : []),
+        ],
         Resource: "*",
       },
       ...scoped.map(
@@ -257,8 +272,10 @@ export function getAwsReadOnlyPolicy(): {
   };
 }
 
-export function getAwsReadOnlyPolicyDocument(): string {
-  return JSON.stringify(getAwsReadOnlyPolicy());
+export function getAwsReadOnlyPolicyDocument(
+  options: { organization?: boolean | undefined } = {},
+): string {
+  return JSON.stringify(getAwsReadOnlyPolicy(options));
 }
 
 export function getAwsTrustPolicyDocument(data: {
@@ -287,6 +304,8 @@ export function getAwsTrustPolicyDocument(data: {
 export function getAwsRoleSetupCommand(data: {
   trustedPrincipalArn: string;
   externalId: string;
+  // The organization's management account's role: it also lists the accounts.
+  organization?: boolean | undefined;
 }): string {
   const role: string = getAwsRoleNameForExternalId(data.externalId);
   const trust: string = getAwsTrustPolicyDocument(data);
@@ -295,7 +314,7 @@ export function getAwsRoleSetupCommand(data: {
     `ROLE=${role}`,
     `TRUST='${trust}'`,
     `aws iam create-role --role-name "$ROLE" --assume-role-policy-document "$TRUST" > /dev/null 2>&1 || aws iam update-assume-role-policy --role-name "$ROLE" --policy-document "$TRUST"`,
-    `aws iam put-role-policy --role-name "$ROLE" --policy-name ${CLOUD_CONNECTION_READ_ONLY_NAME} --policy-document '${getAwsReadOnlyPolicyDocument()}'`,
+    `aws iam put-role-policy --role-name "$ROLE" --policy-name ${CLOUD_CONNECTION_READ_ONLY_NAME} --policy-document '${getAwsReadOnlyPolicyDocument({ organization: data.organization })}'`,
     `aws iam get-role --role-name "$ROLE" --query Role.Arn --output text`,
   ].join("\n");
 }
@@ -312,7 +331,7 @@ export function getAwsReadOnlyRoleTemplate(data: {
   return JSON.stringify({
     AWSTemplateFormatVersion: "2010-09-09",
     Description:
-      "OneUptime: a role that can only read this account's metrics, resources, changes, health events and costs.",
+      "OneUptime: a role that can only read this account's metrics, resources, changes and health events.",
     Resources: {
       OneUptimeReadOnlyRole: {
         Type: "AWS::IAM::Role",
@@ -337,24 +356,27 @@ export function getAwsReadOnlyRoleTemplate(data: {
 }
 
 /*
- * A whole AWS Organization, from its management account: the role in every
- * member account (a service-managed StackSet that also reaches accounts
- * added later), then in the management account itself, whose ARN it
- * prints. IAM is global, so the StackSet deploys to one Region.
+ * A whole AWS Organization, from its management account: StackSets'
+ * trusted access to the organization turned on (nothing happens when it
+ * is on already), the role in every member account (a service-managed
+ * StackSet of this project's own that also reaches accounts added later),
+ * then in the management account itself, whose ARN it prints. IAM is
+ * global, so the StackSet deploys to one Region.
  */
 export function getAwsOrganizationSetupCommand(data: {
   trustedPrincipalArn: string;
   externalId: string;
 }): string {
-  const stackSet: string = AWS_ORGANIZATION_STACK_SET_NAME;
+  const stackSet: string = getAwsOrganizationStackSetName(data.externalId);
 
   return [
     `cat > oneuptime-read-only.json <<'TEMPLATE'`,
     getAwsReadOnlyRoleTemplate(data),
     "TEMPLATE",
+    `aws cloudformation activate-organizations-access > /dev/null 2>&1 || true`,
     `aws cloudformation create-stack-set --stack-set-name ${stackSet} --template-body file://oneuptime-read-only.json --capabilities CAPABILITY_NAMED_IAM --permission-model SERVICE_MANAGED --auto-deployment Enabled=true,RetainStacksOnAccountRemoval=false > /dev/null 2>&1 || aws cloudformation update-stack-set --stack-set-name ${stackSet} --template-body file://oneuptime-read-only.json --capabilities CAPABILITY_NAMED_IAM > /dev/null`,
     `aws cloudformation create-stack-instances --stack-set-name ${stackSet} --deployment-targets OrganizationalUnitIds=$(aws organizations list-roots --query "Roots[0].Id" --output text) --regions us-east-1 > /dev/null 2>&1 || true`,
-    getAwsRoleSetupCommand(data),
+    getAwsRoleSetupCommand({ ...data, organization: true }),
   ].join("\n");
 }
 
@@ -369,7 +391,7 @@ export function getAwsAccessKeySetupCommand(): string {
 }
 
 /*
- * Azure: the app, its two roles on the scope, and what it printed with the
+ * Azure: the app, its role on the scope, and what it printed with the
  * password's expiry added, so OneUptime can say before the password stops
  * working. The tenant's root management group is named after the tenant.
  */
@@ -385,7 +407,6 @@ export function getAzureSetupCommand(
     scopeLine,
     `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "${AZURE_READ_ONLY_ROLE}" --scopes "$SCOPE")`,
     `APP=$(echo "$OUT" | jq -r .appId)`,
-    `az role assignment create --assignee "$APP" --role "${AZURE_COST_READ_ROLE}" --scope "$SCOPE" > /dev/null`,
     `END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)`,
     `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
   ].join("\n");

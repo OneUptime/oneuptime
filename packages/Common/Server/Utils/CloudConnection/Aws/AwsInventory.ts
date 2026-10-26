@@ -33,15 +33,20 @@ import {
  * types in the Regions the account uses, listed through Cloud Control.
  *
  *   - Regional types are listed in each Region; global ones (CloudFront)
- *     once, in us-east-1, where their metrics are too.
+ *     once, in the partition's home Region (us-east-1, us-gov-west-1,
+ *     cn-north-1), where their metrics are too.
  *   - A type listed inside another (an ECS service inside its cluster) is
  *     listed in each parent the Region has, up to MAX_PARENTS_PER_REGION.
  *   - Load balancers learn what they send to from the Region's target
  *     groups (addAwsLoadBalancerEdges).
+ *   - A Region the account has not opted in to answers as an unknown
+ *     credential: it is skipped with a warning, as the metrics skip it -
+ *     only the home Region, open to every account, speaks for the
+ *     credential itself.
  *
- * A type is "listed in full" for the account only when every Region (and
- * every parent) it was asked for answered to its last page: only then may a
- * resource of that type the connection holds, and the listing lacks, be
+ * A type is "listed in full" in a Region only when that Region (and every
+ * parent in it) answered to its last page: only then may a resource of
+ * that type and Region the connection holds, and the listing lacks, be
  * taken for gone. A type the role may not list is reported once, with what
  * to do, and the rest of the inventory goes on.
  */
@@ -50,8 +55,8 @@ const PROVIDER_TITLE: string = "AWS";
 // Regions listed at once; each lists its types one after another.
 const REGION_CONCURRENCY: number = 4;
 export const AWS_INVENTORY_MAX_PARENTS_PER_REGION: number = 30;
-// The Region global types are listed in.
-const GLOBAL_REGION: string = "us-east-1";
+// The Region global types are listed in, for the commercial partition.
+export const AWS_DEFAULT_HOME_REGION: string = "us-east-1";
 
 // Answers that mean "this type has nothing to list here", not a failure.
 const NOTHING_TO_LIST_CODES: Array<string> = [
@@ -61,7 +66,8 @@ const NOTHING_TO_LIST_CODES: Array<string> = [
 
 export interface AwsInventoryOutcome {
   items: Array<CloudInventoryItem>;
-  completelyListedTypes: Array<string>;
+  // Per Region read, the types it listed to their last page (no plumbing).
+  completelyListed: Array<{ region: string; resourceTypes: Array<string> }>;
   warnings: Array<string>;
   complete: boolean;
 }
@@ -101,14 +107,15 @@ function isNothingToList(error: unknown): boolean {
   );
 }
 
-function typesFor(region: string): Array<AwsInventoryType> {
+function typesFor(region: string, homeRegion: string): Array<AwsInventoryType> {
   return AWS_INVENTORY_TYPES.filter((type: AwsInventoryType): boolean => {
-    return type.isGlobal ? region === GLOBAL_REGION : true;
+    return type.isGlobal ? region === homeRegion : true;
   });
 }
 
 async function listRegion(data: {
   region: string;
+  homeRegion: string;
   accountId: string;
   credentials: AwsCredentials;
   options: CloudConnectorCallOptions;
@@ -149,7 +156,7 @@ async function listRegion(data: {
     );
   };
 
-  for (const type of typesFor(data.region)) {
+  for (const type of typesFor(data.region, data.homeRegion)) {
     if (outcome.budgetSpent) {
       break;
     }
@@ -255,19 +262,24 @@ async function listRegion(data: {
 
 /*
  * Every resource of the account in the Regions given (the ones its metrics
- * live in, or the ones the connection names), and us-east-1 for the global
- * types.
+ * live in, or the ones the connection names), and the partition's home
+ * Region for the global types.
  */
 export async function readAwsInventory(data: {
   accountId: string;
   regions: Array<string>;
+  // The partition's home Region (getStsRegion): us-east-1 when absent.
+  homeRegion?: string | undefined;
   credentials: AwsCredentials;
   options: CloudConnectorCallOptions;
   budget: CloudReadBudget;
 }): Promise<AwsInventoryOutcome> {
+  const homeRegion: string = (data.homeRegion || AWS_DEFAULT_HOME_REGION)
+    .trim()
+    .toLowerCase();
   const regions: Array<string> = Array.from(
     new Set(
-      [...data.regions, GLOBAL_REGION]
+      [...data.regions, homeRegion]
         .map((region: string): string => {
           return region.trim().toLowerCase();
         })
@@ -283,6 +295,7 @@ export async function readAwsInventory(data: {
     async (region: string): Promise<RegionOutcome> => {
       return await listRegion({
         region,
+        homeRegion,
         accountId: data.accountId,
         credentials: data.credentials,
         options: data.options,
@@ -294,20 +307,28 @@ export async function readAwsInventory(data: {
   const items: Array<CloudInventoryItem> = [];
   const warnings: Array<string> = [];
   const refused: Set<string> = new Set<string>();
-  // Per type, whether every Region asked for it listed it in full.
-  const fullyListed: Map<string, boolean> = new Map();
+  const notEnabled: Array<string> = [];
+  const completelyListed: Array<{
+    region: string;
+    resourceTypes: Array<string>;
+  }> = [];
   let complete: boolean = true;
 
   settled.forEach((result: Settled<RegionOutcome>, index: number) => {
     const region: string = regions[index]!;
-    const asked: Array<AwsInventoryType> = typesFor(region);
 
     if (!result.ok) {
       if (
         result.error instanceof LlmProviderError &&
         result.error.kind === CloudConnectionFailureKind.Authentication
       ) {
-        throw result.error;
+        // The home Region is open to every account: refused there is refused.
+        if (region === homeRegion) {
+          throw result.error;
+        }
+
+        notEnabled.push(region);
+        return;
       }
 
       warnings.push(
@@ -317,10 +338,6 @@ export async function readAwsInventory(data: {
             : String(result.error)
         }`,
       );
-
-      for (const type of asked) {
-        fullyListed.set(type.type, false);
-      }
 
       complete = false;
       return;
@@ -342,11 +359,22 @@ export async function readAwsInventory(data: {
       complete = false;
     }
 
-    for (const type of asked) {
-      const listedHere: boolean = result.value.listedTypes.includes(type.type);
-      fullyListed.set(type.type, (fullyListed.get(type.type) ?? true) && listedHere);
+    const listedHere: Array<string> = result.value.listedTypes.filter(
+      (type: string): boolean => {
+        return !getAwsInventoryTypeIsPlumbing(type);
+      },
+    );
+
+    if (listedHere.length > 0) {
+      completelyListed.push({ region, resourceTypes: listedHere });
     }
   });
+
+  if (notEnabled.length > 0) {
+    warnings.push(
+      `Could not list the resources in ${notEnabled.join(", ")}: the Region is not enabled for the account.`,
+    );
+  }
 
   if (refused.size > 0) {
     warnings.push(
@@ -356,21 +384,18 @@ export async function readAwsInventory(data: {
 
   return {
     items,
-    completelyListedTypes: Array.from(fullyListed.entries())
-      .filter(([type, listed]: [string, boolean]): boolean => {
-        return (
-          listed &&
-          !AWS_INVENTORY_TYPES.find((candidate: AwsInventoryType): boolean => {
-            return candidate.type === type;
-          })?.isPlumbing
-        );
-      })
-      .map(([type]: [string, boolean]): string => {
-        return type;
-      }),
+    completelyListed,
     warnings,
     complete,
   };
+}
+
+function getAwsInventoryTypeIsPlumbing(type: string): boolean {
+  return Boolean(
+    AWS_INVENTORY_TYPES.find((candidate: AwsInventoryType): boolean => {
+      return candidate.type === type;
+    })?.isPlumbing,
+  );
 }
 
 // IAM's one global endpoint per partition, and the Region it is signed for.

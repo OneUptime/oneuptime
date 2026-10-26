@@ -10,14 +10,17 @@ import type { SpyInstance } from "jest-mock";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudChangeRecorder from "../../../../Server/Utils/CloudConnection/CloudChangeRecorder";
 import CloudConnectionLanes, {
+  CHANGES_NOT_SAVED_WARNING,
   CLOUD_CHANGES_MAX_DURATION_MS,
   CLOUD_CHANGES_MAX_REQUESTS,
+  CLOUD_INVENTORY_CONTINUE_MS,
   CLOUD_INVENTORY_INTERVAL_MS,
   CLOUD_INVENTORY_MAX_DURATION_MS,
   CLOUD_INVENTORY_MAX_REQUESTS,
   CLOUD_LANE_MIN_TIME_MS,
   CloudChangesLaneOutcome,
   CloudInventoryLaneOutcome,
+  getAccountsListedInFull,
   getLaneDurationMs,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionLanes";
 import CloudConnectionResourceSync, {
@@ -169,7 +172,11 @@ beforeEach(() => {
   recordChanges = jest
     .spyOn(CloudChangeRecorder, "record")
     .mockImplementation(async (data: { changes: Array<CloudChange> }) => {
-      return data.changes.length;
+      return {
+        recorded: data.changes.length,
+        alreadyRecorded: 0,
+        unwritten: [],
+      };
     });
   recordAccounts = jest
     .spyOn(CloudAccountService, "recordAccountsSeen")
@@ -282,6 +289,7 @@ describe("the inventory lane", () => {
       ran: true,
       warnings: [],
       accounts: [{ accountId: "123456789012", name: "production" }],
+      listedInFull: ["123456789012"],
       synced: SYNCED,
     });
     expect(options!.connectionId).toBe(CONNECTION.toString());
@@ -301,27 +309,109 @@ describe("the inventory lane", () => {
     expect(state.inventoryListedAt).toBe(NOW.toISOString());
   });
 
-  test("a listing stopped at its limit archives nothing, and says so", async () => {
+  test("a listing stopped at its limit keeps what it did list to the end, and says so", async () => {
     const outcome: CloudInventoryLaneOutcome =
       await CloudConnectionLanes.runInventory(
         lane({
           connector: connector({
             readInventory: async () => {
-              return inventoryResult({ complete: false, warnings: ["one"] });
+              return inventoryResult({
+                complete: false,
+                warnings: ["one"],
+                completelyListed: [
+                  {
+                    accountId: "123456789012",
+                    regions: ["eu-west-1"],
+                    resourceTypes: ["AWS::Lambda::Function"],
+                  },
+                ],
+              });
             },
           }),
         }),
       );
 
+    // What reached its last page holds: only those types and Regions.
     expect(
       (syncInventory.mock.calls[0]![0] as unknown as JSONObject)[
         "completelyListed"
       ],
-    ).toEqual([]);
+    ).toEqual([
+      {
+        accountId: "123456789012",
+        regions: ["eu-west-1"],
+        resourceTypes: ["AWS::Lambda::Function"],
+      },
+    ]);
     expect(outcome.warnings).toEqual([
       "one",
       "The inventory stopped at its limit for this read: what it listed is kept, and it lists the rest next time.",
     ]);
+    // Not listed in full: its Last Listed At stays.
+    expect(outcome.listedInFull).toEqual([]);
+  });
+
+  test("a listing with resources left to add lists again on the next read, a minute later", async () => {
+    syncInventory.mockResolvedValue({ ...SYNCED, hasMore: true });
+    const state: CloudConnectionPullState = {};
+
+    const outcome: CloudInventoryLaneOutcome =
+      await CloudConnectionLanes.runInventory(
+        lane({
+          state,
+          connector: connector({
+            readInventory: async () => {
+              return inventoryResult();
+            },
+          }),
+        }),
+      );
+
+    expect(outcome.warnings).toEqual([
+      "The accounts have more resources than one read adds: the next read adds the rest.",
+    ]);
+    // Due again a minute from now, not in half an hour.
+    expect(
+      CloudConnectionLanes.isInventoryDue(
+        state,
+        new Date(NOW.getTime() + CLOUD_INVENTORY_CONTINUE_MS - 1000),
+      ),
+    ).toBe(false);
+    expect(
+      CloudConnectionLanes.isInventoryDue(
+        state,
+        new Date(NOW.getTime() + CLOUD_INVENTORY_CONTINUE_MS),
+      ),
+    ).toBe(true);
+  });
+
+  test("the connector signs with the read's clock when it has one, else with the read's time", async () => {
+    const seen: Array<Date> = [];
+    const later: Date = new Date(NOW.getTime() + 6 * MINUTE);
+
+    for (const clock of [
+      undefined,
+      (): Date => {
+        return later;
+      },
+    ]) {
+      await CloudConnectionLanes.runInventory({
+        ...lane({
+          connector: connector({
+            readInventory: async (
+              _settings: CloudConnectionSettings,
+              given: CloudInventoryOptions,
+            ) => {
+              seen.push(given.now!());
+              return inventoryResult();
+            },
+          }),
+        }),
+        clock,
+      });
+    }
+
+    expect(seen).toEqual([NOW, later]);
   });
 
   test("is not run when not due, when the connector has none, or too close to the deadline", async () => {
@@ -345,6 +435,7 @@ describe("the inventory lane", () => {
         ran: false,
         warnings: [],
         accounts: [],
+        listedInFull: [],
       });
     }
 
@@ -446,6 +537,117 @@ describe("the changes lane", () => {
     });
   });
 
+  test("changes the store did not take are read again: the cursors go back, the rest stay seen", async () => {
+    const before: string = new Date(NOW.getTime() - 10 * MINUTE).toISOString();
+    const state: CloudConnectionPullState = {
+      changeCursors: { "123456789012|eu-west-1": before },
+    };
+
+    recordChanges.mockImplementation(
+      async (data: { changes: Array<CloudChange> }) => {
+        return {
+          recorded: 1,
+          alreadyRecorded: 0,
+          unwritten: data.changes.slice(1),
+        };
+      },
+    );
+
+    const outcome: CloudChangesLaneOutcome =
+      await CloudConnectionLanes.runChanges(
+        lane({
+          state,
+          connector: connector({
+            readChanges: async (
+              _settings: CloudConnectionSettings,
+              given: CloudChangesOptions,
+            ): Promise<CloudChangesResult> => {
+              // As a connector does: the place moves on, and what it saw is remembered.
+              given.state.changeCursors = {
+                "123456789012|eu-west-1": NOW.toISOString(),
+              };
+              given.state.recentChanges = {
+                "123456789012|eu-west-1": {
+                  a: NOW.getTime() - MINUTE,
+                  b: NOW.getTime() - MINUTE,
+                },
+              };
+              return {
+                changes: [change("a"), change("b")],
+                warnings: [],
+                complete: true,
+              };
+            },
+          }),
+        }),
+      );
+
+    expect(outcome).toEqual({
+      ran: true,
+      warnings: [CHANGES_NOT_SAVED_WARNING],
+      recorded: 1,
+    });
+    expect(state.changeCursors).toEqual({ "123456789012|eu-west-1": before });
+    expect(state.recentChanges).toEqual({
+      "123456789012|eu-west-1": { a: NOW.getTime() - MINUTE },
+    });
+  });
+
+  test("a read that fails part way goes back to where it was", async () => {
+    const before: string = new Date(NOW.getTime() - 10 * MINUTE).toISOString();
+    const state: CloudConnectionPullState = {
+      changeCursors: { "123456789012|eu-west-1": before },
+    };
+
+    await CloudConnectionLanes.runChanges(
+      lane({
+        state,
+        connector: connector({
+          readChanges: async (
+            _settings: CloudConnectionSettings,
+            given: CloudChangesOptions,
+          ): Promise<CloudChangesResult> => {
+            given.state.changeCursors = {
+              "123456789012|eu-west-1": NOW.toISOString(),
+            };
+            given.state.recentChanges = {
+              "123456789012|eu-west-1": { a: NOW.getTime() },
+            };
+            throw new Error("the second account timed out");
+          },
+        }),
+      }),
+    );
+
+    expect(state.changeCursors).toEqual({ "123456789012|eu-west-1": before });
+    expect(state.recentChanges).toBeUndefined();
+    expect(recordChanges).not.toHaveBeenCalled();
+  });
+
+  test("the connector reads with the read's clock when it has one", async () => {
+    const later: Date = new Date(NOW.getTime() + 7 * MINUTE);
+    let seen: Date | null = null;
+
+    await CloudConnectionLanes.runChanges({
+      ...lane({
+        connector: connector({
+          readChanges: async (
+            _settings: CloudConnectionSettings,
+            given: CloudChangesOptions,
+          ): Promise<CloudChangesResult> => {
+            seen = given.now!();
+            return { changes: [], warnings: [], complete: true };
+          },
+        }),
+      }),
+      clock: (): Date => {
+        return later;
+      },
+    });
+
+    expect(seen).toEqual(later);
+  });
+
   test("is not run when the connector has none, or too close to the deadline", async () => {
     let calls: number = 0;
 
@@ -522,22 +724,53 @@ describe("the connection's accounts", () => {
         { accountId: "123456789012", name: "production" },
         { accountId: "333333333333", name: "" },
       ],
-      inventoryListedAt: listedAt,
+      listedInFull: ["123456789012"],
+      listedAt,
       recount: true,
     });
 
+    // Only the account listed in full has its Last Listed At moved on.
     expect(recordAccounts).toHaveBeenCalledWith({
       projectId: PROJECT,
       connectionId: CONNECTION,
       provider: CloudProvider.AWS,
       accounts: [
-        { accountId: "123456789012", name: "production" },
-        { accountId: "210987654321", name: undefined },
-        { accountId: "333333333333", name: undefined },
+        {
+          accountId: "123456789012",
+          name: "production",
+          listedInFullAt: listedAt,
+        },
+        {
+          accountId: "210987654321",
+          name: undefined,
+          listedInFullAt: undefined,
+        },
+        {
+          accountId: "333333333333",
+          name: undefined,
+          listedInFullAt: undefined,
+        },
       ],
-      inventoryListedAt: listedAt,
     });
     expect(refreshSummary).toHaveBeenCalledTimes(3);
+  });
+
+  test("an account the inventory did not list in full keeps when it last was", async () => {
+    await CloudConnectionLanes.keepAccounts({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: CloudProvider.AWS,
+      accountIds: ["123456789012"],
+      named: [],
+      listedAt: NOW,
+      recount: false,
+    });
+
+    expect(
+      (recordAccounts.mock.calls[0]![0] as unknown as JSONObject)["accounts"],
+    ).toEqual([
+      { accountId: "123456789012", name: undefined, listedInFullAt: undefined },
+    ]);
   });
 
   test("are not recounted when nothing they hold may have changed", async () => {
@@ -552,6 +785,27 @@ describe("the connection's accounts", () => {
 
     expect(recordAccounts).toHaveBeenCalledTimes(1);
     expect(refreshSummary).not.toHaveBeenCalled();
+  });
+
+  test("an account is listed in full only by a listing that got to its end", () => {
+    const listing: CloudInventoryResult = inventoryResult({
+      accounts: [
+        { accountId: "123456789012", name: "production" },
+        { accountId: "210987654321", name: "staging" },
+      ],
+      completelyListed: [
+        {
+          accountId: "123456789012",
+          regions: ["eu-west-1"],
+          resourceTypes: ["AWS::Lambda::Function"],
+        },
+      ],
+    });
+
+    expect(getAccountsListedInFull(listing)).toEqual(["123456789012"]);
+    expect(getAccountsListedInFull({ ...listing, complete: false })).toEqual(
+      [],
+    );
   });
 
   test("a failure to keep them is logged, never thrown", async () => {

@@ -384,7 +384,7 @@ describe("what changed in an AWS account", () => {
     );
   });
 
-  test("a Region with more changes than one read takes is read again from the same place", async () => {
+  test("a Region with more changes than one read takes keeps its newest, moves on, and says so", async () => {
     const events: Array<JSONObject> = [];
 
     for (let index: number = 0; index < 12; index++) {
@@ -413,26 +413,74 @@ describe("what changed in an AWS account", () => {
       changeOptions(fake, state),
     );
 
-    expect(result.complete).toBe(false);
+    // Every page it could read was read: the read itself is not cut short.
+    expect(result.complete).toBe(true);
     // The newest pages, as CloudTrail lists them.
     expect(result.changes).toHaveLength(AWS_CHANGE_MAX_PAGES * 2);
+    expect(
+      result.changes
+        .map((change: CloudChange): string => {
+          return change.eventId;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "evt-2",
+        "evt-3",
+        "evt-4",
+        "evt-5",
+        "evt-6",
+        "evt-7",
+        "evt-8",
+        "evt-9",
+        "evt-10",
+        "evt-11",
+      ].sort(),
+    );
     expect(
       fake.cloudTrailCalls.filter((call: { region: string }): boolean => {
         return call.region === "eu-west-1";
       }),
     ).toHaveLength(AWS_CHANGE_MAX_PAGES);
+    // Before: the cursor stayed, and every read read the same newest pages.
     expect(state.changeCursors?.[`${FAKE_ACCOUNT_ID}|eu-west-1`]).toBe(
-      undefined,
+      NOW.toISOString(),
     );
     expect(state.changeCursors?.[`${FAKE_ACCOUNT_ID}|us-east-1`]).toBe(
       NOW.toISOString(),
     );
-    // What it did read is remembered: the next read does not write it again.
+    expect(result.warnings).toEqual([
+      "More changed in eu-west-1 than one read takes: the newest changes are kept, and some older ones were left out.",
+    ]);
+    /*
+     * What it read is older than where the next read starts - twenty
+     * minutes before now - so nothing of it needs remembering.
+     */
     expect(
-      Object.keys(
-        state.recentChanges?.[`${FAKE_ACCOUNT_ID}|eu-west-1`] || {},
-      ).sort(),
-    ).toHaveLength(AWS_CHANGE_MAX_PAGES * 2);
+      state.recentChanges?.[`${FAKE_ACCOUNT_ID}|eu-west-1`],
+    ).toBeUndefined();
+
+    // The next read, ten minutes on, reads from twenty minutes before this one.
+    const later: FakeAws = fakeWith({
+      regions: {
+        "eu-west-1": { metrics: [], trailEvents: events, trailPageSize: 2 },
+        "us-east-1": { metrics: [] },
+      },
+    });
+    const next: CloudChangesResult = await connector.readChanges(
+      keySettings(),
+      changeOptions(later, state, {}, new Date(NOW.getTime() + 10 * 60000)),
+    );
+
+    expect(
+      Number(
+        later.cloudTrailCalls.find((call: { region: string }): boolean => {
+          return call.region === "eu-west-1";
+        })!.body["StartTime"],
+      ),
+    ).toBe(Math.floor((NOW.getTime() - 20 * 60000) / 1000));
+    // Nothing it wrote is written again.
+    expect(next.changes).toEqual([]);
   });
 
   test("an investigation's look back reads only what it names, from its own start, and moves no cursor", async () => {
@@ -580,9 +628,11 @@ describe("what AWS Health says about the account", () => {
     );
 
     expect(result.warnings).toEqual([]);
-    expect(state.healthPausedUntil).toBe(
-      new Date(NOW.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    );
+    expect(state.healthPausedAccounts).toEqual({
+      [FAKE_ACCOUNT_ID]: new Date(
+        NOW.getTime() + 24 * 60 * 60 * 1000,
+      ).toISOString(),
+    });
 
     const later: FakeAws = fakeWith({});
     await connector.readChanges(
@@ -590,6 +640,119 @@ describe("what AWS Health says about the account", () => {
       changeOptions(later, state, {}, new Date(NOW.getTime() + 60 * 60000)),
     );
     expect(later.healthCalls).toEqual([]);
+
+    // A day later it is asked again.
+    const tomorrow: FakeAws = fakeWith({});
+    await connector.readChanges(
+      keySettings(),
+      changeOptions(
+        tomorrow,
+        state,
+        {},
+        new Date(NOW.getTime() + 25 * 60 * 60000),
+      ),
+    );
+    expect(tomorrow.healthCalls.length).toBeGreaterThan(0);
+  });
+
+  test("AWS Health is read from a little before where the account's last read got to", async () => {
+    const fake: FakeAws = fakeWith({});
+    const state: CloudConnectionPullState = {
+      ...singleAccountState(),
+      healthReadAt: new Date(NOW.getTime() - 20 * 60000).toISOString(),
+      accountHealthReadAt: {
+        [FAKE_ACCOUNT_ID]: new Date(NOW.getTime() - 20 * 60000).toISOString(),
+      },
+    };
+
+    await connector.readChanges(keySettings(), changeOptions(fake, state));
+
+    const describe: { body: JSONObject } = fake.healthCalls.find(
+      (call: { action: string }): boolean => {
+        return call.action === "DescribeEvents";
+      },
+    )!;
+    const filter: JSONObject = describe.body["filter"] as JSONObject;
+    expect(
+      ((filter["lastUpdatedTimes"] as Array<JSONObject>)[0] as JSONObject)[
+        "from"
+      ],
+    ).toBe(Math.floor((NOW.getTime() - 40 * 60000) / 1000));
+    expect(state.accountHealthReadAt?.[FAKE_ACCOUNT_ID]).toBe(
+      NOW.toISOString(),
+    );
+  });
+});
+
+describe("AWS's other partitions", () => {
+  function govSettings(): CloudConnectionSettings {
+    return keySettings({ regions: "us-gov-east-1" });
+  }
+
+  test("GovCloud's changes and health are read in GovCloud's home Region, never us-east-1", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-gov-east-1": {
+          metrics: [],
+          trailEvents: [
+            trailEvent({
+              id: "evt-gov",
+              name: "RunInstances",
+              source: "ec2.amazonaws.com",
+              at: "2026-10-21T11:50:00Z",
+            }),
+          ],
+        },
+        "us-gov-west-1": { metrics: [] },
+      },
+    });
+    const state: CloudConnectionPullState = {
+      accounts: [FAKE_ACCOUNT_ID],
+    };
+
+    const result: CloudChangesResult = await connector.readChanges(
+      govSettings(),
+      changeOptions(fake, state),
+    );
+
+    expect(
+      Array.from(
+        new Set(
+          fake.cloudTrailCalls.map((call: { region: string }): string => {
+            return call.region;
+          }),
+        ),
+      ).sort(),
+    ).toEqual(["us-gov-east-1", "us-gov-west-1"]);
+    expect(
+      fake.healthCalls.map((call: { region: string }): string => {
+        return call.region;
+      }),
+    ).toEqual(["us-gov-west-1"]);
+    expect(operations(result)).toEqual(["ec2:RunInstances"]);
+  });
+
+  test("a credential refused in GovCloud's home Region is refused", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-gov-east-1": { metrics: [] },
+        "us-gov-west-1": {
+          metrics: [],
+          trailError: awsError(
+            400,
+            "UnrecognizedClientException",
+            "The security token included in the request is invalid.",
+          ),
+        },
+      },
+    });
+
+    await expect(
+      connector.readChanges(
+        govSettings(),
+        changeOptions(fake, { accounts: [FAKE_ACCOUNT_ID] }),
+      ),
+    ).rejects.toThrow(LlmProviderError);
   });
 });
 
@@ -658,5 +821,93 @@ describe("what changed in an AWS Organization", () => {
         `${MEMBER}|health`,
       ].sort(),
     );
+    // Each account read is marked, the one without its role included.
+    expect(state.accountStates?.[MANAGEMENT]?.changesReadAt).toBe(
+      NOW.toISOString(),
+    );
+    expect(state.accountStates?.[MEMBER]?.changesReadAt).toBe(
+      NOW.toISOString(),
+    );
+  });
+
+  test("the account read least recently goes first, so a read that stops at its limit reaches the rest", async () => {
+    process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
+    process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] =
+      "oneuptime-server-secret";
+
+    const fake: FakeAws = createFakeAws({
+      account: MANAGEMENT,
+      regions: { "us-east-1": { metrics: [] } },
+    });
+    const state: CloudConnectionPullState = {
+      healthReadAt: NOW.toISOString(),
+      organizationAccounts: [
+        { id: MANAGEMENT, name: "Management" },
+        { id: MEMBER, name: "Production" },
+      ],
+      accountStates: {
+        [MANAGEMENT]: {
+          accounts: [MANAGEMENT],
+          changesReadAt: new Date(NOW.getTime() - 60000).toISOString(),
+        },
+        [MEMBER]: {
+          accounts: [MEMBER],
+          changesReadAt: new Date(NOW.getTime() - 3600000).toISOString(),
+        },
+      },
+    };
+
+    await connector.readChanges(
+      organizationSettings(),
+      changeOptions(fake, state),
+    );
+
+    expect(fake.cloudTrailCalls[0]!.account).toBe(MEMBER);
+  });
+
+  test("an account whose support plan has no Health API is paused alone; the others are still asked", async () => {
+    process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
+    process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] =
+      "oneuptime-server-secret";
+
+    const fake: FakeAws = createFakeAws({
+      account: MANAGEMENT,
+      regions: { "us-east-1": { metrics: [] } },
+      healthErrorsByAccount: {
+        [MEMBER]: awsError(
+          400,
+          "SubscriptionRequiredException",
+          "The AWS Premium Support Subscription is required to use this service.",
+        ),
+      },
+    });
+    const state: CloudConnectionPullState = {
+      organizationAccounts: [
+        { id: MEMBER, name: "Production" },
+        { id: MANAGEMENT, name: "Management" },
+      ],
+      accountStates: {
+        [MANAGEMENT]: { accounts: [MANAGEMENT] },
+        [MEMBER]: { accounts: [MEMBER] },
+      },
+    };
+
+    await connector.readChanges(
+      organizationSettings(),
+      changeOptions(fake, state),
+    );
+
+    expect(Object.keys(state.healthPausedAccounts || {})).toEqual([MEMBER]);
+    expect(
+      fake.healthCalls
+        .filter((call: { action: string }): boolean => {
+          return call.action === "DescribeEvents";
+        })
+        .map((call: { account: string }): string => {
+          return call.account;
+        })
+        .sort(),
+    ).toEqual([MANAGEMENT, MEMBER].sort());
+    expect(state.accountHealthReadAt?.[MANAGEMENT]).toBe(NOW.toISOString());
   });
 });

@@ -21,7 +21,12 @@ import {
  * management account (or its delegated administrator): every account of
  * the organization, read with the role a StackSet put in each.
  *
- *   { NextToken } -> { Accounts: [{ Id, Name, Status }], NextToken }
+ *   { NextToken } -> { Accounts: [{ Id, Name, State, Status }], NextToken }
+ *
+ * An account's lifecycle is its State (ACTIVE, SUSPENDED, PENDING_CLOSURE,
+ * CLOSED, PENDING_ACTIVATION); AWS retired the older Status on 9 September
+ * 2026, so State is read first and Status only when State is absent. Only
+ * an ACTIVE account is read: any other has no role to sign in to.
  *
  * The accounts' email addresses are in the answer and are not kept.
  */
@@ -34,6 +39,19 @@ const MAX_PAGES: number = 50;
 export interface AwsOrganizationAccount {
   id: string;
   name: string;
+}
+
+/*
+ * Whether an account of the organization is in use: its State, or - from
+ * an answer older than State - its Status, says ACTIVE. An account that
+ * says neither is taken as active: AWS lists every account it can.
+ */
+export function isAwsOrganizationAccountActive(account: JSONObject): boolean {
+  const state: string = (
+    readText(account["State"]) || readText(account["Status"])
+  ).toUpperCase();
+
+  return !state || state === "ACTIVE";
 }
 
 // The Region Organizations answers in, per partition.
@@ -90,10 +108,8 @@ export async function listAwsOrganizationAccounts(options: {
     for (const raw of readArray(answer.json["Accounts"])) {
       const account: JSONObject = readObject(raw);
       const id: string = readText(account["Id"]);
-      const status: string = readText(account["Status"]).toUpperCase();
 
-      // Only accounts in use: a suspended or closing one has no role to sign in to.
-      if (id && (!status || status === "ACTIVE")) {
+      if (id && isAwsOrganizationAccountActive(account)) {
         accounts.push({ id, name: readText(account["Name"]) });
       }
     }

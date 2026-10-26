@@ -321,6 +321,7 @@ export default class AzureCloudConnector implements CloudConnector {
       transport: options.transport,
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget,
+      sleep: options.sleep,
     });
   }
 
@@ -736,12 +737,18 @@ export default class AzureCloudConnector implements CloudConnector {
 
     let refused: boolean = false;
 
-    const outcomes: Array<Settled<Array<CloudChange>>> =
-      await mapWithConcurrency(
-        subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS),
-        CONCURRENCY,
-        async (subscriptionId: string): Promise<Array<CloudChange>> => {
-          const events: Array<JSONObject> = await arm.listActivityLog({
+    const busy: Array<string> = [];
+
+    const outcomes: Array<
+      Settled<{ changes: Array<CloudChange>; complete: boolean }>
+    > = await mapWithConcurrency(
+      subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS),
+      CONCURRENCY,
+      async (
+        subscriptionId: string,
+      ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+        const listed: { events: Array<JSONObject>; complete: boolean } =
+          await arm.listActivityLog({
             subscriptionId,
             start: getChangeWindowStart({
               state: options.state,
@@ -752,62 +759,83 @@ export default class AzureCloudConnector implements CloudConnector {
             end: now,
           });
 
-          return events
+        return {
+          changes: listed.events
             .map((event: JSONObject): CloudChange | null => {
               return readAzureActivityEvent({ event, subscriptionId });
             })
             .filter((change: CloudChange | null): boolean => {
               return change !== null;
-            }) as Array<CloudChange>;
-        },
-      );
+            }) as Array<CloudChange>,
+          complete: listed.complete,
+        };
+      },
+    );
 
-    outcomes.forEach((outcome: Settled<Array<CloudChange>>, index: number) => {
-      const subscriptionId: string = subscriptionIds[index]!;
+    outcomes.forEach(
+      (
+        outcome: Settled<{ changes: Array<CloudChange>; complete: boolean }>,
+        index: number,
+      ) => {
+        const subscriptionId: string = subscriptionIds[index]!;
 
-      if (outcome.ok) {
-        result.changes.push(
-          ...keepNewChanges({
-            state: options.state,
-            place: getChangePlace(subscriptionId, ""),
-            changes: outcome.value,
-            now,
-            complete: true,
-            isLookBack,
-          }),
+        if (outcome.ok) {
+          result.changes.push(
+            ...keepNewChanges({
+              state: options.state,
+              place: getChangePlace(subscriptionId, ""),
+              changes: outcome.value.changes,
+              now,
+              complete: outcome.value.complete,
+              isLookBack,
+              // The Activity Log lists newest first.
+              order: "newest-first",
+            }),
+          );
+
+          if (!outcome.value.complete) {
+            busy.push(subscriptionId);
+          }
+
+          return;
+        }
+
+        result.complete = false;
+
+        if (outcome.error instanceof CloudReadBudgetSpent) {
+          return;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw outcome.error;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Permission
+        ) {
+          refused = true;
+          return;
+        }
+
+        result.warnings.push(
+          `Could not read what changed in subscription ${subscriptionId}: ${
+            outcome.error instanceof Error
+              ? outcome.error.message
+              : String(outcome.error)
+          }`,
         );
-        return;
-      }
+      },
+    );
 
-      result.complete = false;
-
-      if (outcome.error instanceof CloudReadBudgetSpent) {
-        return;
-      }
-
-      if (
-        outcome.error instanceof LlmProviderError &&
-        outcome.error.kind === CloudConnectionFailureKind.Authentication
-      ) {
-        throw outcome.error;
-      }
-
-      if (
-        outcome.error instanceof LlmProviderError &&
-        outcome.error.kind === CloudConnectionFailureKind.Permission
-      ) {
-        refused = true;
-        return;
-      }
-
+    if (busy.length > 0) {
       result.warnings.push(
-        `Could not read what changed in subscription ${subscriptionId}: ${
-          outcome.error instanceof Error
-            ? outcome.error.message
-            : String(outcome.error)
-        }`,
+        `More changed in subscription ${busy.slice(0, 5).join(", ")} than one read takes: the newest changes are kept, and some older ones were left out.`,
       );
-    });
+    }
 
     if (refused) {
       result.warnings.push(
@@ -839,9 +867,14 @@ export default class AzureCloudConnector implements CloudConnector {
     options: CloudInventoryOptions,
   ): Promise<CloudInventoryResult> {
     const arm: AzureArm = this.arm(settings, options, options.budget);
-    const subscriptions: Array<AzureSubscription> = (
-      await this.getSubscriptions(arm, settings)
-    ).slice(0, AZURE_MAX_SUBSCRIPTIONS);
+    const readable: Array<AzureSubscription> = await this.getSubscriptions(
+      arm,
+      settings,
+    );
+    const subscriptions: Array<AzureSubscription> = readable.slice(
+      0,
+      AZURE_MAX_SUBSCRIPTIONS,
+    );
     const subscriptionIds: Array<string> = subscriptions.map(
       (subscription: AzureSubscription): string => {
         return subscription.subscriptionId;
@@ -916,11 +949,18 @@ export default class AzureCloudConnector implements CloudConnector {
             return { accountId: subscriptionId, resourceTypes: knownTypes };
           })
         : [],
-      warnings: listing.complete
-        ? []
-        : [
-            "The subscriptions have more resources than one inventory lists: the rest are listed next time.",
-          ],
+      warnings: [
+        ...(readable.length > AZURE_MAX_SUBSCRIPTIONS
+          ? [
+              `The app may read ${readable.length} subscriptions: the first ${AZURE_MAX_SUBSCRIPTIONS} are listed. Name the ones to read under Subscriptions.`,
+            ]
+          : []),
+        ...(listing.complete
+          ? []
+          : [
+              "The subscriptions have more resources than one inventory lists: the rest are listed next time.",
+            ]),
+      ],
       complete: listing.complete,
     };
   }

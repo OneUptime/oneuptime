@@ -7,13 +7,18 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import CloudChangeRecorder, {
+  CLOUD_CHANGE_CLAIM_NAMESPACE,
+  CLOUD_CHANGE_CLAIM_SECONDS,
+  CloudChangeRecordOutcome,
   CloudResourceIndex,
   buildCloudChangeEntry,
   classifyCloudChange,
+  getCloudChangeClaimKey,
   getCloudChangeDedupToken,
 } from "../../../../Server/Utils/CloudConnection/CloudChangeRecorder";
 import { CloudChange } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
@@ -35,7 +40,9 @@ import {
  * change events: project-wide, tied to the Cloud Resource they changed
  * when the connection holds it and to their Cloud Account, classified by
  * what the operation did, written in batches with a token that names
- * exactly the changes in them - and never failing the read.
+ * exactly the changes in them, each change once whoever reads it (a claim
+ * in the cache) - and never failing the read: what could not be written
+ * is said, so the read can be read again.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -77,6 +84,13 @@ interface Submission {
 let submissions: Array<Submission>;
 let findResources: SpyInstance<typeof CloudResourceService.findBy>;
 let findAccount: SpyInstance<typeof CloudAccountService.findAccount>;
+// Claims as the cache holds them, by full key.
+let claims: Set<string>;
+let claimCalls: Array<{ namespace: string; key: string; ttl: number }>;
+let released: Array<string>;
+let claimSpy: SpyInstance<typeof GlobalCache.setStringIfNotExists>;
+// Answers the change store gives, in turn: "ok" or "fail".
+let storeAnswers: Array<"ok" | "fail">;
 
 function attributesOf(row: JSONObject): Dictionary<string> {
   return row["attributes"] as Dictionary<string>;
@@ -97,12 +111,48 @@ beforeEach(() => {
     .spyOn(CloudAccountService, "findAccount")
     .mockResolvedValue({ id: ACCOUNT_ROW_ID } as never);
 
+  claims = new Set<string>();
+  claimCalls = [];
+  released = [];
+  storeAnswers = [];
+
+  claimSpy = jest
+    .spyOn(GlobalCache, "setStringIfNotExists")
+    .mockImplementation((async (
+      namespace: string,
+      key: string,
+      _value: string,
+      options?: { expiresInSeconds?: number | undefined },
+    ): Promise<boolean> => {
+      claimCalls.push({ namespace, key, ttl: options?.expiresInSeconds || 0 });
+      const full: string = `${namespace}-${key}`;
+
+      if (claims.has(full)) {
+        return false;
+      }
+
+      claims.add(full);
+      return true;
+    }) as never);
+  jest.spyOn(GlobalCache, "deleteKey").mockImplementation((async (
+    namespace: string,
+    key: string,
+  ): Promise<void> => {
+    released.push(key);
+    claims.delete(`${namespace}-${key}`);
+  }) as never);
+
   jest.spyOn(TelemetryFanInWriter, "submit").mockImplementation((async (
     target: unknown,
     rows: Array<JSONObject>,
     options?: { dedupToken?: string | undefined },
   ) => {
     expect(target).toBe(ChangeEventService);
+
+    if (storeAnswers.shift() === "fail") {
+      return { flushed: Promise.reject(new Error("ClickHouse is down")) };
+    }
+
     submissions.push({ rows, dedupToken: options?.dedupToken });
     return { flushed: Promise.resolve() };
   }) as never);
@@ -328,7 +378,7 @@ describe("the resources a change names", () => {
 
 describe("recording", () => {
   test("writes each change project-wide, tied to the resource and account the connection holds", async () => {
-    const recorded: number = await CloudChangeRecorder.record({
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
       projectId: PROJECT_ID,
       provider: CloudProvider.AWS,
       changes: [
@@ -341,7 +391,7 @@ describe("recording", () => {
       ],
     });
 
-    expect(recorded).toBe(2);
+    expect(outcome).toEqual({ recorded: 2, alreadyRecorded: 0, unwritten: [] });
     expect(submissions).toHaveLength(1);
 
     const [tied, untied] = submissions[0]!.rows;
@@ -379,13 +429,13 @@ describe("recording", () => {
       many.push(change({ eventId: `evt-${index}` }));
     }
 
-    const recorded: number = await CloudChangeRecorder.record({
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
       projectId: PROJECT_ID,
       provider: CloudProvider.AWS,
       changes: many,
     });
 
-    expect(recorded).toBe(450);
+    expect(outcome.recorded).toBe(450);
     expect(
       submissions.map((submission: Submission): number => {
         return submission.rows.length;
@@ -426,21 +476,172 @@ describe("recording", () => {
         provider: CloudProvider.AWS,
         changes: [],
       }),
-    ).toBe(0);
+    ).toEqual({ recorded: 0, alreadyRecorded: 0, unwritten: [] });
     expect(findResources).not.toHaveBeenCalled();
+    expect(claimSpy).not.toHaveBeenCalled();
     expect(submissions).toEqual([]);
   });
 
-  test("never fails the read: a failure is logged and nothing is counted", async () => {
+  test("never fails the read: what could not be read is said as not written, and its claims let go", async () => {
     findResources.mockRejectedValue(new Error("database is down"));
+    const changes: Array<CloudChange> = [
+      change(),
+      change({ eventId: "evt-2" }),
+    ];
 
-    const recorded: number = await CloudChangeRecorder.record({
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes,
+    });
+
+    expect(outcome.recorded).toBe(0);
+    expect(outcome.unwritten).toEqual(changes);
+    expect(logger.error).toHaveBeenCalled();
+    // Let go: the next read that brings them in writes them.
+    expect(claims.size).toBe(0);
+    expect(released.sort()).toEqual(
+      [
+        getCloudChangeClaimKey(PROJECT_ID, changes[0]!),
+        getCloudChangeClaimKey(PROJECT_ID, changes[1]!),
+      ].sort(),
+    );
+  });
+});
+
+describe("each change is written once, whoever reads it", () => {
+  test("a change is claimed for three days under its project, cloud, account and id", async () => {
+    await CloudChangeRecorder.record({
       projectId: PROJECT_ID,
       provider: CloudProvider.AWS,
       changes: [change()],
     });
 
-    expect(recorded).toBe(0);
+    expect(claimCalls).toEqual([
+      {
+        namespace: CLOUD_CHANGE_CLAIM_NAMESPACE,
+        key: `${PROJECT_ID.toString()}:aws:${ACCOUNT}:evt-1`,
+        ttl: CLOUD_CHANGE_CLAIM_SECONDS,
+      },
+    ]);
+    expect(CLOUD_CHANGE_CLAIM_SECONDS).toBe(3 * 24 * 60 * 60);
+  });
+
+  test("a change another read claimed first is not written again", async () => {
+    // The investigation's look back brought it in first.
+    await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes: [change()],
+    });
+
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes: [change(), change({ eventId: "evt-new" })],
+    });
+
+    expect(outcome).toEqual({ recorded: 1, alreadyRecorded: 1, unwritten: [] });
+    expect(submissions).toHaveLength(2);
+    expect(
+      submissions[1]!.rows.map((row: JSONObject): string => {
+        return attributesOf(row)[ChangeEventAttribute.CloudEventId] || "";
+      }),
+    ).toEqual(["evt-new"]);
+  });
+
+  test("the same event id in another project or account is another change", () => {
+    const other: ObjectID = new ObjectID(
+      "5e7a1b30-0000-4000-8000-000000000099",
+    );
+
+    expect(getCloudChangeClaimKey(PROJECT_ID, change())).not.toBe(
+      getCloudChangeClaimKey(other, change()),
+    );
+    expect(getCloudChangeClaimKey(PROJECT_ID, change())).not.toBe(
+      getCloudChangeClaimKey(PROJECT_ID, change({ accountId: "210987654321" })),
+    );
+    // Account ids are compared in any case (an Azure subscription GUID).
+    expect(
+      getCloudChangeClaimKey(PROJECT_ID, change({ accountId: "ABC-def" })),
+    ).toBe(
+      getCloudChangeClaimKey(PROJECT_ID, change({ accountId: "abc-DEF" })),
+    );
+  });
+
+  test("a cache that does not answer claims nothing: everything is written", async () => {
+    claimSpy.mockRejectedValue(new Error("Cache is not connected"));
+
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes: [change(), change({ eventId: "evt-2" })],
+    });
+
+    expect(outcome).toEqual({ recorded: 2, alreadyRecorded: 0, unwritten: [] });
+  });
+
+  test("a change with no id is written without a claim", async () => {
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes: [change({ eventId: "" })],
+    });
+
+    expect(outcome.recorded).toBe(1);
+    expect(claimSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("a change store that does not take a batch", () => {
+  function many(count: number): Array<CloudChange> {
+    const changes: Array<CloudChange> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      changes.push(change({ eventId: `evt-${index}` }));
+    }
+
+    return changes;
+  }
+
+  test("stops there: that batch and the rest are not written, their claims let go", async () => {
+    storeAnswers = ["ok", "fail"];
+    const changes: Array<CloudChange> = many(450);
+
+    const outcome: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes,
+    });
+
+    expect(outcome.recorded).toBe(200);
+    expect(outcome.unwritten).toEqual(changes.slice(200));
+    // The first batch stays claimed; the rest may be written by the next read.
+    expect(claims.size).toBe(200);
+    expect(released).toHaveLength(250);
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("read again, the batches already written are not written twice", async () => {
+    storeAnswers = ["ok", "fail"];
+    const changes: Array<CloudChange> = many(450);
+
+    await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes,
+    });
+
+    const again: CloudChangeRecordOutcome = await CloudChangeRecorder.record({
+      projectId: PROJECT_ID,
+      provider: CloudProvider.AWS,
+      changes,
+    });
+
+    expect(again).toEqual({
+      recorded: 250,
+      alreadyRecorded: 200,
+      unwritten: [],
+    });
   });
 });

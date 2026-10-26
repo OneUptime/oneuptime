@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import { readCloudTags } from "../../../Types/Cloud/CloudInventory";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
@@ -20,6 +21,7 @@ import CloudResourceLabelRuleEngineService from "../../Services/CloudResourceLab
 import CloudResourceOwnerRuleEngineService from "../../Services/CloudResourceOwnerRuleEngineService";
 import logger from "../Logger";
 import {
+  CloudCompleteListing,
   CloudDiscoveredResource,
   CloudInventoryItem,
   CloudKnownResource,
@@ -77,6 +79,99 @@ interface LinkedRow {
   isArchived: boolean;
   // The tags the row holds, for telling whether a listing changed them.
   cloudTags: Record<string, string>;
+  // What the last listing said of it, hashed (getInventoryFingerprint).
+  cloudInventoryFingerprint: string;
+}
+
+// Sorted keys, all the way down: two objects that say the same hash the same.
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
+
+  if (value && typeof value === "object") {
+    const sorted: Record<string, unknown> = {};
+
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      sorted[key] = canonical((value as Record<string, unknown>)[key]);
+    }
+
+    return sorted;
+  }
+
+  return value;
+}
+
+/*
+ * What a listing says of a resource, as one hash: its identity's columns
+ * and the four the inventory keeps. Lists are hashed in a fixed order - a
+ * cloud may list the same tags or endpoints in another order next time -
+ * so only a real change changes it.
+ */
+export function getInventoryFingerprint(item: CloudInventoryItem): string {
+  const sortedTexts: (values: Array<string>) => Array<string> = (
+    values: Array<string>,
+  ): Array<string> => {
+    return [...values].sort();
+  };
+
+  return createHash("sha256")
+    .update(
+      JSON.stringify(
+        canonical({
+          provider: item.resource.provider,
+          resourceType: item.resource.resourceType,
+          providerResourceId: item.resource.providerResourceId,
+          accountId: item.resource.accountId,
+          region: item.resource.region,
+          resourceGroup: item.resource.resourceGroup,
+          tags: item.tags,
+          properties: item.properties,
+          relationships: sortedTexts(
+            item.relationships.map(
+              (relationship: CloudInventoryItem["relationships"][number]) => {
+                return `${relationship.kind}|${relationship.target}|${relationship.targetType || ""}`;
+              },
+            ),
+          ),
+          endpoints: sortedTexts(item.endpoints),
+        }),
+      ),
+      "utf8",
+    )
+    .digest("hex")
+    .slice(0, 64);
+}
+
+/*
+ * Whether a held row is gone, by what the listing read in full: a row of
+ * one of an account's types listed to the last page - in the Region it is
+ * in, when the listing names Regions - that the listing does not have.
+ */
+export function isGoneFromListing(data: {
+  row: {
+    cloudAccountId: string;
+    cloudResourceType: string;
+    cloudRegion: string;
+  };
+  completelyListed: Array<CloudCompleteListing>;
+}): boolean {
+  const account: string = data.row.cloudAccountId.toLowerCase();
+  const type: string = data.row.cloudResourceType.toLowerCase();
+  const region: string = data.row.cloudRegion.toLowerCase();
+
+  return data.completelyListed.some((entry: CloudCompleteListing): boolean => {
+    return (
+      entry.accountId.toLowerCase() === account &&
+      entry.resourceTypes.some((listed: string): boolean => {
+        return listed.toLowerCase() === type;
+      }) &&
+      (!entry.regions ||
+        entry.regions.some((listed: string): boolean => {
+          return listed.toLowerCase() === region;
+        }))
+    );
+  });
 }
 
 function countReturnedRows(rows: unknown): number {
@@ -119,6 +214,7 @@ export default class CloudConnectionResourceSync {
         cloudResourceGroup: true,
         isArchived: true,
         cloudTags: true,
+        cloudInventoryFingerprint: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -141,6 +237,7 @@ export default class CloudConnectionResourceSync {
           cloudResourceGroup: row.cloudResourceGroup || "",
           isArchived: Boolean(row.isArchived),
           cloudTags: readCloudTags(row.cloudTags),
+          cloudInventoryFingerprint: row.cloudInventoryFingerprint || "",
         };
       });
   }
@@ -339,28 +436,31 @@ export default class CloudConnectionResourceSync {
    * resources:
    *
    *   - a listed resource the connection holds gets what the inventory
-   *     knows of it, and is alive (CloudResourceService.recordInventoryListing);
+   *     knows of it, and is alive (CloudResourceService.recordInventoryListing)
+   *     - or, when the listing says what the last one said
+   *     (getInventoryFingerprint), is only marked listed, together with
+   *     every other such row, in one statement per thousand rows;
    *   - a listed resource it does not hold is found or created - with its
    *     tags already on it, so label and owner rules can match them - and
    *     linked, as a read's resources are;
-   *   - a resource of a type the inventory listed in full for its account,
-   *     which the listing no longer has, is gone from the cloud and is
-   *     archived, the way a read archives an Azure resource. A type listed
-   *     only in part says nothing about what is missing from it.
+   *   - a resource of a type the inventory listed in full for its account
+   *     and Region (isGoneFromListing), which the listing no longer has, is
+   *     gone from the cloud and is archived, the way a read archives an
+   *     Azure resource. A type listed only in part, or a Region the listing
+   *     did not read, says nothing about what is missing from it.
    */
   public static async syncInventory(data: {
     projectId: ObjectID;
     connectionId: ObjectID;
     items: Array<CloudInventoryItem>;
-    completelyListed: Array<{ accountId: string; resourceTypes: Array<string> }>;
+    completelyListed: Array<CloudCompleteListing>;
     listedAt: Date;
   }): Promise<CloudConnectionSyncResult> {
-    const linked: Array<LinkedRow> = await CloudConnectionResourceSync.loadLinked(
-      {
+    const linked: Array<LinkedRow> =
+      await CloudConnectionResourceSync.loadLinked({
         projectId: data.projectId,
         connectionId: data.connectionId,
-      },
-    );
+      });
     const linkedByIdentifier: Map<string, LinkedRow> = new Map();
 
     for (const row of linked) {
@@ -369,6 +469,7 @@ export default class CloudConnectionResourceSync {
 
     const listedIdentifiers: Set<string> = new Set<string>();
     const toCreate: Array<CloudInventoryItem> = [];
+    const unchanged: Array<ObjectID> = [];
 
     for (const item of data.items) {
       const identifier: string = buildCloudMonitoredResourceIdentifier(
@@ -388,11 +489,23 @@ export default class CloudConnectionResourceSync {
         continue;
       }
 
+      const inventory: CloudResourceInventoryColumns =
+        CloudConnectionResourceSync.inventoryColumnsOf(item);
+
+      // Said the same as last time: marked listed below, with the others.
+      if (
+        row.cloudInventoryFingerprint &&
+        row.cloudInventoryFingerprint === inventory.cloudInventoryFingerprint
+      ) {
+        unchanged.push(row.id);
+        continue;
+      }
+
       try {
         await CloudResourceService.recordInventoryListing({
           cloudResourceId: row.id,
           resource: item.resource,
-          inventory: CloudConnectionResourceSync.inventoryColumnsOf(item),
+          inventory,
           listedAt: data.listedAt,
         });
 
@@ -418,6 +531,20 @@ export default class CloudConnectionResourceSync {
           }`,
         );
       }
+    }
+
+    if (unchanged.length > 0) {
+      await CloudResourceService.markListedUnchanged({
+        projectId: data.projectId,
+        cloudResourceIds: unchanged,
+        listedAt: data.listedAt,
+      }).catch((error: unknown) => {
+        logger.error(
+          `Cloud connection ${data.connectionId.toString()}: its listed resources could not be marked listed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      });
     }
 
     // 1. Listed resources the connection does not hold: found or created, then linked.
@@ -464,39 +591,23 @@ export default class CloudConnectionResourceSync {
       ids: newIds,
     });
 
-    // 2. Gone: of a type listed in full for its account, and not listed.
-    const listedInFull: Map<string, Set<string>> = new Map();
-
-    for (const entry of data.completelyListed) {
-      const types: Set<string> =
-        listedInFull.get(entry.accountId.toLowerCase()) || new Set<string>();
-
-      for (const type of entry.resourceTypes) {
-        types.add(type.toLowerCase());
-      }
-
-      listedInFull.set(entry.accountId.toLowerCase(), types);
-    }
-
+    // 2. Gone: of a type listed in full for its account and Region, and not listed.
     const gone: Array<LinkedRow> = linked.filter((row: LinkedRow): boolean => {
       return (
         !row.isArchived &&
-        Boolean(
-          listedInFull
-            .get(row.cloudAccountId.toLowerCase())
-            ?.has(row.cloudResourceType.toLowerCase()),
-        ) &&
-        !listedIdentifiers.has(row.resourceIdentifier.toLowerCase())
+        !listedIdentifiers.has(row.resourceIdentifier.toLowerCase()) &&
+        isGoneFromListing({ row, completelyListed: data.completelyListed })
       );
     });
 
-    const archivedResources: number =
-      await CloudConnectionResourceSync.archive({
+    const archivedResources: number = await CloudConnectionResourceSync.archive(
+      {
         projectId: data.projectId,
         ids: gone.map((row: LinkedRow): ObjectID => {
           return row.id;
         }),
-      });
+      },
+    );
 
     const counted: Array<LinkedRow> = (
       await CloudConnectionResourceSync.loadLinked({
@@ -556,6 +667,7 @@ export default class CloudConnectionResourceSync {
       cloudProperties: item.properties,
       cloudRelationships: item.relationships,
       cloudEndpoints: item.endpoints,
+      cloudInventoryFingerprint: getInventoryFingerprint(item),
     };
   }
 

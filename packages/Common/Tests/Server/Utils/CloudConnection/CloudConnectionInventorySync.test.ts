@@ -1,13 +1,18 @@
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
   MAX_NEW_RESOURCES_PER_READ,
+  getInventoryFingerprint,
+  isGoneFromListing,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import CloudResourceLabelRuleEngineService from "../../../../Server/Services/CloudResourceLabelRuleEngineService";
 import CloudResourceOwnerRuleEngineService from "../../../../Server/Services/CloudResourceOwnerRuleEngineService";
-import { CloudInventoryItem } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import {
+  CloudCompleteListing,
+  CloudInventoryItem,
+} from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import { CloudRelationshipKind } from "../../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
@@ -32,6 +37,7 @@ const CONNECTION: ObjectID = new ObjectID(
 );
 const ACCOUNT: string = "123456789012";
 const LISTED_AT: Date = new Date("2026-10-26T10:00:00.000Z");
+const HEX_64: RegExp = /^[0-9a-f]{64}$/;
 
 let idCounter: number = 0;
 
@@ -46,8 +52,9 @@ function resourceOf(
   type: string,
   id: string,
   account: string = ACCOUNT,
+  region: string = "us-east-1",
 ): CloudMonitoredResource {
-  const arn: string = `arn:aws:x:us-east-1:${account}:${id}`;
+  const arn: string = `arn:aws:x:${region}:${account}:${id}`;
 
   return {
     provider: CloudProvider.AWS,
@@ -56,9 +63,9 @@ function resourceOf(
     name: id,
     providerResourceId: arn,
     accountId: account,
-    region: "us-east-1",
+    region,
     resourceGroup: "",
-    identityKey: `aws|${account}|us-east-1|${type}|id=${id}`.toLowerCase(),
+    identityKey: `aws|${account}|${region}|${type}|id=${id}`.toLowerCase(),
     telemetryAttributes: {},
   };
 }
@@ -71,9 +78,7 @@ function itemOf(
     resource,
     tags: { team: "payments" },
     properties: { InstanceType: "m5.large" },
-    relationships: [
-      { kind: CloudRelationshipKind.RunsIn, target: "subnet-1" },
-    ],
+    relationships: [{ kind: CloudRelationshipKind.RunsIn, target: "subnet-1" }],
     endpoints: ["web.example.com"],
     ...extra,
   };
@@ -84,14 +89,16 @@ interface Held {
   resource: CloudMonitoredResource;
   isArchived: boolean;
   tags?: Record<string, string> | undefined;
+  fingerprint?: string | undefined;
 }
 
 function held(
   resource: CloudMonitoredResource,
   isArchived: boolean = false,
   tags?: Record<string, string>,
+  fingerprint?: string,
 ): Held {
-  return { id: nextId(), resource, isArchived, tags };
+  return { id: nextId(), resource, isArchived, tags, fingerprint };
 }
 
 function modelOf(row: Held): CloudResource {
@@ -110,7 +117,20 @@ function modelOf(row: Held): CloudResource {
   if (row.tags) {
     model.cloudTags = row.tags;
   }
+  if (row.fingerprint) {
+    model.cloudInventoryFingerprint = row.fingerprint;
+  }
   return model;
+}
+
+function markedListedIds(): Array<string> {
+  return query.mock.calls
+    .filter((call: Array<unknown>): boolean => {
+      return String(call[0]).includes(`SET "inventoriedAt" = $3`);
+    })
+    .flatMap((call: Array<unknown>): Array<string> => {
+      return ((call[1] as Array<unknown>)[1] as Array<string>) || [];
+    });
 }
 
 let holding: Array<Held>;
@@ -156,7 +176,10 @@ beforeEach(() => {
   jest
     .spyOn(CloudResourceService, "findOrCreateMonitoredResource")
     .mockImplementation(
-      async (data: { resource: CloudMonitoredResource; inventory?: unknown }) => {
+      async (data: {
+        resource: CloudMonitoredResource;
+        inventory?: unknown;
+      }) => {
         createdCalls.push({
           resource: data.resource,
           inventory: data.inventory,
@@ -208,7 +231,7 @@ afterEach(() => {
 
 async function syncInventory(data: {
   items: Array<CloudInventoryItem>;
-  completelyListed?: Array<{ accountId: string; resourceTypes: Array<string> }>;
+  completelyListed?: Array<CloudCompleteListing>;
 }): Promise<CloudConnectionSyncResult> {
   return CloudConnectionResourceSync.syncInventory({
     projectId: PROJECT,
@@ -241,9 +264,104 @@ describe("a listed resource the connection holds", () => {
             { kind: CloudRelationshipKind.RunsIn, target: "subnet-1" },
           ],
           cloudEndpoints: ["web.example.com"],
+          cloudInventoryFingerprint: getInventoryFingerprint(itemOf(instance)),
         },
       },
     ]);
+    expect(markedListedIds()).toEqual([]);
+  });
+
+  test("that the listing says the same of as last time is only marked listed, with the others, in one statement", async () => {
+    const same: Array<Held> = [1, 2, 3].map((index: number): Held => {
+      const resource: CloudMonitoredResource = resourceOf(
+        "AWS::EC2::Instance",
+        `i-${index}`,
+      );
+      return held(
+        resource,
+        false,
+        { team: "payments" },
+        getInventoryFingerprint(itemOf(resource)),
+      );
+    });
+    const changedResource: CloudMonitoredResource = resourceOf(
+      "AWS::EC2::Instance",
+      "i-changed",
+    );
+    const changed: Held = held(
+      changedResource,
+      false,
+      { team: "payments" },
+      getInventoryFingerprint(
+        itemOf(changedResource, { properties: { InstanceType: "t3.small" } }),
+      ),
+    );
+    holding = [...same, changed];
+
+    await syncInventory({
+      items: [...same, changed].map((row: Held): CloudInventoryItem => {
+        return itemOf(row.resource);
+      }),
+    });
+
+    // Only the one that changed is written in full.
+    expect(
+      listingCalls.map((call: { cloudResourceId: ObjectID }): string => {
+        return call.cloudResourceId.toString();
+      }),
+    ).toEqual([changed.id.toString()]);
+    expect(markedListedIds()).toEqual(
+      same.map((row: Held): string => {
+        return row.id.toString();
+      }),
+    );
+
+    const mark: Array<unknown> = query.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return String(call[0]).includes(`SET "inventoriedAt" = $3`);
+      },
+    )!;
+    // Pinned to the project, and listed at the listing's time.
+    expect((mark[1] as Array<unknown>)[0]).toBe(PROJECT.toString());
+    expect((mark[1] as Array<unknown>)[2]).toEqual(LISTED_AT);
+    expect(String(mark[0])).toContain(`"projectId" = $1`);
+    // A listing never moves lastSeenAt back.
+    expect(String(mark[0])).toContain("GREATEST");
+  });
+
+  test("a thousand rows a statement: a big account is a few statements, not thousands", async () => {
+    const rows: Array<Held> = [];
+
+    for (let index: number = 0; index < 2500; index++) {
+      const resource: CloudMonitoredResource = resourceOf(
+        "AWS::SQS::Queue",
+        `q-${index}`,
+      );
+      rows.push(
+        held(
+          resource,
+          false,
+          { team: "payments" },
+          getInventoryFingerprint(itemOf(resource)),
+        ),
+      );
+    }
+
+    holding = rows;
+
+    await syncInventory({
+      items: rows.map((row: Held): CloudInventoryItem => {
+        return itemOf(row.resource);
+      }),
+    });
+
+    expect(listingCalls).toEqual([]);
+    expect(
+      query.mock.calls.filter((call: Array<unknown>): boolean => {
+        return String(call[0]).includes(`SET "inventoriedAt" = $3`);
+      }),
+    ).toHaveLength(3);
+    expect(markedListedIds()).toHaveLength(2500);
   });
 
   test("listed twice in one listing is written once", async () => {
@@ -353,7 +471,11 @@ describe("a listed resource the connection does not hold", () => {
   test("past MAX_NEW_RESOURCES_PER_READ waits for the next listing", async () => {
     const items: Array<CloudInventoryItem> = [];
 
-    for (let index: number = 0; index < MAX_NEW_RESOURCES_PER_READ + 3; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_NEW_RESOURCES_PER_READ + 3;
+      index++
+    ) {
       items.push(itemOf(resourceOf("AWS::SQS::Queue", `q-${index}`)));
     }
 
@@ -365,6 +487,88 @@ describe("a listed resource the connection does not hold", () => {
 });
 
 describe("a held resource the listing lacks", () => {
+  test("is archived only in a Region its type was listed in full in", async () => {
+    const goneHere: Held = held(
+      resourceOf("AWS::EC2::Instance", "i-gone", ACCOUNT, "eu-west-1"),
+    );
+    // A stopped instance in a Region the listing did not read this time.
+    const elsewhere: Held = held(
+      resourceOf("AWS::EC2::Instance", "i-stopped", ACCOUNT, "ap-south-1"),
+    );
+    holding = [goneHere, elsewhere];
+
+    await syncInventory({
+      items: [],
+      completelyListed: [
+        {
+          accountId: ACCOUNT,
+          regions: ["eu-west-1"],
+          resourceTypes: ["AWS::EC2::Instance"],
+        },
+      ],
+    });
+
+    expect(archivedIds()).toEqual([goneHere.id.toString()]);
+  });
+
+  test("is gone by account, type and Region alike, in any case", () => {
+    const row: {
+      cloudAccountId: string;
+      cloudResourceType: string;
+      cloudRegion: string;
+    } = {
+      cloudAccountId: ACCOUNT,
+      cloudResourceType: "AWS::EC2::Instance",
+      cloudRegion: "EU-West-1",
+    };
+
+    expect(
+      isGoneFromListing({
+        row,
+        completelyListed: [
+          {
+            accountId: ACCOUNT,
+            regions: ["eu-west-1"],
+            resourceTypes: ["aws::ec2::instance"],
+          },
+        ],
+      }),
+    ).toBe(true);
+    // No Regions named: every Region (an Azure subscription, listed whole).
+    expect(
+      isGoneFromListing({
+        row,
+        completelyListed: [
+          { accountId: ACCOUNT, resourceTypes: ["AWS::EC2::Instance"] },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      isGoneFromListing({
+        row,
+        completelyListed: [
+          {
+            accountId: ACCOUNT,
+            regions: ["us-east-1"],
+            resourceTypes: ["AWS::EC2::Instance"],
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isGoneFromListing({
+        row,
+        completelyListed: [
+          {
+            accountId: "999999999999",
+            resourceTypes: ["AWS::EC2::Instance"],
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(isGoneFromListing({ row, completelyListed: [] })).toBe(false);
+  });
+
   test("is archived when its type was listed in full for its account", async () => {
     const gone: Held = held(resourceOf("AWS::EC2::Instance", "i-gone"));
     holding = [gone];
@@ -387,7 +591,10 @@ describe("a held resource the listing lacks", () => {
     await syncInventory({
       items: [],
       completelyListed: [
-        { accountId: ACCOUNT.toUpperCase(), resourceTypes: ["aws::ec2::instance"] },
+        {
+          accountId: ACCOUNT.toUpperCase(),
+          resourceTypes: ["aws::ec2::instance"],
+        },
       ],
     });
 
@@ -427,7 +634,10 @@ describe("a held resource the listing lacks", () => {
   });
 
   test("a listed one of the same type is not archived", async () => {
-    const kept: CloudMonitoredResource = resourceOf("AWS::EC2::Instance", "i-1");
+    const kept: CloudMonitoredResource = resourceOf(
+      "AWS::EC2::Instance",
+      "i-1",
+    );
     const gone: Held = held(resourceOf("AWS::EC2::Instance", "i-2"));
     holding = [held(kept), gone];
 
@@ -439,6 +649,69 @@ describe("a held resource the listing lacks", () => {
     });
 
     expect(archivedIds()).toEqual([gone.id.toString()]);
+  });
+});
+
+describe("what a listing says of a resource, hashed", () => {
+  test("is the same for the same listing, whatever the order of its tags, lists and endpoints", () => {
+    const resource: CloudMonitoredResource = resourceOf(
+      "AWS::EC2::Instance",
+      "i-1",
+    );
+
+    expect(
+      getInventoryFingerprint(
+        itemOf(resource, {
+          tags: { team: "payments", env: "prod" },
+          relationships: [
+            { kind: CloudRelationshipKind.RunsIn, target: "subnet-1" },
+            { kind: CloudRelationshipKind.ProtectedBy, target: "sg-1" },
+          ],
+          endpoints: ["a.example.com", "b.example.com"],
+          properties: { b: 2, a: 1 },
+        }),
+      ),
+    ).toBe(
+      getInventoryFingerprint(
+        itemOf(resource, {
+          tags: { env: "prod", team: "payments" },
+          relationships: [
+            { kind: CloudRelationshipKind.ProtectedBy, target: "sg-1" },
+            { kind: CloudRelationshipKind.RunsIn, target: "subnet-1" },
+          ],
+          endpoints: ["b.example.com", "a.example.com"],
+          properties: { a: 1, b: 2 },
+        }),
+      ),
+    );
+  });
+
+  test("changes with a tag, a property, a relationship, an endpoint or where it lives", () => {
+    const resource: CloudMonitoredResource = resourceOf(
+      "AWS::EC2::Instance",
+      "i-1",
+    );
+    const base: string = getInventoryFingerprint(itemOf(resource));
+
+    for (const changed of [
+      itemOf(resource, { tags: { team: "search" } }),
+      itemOf(resource, { properties: { InstanceType: "m5.xlarge" } }),
+      itemOf(resource, {
+        relationships: [
+          { kind: CloudRelationshipKind.RunsIn, target: "subnet-2" },
+        ],
+      }),
+      itemOf(resource, { endpoints: ["api.example.com"] }),
+      itemOf({ ...resource, region: "eu-west-1" }),
+    ]) {
+      expect(getInventoryFingerprint(changed)).not.toBe(base);
+    }
+  });
+
+  test("is a 64-character hex string, short enough for its column", () => {
+    expect(
+      getInventoryFingerprint(itemOf(resourceOf("AWS::EC2::Instance", "i-1"))),
+    ).toMatch(HEX_64);
   });
 });
 

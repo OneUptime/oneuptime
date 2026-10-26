@@ -12,6 +12,7 @@ import {
   ChangeEventStatus,
   ChangeEventType,
 } from "../../../Utils/Telemetry/ChangeEventFields";
+import GlobalCache from "../../Infrastructure/GlobalCache";
 import CloudAccountService from "../../Services/CloudAccountService";
 import ChangeEventService from "../../Services/ChangeEventService";
 import CloudResourceService from "../../Services/CloudResourceService";
@@ -349,100 +350,249 @@ export function getCloudChangeDedupToken(
     .digest("hex")}`;
 }
 
+// What one record() did: what it wrote, and what it could not.
+export interface CloudChangeRecordOutcome {
+  // Change events written.
+  recorded: number;
+  // Changes another read (or an investigation's look back) had written already.
+  alreadyRecorded: number;
+  /*
+   * Changes that could not be written - the change store did not answer.
+   * The read that brought them in is read again (restoreChangeWindow), and
+   * writes them then.
+   */
+  unwritten: Array<CloudChange>;
+}
+
+// Where a change is claimed, so that whoever reads it first is the one who writes it.
+export const CLOUD_CHANGE_CLAIM_NAMESPACE: string = "cloud-change-recorded";
+// Longer than any read looks back: a claim outlives every read that may bring the change in.
+export const CLOUD_CHANGE_CLAIM_SECONDS: number = 3 * 24 * 60 * 60;
+
+export function getCloudChangeClaimKey(
+  projectId: ObjectID,
+  change: CloudChange,
+): string {
+  return `${projectId.toString()}:${change.provider}:${change.accountId.toLowerCase()}:${change.eventId}`;
+}
+
 export default class CloudChangeRecorder {
   /*
    * Writes the changes, each tied to the resource and the account the
-   * connection holds for it. Returns how many were written; never throws.
+   * connection holds for it, and each once: the regular reads, a read
+   * running beside them and an investigation's look back can all bring the
+   * same change in, and whoever claims it first (GlobalCache) writes it. A
+   * cache that does not answer claims nothing, and everything is written:
+   * a change written twice is better than one never written. Never throws:
+   * what could not be written is said in the outcome, its claims let go.
    */
   public static async record(data: {
     projectId: ObjectID;
     provider: CloudProvider;
     changes: Array<CloudChange>;
-  }): Promise<number> {
+  }): Promise<CloudChangeRecordOutcome> {
+    const outcome: CloudChangeRecordOutcome = {
+      recorded: 0,
+      alreadyRecorded: 0,
+      unwritten: [],
+    };
+
     if (data.changes.length === 0) {
-      return 0;
+      return outcome;
     }
 
-    try {
-      const accountIds: Array<string> = Array.from(
-        new Set(
-          data.changes.map((change: CloudChange): string => {
-            return change.accountId;
-          }),
-        ),
+    // The changes this call claimed, so they can be let go if not written.
+    const claimed: Set<CloudChange> = new Set<CloudChange>();
+    const toWrite: Array<CloudChange> = [];
+
+    for (const change of data.changes) {
+      const claim: boolean | null = await CloudChangeRecorder.claim(
+        data.projectId,
+        change,
       );
-      const rows: Array<JSONObject> = [];
 
-      for (const accountId of accountIds) {
-        const index: CloudResourceIndex = await CloudChangeRecorder.loadIndex({
-          projectId: data.projectId,
-          provider: data.provider,
-          accountId,
-        });
-        const account: CloudAccount | null =
-          await CloudAccountService.findAccount({
-            projectId: data.projectId,
-            provider: data.provider,
-            accountId,
-          });
-
-        for (const change of data.changes) {
-          if (change.accountId !== accountId) {
-            continue;
-          }
-
-          let resource: { id: ObjectID; name: string } | null = null;
-
-          for (const touched of change.resources) {
-            resource = index.find(touched);
-
-            if (resource) {
-              break;
-            }
-          }
-
-          rows.push(
-            buildChangeEventDbRow({
-              parsed: buildCloudChangeEntry({
-                change,
-                resource,
-                accountRecordId: account?.id || null,
-              }),
-              projectId: data.projectId,
-              serviceMetadata: null,
-              retentionDays: DEFAULT_CHANGE_EVENT_RETENTION_IN_DAYS,
-            }),
-          );
-        }
+      if (claim === false) {
+        outcome.alreadyRecorded++;
+        continue;
       }
 
-      for (
-        let start: number = 0;
-        start < rows.length;
-        start += WRITE_BATCH_SIZE
-      ) {
-        const batch: Array<JSONObject> = rows.slice(
-          start,
-          start + WRITE_BATCH_SIZE,
-        );
-        const submission: { flushed: Promise<void> } =
-          await TelemetryFanInWriter.submit(ChangeEventService, batch, {
-            dedupToken: getCloudChangeDedupToken(data.projectId, batch),
-          });
-
-        await submission.flushed;
+      if (claim === true) {
+        claimed.add(change);
       }
 
-      return rows.length;
+      toWrite.push(change);
+    }
+
+    let entries: Array<{ change: CloudChange; row: JSONObject }>;
+
+    try {
+      entries = await CloudChangeRecorder.buildRows({
+        projectId: data.projectId,
+        provider: data.provider,
+        changes: toWrite,
+      });
     } catch (error) {
       logger.error(
         `Cloud changes of project ${data.projectId.toString()} could not be recorded: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
-
-      return 0;
+      await CloudChangeRecorder.release(data.projectId, toWrite, claimed);
+      outcome.unwritten.push(...toWrite);
+      return outcome;
     }
+
+    for (
+      let start: number = 0;
+      start < entries.length;
+      start += WRITE_BATCH_SIZE
+    ) {
+      const batch: Array<{ change: CloudChange; row: JSONObject }> =
+        entries.slice(start, start + WRITE_BATCH_SIZE);
+      const rows: Array<JSONObject> = batch.map(
+        (entry: { row: JSONObject }): JSONObject => {
+          return entry.row;
+        },
+      );
+
+      try {
+        const submission: { flushed: Promise<void> } =
+          await TelemetryFanInWriter.submit(ChangeEventService, rows, {
+            dedupToken: getCloudChangeDedupToken(data.projectId, rows),
+          });
+
+        await submission.flushed;
+        outcome.recorded += rows.length;
+      } catch (error) {
+        logger.error(
+          `Cloud changes of project ${data.projectId.toString()} could not be recorded: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        // This batch and every one after it: read again, and written then.
+        const rest: Array<CloudChange> = entries
+          .slice(start)
+          .map((entry: { change: CloudChange }): CloudChange => {
+            return entry.change;
+          });
+
+        await CloudChangeRecorder.release(data.projectId, rest, claimed);
+        outcome.unwritten.push(...rest);
+        break;
+      }
+    }
+
+    return outcome;
+  }
+
+  /*
+   * Claims a change for this call: true when it did, false when someone
+   * has already, null when the cache did not answer (claim nothing, write
+   * it).
+   */
+  private static async claim(
+    projectId: ObjectID,
+    change: CloudChange,
+  ): Promise<boolean | null> {
+    if (!change.eventId) {
+      return null;
+    }
+
+    try {
+      return await GlobalCache.setStringIfNotExists(
+        CLOUD_CHANGE_CLAIM_NAMESPACE,
+        getCloudChangeClaimKey(projectId, change),
+        "1",
+        { expiresInSeconds: CLOUD_CHANGE_CLAIM_SECONDS },
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  // Lets go of the claims of changes that were not written.
+  private static async release(
+    projectId: ObjectID,
+    changes: Array<CloudChange>,
+    claimed: Set<CloudChange>,
+  ): Promise<void> {
+    for (const change of changes) {
+      if (!claimed.has(change)) {
+        continue;
+      }
+
+      try {
+        await GlobalCache.deleteKey(
+          CLOUD_CHANGE_CLAIM_NAMESPACE,
+          getCloudChangeClaimKey(projectId, change),
+        );
+      } catch {
+        // The claim expires on its own; the change is read again before that.
+      }
+    }
+  }
+
+  // Each change as its change event row, tied to its resource and account.
+  private static async buildRows(data: {
+    projectId: ObjectID;
+    provider: CloudProvider;
+    changes: Array<CloudChange>;
+  }): Promise<Array<{ change: CloudChange; row: JSONObject }>> {
+    const accountIds: Array<string> = Array.from(
+      new Set(
+        data.changes.map((change: CloudChange): string => {
+          return change.accountId;
+        }),
+      ),
+    );
+    const entries: Array<{ change: CloudChange; row: JSONObject }> = [];
+
+    for (const accountId of accountIds) {
+      const index: CloudResourceIndex = await CloudChangeRecorder.loadIndex({
+        projectId: data.projectId,
+        provider: data.provider,
+        accountId,
+      });
+      const account: CloudAccount | null =
+        await CloudAccountService.findAccount({
+          projectId: data.projectId,
+          provider: data.provider,
+          accountId,
+        });
+
+      for (const change of data.changes) {
+        if (change.accountId !== accountId) {
+          continue;
+        }
+
+        let resource: { id: ObjectID; name: string } | null = null;
+
+        for (const touched of change.resources) {
+          resource = index.find(touched);
+
+          if (resource) {
+            break;
+          }
+        }
+
+        entries.push({
+          change,
+          row: buildChangeEventDbRow({
+            parsed: buildCloudChangeEntry({
+              change,
+              resource,
+              accountRecordId: account?.id || null,
+            }),
+            projectId: data.projectId,
+            serviceMetadata: null,
+            retentionDays: DEFAULT_CHANGE_EVENT_RETENTION_IN_DAYS,
+          }),
+        });
+      }
+    }
+
+    return entries;
   }
 
   private static async loadIndex(data: {

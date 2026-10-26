@@ -32,7 +32,7 @@ import { AwsCredentials, awsErrorCodeOf, sendAwsRequest } from "./AwsApi";
  *   its request parameters can carry anything, and are never kept.
  *
  *   AWS Health DescribeEvents (AWS JSON 1.1, target
- *   AWSHealth_20160804.DescribeEvents, its one endpoint in us-east-1), and
+ *   AWSHealth_20160804.DescribeEvents, in the partition's home Region), and
  *   DescribeEventDetails for each event's own words. It answers only an
  *   account on a Business, Enterprise On-Ramp or Enterprise Support plan;
  *   any other answers SubscriptionRequiredException, and the connection
@@ -263,10 +263,13 @@ export function describeAwsHealthEventType(code: string): string {
 export async function readAwsHealthEvents(data: {
   credentials: AwsCredentials;
   accountId: string;
+  // The partition's home Region, where AWS Health answers: us-east-1 when absent.
+  region?: string | undefined;
   start: Date;
   options: CloudConnectorCallOptions;
   budget: CloudReadBudget;
 }): Promise<Array<CloudChange> | null> {
+  const healthRegion: string = data.region || "us-east-1";
   const events: Array<JSONObject> = [];
   let token: string = "";
 
@@ -288,7 +291,7 @@ export async function readAwsHealthEvents(data: {
         transport: data.options.transport,
         credentials: data.credentials,
         service: "health",
-        region: "us-east-1",
+        region: healthRegion,
         target: HEALTH_EVENTS_TARGET,
         jsonVersion: "1.1",
         body,
@@ -346,7 +349,7 @@ export async function readAwsHealthEvents(data: {
         transport: data.options.transport,
         credentials: data.credentials,
         service: "health",
-        region: "us-east-1",
+        region: healthRegion,
         target: HEALTH_DETAILS_TARGET,
         jsonVersion: "1.1",
         body: { eventArns: arns },

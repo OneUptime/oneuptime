@@ -14,6 +14,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import Dictionary from "../../../../Types/Dictionary";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
@@ -33,6 +34,7 @@ import TraceAggregationService, {
 } from "../../../Services/TraceAggregationService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { LinkedAffectedResourceType } from "../../AffectedResources/LinkedAffectedResources";
+import CloudChangeLookBack from "../../CloudConnection/CloudChangeLookBack";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
@@ -97,6 +99,42 @@ export const MAX_CHANGES_READ: number = 200;
  * crowd a deploy out of the read.
  */
 export const MAX_CLOUD_CHANGES_READ: number = 200;
+
+/*
+ * The most changes read of the cloud resources the incident or alert is
+ * linked to, read apart again: a busy account's two hundred newest changes
+ * must not crowd out the one to the resource the incident is about.
+ */
+export const MAX_LINKED_CLOUD_CHANGES_READ: number = 50;
+
+// The query scopes a window's change events are read in, each with its own limit.
+export function getRecentChangeScopes(data: {
+  linkedCloudResourceIds: Array<string>;
+}): Array<{ query: JSONObject; limit: number }> {
+  const scopes: Array<{ query: JSONObject; limit: number }> = [
+    {
+      query: {
+        attributeKeys: new IncludesNone([ChangeEventAttribute.CloudProvider]),
+      },
+      limit: MAX_CHANGES_READ,
+    },
+    {
+      query: {
+        attributeKeys: new Includes([ChangeEventAttribute.CloudProvider]),
+      },
+      limit: MAX_CLOUD_CHANGES_READ,
+    },
+  ];
+
+  for (const id of data.linkedCloudResourceIds.slice(0, 10)) {
+    scopes.push({
+      query: { attributes: { [ChangeEventAttribute.ResourceId]: id } },
+      limit: MAX_LINKED_CLOUD_CHANGES_READ,
+    });
+  }
+
+  return scopes;
+}
 
 // The window on each side of a change its service's telemetry is read for.
 export const IMPACT_WINDOW_MINUTES: number = 30;
@@ -435,27 +473,44 @@ export default class RecentChangesContext {
     const windowEnd: Date =
       lookahead.getTime() < now.getTime() ? lookahead : now;
 
-    // A cloud account's changes are read apart: see MAX_CLOUD_CHANGES_READ.
+    /*
+     * A cloud account's changes are read apart (MAX_CLOUD_CHANGES_READ), and
+     * the linked cloud resources' own apart again
+     * (MAX_LINKED_CLOUD_CHANGES_READ).
+     */
+    const linkedCloudResourceIds: Array<string> = (data.linked?.resources || [])
+      .filter((resource: { type: LinkedAffectedResourceType }): boolean => {
+        return resource.type === LinkedAffectedResourceType.CloudResource;
+      })
+      .map((resource: { id: string }): string => {
+        return resource.id;
+      });
+
+    /*
+     * Their clouds' activity logs, read there and then: the regular read is
+     * up to its interval away, and CloudTrail delivers late
+     * (CloudChangeLookBack). Never throws; bounded; once per subject.
+     */
+    if (linkedCloudResourceIds.length > 0) {
+      await CloudChangeLookBack.readForSubject({
+        projectId: data.projectId,
+        subjectId: data.subjectId,
+        cloudResourceIds: linkedCloudResourceIds,
+        since: windowStart,
+      });
+    }
+
     const reads: Array<Array<ChangeEvent>> = await Promise.all(
-      [
-        {
-          attributeKeys: new IncludesNone([ChangeEventAttribute.CloudProvider]),
-          limit: MAX_CHANGES_READ,
-        },
-        {
-          attributeKeys: new Includes([ChangeEventAttribute.CloudProvider]),
-          limit: MAX_CLOUD_CHANGES_READ,
-        },
-      ].map(
+      getRecentChangeScopes({ linkedCloudResourceIds }).map(
         (scope: {
-          attributeKeys: Includes | IncludesNone;
+          query: JSONObject;
           limit: number;
         }): Promise<Array<ChangeEvent>> => {
           return ChangeEventService.findBy({
             query: {
+              ...scope.query,
               projectId: data.projectId,
               time: new InBetween(windowStart, windowEnd),
-              attributeKeys: scope.attributeKeys,
             } as never,
             select: {
               _id: true,

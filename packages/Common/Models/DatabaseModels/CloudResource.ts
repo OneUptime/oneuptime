@@ -786,6 +786,31 @@ export default class CloudResource extends BaseModel {
   public inventoriedAt?: Date = undefined;
 
   /*
+   * What the last listing said of the resource, as one hash: a listing
+   * that says the same again only marks the row listed, in one statement
+   * for every such row, instead of writing each one (an account of
+   * thousands of resources is listed every half hour). Server only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Cloud Inventory Fingerprint",
+    description:
+      "A hash of what the last listing of the resource's cloud account said of it. Used by OneUptime only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public cloudInventoryFingerprint?: string = undefined;
+
+  /*
    * The cloud connection (Cloud > Connect) that found this resource, when
    * one did: set by the connection's reads, never by a form. Removing the
    * connection keeps the resource - its history, labels and owners - and

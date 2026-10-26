@@ -42,6 +42,7 @@ import {
   getMetricWindowPolicy,
 } from "../CloudMetricWindows";
 import {
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   CloudConnectionPullState,
   CloudConnectionSettings,
   CloudConnector,
@@ -57,6 +58,8 @@ import {
   CloudReadOptions,
   CloudReadResult,
   getCloudSecretValues,
+  getOrganizationLimitWarning,
+  orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
 import { AwsCredentials } from "./AwsApi";
@@ -86,7 +89,11 @@ import { lookupAwsChanges, readAwsHealthEvents } from "./AwsChanges";
 import {
   getChangePlace,
   getChangeWindowStart,
+  getHealthWindowStart,
+  isHealthPaused,
   keepNewChanges,
+  markHealthRead,
+  pauseHealth,
 } from "../CloudChangeWindow";
 import {
   AwsInventoryOutcome,
@@ -139,7 +146,8 @@ const TEST_PROBE_NAMESPACES: Array<string> = [
 ];
 const TEST_MAX_REGIONS: number = 3;
 // The most accounts of an organization one connection reads.
-export const AWS_MAX_ORGANIZATION_ACCOUNTS: number = 50;
+export const AWS_MAX_ORGANIZATION_ACCOUNTS: number =
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS;
 // How often AWS Health is asked, and how long after a refusal it is not.
 const HEALTH_INTERVAL_MS: number = 15 * 60 * 1000;
 const HEALTH_PAUSE_MS: number = DAY_MS;
@@ -887,6 +895,7 @@ export default class AwsCloudConnector implements CloudConnector {
       });
 
     data.state.organizationAccounts = accounts;
+    data.state.organizationAccountCount = listed.length;
     data.state.organizationListedAt = data.now.toISOString();
 
     return accounts;
@@ -894,9 +903,11 @@ export default class AwsCloudConnector implements CloudConnector {
 
   /*
    * Every account of the organization, one after another, each with its own
-   * read state and the one budget of the read. An account whose role cannot
-   * be signed in to - the StackSet has not reached it yet - is a warning,
-   * and the others are read.
+   * read state and the one budget of the read - the account read least
+   * recently first, so a read that stops at its limit reaches the others
+   * next time instead of starting over. An account whose role cannot be
+   * signed in to - the StackSet has not reached it yet - is a warning, and
+   * the others are read.
    */
   private async readOrganization(
     settings: CloudConnectionSettings,
@@ -928,7 +939,21 @@ export default class AwsCloudConnector implements CloudConnector {
       nextState: state,
     };
 
-    for (const account of accounts) {
+    const tooMany: string | null = getOrganizationLimitWarning({
+      total: state.organizationAccountCount || accounts.length,
+      noun: "accounts",
+    });
+
+    if (tooMany) {
+      result.warnings.push(tooMany);
+    }
+
+    for (const account of orderLeastRecentlyRead({
+      accounts,
+      readAt: (entry: { id: string }): string | undefined => {
+        return previous[entry.id]?.metricsReadAt;
+      },
+    })) {
       const accountState: CloudConnectionPullState = previous[account.id] || {
         accounts: [account.id],
       };
@@ -946,7 +971,10 @@ export default class AwsCloudConnector implements CloudConnector {
           budget,
         );
 
-        accountStates[account.id] = read.nextState;
+        accountStates[account.id] = {
+          ...read.nextState,
+          metricsReadAt: now.toISOString(),
+        };
         result.accounts.push(...read.accounts);
         result.resources.push(...read.resources);
         result.payloads.push(...read.payloads);
@@ -958,12 +986,17 @@ export default class AwsCloudConnector implements CloudConnector {
         );
         result.complete = result.complete && read.complete;
       } catch (error) {
-        accountStates[account.id] = accountState;
-
         if (error instanceof CloudReadBudgetSpent) {
+          accountStates[account.id] = accountState;
           result.complete = false;
           continue;
         }
+
+        // Tried: the others go first next time.
+        accountStates[account.id] = {
+          ...accountState,
+          metricsReadAt: now.toISOString(),
+        };
 
         result.warnings.push(
           error instanceof LlmProviderError &&
@@ -1412,7 +1445,9 @@ export default class AwsCloudConnector implements CloudConnector {
 
     /*
      * An organization: each account the last read reached, with the name
-     * Organizations gives it, through its own role.
+     * Organizations gives it, through its own role - the account listed
+     * least recently first, so a listing that stops at its limit lists the
+     * others next time.
      */
     const result: CloudInventoryResult = {
       accounts: [],
@@ -1421,20 +1456,38 @@ export default class AwsCloudConnector implements CloudConnector {
       warnings: [],
       complete: true,
     };
+    const now: Date = options.now ? options.now() : new Date();
+    const accountStates: Record<string, CloudConnectionPullState> =
+      options.state.accountStates || {};
 
-    for (const account of options.state.organizationAccounts || []) {
+    for (const account of orderLeastRecentlyRead({
+      accounts: options.state.organizationAccounts || [],
+      readAt: (entry: { id: string }): string | undefined => {
+        return accountStates[entry.id]?.inventoryReadAt;
+      },
+    })) {
       if (options.budget.isSpent()) {
         result.complete = false;
         break;
       }
 
+      const accountState: CloudConnectionPullState = accountStates[
+        account.id
+      ] || {
+        accounts: [account.id],
+      };
+
+      // Tried, whatever comes of it: the others go first next time.
+      options.state.accountStates = {
+        ...(options.state.accountStates || {}),
+        [account.id]: { ...accountState, inventoryReadAt: now.toISOString() },
+      };
+
       try {
         const listed: CloudInventoryResult = await this.readAccountInventory(
           this.settingsForAccount(settings, account.id),
           options,
-          options.state.accountStates?.[account.id] || {
-            accounts: [account.id],
-          },
+          accountState,
         );
 
         result.accounts.push(
@@ -1457,6 +1510,11 @@ export default class AwsCloudConnector implements CloudConnector {
         result.complete = result.complete && listed.complete;
       } catch (error) {
         if (error instanceof CloudReadBudgetSpent) {
+          // Not listed after all: it stays first in line.
+          options.state.accountStates = {
+            ...(options.state.accountStates || {}),
+            [account.id]: accountState,
+          };
           result.complete = false;
           break;
         }
@@ -1487,8 +1545,11 @@ export default class AwsCloudConnector implements CloudConnector {
   /*
    * The accounts a read of changes covers, each with the settings it is
    * signed in with and the Regions its activity is read in: the ones the
-   * connection names, or the ones its metrics were found in - and
-   * us-east-1 always, where IAM, CloudFront and Route 53 record theirs.
+   * connection names, or the ones its metrics were found in - and the
+   * partition's home Region always (us-east-1, us-gov-west-1, cn-north-1),
+   * where IAM, CloudFront and Route 53 record theirs. An organization's
+   * accounts come read least recently first, so a read that stops at its
+   * limit reaches the others next time.
    */
   private getChangeAccounts(
     settings: CloudConnectionSettings,
@@ -1500,6 +1561,7 @@ export default class AwsCloudConnector implements CloudConnector {
     regions: Array<string>;
   }> {
     const configured: Array<string> = this.getConfiguredRegions(settings);
+    const homeRegion: string = this.getStsRegion(settings);
     const regionsOf: (
       accountState: CloudConnectionPullState,
     ) => Array<string> = (
@@ -1516,7 +1578,7 @@ export default class AwsCloudConnector implements CloudConnector {
                 return Boolean(region);
               });
 
-      return Array.from(new Set([...active, "us-east-1"]));
+      return Array.from(new Set([...active, homeRegion]));
     };
 
     if (!this.isOrganization(settings)) {
@@ -1530,16 +1592,38 @@ export default class AwsCloudConnector implements CloudConnector {
       ];
     }
 
-    return (state.organizationAccounts || []).map(
-      (account: { id: string; name: string }) => {
-        return {
-          accountId: account.id,
-          name: account.name,
-          settings: this.settingsForAccount(settings, account.id),
-          regions: regionsOf(state.accountStates?.[account.id] || {}),
-        };
+    return orderLeastRecentlyRead({
+      accounts: state.organizationAccounts || [],
+      readAt: (account: { id: string }): string | undefined => {
+        return state.accountStates?.[account.id]?.changesReadAt;
       },
-    );
+    }).map((account: { id: string; name: string }) => {
+      return {
+        accountId: account.id,
+        name: account.name,
+        settings: this.settingsForAccount(settings, account.id),
+        regions: regionsOf(state.accountStates?.[account.id] || {}),
+      };
+    });
+  }
+
+  // An organization's account's changes were read (or tried): the others go first next time.
+  private markChangesRead(
+    state: CloudConnectionPullState,
+    accountId: string,
+    now: Date,
+  ): void {
+    if (!accountId || !state.accountStates?.[accountId]) {
+      return;
+    }
+
+    state.accountStates = {
+      ...state.accountStates,
+      [accountId]: {
+        ...state.accountStates[accountId],
+        changesReadAt: now.toISOString(),
+      },
+    };
   }
 
   /*
@@ -1547,6 +1631,10 @@ export default class AwsCloudConnector implements CloudConnector {
    * since the last read, and - every 15 minutes - AWS Health's events about
    * it. A look back for an investigation reads only the accounts and
    * Regions it names, from its own start, and moves no cursor.
+   *
+   * CloudTrail lists newest first, five pages of fifty a Region at most:
+   * a Region busier than that has its newest changes kept, and the read
+   * says the older ones of that stretch were left out (CloudChangeWindow).
    */
   public async readChanges(
     settings: CloudConnectionSettings,
@@ -1561,15 +1649,11 @@ export default class AwsCloudConnector implements CloudConnector {
     };
     const isLookBack: boolean = Boolean(options.since);
     const isOrganization: boolean = this.isOrganization(settings);
+    const homeRegion: string = this.getStsRegion(settings);
     let refusedTrail: boolean = false;
+    const busyPlaces: Array<string> = [];
     const healthDue: boolean =
-      !isLookBack &&
-      isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now) &&
-      !(
-        state.healthPausedUntil &&
-        Date.parse(state.healthPausedUntil) > now.getTime()
-      );
-    let healthRefused: boolean = false;
+      !isLookBack && isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now);
 
     for (const account of this.getChangeAccounts(settings, state)) {
       const only:
@@ -1604,7 +1688,7 @@ export default class AwsCloudConnector implements CloudConnector {
             await getCallerIdentity({
               transport: options.transport,
               credentials,
-              region: this.getStsRegion(settings),
+              region: homeRegion,
               now: options.now,
               timeoutInMs: options.requestTimeoutInMs,
               budget: options.budget,
@@ -1619,6 +1703,10 @@ export default class AwsCloudConnector implements CloudConnector {
 
         // An organization's member without its role: the others are read.
         if (isOrganization && error instanceof LlmProviderError) {
+          if (!isLookBack) {
+            this.markChangesRead(state, account.accountId, now);
+          }
+
           continue;
         }
 
@@ -1627,7 +1715,7 @@ export default class AwsCloudConnector implements CloudConnector {
 
       const regions: Array<string> =
         only?.regions && only.regions.length > 0
-          ? Array.from(new Set([...only.regions, "us-east-1"]))
+          ? Array.from(new Set([...only.regions, homeRegion]))
           : account.regions;
 
       const outcomes: Array<
@@ -1671,9 +1759,16 @@ export default class AwsCloudConnector implements CloudConnector {
               now,
               complete: outcome.value.complete,
               isLookBack,
+              order: "newest-first",
             }),
           );
-          result.complete = result.complete && outcome.value.complete;
+
+          if (!outcome.value.complete) {
+            busyPlaces.push(
+              account.name ? `${account.name}, ${region}` : region,
+            );
+          }
+
           continue;
         }
 
@@ -1688,11 +1783,11 @@ export default class AwsCloudConnector implements CloudConnector {
           outcome.error.kind === CloudConnectionFailureKind.Authentication
         ) {
           /*
-           * us-east-1 is open to every account: a credential refused there
-           * is refused. Anywhere else it is a Region the account has not
-           * opted in to, which has nothing to read.
+           * The home Region is open to every account: a credential refused
+           * there is refused. Anywhere else it is a Region the account has
+           * not opted in to, which has nothing to read.
            */
-          if (region === "us-east-1" && !isOrganization) {
+          if (region === homeRegion && !isOrganization) {
             throw outcome.error;
           }
 
@@ -1716,23 +1811,24 @@ export default class AwsCloudConnector implements CloudConnector {
         );
       }
 
-      if (healthDue && !healthRefused && !options.budget.isSpent()) {
+      if (
+        healthDue &&
+        !options.budget.isSpent() &&
+        !isHealthPaused({ state, accountId, now })
+      ) {
         try {
           const health: Array<CloudChange> | null = await readAwsHealthEvents({
             credentials,
             accountId,
-            start: new Date(
-              Math.max(
-                Date.parse(state.healthReadAt || "") || 0,
-                now.getTime() - DAY_MS,
-              ),
-            ),
+            region: homeRegion,
+            start: getHealthWindowStart({ state, accountId, now }),
             options,
             budget: options.budget,
           });
 
           if (health === null) {
-            healthRefused = true;
+            // Not on a support plan that includes AWS Health: asked again a day later.
+            pauseHealth({ state, accountId, now, forMs: HEALTH_PAUSE_MS });
           } else {
             result.changes.push(
               ...keepNewChanges({
@@ -1744,6 +1840,7 @@ export default class AwsCloudConnector implements CloudConnector {
                 isLookBack,
               }),
             );
+            markHealthRead({ state, accountId, now });
           }
         } catch (error) {
           if (
@@ -1754,24 +1851,29 @@ export default class AwsCloudConnector implements CloudConnector {
             throw error;
           }
 
-          // Health is a bonus: a refusal or a failure is not the read's.
-          if (!(error instanceof CloudReadBudgetSpent)) {
-            healthRefused =
-              error instanceof LlmProviderError &&
-              error.kind === CloudConnectionFailureKind.Permission;
+          // Health is a bonus: a refusal pauses it, any other failure waits for the next read.
+          if (
+            error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Permission
+          ) {
+            pauseHealth({ state, accountId, now, forMs: HEALTH_PAUSE_MS });
           }
         }
+      }
+
+      if (!isLookBack) {
+        this.markChangesRead(state, accountId, now);
       }
     }
 
     if (healthDue) {
       state.healthReadAt = now.toISOString();
+    }
 
-      if (healthRefused) {
-        state.healthPausedUntil = new Date(
-          now.getTime() + HEALTH_PAUSE_MS,
-        ).toISOString();
-      }
+    if (busyPlaces.length > 0) {
+      result.warnings.push(
+        `More changed in ${busyPlaces.slice(0, 5).join("; ")} than one read takes: the newest changes are kept, and some older ones were left out.`,
+      );
     }
 
     if (refusedTrail) {
@@ -1827,6 +1929,7 @@ export default class AwsCloudConnector implements CloudConnector {
     const outcome: AwsInventoryOutcome = await readAwsInventory({
       accountId,
       regions,
+      homeRegion: this.getStsRegion(settings),
       credentials,
       options,
       budget: options.budget,
@@ -1850,10 +1953,16 @@ export default class AwsCloudConnector implements CloudConnector {
     return {
       accounts: [{ accountId, name: alias || undefined }],
       items: outcome.items,
-      completelyListed:
-        outcome.completelyListedTypes.length > 0
-          ? [{ accountId, resourceTypes: outcome.completelyListedTypes }]
-          : [],
+      // Per Region: a Region the listing did not read keeps what it holds.
+      completelyListed: outcome.completelyListed.map(
+        (entry: { region: string; resourceTypes: Array<string> }) => {
+          return {
+            accountId,
+            regions: [entry.region],
+            resourceTypes: entry.resourceTypes,
+          };
+        },
+      ),
       warnings: outcome.warnings,
       complete: outcome.complete && !options.budget.isSpent(),
     };

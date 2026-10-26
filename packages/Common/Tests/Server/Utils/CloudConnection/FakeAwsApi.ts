@@ -59,7 +59,9 @@ export interface FakeRegion {
 export interface FakeOrganizationAccount {
   Id: string;
   Name: string;
+  // Retired by AWS on 9 September 2026: State is what answers carry now.
   Status?: string | undefined;
+  State?: string | undefined;
 }
 
 export interface FakeAwsOptions {
@@ -77,6 +79,14 @@ export interface FakeAwsOptions {
   healthEvents?: Array<JSONObject> | undefined;
   healthDescriptions?: Record<string, string> | undefined;
   healthError?: FakeResponse | undefined;
+  // Per account (as a role's key names it): the error AWS Health answers it with.
+  healthErrorsByAccount?: Record<string, FakeResponse> | undefined;
+  /*
+   * AWS's own clock: a request signed (X-Amz-Date) more than five minutes
+   * before it is refused as AWS refuses it - "Signature expired", as an
+   * unknown signature. Off when not given.
+   */
+  awsClock?: (() => Date) | undefined;
 }
 
 export interface FakeAws extends FakeProviderApi {
@@ -99,8 +109,18 @@ export interface FakeAws extends FakeProviderApi {
   assumedRoles: Array<string>;
   // LookupEvents calls by Region and the account they were signed for.
   cloudTrailCalls: Array<{ region: string; body: JSONObject; account: string }>;
-  // AWS Health calls by action.
-  healthCalls: Array<{ action: string; body: JSONObject }>;
+  // AWS Health calls by action, with the Region and the account they were signed for.
+  healthCalls: Array<{
+    action: string;
+    body: JSONObject;
+    region: string;
+    account: string;
+  }>;
+  /*
+   * Requests refused because their signature was too old - a counter
+   * object: a getter would be read once, when the fake is spread.
+   */
+  expiredSignatures: { count: number };
 }
 
 // Twelve digits: an AWS account id.
@@ -159,6 +179,19 @@ export function stsError(
   };
 }
 
+// X-Amz-Date (20261021T120700Z) as epoch ms, or NaN.
+function signedAtMs(request: DataSourceHttpRequest): number {
+  const value: string = headerOf(request, "X-Amz-Date");
+
+  if (value.length !== 16) {
+    return NaN;
+  }
+
+  return Date.parse(
+    `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`,
+  );
+}
+
 function headerOf(request: DataSourceHttpRequest, name: string): string {
   const headers: Record<string, string> = (request.headers || {}) as Record<
     string,
@@ -205,6 +238,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const healthCalls: FakeAws["healthCalls"] = [];
   const getMetricDataTurns: Map<string, number> = new Map();
   const account: string = options.account || FAKE_ACCOUNT_ID;
+  const expiredSignatures: { count: number } = { count: 0 };
 
   const route: FakeRoute = {
     path: "/",
@@ -213,6 +247,29 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
       const host: string = url.host;
       const service: string = host.split(".")[0] || "";
       const region: string = regionOf(host);
+
+      if (options.awsClock) {
+        const signedAt: number = signedAtMs(request);
+
+        if (
+          !Number.isFinite(signedAt) ||
+          options.awsClock().getTime() - signedAt > 5 * 60 * 1000
+        ) {
+          expiredSignatures.count++;
+
+          return service === "sts"
+            ? stsError(
+                403,
+                "SignatureDoesNotMatch",
+                "Signature expired: the request is more than five minutes old.",
+              )
+            : awsError(
+                400,
+                "InvalidSignatureException",
+                "Signature expired: the request is more than five minutes old.",
+              );
+        }
+      }
 
       if (service === "sts") {
         const form: URLSearchParams = new URLSearchParams(
@@ -303,15 +360,20 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         });
       }
 
-      // AWS Health's one endpoint, in us-east-1.
+      // AWS Health, in the partition's home Region.
       if (service === "health") {
         const action: string =
           headerOf(request, "X-Amz-Target").split(".")[1] || "";
         const body: JSONObject = bodyOf(request);
-        healthCalls.push({ action, body });
+        const caller: string = accountOfKey(request) || account;
+        healthCalls.push({ action, body, region, account: caller });
 
         if (options.healthError) {
           return options.healthError;
+        }
+
+        if (options.healthErrorsByAccount?.[caller]) {
+          return options.healthErrorsByAccount[caller]!;
         }
 
         if (action === "DescribeEventDetails") {
@@ -548,5 +610,6 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     assumedRoles,
     cloudTrailCalls,
     healthCalls,
+    expiredSignatures,
   };
 }

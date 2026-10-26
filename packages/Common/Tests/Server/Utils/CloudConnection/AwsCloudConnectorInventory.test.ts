@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FakeResponse } from "../LlmObservability/FakeProviderApi";
 import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
@@ -213,9 +214,7 @@ describe("an account's inventory", () => {
       fake.cloudControlCalls.filter((call: { typeName: string }): boolean => {
         return call.typeName === "AWS::CloudFront::Distribution";
       }),
-    ).toEqual([
-      expect.objectContaining({ region: "us-east-1" }),
-    ]);
+    ).toEqual([expect.objectContaining({ region: "us-east-1" })]);
 
     // Services inside each cluster, by the cluster's ARN.
     expect(
@@ -240,20 +239,112 @@ describe("an account's inventory", () => {
       targetType: "AWS::ECS::Cluster",
     });
 
-    // Every type answered in every Region it was asked in: listed in full.
+    // Every type answered in every Region it was asked in: listed in full, Region by Region.
     expect(result.complete).toBe(true);
-    expect(result.completelyListed).toHaveLength(1);
-    expect(result.completelyListed[0]!.accountId).toBe(FAKE_ACCOUNT_ID);
+    expect(
+      result.completelyListed.map(
+        (entry: { accountId: string; regions?: Array<string> | undefined }) => {
+          return `${entry.accountId} ${(entry.regions || []).join(",")}`;
+        },
+      ),
+    ).toEqual([`${FAKE_ACCOUNT_ID} eu-west-1`, `${FAKE_ACCOUNT_ID} us-east-1`]);
     expect(result.completelyListed[0]!.resourceTypes).toContain(
       "AWS::EC2::Instance",
     );
     expect(result.completelyListed[0]!.resourceTypes).not.toContain(
       "AWS::ElasticLoadBalancingV2::TargetGroup",
     );
+    // CloudFront is listed in us-east-1 alone.
+    expect(result.completelyListed[0]!.resourceTypes).not.toContain(
+      "AWS::CloudFront::Distribution",
+    );
+    expect(result.completelyListed[1]!.resourceTypes).toContain(
+      "AWS::CloudFront::Distribution",
+    );
+  });
+
+  test("a Region the connection names that the account has not opted in to is skipped with a warning, not a failed read", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": { metrics: [] },
+        "eu-west-1": {
+          metrics: [],
+          resources: {
+            "AWS::Lambda::Function": [
+              { Identifier: "resize", Properties: { Runtime: "nodejs22.x" } },
+            ],
+          },
+        },
+        // af-south-1 is not there: it answers as an unknown credential.
+      },
+    });
+
+    const result: CloudInventoryResult = await connector.readInventory(
+      keySettings({ regions: "eu-west-1, af-south-1" }),
+      inventoryOptions(fake, { accounts: [FAKE_ACCOUNT_ID] }),
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.warnings).toContain(
+      "Could not list the resources in af-south-1: the Region is not enabled for the account.",
+    );
+    expect(
+      result.completelyListed.map(
+        (entry: { regions?: Array<string> | undefined }): string => {
+          return (entry.regions || []).join(",");
+        },
+      ),
+    ).toEqual(["eu-west-1", "us-east-1"]);
+  });
+
+  test("a credential refused in the home Region is refused: the listing fails", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "eu-west-1": { metrics: [] },
+        // us-east-1 is not there: it answers as an unknown credential.
+      },
+    });
+
+    await expect(
+      connector.readInventory(
+        keySettings({ regions: "eu-west-1" }),
+        inventoryOptions(fake, { accounts: [FAKE_ACCOUNT_ID] }),
+      ),
+    ).rejects.toThrow("security token");
+  });
+
+  test("a GovCloud account's global types are listed in GovCloud's home Region, never us-east-1", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-gov-west-1": { metrics: [] },
+        "us-gov-east-1": { metrics: [] },
+      },
+    });
+
+    const result: CloudInventoryResult = await connector.readInventory(
+      keySettings({ regions: "us-gov-east-1" }),
+      inventoryOptions(fake, { accounts: [FAKE_ACCOUNT_ID] }),
+    );
+
+    expect(
+      Array.from(
+        new Set(
+          fake.cloudControlCalls.map((call: { region: string }): string => {
+            return call.region;
+          }),
+        ),
+      ).sort(),
+    ).toEqual(["us-gov-east-1", "us-gov-west-1"]);
+    expect(
+      fake.cloudControlCalls.filter((call: { typeName: string }): boolean => {
+        return call.typeName === "AWS::CloudFront::Distribution";
+      }),
+    ).toEqual([expect.objectContaining({ region: "us-gov-west-1" })]);
+    expect(result.complete).toBe(true);
   });
 
   test("a type the role may not list is said once, with what to do - and is never taken for empty", async () => {
-    const refused: { status: number; body: string } = awsError(
+    const refused: FakeResponse = awsError(
       403,
       "AccessDeniedException",
       "User is not authorized to perform: cloudformation:ListResources",
@@ -332,11 +423,17 @@ describe("an account's inventory", () => {
     );
 
     expect(result.complete).toBe(false);
-    // The three types it reached; the read lane keeps nothing of an incomplete listing.
-    expect(result.completelyListed[0]!.resourceTypes).toEqual([
-      "AWS::EC2::Instance",
-      "AWS::EC2::Volume",
-      "AWS::EC2::VPC",
+    // The three types it reached, listed to their last page: only those may archive.
+    expect(result.completelyListed).toEqual([
+      {
+        accountId: FAKE_ACCOUNT_ID,
+        regions: ["us-east-1"],
+        resourceTypes: [
+          "AWS::EC2::Instance",
+          "AWS::EC2::Volume",
+          "AWS::EC2::VPC",
+        ],
+      },
     ]);
   });
 
@@ -464,6 +561,125 @@ describe("an organization", () => {
     );
 
     expect(fake.organizationsCalls).toHaveLength(1);
+  });
+
+  test("an account's State says whether it is read: Status, which AWS retired, only when State is absent", async () => {
+    giveOneUptimeAnAwsIdentity();
+
+    const fake: FakeAws = createFakeAws({
+      account: MANAGEMENT,
+      organizationAccounts: [
+        { Id: MANAGEMENT, Name: "Management", State: "ACTIVE" },
+        // No Status at all, as AWS answers since 9 September 2026.
+        { Id: MEMBER, Name: "Production", State: "ACTIVE" },
+        { Id: "444444444444", Name: "Suspended", State: "SUSPENDED" },
+        { Id: "555555555555", Name: "Closing", State: "PENDING_CLOSURE" },
+        { Id: "666666666666", Name: "Closed", State: "CLOSED" },
+        { Id: "777777777777", Name: "New", State: "PENDING_ACTIVATION" },
+        // An older answer, with Status alone.
+        { Id: "888888888888", Name: "Old answer", Status: "SUSPENDED" },
+      ],
+      regions: { "eu-west-1": { metrics: cpu("i-0abc") } },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      {
+        ...organizationSettings(),
+        config: { ...organizationSettings().config, regions: "eu-west-1" },
+      },
+      readOptions(fake),
+    );
+
+    expect(result.nextState.organizationAccounts).toEqual([
+      { id: MANAGEMENT, name: "Management" },
+      { id: MEMBER, name: "Production" },
+    ]);
+    expect(
+      fake.assumedRoles.filter((role: string): boolean => {
+        return (
+          role.includes("444444444444") ||
+          role.includes("555555555555") ||
+          role.includes("666666666666") ||
+          role.includes("777777777777") ||
+          role.includes("888888888888")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("an organization of more accounts than one connection reads says so, and reads the first fifty", async () => {
+    giveOneUptimeAnAwsIdentity();
+
+    const accounts: Array<{ Id: string; Name: string; State: string }> = [];
+
+    for (let index: number = 0; index < 60; index++) {
+      accounts.push({
+        Id: String(100000000000 + index),
+        Name: `Account ${index}`,
+        State: "ACTIVE",
+      });
+    }
+
+    const fake: FakeAws = createFakeAws({
+      account: MANAGEMENT,
+      organizationAccounts: accounts,
+      regions: { "eu-west-1": { metrics: [] } },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      {
+        ...organizationSettings(),
+        config: { ...organizationSettings().config, regions: "eu-west-1" },
+      },
+      readOptions(fake),
+    );
+
+    expect(result.nextState.organizationAccounts).toHaveLength(50);
+    expect(result.nextState.organizationAccountCount).toBe(60);
+    expect(result.warnings[0]).toBe(
+      "The organization has 60 accounts: this connection reads the first 50. Connect the others with a connection of their own.",
+    );
+  });
+
+  test("the account read least recently is read first, so a read that stops at its limit reaches the rest next time", async () => {
+    giveOneUptimeAnAwsIdentity();
+
+    const fake: FakeAws = createFakeAws({
+      account: MANAGEMENT,
+      regions: { "eu-west-1": { metrics: cpu("i-0abc") } },
+    });
+    const state: CloudConnectionPullState = {
+      organizationAccounts: [
+        { id: MANAGEMENT, name: "Management" },
+        { id: MEMBER, name: "Production" },
+      ],
+      organizationListedAt: NOW.toISOString(),
+      accountStates: {
+        [MANAGEMENT]: {
+          accounts: [MANAGEMENT],
+          metricsReadAt: new Date(NOW.getTime() - 60000).toISOString(),
+        },
+        // Never read: it goes first.
+        [MEMBER]: { accounts: [MEMBER] },
+      },
+    };
+
+    const result: CloudReadResult = await connector.read(
+      {
+        ...organizationSettings(),
+        config: { ...organizationSettings().config, regions: "eu-west-1" },
+      },
+      readOptions(fake, state),
+    );
+
+    expect(fake.assumedRoles[0]).toContain(MEMBER);
+    // Both read now: each marked, for next time.
+    expect(result.nextState.accountStates?.[MEMBER]?.metricsReadAt).toBe(
+      NOW.toISOString(),
+    );
+    expect(result.nextState.accountStates?.[MANAGEMENT]?.metricsReadAt).toBe(
+      NOW.toISOString(),
+    );
   });
 
   test("its inventory lists each account through its role, named as Organizations names it", async () => {

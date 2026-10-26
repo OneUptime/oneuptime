@@ -69,11 +69,17 @@ interface FakeGcpActivity extends FakeProviderApi {
 function createFakeGcpActivity(options: {
   entries?: Record<string, Array<JSONObject>>;
   auditErrors?: Record<string, FakeResponse>;
+  // Entries per page, oldest first as the read asks (every entry on one page when not set).
+  pageSize?: number;
+  // The first this many audit log calls answer 429, as a quota does.
+  throttledCalls?: number;
   healthEvents?: Record<string, Array<JSONObject>>;
   healthError?: FakeResponse;
+  healthErrors?: Record<string, FakeResponse>;
 }): FakeGcpActivity {
   const auditCalls: Array<JSONObject> = [];
   const healthCalls: Array<URL> = [];
+  let throttled: number = 0;
 
   const api: FakeProviderApi = createFakeProviderApi([
     {
@@ -99,7 +105,59 @@ function createFakeGcpActivity(options: {
           return options.auditErrors[project]!;
         }
 
-        return json({ entries: options.entries?.[project] || [] });
+        if (throttled < (options.throttledCalls || 0)) {
+          throttled++;
+          return json(
+            {
+              error: {
+                code: 429,
+                message: "Quota exceeded for quota metric 'Read requests'.",
+              },
+            },
+            429,
+          );
+        }
+
+        // Only the entries the filter's stretch holds, as Logging answers.
+        const filter: string = String(body["filter"] || "");
+        const timeAfter: (marker: string) => number = (
+          marker: string,
+        ): number => {
+          const at: number = filter.indexOf(marker);
+
+          if (at < 0) {
+            return NaN;
+          }
+
+          const start: number = at + marker.length;
+          return Date.parse(filter.slice(start, filter.indexOf('"', start)));
+        };
+        const from: number = timeAfter('timestamp>="');
+        const until: number = timeAfter('timestamp<"');
+        const all: Array<JSONObject> = (
+          options.entries?.[project] || []
+        ).filter((entry: JSONObject): boolean => {
+          const time: number = Date.parse(String(entry["timestamp"]));
+          return (
+            (!Number.isFinite(from) || time >= from) &&
+            (!Number.isFinite(until) || time < until)
+          );
+        });
+
+        if (!options.pageSize) {
+          return json({ entries: all });
+        }
+
+        const offset: number = body["pageToken"]
+          ? Number(body["pageToken"])
+          : 0;
+
+        return json({
+          entries: all.slice(offset, offset + options.pageSize),
+          ...(offset + options.pageSize < all.length
+            ? { nextPageToken: String(offset + options.pageSize) }
+            : {}),
+        });
       },
     },
     {
@@ -113,6 +171,11 @@ function createFakeGcpActivity(options: {
         }
 
         const project: string = url.pathname.split("/")[3]!;
+
+        if (options.healthErrors?.[project]) {
+          return options.healthErrors[project]!;
+        }
+
         return json({ events: options.healthEvents?.[project] || [] });
       },
     },
@@ -424,10 +487,14 @@ describe("what Google Cloud Service Health says about the project", () => {
         description: "We are investigating connection failures.",
       },
     ]);
+    // The documented form: the time unquoted.
     expect(fake.healthCalls[0]!.searchParams.get("filter")).toBe(
-      `update_time>="${new Date(NOW.getTime() - 24 * 60 * 60 * 1000).toISOString()}"`,
+      `update_time>=${new Date(NOW.getTime() - 24 * 60 * 60 * 1000).toISOString()}`,
     );
     expect(state.healthReadAt).toBe(NOW.toISOString());
+    expect(state.accountHealthReadAt).toEqual({
+      [PROJECT_ID]: NOW.toISOString(),
+    });
   });
 
   test("Service Health that is off or not allowed is asked again a day later, without a warning", async () => {
@@ -451,9 +518,9 @@ describe("what Google Cloud Service Health says about the project", () => {
     );
 
     expect(result.warnings).toEqual([]);
-    expect(state.healthPausedUntil).toBe(
-      new Date(NOW.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    );
+    expect(state.healthPausedAccounts).toEqual({
+      [PROJECT_ID]: new Date(NOW.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    });
 
     const later: FakeGcpActivity = createFakeGcpActivity({});
     await connector.readChanges(
@@ -461,5 +528,184 @@ describe("what Google Cloud Service Health says about the project", () => {
       changeOptions(later, state, {}, new Date(NOW.getTime() + 60 * 60000)),
     );
     expect(later.healthCalls).toEqual([]);
+  });
+
+  test("a project whose Service Health is off is paused alone; the others are still asked", async () => {
+    const fake: FakeGcpActivity = createFakeGcpActivity({
+      healthErrors: {
+        [PROJECT_ID]: json(
+          {
+            error: {
+              code: 403,
+              message:
+                "Service Health API has not been used in project 123 before or it is disabled.",
+            },
+          },
+          403,
+        ),
+      },
+    });
+    const state: CloudConnectionPullState = {};
+
+    await connector.readChanges(
+      settings({ projectIds: `${PROJECT_ID}, ${OTHER_PROJECT}` }),
+      changeOptions(fake, state),
+    );
+
+    expect(Object.keys(state.healthPausedAccounts || {})).toEqual([PROJECT_ID]);
+    expect(
+      fake.healthCalls.map((url: URL): string => {
+        return url.pathname.split("/")[3]!;
+      }),
+    ).toEqual([PROJECT_ID, OTHER_PROJECT]);
+    expect(state.accountHealthReadAt).toEqual({
+      [OTHER_PROJECT]: NOW.toISOString(),
+    });
+  });
+});
+
+describe("a busy project, and a quota", () => {
+  function entries(count: number): Array<JSONObject> {
+    const list: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      list.push({
+        insertId: `insert-${index}`,
+        timestamp: new Date(
+          NOW.getTime() - 60 * 60000 + index * 1000,
+        ).toISOString(),
+        logName: `projects/${PROJECT_ID}/logs/cloudaudit.googleapis.com%2Factivity`,
+        resource: { type: "gce_instance", labels: { zone: "us-central1-a" } },
+        protoPayload: {
+          serviceName: "compute.googleapis.com",
+          methodName: "v1.compute.instances.setLabels",
+          resourceName: `projects/${PROJECT_ID}/zones/us-central1-a/instances/web-${index}`,
+          authenticationInfo: { principalEmail: "ci@acme.example" },
+          status: {},
+        },
+      });
+    }
+
+    return list;
+  }
+
+  test("a project busier than one read takes carries on from the newest change read, never the same stretch again", async () => {
+    // Five pages of two a read: twelve entries need two reads.
+    const fake: FakeGcpActivity = createFakeGcpActivity({
+      entries: { [PROJECT_ID]: entries(12) },
+      pageSize: 2,
+    });
+    const state: CloudConnectionPullState = {
+      changeCursors: {
+        [PROJECT_ID]: new Date(NOW.getTime() - 70 * 60000).toISOString(),
+      },
+    };
+
+    const first: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(fake, state),
+    );
+
+    expect(first.changes).toHaveLength(10);
+    expect(first.warnings).toEqual([
+      `More changed in ${PROJECT_ID} than one read takes: the next read carries on from the newest change read.`,
+    ]);
+    expect(state.changeResume).toEqual({
+      [PROJECT_ID]: new Date(
+        NOW.getTime() - 60 * 60000 + 9 * 1000,
+      ).toISOString(),
+    });
+
+    const later: FakeGcpActivity = createFakeGcpActivity({
+      entries: { [PROJECT_ID]: entries(12) },
+      pageSize: 2,
+    });
+    const second: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(later, state, {}, new Date(NOW.getTime() + 60000)),
+    );
+
+    // It asked from where the first read got to, and wrote only what it had not.
+    expect(String(later.auditCalls[0]!["filter"])).toContain(
+      `timestamp>="${new Date(NOW.getTime() - 60 * 60000 + 9 * 1000).toISOString()}"`,
+    );
+    expect(
+      second.changes.map((change: CloudChange): string => {
+        return change.eventId;
+      }),
+    ).toEqual(["insert-10", "insert-11"]);
+    expect(state.changeResume).toBeUndefined();
+  });
+
+  test("a quota that answers 429 is asked again a moment later, within the read's budget", async () => {
+    const waits: Array<number> = [];
+    const fake: FakeGcpActivity = createFakeGcpActivity({
+      entries: { [PROJECT_ID]: entries(1) },
+      throttledCalls: 2,
+    });
+    const budget: CloudReadBudget = new CloudReadBudget({
+      maxRequests: 300,
+      maxDurationMs: 60000,
+    });
+
+    const result: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(
+        fake,
+        {},
+        {
+          budget,
+          sleep: async (milliseconds: number) => {
+            waits.push(milliseconds);
+          },
+        },
+      ),
+    );
+
+    expect(result.changes).toHaveLength(1);
+    expect(result.warnings).toEqual([]);
+    expect(waits).toEqual([1000, 2000]);
+    expect(fake.auditCalls).toHaveLength(3);
+  });
+
+  test("a quota that keeps answering 429 is a warning on the read, after a few tries", async () => {
+    const fake: FakeGcpActivity = createFakeGcpActivity({
+      entries: { [PROJECT_ID]: entries(1) },
+      throttledCalls: 100,
+    });
+
+    const result: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(fake, {}),
+    );
+
+    expect(result.changes).toEqual([]);
+    expect(fake.auditCalls).toHaveLength(4);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain(
+      `Could not read what changed in ${PROJECT_ID}`,
+    );
+  });
+
+  test("the project read least recently goes first", async () => {
+    const fake: FakeGcpActivity = createFakeGcpActivity({});
+    const state: CloudConnectionPullState = {
+      healthReadAt: NOW.toISOString(),
+      accountStates: {
+        [PROJECT_ID]: { changesReadAt: NOW.toISOString() },
+      },
+    };
+
+    await connector.readChanges(
+      settings({ projectIds: `${PROJECT_ID}, ${OTHER_PROJECT}` }),
+      changeOptions(fake, state),
+    );
+
+    expect((fake.auditCalls[0]!["resourceNames"] as Array<string>)[0]).toBe(
+      `projects/${OTHER_PROJECT}`,
+    );
+    expect(state.accountStates?.[OTHER_PROJECT]?.changesReadAt).toBe(
+      NOW.toISOString(),
+    );
   });
 });

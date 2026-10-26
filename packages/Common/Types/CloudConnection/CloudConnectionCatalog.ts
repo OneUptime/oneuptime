@@ -191,9 +191,9 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
     description:
       "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.",
     summary:
-      "Every resource in every region you use, with its key metrics, what changed and what it costs.",
+      "Every resource in every region you use, with its key metrics and what changed.",
     explanation:
-      "OneUptime can only read: metrics, resources and how they are set up, changes, health events and costs. Never data or secrets.",
+      "OneUptime can only read: metrics, resources and how they are set up, changes and health events. Never data or secrets.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#amazon-web-services",
     shellTitle: "AWS CloudShell",
@@ -270,9 +270,9 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
     description:
       "Virtual machines, App Service, SQL, storage and more, read from Azure Monitor.",
     summary:
-      "Every resource in the subscriptions the app can read, with its key metrics, what changed and what it costs.",
+      "Every resource in the subscriptions the app can read, with its key metrics and what changed.",
     explanation:
-      "OneUptime can only read: resources, metrics, the activity log and costs. Never data or secrets.",
+      "OneUptime can only read: resources, metrics and the activity log. Never data or secrets.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#microsoft-azure",
     shellTitle: "Azure Cloud Shell",
@@ -281,8 +281,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       {
         method: CloudConnectionAuthMethod.AzureClientSecret,
         title: "App registration",
-        description:
-          "An app with the Monitoring Reader and Cost Management Reader roles.",
+        description: "An app with the Monitoring Reader role.",
         hint: "Run this in Azure Cloud Shell. It creates an app that can only read, and prints its details.",
       },
     ],

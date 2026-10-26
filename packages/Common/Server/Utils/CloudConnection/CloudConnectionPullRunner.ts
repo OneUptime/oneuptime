@@ -137,7 +137,18 @@ export default class CloudConnectionPullRunner {
     connectionId: ObjectID,
     dependencies: CloudConnectionPullDependencies,
   ): Promise<CloudConnectionPullOutcome> {
-    const now: Date = dependencies.now ? dependencies.now() : new Date();
+    /*
+     * The read's clock. The read is "now" for its windows and cursors, but
+     * every request it makes is signed with the time it is sent: a read
+     * runs for minutes, and AWS refuses a signature more than five minutes
+     * old - as an unknown credential, which would fail the whole read.
+     */
+    const clock: () => Date =
+      dependencies.now ||
+      ((): Date => {
+        return new Date();
+      });
+    const now: Date = clock();
     const startedAt: number = Date.now();
 
     const connection: CloudConnection | null =
@@ -207,9 +218,7 @@ export default class CloudConnectionPullRunner {
 
       const read: CloudReadResult = await connector.read(settings, {
         transport,
-        now: () => {
-          return now;
-        },
+        now: clock,
         sleep: dependencies.sleep,
         state: CloudConnectionPullRunner.readPullState(connection.pullState),
         serviceName: service.serviceName,
@@ -255,6 +264,7 @@ export default class CloudConnectionPullRunner {
           state,
           transport,
           now,
+          clock,
           deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
           sleep: dependencies.sleep,
         });
@@ -272,6 +282,7 @@ export default class CloudConnectionPullRunner {
           state,
           transport,
           now,
+          clock,
           deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
           sleep: dependencies.sleep,
         });
@@ -284,7 +295,8 @@ export default class CloudConnectionPullRunner {
         provider: definition.provider,
         accountIds: read.accounts,
         named: inventory.accounts,
-        inventoryListedAt: inventory.ran ? now : undefined,
+        listedInFull: inventory.listedInFull,
+        listedAt: now,
         recount:
           inventory.ran ||
           synced.newResources > 0 ||
@@ -294,8 +306,11 @@ export default class CloudConnectionPullRunner {
       // What the connection holds after the last sync of this read.
       const held: CloudConnectionSyncResult = inventory.synced || synced;
 
+      // A read with resources left to add carries on within a minute.
       const status: CloudConnectionReadStatus =
-        read.complete && !synced.hasMore ? "success" : "partial";
+        read.complete && !synced.hasMore && !inventory.synced?.hasMore
+          ? "success"
+          : "partial";
 
       const summary: CloudConnectionReadSummary = {
         status,

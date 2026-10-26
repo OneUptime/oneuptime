@@ -1,13 +1,12 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/CloudAccount";
-import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import {
+  CloudAccountResourceCount,
   CloudAccountResourceSummary,
-  summarizeCloudAccountResources,
+  summarizeCloudAccountResourceCounts,
 } from "../../Types/Cloud/CloudAccountSummary";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -69,8 +68,12 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     connectionId: ObjectID;
     provider: CloudProvider;
-    accounts: Array<{ accountId: string; name?: string | undefined }>;
-    inventoryListedAt?: Date | undefined;
+    accounts: Array<{
+      accountId: string;
+      name?: string | undefined;
+      // When the inventory listed this account to its last page, if it did now.
+      listedInFullAt?: Date | undefined;
+    }>;
   }): Promise<Array<Model>> {
     const rows: Array<Model> = [];
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -109,8 +112,8 @@ export class Service extends ProjectReferencesService<Model> {
           }
           created.lastSeenAt = now;
 
-          if (data.inventoryListedAt) {
-            created.inventoryListedAt = data.inventoryListedAt;
+          if (account.listedInFullAt) {
+            created.inventoryListedAt = account.listedInFullAt;
           }
 
           try {
@@ -146,8 +149,8 @@ export class Service extends ProjectReferencesService<Model> {
           update["cloudConnectionId"] = data.connectionId.toString();
         }
 
-        if (data.inventoryListedAt) {
-          update["inventoryListedAt"] = data.inventoryListedAt;
+        if (account.listedInFullAt) {
+          update["inventoryListedAt"] = account.listedInFullAt;
         }
 
         await this.updateOneById({
@@ -171,7 +174,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The account's live resources counted by type and region, written on
-   * the account row. The resources are read by cloud and account id.
+   * the account row. Counted by the database - one row per type and Region,
+   * however many resources there are - over the resources of the same
+   * cloud and account id, pinned to the account's project.
    */
   @CaptureSpan()
   public async refreshSummary(account: {
@@ -180,31 +185,37 @@ export class Service extends ProjectReferencesService<Model> {
     provider: CloudProvider;
     accountId: string;
   }): Promise<CloudAccountResourceSummary> {
-    const resources: Array<CloudResource> = await CloudResourceService.findBy({
-      query: {
-        projectId: account.projectId,
-        cloudProvider: account.provider,
-        cloudAccountId: QueryHelper.findWithSameText(account.accountId),
-        isArchived: false,
-      },
-      select: {
-        _id: true,
-        cloudResourceType: true,
-        cloudRegion: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: { isRoot: true },
-    });
+    const rows: unknown =
+      await CloudResourceService.getRepository().manager.query(
+        `SELECT COALESCE("cloudResourceType", '') AS "type",
+            COALESCE("cloudRegion", '') AS "region",
+            COUNT(*)::int AS "count"
+          FROM "CloudResource"
+          WHERE "projectId" = $1
+            AND "cloudProvider" = $2
+            AND LOWER("cloudAccountId") = LOWER($3)
+            AND "isArchived" = false
+            AND "deletedAt" IS NULL
+          GROUP BY 1, 2`,
+        [account.projectId.toString(), account.provider, account.accountId],
+      );
 
     const summary: CloudAccountResourceSummary =
-      summarizeCloudAccountResources(
-        resources.map((resource: CloudResource) => {
-          return {
-            type: resource.cloudResourceType || "",
-            region: resource.cloudRegion || "",
-          };
-        }),
+      summarizeCloudAccountResourceCounts(
+        (Array.isArray(rows) ? rows : []).map(
+          (row: unknown): CloudAccountResourceCount => {
+            const record: Record<string, unknown> =
+              row && typeof row === "object"
+                ? (row as Record<string, unknown>)
+                : {};
+
+            return {
+              type: String(record["type"] || ""),
+              region: String(record["region"] || ""),
+              count: Number(record["count"]) || 0,
+            };
+          },
+        ),
       );
 
     await this.updateOneById({

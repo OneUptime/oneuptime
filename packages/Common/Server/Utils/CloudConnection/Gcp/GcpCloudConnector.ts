@@ -50,7 +50,10 @@ import {
   CloudReadBudgetSpent,
   CloudReadOptions,
   CloudReadResult,
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   getCloudSecretValues,
+  getOrganizationLimitWarning,
+  orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
 import GcpInventoryClient, {
@@ -66,7 +69,11 @@ import { readGcpAuditEntry, readGcpHealthEvent } from "./GcpChanges";
 import {
   getChangePlace,
   getChangeWindowStart,
+  getHealthWindowStart,
+  isHealthPaused,
   keepNewChanges,
+  markHealthRead,
+  pauseHealth,
 } from "../CloudChangeWindow";
 import { JSONObject } from "../../../../Types/JSON";
 
@@ -87,10 +94,12 @@ const PROVIDER_TITLE: string = "Google Cloud";
 const CONCURRENCY: number = 6;
 export const GCP_MAX_PROJECTS: number = 20;
 // The most projects of an organization one connection reads.
-export const GCP_MAX_ORGANIZATION_PROJECTS: number = 50;
+export const GCP_MAX_ORGANIZATION_PROJECTS: number =
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS;
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 // How often Service Health is asked, and how long after a refusal it is not.
 const HEALTH_INTERVAL_MS: number = 15 * 60 * 1000;
+const HEALTH_PAUSE_MS: number = DAY_MS;
 
 function isOlderThan(
   iso: string | undefined,
@@ -191,16 +200,21 @@ export default class GcpCloudConnector implements CloudConnector {
       transport: data.options.transport,
       requestTimeoutInMs: data.options.requestTimeoutInMs,
       budget: data.budget,
+      sleep: data.options.sleep,
     });
-    const found: Array<{ projectId: string; displayName: string }> = (
-      await client.searchProjects()
-    ).slice(0, GCP_MAX_ORGANIZATION_PROJECTS);
+    const all: Array<{ projectId: string; displayName: string }> =
+      await client.searchProjects();
+    const found: Array<{ projectId: string; displayName: string }> = all.slice(
+      0,
+      GCP_MAX_ORGANIZATION_PROJECTS,
+    );
 
     data.state.organizationAccounts = found.map(
       (project: { projectId: string; displayName: string }) => {
         return { id: project.projectId, name: project.displayName };
       },
     );
+    data.state.organizationAccountCount = all.length;
     data.state.organizationListedAt = data.now.toISOString();
 
     return found.length > 0
@@ -257,11 +271,32 @@ export default class GcpCloudConnector implements CloudConnector {
     });
   }
 
+  // A project's own read state, by id (an organization's projects, or the named ones).
+  private markProjectRead(data: {
+    state: CloudConnectionPullState;
+    projectId: string;
+    field: "inventoryReadAt" | "changesReadAt";
+    now: Date;
+  }): void {
+    data.state.accountStates = {
+      ...(data.state.accountStates || {}),
+      [data.projectId]: {
+        ...(data.state.accountStates?.[data.projectId] || {}),
+        [data.field]: data.now.toISOString(),
+      },
+    };
+  }
+
   /*
    * What changed in each project since the last read (its Admin Activity
    * audit log) and - every 15 minutes - Google Cloud's Service Health
    * events about it. A look back for an investigation reads only the
    * projects it names and moves no cursor.
+   *
+   * The projects are read least recently read first, so a read that stops
+   * at its limit reaches the others next time; the audit log is listed
+   * oldest first, so a project busier than one read takes carries on next
+   * time from the newest change read (CloudChangeWindow).
    */
   public async readChanges(
     settings: CloudConnectionSettings,
@@ -277,6 +312,7 @@ export default class GcpCloudConnector implements CloudConnector {
       transport: options.transport,
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget: options.budget,
+      sleep: options.sleep,
     });
     const isLookBack: boolean = Boolean(options.since);
     const result: CloudChangesResult = {
@@ -284,13 +320,18 @@ export default class GcpCloudConnector implements CloudConnector {
       warnings: [],
       complete: true,
     };
-    let projects: Array<string> = this.isOrganization(settings)
-      ? (state.organizationAccounts || []).map(
-          (project: { id: string }): string => {
-            return project.id;
-          },
-        )
-      : this.getProjects(settings);
+    let projects: Array<string> = orderLeastRecentlyRead({
+      accounts: this.isOrganization(settings)
+        ? (state.organizationAccounts || []).map(
+            (project: { id: string }): string => {
+              return project.id;
+            },
+          )
+        : this.getProjects(settings),
+      readAt: (projectId: string): string | undefined => {
+        return state.accountStates?.[projectId]?.changesReadAt;
+      },
+    });
 
     if (options.only) {
       const wanted: Set<string> = new Set(
@@ -304,6 +345,7 @@ export default class GcpCloudConnector implements CloudConnector {
     }
 
     let refused: boolean = false;
+    const busy: Array<string> = [];
 
     const outcomes: Array<
       Settled<{ changes: Array<CloudChange>; complete: boolean }>
@@ -354,9 +396,23 @@ export default class GcpCloudConnector implements CloudConnector {
               now,
               complete: outcome.value.complete,
               isLookBack,
+              order: "oldest-first",
             }),
           );
-          result.complete = result.complete && outcome.value.complete;
+
+          if (!outcome.value.complete) {
+            busy.push(projectId);
+          }
+
+          if (!isLookBack) {
+            this.markProjectRead({
+              state,
+              projectId,
+              field: "changesReadAt",
+              now,
+            });
+          }
+
           return;
         }
 
@@ -371,6 +427,15 @@ export default class GcpCloudConnector implements CloudConnector {
           outcome.error.kind === CloudConnectionFailureKind.Authentication
         ) {
           throw outcome.error;
+        }
+
+        if (!isLookBack) {
+          this.markProjectRead({
+            state,
+            projectId,
+            field: "changesReadAt",
+            now,
+          });
         }
 
         if (
@@ -392,39 +457,41 @@ export default class GcpCloudConnector implements CloudConnector {
       },
     );
 
+    if (busy.length > 0) {
+      result.warnings.push(
+        `More changed in ${busy.slice(0, 5).join(", ")} than one read takes: the next read carries on from the newest change read.`,
+      );
+    }
+
     if (refused) {
       result.warnings.push(
         "The service account may not read a project's audit log. Run the setup command again: it gives it the Logs Viewer role.",
       );
     }
 
-    // Service Health: a bonus, paused for a day when it is not allowed.
+    // Service Health: a bonus, paused for a day for a project that does not allow it.
     const healthDue: boolean =
-      !isLookBack &&
-      isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now) &&
-      !(
-        state.healthPausedUntil &&
-        Date.parse(state.healthPausedUntil) > now.getTime()
-      );
+      !isLookBack && isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now);
 
     if (healthDue) {
-      let paused: boolean = false;
-
       for (const projectId of projects) {
-        if (options.budget.isSpent() || paused) {
+        if (options.budget.isSpent()) {
           break;
+        }
+
+        if (isHealthPaused({ state, accountId: projectId, now })) {
+          continue;
         }
 
         try {
           const events: Array<JSONObject> =
             await client.listServiceHealthEvents({
               projectId,
-              start: new Date(
-                Math.max(
-                  Date.parse(state.healthReadAt || "") || 0,
-                  now.getTime() - DAY_MS,
-                ),
-              ),
+              start: getHealthWindowStart({
+                state,
+                accountId: projectId,
+                now,
+              }),
             });
 
           result.changes.push(
@@ -443,24 +510,24 @@ export default class GcpCloudConnector implements CloudConnector {
               isLookBack,
             }),
           );
+          markHealthRead({ state, accountId: projectId, now });
         } catch (error) {
           if (
             error instanceof LlmProviderError &&
             (error.kind === CloudConnectionFailureKind.Permission ||
               error.kind === CloudConnectionFailureKind.Settings)
           ) {
-            paused = true;
+            pauseHealth({
+              state,
+              accountId: projectId,
+              now,
+              forMs: HEALTH_PAUSE_MS,
+            });
           }
         }
       }
 
       state.healthReadAt = now.toISOString();
-
-      if (paused) {
-        state.healthPausedUntil = new Date(
-          now.getTime() + DAY_MS,
-        ).toISOString();
-      }
     }
 
     return result;
@@ -468,14 +535,16 @@ export default class GcpCloudConnector implements CloudConnector {
 
   /*
    * The projects' inventory (GcpInventory): every asset of the inventory's
-   * types in each project read, and each project's name. A project whose
-   * Cloud Asset API is off, or that the service account may not list, is a
-   * warning that says what to run.
+   * types in each project read, and each project's name - the project
+   * listed least recently first, so a listing that stops at its limit lists
+   * the others next time. A project whose Cloud Asset API is off, or that
+   * the service account may not list, is a warning that says what to run.
    */
   public async readInventory(
     settings: CloudConnectionSettings,
     options: CloudInventoryOptions,
   ): Promise<CloudInventoryResult> {
+    const now: Date = options.now ? options.now() : new Date();
     const client: GcpInventoryClient = new GcpInventoryClient({
       serviceAccountJson: readCloudSetting(
         settings.secrets,
@@ -484,17 +553,23 @@ export default class GcpCloudConnector implements CloudConnector {
       transport: options.transport,
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget: options.budget,
+      sleep: options.sleep,
     });
     const organization: Array<{ id: string; name: string }> =
       this.isOrganization(settings)
         ? options.state.organizationAccounts || []
         : [];
-    const projects: Array<string> =
-      organization.length > 0
-        ? organization.map((project: { id: string }): string => {
-            return project.id;
-          })
-        : this.getProjects(settings).slice(0, GCP_MAX_PROJECTS);
+    const projects: Array<string> = orderLeastRecentlyRead({
+      accounts:
+        organization.length > 0
+          ? organization.map((project: { id: string }): string => {
+              return project.id;
+            })
+          : this.getProjects(settings).slice(0, GCP_MAX_PROJECTS),
+      readAt: (projectId: string): string | undefined => {
+        return options.state.accountStates?.[projectId]?.inventoryReadAt;
+      },
+    });
     const organizationNames: Map<string, string> = new Map(
       organization.map((project: { id: string; name: string }) => {
         return [project.id, project.name];
@@ -533,6 +608,13 @@ export default class GcpCloudConnector implements CloudConnector {
           throw error;
         }
 
+        this.markProjectRead({
+          state: options.state,
+          projectId,
+          field: "inventoryReadAt",
+          now,
+        });
+
         warnings.push(
           error instanceof LlmProviderError &&
             error.kind === CloudConnectionFailureKind.Permission
@@ -544,6 +626,13 @@ export default class GcpCloudConnector implements CloudConnector {
         accounts.push({ accountId: projectId });
         continue;
       }
+
+      this.markProjectRead({
+        state: options.state,
+        projectId,
+        field: "inventoryReadAt",
+        now,
+      });
 
       const assets: Map<CloudInventoryItem, GcpAsset> = new Map();
       const projectItems: Array<CloudInventoryItem> = [];
@@ -584,6 +673,17 @@ export default class GcpCloudConnector implements CloudConnector {
           (await client.getProjectName(projectId)) ||
           undefined,
       });
+    }
+
+    const tooMany: string | null = this.isOrganization(settings)
+      ? getOrganizationLimitWarning({
+          total: options.state.organizationAccountCount || organization.length,
+          noun: "projects",
+        })
+      : null;
+
+    if (tooMany) {
+      warnings.unshift(tooMany);
     }
 
     return { accounts, items, completelyListed, warnings, complete };
@@ -942,6 +1042,17 @@ export default class GcpCloudConnector implements CloudConnector {
     state.cursors = cursors;
     state.accounts = projects;
     state.inventoryAt = now.toISOString();
+
+    const tooMany: string | null = this.isOrganization(settings)
+      ? getOrganizationLimitWarning({
+          total: state.organizationAccountCount || projects.length,
+          noun: "projects",
+        })
+      : null;
+
+    if (tooMany) {
+      warnings.unshift(tooMany);
+    }
 
     const metricGroups: Array<CloudMetricGroup> = budget.isSpent()
       ? []

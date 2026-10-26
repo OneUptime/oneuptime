@@ -9,6 +9,8 @@ import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
 import {
+  CloudChange,
+  CloudCompleteListing,
   CloudConnectionPullState,
   CloudConnectionSettings,
   CloudConnector,
@@ -18,8 +20,15 @@ import {
   CloudInventoryResult,
   CloudReadBudget,
 } from "./CloudConnectorTypes";
-import CloudChangeRecorder from "./CloudChangeRecorder";
-import { forgetStalePlaces } from "./CloudChangeWindow";
+import CloudChangeRecorder, {
+  CloudChangeRecordOutcome,
+} from "./CloudChangeRecorder";
+import {
+  CloudChangeWindowSnapshot,
+  forgetStalePlaces,
+  restoreChangeWindow,
+  snapshotChangeWindow,
+} from "./CloudChangeWindow";
 
 /*
  * WHAT A READ DOES BESIDES READING METRICS.
@@ -30,14 +39,17 @@ import { forgetStalePlaces } from "./CloudChangeWindow";
  *
  *   - lists every resource of the connection's accounts (the inventory,
  *     every CLOUD_INVENTORY_INTERVAL_MS), keeping their tags, properties,
- *     relationships and endpoints;
+ *     relationships and endpoints - and, while a first listing still has
+ *     resources to add, again on the next read, a minute later, until all
+ *     of them are there;
  *   - reads what changed in the accounts since the last read, and the
  *     provider's health events about them, and keeps them as change events
  *     (CloudChangeRecorder) - every read, after the inventory, so a change
- *     to a resource the inventory just listed is tied to it;
+ *     to a resource the inventory just listed is tied to it. Changes that
+ *     cannot be written are read again next time: the cursors go back;
  *   - keeps the connection's cloud accounts (CloudAccount): one row for
- *     each account it reaches, with the name its cloud gives it and its
- *     resources counted.
+ *     each account it reaches, with the name its cloud gives it, when it
+ *     was last listed in full, and its resources counted.
  *
  * Each lane's failure is a warning on the read, never its failure - except
  * a credential that is refused, which fails the read the way the metrics
@@ -46,6 +58,13 @@ import { forgetStalePlaces } from "./CloudChangeWindow";
 
 // How often the inventory lists every resource.
 export const CLOUD_INVENTORY_INTERVAL_MS: number = 30 * 60 * 1000;
+/*
+ * How soon a listing that has resources left to add lists again: on the
+ * next read (a read that adds less than it found carries on within a
+ * minute), so a first listing of thousands of resources is done in
+ * minutes rather than in half-hours.
+ */
+export const CLOUD_INVENTORY_CONTINUE_MS: number = 60 * 1000;
 export const CLOUD_INVENTORY_MAX_REQUESTS: number = 1500;
 export const CLOUD_INVENTORY_MAX_DURATION_MS: number = 3 * 60 * 1000;
 // What reading the accounts' changes and health events may take, each read.
@@ -56,6 +75,9 @@ export const CLOUD_CHANGES_MAX_DURATION_MS: number = 90 * 1000;
  * deadline; with less, it stays due and runs on the next read.
  */
 export const CLOUD_LANE_MIN_TIME_MS: number = 20 * 1000;
+
+export const CHANGES_NOT_SAVED_WARNING: string =
+  "Some changes could not be saved this time: they are read again on the next read.";
 
 /*
  * How long a lane may run: its own limit, or what is left before the
@@ -87,6 +109,8 @@ export interface CloudInventoryLaneOutcome {
   ran: boolean;
   warnings: Array<string>;
   accounts: Array<CloudInventoryAccount>;
+  // The accounts it listed in full: their Last Listed At moves on.
+  listedInFull: Array<string>;
   synced?: CloudConnectionSyncResult | undefined;
 }
 
@@ -106,6 +130,33 @@ function isRefusedCredential(error: unknown): boolean {
   );
 }
 
+/*
+ * The accounts a listing read in full: every type it lists, everywhere it
+ * lists them. An AWS account whose Regions were listed one by one is in
+ * full when every Region it was read in is.
+ */
+export function getAccountsListedInFull(
+  inventory: CloudInventoryResult,
+): Array<string> {
+  if (!inventory.complete) {
+    return [];
+  }
+
+  const listed: Set<string> = new Set<string>();
+
+  for (const entry of inventory.completelyListed) {
+    listed.add(entry.accountId.toLowerCase());
+  }
+
+  return inventory.accounts
+    .map((account: CloudInventoryAccount): string => {
+      return account.accountId;
+    })
+    .filter((accountId: string): boolean => {
+      return listed.has(accountId.toLowerCase());
+    });
+}
+
 export default class CloudConnectionLanes {
   public static isInventoryDue(
     state: CloudConnectionPullState,
@@ -122,7 +173,9 @@ export default class CloudConnectionLanes {
    * Lists the connection's accounts when the inventory is due, and keeps
    * what it found. The state's inventoryListedAt moves on whether or not
    * the listing finished: an account too large to list within one budget
-   * is listed again in full next time rather than every minute.
+   * is listed again in full next time rather than every minute. A listing
+   * that found more resources than one read adds lists again on the next
+   * read instead, until every one of them is there.
    */
   public static async runInventory(data: {
     projectId: ObjectID;
@@ -131,7 +184,10 @@ export default class CloudConnectionLanes {
     settings: CloudConnectionSettings;
     state: CloudConnectionPullState;
     transport: CloudConnectorTransport;
+    // When the read started: whether the lane is due, and what it records.
     now: Date;
+    // The clock requests are signed with; `now` and no further when absent.
+    clock?: (() => Date) | undefined;
     // When the read must be over (epoch ms): the lane gets what is left.
     deadlineMs: number;
     sleep?: ((milliseconds: number) => Promise<void>) | undefined;
@@ -147,7 +203,7 @@ export default class CloudConnectionLanes {
       !CloudConnectionLanes.isInventoryDue(data.state, data.now) ||
       durationMs <= 0
     ) {
-      return { ran: false, warnings: [], accounts: [] };
+      return { ran: false, warnings: [], accounts: [], listedInFull: [] };
     }
 
     const budget: CloudReadBudget = new CloudReadBudget({
@@ -160,9 +216,11 @@ export default class CloudConnectionLanes {
     try {
       inventory = await data.connector.readInventory(data.settings, {
         transport: data.transport,
-        now: () => {
-          return data.now;
-        },
+        now:
+          data.clock ||
+          ((): Date => {
+            return data.now;
+          }),
         sleep: data.sleep,
         state: data.state,
         connectionId: data.connectionId.toString(),
@@ -183,19 +241,35 @@ export default class CloudConnectionLanes {
           }`,
         ],
         accounts: [],
+        listedInFull: [],
       };
     }
+
+    /*
+     * What was listed to its last page holds even when the listing as a
+     * whole stopped part way: each entry names only the types and Regions
+     * that got there, so the rest keep what they hold.
+     */
+    const completelyListed: Array<CloudCompleteListing> =
+      inventory.completelyListed;
 
     const synced: CloudConnectionSyncResult =
       await CloudConnectionResourceSync.syncInventory({
         projectId: data.projectId,
         connectionId: data.connectionId,
         items: inventory.items,
-        completelyListed: inventory.complete ? inventory.completelyListed : [],
+        completelyListed,
         listedAt: data.now,
       });
 
-    data.state.inventoryListedAt = data.now.toISOString();
+    // Resources left to add: the next read lists again, a minute from now.
+    data.state.inventoryListedAt = synced.hasMore
+      ? new Date(
+          data.now.getTime() -
+            CLOUD_INVENTORY_INTERVAL_MS +
+            CLOUD_INVENTORY_CONTINUE_MS,
+        ).toISOString()
+      : data.now.toISOString();
 
     const warnings: Array<string> = [...inventory.warnings];
 
@@ -205,17 +279,26 @@ export default class CloudConnectionLanes {
       );
     }
 
+    if (synced.hasMore) {
+      warnings.push(
+        "The accounts have more resources than one read adds: the next read adds the rest.",
+      );
+    }
+
     return {
       ran: true,
       warnings,
       accounts: inventory.accounts,
+      listedInFull: getAccountsListedInFull(inventory),
       synced,
     };
   }
 
   /*
    * What changed in the connection's accounts since the last read, kept as
-   * change events. The connector moves the state's cursors on as it reads.
+   * change events. The connector moves the state's cursors on as it reads;
+   * when what it brought in cannot all be written, or the read fails part
+   * way, the cursors go back, and the next read reads that stretch again.
    */
   public static async runChanges(data: {
     projectId: ObjectID;
@@ -226,6 +309,7 @@ export default class CloudConnectionLanes {
     state: CloudConnectionPullState;
     transport: CloudConnectorTransport;
     now: Date;
+    clock?: (() => Date) | undefined;
     deadlineMs: number;
     sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   }): Promise<CloudChangesLaneOutcome> {
@@ -243,15 +327,20 @@ export default class CloudConnectionLanes {
       maxRequests: CLOUD_CHANGES_MAX_REQUESTS,
       maxDurationMs: durationMs,
     });
+    const snapshot: CloudChangeWindowSnapshot = snapshotChangeWindow(
+      data.state,
+    );
 
     try {
       const result: CloudChangesResult = await data.connector.readChanges(
         data.settings,
         {
           transport: data.transport,
-          now: () => {
-            return data.now;
-          },
+          now:
+            data.clock ||
+            ((): Date => {
+              return data.now;
+            }),
           sleep: data.sleep,
           state: data.state,
           connectionId: data.connectionId.toString(),
@@ -259,16 +348,34 @@ export default class CloudConnectionLanes {
         },
       );
 
-      const recorded: number = await CloudChangeRecorder.record({
-        projectId: data.projectId,
-        provider: data.provider,
-        changes: result.changes,
-      });
+      const outcome: CloudChangeRecordOutcome =
+        await CloudChangeRecorder.record({
+          projectId: data.projectId,
+          provider: data.provider,
+          changes: result.changes,
+        });
+      const warnings: Array<string> = [...result.warnings];
+
+      if (outcome.unwritten.length > 0) {
+        restoreChangeWindow({
+          state: data.state,
+          snapshot,
+          unwrittenEventIds: outcome.unwritten.map(
+            (change: CloudChange): string => {
+              return change.eventId;
+            },
+          ),
+        });
+        warnings.push(CHANGES_NOT_SAVED_WARNING);
+      }
 
       forgetStalePlaces(data.state, data.now);
 
-      return { ran: true, warnings: result.warnings, recorded };
+      return { ran: true, warnings, recorded: outcome.recorded };
     } catch (error) {
+      // Nothing this read brought in was written: it is read again.
+      restoreChangeWindow({ state: data.state, snapshot });
+
       if (isRefusedCredential(error)) {
         throw error;
       }
@@ -287,7 +394,8 @@ export default class CloudConnectionLanes {
 
   /*
    * The connection's accounts, kept: each found or created, named after
-   * what its cloud calls it when the inventory said, and its resources
+   * what its cloud calls it when the inventory said, marked listed in full
+   * when the inventory listed it to its last page, and its resources
    * counted when they may have changed. Never throws: an account that
    * cannot be kept is logged.
    */
@@ -297,7 +405,9 @@ export default class CloudConnectionLanes {
     provider: CloudProvider;
     accountIds: Array<string>;
     named: Array<CloudInventoryAccount>;
-    inventoryListedAt?: Date | undefined;
+    // The accounts the inventory listed in full on this read, and when.
+    listedInFull?: Array<string> | undefined;
+    listedAt?: Date | undefined;
     recount: boolean;
   }): Promise<void> {
     try {
@@ -308,6 +418,12 @@ export default class CloudConnectionLanes {
           names.set(account.accountId.toLowerCase(), account.name);
         }
       }
+
+      const listedInFull: Set<string> = new Set<string>(
+        (data.listedInFull || []).map((accountId: string): string => {
+          return accountId.trim().toLowerCase();
+        }),
+      );
 
       const accountIds: Array<string> = Array.from(
         new Set(
@@ -335,9 +451,12 @@ export default class CloudConnectionLanes {
             return {
               accountId,
               name: names.get(accountId.toLowerCase()),
+              listedInFullAt:
+                data.listedAt && listedInFull.has(accountId.toLowerCase())
+                  ? data.listedAt
+                  : undefined,
             };
           }),
-          inventoryListedAt: data.inventoryListedAt,
         });
 
       if (!data.recount) {

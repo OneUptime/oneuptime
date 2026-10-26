@@ -107,7 +107,7 @@ const deletePermissions: Array<Permission> = [
   pluralName: "Cloud Accounts",
   icon: IconProp.Cloud,
   tableDescription:
-    "AWS accounts, Azure subscriptions and Google Cloud projects: each with every resource its cloud connections list, their changes, their costs and the monitors recommended for them.",
+    "AWS accounts, Azure subscriptions and Google Cloud projects: each with every resource its cloud connections list, and what changed in them.",
 })
 @TableAccessControl({
   create: createPermissions,
@@ -396,38 +396,6 @@ export default class CloudAccount extends BaseModel {
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public inventoryListedAt?: Date = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Cost Summary",
-    description:
-      "What the account cost, read from its cloud's billing: the month so far, the last 30 days, and the services and resources that cost the most (CloudAccountCost).",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.JSON,
-  })
-  public costSummary?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Date,
-    title: "Cost Read At",
-    description: "When the account's billing was last read.",
-  })
-  @Column({ type: ColumnType.Date, nullable: true })
-  public costReadAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

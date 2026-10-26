@@ -23,13 +23,83 @@ export interface CloudAccountResourceSummary {
 // The most entries of each list kept: the rest are counted, not named.
 export const CLOUD_ACCOUNT_SUMMARY_MAX_ENTRIES: number = 50;
 
-function countBy(values: Array<string>): Array<{ value: string; count: number }> {
-  const counts: Map<string, number> = new Map();
+export function summarizeCloudAccountResources(
+  resources: Array<{ type: string; region: string }>,
+): CloudAccountResourceSummary {
+  return summarizeCloudAccountResourceCounts(
+    resources.map(
+      (resource: {
+        type: string;
+        region: string;
+      }): CloudAccountResourceCount => {
+        return { type: resource.type, region: resource.region, count: 1 };
+      },
+    ),
+  );
+}
 
-  for (const value of values) {
-    counts.set(value, (counts.get(value) || 0) + 1);
+// How many resources of one type one Region holds, as the database counts them.
+export interface CloudAccountResourceCount {
+  type: string;
+  region: string;
+  count: number;
+}
+
+/*
+ * The summary from counts by type and Region (CloudAccountService counts
+ * them in the database, so an account of any size is one small read).
+ */
+export function summarizeCloudAccountResourceCounts(
+  counts: Array<CloudAccountResourceCount>,
+): CloudAccountResourceSummary {
+  const byType: Map<string, number> = new Map();
+  const byRegion: Map<string, number> = new Map();
+  let total: number = 0;
+
+  for (const entry of counts) {
+    const count: number =
+      Number.isFinite(entry.count) && entry.count > 0
+        ? Math.floor(entry.count)
+        : 0;
+
+    if (count === 0) {
+      continue;
+    }
+
+    total += count;
+
+    const type: string = entry.type.trim();
+    const region: string = entry.region.trim();
+
+    if (type) {
+      byType.set(type, (byType.get(type) || 0) + count);
+    }
+
+    if (region) {
+      byRegion.set(region, (byRegion.get(region) || 0) + count);
+    }
   }
 
+  return {
+    resourceCount: total,
+    types: sortCounts(byType)
+      .slice(0, CLOUD_ACCOUNT_SUMMARY_MAX_ENTRIES)
+      .map((entry: { value: string; count: number }): CloudAccountTypeCount => {
+        return { type: entry.value, count: entry.count };
+      }),
+    regions: sortCounts(byRegion)
+      .slice(0, CLOUD_ACCOUNT_SUMMARY_MAX_ENTRIES)
+      .map(
+        (entry: { value: string; count: number }): CloudAccountRegionCount => {
+          return { region: entry.value, count: entry.count };
+        },
+      ),
+  };
+}
+
+function sortCounts(
+  counts: Map<string, number>,
+): Array<{ value: string; count: number }> {
   return Array.from(counts.entries())
     .map(([value, count]: [string, number]) => {
       return { value, count };
@@ -42,41 +112,6 @@ function countBy(values: Array<string>): Array<{ value: string; count: number }>
         return b.count - a.count || a.value.localeCompare(b.value);
       },
     );
-}
-
-export function summarizeCloudAccountResources(
-  resources: Array<{ type: string; region: string }>,
-): CloudAccountResourceSummary {
-  const typed: Array<string> = resources
-    .map((resource: { type: string; region: string }): string => {
-      return resource.type.trim();
-    })
-    .filter((type: string): boolean => {
-      return type.length > 0;
-    });
-  const placed: Array<string> = resources
-    .map((resource: { type: string; region: string }): string => {
-      return resource.region.trim();
-    })
-    .filter((region: string): boolean => {
-      return region.length > 0;
-    });
-
-  return {
-    resourceCount: resources.length,
-    types: countBy(typed)
-      .slice(0, CLOUD_ACCOUNT_SUMMARY_MAX_ENTRIES)
-      .map((entry: { value: string; count: number }): CloudAccountTypeCount => {
-        return { type: entry.value, count: entry.count };
-      }),
-    regions: countBy(placed)
-      .slice(0, CLOUD_ACCOUNT_SUMMARY_MAX_ENTRIES)
-      .map(
-        (entry: { value: string; count: number }): CloudAccountRegionCount => {
-          return { region: entry.value, count: entry.count };
-        },
-      ),
-  };
 }
 
 // A stored summary, read back: anything malformed reads as empty.
@@ -97,7 +132,7 @@ export function readCloudAccountResourceSummary(
   const count: number = Number(record["resourceCount"]);
 
   const types: Array<CloudAccountTypeCount> = Array.isArray(record["types"])
-    ? (record["types"] as Array<unknown>)
+    ? ((record["types"] as Array<unknown>)
         .map((entry: unknown): CloudAccountTypeCount | null => {
           const item: Record<string, unknown> =
             entry && typeof entry === "object"
@@ -110,13 +145,13 @@ export function readCloudAccountResourceSummary(
         })
         .filter((entry: CloudAccountTypeCount | null): boolean => {
           return entry !== null;
-        }) as Array<CloudAccountTypeCount>
+        }) as Array<CloudAccountTypeCount>)
     : [];
 
   const regions: Array<CloudAccountRegionCount> = Array.isArray(
     record["regions"],
   )
-    ? (record["regions"] as Array<unknown>)
+    ? ((record["regions"] as Array<unknown>)
         .map((entry: unknown): CloudAccountRegionCount | null => {
           const item: Record<string, unknown> =
             entry && typeof entry === "object"
@@ -129,7 +164,7 @@ export function readCloudAccountResourceSummary(
         })
         .filter((entry: CloudAccountRegionCount | null): boolean => {
           return entry !== null;
-        }) as Array<CloudAccountRegionCount>
+        }) as Array<CloudAccountRegionCount>)
     : [];
 
   return {

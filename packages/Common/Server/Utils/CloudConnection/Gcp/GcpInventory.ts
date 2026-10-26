@@ -30,6 +30,7 @@ import {
   CloudReadBudget,
   CloudReadBudgetSpent,
 } from "../CloudConnectorTypes";
+import { withCloudRetries } from "../CloudRetry";
 
 /*
  * A GOOGLE CLOUD PROJECT'S INVENTORY, from Cloud Asset Inventory:
@@ -556,16 +557,20 @@ export default class GcpInventoryClient {
   private transport: CloudConnectorTransport;
   private requestTimeoutInMs: number | undefined;
   private budget: CloudReadBudget | undefined;
+  private sleep: ((milliseconds: number) => Promise<void>) | undefined;
 
   public constructor(options: {
     serviceAccountJson: string;
     transport: CloudConnectorTransport;
     requestTimeoutInMs?: number | undefined;
     budget?: CloudReadBudget | undefined;
+    // Waits before asking a throttled request again (CloudRetry).
+    sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   }) {
     this.transport = options.transport;
     this.requestTimeoutInMs = options.requestTimeoutInMs;
     this.budget = options.budget;
+    this.sleep = options.sleep;
     this.token = new GoogleServiceAccountToken({
       serviceAccountJson: options.serviceAccountJson,
       scope: GCP_CLOUD_PLATFORM_READ_SCOPE,
@@ -580,29 +585,35 @@ export default class GcpInventoryClient {
     step: string,
     api: string,
   ): Promise<JSONObject> {
-    if (this.budget && !this.budget.take()) {
-      throw new CloudReadBudgetSpent();
-    }
+    // A quota answers a burst with 429: each try is a request of the budget.
+    return await withCloudRetries({
+      sleep: this.sleep,
+      call: async (): Promise<JSONObject> => {
+        if (this.budget && !this.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
 
-    const accessToken: string = await this.token.getAccessToken();
+        const accessToken: string = await this.token.getAccessToken();
 
-    try {
-      return await LlmProviderHttp.requestJson({
-        transport: this.transport,
-        method: "GET",
-        url,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-        timeoutInMs: this.requestTimeoutInMs,
-        step,
-        providerTitle: PROVIDER_TITLE,
-        secretValues: [accessToken],
-      });
-    } catch (error) {
-      throw GcpInventoryClient.classify(error, api);
-    }
+        try {
+          return await LlmProviderHttp.requestJson({
+            transport: this.transport,
+            method: "GET",
+            url,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+            },
+            timeoutInMs: this.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [accessToken],
+          });
+        } catch (error) {
+          throw GcpInventoryClient.classify(error, api);
+        }
+      },
+    });
   }
 
   /*
@@ -650,31 +661,36 @@ export default class GcpInventoryClient {
     step: string,
     api: string,
   ): Promise<JSONObject> {
-    if (this.budget && !this.budget.take()) {
-      throw new CloudReadBudgetSpent();
-    }
+    return await withCloudRetries({
+      sleep: this.sleep,
+      call: async (): Promise<JSONObject> => {
+        if (this.budget && !this.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
 
-    const accessToken: string = await this.token.getAccessToken();
+        const accessToken: string = await this.token.getAccessToken();
 
-    try {
-      return await LlmProviderHttp.requestJson({
-        transport: this.transport,
-        method: "POST",
-        url,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        timeoutInMs: this.requestTimeoutInMs,
-        step,
-        providerTitle: PROVIDER_TITLE,
-        secretValues: [accessToken],
-      });
-    } catch (error) {
-      throw GcpInventoryClient.classify(error, api);
-    }
+        try {
+          return await LlmProviderHttp.requestJson({
+            transport: this.transport,
+            method: "POST",
+            url,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            timeoutInMs: this.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [accessToken],
+          });
+        } catch (error) {
+          throw GcpInventoryClient.classify(error, api);
+        }
+      },
+    });
   }
 
   /*
@@ -735,7 +751,8 @@ export default class GcpInventoryClient {
       `${SERVICE_HEALTH_BASE_URL}/projects/${encodeURIComponent(
         data.projectId,
       )}/locations/global/events?${buildQueryString([
-        ["filter", `update_time>="${data.start.toISOString()}"`],
+        // The documented form: the time unquoted (update_time>=2026-10-21T11:30:00Z).
+        ["filter", `update_time>=${data.start.toISOString()}`],
         ["pageSize", 100],
       ])}`,
       "service health request",
