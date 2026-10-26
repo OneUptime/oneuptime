@@ -65,6 +65,7 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
@@ -835,11 +836,11 @@ const StorageArrayOverview: FunctionComponent<
     const statusDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const statusLabel: string = isConnected
-      ? (translator.translateText("Connected") as string)
-      : status === "disconnected" || !status
-        ? (translator.translateText("Disconnected") as string)
-        : status.charAt(0).toUpperCase() + status.slice(1);
+    const statusLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     /*
      * The array's own name and system id, when the array reported them —

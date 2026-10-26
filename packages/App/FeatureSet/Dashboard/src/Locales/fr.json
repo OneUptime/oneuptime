@@ -24789,7 +24789,7 @@
   "Hardware Components": "Hardware Components",
   "Hardware Needing Attention": "Hardware Needing Attention",
   "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.": "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.",
-  "Health Critical": "Health Critical",
+  "Health Critical": "Santé critique",
   "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.": "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.",
   "Host Group": "Groupe d'hôtes",
   "Host Metrics: {{name}}": "Host Metrics: {{name}}",
@@ -35695,5 +35695,6 @@
   "Volume Detail": "Détails du volume",
   "Watch Session": "Regarder la session",
   "Workspace Microsoft Teams Connection": "Connexion Microsoft Teams de l'espace de travail",
-  "Workspace Slack Connection": "Connexion Slack de l'espace de travail"
+  "Workspace Slack Connection": "Connexion Slack de l'espace de travail",
+  "Unhealthy": "Défaillant"
 }

@@ -73,6 +73,13 @@ import {
  *      pill: a Docker or Podman host's, a Ceph cluster's and a storage
  *      array's had a "Collector Status" row reading the stored lowercase
  *      word ("connected").
+ *   9. A hero's pills are in the reader's language: every connection pill
+ *      takes its words from ResourceHeroStatus's
+ *      getResourceConnectionLabel, every health pill a cluster's hero
+ *      works out from getResourceHealthLabel ("Health Unknown" while the
+ *      agent is not connected), and a Ceph cluster's health pill is looked
+ *      up. Nine heroes wrote "Connected", "Disconnected", "Healthy" and
+ *      "Unknown" in English on every page, German and Persian included.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -858,6 +865,237 @@ describe("rule 8: a hero page's Details card does not repeat its connection pill
     });
     for (const page of COLLECTOR_STATUS_PAGES) {
       expect(found).toContain(page);
+    }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 9: a hero's pills, in the reader's language
+ * ---------------------------------------------------------------------------
+ */
+const STATUS_MODULE_SUFFIX: string = "TelemetryResource/ResourceHeroStatus";
+
+// The variable a hero's pill is drawn from, and where its words must come from.
+const PILL_LABELS: Record<string, string> = {
+  statusLabel: "getResourceConnectionLabel",
+  connectionLabel: "getResourceConnectionLabel",
+  healthLabel: "getResourceHealthLabel",
+};
+
+// The heroes that draw a connection pill (#5298's UI review moved them all).
+const CONNECTION_PILL_HEROES: Array<string> = [
+  "Pages/Ceph/View/Index.tsx",
+  "Pages/Docker/View/Overview.tsx",
+  "Pages/DockerSwarm/View/Index.tsx",
+  "Pages/Host/View/Overview.tsx",
+  "Pages/IoT/View/Index.tsx",
+  "Pages/Kubernetes/View/Index.tsx",
+  "Pages/Podman/View/Overview.tsx",
+  "Pages/Proxmox/View/Index.tsx",
+  "Pages/StorageArray/View/Index.tsx",
+  "Pages/VMware/View/Index.tsx",
+];
+
+// The pill variables a hero's identity draws as `{name}`.
+function pillVariablesDrawn(hero: Hero): Array<string> {
+  const drawn: Array<string> = [];
+  visit(identityOf(hero), (node: ts.Node): void => {
+    if (
+      ts.isJsxExpression(node) &&
+      node.expression &&
+      ts.isIdentifier(node.expression) &&
+      PILL_LABELS[node.expression.text] &&
+      !drawn.includes(node.expression.text)
+    ) {
+      drawn.push(node.expression.text);
+    }
+  });
+  return drawn;
+}
+
+// What each declaration of `name` in the hero's file is initialized with.
+function initializersOf(hero: Hero, name: string): Array<ts.Expression> {
+  const found: Array<ts.Expression> = [];
+  visit(hero.source, (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer
+    ) {
+      found.push(node.initializer);
+    }
+  });
+  return found;
+}
+
+function calledFunction(expression: ts.Expression): string | undefined {
+  return ts.isCallExpression(expression) &&
+    ts.isIdentifier(expression.expression)
+    ? expression.expression.text
+    : undefined;
+}
+
+/*
+ * The variable a value is the initializer of, through the conditions,
+ * brackets and casts it sits in (`isConnected ? "Connected" : ...`).
+ */
+function declarationHolding(node: ts.Node): ts.VariableDeclaration | undefined {
+  let current: ts.Node | undefined = node.parent;
+  while (
+    current &&
+    (ts.isConditionalExpression(current) ||
+      ts.isParenthesizedExpression(current) ||
+      ts.isAsExpression(current) ||
+      ts.isBinaryExpression(current))
+  ) {
+    current = current.parent;
+  }
+  return current && ts.isVariableDeclaration(current) ? current : undefined;
+}
+
+// A pill word a hero puts in its pill as it is: English on every page.
+function untranslatedPillWords(hero: Hero): Array<string> {
+  const words: Array<string> = [];
+  const pillWords: Array<string> = [
+    "Connected",
+    "Disconnected",
+    "Healthy",
+    "Degraded",
+    "Unhealthy",
+    "Unknown",
+  ];
+  visit(hero.source, (node: ts.Node): void => {
+    if (!ts.isStringLiteral(node) || !pillWords.includes(node.text)) {
+      return;
+    }
+    const declaration: ts.VariableDeclaration | undefined =
+      declarationHolding(node);
+    if (
+      declaration &&
+      ts.isIdentifier(declaration.name) &&
+      PILL_LABELS[declaration.name.text]
+    ) {
+      words.push(`${declaration.name.text}: "${node.text}"`);
+    }
+  });
+  return words;
+}
+
+describe("rule 9: a hero's pills are in the reader's language", () => {
+  test.each(CONNECTION_PILL_HEROES)(
+    "%s draws its connection pill",
+    (file: string) => {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      const drawn: Array<string> = pillVariablesDrawn(hero!);
+      expect(
+        drawn.filter((name: string): boolean => {
+          return PILL_LABELS[name] === "getResourceConnectionLabel";
+        }),
+      ).toHaveLength(1);
+    },
+  );
+
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s: each pill it draws takes its words from ResourceHeroStatus",
+    (_name: string, hero: Hero) => {
+      const drawn: Array<string> = pillVariablesDrawn(hero);
+      if (drawn.length === 0) {
+        return;
+      }
+
+      const imported: Array<string> = importsOf(hero.source)
+        .filter((entry: { from: string; names: Array<string> }): boolean => {
+          return entry.from.endsWith(STATUS_MODULE_SUFFIX);
+        })
+        .flatMap((entry: { from: string; names: Array<string> }) => {
+          return entry.names;
+        });
+
+      for (const name of drawn) {
+        const helper: string = PILL_LABELS[name]!;
+        expect(imported).toContain(helper);
+
+        const initializers: Array<ts.Expression> = initializersOf(hero, name);
+        expect(initializers.length).toBeGreaterThan(0);
+        for (const initializer of initializers) {
+          expect({ name: name, calls: calledFunction(initializer) }).toEqual({
+            name: name,
+            calls: helper,
+          });
+        }
+      }
+    },
+  );
+
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s writes no pill word in English for every reader",
+    (_name: string, hero: Hero) => {
+      expect(untranslatedPillWords(hero)).toEqual([]);
+    },
+  );
+
+  test("every hero with a connection pill is listed, and only those", () => {
+    const withPill: Array<string> = HEROES.filter((hero: Hero): boolean => {
+      return pillVariablesDrawn(hero).some((name: string): boolean => {
+        return PILL_LABELS[name] === "getResourceConnectionLabel";
+      });
+    }).map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+
+    expect(withPill.sort()).toEqual([...CONNECTION_PILL_HEROES].sort());
+  });
+
+  test("the four heroes that work out a health draw it from getResourceHealthLabel", () => {
+    const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
+      return pillVariablesDrawn(hero).includes("healthLabel");
+    }).map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+
+    expect(withHealth.sort()).toEqual(
+      [
+        "Pages/DockerSwarm/View/Index.tsx",
+        "Pages/Kubernetes/View/Index.tsx",
+        "Pages/Proxmox/View/Index.tsx",
+        "Pages/VMware/View/Index.tsx",
+      ].sort(),
+    );
+  });
+
+  test("a Ceph cluster's health pill looks its words up", () => {
+    const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+      return relative(candidate.file) === "Pages/Ceph/View/Index.tsx";
+    });
+    expect(hero).toBeDefined();
+    const text: string = hero!.source.getFullText();
+    const pill: string = text.slice(
+      text.indexOf("const renderHealthPill"),
+      text.indexOf("const renderHealthPill") + 2000,
+    );
+
+    expect(pill).toContain("{translator.translateText(pill.label)}");
+    expect(pill).not.toContain("{pill.label}");
+    for (const word of [
+      "Health OK",
+      "Health Warning",
+      "Health Error",
+      "Health Unknown",
+    ]) {
+      expect(pill).toContain(`label: translationKey("${word}")`);
     }
   });
 });

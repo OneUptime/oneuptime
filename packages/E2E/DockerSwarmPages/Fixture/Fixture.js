@@ -73,6 +73,8 @@ const AGENT = ["current", "none"].includes(params.get("agent"))
   : "old";
 const LANGUAGE = params.get("lang") === "de" ? "de" : "en";
 const LONG_DESCRIPTION = params.get("description") === "long";
+// The swarm's agent stopped reporting three days ago.
+const DISCONNECTED = params.get("collector") === "disconnected";
 
 if (params.get("dir") === "rtl") {
   document.documentElement.dir = "rtl";
@@ -117,8 +119,10 @@ const cluster = {
     ? "The production swarm in Frankfurt: the shop's checkout, web and search services, with their Redis caches and the nightly batch jobs."
     : "The production swarm in Frankfurt.",
   clusterIdentifier: CLUSTER_NAME,
-  otelCollectorStatus: "connected",
-  lastSeenAt: new Date(LOADED_AT - MINUTE),
+  otelCollectorStatus: DISCONNECTED ? "disconnected" : "connected",
+  lastSeenAt: new Date(
+    LOADED_AT - (DISCONNECTED ? 3 * 24 * 60 * MINUTE : MINUTE),
+  ),
   agentVersion: AGENT_VERSIONS[AGENT] || undefined,
   dockerVersion: "28.5.1",
   swarmId: "q8l3n0u2x9v7w1y5z4a6b8c0d",

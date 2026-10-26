@@ -646,6 +646,99 @@ test.describe("the Swarm agent's version on the Overview", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * The Overview's pills, in the page's language (#5298's UI review: nine
+ * heroes wrote them in English on every page)
+ * ---------------------------------------------------------------------------
+ */
+test.describe("the Overview's pills", () => {
+  function identityOf(page: Page): Locator {
+    return page.getByTestId("resource-hero-identity");
+  }
+
+  async function openSwarm(page: Page, query: string): Promise<void> {
+    await page.goto(withQuery(CLUSTER_PATH, query));
+    await expect(page.getByTestId("resource-hero-top-row")).toBeVisible();
+  }
+
+  test("in German: Verbunden and Fehlerfrei, never the English words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "lang=de");
+    const identity: Locator = identityOf(page);
+
+    await expect(
+      identity.getByText(GERMAN["Connected"]!, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      identity.getByText(GERMAN["Healthy"]!, { exact: true }),
+    ).toBeVisible();
+    expect(GERMAN["Connected"]).toBe("Verbunden");
+    expect(GERMAN["Healthy"]).toBe("Fehlerfrei");
+
+    for (const english of ["Connected", "Healthy"]) {
+      await expect(identity.getByText(english, { exact: true })).toHaveCount(0);
+    }
+  });
+
+  test("an agent that stopped reporting: Disconnected and Health Unknown - never the stale health, never a bare Unknown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSwarm(page, "collector=disconnected");
+    const identity: Locator = identityOf(page);
+
+    await expect(
+      identity.getByText("Disconnected", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      identity.getByText("Health Unknown", { exact: true }),
+    ).toBeVisible();
+    for (const word of ["Connected", "Healthy", "Unknown"]) {
+      await expect(identity.getByText(word, { exact: true })).toHaveCount(0);
+    }
+
+    // The connection pill first, then what it says about the health.
+    const connection: Box = await boxOf(
+      identity.getByText("Disconnected", { exact: true }),
+    );
+    const health: Box = await boxOf(
+      identity.getByText("Health Unknown", { exact: true }),
+    );
+    expect(connection.x).toBeLessThan(health.x);
+  });
+
+  test("the same, in German and dark, on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openSwarm(page, "collector=disconnected&lang=de&theme=dark");
+    const identity: Locator = identityOf(page);
+
+    await expect(
+      identity.getByText(GERMAN["Disconnected"]!, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      identity.getByText(GERMAN["Health Unknown"]!, { exact: true }),
+    ).toBeVisible();
+    expect(GERMAN["Disconnected"]).toBe("Getrennt");
+    expect(GERMAN["Health Unknown"]).toBe("Integrität unbekannt");
+
+    for (const english of ["Disconnected", "Health Unknown", "Unknown"]) {
+      await expect(identity.getByText(english, { exact: true })).toHaveCount(0);
+    }
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "overview-pills-disconnected-de-dark-phone");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The Overview's hero on a phone
  * ---------------------------------------------------------------------------
  */

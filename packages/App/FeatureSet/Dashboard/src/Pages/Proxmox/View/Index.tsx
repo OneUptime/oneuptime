@@ -80,6 +80,10 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import {
+  getResourceConnectionLabel,
+  getResourceHealthLabel,
+} from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -1415,20 +1419,25 @@ const ProxmoxClusterOverview: FunctionComponent<
     const connectionDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const connectionLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const connectionLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     /*
      * Health is derived from the last inventory snapshot, which goes stale
      * once the collector disconnects. Reporting "Healthy" next to a
-     * "Disconnected" badge is contradictory and misleading, so when the
-     * cluster is not connected we surface health as "Unknown" (neutral grey)
-     * rather than the last-known live status.
+     * "Disconnected" badge is contradictory and misleading, so while the
+     * cluster is not connected the pill says "Health Unknown" (neutral grey),
+     * as a Ceph cluster's and a storage array's do, rather than the
+     * last-known live status.
      */
-    const healthLabel: string = isConnected ? clusterHealth : "Unknown";
+    const healthLabel: string = getResourceHealthLabel({
+      translator: translator,
+      health: clusterHealth,
+      isConnected: isConnected,
+    });
     const healthBadgeClass: string = !isConnected
       ? "bg-gray-50 text-gray-600 ring-gray-200"
       : clusterHealth === "Healthy"

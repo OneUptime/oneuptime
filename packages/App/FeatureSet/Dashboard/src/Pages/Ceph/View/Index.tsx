@@ -64,6 +64,7 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
@@ -78,7 +79,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Ceph cluster overview hero (WI-8) — the Kubernetes View/Index.tsx
@@ -796,25 +797,25 @@ const CephClusterOverview: FunctionComponent<
       switch (health) {
         case "ok":
           return {
-            label: "Health OK",
+            label: translationKey("Health OK"),
             badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
             dot: "bg-emerald-500",
           };
         case "warning":
           return {
-            label: "Health Warning",
+            label: translationKey("Health Warning"),
             badge: "bg-amber-50 text-amber-700 ring-amber-200",
             dot: "bg-amber-500",
           };
         case "error":
           return {
-            label: "Health Error",
+            label: translationKey("Health Error"),
             badge: "bg-red-50 text-red-700 ring-red-200",
             dot: "bg-red-500",
           };
         default:
           return {
-            label: "Health Unknown",
+            label: translationKey("Health Unknown"),
             badge: "bg-gray-50 text-gray-600 ring-gray-200",
             dot: "bg-gray-400",
           };
@@ -826,7 +827,7 @@ const CephClusterOverview: FunctionComponent<
         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${pill.badge}`}
       >
         <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-        {pill.label}
+        {translator.translateText(pill.label)}
       </span>
     );
   };
@@ -916,11 +917,11 @@ const CephClusterOverview: FunctionComponent<
     const statusDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const statusLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const statusLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">

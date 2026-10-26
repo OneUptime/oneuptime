@@ -24789,7 +24789,7 @@
   "Hardware Components": "Hardware Components",
   "Hardware Needing Attention": "Hardware Needing Attention",
   "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.": "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.",
-  "Health Critical": "Health Critical",
+  "Health Critical": "ヘルス: 重大",
   "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.": "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.",
   "Host Group": "ホストグループ",
   "Host Metrics: {{name}}": "Host Metrics: {{name}}",
@@ -35695,5 +35695,6 @@
   "Volume Detail": "ボリュームの詳細",
   "Watch Session": "セッションを視聴",
   "Workspace Microsoft Teams Connection": "ワークスペースの Microsoft Teams 接続",
-  "Workspace Slack Connection": "ワークスペースの Slack 接続"
+  "Workspace Slack Connection": "ワークスペースの Slack 接続",
+  "Unhealthy": "異常"
 }
