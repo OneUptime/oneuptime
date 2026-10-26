@@ -35562,6 +35562,8 @@
   "{{count}} more technologies_one": "Nog {{count}} technologie",
   "How a monitor in this status behaves, in a sentence.": "Hoe een monitor met deze status zich gedraagt, in één zin.",
   "How far a postmortem in this status has come, in a sentence.": "Hoe ver een postmortem met deze status is, in één zin.",
+  "First model the server lists": "Eerste model in de lijst van de server",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Laat leeg voor het eerste model in de lijst van uw server. Typ voor een ander model de naam precies zoals die in de lijst van uw server staat.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Wordt geleverd met de HTTPS van uw eigen proxy, tenzij u een certificaat uploadt.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "We controleren elke 15 minuten op dit record. Al toegevoegd? Klik op Nu controleren.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Bied deze statuspagina aan op uw eigen domein. Laat het CNAME-record van elk domein verwijzen naar {{cnameRecord}}.",

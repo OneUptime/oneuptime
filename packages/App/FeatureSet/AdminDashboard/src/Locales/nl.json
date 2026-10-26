@@ -993,6 +993,8 @@
   "Never put keys here.": "Zet hier nooit sleutels in.",
   "Your deployment's name, exactly as Foundry shows it.": "De naam van uw implementatie, precies zoals Foundry die toont.",
   "{{name}} (default)": "{{name}} (standaard)",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Laat leeg voor het eerste model in de lijst van uw server. Typ voor een ander model de naam precies zoals die in de lijst van uw server staat.",
+  "First model the server lists": "Eerste model in de lijst van de server",
   "Visitors share an address": "Bezoekers delen een adres",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "In de afgelopen 30 dagen hebben meerdere mensen zich aangemeld vanaf één privénetwerkadres. OneUptime telt hen als één bezoeker, dus de mislukte aanmeldingen van één persoon kunnen de anderen buitensluiten.",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Meestal geeft iets vóór OneUptime elke bezoeker door vanaf een eigen adres:",

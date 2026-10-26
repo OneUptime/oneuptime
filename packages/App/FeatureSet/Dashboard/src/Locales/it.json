@@ -35562,6 +35562,8 @@
   "{{count}} more technologies_one": "{{count}} altra tecnologia",
   "How a monitor in this status behaves, in a sentence.": "Come si comporta un monitor in questo stato, in una frase.",
   "How far a postmortem in this status has come, in a sentence.": "A che punto è un post-mortem in questo stato, in una frase.",
+  "First model the server lists": "Primo modello elencato dal server",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Lascia vuoto per il primo modello elencato dal tuo server. Per usarne un altro, scrivi il suo nome esattamente come lo elenca il tuo server.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Servito con l'HTTPS del tuo proxy, a meno che tu non carichi un certificato.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Controlliamo questo record ogni 15 minuti. L'hai già aggiunto? Fai clic su Verifica ora.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Pubblica questa pagina di stato sul tuo dominio. Fai puntare il record CNAME di ogni dominio a {{cnameRecord}}.",

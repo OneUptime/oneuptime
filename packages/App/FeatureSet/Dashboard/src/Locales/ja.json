@@ -35562,6 +35562,8 @@
   "{{count}} more technologies_one": "ほか {{count}} 件の技術",
   "How a monitor in this status behaves, in a sentence.": "このステータスのモニターがどう振る舞うかを一文で書きます。",
   "How far a postmortem in this status has come, in a sentence.": "このステータスのポストモーテムがどこまで進んでいるかを一文で書きます。",
+  "First model the server lists": "サーバーの一覧の最初のモデル",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "空欄にすると、サーバーの一覧の最初のモデルを使います。別のモデルを使う場合は、サーバーの一覧にある名前のとおりに入力します。",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "証明書をアップロードしない限り、独自のプロキシの HTTPS で提供されます。",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "このレコードは 15 分ごとに確認されます。すでに追加しましたか？「今すぐ確認」をクリックしてください。",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "このステータスページを独自のドメインで公開します。各ドメインの CNAME レコードを {{cnameRecord}} に向けてください。",

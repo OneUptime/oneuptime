@@ -57,9 +57,15 @@ export interface LlmProviderTypeCopy {
    * The model the server asks for when Model Name is left blank (LLMService
    * defaultModels, ANTHROPIC_DEFAULT_MODEL, AZURE_OPENAI_DEFAULT_DEPLOYMENT,
    * Ollama's llama3.1). None for an OpenAI-compatible server, which has no
-   * default: its Model Name is required.
+   * default of its own: a blank Model Name asks it for the models it serves
+   * and uses the first (defaultModelLabel).
    */
   defaultModel?: string | undefined;
+  /*
+   * What a provider's page and list say for a blank Model Name when no one
+   * model can be named in advance: the server's choice, in words.
+   */
+  defaultModelLabel?: string | undefined;
   // The address the server sends requests to when Base URL is left blank.
   defaultBaseUrl?: string | undefined;
   // The line under API Key: where to get one.
@@ -202,13 +208,19 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
     defaultName: "OpenAI-compatible",
     apiKey: LlmProviderFieldNeed.Optional,
     baseUrl: LlmProviderFieldNeed.Required,
-    modelName: LlmProviderFieldNeed.Required,
+    /*
+     * Left blank, the server is asked for the models it serves and the
+     * first is used (LLMService.getOpenAICompatibleServedModel): the one
+     * model a vLLM server serves.
+     */
+    modelName: LlmProviderFieldNeed.Optional,
+    defaultModelLabel: translationKey("First model the server lists"),
     apiKeyHint: translationKey("Only if your server asks for one."),
     baseUrlHint: translationKey(
       "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.",
     ),
     modelNameHint: translationKey(
-      "A model your server serves, exactly as it names it.",
+      "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
     ),
   },
 };
@@ -318,6 +330,39 @@ export function getLlmProviderShownValue(data: {
   }
 
   return "-";
+}
+
+/*
+ * A provider's Model Name as its page and its list show it: what was typed,
+ * or - left blank - the model the server asks for ("gpt-5.1 (default)"),
+ * or what it does instead where no model can be named in advance ("First
+ * model the server lists", for an OpenAI-compatible server).
+ */
+export function getLlmProviderShownModelName(data: {
+  modelName: string | undefined | null;
+  llmType: unknown;
+  baseUrl?: string | undefined | null;
+  translator: Translator;
+}): string {
+  const defaultModel: string | undefined = getLlmProviderDefaultModel({
+    llmType: data.llmType,
+    baseUrl: data.baseUrl,
+  });
+  const defaultModelLabel: string | undefined = getLlmProviderTypeCopy(
+    data.llmType,
+  )?.defaultModelLabel;
+
+  if (!(data.modelName || "").trim() && !defaultModel && defaultModelLabel) {
+    return (
+      data.translator.translateText(defaultModelLabel) || defaultModelLabel
+    );
+  }
+
+  return getLlmProviderShownValue({
+    value: data.modelName,
+    defaultValue: defaultModel,
+    translator: data.translator,
+  });
 }
 
 export const LlmProviderFormCopy: {

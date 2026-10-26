@@ -135,6 +135,15 @@ enum SlackActionType {
    * has to be acknowledged.
    */
   OpenInOneUptime = "OpenInOneUptime",
+
+  /*
+   * A project chosen for a request that could be about more than one of the
+   * projects the workspace is connected to (SlackProjectChoice): the request
+   * is made again in it. Each button's action id is this, a colon and its
+   * place among the buttons, since Slack takes one action id once in a
+   * block; its value names the project and the recorded request.
+   */
+  ChooseProject = "ChooseProject",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

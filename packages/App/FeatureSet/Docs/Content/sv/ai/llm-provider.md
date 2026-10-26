@@ -53,7 +53,7 @@ På en självhostad instans är det snabbaste sättet att slå på AI för **all
 | `GLOBAL_LLM_PROVIDER_TYPE` | Krävs för att slå på den. En av `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | API-nyckeln: krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral; behövs inte för Ollama eller en OpenAI-kompatibel server utan nyckel |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | Slutpunkten: krävs för Azure OpenAI, Ollama och OpenAI-kompatibla servrar |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modellen som ska användas: krävs för OpenAI-kompatibla servrar, rekommenderas för de andra |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modellen som ska användas. Valfritt: utan den använder OneUptime leverantörens standardmodell och på en OpenAI-kompatibel server den första modellen i serverns lista |
 | `GLOBAL_LLM_PROVIDER_NAME` | Ett valfritt visningsnamn som visas i instrumentpanelen |
 
 :::tabs
@@ -105,7 +105,7 @@ Under **Anslutning** frågar formuläret bara efter det som leverantören använ
 
 - **API-nyckel**: din API-nyckel, krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral och valfri för en OpenAI-kompatibel server; för Ollama efterfrågas ingen
 - **Bas-URL**: slutpunkten, krävs för Azure OpenAI, Ollama och OpenAI Compatible; för de andra bara för att gå via en proxy eller en gateway
-- **Modellnamn**: modellen som ska användas, till exempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Lämnas det tomt använder OneUptime leverantörens standardmodell, utom på en OpenAI-kompatibel server, som behöver en
+- **Modellnamn**: modellen som ska användas, till exempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Lämnas det tomt använder OneUptime leverantörens standardmodell; en OpenAI-kompatibel server har ingen, så OneUptime frågar den vilka modeller den tillhandahåller och använder den första i listan
 - **Namn**: leverantörens namn tills du skriver ett eget, till exempel "Production OpenAI" eller "Local Ollama"
 - **Fler fält**, hopfällt under fälten ovan: en **Beskrivning**, **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
 
@@ -225,7 +225,7 @@ Använd leverantören **OpenAI Compatible** för alla servrar som implementerar 
 1. Starta din OpenAI-kompatibla server och anteckna dess bas-URL (den slutar oftast på `/v1`)
 2. Välj **OpenAI Compatible** som LLM-leverantör
 3. Ange **Bas-URL** (krävs), t.ex. `http://your-server:8000/v1`. OneUptime-servern måste kunna nå den, alltså inte `localhost`: se [Välja en bas-URL för en självhostad modell](#välja-en-bas-url-för-en-självhostad-modell)
-4. Ange **Modellnamn** (krävs): det måste matcha en modell som din server tillhandahåller
+4. Ange **Modellnamn** eller lämna det tomt: då frågar OneUptime din server vilka modeller den tillhandahåller och använder den första i listan, vilket på vLLM är modellen den tillhandahåller. Ett namn du anger måste matcha en modell som din server tillhandahåller
 5. Ange bara **API-nyckel** om din server ber om en; lämna den tom för en server utan nyckel
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Om du har stängt av automatisk registrering (`vllm.globalProvider.enabled: fals
 
 1. Välj **OpenAI Compatible** som LLM-leverantör (vLLM talar OpenAI-API:t)
 2. Ange bas-URL:en inom klustret: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (ersätt `cluster.local` om du har ändrat `global.clusterDomain`)
-3. Ange modellnamnet: det fullständiga Hugging Face-modell-id:t (eller `vllm.servedModelName` om du har satt ett)
+3. Ange modellnamnet: det fullständiga Hugging Face-modell-id:t (eller `vllm.servedModelName` om du har satt ett), eller lämna det tomt för att använda modellen som vLLM tillhandahåller
 4. Ange bara API-nyckeln om du har satt `vllm.apiKey`; lämna den tom för en vLLM utan nyckel
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Se [Helm-chartets vLLM-guide](https://github.com/OneUptime/oneuptime/blob/master
 - **OpenAI eller Anthropic**: kontrollera att din API-nyckel är giltig och har krediter
 - **Azure OpenAI / Microsoft Foundry**: felet börjar med vad som ska ändras. [Microsoft Foundry och Azure OpenAI](/docs/ai/microsoft-foundry) förklarar varje fel som Azure svarar med
 - **Ollama**: kontrollera att Ollama-servern körs, lyssnar på en adress som OneUptime-servern kan nå (`OLLAMA_HOST=0.0.0.0:11434` för en inbyggd installation) och att bas-URL:en pekar på den adressen
-- **OpenAI Compatible**: kontrollera att bas-URL:en slutar på `/v1` (eller matchar din server), att modellnamnet matchar en modell som din server tillhandahåller och att du bara har satt en API-nyckel om din server ber om en
+- **OpenAI Compatible**: kontrollera att bas-URL:en slutar på `/v1` (eller matchar din server), att modellnamnet, om du har angett ett, matchar en modell som din server tillhandahåller och att du bara har satt en API-nyckel om din server ber om en. Om modellnamnet är tomt och servern inte listar några modeller på sin `/models`-slutpunkt måste du ange ett
 - **"…points to an address OneUptime is not allowed to connect to"**: bas-URL:en slås upp till en avvisad adress: `localhost` eller en annan loopback-adress, eller, på OneUptime Cloud, en privat nätverksadress. (OneUptime Cloud rapporterar i stället ett avvisat värdnamn som "…could not be reached".) Se [Välja en bas-URL för en självhostad modell](#välja-en-bas-url-för-en-självhostad-modell)
 - **En brandvägg**: kontrollera att ditt nätverk tillåter utgående anslutningar till leverantörens API
 :::

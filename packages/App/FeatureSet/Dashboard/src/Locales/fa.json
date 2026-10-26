@@ -35562,6 +35562,8 @@
   "{{count}} more technologies_one": "{{count}} فناوری دیگر",
   "How a monitor in this status behaves, in a sentence.": "مانیتوری در این وضعیت چه رفتاری دارد، در یک جمله.",
   "How far a postmortem in this status has come, in a sentence.": "گزارش پس از حادثه در این وضعیت تا کجا پیش رفته است، در یک جمله.",
+  "First model the server lists": "نخستین مدل در فهرست سرور",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "برای نخستین مدل در فهرست سرور شما خالی بگذارید. برای استفاده از مدلی دیگر، نامش را دقیقاً همان‌طور که در فهرست سرور شما آمده وارد کنید.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "با HTTPS پروکسی خودتان ارائه می‌شود، مگر اینکه گواهی بارگذاری کنید.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "ما هر ۱۵ دقیقه این رکورد را بررسی می‌کنیم. قبلاً اضافه کرده‌اید؟ روی «اکنون بررسی کن» کلیک کنید.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "این صفحه وضعیت را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید.",

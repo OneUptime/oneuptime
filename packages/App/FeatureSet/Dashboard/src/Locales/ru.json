@@ -35562,6 +35562,8 @@
   "{{count}} more technologies_one": "Ещё {{count}} технология",
   "How a monitor in this status behaves, in a sentence.": "Как ведёт себя монитор в этом статусе, одним предложением.",
   "How far a postmortem in this status has come, in a sentence.": "Насколько продвинулся постмортем в этом статусе, одним предложением.",
+  "First model the server lists": "Первая модель из списка сервера",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Оставьте пустым, чтобы использовать первую модель из списка вашего сервера. Чтобы выбрать другую, введите её имя точно так, как оно указано в списке сервера.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Обслуживается по HTTPS вашего прокси, если вы не загрузите сертификат.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Мы проверяем эту запись каждые 15 минут. Уже добавили? Нажмите «Проверить сейчас».",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Разместите эту страницу статуса на своём домене. Направьте CNAME-запись каждого домена на {{cnameRecord}}.",

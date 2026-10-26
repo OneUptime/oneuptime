@@ -35562,6 +35562,8 @@
   "{{count}} more technologies_one": "另外 {{count}} 項技術",
   "How a monitor in this status behaves, in a sentence.": "用一句話說明處於此狀態的監測器表現如何。",
   "How far a postmortem in this status has come, in a sentence.": "用一句話說明處於此狀態的事後分析進展到哪一步。",
+  "First model the server lists": "伺服器列出的第一個模型",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "留空則使用你的伺服器列出的第一個模型。如需使用其他模型，請輸入與伺服器清單中完全一致的名稱。",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "使用您自己的 Proxy 提供的 HTTPS，除非您上傳憑證。",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "我們每 15 分鐘檢查一次此記錄。已經新增了嗎？請按一下「立即檢查」。",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "在您自己的網域上提供此狀態頁面。將每個網域的 CNAME 記錄指向 {{cnameRecord}}。",

@@ -172,6 +172,12 @@ export default interface Field<TEntity> {
    */
   cardSelectMaxColumns?: 2 | 3 | undefined;
   /*
+   * "list" draws the choices as ruled rows of one panel (CardSelect
+   * layout): for a short choice in a dialog's column, where cards side by
+   * side squeeze each line and leave rows of uneven height.
+   */
+  cardSelectLayout?: "grid" | "list" | undefined;
+  /*
    * Give the card picker a search box, and lay a big catalog out as compact
    * rows with its common choices first and the rest behind a More button,
    * shrinking to the choice made with a Change button (CardSelectCatalog).

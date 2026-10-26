@@ -53,7 +53,7 @@ OneUptime Cloud 只能連到公用網際網路上的 LLM 端點。它無法連�
 | `GLOBAL_LLM_PROVIDER_TYPE` | 開啟時必需。取值為 `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` 之一 |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | API 金鑰：OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需；Ollama 或無金鑰的 OpenAI 相容伺服器不需要 |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | 端點：Azure OpenAI、Ollama 和 OpenAI 相容伺服器必需 |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型：OpenAI 相容伺服器必需，其他提供者建議設定 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型。選填：不設定時，OneUptime 使用提供者的預設模型；在 OpenAI 相容伺服器上，使用伺服器列出的第一個模型 |
 | `GLOBAL_LLM_PROVIDER_NAME` | 可選的易記名稱，顯示在儀表板中 |
 
 :::tabs
@@ -105,7 +105,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 - **API 金鑰**：你的 API 金鑰，OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需，OpenAI 相容伺服器選填；Ollama 不需要填寫
 - **基底 URL**：端點，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供者僅在經由代理或閘道時填寫
-- **模型名稱**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`。留空時，OneUptime 使用提供者的預設模型；OpenAI 相容伺服器除外，它必須填寫
+- **模型名稱**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`。留空時，OneUptime 使用提供者的預設模型；OpenAI 相容伺服器沒有預設模型，因此 OneUptime 會詢問它提供哪些模型，並使用它列出的第一個模型
 - **名稱**：在你輸入自己的名稱之前，沿用提供者的名稱，例如 "Production OpenAI" 或 "Local Ollama"
 - **更多欄位**，收合在上述欄位下方：**描述**；**設為預設**，新提供者預設開啟，因為 AI 功能只使用專案的預設提供者；以及 **其他參數**，一個選填的 JSON 物件，其中的額外參數會隨每個請求傳送給提供者（例如 `{"temperature": 0.2}`）
 
@@ -225,7 +225,7 @@ OneUptime 會把這個 `options` 物件合併到它傳送給 Ollama 的選項中
 1. 啟動你的 OpenAI 相容伺服器，並記下它的基底 URL（通常以 `/v1` 結尾）
 2. 選擇 **OpenAI Compatible** 作為 LLM 提供者
 3. 輸入 **基底 URL**（必填），例如 `http://your-server:8000/v1`。OneUptime 伺服器必須能連到它，所以不能用 `localhost`：請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
-4. 輸入 **模型名稱**（必填）：它必須與你的伺服器提供的某個模型一致
+4. 輸入 **模型名稱**，或留空：留空時 OneUptime 會詢問你的伺服器提供哪些模型，並使用它列出的第一個模型（在 vLLM 上就是它提供的模型）。輸入的名稱必須與你的伺服器提供的某個模型一致
 5. 只有在你的伺服器要求時才輸入 **API 金鑰**；對於無金鑰的伺服器請留空
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ API Key: (leave blank)
 
 1. 選擇 **OpenAI Compatible** 作為 LLM 提供者（vLLM 使用 OpenAI API）
 2. 輸入叢集內的基底 URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（如果你修改過 `global.clusterDomain`，請替換 `cluster.local`）
-3. 輸入模型名稱：完整的 Hugging Face 模型 id（如果你設定了 `vllm.servedModelName`，則用它）
+3. 輸入模型名稱：完整的 Hugging Face 模型 id（如果你設定了 `vllm.servedModelName`，則用它），或留空以使用 vLLM 提供的模型
 4. 只有在你設定了 `vllm.apiKey` 時才輸入 API 金鑰；對於無金鑰的 vLLM 請留空
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 - **OpenAI 或 Anthropic**：檢查你的 API 金鑰是否有效並且有餘額
 - **Azure OpenAI / Microsoft Foundry**：錯誤訊息會先說明需要修改什麼。[Microsoft Foundry 和 Azure OpenAI](/docs/ai/microsoft-foundry) 說明了 Azure 回傳的每種錯誤
 - **Ollama**：檢查 Ollama 伺服器是否在執行，是否監聽在 OneUptime 伺服器能連到的位址上（原生安裝使用 `OLLAMA_HOST=0.0.0.0:11434`），以及基底 URL 是否指向該位址
-- **OpenAI Compatible**：檢查基底 URL 是否以 `/v1` 結尾（或與你的伺服器相符），模型名稱是否與你的伺服器提供的模型一致，以及是否只在伺服器要求時才設定了 API 金鑰
+- **OpenAI Compatible**：檢查基底 URL 是否以 `/v1` 結尾（或與你的伺服器相符），如果填寫了模型名稱，它是否與你的伺服器提供的模型一致，以及是否只在伺服器要求時才設定了 API 金鑰。如果模型名稱留空，而伺服器的 `/models` 端點沒有列出任何模型，請填寫模型名稱
 - **"…points to an address OneUptime is not allowed to connect to"**：基底 URL 解析到了被拒絕的位址：`localhost` 或其他回送位址，或者在 OneUptime Cloud 上是私人網路位址。（OneUptime Cloud 會把被拒絕的主機名稱回報為 "…could not be reached"。）請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
 - **防火牆**：檢查你的網路是否允許向提供者的 API 發起輸出連線
 :::
