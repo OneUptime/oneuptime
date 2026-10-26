@@ -1,4 +1,4 @@
-import LogoPlate from "../../Components/Logo/LogoPlate";
+import PageLogo from "../../Components/Logo/PageLogo";
 import { FORGOT_PASSWORD_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
@@ -11,7 +11,6 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
-import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect, useState } from "react";
@@ -20,6 +19,8 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkThemeLogoFileId?: ObjectID | undefined;
   forceSSO: boolean;
 }
 
@@ -40,15 +41,6 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
   const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-
-  const statusPageId: string | undefined =
-    StatusPageUtil.getStatusPageId()?.toString();
-  const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString() && statusPageId
-      ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageId}`)
-          .toString()
-      : null;
 
   if (!StatusPageUtil.getStatusPageId()) {
     return <></>;
@@ -80,13 +72,11 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {logoUrl ? (
-          <LogoPlate className="mx-auto w-fit">
-            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
-          </LogoPlate>
-        ) : (
-          <></>
-        )}
+        <PageLogo
+          logoFileId={props.logoFileId}
+          darkThemeLogoFileId={props.darkThemeLogoFileId}
+          altText={props.statusPageName}
+        />
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
           {t("accounts.forgotPassword.title")}
         </h2>

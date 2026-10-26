@@ -249,7 +249,11 @@ export const pods = () => {
   });
 };
 
-export const incidents = (now) => {
+// A title as long as an incident's often is.
+export const LONG_INCIDENT_TITLE =
+  "Elevated 5xx on the public API gateway after the 14.0.80 deploy to eu-west-1";
+
+export const incidents = (now, options) => {
   const state = (name, order, color) => {
     return { name, order, color: new Color(color) };
   };
@@ -259,7 +263,7 @@ export const incidents = (now) => {
 
   return [
     [
-      "Checkout errors",
+      options && options.longTitles ? LONG_INCIDENT_TITLE : "Checkout errors",
       state("Identified", 1, "#ef4444"),
       severity("Critical", 1, "#b91c1c"),
       60,

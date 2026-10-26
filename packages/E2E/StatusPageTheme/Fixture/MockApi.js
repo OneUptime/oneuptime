@@ -20,6 +20,7 @@ const fixture = buildFixture({
   theme: params.get("theme") || "Light",
   isPrivate: params.get("private") === "1",
   hasSso: params.get("sso") === "1",
+  hasDarkLogo: params.get("darkLogo") === "1",
 });
 
 const record = {
@@ -32,6 +33,11 @@ window.__statusPageThemeFixture = record;
 const API_PREFIX = "/status-page-api";
 
 const answers = {
+  /*
+   * The page on its own domain ("/" here): which page this host is, as the
+   * API answers for a verified custom domain.
+   */
+  "/domain": { statusPageId: PAGE_ID },
   [`/master-page/${PAGE_ID}`]: fixture.masterPage,
   [`/overview/${PAGE_ID}`]: fixture.overview,
   [`/incidents/${PAGE_ID}`]: fixture.incidents,

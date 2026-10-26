@@ -115,7 +115,7 @@ Hasta que un dominio está verificado y su certificado está en su sitio, su fil
 
 ### Leer la columna Estado
 
-La columna **Estado** indica en qué punto está cada dominio en su camino hacia HTTPS, en uno de siete estados, los mismos que en las páginas de estado. Cuando una solicitud ha fallado, el motivo aparece en la línea de debajo.
+La columna **Estado** indica en qué punto está cada dominio en su camino hacia HTTPS, en uno de ocho estados, los mismos que en las páginas de estado. Cuando una solicitud ha fallado, el motivo aparece en la línea de debajo.
 
 | Lo que dice la columna Estado | Lo que significa |
 | --- | --- |
@@ -126,6 +126,7 @@ La columna **Estado** indica en qué punto está cada dominio en su camino hacia
 | Certificado emitido, se renueva automáticamente. | Listo. El dominio sirve su certificado por HTTPS, y OneUptime lo renueva. |
 | Certificado emitido, pero su renovación ha fallado. Lo seguimos intentando. | El dominio sigue sirviendo un certificado válido, pero su última renovación falló, por el motivo de la línea de debajo. OneUptime vuelve a intentarlo mucho antes de que caduque el certificado. |
 | Usa tu certificado subido. | El registro está verificado, y el dominio se sirve con el certificado que subiste. |
+| Verificado. Usa el HTTPS de tu propio proxy. | En una instalación autoalojada sin clave de cuenta de Let's Encrypt, el registro está verificado y el dominio está activo. Su HTTPS corre a cargo de tu propio proxy, salvo que subas un certificado. |
 
 Si una solicitud falla, las causas habituales son un registro CAA en tu dominio que no permite `letsencrypt.org` y, en una instalación autoalojada, un servidor al que Let's Encrypt no puede llegar en el puerto 80.
 
@@ -135,7 +136,7 @@ Para usar en su lugar tu propio certificado, abre **Más campos** al añadir el 
 
 Una vez que se ha solicitado un certificado gratuito para un dominio, la fila muestra **Volver a emitir SSL**, que pide a Let's Encrypt un certificado totalmente nuevo cuando quieres uno antes de la renovación automática. Cada dominio puede volver a emitirse una vez cada 24 horas.
 
-En una instalación autoalojada, los dominios personalizados de los paneles se activan con la variable de entorno `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` en el chart de Helm), que es el destino al que apuntan tus registros CNAME. Sin ella, la tarjeta y el cuadro de diálogo **Configuración de DNS** dicen "Custom Domains not enabled for this OneUptime installation" en lugar de mostrar un registro, y OneUptime no verifica dominios ni solicita certificados para los paneles.
+En una instalación autoalojada, los dominios personalizados de los paneles se activan con la variable de entorno `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` en el chart de Helm), que es el destino al que apuntan tus registros CNAME. Sin ella, la tarjeta y el cuadro de diálogo **Configuración de DNS** dicen "Custom Domains not enabled for this OneUptime installation" en lugar de mostrar un registro, y OneUptime no verifica dominios ni solicita certificados para los paneles. Una instalación sin clave de cuenta de Let's Encrypt (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` en el chart de Helm) no solicita certificados: un dominio de panel está activo en cuanto se verifica su registro, y se sirve con el HTTPS de tu propio proxy o con un certificado que subas.
 
 ### Quién puede comprobar y volver a emitir
 

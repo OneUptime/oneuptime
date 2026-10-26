@@ -1,15 +1,22 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import Card, {
+  CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
   CARD_HEADER_LAYOUTS,
   CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
   CARD_HEADER_TOOLBAR_FILL_CLASS_NAME,
   CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
+import {
+  TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLASS_NAME,
+  TABLE_HEADER_TOOLBAR_CLASS_NAME,
+} from "../../../UI/Components/Table/TableHeaderControls";
 import { resolveFlex } from "../../ResponsiveFlexLayout";
 
 /*
@@ -145,7 +152,10 @@ describe("the toolbar header", () => {
           CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME,
           CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
         )
-        .split(` ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME}`)
+        // As markup writes it: its & is &amp;.
+        .split(
+          ` ${CARD_HEADER_TOOLBAR_FILL_CLASS_NAME.split("&").join("&amp;")}`,
+        )
         .join(""),
     ).toBe(stacked);
   });
@@ -160,7 +170,7 @@ describe("a control that fills the toolbar's line on a phone (a table's search)"
    */
   test("the toolbar's actions and each action's box may take the card's width, only when they hold such a control", () => {
     expect(CARD_HEADER_TOOLBAR_FILL_CLASS_NAME).toBe(
-      "max-md:has-[[data-toolbar-fill]]:w-full",
+      "max-md:has-[[data-toolbar-fill]]:w-full [[data-actions-under-title=true]_&]:has-[[data-toolbar-fill]]:w-full",
     );
 
     render(<Card {...baseProps} headerLayout="toolbar" />);
@@ -176,6 +186,14 @@ describe("a control that fills the toolbar's line on a phone (a table's search)"
 
   test("a default or stacked header never does: their buttons keep to their own width", () => {
     for (const layout of ["default", "stacked"] as const) {
+      expect(
+        renderToStaticMarkup(
+          <Card {...baseProps} headerLayout={layout} />,
+        ).includes(CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE),
+      ).toBe(false);
+    }
+
+    for (const layout of ["default", "stacked"] as const) {
       const markup: string = renderToStaticMarkup(
         <Card {...baseProps} headerLayout={layout} />,
       );
@@ -189,5 +207,204 @@ describe("a control that fills the toolbar's line on a phone (a table's search)"
         markup.includes(CARD_HEADER_TOOLBAR_FILL_CLASS_NAME),
       ]).toEqual([layout, false]);
     }
+  });
+});
+
+/*
+ * Between 768 and about 1100px beside a side menu a table's controls do
+ * not fit beside its title and go to a line of their own. The search on
+ * that line was a 14rem pill hung at its right edge, the rest of the line
+ * empty. Card says when its toolbar's controls are under the title
+ * (CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE on the title's row), and the
+ * search then fills what the buttons leave of the line, as a phone's does.
+ * Where they go is read as they are drawn when they share the title's line:
+ * a toolbar that fills its line is read without its fill, so it moves back
+ * beside the title as soon as it fits there again.
+ */
+describe("a toolbar whose controls are on a line of their own", () => {
+  type Placement = (titleRow: Element) => "beside" | "under";
+
+  const rect: (top: number, bottom: number) => DOMRect = (
+    top: number,
+    bottom: number,
+  ): DOMRect => {
+    return {
+      x: 0,
+      y: top,
+      top: top,
+      bottom: bottom,
+      left: 0,
+      right: 600,
+      width: 600,
+      height: bottom - top,
+      toJSON: (): unknown => {
+        return {};
+      },
+    } as DOMRect;
+  };
+
+  let placement: Placement = (): "beside" | "under" => {
+    return "beside";
+  };
+  const observers: Array<() => void> = [];
+  const original: typeof Element.prototype.getBoundingClientRect =
+    Element.prototype.getBoundingClientRect;
+  const originalObserver: typeof ResizeObserver | undefined = (
+    window as unknown as { ResizeObserver?: typeof ResizeObserver }
+  ).ResizeObserver;
+
+  beforeEach(() => {
+    observers.length = 0;
+    Element.prototype.getBoundingClientRect = function (
+      this: Element,
+    ): DOMRect {
+      const testId: string | null = this.getAttribute("data-testid");
+      const titleRow: Element | null = this.closest(
+        '[data-testid="card-header-title-row"]',
+      );
+
+      if (testId === "card-header-title-block") {
+        return rect(0, 24);
+      }
+
+      if (testId === "card-header-actions" && titleRow) {
+        // Beside the title: centred on its line; under it: a line down.
+        return placement(titleRow) === "under" ? rect(36, 74) : rect(-7, 31);
+      }
+
+      return original.call(this);
+    };
+    (window as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+      public constructor(read: () => void) {
+        observers.push(read);
+      }
+
+      public observe(): void {}
+
+      public disconnect(): void {}
+    };
+  });
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = original;
+    (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      originalObserver;
+  });
+
+  const titleRow: () => HTMLElement = (): HTMLElement => {
+    return screen.getByTestId("card-header-title-row");
+  };
+
+  const readAgain: () => void = (): void => {
+    act(() => {
+      for (const read of observers) {
+        read();
+      }
+    });
+  };
+
+  test("the title's row says so while they are under the title, and not while they are beside it", () => {
+    placement = (): "beside" | "under" => {
+      return "under";
+    };
+    render(<Card {...baseProps} headerLayout="toolbar" />);
+
+    expect(titleRow()).toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+      "true",
+    );
+
+    placement = (): "beside" | "under" => {
+      return "beside";
+    };
+    readAgain();
+
+    expect(titleRow()).not.toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+    );
+  });
+
+  test("a toolbar with no description is read too", () => {
+    placement = (): "beside" | "under" => {
+      return "under";
+    };
+    render(
+      <Card {...baseProps} description={undefined} headerLayout="toolbar" />,
+    );
+
+    expect(titleRow()).toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+      "true",
+    );
+    // With no description, nothing joins the title's block.
+    expect(screen.queryByTestId("card-description")).toBeNull();
+  });
+
+  test("it is read as drawn without its fill, so a toolbar that fits beside the title again goes back there", () => {
+    /*
+     * Filling its line, the toolbar is under the title whatever else: it
+     * is as wide as the line. Without its fill it fits beside the title.
+     */
+    placement = (row: Element): "beside" | "under" => {
+      return row.getAttribute(CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE) ===
+        "true"
+        ? "under"
+        : "beside";
+    };
+    const startsUnder: { value: boolean } = { value: true };
+    const fills: Placement = placement;
+    placement = (row: Element): "beside" | "under" => {
+      return startsUnder.value ? "under" : fills(row);
+    };
+
+    render(<Card {...baseProps} headerLayout="toolbar" />);
+
+    expect(titleRow()).toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+      "true",
+    );
+
+    // The window made wider: without its fill the toolbar fits beside.
+    startsUnder.value = false;
+    readAgain();
+
+    expect(titleRow()).not.toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+    );
+
+    // And it stays there: read again, it is still beside the title.
+    readAgain();
+    expect(titleRow()).not.toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+    );
+  });
+
+  test("a stacked header's actions are never marked: only a toolbar's search fills a line", () => {
+    placement = (): "beside" | "under" => {
+      return "under";
+    };
+    render(<Card {...baseProps} headerLayout="stacked" />);
+
+    expect(titleRow()).not.toHaveAttribute(
+      CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+    );
+  });
+
+  test("the table's toolbar, its search and its opened search fill the line while it is so", () => {
+    const UNDER: string = "[[data-actions-under-title=true]_&]:";
+
+    expect(TABLE_HEADER_TOOLBAR_CLASS_NAME).toContain(`${UNDER}w-full`);
+    expect(TABLE_HEADER_SEARCH_CLASS_NAME).toContain(`${UNDER}flex-1`);
+    expect(TABLE_HEADER_SEARCH_CLASS_NAME).toContain(`${UNDER}min-w-[11rem]`);
+    // Its 14rem pill otherwise, from md up.
+    expect(TABLE_HEADER_SEARCH_CLASS_NAME).toContain("md:w-56");
+    expect(TABLE_HEADER_OPEN_SEARCH_CLASS_NAME).toContain(`${UNDER}flex-1`);
+    expect(TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME).toContain(
+      `${UNDER}flex-1`,
+    );
+    // The attribute those read is the one Card writes.
+    expect(UNDER).toContain(
+      `[${CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE}=true]`,
+    );
   });
 });

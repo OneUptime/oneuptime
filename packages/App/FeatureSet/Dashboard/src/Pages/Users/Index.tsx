@@ -330,6 +330,7 @@ const Users: FunctionComponent<PageComponentProps> = (
           buttons: [
             {
               title: "Invite User",
+              phoneTitle: "Invite",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
               isLoading: isPreparingInvite,

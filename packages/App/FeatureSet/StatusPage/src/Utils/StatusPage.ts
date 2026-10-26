@@ -43,6 +43,26 @@ export default class StatusPageUtil {
     );
   }
 
+  /*
+   * One of the page's sign-in pages - the password form or single sign-on -
+   * carrying on the page the visitor is to land on once signed in: moving
+   * between the two ways in keeps where they were going.
+   */
+  public static getSignInRoute(data: {
+    path: string;
+    redirectUrl: string | null;
+  }): Route {
+    const redirectUrl: string | null = StatusPageUtil.getSafeRedirectPath(
+      data.redirectUrl,
+    );
+
+    return new Route(
+      redirectUrl
+        ? `${data.path}?redirectUrl=${encodeURIComponent(redirectUrl)}`
+        : data.path,
+    );
+  }
+
   // Get the default redirect path (overview page)
   public static getDefaultRedirectRoute(): Route {
     return new Route(

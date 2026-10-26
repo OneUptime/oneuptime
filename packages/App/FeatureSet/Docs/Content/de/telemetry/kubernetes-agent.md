@@ -241,6 +241,8 @@ Der Agent sendet jedes Kubernetes-Ereignis des Clusters an OneUptime: aus jedem 
 | Anzahl | Wie oft es passiert ist: eine Wiederholung erhöht die Anzahl, statt eine Zeile hinzuzufügen |
 | Zuletzt gesehen | Wann es zuletzt passiert ist; fahren Sie mit der Maus darüber, um zu sehen, wann zum ersten Mal |
 
+Auf einem Bildschirm, der schmaler als 1024 Pixel ist, zeigt die Spalte **Ereignis** auch **Anzahl** und **Zuletzt gesehen**, die dort keine eigenen Spalten haben.
+
 ### Ereignisse durchsuchen und Alarme erhalten
 
 Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung** gespeichert, und was das Ereignis sagt, steht in seinen Attributen:

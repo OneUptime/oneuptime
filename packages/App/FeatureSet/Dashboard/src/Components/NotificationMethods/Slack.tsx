@@ -157,6 +157,7 @@ const Slack: () => JSX.Element = (): ReactElement => {
           buttons: [
             {
               title: "Add Slack Account",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               isLoading: isAdding,

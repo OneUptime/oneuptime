@@ -115,7 +115,7 @@ OneUptime 每 15 分钟检查一次所有未验证的域名，检查找到记录
 
 ### 读懂状态列
 
-**状态** 列说明每个域名在通往 HTTPS 的路上处于哪一步，共有七种状态之一，与状态页相同。订购失败时，原因会显示在下面一行。
+**状态** 列说明每个域名在通往 HTTPS 的路上处于哪一步，共有八种状态之一，与状态页相同。订购失败时，原因会显示在下面一行。
 
 | 状态列显示的内容 | 含义 |
 | --- | --- |
@@ -126,6 +126,7 @@ OneUptime 每 15 分钟检查一次所有未验证的域名，检查找到记录
 | 证书已签发，将自动续期。 | 完成。该域名通过 HTTPS 提供证书，OneUptime 负责续期。 |
 | 证书已签发，但续期失败。我们会继续尝试。 | 该域名仍在提供有效的证书，但由于下面一行所示的原因，上一次续期失败。OneUptime 会在证书到期前很早就再次尝试。 |
 | 正在使用您上传的证书。 | 记录已验证，该域名使用你上传的证书提供服务。 |
+| 已验证。正在使用您自己的代理提供的 HTTPS。 | 在没有 Let's Encrypt 账户密钥的自托管安装上，记录已验证，域名可以访问。除非您上传证书，否则其 HTTPS 由您自己的代理负责。 |
 
 如果订购失败，常见原因是你的域名上有不允许 `letsencrypt.org` 的 CAA 记录，以及在自托管安装中，Let's Encrypt 无法通过 80 端口访问到服务器。
 
@@ -135,7 +136,7 @@ OneUptime 每 15 分钟检查一次所有未验证的域名，检查找到记录
 
 为某个域名订购免费证书后，该行会显示 **Reissue SSL** ，当你希望在自动续期之前获得新证书时，它会向 Let's Encrypt 申请一张全新的证书。每个域名每 24 小时可以重新签发一次。
 
-在自托管安装中，仪表板自定义域名由环境变量 `DASHBOARD_CNAME_RECORD` （Helm chart 中为 `dashboard.cnameRecord` ）开启，它就是你的 CNAME 记录所指向的目标。没有它时，卡片和 **DNS 设置** 对话框会显示 "Custom Domains not enabled for this OneUptime installation" 而不是记录，OneUptime 也不会为仪表板验证域名或订购证书。
+在自托管安装中，仪表板自定义域名由环境变量 `DASHBOARD_CNAME_RECORD` （Helm chart 中为 `dashboard.cnameRecord` ）开启，它就是你的 CNAME 记录所指向的目标。没有它时，卡片和 **DNS 设置** 对话框会显示 "Custom Domains not enabled for this OneUptime installation" 而不是记录，OneUptime 也不会为仪表板验证域名或订购证书。没有 Let's Encrypt 账户密钥（`LETS_ENCRYPT_ACCOUNT_KEY`，Helm chart 中为 `letsEncrypt.accountKey`）的安装不会订购证书：仪表板域名的记录一经验证即可访问，并通过你自己代理的 HTTPS 或你上传的证书提供服务。
 
 ### 谁可以检查和重新签发
 

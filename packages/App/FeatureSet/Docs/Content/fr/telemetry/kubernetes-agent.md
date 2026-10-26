@@ -241,6 +241,8 @@ L'agent envoie à OneUptime chaque événement Kubernetes du cluster : de chaque
 | Comptage | Combien de fois il s'est produit : une répétition augmente le compteur au lieu d'ajouter une ligne |
 | Vu pour la dernière fois | Quand il s'est produit pour la dernière fois ; survolez pour voir quand il s'est produit la première fois |
 
+Sur un écran de moins de 1024 pixels de large, la colonne **Événement** affiche aussi **Comptage** et **Vu pour la dernière fois**, qui n'y ont pas de colonne à eux.
+
 ### Rechercher les événements et être alerté
 
 Chaque événement est aussi un journal. Un avertissement est enregistré avec la gravité **Warning**, et ce que dit l'événement se trouve dans ses attributs :

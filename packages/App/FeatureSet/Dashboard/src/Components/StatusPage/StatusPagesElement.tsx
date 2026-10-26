@@ -1,5 +1,6 @@
 import StatusPageElement from "./StatusPageElement";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_STATUS_PAGES_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,6 +15,7 @@ const StatusPagesElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.statusPages}
+      moreTemplate={MORE_STATUS_PAGES_TEMPLATE}
       getEachElement={(statusPage: StatusPage) => {
         return (
           <StatusPageElement

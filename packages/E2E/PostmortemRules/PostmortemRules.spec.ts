@@ -778,6 +778,65 @@ test.describe("beside the side menu", () => {
 
     await screenshot(page, "rules-beside-menu");
   });
+
+  /*
+   * German's "Deaktiviert" and "Bearbeiten" ran the table 20px past its
+   * card at 1280px, Status under the row's buttons, while the Name and
+   * Templates columns held a column of prose's 10rem. They narrow to 8rem
+   * now, as the AI rules table's Name does.
+   */
+  test("in German at 1280px every column is in sight too, Status included", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "rules=4&layout=page&lang=de");
+    await page
+      .getByTestId("incident-ai-advanced-section")
+      .getByRole("button")
+      .first()
+      .click();
+
+    const card: Locator = rulesCard(page, GERMAN[CARD_TITLE]!);
+    const rows: Locator = card.locator("tbody tr");
+    await expect(rows).toHaveCount(4);
+    await expect(
+      rows.nth(3).getByText(GERMAN["Disabled"]!, { exact: true }),
+    ).toBeVisible();
+
+    const fit: {
+      cardWidth: number;
+      boxWidth: number;
+      tableWidth: number;
+      statusRight: number;
+      actionsLeft: number;
+    } = await card.evaluate((element: Element, status: string) => {
+      const table: HTMLElement = element.querySelector("table") as HTMLElement;
+      const box: HTMLElement = table.parentElement as HTMLElement;
+      const headers: Array<HTMLElement> = Array.from(
+        table.querySelectorAll<HTMLElement>("thead th"),
+      );
+      const statusHeader: HTMLElement = headers.find((header: HTMLElement) => {
+        return header.innerText.trim() === status;
+      }) as HTMLElement;
+      const actions: HTMLElement = headers[headers.length - 1] as HTMLElement;
+
+      return {
+        cardWidth: element.getBoundingClientRect().width,
+        boxWidth: box.clientWidth,
+        tableWidth: box.scrollWidth,
+        statusRight: statusHeader.getBoundingClientRect().right,
+        actionsLeft: actions.getBoundingClientRect().left,
+      };
+    }, GERMAN["Status"]!);
+
+    expect(fit.cardWidth).toBeGreaterThan(900);
+    expect(fit.cardWidth).toBeLessThan(960);
+    expect(fit.tableWidth).toBeLessThanOrEqual(fit.boxWidth);
+    expect(fit.statusRight).toBeLessThanOrEqual(fit.actionsLeft + 1);
+
+    await screenshot(page, "rules-beside-menu-de");
+  });
 });
 
 test.describe("everywhere", () => {

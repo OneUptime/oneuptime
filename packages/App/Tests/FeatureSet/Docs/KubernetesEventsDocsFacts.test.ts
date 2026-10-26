@@ -7,6 +7,7 @@ import KubernetesEventAttribute, {
   parseKubernetesEventFromLogBody,
 } from "Common/Types/Kubernetes/KubernetesEvent";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import { TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX } from "Common/UI/Components/Table/FoldedColumns";
 import {
   KUBERNETES_WARNING_EVENTS_GROUP_BY,
   KUBERNETES_WARNING_EVENTS_WINDOW_SECONDS,
@@ -230,6 +231,41 @@ describe("the Kubernetes events section of the Kubernetes Agent page", () => {
     );
     expect(objectCell).toContain("<KubernetesNamespaceChip");
     expect(objectCell).toContain('dataTestId="kubernetes-event-namespace"');
+  });
+
+  /*
+   * Below lg the Events table leaves Count and Last seen out and draws them
+   * in the Event's lines (Column.hideBelowLargeScreen): beside the cluster's
+   * side menu at 768px its four columns ran past the card.
+   */
+  test("says that below 1024 pixels the Event column also shows Count and Last seen, as the table draws them", () => {
+    expect(eventsSection()).toContain(
+      "On a screen narrower than 1024 pixels, the **Event** column also shows **Count** and **Last seen**, which have no columns of their own there.",
+    );
+    expect(TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX).toBe(1024);
+
+    // Each column's definition, from its title to the next one's.
+    const table: string = dashboardFile(
+      "Components/Kubernetes/KubernetesEventsTable.tsx",
+    );
+    const folded: Record<string, boolean> = {};
+    for (const title of ["Event", "Object", "Count", "Last seen"]) {
+      const start: number = table.indexOf(`title: "${title}"`);
+      expect([title, start >= 0]).toEqual([title, true]);
+      const next: number = table.indexOf("title: ", start + 1);
+      const definition: string = table.slice(
+        start,
+        next < 0 ? table.length : next,
+      );
+      folded[title] = definition.includes("hideBelowLargeScreen: true");
+    }
+
+    expect(folded).toEqual({
+      Event: false,
+      Object: false,
+      Count: true,
+      "Last seen": true,
+    });
   });
 
   test("sends a reader where the Dashboard draws the warnings", () => {

@@ -33,10 +33,10 @@ The first card, **Logo and Cover Image**, has an **Edit Images** button that ope
 
 | Step | Fields |
 | ---- | ------ |
-| **Logo** | The logo upload (placeholder `Upload logo`) and **Logo Alt Text** (placeholder `Logo of My Company`). Leave the alt text blank and the status page title is used instead. |
+| **Logo** | The logo upload (placeholder `Upload logo`), **Dark Theme Logo** (placeholder `Upload logo for the dark theme`), an optional logo made for a dark background, and **Logo Alt Text** (placeholder `Logo of My Company`). Leave the alt text blank and the status page title is used instead. |
 | **Cover Image** | **Cover**, an upload (placeholder `Upload cover image`) for the wide banner behind the header, and **Cover Image Alt Text**. Leave the alt text blank if the cover is purely decorative. |
 
-The logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it.
+The logo, the dark theme logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it.
 
 Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none. The dashboard, the API and Terraform read the page's images the same way: an image of another project comes back as no image at all. The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.
 
@@ -50,7 +50,9 @@ The **Theme** card, right under the logo, sets how the page looks to its visitor
 | **Dark** | The dark page, whatever their device is set to. |
 | **Match each visitor's device** | Light or dark, as their device is set, changing with it while the page is open. A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice. |
 
-On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.
+On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads. A page with a **Dark Theme Logo** shows that one on the dark page instead, as it is, with no backdrop, in its header and on its sign-in pages. The emails the page sends always show the logo.
+
+At the page's address on OneUptime, `/status-page/:id`, a **Light** or **Dark** page has the sun or moon button in its footer too, so you can see it in the other theme, with its **Dark Theme Logo**, before you pick one. A pick there lasts until the page is reloaded and is not remembered, so the page always opens in its own theme, for you and for anyone else who opens that address. On the page's custom domains, a **Light** or **Dark** page has no button.
 
 A status page made from now on starts with **Match each visitor's device**. Through the API and Terraform the field is `theme`, one of `Light`, `Dark` or `System` (**Match each visitor's device**), written exactly so; any other value is refused. A Terraform configuration that sets no `theme` gets `Light`, so a configuration written before the setting never plans a change on a page it manages.
 
@@ -250,6 +252,8 @@ If an order fails, the domain's Status column says so, with the reason on the li
 
 If you uploaded your own certificate under **More fields**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
 
+A self-hosted installation without a Let's Encrypt account key, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` in the Helm chart), issues no free certificates. There, a domain is live as soon as its CNAME record is verified, and its Status column says so: serve its HTTPS at your own proxy or load balancer, or upload a certificate under **More fields**.
+
 ### Reissuing a certificate
 
 Automatic renewal covers the ordinary case, but sometimes you want a brand new certificate right now: a private key you would rather not keep, a certificate your own scanner is unhappy with, or a domain that changed upstream. Once a free certificate has been ordered for a domain, its row shows a **Reissue SSL** action.
@@ -265,7 +269,7 @@ The same button, with the same 24 hour limit, is on dashboard custom domains und
 
 ### Reading the domain Status column
 
-The **Status** column says where each domain is on its way to HTTPS, in one of seven states. When an order failed, the reason is on the line below.
+The **Status** column says where each domain is on its way to HTTPS, in one of eight states. When an order failed, the reason is on the line below.
 
 | What the Status column says | What it means |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ The **Status** column says where each domain is on its way to HTTPS, in one of s
 | Certificate issued, renews automatically. | Done. The domain serves its certificate over HTTPS, and OneUptime renews it. |
 | Certificate issued, but renewing it failed. We keep trying. | The domain still serves a valid certificate, but its last renewal failed, for the reason on the line below. OneUptime tries again well before the certificate expires. |
 | Uses your uploaded certificate. | The record is verified, and the domain is served with the certificate you uploaded. |
+| Verified. Uses your own proxy's HTTPS. | On a self-hosted installation without a Let's Encrypt account key, the record is verified and the domain is live. Its HTTPS is up to your own proxy, unless you upload a certificate. |
 
 :::details A domain stays on "Waiting for DNS" long after I added the record
 Check that the record's name is the full domain, such as `status.yourcompany.com`, and that its value matches your installation's CNAME record exactly. On a root domain, use an ALIAS, ANAME or flattened CNAME record. Then click **Check now** in **DNS Setup**.

@@ -155,6 +155,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
           buttons: [
             {
               title: "Add Microsoft Teams Account",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               isLoading: isAdding,

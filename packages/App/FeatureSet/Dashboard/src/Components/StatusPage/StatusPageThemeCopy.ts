@@ -86,7 +86,9 @@ export type StatusPageThemeChoice = PublicPageThemeChoice;
  * picture of the page in it (StatusPageThemePreview). None asks anything of
  * the owner's logo: the page has one, made for the light page and the
  * emails, and wherever the page is dark it sits on a light backdrop
- * (StatusPage's LogoPlate), so it reads on every choice as it is.
+ * (StatusPage's LogoPlate), so it reads on every choice as it is. A logo
+ * made for dark backgrounds is optional, beside the logo on Branding, and
+ * is shown there instead, with no backdrop.
  */
 export const STATUS_PAGE_THEME_CHOICES: ReadonlyArray<StatusPageThemeChoice> = [
   {

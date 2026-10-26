@@ -25,6 +25,11 @@ import {
   getDetailGridClassName,
 } from "./DetailGridLayout";
 import DetailRecordLine from "./DetailRecordLine";
+import {
+  DETAIL_IMAGE_BACKDROP_ATTRIBUTE,
+  DETAIL_IMAGE_BACKDROP_CLASS_NAMES,
+  DetailImageBackdrop,
+} from "./DetailImageBackdrop";
 import { getRecordIdText, isRecordIdField } from "./DetailRecordId";
 import {
   getRecordTimes,
@@ -769,10 +774,27 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
         const url: string = URL.createObjectURL(blob);
 
-        // A plain frame: no shadow, and no zoom on hover.
+        /*
+         * A plain frame: no shadow, and no zoom on hover. An image judged on
+         * the page it is shown on (a logo) is drawn on that page's own
+         * background, with room around it, in both themes.
+         */
+        const backdrop: DetailImageBackdrop | undefined = field.imageBackdrop;
+
         data = (
           <div className="relative inline-block max-w-full">
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-1">
+            <div
+              className={`overflow-hidden rounded-lg border ${
+                backdrop
+                  ? `${DETAIL_IMAGE_BACKDROP_CLASS_NAMES[backdrop]} px-4 py-3`
+                  : "border-gray-200 bg-white p-1"
+              }`}
+              {...(backdrop
+                ? {
+                    [DETAIL_IMAGE_BACKDROP_ATTRIBUTE]: backdrop.toLowerCase(),
+                  }
+                : {})}
+            >
               <img
                 src={url}
                 className="max-w-full rounded-md object-contain"

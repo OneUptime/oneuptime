@@ -1361,6 +1361,39 @@ const KIND_ROWS = isEmpty
 
 RECORDS.GalleryMonitor = KIND_ROWS;
 
+/*
+ * The gallery's give table (?table=give): a list just too wide for a card
+ * beside a side menu (938px at a 1280px window, 936 here at 1002) - a host
+ * name on one line, a header far wider than its values ("Poll Interval
+ * (Minutes)" over a 5) - which fits by giving way: its header's names break
+ * between their words, then its long values are cut short a little more,
+ * never below 8rem. Its date, count and status stay whole. Wider than
+ * 1214px it fits as it is; at 1120 its header's names wrap and nothing is
+ * cut short; at 840 it does not fit even so, and scrolls as before.
+ */
+RECORDS.GiveMonitor = isEmpty
+  ? []
+  : [
+      ["Checkout API", "web-prod-03.eu-west-1.acme-commerce.internal", 0],
+      ["Edge Gateway", "edge-gw-primary.us-east-2.acme-commerce.internal", 1],
+      ["Search", "search-indexer-7.eu-west-1.acme-commerce.internal", 2],
+      [
+        "Billing Reconciler",
+        "billing-worker-2.eu-central-1.acme-commerce.internal",
+        3,
+      ],
+    ].map(([name, host, index]) => {
+      const record = monitor(
+        300 + index,
+        name,
+        host,
+        MonitorType.API,
+        index === 1 ? DEGRADED : OPERATIONAL,
+      );
+      record.createdAt = new Date(Date.UTC(2026, 9, 20 - index, 9, 15));
+      return record;
+    });
+
 function GalleryKinds() {
   return (
     <ModelTable
@@ -1594,11 +1627,68 @@ function GalleryPeople() {
   );
 }
 
+function GalleryGive() {
+  return (
+    <ModelTable
+      modelType={Monitor}
+      id="gallery-give"
+      name="Gallery: a table that gives way"
+      userPreferencesKey="gallery-give"
+      isDeleteable={true}
+      isEditable={false}
+      isCreateable={false}
+      isViewable={true}
+      viewPageRoute={Navigation.getCurrentRoute()}
+      cardProps={{
+        title: "Hosts",
+        description: "A list just too wide for its card: it gives way to fit.",
+      }}
+      filters={[]}
+      columns={[
+        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { description: true },
+          title: "Host Name",
+          type: FieldType.Text,
+        },
+        {
+          field: { _id: true },
+          title: "Poll Interval (Minutes)",
+          type: FieldType.Number,
+          disableSort: true,
+          getElement: () => {
+            return <span>5</span>;
+          },
+        },
+        {
+          field: { currentMonitorStatus: { name: true, color: true } },
+          title: "Monitor Status",
+          type: FieldType.Entity,
+          getElement: (item) => {
+            return (
+              <Pill
+                color={item.currentMonitorStatus.color}
+                text={item.currentMonitorStatus.name}
+              />
+            );
+          },
+        },
+        {
+          field: { createdAt: true },
+          title: "Created",
+          type: FieldType.Date,
+        },
+      ]}
+    />
+  );
+}
+
 const GALLERY = {
   kinds: GalleryKinds,
   wide: GalleryWide,
   plain: GalleryPlain,
   people: GalleryPeople,
+  give: GalleryGive,
 };
 
 /*
@@ -1617,6 +1707,18 @@ ModelAPI.getList = async (options) => {
       ...options,
       modelType: function GalleryMonitor() {
         return { tableName: "GalleryMonitor" };
+      },
+    });
+  }
+  if (
+    tableName === "Monitor" &&
+    window.location.pathname.endsWith("/tables") &&
+    galleryTable === "give"
+  ) {
+    return galleryGetList({
+      ...options,
+      modelType: function GiveMonitor() {
+        return { tableName: "GiveMonitor" };
       },
     });
   }
