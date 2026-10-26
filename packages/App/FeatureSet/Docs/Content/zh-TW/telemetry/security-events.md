@@ -210,7 +210,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 內容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：從事件中擷取出的每個使用者、主機、IP 位址、網域和雜湊 |
 | 屬性 | 完整的來源承載資料，展平為以點分隔的鍵 |
 
-在 OneUptime 讀取處理程序欄位之前儲存的事件，這些欄位為空，只以 `principalProcess`（執行動作的處理程序）記錄其處理程序。之後不會補齊：在保留期結束之前，它們保持儲存時的內容。
+在 OneUptime 14.0.84 之前儲存的事件，處理程序欄位為空，只以 `principalProcess`（執行動作的處理程序）記錄其處理程序。之後不會補齊：在保留期結束之前，它們保持儲存時的內容。
 
 ## 探索安全性事件
 

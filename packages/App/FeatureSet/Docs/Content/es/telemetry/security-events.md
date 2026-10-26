@@ -210,7 +210,7 @@ Cada evento se guarda con campos tipados y su payload de origen:
 | Contenido | `message`, `mitreTactics`, `mitreTechniques` y `observables`: cada usuario, host, dirección IP, dominio y hash extraído del evento |
 | Atributos | El payload de origen completo, aplanado en claves con puntos |
 
-Los eventos guardados antes de que OneUptime leyera los campos de proceso los dejan vacíos y nombran su proceso solo como `principalProcess`, el proceso que actuó. No se completan después: conservan lo que tenían al guardarse hasta que termina su retención.
+Los eventos guardados antes de OneUptime 14.0.84 dejan vacíos los campos de proceso y nombran su proceso solo como `principalProcess`, el proceso que actuó. No se completan después: conservan lo que tenían al guardarse hasta que termina su retención.
 
 ## Explorar los eventos de seguridad
 

@@ -210,7 +210,7 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 | Inhalt | `message`, `mitreTactics`, `mitreTechniques` und `observables`: jeder Benutzer, Host, jede IP-Adresse, Domain und jeder Hash aus dem Ereignis |
 | Attribute | Der ganze Quell-Payload, auf Schlüssel mit Punkten abgeflacht |
 
-Ereignisse, die gespeichert wurden, bevor OneUptime die Prozessfelder gelesen hat, lassen sie leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
+Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
 
 ## Sicherheitsereignisse erkunden
 

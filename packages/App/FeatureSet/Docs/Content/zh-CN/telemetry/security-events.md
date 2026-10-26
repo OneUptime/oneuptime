@@ -210,7 +210,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 内容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：从事件中提取的每个用户、主机、IP 地址、域名和哈希 |
 | 属性 | 完整的来源负载，展平为以点分隔的键 |
 
-在 OneUptime 读取进程字段之前存储的事件，这些字段为空，只以 `principalProcess`（执行操作的进程）记录其进程。它们之后不会被补全：在保留期结束之前，它们保持存储时的内容。
+在 OneUptime 14.0.84 之前存储的事件，进程字段为空，只以 `principalProcess`（执行操作的进程）记录其进程。它们之后不会被补全：在保留期结束之前，它们保持存储时的内容。
 
 ## 浏览安全事件
 

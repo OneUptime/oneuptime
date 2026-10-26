@@ -210,7 +210,7 @@ Every event is stored with typed fields and its source payload:
 | Content | `message`, `mitreTactics`, `mitreTechniques` and `observables`: every user, host, IP address, domain and hash taken from the event |
 | Attributes | The whole source payload, flattened to dotted keys |
 
-Events stored before OneUptime read the process fields leave them empty and name their process only as `principalProcess`, the process that acted. They are not filled in afterwards: they keep what they were stored with until their retention ends.
+Events stored before OneUptime 14.0.84 leave the process fields empty and name their process only as `principalProcess`, the process that acted. They are not filled in afterwards: they keep what they were stored with until their retention ends.
 
 ## Explore security events
 

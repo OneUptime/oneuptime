@@ -210,7 +210,7 @@ Varje händelse lagras med typade fält och källans nyttolast:
 | Innehåll | `message`, `mitreTactics`, `mitreTechniques` och `observables`: varje användare, värd, IP-adress, domän och hash som hämtats från händelsen |
 | Attribut | Hela källans nyttolast, utplattad till nycklar med punkter |
 
-Händelser som lagrades innan OneUptime läste processfälten lämnar dem tomma och anger sin process bara som `principalProcess`, den process som agerade. De fylls inte i efteråt: de behåller det de lagrades med tills deras lagringstid tar slut.
+Händelser som lagrades före OneUptime 14.0.84 lämnar processfälten tomma och anger sin process bara som `principalProcess`, den process som agerade. De fylls inte i efteråt: de behåller det de lagrades med tills deras lagringstid tar slut.
 
 ## Utforska säkerhetshändelser
 

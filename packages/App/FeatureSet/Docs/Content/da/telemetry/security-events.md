@@ -210,7 +210,7 @@ Hver begivenhed gemmes med typede felter og kildens payload:
 | Indhold | `message`, `mitreTactics`, `mitreTechniques` og `observables`: hver bruger, vært, IP-adresse, domæne og hash fra begivenheden |
 | Attributter | Hele kildens payload, fladet ud til nøgler med punktummer |
 
-Hændelser, der blev gemt, før OneUptime læste procesfelterne, lader dem stå tomme og nævner kun deres proces som `principalProcess`, den proces, der handlede. De udfyldes ikke bagefter: de beholder det, de blev gemt med, indtil deres opbevaring udløber.
+Hændelser, der blev gemt før OneUptime 14.0.84, lader procesfelterne stå tomme og nævner kun deres proces som `principalProcess`, den proces, der handlede. De udfyldes ikke bagefter: de beholder det, de blev gemt med, indtil deres opbevaring udløber.
 
 ## Udforsk sikkerhedsbegivenheder
 

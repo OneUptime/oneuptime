@@ -210,7 +210,7 @@ Chaque événement est stocké avec des champs typés et son payload source :
 | Contenu | `message`, `mitreTactics`, `mitreTechniques` et `observables` : chaque utilisateur, hôte, adresse IP, domaine et hash extrait de l'événement |
 | Attributs | Tout le payload source, aplati en clés à points |
 
-Les événements stockés avant que OneUptime ne lise les champs de processus les laissent vides et ne nomment leur processus que par `principalProcess`, le processus qui a agi. Ils ne sont pas complétés après coup : ils gardent ce avec quoi ils ont été stockés jusqu'à la fin de leur rétention.
+Les événements stockés avant OneUptime 14.0.84 laissent vides les champs de processus et ne nomment leur processus que par `principalProcess`, le processus qui a agi. Ils ne sont pas complétés après coup : ils gardent ce avec quoi ils ont été stockés jusqu'à la fin de leur rétention.
 
 ## Explorer les événements de sécurité
 

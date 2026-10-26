@@ -210,7 +210,7 @@ Hver hendelse lagres med typede felt og kildens nyttelast:
 | Innhold | `message`, `mitreTactics`, `mitreTechniques` og `observables`: hver bruker, vert, IP-adresse, domene og hash hentet fra hendelsen |
 | Attributter | Hele kildens nyttelast, flatet ut til nøkler med punktum |
 
-Hendelser som ble lagret før OneUptime leste prosessfeltene, lar dem stå tomme og nevner bare prosessen sin som `principalProcess`, prosessen som handlet. De fylles ikke ut i etterkant: de beholder det de ble lagret med, til oppbevaringen deres går ut.
+Hendelser som ble lagret før OneUptime 14.0.84, lar prosessfeltene stå tomme og nevner bare prosessen sin som `principalProcess`, prosessen som handlet. De fylles ikke ut i etterkant: de beholder det de ble lagret med, til oppbevaringen deres går ut.
 
 ## Utforsk sikkerhetshendelser
 

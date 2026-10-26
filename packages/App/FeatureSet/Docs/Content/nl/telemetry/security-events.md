@@ -210,7 +210,7 @@ Elke gebeurtenis wordt opgeslagen met getypeerde velden en de payload van de bro
 | Inhoud | `message`, `mitreTactics`, `mitreTechniques` en `observables`: elke gebruiker, host, elk IP-adres, domein en elke hash uit de gebeurtenis |
 | Attributen | De hele payload van de bron, afgevlakt tot sleutels met punten |
 
-Gebeurtenissen die zijn opgeslagen voordat OneUptime de procesvelden las, laten ze leeg en noemen hun proces alleen als `principalProcess`, het proces dat handelde. Ze worden achteraf niet aangevuld: ze houden waarmee ze zijn opgeslagen tot hun bewaartermijn afloopt.
+Gebeurtenissen die vóór OneUptime 14.0.84 zijn opgeslagen, laten de procesvelden leeg en noemen hun proces alleen als `principalProcess`, het proces dat handelde. Ze worden achteraf niet aangevuld: ze houden waarmee ze zijn opgeslagen tot hun bewaartermijn afloopt.
 
 ## Beveiligingsgebeurtenissen verkennen
 

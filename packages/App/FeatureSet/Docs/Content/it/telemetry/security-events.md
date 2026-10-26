@@ -210,7 +210,7 @@ Ogni evento viene salvato con campi tipizzati e il suo payload di origine:
 | Contenuto | `message`, `mitreTactics`, `mitreTechniques` e `observables`: ogni utente, host, indirizzo IP, dominio e hash estratto dall'evento |
 | Attributi | L'intero payload di origine, appiattito in chiavi con punti |
 
-Gli eventi memorizzati prima che OneUptime leggesse i campi del processo li lasciano vuoti e indicano il loro processo solo come `principalProcess`, il processo che ha agito. Non vengono completati in seguito: conservano ciò con cui sono stati memorizzati fino alla fine della loro conservazione.
+Gli eventi memorizzati prima di OneUptime 14.0.84 lasciano vuoti i campi del processo e indicano il loro processo solo come `principalProcess`, il processo che ha agito. Non vengono completati in seguito: conservano ciò con cui sono stati memorizzati fino alla fine della loro conservazione.
 
 ## Esplorare gli eventi di sicurezza
 
