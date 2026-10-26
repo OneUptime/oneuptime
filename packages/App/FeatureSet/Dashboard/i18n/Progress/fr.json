@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 9539
+    "keys": 35082,
+    "untranslated": 7675
   },
   "sameAsEnglish": [
     " incidents",
@@ -444,25 +444,25 @@
     "vCenters",
     "vSphere Client",
     "z",
-    "{{count}} VMs_one",
+    "{{count}} VM",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} cluster",
     "{{count}} clusters",
-    "{{count}} clusters_one",
+    "{{count}} datacenter",
     "{{count}} datacenters",
-    "{{count}} datacenters_one",
+    "{{count}} datastore",
     "{{count}} datastores",
-    "{{count}} datastores_one",
     "{{count}} incident",
     "{{count}} incidents",
+    "{{count}} minute",
     "{{count}} minutes",
-    "{{count}} minutes_one",
     "{{count}} option",
     "{{count}} options",
     "{{count}} rotation",
     "{{count}} rotations",
+    "{{count}} source",
     "{{count}} sources",
-    "{{count}} sources_one",
     "{{minutes}} min",
     "{{protocol}} port {{port}}"
   ]

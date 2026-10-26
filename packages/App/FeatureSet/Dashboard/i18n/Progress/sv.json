@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 16490
+    "keys": 35082,
+    "untranslated": 13541
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -165,18 +165,18 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
-    "{{count}} VMs_one",
+    "{{count}} VM",
     "{{count}} appliance",
-    "{{count}} datacenters_one",
-    "{{count}} filters ({{condition}})_one",
-    "{{count}} filters_one",
+    "{{count}} datacenter",
+    "{{count}} filter",
+    "{{count}} filter ({{condition}})",
     "{{count}} incident",
-    "{{count}} people_one",
+    "{{count}} person",
     "{{count}} process",
     "{{count}} rotation",
+    "{{count}} sample",
     "{{count}} samples",
-    "{{count}} samples_one",
-    "{{count}} teams_one",
+    "{{count}} team",
     "{{minutes}} min",
     "{{tokens}} tokens"
   ]

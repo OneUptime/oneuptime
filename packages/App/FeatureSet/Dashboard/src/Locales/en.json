@@ -28391,7 +28391,6 @@
   "Security events naming it in the last 7 days": "Security events naming it in the last 7 days",
   "Security operations figures": "Security operations figures",
   "Send a webhook": "Send a webhook",
-  "Set Priority: {{priority}}": "Set Priority: {{priority}}",
   "Set the priority": "Set the priority",
   "Set the status": "Set the status",
   "Set up security operations": "Set up security operations",
@@ -28607,7 +28606,6 @@
   "Search monitors, incidents, status pages and more…": "Search monitors, incidents, status pages and more…",
   "The next scheduled maintenance windows, soonest first.": "The next scheduled maintenance windows, soonest first.",
   "There are no open incidents or alerts, every monitor is operational and every SLO is within its error budget.": "There are no open incidents or alerts, every monitor is operational and every SLO is within its error budget.",
-  "This list could not be loaded. Use Refresh above to try again.": "This list could not be loaded. Use Refresh above to try again.",
   "Upcoming maintenance": "Upcoming maintenance",
   "Updated just now": "Updated just now",
   "Updated {{time}}": "Updated {{time}}",
@@ -28722,7 +28720,6 @@
   "{{type}}: {{value}} - open it in Correlate": "{{type}}: {{value}} - open it in Correlate",
   "Assignment": "Assignment",
   "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.": "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.",
-  "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
   "open cases assigned to you_one": "open case assigned to you",
   "open cases nobody has picked up_one": "open case nobody has picked up",
   "playbook steps waiting for approval_one": "playbook step waiting for approval",
@@ -35119,5 +35116,9 @@
   "Workflow Viewer": "Workflow Viewer",
   "vSAN congestion in each cluster. Anything above zero means vSAN is slowing down reads and writes.": "vSAN congestion in each cluster. Anything above zero means vSAN is slowing down reads and writes.",
   "vSAN congestion in this cluster. Anything above zero means vSAN is slowing down reads and writes.": "vSAN congestion in this cluster. Anything above zero means vSAN is slowing down reads and writes.",
-  "{{field}} is not": "{{field}} is not"
+  "{{field}} is not": "{{field}} is not",
+  "Custom List": "Custom List",
+  "Project Labels": "Project Labels",
+  "Telemetry Attribute": "Telemetry Attribute",
+  "Text Input": "Text Input"
 }

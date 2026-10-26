@@ -23794,7 +23794,7 @@
   "The diagnostic was created but its id did not come back.": "The diagnostic was created but its id did not come back.",
   "The selected dashboard does not have a valid ID.": "The selected dashboard does not have a valid ID.",
   "This dashboard could not be loaded.": "This dashboard could not be loaded.",
-  "Not seen recently": "Not seen recently",
+  "Not seen recently": "No visto recientemente",
   "Seen recently: in the last {{liveWindow}} minutes, discovery found spans or broker metrics naming this queue. It runs every {{interval}} minutes over the last {{window}} minutes of telemetry, and over the last {{cloudWindow}} minutes of cloud monitoring metrics, which arrive late.": "Seen recently: in the last {{liveWindow}} minutes, discovery found spans or broker metrics naming this queue. It runs every {{interval}} minutes over the last {{window}} minutes of telemetry, and over the last {{cloudWindow}} minutes of cloud monitoring metrics, which arrive late.",
   "Events scheduled from this template start with these labels.": "Los eventos programados desde esta plantilla empiezan con estas etiquetas.",
   "Incidents declared from this template start with these labels.": "Los incidentes declarados desde esta plantilla empiezan con estas etiquetas.",
@@ -28391,7 +28391,6 @@
   "Security events naming it in the last 7 days": "Eventos de seguridad que lo nombran en los últimos 7 días",
   "Security operations figures": "Cifras de seguridad",
   "Send a webhook": "Enviar un webhook",
-  "Set Priority: {{priority}}": "Establecer prioridad: {{priority}}",
   "Set the priority": "Establecer la prioridad",
   "Set the status": "Establecer el estado",
   "Set up security operations": "Set up security operations",
@@ -28607,7 +28606,6 @@
   "Search monitors, incidents, status pages and more…": "Buscar monitores, incidentes, páginas de estado y más…",
   "The next scheduled maintenance windows, soonest first.": "Las próximas ventanas de mantenimiento programadas, primero las más cercanas.",
   "There are no open incidents or alerts, every monitor is operational and every SLO is within its error budget.": "No hay incidentes ni alertas abiertos, todos los monitores están operativos y todos los SLO están dentro de su presupuesto de errores.",
-  "This list could not be loaded. Use Refresh above to try again.": "No se pudo cargar esta lista. Usa «Actualizar» arriba para volver a intentarlo.",
   "Upcoming maintenance": "Próximos mantenimientos",
   "Updated just now": "Actualizado justo ahora",
   "Updated {{time}}": "Actualizado {{time}}",
@@ -28722,7 +28720,6 @@
   "{{type}}: {{value}} - open it in Correlate": "{{type}}: {{value}} - ábrelo en Correlacionar",
   "Assignment": "Asignación",
   "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.": "El paso {{number}} ({{title}}) se quita del playbook. Las ejecuciones ya en curso conservan los pasos con los que empezaron.",
-  "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} y sus detecciones, notas y cronología se eliminan para siempre. Para conservar el registro, ciérrelo con un veredicto.",
   "open cases assigned to you_one": "caso abierto asignado a ti",
   "open cases nobody has picked up_one": "caso abierto que nadie ha tomado",
   "playbook steps waiting for approval_one": "paso de playbook esperando aprobación",
@@ -35119,5 +35116,9 @@
   "Workflow Viewer": "Visor de flujos de trabajo",
   "vSAN congestion in each cluster. Anything above zero means vSAN is slowing down reads and writes.": "Congestión de vSAN en cada clúster. Cualquier valor por encima de cero significa que vSAN está ralentizando las lecturas y escrituras.",
   "vSAN congestion in this cluster. Anything above zero means vSAN is slowing down reads and writes.": "Congestión de vSAN en este clúster. Cualquier valor por encima de cero significa que vSAN está ralentizando las lecturas y escrituras.",
-  "{{field}} is not": "{{field}} no es"
+  "{{field}} is not": "{{field}} no es",
+  "Custom List": "Lista personalizada",
+  "Project Labels": "Etiquetas del proyecto",
+  "Telemetry Attribute": "Atributo de telemetría",
+  "Text Input": "Entrada de texto"
 }

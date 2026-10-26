@@ -28391,7 +28391,6 @@
   "Security events naming it in the last 7 days": "過去 7 日間にこれが含まれたセキュリティイベント",
   "Security operations figures": "セキュリティの指標",
   "Send a webhook": "Webhook を送信",
-  "Set Priority: {{priority}}": "優先度を設定: {{priority}}",
   "Set the priority": "優先度を設定",
   "Set the status": "ステータスを設定",
   "Set up security operations": "Set up security operations",
@@ -28607,7 +28606,6 @@
   "Search monitors, incidents, status pages and more…": "モニター、インシデント、ステータスページなどを検索…",
   "The next scheduled maintenance windows, soonest first.": "今後予定されているメンテナンスの時間枠を、近い順に表示します。",
   "There are no open incidents or alerts, every monitor is operational and every SLO is within its error budget.": "未解決のインシデントやアラートはなく、すべてのモニターが稼働中で、すべての SLO がエラーバジェットの範囲内です。",
-  "This list could not be loaded. Use Refresh above to try again.": "このリストを読み込めませんでした。上の「更新」でもう一度お試しください。",
   "Upcoming maintenance": "今後のメンテナンス",
   "Updated just now": "たった今更新",
   "Updated {{time}}": "{{time}}に更新",
@@ -28722,7 +28720,6 @@
   "{{type}}: {{value}} - open it in Correlate": "{{type}}: {{value}} - 相関分析で開く",
   "Assignment": "割り当て",
   "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.": "ステップ {{number}} ({{title}}) をプレイブックから削除します。すでに進行中の実行は、開始時のステップのまま続きます。",
-  "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} とその検出、メモ、タイムラインは完全に削除されます。記録を残すには、代わりに判定を付けてクローズしてください。",
   "open cases assigned to you_one": "件の未解決ケースがあなたに割り当て済み",
   "open cases nobody has picked up_one": "件の未解決ケースが未担当",
   "playbook steps waiting for approval_one": "件のプレイブックのステップが承認待ち",
@@ -35119,5 +35116,9 @@
   "Workflow Viewer": "ワークフロー閲覧者",
   "vSAN congestion in each cluster. Anything above zero means vSAN is slowing down reads and writes.": "各クラスターの vSAN の輻輳。ゼロを超える場合、vSAN が読み取りと書き込みを遅くしています。",
   "vSAN congestion in this cluster. Anything above zero means vSAN is slowing down reads and writes.": "このクラスターの vSAN の輻輳。ゼロを超える場合、vSAN が読み取りと書き込みを遅くしています。",
-  "{{field}} is not": "{{field}}（除外）"
+  "{{field}} is not": "{{field}}（除外）",
+  "Custom List": "カスタムリスト",
+  "Project Labels": "プロジェクトラベル",
+  "Telemetry Attribute": "テレメトリ属性",
+  "Text Input": "テキスト入力"
 }

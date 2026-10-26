@@ -1052,12 +1052,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ),
           })}
           icon={IconProp.Check}
-          value={getTimeToStateText({
-            startedAt: responseTimes.startedAt,
-            reachedAt: responseTimes.acknowledgedAt,
-            stateName: acknowledgeState?.name,
-            fallbackStateName: "Acknowledged",
-          }, translator)}
+          value={getTimeToStateText(
+            {
+              startedAt: responseTimes.startedAt,
+              reachedAt: responseTimes.acknowledgedAt,
+              stateName: acknowledgeState?.name,
+              fallbackStateName: "Acknowledged",
+            },
+            translator,
+          )}
           note={getAcknowledgedAfterPagingText(
             {
               firstPagedAt: alertFirstPagedAt,
@@ -1073,12 +1076,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stateName: translatableTerm(resolvedState?.name || "Resolved"),
           })}
           icon={IconProp.CheckCircle}
-          value={getTimeToStateText({
-            startedAt: responseTimes.startedAt,
-            reachedAt: responseTimes.resolvedAt,
-            stateName: resolvedState?.name,
-            fallbackStateName: "Resolved",
-          }, translator)}
+          value={getTimeToStateText(
+            {
+              startedAt: responseTimes.startedAt,
+              reachedAt: responseTimes.resolvedAt,
+              stateName: resolvedState?.name,
+              fallbackStateName: "Resolved",
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.resolvedAt)}
         />
       </EventStatBar>

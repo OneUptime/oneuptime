@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 16400
+    "keys": 35082,
+    "untranslated": 13471
   },
   "sameAsEnglish": [
     "2xx",
@@ -65,7 +65,7 @@
     "vCenter",
     "vSphere Client",
     "z",
-    "{{count}} VMs_one",
-    "{{count}} datastores_one"
+    "{{count}} VM",
+    "{{count}} datastore"
   ]
 }

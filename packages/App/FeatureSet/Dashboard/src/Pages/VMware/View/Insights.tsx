@@ -152,8 +152,7 @@ function getHostQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "host_memory_usage",
         title: "Host Memory Usage",
-        description:
-          "Memory in use on each ESXi host, one line per host.",
+        description: "Memory in use on each ESXi host, one line per host.",
         legend: "Memory",
         legendUnit: "",
         metricName: "vcenter.host.memory.usage",
@@ -274,8 +273,7 @@ function getDatastoreQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "datastore_used",
         title: "Datastore Used Space",
-        description:
-          "Space used on each datastore, one line per datastore.",
+        description: "Space used on each datastore, one line per datastore.",
         legend: "Used",
         legendUnit: "",
         metricName: "vcenter.datastore.disk.usage",
@@ -352,8 +350,7 @@ function getClusterQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "cluster_vm_count",
         title: "Cluster VMs by Power State",
-        description:
-          "Virtual machines in each cluster, split by power state.",
+        description: "Virtual machines in each cluster, split by power state.",
         legend: "VMs",
         legendUnit: "",
         metricName: "vcenter.cluster.vm.count",
@@ -384,8 +381,7 @@ function getResourcePoolQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "resource_pool_cpu",
         title: "Resource Pool CPU Usage",
-        description:
-          "CPU used by each resource pool, one line per pool.",
+        description: "CPU used by each resource pool, one line per pool.",
         legend: "CPU",
         legendUnit: "MHz",
         metricName: "vcenter.resource_pool.cpu.usage",

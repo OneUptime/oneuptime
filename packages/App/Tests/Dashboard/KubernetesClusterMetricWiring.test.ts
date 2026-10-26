@@ -274,11 +274,23 @@ describe("cluster overview: golden charts", () => {
       header,
       "<InfoTooltip label={props.title} text={props.description} />",
     );
-    expectCode(header, "{props.title}");
+    expectCode(
+      header,
+      "{translator.translateText(props.title) || props.title}",
+    );
     // Loading skeleton and loaded chart.
     expect(countOf(card, "{header}")).toBe(2);
-    // The title is drawn once (the (i) only names itself after it).
-    expect(countOf(tight(card), ">{props.title}<")).toBe(1);
+    /*
+     * The title is drawn once, in the reader's language (the (i) only names
+     * itself after the English title, which it translates itself).
+     */
+    expect(
+      countOf(
+        tight(card),
+        tight(">{translator.translateText(props.title) || props.title}<"),
+      ),
+    ).toBe(1);
+    expect(countOf(tight(card), ">{props.title}<")).toBe(0);
   });
 });
 

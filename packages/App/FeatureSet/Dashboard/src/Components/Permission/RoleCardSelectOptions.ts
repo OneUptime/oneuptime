@@ -242,9 +242,15 @@ export const ROLE_NAMES: Partial<Record<Permission, string>> = {
   [Permission.OnCallAdmin]: translationKey("On-Call Admin"),
   [Permission.OnCallMember]: translationKey("On-Call Member"),
   [Permission.OnCallViewer]: translationKey("On-Call Viewer"),
-  [Permission.ScheduledMaintenanceAdmin]: translationKey("Scheduled Maintenance Admin"),
-  [Permission.ScheduledMaintenanceMember]: translationKey("Scheduled Maintenance Member"),
-  [Permission.ScheduledMaintenanceViewer]: translationKey("Scheduled Maintenance Viewer"),
+  [Permission.ScheduledMaintenanceAdmin]: translationKey(
+    "Scheduled Maintenance Admin",
+  ),
+  [Permission.ScheduledMaintenanceMember]: translationKey(
+    "Scheduled Maintenance Member",
+  ),
+  [Permission.ScheduledMaintenanceViewer]: translationKey(
+    "Scheduled Maintenance Viewer",
+  ),
   [Permission.TelemetryAdmin]: translationKey("Telemetry Admin"),
   [Permission.TelemetryMember]: translationKey("Telemetry Member"),
   [Permission.TelemetryViewer]: translationKey("Telemetry Viewer"),

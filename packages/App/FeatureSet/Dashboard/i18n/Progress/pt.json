@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 16477
+    "keys": 35082,
+    "untranslated": 13524
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -156,18 +156,18 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{count}} VM",
     "{{count}} VMs",
-    "{{count}} VMs_one",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} cluster",
     "{{count}} clusters",
-    "{{count}} clusters_one",
+    "{{count}} datacenter",
     "{{count}} datacenters",
-    "{{count}} datacenters_one",
+    "{{count}} datastore",
     "{{count}} datastores",
-    "{{count}} datastores_one",
+    "{{count}} host",
     "{{count}} hosts",
-    "{{count}} hosts_one",
     "{{minutes}} min",
     "{{tokens}} tokens"
   ]
