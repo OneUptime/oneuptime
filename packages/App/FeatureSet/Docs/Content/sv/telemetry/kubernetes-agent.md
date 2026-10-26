@@ -258,7 +258,7 @@ Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Sök bland dem i **Loggar**, eller släpp dem du inte vill ha med ett drop-filter. För att få besked när en inträffar slår du på **Warning Events** på klustrets sida **Recommendations**, eller väljer **Slå på larm för varningar** längst ned på dess sida **Händelser**: en [loggmonitor](/docs/monitor/logs-monitor) på klustrets varningar som ger ett larm per objekt och orsak, och löser det när 5 minuter har gått utan en ny varning om det. För att bara få besked om vissa orsaker lägger du till `k8s.event.reason` i dess filter.
+Sök bland dem i **Loggar**, eller släpp dem du inte vill ha med ett drop-filter. För att få besked när en inträffar slår du på **Warning Events** på klustrets sida **Rekommendationer**, eller väljer **Slå på larm för varningar** längst ned på dess sida **Händelser**: en [loggmonitor](/docs/monitor/logs-monitor) på klustrets varningar som ger ett larm per objekt och orsak, och löser det när 5 minuter har gått utan en ny varning om det. För att bara få besked om vissa orsaker lägger du till `k8s.event.reason` i dess filter.
 
 ## Konfigurationsalternativ
 

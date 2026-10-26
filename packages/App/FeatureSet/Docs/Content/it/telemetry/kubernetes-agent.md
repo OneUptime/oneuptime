@@ -258,7 +258,7 @@ Ogni evento è anche un log. Un'avvertenza viene salvata con la gravità **Warni
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Cercali in **Registri**, oppure scarta quelli che non vuoi con un filtro di scarto. Per ricevere un avviso quando ne accade uno, attiva **Warning Events** nella pagina **Recommendations** del cluster, oppure seleziona **Attiva gli avvisi per le avvertenze** in fondo alla sua pagina **Eventi**: un [monitor dei log](/docs/monitor/logs-monitor) sulle avvertenze del cluster, che genera un avviso per oggetto e motivo e lo risolve dopo 5 minuti senza una nuova avvertenza su di esso. Per ricevere avvisi solo per alcuni motivi, aggiungi `k8s.event.reason` al suo filtro.
+Cercali in **Registri**, oppure scarta quelli che non vuoi con un filtro di scarto. Per ricevere un avviso quando ne accade uno, attiva **Warning Events** nella pagina **Raccomandazioni** del cluster, oppure seleziona **Attiva gli avvisi per le avvertenze** in fondo alla sua pagina **Eventi**: un [monitor dei log](/docs/monitor/logs-monitor) sulle avvertenze del cluster, che genera un avviso per oggetto e motivo e lo risolve dopo 5 minuti senza una nuova avvertenza su di esso. Per ricevere avvisi solo per alcuni motivi, aggiungi `k8s.event.reason` al suo filtro.
 
 ## Opzioni di configurazione
 

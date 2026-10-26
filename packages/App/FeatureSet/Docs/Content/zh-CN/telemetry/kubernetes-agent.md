@@ -258,7 +258,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **Recommendations** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条告警，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
+可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **建议** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条告警，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
 
 ## 配置选项
 

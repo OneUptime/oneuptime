@@ -258,7 +258,7 @@ Elk event is ook een log. Een waarschuwing wordt opgeslagen met de ernst **Warni
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Doorzoek ze in **Logboeken**, of laat de events die je niet wilt vallen met een drop-filter. Om bericht te krijgen wanneer er een gebeurt, schakel je **Warning Events** in op de pagina **Recommendations** van het cluster, of kies je **Meldingen voor waarschuwingen inschakelen** onderaan zijn pagina **Gebeurtenissen**: een [logmonitor](/docs/monitor/logs-monitor) op de waarschuwingen van het cluster die één melding per object en reden geeft, en die oplost zodra er 5 minuten zonder nieuwe waarschuwing over voorbij zijn. Om alleen over sommige redenen bericht te krijgen, voeg je `k8s.event.reason` toe aan het filter.
+Doorzoek ze in **Logboeken**, of laat de events die je niet wilt vallen met een drop-filter. Om bericht te krijgen wanneer er een gebeurt, schakel je **Warning Events** in op de pagina **Aanbevelingen** van het cluster, of kies je **Meldingen voor waarschuwingen inschakelen** onderaan zijn pagina **Gebeurtenissen**: een [logmonitor](/docs/monitor/logs-monitor) op de waarschuwingen van het cluster die één melding per object en reden geeft, en die oplost zodra er 5 minuten zonder nieuwe waarschuwing over voorbij zijn. Om alleen over sommige redenen bericht te krijgen, voeg je `k8s.event.reason` toe aan het filter.
 
 ## Configuratieopties
 
