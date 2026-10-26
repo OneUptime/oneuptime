@@ -53,6 +53,15 @@ import {
   PUBLIC_AUTO_REFRESH_MENU_LABEL,
   PUBLIC_AUTO_REFRESH_MENU_TEST_ID,
 } from "./DashboardToolbarCopy";
+import {
+  PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX,
+  PUBLIC_DASHBOARD_BOARD_TEST_ID,
+  PUBLIC_DASHBOARD_FRAME_CLASS_NAME,
+  PUBLIC_DASHBOARD_FRAME_TEST_ID,
+  PUBLIC_DASHBOARD_HEADER_TEST_ID,
+  PUBLIC_DASHBOARD_PAGE_TEST_ID,
+  PUBLIC_DASHBOARD_TOOLBAR_TEST_ID,
+} from "./DashboardViewLayout";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -91,7 +100,8 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   > | null> = useRef<ReturnType<typeof setInterval> | null>(null);
   const [refreshTick, setRefreshTick] = useState<number>(0);
 
-  const dashboardViewRef: React.RefObject<HTMLDivElement> =
+  // The board itself: as wide as the page, and never under 1000px.
+  const boardRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
   const [dashboardTotalWidth, setDashboardTotalWidth] = useState<number>(0);
@@ -101,11 +111,11 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
   const handleResize: VoidFunction = (): void => {
-    setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
+    setDashboardTotalWidth(boardRef.current?.offsetWidth || 0);
   };
 
   useEffect(() => {
-    setDashboardTotalWidth(dashboardViewRef.current?.offsetWidth || 0);
+    setDashboardTotalWidth(boardRef.current?.offsetWidth || 0);
     window.addEventListener("resize", handleResize);
 
     return () => {
@@ -277,6 +287,13 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
+  // Once the board is drawn, the width its widgets are laid out in.
+  useEffect(() => {
+    if (!isLoading) {
+      setDashboardTotalWidth(boardRef.current?.offsetWidth || 0);
+    }
+  }, [isLoading]);
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -289,15 +306,21 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
    * The page and the canvas take the dashboard's own grounds
    * (Common/UI/Styles/Theme.css), the ones the dashboard your team sees is
    * drawn on, so each is right in the light theme and the dark one.
+   *
+   * The page is the width of the screen. Only the board keeps the width its
+   * twelve columns are laid out for (PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX),
+   * and on a narrower screen - a phone - it scrolls sideways inside its own
+   * frame. The whole page used to be 1000px wide, so on a phone the
+   * toolbar - auto-refresh, theme, full screen - sat past the right edge,
+   * and the header and footer scrolled away with the board.
    */
   return (
     <div
-      ref={dashboardViewRef}
       className="min-h-screen"
       style={{
-        minWidth: "1000px",
         background: "var(--ou-background-primary, #f8f9fb)",
       }}
+      data-testid={PUBLIC_DASHBOARD_PAGE_TEST_ID}
     >
       {/* Header */}
       <div
@@ -305,11 +328,17 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         style={{
           boxShadow: "var(--ou-shadow-sm, 0 1px 3px 0 rgba(0, 0, 0, 0.05))",
         }}
+        data-testid={PUBLIC_DASHBOARD_HEADER_TEST_ID}
       >
-        <div className="max-w-7xl mx-auto px-5 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-5">
+          {/*
+           * The title and the toolbar on one row while they fit; on a
+           * phone, when the toolbar is wider than the title leaves room for
+           * (Reset Zoom showing), it moves under the title, at the right.
+           */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             {/* Logo + Title + Description */}
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex min-w-0 flex-1 basis-40 items-center gap-3 sm:gap-4">
               {logoUrl && (
                 <LogoPlate className="flex-shrink-0">
                   <img
@@ -332,7 +361,10 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div
+              className="ml-auto flex items-center gap-2 flex-shrink-0"
+              data-testid={PUBLIC_DASHBOARD_TOOLBAR_TEST_ID}
+            >
               {isRefreshing &&
                 autoRefreshInterval !== AutoRefreshInterval.OFF && (
                   <span className="inline-flex items-center gap-1.5 text-xs text-blue-600">
@@ -509,38 +541,49 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Dashboard Canvas */}
+      {/*
+       * Dashboard Canvas: the board in a frame of its own, which scrolls it
+       * sideways where the screen is narrower than the board, and is what
+       * Full Screen shows.
+       */}
       <div
         ref={dashboardCanvasRef}
-        className="mt-3"
+        className={`mt-3 ${PUBLIC_DASHBOARD_FRAME_CLASS_NAME}`}
         style={{ background: "var(--ou-surface-primary, #ffffff)" }}
+        data-testid={PUBLIC_DASHBOARD_FRAME_TEST_ID}
       >
-        <DashboardCanvas
-          dashboardViewConfig={dashboardViewConfig}
-          onDashboardViewConfigChange={(_config: DashboardViewConfig) => {
-            // Read-only in public view
-          }}
-          isEditMode={false}
-          selectedComponentId={null}
-          onComponentSelected={(_id: ObjectID) => {
-            // No selection in public view
-          }}
-          onComponentUnselected={() => {
-            // No unselection in public view
-          }}
-          currentTotalDashboardWidthInPx={dashboardTotalWidth}
-          dashboardStartAndEndDate={startAndEndDate}
-          metrics={{
-            metricTypes: metricTypes,
-            telemetryAttributes: [],
-          }}
-          refreshTick={refreshTick}
-          variables={dashboardVariables}
-          dashboardId={props.dashboardId.toString()}
-          onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
-          onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
-          isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
-        />
+        <div
+          ref={boardRef}
+          style={{ minWidth: `${PUBLIC_DASHBOARD_BOARD_MIN_WIDTH_IN_PX}px` }}
+          data-testid={PUBLIC_DASHBOARD_BOARD_TEST_ID}
+        >
+          <DashboardCanvas
+            dashboardViewConfig={dashboardViewConfig}
+            onDashboardViewConfigChange={(_config: DashboardViewConfig) => {
+              // Read-only in public view
+            }}
+            isEditMode={false}
+            selectedComponentId={null}
+            onComponentSelected={(_id: ObjectID) => {
+              // No selection in public view
+            }}
+            onComponentUnselected={() => {
+              // No unselection in public view
+            }}
+            currentTotalDashboardWidthInPx={dashboardTotalWidth}
+            dashboardStartAndEndDate={startAndEndDate}
+            metrics={{
+              metricTypes: metricTypes,
+              telemetryAttributes: [],
+            }}
+            refreshTick={refreshTick}
+            variables={dashboardVariables}
+            dashboardId={props.dashboardId.toString()}
+            onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
+            onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
+            isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
+          />
+        </div>
       </div>
 
       {/* Footer */}

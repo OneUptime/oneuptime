@@ -77,6 +77,9 @@ const DASHBOARDS: Record<DashboardKey, string> = {
 
 const PASSWORD: string = "open sesame";
 
+// "enter the password", "Enter password", in any case: the prompt's ask.
+const ENTER_THE_PASSWORD: RegExp = /enter (the )?password/i;
+
 const STORAGE_KEY: string = "oneuptime-public-dashboard-theme";
 
 const LIGHT_CANVAS: string = "rgb(249, 250, 251)";
@@ -1235,5 +1238,211 @@ test.describe("every widget kind in the dark theme", () => {
     expect(await lightBoxes(page)).toEqual([]);
     expect(await lowContrastTexts(page)).toEqual([]);
     await shoot(page, testInfo, "time-range-dark");
+  });
+});
+
+/*
+ * The page at a phone's width (#5106, #5116 follow-up). The page was 1000px
+ * wide as a whole, so on a phone the toolbar - auto-refresh, theme, full
+ * screen - sat past the right edge and the header and footer scrolled away
+ * with the board. Now the page is the screen's width, and only the board,
+ * which keeps the 1000px its twelve columns are laid out for, scrolls
+ * sideways inside its own frame.
+ */
+test.describe("the page at a phone's width", () => {
+  interface PageBoxes {
+    viewport: number;
+    pageScroll: number;
+    header: { left: number; right: number };
+    toolbar: Array<{ name: string; left: number; right: number }>;
+    footer: { left: number; right: number };
+    frame: { clientWidth: number; scrollWidth: number; overflowX: string };
+    board: number;
+  }
+
+  const measure: (page: Page) => Promise<PageBoxes> = async (
+    page: Page,
+  ): Promise<PageBoxes> => {
+    return page.evaluate((): PageBoxes => {
+      const byTestId: (id: string) => HTMLElement = (
+        id: string,
+      ): HTMLElement => {
+        const element: HTMLElement | null = document.querySelector(
+          `[data-testid="${id}"]`,
+        );
+
+        if (!element) {
+          throw new Error(`No ${id} on the page`);
+        }
+
+        return element;
+      };
+      const span: (element: Element) => { left: number; right: number } = (
+        element: Element,
+      ): { left: number; right: number } => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return { left: box.left, right: box.right };
+      };
+      const frame: HTMLElement = byTestId("public-dashboard-board-frame");
+      const toolbar: HTMLElement = byTestId("public-dashboard-toolbar");
+
+      return {
+        viewport: document.documentElement.clientWidth,
+        pageScroll:
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+        header: span(byTestId("public-dashboard-header")),
+        toolbar: Array.from(toolbar.querySelectorAll("button")).map(
+          (button: HTMLButtonElement) => {
+            return {
+              name:
+                button.getAttribute("aria-label") ||
+                button.textContent ||
+                "button",
+              ...span(button),
+            };
+          },
+        ),
+        footer: span(byTestId("public-dashboard-powered-by")),
+        frame: {
+          clientWidth: frame.clientWidth,
+          scrollWidth: frame.scrollWidth,
+          overflowX: getComputedStyle(frame).overflowX,
+        },
+        board: byTestId("public-dashboard-board").getBoundingClientRect().width,
+      };
+    });
+  };
+
+  test("the header, the toolbar and the footer are on the screen; only the board scrolls, in its frame", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(
+      !testInfo.project.use.isMobile,
+      "What a phone's width changes: the 1280 test below covers the rest.",
+    );
+
+    await openDashboard(page, "light");
+
+    const boxes: PageBoxes = await measure(page);
+
+    // Nothing makes the page itself wider than the screen.
+    expect(boxes.pageScroll).toBe(0);
+    expect(boxes.header.left).toBeGreaterThanOrEqual(0);
+    expect(boxes.header.right).toBeLessThanOrEqual(boxes.viewport + 0.5);
+    expect(boxes.footer.right).toBeLessThanOrEqual(boxes.viewport + 0.5);
+
+    // Every toolbar control within reach, without scrolling to it.
+    expect(boxes.toolbar.length).toBeGreaterThanOrEqual(3);
+
+    for (const control of boxes.toolbar) {
+      expect([control.name, control.left >= 0]).toEqual([control.name, true]);
+      expect([control.name, control.right <= boxes.viewport + 0.5]).toEqual([
+        control.name,
+        true,
+      ]);
+    }
+
+    // The board keeps its grid's width and scrolls inside its frame.
+    expect(boxes.board).toBeGreaterThanOrEqual(1000);
+    expect(boxes.frame.overflowX).toBe("auto");
+    expect(boxes.frame.scrollWidth).toBeGreaterThan(boxes.frame.clientWidth);
+
+    await shoot(page, testInfo, "phone-page");
+  });
+
+  test("a real tap on the toolbar opens its menus: they are on the screen now", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's tap.");
+
+    await openDashboard(page, "light");
+
+    await page.getByTestId("public-dashboard-theme-menu-button").tap();
+    await expect(
+      page.getByTestId("public-dashboard-theme-menu-dark"),
+    ).toBeVisible();
+
+    const box: { x: number; width: number } | null = await page
+      .getByTestId("public-dashboard-theme-menu-dark")
+      .boundingBox();
+    const viewport: number = await page.evaluate((): number => {
+      return document.documentElement.clientWidth;
+    });
+
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport + 0.5);
+
+    await page.getByTestId("public-dashboard-theme-menu-dark").tap();
+    await expectScheme(page, "dark");
+    await shoot(page, testInfo, "phone-page-dark");
+  });
+
+  test("the board's frame scrolls sideways to its right edge, and back", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light");
+
+    const frame: Locator = page.getByTestId("public-dashboard-board-frame");
+
+    const scrolled: { left: number; max: number } = await frame.evaluate(
+      (element: Element): { left: number; max: number } => {
+        element.scrollLeft = element.scrollWidth;
+        return {
+          left: element.scrollLeft,
+          max: element.scrollWidth - element.clientWidth,
+        };
+      },
+    );
+
+    expect(scrolled.max).toBeGreaterThan(0);
+    expect(scrolled.left).toBe(scrolled.max);
+    // The page itself has not moved: the header stays where it was.
+    expect(
+      await page.evaluate((): number => {
+        return window.scrollX;
+      }),
+    ).toBe(0);
+  });
+
+  test("at 1280 nothing scrolls sideways, and the board is the page's width", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(Boolean(testInfo.project.use.isMobile), "The desktop's width.");
+
+    await openDashboard(page, "light");
+
+    const boxes: PageBoxes = await measure(page);
+
+    expect(boxes.pageScroll).toBe(0);
+    // No scroll frame where the board fits: a chart's tooltip is never cut.
+    expect(boxes.frame.overflowX).toBe("visible");
+    expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
+    expect(Math.abs(boxes.board - boxes.viewport)).toBeLessThanOrEqual(1);
+  });
+
+  test("the password prompt fits a phone, and names the dashboard once", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "darkPassword", "", "prompt");
+
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+    await expect(page.getByTestId("master-password-prompt")).toHaveText(
+      "Enter the password to view this dashboard.",
+    );
+    await expect(page.getByText(ENTER_THE_PASSWORD)).toHaveCount(1);
+
+    await shoot(page, testInfo, "phone-password-prompt");
   });
 });
