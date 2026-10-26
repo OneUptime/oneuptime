@@ -24,13 +24,25 @@ export interface ComponentProps {
    * bar's lit item is: announced as "current page" (aria-current).
    */
   isCurrentPage?: boolean | undefined;
+  /*
+   * Which current item this link is, said in aria-current, when it is one:
+   * "page" for a link to the very page the user is on, "true" for the one
+   * that holds it (a list whose record is open, a section's entry). A side
+   * menu marks its entry by colour, and this says the same thing to a
+   * screen reader. It wins over isCurrentPage.
+   */
+  ariaCurrent?: LinkAriaCurrent | undefined;
 }
+
+export type LinkAriaCurrent = "page" | "true";
 
 const Link: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const title: string | undefined = translateString(props.title);
+  const ariaCurrent: LinkAriaCurrent | undefined =
+    props.ariaCurrent || (props.isCurrentPage ? "page" : undefined);
   let children: ReactNode;
 
   if (
@@ -59,6 +71,7 @@ const Link: FunctionComponent<ComponentProps> = (
         onMouseLeave={props.onMouseLeave}
         style={props.style}
         title={title}
+        aria-current={ariaCurrent}
       >
         {children}
       </span>
@@ -102,7 +115,7 @@ const Link: FunctionComponent<ComponentProps> = (
       style={props.style}
       title={title}
       aria-label={title}
-      aria-current={props.isCurrentPage ? "page" : undefined}
+      aria-current={ariaCurrent}
       onKeyDown={(event: React.KeyboardEvent<HTMLAnchorElement>) => {
         /*
          * For onClick-only links (no href) we render role="button"; activate them

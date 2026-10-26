@@ -13,6 +13,8 @@ import {
   RECENT_PRODUCTS_REMEMBERED,
   RECENT_PRODUCTS_SHOWN,
   RECENT_PRODUCTS_STORAGE_KEY,
+  doesMenuShowRecentProducts,
+  getVisitedProductRoute,
   pickRecentProducts,
   readRecentProductRoutes,
   rememberRecentProductRoute,
@@ -673,5 +675,51 @@ describe("remembering and showing together", () => {
     expect(
       titlesOf(pickRecentProducts(readRecentProductRoutes(), CATALOG, onHome)),
     ).toEqual(["Metrics", "Traces", "Logs", "Alerts", "Incidents", "Monitors"]);
+  });
+});
+
+/*
+ * Which menus have the row at all, and which product a page counts as.
+ * The navbar remembers the product of every page it is drawn on, however
+ * the user got there (#4922's follow-up), but only for a menu that draws
+ * the row: one that folds its categories, as the Dashboard's.
+ */
+describe("which menus remember products", () => {
+  test("a menu that names the categories it opens on, and so folds the rest, has the row", () => {
+    expect(doesMenuShowRecentProducts(["Essentials"])).toBe(true);
+    // Folding with nothing open by default still folds.
+    expect(doesMenuShowRecentProducts([])).toBe(true);
+  });
+
+  test("a menu that shows every category at once has none", () => {
+    expect(doesMenuShowRecentProducts(undefined)).toBe(false);
+  });
+});
+
+describe("the product a page counts as (getVisitedProductRoute)", () => {
+  test("is the menu's product that marks the page as its own", () => {
+    expect(
+      getVisitedProductRoute(CATALOG, (item: MoreMenuItem): boolean => {
+        return item.title === "Logs";
+      }),
+    ).toBe(routeOf("Logs"));
+  });
+
+  // Logs comes before Traces in the menu.
+  test("is the first such product, as the menu itself marks it", () => {
+    expect(
+      getVisitedProductRoute(CATALOG, (item: MoreMenuItem): boolean => {
+        return item.title === "Traces" || item.title === "Logs";
+      }),
+    ).toBe(routeOf("Logs"));
+  });
+
+  test("is nothing on a page of no product, or in an empty menu", () => {
+    expect(getVisitedProductRoute(CATALOG, onHome)).toBeUndefined();
+    expect(
+      getVisitedProductRoute([], (): boolean => {
+        return true;
+      }),
+    ).toBeUndefined();
   });
 });

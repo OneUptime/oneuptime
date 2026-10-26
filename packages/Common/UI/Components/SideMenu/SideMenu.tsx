@@ -1,11 +1,15 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  RefObject,
   useContext,
+  useId,
+  useRef,
   useState,
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
+import { revealCurrentSideMenuEntry } from "./SideMenuScroll";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -161,6 +165,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
+  // The lists that scroll: the desktop menu's, and the phone menu's when open.
+  const desktopListRef: RefObject<HTMLElement> = useRef<HTMLElement>(null);
+  const mobileListRef: RefObject<HTMLElement> = useRef<HTMLElement>(null);
+  const mobileMenuId: string = `side-menu-${useId()}`;
+  const currentPath: string = Navigation.getCurrentPath().toString();
 
   // Use the existing outside click hook for mobile menu
   const {
@@ -400,21 +409,51 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         ? pageTrailEnd.title
         : translateString(pageTrailEnd.title))
     : undefined;
-  const displayText: string =
+  // The section named before the page, when the summary names one.
+  const summarySection: string | undefined =
     translatedSectionTitle && translatedItemTitle && !isPageNamedLikeSection
-      ? `${translatedSectionTitle} / ${translatedItemTitle}`
-      : translatedItemTitle ||
-        pageTrailEndTitle ||
-        translateString("Navigation") ||
-        "Navigation";
+      ? translatedSectionTitle
+      : undefined;
+  const summaryPage: string =
+    translatedItemTitle ||
+    pageTrailEndTitle ||
+    translateString("Navigation") ||
+    "Navigation";
 
-  // Re-run active item detection when location changes
+  /*
+   * The lit entry, in sight inside the menu when a page opens (SideMenuScroll):
+   * after the next frame, once a section that holds the page has opened.
+   */
   useEffect(() => {
-    /*
-     * This will trigger a re-render when navigation changes
-     * The activeItem will be recalculated
-     */
-  }, [Navigation.getCurrentPath().toString()]);
+    if (isMobile) {
+      return;
+    }
+
+    let frame: number = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        revealCurrentSideMenuEntry(desktopListRef.current);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [currentPath, isMobile]);
+
+  // ...and in the phone's menu, each time it opens.
+  useEffect(() => {
+    if (!isMobile || !isMobileMenuVisible) {
+      return;
+    }
+
+    const frame: number = window.requestAnimationFrame(() => {
+      revealCurrentSideMenuEntry(mobileListRef.current);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [isMobile, isMobileMenuVisible]);
 
   // Render function for the menu content
   const renderMenuContent: () => ReactElement[] = (): ReactElement[] => {
@@ -581,12 +620,15 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             transition-all duration-200
             ${isMobileMenuVisible ? "ring-2 ring-indigo-100 border-indigo-200" : "hover:border-gray-300"}
           `}
+          /*
+           * Named by what it shows, "Navigate to Settings / Roles", and
+           * aria-expanded says whether its menu is open. A name of its own
+           * ("Open navigation menu") hid where the reader is from a screen
+           * reader, and a person speaking the words on the button could
+           * not press it.
+           */
           aria-expanded={isMobileMenuVisible}
-          aria-label={
-            isMobileMenuVisible
-              ? translateString("Close navigation menu")
-              : translateString("Open navigation menu")
-          }
+          aria-controls={isMobileMenuVisible ? mobileMenuId : undefined}
           data-testid="mobile-sidemenu-toggle"
         >
           <div className="flex items-center gap-2 min-w-0">
@@ -601,12 +643,31 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * at different edges. Both start at the icon's side, in a
              * right-to-left page too.
              */}
+            {/*
+             * Where the reader is, whole: cut to one line, "Notifications /
+             * Notification Settings" lost its last word, and a long name in
+             * German or French more. A second line takes the page's name
+             * whole when the two do not fit together - the section and the
+             * page each keep together while they fit a line - and a word
+             * longer than the line breaks at its edge.
+             */}
             <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
-              <h3 className="text-sm font-semibold text-gray-900 truncate">
-                {displayText}
+              <h3 className="text-sm font-semibold text-gray-900 break-words">
+                {summarySection ? (
+                  <>
+                    <span className="inline-block max-w-full">
+                      {`${summarySection} /`}
+                    </span>{" "}
+                    <span className="inline-block max-w-full">
+                      {summaryPage}
+                    </span>
+                  </>
+                ) : (
+                  summaryPage
+                )}
               </h3>
             </div>
           </div>
@@ -639,6 +700,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             {/* Menu Panel */}
             <div
               ref={mobileMenuRef}
+              id={mobileMenuId}
               className={`
                 relative z-50
                 mt-2
@@ -660,6 +722,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
               {/* Menu Items */}
               <nav
+                ref={mobileListRef}
                 className="p-2 max-h-[60vh] overflow-y-auto"
                 onClick={handleMenuItemClick}
               >
@@ -740,7 +803,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           )}
 
           {/* Menu Content */}
-          <nav className="p-2 min-h-0 overflow-y-auto">
+          <nav ref={desktopListRef} className="p-2 min-h-0 overflow-y-auto">
             <div className="space-y-1">{renderMenuContent()}</div>
           </nav>
 
