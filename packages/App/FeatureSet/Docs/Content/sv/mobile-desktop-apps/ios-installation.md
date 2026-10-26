@@ -77,7 +77,7 @@ Som standard följer ett jourlarm enhetens ljudinställningar: tyst läge hålle
 ```mermaid title="Om ett jourlarm ringer igenom på en iPhone eller iPad"
 flowchart TB
     Page["Ett jourlarm<br/>till den här enheten"]
-    Rule{"Regel satt till<br/>Kritisk varning?"}
+    Rule{"Regel satt till<br/>Kritiskt larm?"}
     Device{"Critical On-Call<br/>Alerts på?"}
     Quiet["Följer enhetens<br/>ljud och Fokus"]
     Loud["Spelar ditt larm,<br/>med din volym,<br/>genom tyst läge<br/>och Fokus"]

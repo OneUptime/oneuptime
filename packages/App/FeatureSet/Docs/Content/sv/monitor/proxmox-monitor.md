@@ -26,7 +26,7 @@ flowchart TB
     oneuptime -->|"första data"| registered["Kluster registrerat"]
     oneuptime --> monitor["Proxmox-monitor"]
     monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    criteria -->|"ja"| incident["Incident eller larm"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 

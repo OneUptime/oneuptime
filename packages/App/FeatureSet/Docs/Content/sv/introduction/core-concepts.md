@@ -18,7 +18,7 @@ flowchart TB
     probes["Sonder kontrollerar"] --> monitors["Monitorer"]
     telemetry["Appar och agenter<br/>skickar telemetri"] --> monitors
     monitors -->|"deklarerar"| incident["Incident"]
-    monitors -->|"skapar"| alert["Varning"]
+    monitors -->|"skapar"| alert["Larm"]
     incident --> policy["Jourpolicy"]
     alert --> policy
     incident --> statuspage["Statussida"]

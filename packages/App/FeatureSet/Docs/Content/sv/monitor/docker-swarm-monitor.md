@@ -29,7 +29,7 @@ flowchart TB
     oneuptime -->|"första data"| registered["Kluster<br/>registrerat"]
     oneuptime --> monitor["Docker<br/>Swarm-monitor"]
     monitor -->|"varje minut"| criteria{"Kriterier<br/>uppfyllda?"}
-    criteria -->|"ja"| incident["Incident<br/>eller varning"]
+    criteria -->|"ja"| incident["Incident<br/>eller larm"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 

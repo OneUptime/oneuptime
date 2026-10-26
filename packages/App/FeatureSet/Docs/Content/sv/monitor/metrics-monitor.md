@@ -18,7 +18,7 @@ flowchart TB
     Query --> Formula["Formler, som a / b * 100"]
     Formula --> Reduce["Kriteriets aggregering<br/>Genomsnitt, Maximum, Any Value"]
     Reduce --> Check{"Villkor uppfyllt?"}
-    Check -->|Ja| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|Ja| Act["Ändra status,<br/>larm eller incident"]
 ```
 
 Varje minut kör OneUptime var och en av monitorns metrikfrågor över dess tidsintervall. En fråga returnerar en datapunkt per tidsintervall, och formler kombinerar frågorna intervall för intervall. Varje kriterium reducerar sedan datapunkterna från den fråga eller formel som det kontrollerar (till deras genomsnitt, deras maximum eller ett test av varje punkt) och jämför resultatet med sitt tröskelvärde.

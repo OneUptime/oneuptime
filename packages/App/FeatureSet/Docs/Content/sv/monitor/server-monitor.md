@@ -23,7 +23,7 @@ flowchart TB
     agent["Infrastrukturagent"] -->|"Rapport var 30:e sekund"| oneuptime["OneUptime"]
     oneuptime --> criteria{"Kriterier uppfyllda?"}
     sweep["Kontroll varje minut"] -->|"Ingen rapport på 3 minuter"| criteria
-    criteria -->|"Ja"| outcome["Statusändring, varning eller incident"]
+    criteria -->|"Ja"| outcome["Statusändring, larm eller incident"]
 ```
 
 ## Innan du börjar

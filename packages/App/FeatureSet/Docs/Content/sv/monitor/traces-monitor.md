@@ -16,7 +16,7 @@ flowchart TB
     App["Dina tjänster"] -->|OpenTelemetry| Store[("Spans i OneUptime")]
     Store --> Count["Räkna matchande spans<br/>i tidsfönstret"]
     Count --> Check{"Kriterier uppfyllda?"}
-    Check -->|"Första träff"| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|"Första träff"| Act["Ändra status,<br/>larm eller incident"]
     Check -->|Inget| Default["Standardstatus"]
 ```
 

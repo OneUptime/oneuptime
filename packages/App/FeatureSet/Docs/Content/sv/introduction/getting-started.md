@@ -19,7 +19,7 @@ Allt börjar med något som du håller koll på. En monitor kontrollerar det enl
 flowchart TB
     probes["Sonder kontrollerar dina<br/>webbplatser och API:er"] --> monitors["Monitorer"]
     telemetry["Dina appar och agenter<br/>skickar telemetri"] --> monitors
-    monitors -->|"kriterier uppfyllda"| problems["Incidenter och varningar"]
+    monitors -->|"kriterier uppfyllda"| problems["Incidenter och larm"]
     problems --> oncall["Jourpolicyer<br/>larmar ditt team"]
     problems --> status["Statussidor<br/>informerar dina kunder"]
 ```

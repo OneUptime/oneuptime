@@ -18,7 +18,7 @@ flowchart TB
     Store --> Count["Matchande profiler<br/>i tidsfönstret"]
     Share --> Check{"Kriterier uppfyllda?"}
     Count --> Check
-    Check -->|"Första träff"| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|"Första träff"| Act["Ändra status,<br/>larm eller incident"]
     Check -->|Inget| Default["Standardstatus"]
 ```
 

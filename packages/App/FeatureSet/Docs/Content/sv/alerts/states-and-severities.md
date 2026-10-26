@@ -114,7 +114,7 @@ En allvarlighetsgrad larmar ingen på egen hand. För att larma efter allvarligh
 
 ## Arkivera en status eller allvarlighetsgrad
 
-Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar inget larm. Att ta bort en status tar bort dess rader ur varje varnings historik, och en allvarlighetsgrad kan inte tas bort så länge larm har den.
+Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar inget larm. Att ta bort en status tar bort dess rader ur varje larms historik, och en allvarlighetsgrad kan inte tas bort så länge larm har den.
 
 - **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de regler, mätningar, monitorkriterier och arbetsflöden som är inställda på att använda värdet: De fortsätter att använda det tills du ändrar dem.
 - **Ingen kan välja den igen.** **Ändra tillstånd**, larmets sidhuvud, Slack, Microsoft Teams, regler och monitorkriterier utelämnar den. API:et, Terraform och MCP avvisar den och anger värdet och var den kan avarkiveras.

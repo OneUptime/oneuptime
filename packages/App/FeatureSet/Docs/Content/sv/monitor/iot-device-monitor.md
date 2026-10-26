@@ -27,7 +27,7 @@ flowchart TB
     oneuptime -->|"första data"| registered["Flotta registrerad"]
     oneuptime --> monitor["IoT-enhetsmonitor"]
     monitor -->|"varje minut,<br/>per enhet"| criteria{"Kriterier<br/>uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller<br/>varning för<br/>den enheten"]
+    criteria -->|"ja"| incident["Incident eller<br/>larm för<br/>den enheten"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 

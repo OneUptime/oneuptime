@@ -21,8 +21,8 @@ flowchart TB
     Device["Nätverksenhet"]
     Data["Status, mätvärden,<br/>gränssnitt, karta"]
     Monitor["Nätverksenhetsmonitor"]
-    Policy["Varningspolicy"]
-    Incident["Incident eller varning"]
+    Policy["Larmpolicy"]
+    Incident["Incident eller larm"]
     Probe -->|"Ping, varje<br/>avsökning"| Device
     Probe -->|"SNMP-walk,<br/>med uppgifter"| Device
     Device -->|"SNMP-traps"| Probe
@@ -718,13 +718,13 @@ Avsökning ger dig status, inventarium och diagram. Incidenter, larm och utkalln
 
 **Nätverk → Inställningar → Alert Policies** är där en flottas larm skrivs ner en gång. En policy anger vilka enheter (en omfattning av platser, enhetsroller och etiketter) och vad de varnar för (en monitormall för nätverksenheter), så "varje lagerswitch skapar en incident när den blir onåbar" är en rad i stället för tvåhundra monitorer.
 
-```mermaid title="Vad en varningspolicy underhåller"
+```mermaid title="Vad en larmpolicy underhåller"
 flowchart TB
     Scope["Omfattning: platser, roller<br/>och etiketter"]
     Template["Monitormall för<br/>nätverksenheter"]
     Match["Varje sondavsökt enhet<br/>som matchar omfattningen"]
     Monitors["En monitor per enhet,<br/>namngiven efter den"]
-    Alerts["Incidenter och varningar"]
+    Alerts["Incidenter och larm"]
     Scope --> Match
     Match --> Monitors
     Template --> Monitors
@@ -836,7 +836,7 @@ flowchart TB
     Probe["Sondens trapmottagare<br/>UDP 162"]
     Match["OneUptime matchar<br/>käll-IP:n mot en enhet"]
     Monitors["Enhetens nätverks-<br/>enhetsmonitorer"]
-    Incident["Incident eller varning"]
+    Incident["Incident eller larm"]
     Device -->|"Trap"| Probe
     Probe -->|"Vidarebefordrad"| Match
     Match --> Monitors

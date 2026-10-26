@@ -136,7 +136,7 @@ Tre allvarlighetsgrader skapas med projektet, i den här ordningen, den allvarli
 | **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
 | **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
-Allvarlighetsgraden är obligatorisk när du deklarerar en incident, och den är obligatorisk i varje incidentspecifikation i en monitors kriterier, så varje incident — manuell eller automatisk — kommer med en. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för deklarationsflödet och [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för vägen via monitorer.
+Allvarlighetsgraden är obligatorisk när du deklarerar en incident, och den är obligatorisk i varje incidentspecifikation i en monitors kriterier, så varje incident — manuell eller automatisk — kommer med en. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för deklarationsflödet och [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för vägen via monitorer.
 
 ## Redigera allvarlighetsgrader
 

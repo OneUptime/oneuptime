@@ -19,7 +19,7 @@ flowchart TB
     app["GenAI-instrumentering<br/>i din app"] -->|"Spans via OTLP"| ingest["OneUptime-intag"]
     ingest --> check["Kontrollerar svaret,<br/>prissätter anropet"]
     ingest --> group["Hittar anropets<br/>konversation"]
-    check --> tabs["Konversationer, Anrop,<br/>Användning, Varningar,<br/>Budgetar"]
+    check --> tabs["Konversationer, Anrop,<br/>Användning, Larm,<br/>Budgetar"]
     group --> tabs
 ```
 

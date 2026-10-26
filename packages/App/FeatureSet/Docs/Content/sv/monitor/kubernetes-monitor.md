@@ -17,7 +17,7 @@ Agenten skickar klustrets mätvärden till OneUptime över OTLP, vart och ett m�
 flowchart TB
     agent["Kubernetes-agent"] -->|"OTLP-mått"| metrics["Klustermått"]
     metrics --> monitor["Kubernetes-monitor"]
-    monitor -->|"Kriterier uppfyllda"| incident["Varning eller incident"]
+    monitor -->|"Kriterier uppfyllda"| incident["Larm eller incident"]
 ```
 
 ## Innan du börjar

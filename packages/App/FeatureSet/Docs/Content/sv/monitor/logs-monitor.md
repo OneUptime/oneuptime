@@ -16,7 +16,7 @@ flowchart TB
     App["Dina tjänster"] -->|OpenTelemetry| Store[("Loggar i OneUptime")]
     Store --> Count["Räkna matchande loggar<br/>i tidsfönstret"]
     Count --> Check{"Kriterier uppfyllda?"}
-    Check -->|"Första träff"| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|"Första träff"| Act["Ändra status,<br/>larm eller incident"]
     Check -->|Inget| Default["Standardstatus"]
 ```
 
@@ -158,12 +158,12 @@ flowchart TB
         direction TB
         A1["HQ-Branch1 går ned"] --> M1["En räkning"]
         B1["Branch2 går ned"] --> M1
-        M1 --> X1["En varning"]
+        M1 --> X1["Ett larm"]
     end
     subgraph With["Grupperad efter con_name"]
         direction TB
-        A2["HQ-Branch1 går ned"] --> X2["Varning för HQ-Branch1"]
-        B2["Branch2 går ned"] --> Y2["Varning för Branch2"]
+        A2["HQ-Branch1 går ned"] --> X2["Larm för HQ-Branch1"]
+        B2["Branch2 går ned"] --> Y2["Larm för Branch2"]
     end
     Without ~~~ With
 ```

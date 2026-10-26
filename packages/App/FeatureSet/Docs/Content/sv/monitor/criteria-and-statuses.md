@@ -22,7 +22,7 @@ flowchart TB
     C2 -->|"Inget matchade"| D["Monitorn<br/>går till<br/>sin standardstatus"]
     A --> S["Ändrar<br/>statusen"]
     A --> I["Deklarerar<br/>en incident"]
-    A --> L["Skapar en<br/>varning"]
+    A --> L["Skapar ett<br/>larm"]
 ```
 
 Ordningen är en del av regeln. En ny monitor listar sina kriterier från det värsta fallet: offline, sedan en varning där typen har en (ett certifikat eller en domän som snart går ut), sedan online. Ett brett friskt kriterium, som **Is Online** satt till **Sant**, matchar nästan varje kontroll, så det kommer sist: ovanför de andra skulle det matcha först varje gång, och de andra skulle aldrig agera.

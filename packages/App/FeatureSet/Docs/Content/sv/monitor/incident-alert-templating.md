@@ -16,10 +16,10 @@ En mall fylls i en gång, när kriteriet skapar incidenten eller larmet. OneUpti
 ```mermaid title="Från en kontroll till en incidents text"
 flowchart TB
     check["En kontroll av monitorn"] --> criteria{"Ett kriterium matchar"}
-    criteria -->|"deklarerar en incident<br/>eller skapar en varning"| vars["Variabler från monitorn<br/>och den här kontrollen"]
+    criteria -->|"deklarerar en incident<br/>eller skapar ett larm"| vars["Variabler från monitorn<br/>och den här kontrollen"]
     vars --> title["Titel:<br/>ren text"]
     vars --> body["Beskrivning och anteckningar:<br/>Markdown, värden som text"]
-    title --> record["Incidenten eller varningen"]
+    title --> record["Incidenten eller larmet"]
     body --> record
 ```
 
@@ -351,7 +351,7 @@ En syntetisk monitor kör sitt skript en gång för varje webbläsare och skärm
 
 #### Visa en skärmbild
 
-Varje post i `screenshots` är en skärmbild som skriptet tog, under namnet som skriptet gav den (`screenshots["login-page"] = await page.screenshot()`), som base64-text. För att visa en i en incidents eller varnings beskrivning eller åtgärdsanteckningar skriver du en bild runt den:
+Varje post i `screenshots` är en skärmbild som skriptet tog, under namnet som skriptet gav den (`screenshots["login-page"] = await page.screenshot()`), som base64-text. För att visa en i en incidents eller ett larms beskrivning eller åtgärdsanteckningar skriver du en bild runt den:
 
 ```text title="Description template"
 {{syntheticResponses[0].scriptError}}

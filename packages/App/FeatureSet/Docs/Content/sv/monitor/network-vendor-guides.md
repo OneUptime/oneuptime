@@ -18,8 +18,8 @@ flowchart TB
     Probe["Sond"]
     Snmp["Tillverkarmall:<br/>hälso-OID:er och SNMP-tabeller"]
     Syslog["Syslog: loggpipeline,<br/>loggmonitorer, inspelningsregler"]
-    Monitor["Nätverksenhetsmonitor<br/>med de rekommenderade varningarna"]
-    Incident["Incidenter och varningar"]
+    Monitor["Nätverksenhetsmonitor<br/>med de rekommenderade larmen"]
+    Incident["Incidenter och larm"]
     Device -->|"SNMP"| Probe
     Device -->|"Syslog och traps"| Probe
     Probe --> Snmp

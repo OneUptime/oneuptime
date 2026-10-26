@@ -26,7 +26,7 @@ flowchart TB
     probe --> oneuptime
     oneuptime --> monitor["VMware-monitor"]
     monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    criteria -->|"ja"| incident["Incident eller larm"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 

@@ -17,7 +17,7 @@ flowchart TB
     Store --> Skip["Utelämna lösta och<br/>arkiverade undantag"]
     Skip --> Count["Räkna matchande undantag<br/>i tidsfönstret"]
     Count --> Check{"Kriterier uppfyllda?"}
-    Check -->|"Första träff"| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|"Första träff"| Act["Ändra status,<br/>larm eller incident"]
     Check -->|Inget| Default["Standardstatus"]
 ```
 

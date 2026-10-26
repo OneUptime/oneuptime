@@ -25,7 +25,7 @@ flowchart TB
     oneuptime -->|"första data"| registered["Array registrerad"]
     oneuptime --> monitor["Lagringsarray-monitor"]
     monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    criteria -->|"ja"| incident["Incident eller larm"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 
@@ -328,7 +328,7 @@ monitor_steps = [{
 Arrayer registrerar sig själva utifrån agentens data. Kontrollera att agenten körs och skickar data (se [guiden för Storage Array Agent](/docs/telemetry/storage-arrays)), och att `STORAGE_ARRAY_NAME` är satt.
 :::
 
-:::details En varnings- eller hårdvarumall utlöser aldrig
+:::details En larm- eller hårdvarumall utlöser aldrig
 Det är det friska fallet. `purefa_alerts_open`, `purefa_hw_component_status`, `purefa_drive_capacity_bytes` och `purefa_host_connectivity_info` bär sitt tillstånd i en etikett, och en serie filtrerad till ett dåligt tillstånd (`severity=critical`, `component_status=failed`) finns bara så länge något är i det tillståndet. För att se serien bakom en mall kör du dess fråga utan filtret på sidan **Mätvärden**.
 :::
 

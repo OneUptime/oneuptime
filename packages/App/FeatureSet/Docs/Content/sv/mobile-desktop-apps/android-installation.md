@@ -87,7 +87,7 @@ Som standard följer ett jourlarm telefonens ljudinställningar: en ljudlös tel
 ```mermaid title="Om ett jourlarm ringer igenom på Android"
 flowchart TB
     Page["Ett jourlarm<br/>till den här telefonen"]
-    Rule{"Regel satt till<br/>Kritisk varning?"}
+    Rule{"Regel satt till<br/>Kritiskt larm?"}
     Device{"Critical On-Call<br/>Alerts på?"}
     Quiet["Följer telefonens<br/>ljud och Stör ej"]
     Loud["Spelar ditt larm<br/>genom tyst läge<br/>och Stör ej"]
