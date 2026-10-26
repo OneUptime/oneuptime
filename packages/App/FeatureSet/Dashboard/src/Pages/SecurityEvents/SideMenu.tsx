@@ -24,7 +24,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The Security Events side menu: its sections and their pages, as
  * SecurityEventsNavigation.ts lists them. Every page is an entry of its
  * own, lit on its page. The counts beside Open Cases, Assigned to Me and
- * Waiting for Approval come from SecurityEventsBadgeCount, each counting
+ * Approvals come from SecurityEventsBadgeCount, each counting
  * what its page lists.
  *
  * Before Connections, the Workspace section: the security cases' Slack and

@@ -1958,9 +1958,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-            title: "Waiting for Approval",
+            title: "Approvals",
             icon: IconProp.PauseCircle,
-            keywords: ["approvals", "pending approvals", "approve a step"],
+            keywords: [
+              "waiting for approval",
+              "pending approvals",
+              "approve a step",
+            ],
           },
           {
             page: PageMap.SECURITY_PLAYBOOK_RUNS,

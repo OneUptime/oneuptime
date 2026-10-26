@@ -16,6 +16,8 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -33,6 +35,7 @@ export interface ComponentProps {
 const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const hasSpanFilter: boolean = Boolean(
     props.source.spanNameRegex ||
       props.source.spanKind ||
@@ -324,8 +327,16 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                         }}
                       />
                     </div>
+                    {/*
+                     * Only an icon, so it is named for a screen reader as
+                     * the log rules' twin is.
+                     */}
                     <Button
                       title=""
+                      ariaLabel={translator.translateTemplate(
+                        "Remove attribute filter {{number}}",
+                        { number: index + 1 },
+                      )}
                       icon={IconProp.Trash}
                       buttonStyle={ButtonStyleType.OUTLINE}
                       buttonSize={ButtonSize.Small}

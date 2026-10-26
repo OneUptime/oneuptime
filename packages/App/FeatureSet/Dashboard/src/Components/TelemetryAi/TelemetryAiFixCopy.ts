@@ -211,7 +211,7 @@ export const FIX_STRIP_ACTION_ROW_CLASS_NAME: string =
 export const FIX_STRIP_PICKER_CLASS_NAME: string =
   "w-full [@container(min-width:26rem)]:w-64";
 export const FIX_STRIP_BUTTON_CLASS_NAME: string =
-  "self-start whitespace-nowrap md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50 [@container(min-width:26rem)]:self-end";
+  "self-start whitespace-nowrap md:!ml-0 [@container(min-width:26rem)]:self-end";
 
 // The data-testids of the strip's parts.
 export const TELEMETRY_AI_FIX_TEST_IDS: {

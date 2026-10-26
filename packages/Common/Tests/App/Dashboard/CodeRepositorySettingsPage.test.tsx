@@ -134,9 +134,19 @@ import {
   CodeRepositorySetting,
   DEFAULT_GITHUB_TRIGGER_LABEL,
   getGitHubTriggerLabel,
+  getPullRequestsCardCopy,
+  getRepositoryMoreSettingsDescription,
   getRepositoryMoreSettingsItems,
   hasRepositoryCommands,
+  isMergeRequestHost,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositorySettingsCopy";
+import {
+  FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
+  FixPullRequestLimitCopy,
+  getFixPullRequestLimitCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CodeRepository/FixPullRequestLimit";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../../Types/CodeRepository/CodeHost";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
@@ -187,6 +197,7 @@ type FormField = ModelField<CodeRepository>;
 interface DetailField {
   field?: Record<string, unknown>;
   title?: string;
+  description?: string;
   placeholder?: string;
   getElement?: ((item: CodeRepository) => ReactElement) | undefined;
 }
@@ -1084,15 +1095,29 @@ describe("the Runner card, under More settings", () => {
 
     const props: Record<string, unknown> = card("Repository > Runner");
     const fields: Array<FormField> = props["formFields"] as Array<FormField>;
+    // What the form draws: the picker alone; its two columns are not drawn.
+    const drawn: Array<FormField> = fields.filter((field: FormField) => {
+      return !field.showIf || field.showIf({});
+    });
 
-    expect(fields).toHaveLength(1);
-    expect(columnsOf(fields[0]!)).toEqual(["runnerId"]);
-    expect(fields[0]!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
-    expect(fields[0]!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-    expect(fields[0]!.hideOptionalLabel).toBe(true);
+    expect(drawn).toHaveLength(1);
+    expect(columnsOf(drawn[0]!)).toEqual(["runnerId"]);
+    expect(drawn[0]!.formOnly).toBe(true);
+    expect(drawn[0]!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
+    expect(drawn[0]!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(drawn[0]!.hideOptionalLabel).toBe(true);
     expect(props["isEditable"]).toBe(true);
 
-    const element: ReactElement = fields[0]!.getCustomElement!(
+    // The columns the one choice writes, read and sent but never drawn.
+    expect(
+      fields
+        .filter((field: FormField) => {
+          return field !== drawn[0];
+        })
+        .map(columnsOf),
+    ).toEqual([["runnerId"], ["isGlobalRunnerPicked"]]);
+
+    const element: ReactElement = drawn[0]!.getCustomElement!(
       {},
       { onChange: (): void => {} },
     ) as ReactElement;
@@ -1644,6 +1669,68 @@ describe("the settings' words and rules, as plain functions", () => {
     );
   });
 
+  /*
+   * A repository that picks none follows the project's default Runner: the
+   * default state, so its name alone - as on a global Runner. One that
+   * picked the Global Runner itself beside a default says so.
+   */
+  test("the Runner, beside a project default: none is the default, the Global Runner's own pick is said", () => {
+    const withDefault: RunnerChoices = choicesWith({
+      projectRunners: [
+        {
+          id: PROD_RUNNER_ID,
+          name: "prod-eu-west-1",
+          liveStatus: RunnerLiveStatus.Connected,
+          isProjectDefault: true,
+        },
+        {
+          id: OFFICE_RUNNER_ID,
+          name: "office-runner",
+          liveStatus: RunnerLiveStatus.Disconnected,
+        },
+      ],
+    });
+    const runnerItem: (
+      values: Record<string, unknown>,
+      choices?: RunnerChoices,
+    ) => FoldedSectionItem = (
+      values: Record<string, unknown>,
+      choices: RunnerChoices = withDefault,
+    ): FoldedSectionItem => {
+      return getRepositoryMoreSettingsItems(values, english, choices).find(
+        (item: FoldedSectionItem): boolean => {
+          return item.key === "runner";
+        },
+      )!;
+    };
+
+    // Follows the default: the default.
+    expect(runnerItem({ runnerId: "" })).toMatchObject({ isSet: false });
+    expect(
+      runnerItem({ runnerId: "", isGlobalRunnerPicked: false }),
+    ).toMatchObject({ isSet: false });
+
+    // Picked the Global Runner itself: said, in the reader's language.
+    expect(
+      runnerItem({ runnerId: "", isGlobalRunnerPicked: true }),
+    ).toMatchObject({
+      isSet: true,
+      value: "Global Runner",
+      translateValue: true,
+    });
+
+    // With no default, the Global Runner is the default: its name alone.
+    expect(
+      runnerItem({ runnerId: "", isGlobalRunnerPicked: true }, choicesWith()),
+    ).toMatchObject({ isSet: false });
+
+    // A pick of another Runner of the project's own: its name.
+    expect(runnerItem({ runnerId: OFFICE_RUNNER_ID })).toMatchObject({
+      isSet: true,
+      value: "office-runner · Disconnected",
+    });
+  });
+
   test("a blocked limit reads as None; commands as Configured", () => {
     const items: Array<FoldedSectionItem> = getRepositoryMoreSettingsItems(
       { maxOpenFixPullRequests: 0, testCommand: "go test ./..." },
@@ -2075,7 +2162,7 @@ describe("a repository off GitHub: only what its host has", () => {
     })!;
   }
 
-  test("GitLab: the Runner and Pull Requests, and nothing of GitHub's", async () => {
+  test("GitLab: the Runner and Merge Requests, and nothing of GitHub's", async () => {
     hostedOn("GitLab");
     draw();
     await hostRead();
@@ -2097,12 +2184,189 @@ describe("a repository off GitHub: only what its host has", () => {
     expect(
       screen.queryByRole("switch", { name: "Respond to GitHub Commands" }),
     ).toBeNull();
-    expect(foldedNames()).toEqual(["Runner", "Pull Requests"]);
+    // In GitLab's word, as its tasks and the request box say it.
+    expect(foldedNames()).toEqual(["Runner", "Merge Requests"]);
 
     openMoreSettings();
     expect(folded()).toHaveTextContent(
+      "Where AI works, and where its merge requests open.",
+    );
+    expect(folded()).not.toHaveTextContent("pull request");
+  });
+
+  /*
+   * GitLab calls a pull request a merge request (CodeHost's
+   * pullRequestTerm): the card, its Edit form, its limit and what More
+   * settings says of it while folded say merge request there - and pull
+   * request on GitHub, Forgejo and Gitea.
+   */
+  test("GitLab: the card, its Edit form and its limit say merge request", async () => {
+    hostedOn("GitLab");
+    draw();
+    await hostRead();
+
+    const props: Record<string, unknown> = card("Repository > Pull Requests");
+    const cardProps: { title: string; description: string; id: string } = props[
+      "cardProps"
+    ] as { title: string; description: string; id: string };
+
+    expect(cardProps.title).toBe("Merge Requests");
+    expect(cardProps.description).toBe(
+      "Where AI's merge requests open, and how many may be open at once.",
+    );
+    // The same place on the page: links land on it as on any host.
+    expect(cardProps.id).toBe("pull-requests");
+    expect(props["editModalTitle"]).toBe("Merge Requests");
+
+    const fields: Array<FormField> = props["formFields"] as Array<FormField>;
+    const limit: FormField = fields.find((field: FormField) => {
+      return field.overrideFieldKey === FIX_PULL_REQUEST_LIMIT_FIELD_KEY;
+    })!;
+
+    expect(limit.title).toBe("AI Fix Merge Requests");
+    expect(
+      (limit.radioButtonOptions || []).map(
+        (option: { title: string; description?: string | undefined }) => {
+          return [option.title, option.description];
+        },
+      ),
+    ).toEqual([
+      ["No limit", "AI opens as many fix merge requests as it needs."],
+      [
+        "A limit",
+        "AI waits while this many of its fix merge requests are open.",
+      ],
+      ["None", "AI opens no fix merge requests in this repository."],
+    ]);
+
+    const max: FormField = fields.find((field: FormField) => {
+      return (
+        columnsOf(field).includes("maxOpenFixPullRequests") && !field.formOnly
+      );
+    })!;
+
+    expect(max.title).toBe("Max Open Fix Merge Requests");
+
+    const shown: DetailField = (
+      props["modelDetailProps"] as { fields: Array<DetailField> }
+    ).fields.find((field: DetailField): boolean => {
+      return columnsOf(field).includes("maxOpenFixPullRequests");
+    })!;
+
+    expect(shown.title).toBe("AI Fix Merge Requests");
+    expect(shown.description).toBe(
+      "How many fix merge requests AI may have open at once in this repository.",
+    );
+
+    const blocked: CodeRepository = new CodeRepository();
+    blocked.maxOpenFixPullRequests = 0;
+    render(shown.getElement!(blocked));
+
+    expect(
+      screen.getByText("None: AI opens no fix merge requests here"),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * The Runner card's value and its Edit's picker are handed where the
+   * repository is hosted, so their lines say what AI's work becomes there:
+   * the merge request on GitLab, the pushed branch on a Git server
+   * (getCodeRepositoryRunnerWords) - never "before the pull request opens"
+   * beside a Merge Requests card.
+   */
+  test("GitLab and a Git server: the Runner card and its picker are handed the host", async () => {
+    for (const provider of [
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Git,
+    ]) {
+      hostedOn(provider);
+      draw();
+      await hostRead();
+
+      const runner: Record<string, unknown> = card("Repository > Runner");
+      const value: ReactElement = (
+        runner["modelDetailProps"] as { fields: Array<DetailField> }
+      ).fields[0]!.getElement!(new CodeRepository());
+
+      expect(value.type).toBe(CodeRepositoryRunnerValueView);
+      expect(value.props.provider).toBe(provider);
+
+      const picker: ReactElement = (
+        runner["formFields"] as Array<FormField>
+      )[0]!.getCustomElement!({}, { onChange: (): void => {} }) as ReactElement;
+
+      expect(picker.type).toBe(CodeRepositoryRunnerPicker);
+      expect(picker.props.provider).toBe(provider);
+
+      cleanup();
+      mockDetails.length = 0;
+    }
+  });
+
+  test("GitLab: More settings, folded, says a blocked limit in GitLab's word", () => {
+    const items: Array<FoldedSectionItem> = getRepositoryMoreSettingsItems(
+      { maxOpenFixPullRequests: 0 },
+      english,
+      undefined,
+      "GitLab",
+    );
+
+    expect(
+      items.find((item: FoldedSectionItem): boolean => {
+        return item.key === "pull-requests";
+      }),
+    ).toMatchObject({
+      title: "Merge Requests",
+      isSet: true,
+      value: "None: AI opens no fix merge requests here",
+      translateValue: true,
+    });
+  });
+
+  test("every other host keeps pull request: GitHub, Forgejo and Gitea", () => {
+    for (const provider of ["GitHub", "Forgejo", undefined]) {
+      expect(getPullRequestsCardCopy(provider)).toEqual({
+        title: "Pull Requests",
+        description:
+          "Where AI's pull requests open, and how many may be open at once.",
+      });
+
+      const copy: FixPullRequestLimitCopy =
+        getFixPullRequestLimitCopy(provider);
+
+      expect(copy.fieldTitle).toBe("AI Fix Pull Requests");
+      expect(copy.maxFieldTitle).toBe("Max Open Fix Pull Requests");
+      expect(copy.cardDescription).toBe(
+        "How many fix pull requests AI may have open at once in this repository.",
+      );
+      expect(isMergeRequestHost(provider)).toBe(false);
+    }
+
+    expect(isMergeRequestHost("GitLab")).toBe(true);
+    expect(getRepositoryMoreSettingsDescription("Forgejo")).toBe(
       "Where AI works, and where its pull requests open.",
     );
+    expect(getRepositoryMoreSettingsDescription("GitLab")).toBe(
+      "Where AI works, and where its merge requests open.",
+    );
+  });
+
+  /*
+   * The words are one table's: the host's own term for a pull request
+   * (CodeHost's pullRequestTerm), so a new host that calls one a merge
+   * request is drawn in its word with no change here.
+   */
+  test("the word follows the host table's term", () => {
+    for (const type of Object.values(CodeRepositoryType)) {
+      expect({
+        type,
+        mergeRequest: isMergeRequestHost(type),
+      }).toEqual({
+        type,
+        mergeRequest:
+          CodeHost.getFacts(type).pullRequestTerm === "merge request",
+      });
+    }
   });
 
   test("GitLab: Repository Details says its server, account and token's last characters", async () => {

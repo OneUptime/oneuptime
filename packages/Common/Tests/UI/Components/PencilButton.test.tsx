@@ -72,7 +72,8 @@ describe.each([IconProp.Edit, IconProp.Pencil])(
           expect(svg).toHaveClass("m-1");
           expect(button).toHaveAttribute("aria-label", "Edit Project");
         } else {
-          expect(svg).toHaveClass("mr-1");
+          // On the words' side in either direction (margin-inline-end).
+          expect(svg).toHaveClass("me-1");
         }
 
         if (buttonStyle === ButtonStyleType.ICON) {
@@ -95,7 +96,7 @@ describe.each([IconProp.Edit, IconProp.Pencil])(
         });
 
         expect(button).toHaveClass(...buttonSize.split(" "), "items-center");
-        expect(button.querySelector("svg")).toHaveClass("w-5", "h-5", "mr-1");
+        expect(button.querySelector("svg")).toHaveClass("w-5", "h-5", "me-1");
       },
     );
 

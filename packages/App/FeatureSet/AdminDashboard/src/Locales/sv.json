@@ -901,13 +901,6 @@
   "Test passed, with a warning": "Testet godkändes, med en varning",
   "Test failed": "Testet misslyckades",
   "Opens in a new tab": "Öppnas i en ny flik",
-  "Note": "Obs",
-  "Tip": "Tips",
-  "Info": "Info",
-  "Important": "Viktigt",
-  "Warning": "Varning",
-  "Caution": "Försiktighet",
-  "Danger": "Fara",
   "Such as your company or team name. You can change it later.": "Till exempel namnet på ditt företag eller team. Du kan ändra det senare.",
   "If you have one, from an offer or a reseller.": "Om du har en, från ett erbjudande eller en återförsäljare.",
   "Plan": "Plan",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "Det här kunde inte laddas.",
   "Try again": "Försök igen",
   "Dismiss": "Stäng",
-  "Loading": "Laddar"
+  "Loading": "Laddar",
+  "markdownCallouts": {
+    "caution": "Försiktighet",
+    "danger": "Fara",
+    "important": "Viktigt",
+    "info": "Info",
+    "note": "Obs",
+    "tip": "Tips",
+    "warning": "Varning"
+  }
 }

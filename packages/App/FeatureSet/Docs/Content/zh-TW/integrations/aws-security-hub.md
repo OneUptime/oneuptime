@@ -93,6 +93,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | `Workflow.Status`：`NEW`、`NOTIFIED`、`RESOLVED` 或 `SUPPRESSED`，否則使用較舊的 `WorkflowState` | 狀態 |
 | `TTPs/` 下的 `Types`：`TTPs/Initial Access/...` 變為 `TA0001` | MITRE ATT&CK 戰術和技術 |
 | 存取金鑰或使用者資源的 IAM 使用者，`Network.SourceIpV4` 或 `SourceIpV6`，`Process.Name` 或 `Process.Path` | 內文的使用者、IP 和程序 |
+| `Process.Name` 和 `Process.Path` | 程序名稱和路徑。發現結果既不包含命令列，也不包含父程序。 |
 | `AwsEc2Instance` 資源的執行個體 ID，`Network.DestinationIpV4` 或 `DestinationIpV6`，`Network.DestinationPort`，第一個 `Resources[].Id` | 目標的主機、IP、連接埠和資源 |
 | 以上這些，以及每個 `Resources[].Id`、`AwsAccountId`、網路的網域、惡意軟體名稱和威脅情報值 | Observable |
 | 整個發現結果，展平為點分隔的鍵，例如 `Compliance.Status` 和 `Remediation.Recommendation.Url` | `attributes` |

@@ -1119,10 +1119,13 @@ test.describe("Metrics → AI → Logs", () => {
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
         await expect(entries.nth(2)).toContainText("Nothing to change");
 
-        // An investigation says what it found; a pull request says no verdict.
+        /*
+         * An investigation says what it found, in its kind's words - for a
+         * histogram, the buckets to change; a pull request says no verdict.
+         */
         await expect(
           entries.nth(1).getByTestId("telemetry-ai-log-verdict"),
-        ).toHaveText("Found a fault in the code");
+        ).toHaveText("Found buckets the code should change");
         await expect(
           automatic.getByTestId("telemetry-ai-log-verdict"),
         ).toHaveCount(0);

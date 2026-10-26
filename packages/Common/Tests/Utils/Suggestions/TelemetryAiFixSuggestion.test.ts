@@ -165,6 +165,16 @@ describe("the answer, on the wire", () => {
       // An action with nowhere to ask it.
       { offer: SuggestionOffer.Act, repository: null, repositories: [] },
       { offer: SuggestionOffer.Act, repository: { id: REPO } },
+      /*
+       * A finished fix, which this suggestion never says (a finding with
+       * its fix offers nothing) - never read as an action, even with
+       * somewhere to ask it.
+       */
+      {
+        offer: SuggestionOffer.Done,
+        repository: { id: REPO, name: "acme/checkout" },
+        taskId: "5229cccc-0000-4000-8000-0000000000f1",
+      },
     ]) {
       expect(parseTelemetryAiFixSuggestion(value)).toEqual(
         NO_TELEMETRY_AI_FIX_SUGGESTION,

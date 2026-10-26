@@ -291,7 +291,12 @@ describe("the SMTP OAuth token request goes to the validated address", () => {
     const service: { FETCH_TIMEOUT_MS: number } =
       SMTPOAuthService as unknown as { FETCH_TIMEOUT_MS: number };
     const originalTimeout: number = service.FETCH_TIMEOUT_MS;
-    service.FETCH_TIMEOUT_MS = 500;
+    /*
+     * Long enough for the request to reach the server on a busy runner
+     * (at 500ms a CI run cut it off before it arrived), short enough that
+     * only the deadline can end an answer that never finishes.
+     */
+    service.FETCH_TIMEOUT_MS = 2000;
 
     try {
       const startedAt: number = Date.now();
@@ -300,9 +305,9 @@ describe("the SMTP OAuth token request goes to the validated address", () => {
         SMTPOAuthService.getAccessToken(
           config({ tokenUrl: tokenUrl("/trickle") }),
         ),
-      ).rejects.toThrow("OAuth token request timed out after 500ms");
+      ).rejects.toThrow("OAuth token request timed out after 2000ms");
 
-      expect(Date.now() - startedAt).toBeLessThan(5000);
+      expect(Date.now() - startedAt).toBeLessThan(10000);
     } finally {
       service.FETCH_TIMEOUT_MS = originalTimeout;
     }

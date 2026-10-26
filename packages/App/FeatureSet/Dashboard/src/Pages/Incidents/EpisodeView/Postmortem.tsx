@@ -3,7 +3,6 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -43,9 +42,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<IncidentEpisode> = [
     fieldType: FormFieldSchemaType.Markdown,
     required: false,
     placeholder: "Postmortem analysis and notes",
-    description: MarkdownUtil.getMarkdownCheatsheet(
-      "Add postmortem notes for this episode here",
-    ),
+    description: "Add postmortem notes for this episode here.",
   },
 ];
 

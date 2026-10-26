@@ -30,7 +30,6 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -485,9 +484,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Overview Page Description",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
-            description: MarkdownUtil.getMarkdownCheatsheet(
-              "Describe your status page overview here",
-            ),
+            description: "Describe your status page overview here.",
           },
         ]}
         modelDetailProps={{
@@ -681,7 +678,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           modelDetailProps={{
             showDetailsInNumberOfColumns: 1,
             modelType: StatusPage,
-            id: "default-bar-color",
+            /*
+             * Not "default-bar-color": that is its card's place in More
+             * settings, after its title, which a link lands on.
+             */
+            id: "default-bar-color-detail",
             onItemLoaded: (item: StatusPage): void => {
               rememberAdvanced({ defaultBarColor: item.defaultBarColor });
             },

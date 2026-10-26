@@ -209,7 +209,7 @@ const NEW_STRINGS: Array<string> = [
    */
   "Code Repositories",
   "None. A repository picks its Runner in its settings in Code.",
-  "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
+  "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that works on this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
 ];
 
 describe("the Runner status element is the single source of truth", () => {

@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { useWriteDatesInSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { MonitorOverviewMoreActionKey } from "Common/Utils/Monitor/MonitorOverviewPresentationUtil";
@@ -70,6 +71,10 @@ export const getLoadedAtText: (loadedAt: Date) => string = (
 export const LoadedAtTime: FunctionComponent<{ loadedAt: Date }> = (props: {
   loadedAt: Date;
 }): ReactElement => {
+  // In the language of the sentence it is drawn in.
+  const writeDates: <T>(write: () => T) => T =
+    useWriteDatesInSentenceLanguage();
+
   return (
     <time
       dateTime={OneUptimeDate.fromString(props.loadedAt).toISOString()}
@@ -77,7 +82,9 @@ export const LoadedAtTime: FunctionComponent<{ loadedAt: Date }> = (props: {
         props.loadedAt,
       )}
     >
-      {getLoadedAtText(props.loadedAt)}
+      {writeDates((): string => {
+        return getLoadedAtText(props.loadedAt);
+      })}
     </time>
   );
 };

@@ -254,9 +254,9 @@ describe("Security Cases and Playbooks docs", () => {
       SECURITY_PLAYBOOK_RUN_VIEWS.map((view: { title: string }): string => {
         return view.title;
       }),
-    ).toEqual(["Waiting for Approval", "Playbook Runs"]);
+    ).toEqual(["Approvals", "Playbook Runs"]);
     expect(page).toContain(
-      "**Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.",
+      "**Approvals**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run.",
     );
     expect(page).toContain(
       "under **Products → Security Events → Playbooks → Playbook Runs**, step by step:",
@@ -652,7 +652,7 @@ describe("Security Cases and Playbooks docs", () => {
           return menuSection.items;
         },
       ).find((item: SecurityCaseMenuItem): boolean => {
-        return item.title === "Playbook Runs";
+        return item.title === "Playbooks";
       });
 
     expect(playbookRuns?.badge).toBe("runsWaitingForApproval");
@@ -664,7 +664,7 @@ describe("Security Cases and Playbooks docs", () => {
       ),
     ).toContain('getSecurityPlaybookRunView("waiting").query');
     expect(page).toContain(
-      "While runs wait, the menu shows how many beside **Playbook Runs**.",
+      "While runs wait, the menu shows how many beside **Playbooks**.",
     );
 
     expect(

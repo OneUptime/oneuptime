@@ -5,6 +5,7 @@ import {
   getProductNamePostProcess,
   productNamePostProcessor,
 } from "Common/UI/Utils/ProductNameTranslation";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 import {
   AccountsLanguage,
@@ -127,5 +128,8 @@ i18n
       convertDetectedLanguage,
     },
   });
+
+// Dates, times and durations in the reader's language too.
+followLanguageForDates(i18n);
 
 export default i18n;

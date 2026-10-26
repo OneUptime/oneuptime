@@ -1,4 +1,6 @@
-import DropdownValueBadge from "../../../../UI/Components/Dropdown/DropdownValueBadge";
+import DropdownValueBadge, {
+  DROPDOWN_VALUE_DEFAULT_COLOR,
+} from "../../../../UI/Components/Dropdown/DropdownValueBadge";
 import {
   getPillColors,
   PillColors,
@@ -26,15 +28,24 @@ function getDot(badge: HTMLElement): HTMLElement {
 }
 
 describe("DropdownValueBadge", () => {
-  test("keeps the existing indigo appearance when no color is configured", () => {
+  test("keeps the product's indigo when no color is configured, painted as a Pill paints one", () => {
+    const indigo: PillColors = getPillColors(DROPDOWN_VALUE_DEFAULT_COLOR);
     render(<DropdownValueBadge label="High" />);
 
     const badge: HTMLElement = screen.getByText("High");
-    expect(badge.classList.contains("bg-indigo-50")).toBe(true);
-    expect(badge.classList.contains("text-indigo-700")).toBe(true);
+    expect(badge).toHaveStyle({
+      backgroundColor: indigo.light.backgroundColor,
+      color: indigo.light.textColor,
+    });
     expect(badge.getAttribute("data-dropdown-value-color")).toBeNull();
-    expect(badge).not.toHaveAttribute("data-ou-pill");
-    expect(getDot(badge)).toHaveClass("bg-indigo-500");
+    // Its dark colours ride along, as every pill's do.
+    expect(badge).toHaveAttribute("data-ou-pill");
+    expect(getDot(badge)).toHaveStyle({
+      backgroundColor: indigo.light.dotColor,
+    });
+    expect(DROPDOWN_VALUE_DEFAULT_COLOR.toString().toLowerCase()).toBe(
+      "#6366f1",
+    );
   });
 
   test("paints a configured Color the way a Pill does", () => {
@@ -121,9 +132,9 @@ describe("DropdownValueBadge", () => {
     render(<DropdownValueBadge label="Invalid" color="not-a-color" />);
 
     const badge: HTMLElement = screen.getByText("Invalid");
-    expect(badge.classList.contains("bg-indigo-50")).toBe(true);
-    expect(badge.classList.contains("text-indigo-700")).toBe(true);
+    expect(badge).toHaveStyle({
+      color: getPillColors(DROPDOWN_VALUE_DEFAULT_COLOR).light.textColor,
+    });
     expect(badge.getAttribute("data-dropdown-value-color")).toBeNull();
-    expect(badge).not.toHaveAttribute("data-ou-pill");
   });
 });

@@ -80,6 +80,7 @@ import ProjectUtil from "../../Utils/Project";
 import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import { inEnglishDates } from "../../../Types/DateLanguage";
 import useViewerTimeRangeZoom, {
   ViewerTimeRangeZoom,
 } from "../TelemetryViewer/useViewerTimeRangeZoom";
@@ -303,7 +304,10 @@ export function getEmptyMessageWithTimeRange(
      * the one configured in User Settings.
      */
     const fmt: (d: Date) => string = (d: Date): string => {
-      return OneUptimeDate.getDateAsLocalShortDateTimeString(d);
+      // In English, as the sentence it goes into is.
+      return inEnglishDates((): string => {
+        return OneUptimeDate.getDateAsLocalShortDateTimeString(d);
+      });
     };
 
     return `Time range: ${fmt(startDate)} – ${fmt(endDate)}. Try adjusting filters or expanding the time range.`;

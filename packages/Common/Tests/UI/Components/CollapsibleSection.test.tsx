@@ -59,6 +59,40 @@ describe("CollapsibleSection", () => {
     expect(body()).toHaveClass("max-h-0", "opacity-0", "invisible");
   });
 
+  /*
+   * Open, the body was capped at max-h-[5000px] with overflow-hidden: a
+   * section taller than that - a long form, many criteria on a phone - lost
+   * its end, with nothing to scroll to (FoldedSection's was until #5220).
+   * Nothing caps it now; folded, it is out of sight and reach as before.
+   */
+  test("open, it is as tall as what it holds: no height cap cuts its end off", () => {
+    renderSection({ defaultCollapsed: true });
+
+    fireEvent.click(header());
+
+    const heightCaps: Array<string> = Array.from(body().classList).filter(
+      (name: string): boolean => {
+        return name.startsWith("max-h-");
+      },
+    );
+
+    expect(heightCaps).toEqual([]);
+    expect(body()).toHaveClass("opacity-100", "transition-opacity");
+    expect(body()).not.toHaveClass("invisible");
+
+    fireEvent.click(header());
+
+    expect(body()).toHaveClass("max-h-0", "opacity-0", "invisible");
+  });
+
+  test("open by default, it carries no height cap either", () => {
+    renderSection();
+
+    expect(body().className).not.toContain("max-h-");
+    // Opening transitions its opacity only: visibility is not in the list.
+    expect(body().className).not.toContain("transition-[max-height");
+  });
+
   test("its fields stay mounted while folded, keeping what was typed", () => {
     renderSection();
 

@@ -80,6 +80,12 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   question waiting for an answer, live steps ending in "Working on it…" and
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
+- a turn's Log: the Turn picker of a task of more than one turn, its record
+  said to be the turn's, each step's words on a line of their own on a
+  phone, and a record that cannot be read (`?fail=log`, or `logonce` for its
+  first read only) said under the way back and the picker, with Refresh;
+- a GitLab repository's Runner card and picker saying merge request, and a
+  Git server's the branch AI pushes;
 - a repository's pull requests reviewed against production: Production
   Reviews (on, or off with the GitHub command that asks for one), each pull
   request's review with every part of production linked into OneUptime,

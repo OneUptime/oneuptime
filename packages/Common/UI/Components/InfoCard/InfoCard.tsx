@@ -74,7 +74,11 @@ const InfoCard: FunctionComponent<ComponentProps> = (
           className="absolute inset-0 rounded-xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         />
         <div className="mb-2">
-          <FieldLabelElement title={props.title} tooltip={props.tooltip} />
+          <FieldLabelElement
+            title={props.title}
+            tooltip={props.tooltip}
+            isCardStyle={true}
+          />
         </div>
         <div className={props.textClassName || "text-gray-900"}>
           {props.value}
@@ -120,8 +124,16 @@ const InfoCard: FunctionComponent<ComponentProps> = (
       }
       className={`rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${isClickable ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" : ""} ${props.className || ""}`}
     >
+      {/*
+       * The name in sentence case, muted, over the value: no tracked
+       * capitals and no dot ("READY •"), as a detail card writes its names.
+       */}
       <div className="mb-2">
-        <FieldLabelElement title={props.title} tooltip={props.tooltip} />
+        <FieldLabelElement
+          title={props.title}
+          tooltip={props.tooltip}
+          isCardStyle={true}
+        />
       </div>
       <div className={props.textClassName || "text-gray-900"}>
         {props.value}

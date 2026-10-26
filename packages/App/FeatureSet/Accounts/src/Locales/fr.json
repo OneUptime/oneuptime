@@ -376,11 +376,13 @@
   "Switch to markdown source": "Passer à la source Markdown",
   "Switch to visual editor": "Passer à l'éditeur visuel",
   "Opens in a new tab": "S'ouvre dans un nouvel onglet",
-  "Note": "Remarque",
-  "Tip": "Astuce",
-  "Info": "Info",
-  "Important": "Important",
-  "Warning": "Avertissement",
-  "Caution": "Attention",
-  "Danger": "Danger"
+  "markdownCallouts": {
+    "caution": "Attention",
+    "danger": "Danger",
+    "important": "Important",
+    "info": "Info",
+    "note": "Remarque",
+    "tip": "Astuce",
+    "warning": "Avertissement"
+  }
 }

@@ -74,6 +74,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | `kibana.alert.workflow_status`：`open`、`acknowledged` 或 `closed` | 狀態 |
 | `kibana.alert.rule.threat`，包括子技術 | MITRE ATT&CK 戰術和技術 |
 | `user.name`、`host.name`、`source.ip` 或 `host.ip`、`process.name` 或 `process.executable` | 內文的使用者、主機、IP 和程序 |
+| `process.name`、`process.executable` 和 `process.command_line`；`process.parent.name`、`process.parent.executable` 和 `process.parent.command_line` | 程序名稱、路徑和命令列；父程序名稱、路徑和命令列 |
 | `user.target.name`、`destination.domain`、`destination.ip`、`destination.port`、`file.path` | 目標的使用者、主機、IP、連接埠和資源 |
 | 以上這些，以及 `related.*`、`dns.question.name`、`url.domain` 和檔案雜湊 | Observable |
 | 整個警示，展平為點分隔的鍵，並帶有 `_index` 和 `_id` | `attributes` |

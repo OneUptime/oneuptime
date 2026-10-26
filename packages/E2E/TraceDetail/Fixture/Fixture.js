@@ -31,7 +31,12 @@
  *              the page loads, disconnected before the click (the create
  *              route refuses it, and the suggestion route then says SetUp)
  *   ?fix=      none (default) | running - a performance fix already queued
- *              or running for this trace
+ *              or running for this trace | done | nothing | question - one
+ *              that already did its work: it opened its pull request, found
+ *              nothing to change, or waits for an answer
+ *   ?gate=     a CodeTaskBlockerType (NoAiCredits, RunnerNotOnline,
+ *              PlanRequired, ...) - what Code's gate says about the run the
+ *              click would queue; none by default
  *
  * POST /ai-investigation/performance-fix-suggestion is answered by the real
  * span-tree analysis and suggestion rule (Common/Utils/Traces and
@@ -100,6 +105,42 @@ const repositoryGoesAway = params.get("repo") === "gone";
 // Set once the create route has refused a click for want of a repository.
 let isRepositoryGone = false;
 const isFixRunning = params.get("fix") === "running";
+// A fix for this trace that already did its work, by how it came out.
+const FINISHED_FIXES = {
+  done: "Fixed",
+  nothing: "NothingToChange",
+  question: "WaitingForYou",
+};
+const finishedFix = FINISHED_FIXES[params.get("fix") || ""] || null;
+const FINISHED_FIX_RUN_ID = "70000000-0000-4000-8000-000000000010";
+const GATE_REPOSITORY_ID = "50000000-0000-4000-8000-000000000005";
+/*
+ * What Code's gate says, in its server's words (CodeTaskGate,
+ * CodeFixReadiness): the page draws its own translated sentence by type.
+ */
+const GATE_MESSAGES = {
+  NoAiCredits:
+    "AI fix tasks would use the OneUptime-hosted LLM provider, which is paid from this project's AI credits, and they are used up.",
+  NoLlmProvider: "No LLM provider is available for this project.",
+  RunnerNotOnline:
+    'The Runner "build-box" this repository picks is not online. Check that its container is running, or pick another Runner in the repository\'s settings in Code.',
+  NoAgent:
+    "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.",
+  PlanRequired:
+    "AI in Code needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing.",
+  DailyLimitReached:
+    "This project has reached its daily AI token limit. OneUptime AI starts again at midnight UTC.",
+};
+const gateType = params.get("gate");
+const gateBlocker =
+  gateType && GATE_MESSAGES[gateType]
+    ? {
+        type: gateType,
+        message: GATE_MESSAGES[gateType],
+        ...(gateType === "RunnerNotOnline" ? { runnerName: "build-box" } : {}),
+        repositoryId: GATE_REPOSITORY_ID,
+      }
+    : null;
 
 const MINUTE = 60 * 1000;
 /*
@@ -1183,13 +1224,19 @@ async function handleApi(method, options) {
       findings,
       isAiEnabled: isAiOn,
       hasActiveFix: isFixRunning,
+      finishedFix,
       hasConnectedRepository: hasRepository && !isRepositoryGone,
+      blocker: gateBlocker,
     });
     return ok(
       tracePerformanceFixSuggestionToJSON({
         ...offer,
         aiRunId:
-          isFixRunning && offer.offer === "InProgress" ? AI_RUN_ID : null,
+          offer.offer === "InProgress"
+            ? AI_RUN_ID
+            : offer.offer === "Done"
+              ? FINISHED_FIX_RUN_ID
+              : null,
       }),
     );
   }
@@ -1197,6 +1244,24 @@ async function handleApi(method, options) {
   if (url.includes("/ai-investigation/create-performance-fix-task")) {
     if (repositoryGoesAway) {
       isRepositoryGone = true;
+    }
+    // The create route asks the same gates the suggestion did.
+    if (finishedFix) {
+      throw new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "OneUptime AI already worked on a fix for this trace. Open its task in Code to see how it came out, or to take it further.",
+        },
+        {},
+      );
+    }
+    if (gateBlocker) {
+      throw new HTTPErrorResponse(
+        gateType === "PlanRequired" ? 402 : 400,
+        { message: gateBlocker.message },
+        {},
+      );
     }
     if (failures.has("perf-fix") || repositoryGoesAway) {
       throw new HTTPErrorResponse(

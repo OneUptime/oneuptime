@@ -351,7 +351,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Produkter → Ydeevneprofiler → AI → Indsigter** viser den fundne langsomme kode, hvert fund med sine beviser og **Åbn i Profiler**.
-- **Produkter → Ydeevneprofiler → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- **Produkter → Ydeevneprofiler → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Dataopbevaring

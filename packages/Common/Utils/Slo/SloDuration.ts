@@ -15,17 +15,29 @@
  * DOM.
  */
 
+import {
+  DurationTextPart,
+  DurationTextUnit,
+  formatDurationText,
+  withDateDisplayLanguage,
+  writeInDateDisplayLanguage,
+} from "../../Types/DateLanguage";
+
 /**
  * Seconds per unit, largest first. Only the two most significant non-zero
  * units are rendered: "2d 5h" is what an on-call engineer needs, "2d 5h
  * 13m 7s" is noise, and truncating rather than rounding up keeps the
  * remaining budget from ever reading larger than it is.
  */
-const UNITS: Array<{ suffix: string; seconds: number }> = [
-  { suffix: "d", seconds: 86400 },
-  { suffix: "h", seconds: 3600 },
-  { suffix: "m", seconds: 60 },
-  { suffix: "s", seconds: 1 },
+const UNITS: Array<{
+  suffix: string;
+  seconds: number;
+  unit: DurationTextUnit;
+}> = [
+  { suffix: "d", seconds: 86400, unit: "day" },
+  { suffix: "h", seconds: 3600, unit: "hour" },
+  { suffix: "m", seconds: 60, unit: "minute" },
+  { suffix: "s", seconds: 1, unit: "second" },
 ];
 
 const MAX_UNITS_SHOWN: number = 2;
@@ -60,12 +72,19 @@ const toFiniteNumber: ToFiniteNumberFunction = (
  */
 export type FormatDurationCompactFunction = (seconds: number) => string;
 
-export const formatDurationCompact: FormatDurationCompactFunction = (
+// The units a compact duration names, with their counts: [2 d, 5 h].
+const getCompactParts: (
   seconds: number,
-): string => {
+) => Array<{ count: number; suffix: string; unit: DurationTextUnit }> = (
+  seconds: number,
+): Array<{ count: number; suffix: string; unit: DurationTextUnit }> => {
   let remainingSeconds: number = Math.floor(Math.abs(seconds));
 
-  const parts: Array<string> = [];
+  const parts: Array<{
+    count: number;
+    suffix: string;
+    unit: DurationTextUnit;
+  }> = [];
 
   for (const unit of UNITS) {
     if (parts.length >= MAX_UNITS_SHOWN) {
@@ -83,15 +102,80 @@ export const formatDurationCompact: FormatDurationCompactFunction = (
       continue;
     }
 
-    parts.push(`${count}${unit.suffix}`);
+    parts.push({ count: count, suffix: unit.suffix, unit: unit.unit });
     remainingSeconds -= count * unit.seconds;
   }
+
+  return parts;
+};
+
+export const formatDurationCompact: FormatDurationCompactFunction = (
+  seconds: number,
+): string => {
+  const parts: Array<{ count: number; suffix: string }> =
+    getCompactParts(seconds);
 
   if (parts.length === 0) {
     return "0s";
   }
 
-  return parts.join(" ");
+  return parts
+    .map((part: { count: number; suffix: string }): string => {
+      return `${part.count}${part.suffix}`;
+    })
+    .join(" ");
+};
+
+/*
+ * formatDurationCompact in a reader's language, for a duration that goes
+ * into a translated sentence: "2 Std., 12 Min." in German, "3 h 12 min" in
+ * French, "3 ساعت 12 دقیقه" in Persian, "3小时12分钟" in Chinese - the same
+ * two largest units, each with the short name the language abbreviates it
+ * with (Intl, through Common/Types/DateLanguage). Not Intl's narrow names:
+ * those are Latin letters in some languages ("3h 12m" inside a Persian or a
+ * Japanese sentence) and a bare "T" for a German day.
+ *
+ * `language` is the sentence's language (a Translator's), or the date
+ * display language without one. English, and a language Intl cannot write,
+ * read exactly as formatDurationCompact. The text is remembered with its
+ * English, so a sentence the reader's language has not worded yet - read
+ * in English - puts "12m" back, never "12 Min." inside English words.
+ *
+ * formatDurationCompact itself stays English: the SLO pages still glue its
+ * text into English sentences of their own.
+ */
+export const formatDurationCompactInLanguage: (
+  seconds: number,
+  language?: string | undefined,
+) => string = (seconds: number, language?: string | undefined): string => {
+  const write: () => string = (): string => {
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return formatDurationCompact(seconds);
+      },
+      (_language: string, locale: string): string | null => {
+        const parts: Array<DurationTextPart> = getCompactParts(seconds).map(
+          (part: {
+            count: number;
+            unit: DurationTextUnit;
+          }): DurationTextPart => {
+            return { count: part.count, unit: part.unit };
+          },
+        );
+
+        return formatDurationText({
+          parts: parts.length > 0 ? parts : [{ count: 0, unit: "second" }],
+          locale: locale,
+          unitDisplay: "short",
+          listStyle: "narrow",
+        });
+      },
+    );
+  };
+
+  return language === undefined
+    ? write()
+    : withDateDisplayLanguage(language, write);
 };
 
 type FormatBudgetDurationFunction = (seconds: number) => string;

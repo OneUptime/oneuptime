@@ -42,7 +42,6 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import ResourceGroupNavigator from "Common/UI/Components/StatusPage/ResourceGroupNavigator";
 import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
@@ -911,9 +910,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         title: "Group Description",
         fieldType: FormFieldSchemaType.Markdown,
         required: false,
-        description: MarkdownUtil.getMarkdownCheatsheet(
-          "Describe the status page group here",
-        ),
+        description: "Describe the status page group here.",
         collapsibleSection: advancedSection,
       },
       {

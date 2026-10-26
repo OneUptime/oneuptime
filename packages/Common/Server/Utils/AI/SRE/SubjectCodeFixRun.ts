@@ -27,6 +27,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationSubjectLock from "./InvestigationSubjectLock";
 import CodeHostAccess from "../../CodeRepository/CodeHost/CodeHostAccess";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
+import { FINISHED_FIX_STATUSES } from "../../../../Utils/Suggestions/CodeFixSuggestion";
 
 /*
  * At most this many of a project's repositories on other hosts are asked
@@ -47,6 +48,12 @@ interface SubjectCodeFixRunInput {
    * project's provider.
    */
   llmProviderId?: ObjectID | undefined;
+  /*
+   * The repository the run will work in, when the caller already decided it
+   * from the same facts (CodeFixStartGate, which asked Code's gate about
+   * it) - null when none resolved. Left out, it is decided here.
+   */
+  codeRepositoryId?: ObjectID | null | undefined;
 }
 
 /*
@@ -213,6 +220,41 @@ export default class SubjectCodeFixRun {
   }
 
   /*
+   * The newest FixPerformance run for the trace that did its work - it
+   * opened its pull request, or read the code and found nothing to change
+   * (FINISHED_FIX_STATUSES) - or null. A trace whose fix did its work is
+   * not fixed a second time: the trace page links to that fix, and the
+   * create paths refuse another (a second pull request for the same
+   * evidence would only repeat the first; the task's conversation in Code
+   * takes it further). A run that failed or was stopped does not count -
+   * its fix may be asked again. The traceId is matched inside the JSON
+   * taskContext (jsonContains), as the production review queue matches its
+   * pull request.
+   */
+  @CaptureSpan()
+  public static async findFinishedPerformanceFixRunForTrace(data: {
+    projectId: ObjectID;
+    traceId: string;
+  }): Promise<AIRun | null> {
+    if (!data.traceId) {
+      return null;
+    }
+
+    return AIRunService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        codeFixTaskType: CodeFixTaskType.FixPerformance,
+        status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
+        taskContext: QueryHelper.jsonContains({ traceId: data.traceId }),
+      } as never,
+      select: { _id: true, status: true, needsUserInput: true },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+  }
+
+  /*
    * Per-(service, recipe) dedupe for the service-scoped instrumentation
    * recipes (ImproveLogging / ImproveTracing): at most one non-terminal
    * run of a recipe per (project, telemetryServiceId). Same in-memory
@@ -281,13 +323,15 @@ export default class SubjectCodeFixRun {
      * without one, as before, and says so when it starts.
      */
     const codeRepositoryId: ObjectID | null =
-      await CodeFixRunRepository.resolveForNewRun({
-        projectId: data.projectId,
-        taskType: data.taskType,
-        incidentId: data.incidentId,
-        alertId: data.alertId,
-        taskContext: data.taskContext,
-      });
+      data.codeRepositoryId !== undefined
+        ? data.codeRepositoryId
+        : await CodeFixRunRepository.resolveForNewRun({
+            projectId: data.projectId,
+            taskType: data.taskType,
+            incidentId: data.incidentId,
+            alertId: data.alertId,
+            taskContext: data.taskContext,
+          });
 
     /*
      * FixFromIncident has both human and automatic writers, and its source

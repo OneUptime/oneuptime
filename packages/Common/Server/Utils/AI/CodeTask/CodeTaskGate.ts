@@ -16,7 +16,10 @@ import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
   getRepositoryRunnerBlocker,
 } from "../CodeFix/CodeFixReadiness";
-import CodeRepositoryRunnerChoice from "../CodeFix/CodeRepositoryRunnerChoice";
+import CodeRepositoryRunnerChoice, {
+  CodeRepositoryRunnerStatus,
+} from "../CodeFix/CodeRepositoryRunnerChoice";
+import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import { CODE_TASK_ASK_REFUSED_MESSAGE } from "./CodeTaskAccess";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -52,7 +55,11 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * The repository page asks first, so the request box says what is missing
  * before anyone types; the create, reply and retry routes ask again and
- * refuse with the same sentence. The LLM call itself (executeWithLogging)
+ * refuse with the same sentence. A code-fix run a person asks for outside
+ * Code - a trace's Fix performance with AI, a service's Improve logging or
+ * tracing - is asked about the repository it will be queued on
+ * (CodeFixStartGate), or, when none is known yet, about everything that
+ * does not depend on one. The LLM call itself (executeWithLogging)
  * still enforces the switch, the credits and the limits for every completion
  * the Runner asks for, so a task that starts and then crosses one of them
  * fails honestly rather than running on.
@@ -108,12 +115,19 @@ export default class CodeTaskGate {
   /*
    * What stops AI working in the repository for this person now, or null.
    * `billingEnabled` overrides the IsBillingEnabled flag, for tests.
+   *
+   * `repository` is null for work whose repository is not known yet - a
+   * code-fix run that finds its repository as it starts
+   * (CodeFixRunRepository), and says so then if it cannot. Nothing is
+   * asked of a repository's connection or its Runner then; the bill, the
+   * plan, the AI switch, the LLM provider and the daily limits are asked
+   * all the same.
    */
   @CaptureSpan()
   public static async getBlocker(data: {
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID;
-    repository: CodeRepository;
+    repository: CodeRepository | null;
     canAsk: boolean;
     billingEnabled?: boolean | undefined;
   }): Promise<CodeTaskBlocker | null> {
@@ -174,14 +188,19 @@ export default class CodeTaskGate {
       };
     }
 
-    const connection: CodeHostConnectionSummary | undefined = (
-      await CodeHostAccess.getConnectionSummaries({
-        projectId: data.projectId,
-        repositoryIds: [data.repository.id!],
-      })
-    ).get(data.repository.id!.toString());
+    const connection: CodeHostConnectionSummary | undefined = data.repository
+      ? (
+          await CodeHostAccess.getConnectionSummaries({
+            projectId: data.projectId,
+            repositoryIds: [data.repository.id!],
+          })
+        ).get(data.repository.id!.toString())
+      : undefined;
 
-    if (!connection || connection.state !== CodeHostConnectionState.Connected) {
+    if (
+      data.repository &&
+      (!connection || connection.state !== CodeHostConnectionState.Connected)
+    ) {
       return {
         type:
           connection?.state === CodeHostConnectionState.TokenRefused
@@ -220,6 +239,11 @@ export default class CodeTaskGate {
       };
     }
 
+    // No repository yet: no Runner of its own to ask about.
+    if (!data.repository || !connection) {
+      return null;
+    }
+
     /*
      * The Runner the repository picks (its Runner setting in Code), or a
      * global Runner for one that picks none, must be online. Read as
@@ -232,27 +256,36 @@ export default class CodeTaskGate {
         select: {
           _id: true,
           runnerId: true,
+          isGlobalRunnerPicked: true,
         },
         props: { isRoot: true },
       });
 
+    const status: CodeRepositoryRunnerStatus =
+      await CodeRepositoryRunnerChoice.getStatusForRepository({
+        projectId: data.projectId,
+        runnerId: runnerChoice?.runnerId,
+        isGlobalRunnerPicked: runnerChoice?.isGlobalRunnerPicked,
+      });
+
     /*
      * A Git server only a private network reaches is reached by a Runner of
-     * the project's own on it: a global Runner refuses its address.
+     * the project's own on it - the one the repository picks, or the
+     * project's default Runner it follows: a global Runner refuses its
+     * address.
      */
-    if (!connection.isReachableFromServer && !runnerChoice?.runnerId) {
+    if (
+      !connection.isReachableFromServer &&
+      status.decision.kind !== CodeRepositoryRunnerChoiceKind.Custom &&
+      status.decision.kind !== CodeRepositoryRunnerChoiceKind.ProjectDefault
+    ) {
       return {
         type: CodeTaskBlockerType.RepositoryNeedsOwnRunner,
         message: CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
       };
     }
 
-    return getRepositoryRunnerBlocker(
-      await CodeRepositoryRunnerChoice.getStatusForRepository({
-        projectId: data.projectId,
-        runnerId: runnerChoice?.runnerId,
-      }),
-    );
+    return getRepositoryRunnerBlocker(status);
   }
 
   // Refuse with the blocker's own sentence, as an error of its kind.

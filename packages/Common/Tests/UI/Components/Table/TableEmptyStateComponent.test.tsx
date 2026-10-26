@@ -354,7 +354,9 @@ describe("the actions", () => {
     const button: HTMLElement = screen.getByTestId("create-label");
 
     expect(button).toBeDisabled();
-    expect(button.className).toContain("disabled:opacity-60");
+    // Faded, with the not-allowed cursor: Button's own disabled look.
+    expect(button).toHaveClass("opacity-50", "cursor-not-allowed");
+    expect(button.className).not.toContain("disabled:opacity-60");
 
     fireEvent.click(button);
     expect(clicks).toBe(0);

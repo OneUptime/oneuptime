@@ -134,7 +134,7 @@ Om en körning inte kan starta säger appen varför i tråden: den fallerar aldr
 
 ## Stänga av den
 
-Varje repository har en brytare: **Respond to GitHub Commands**, under **Fler inställningar** på repositoriets sida **Inställningar**. Den är på för alla repositorier och sparas så fort du slår om den. När den är av ignorerar appen omnämnanden, tilldelningar och utlösaretiketten i det repositoriet, och talar om för alla som frågar var brytaren finns.
+Varje repository har en brytare: **Respond to GitHub Commands**, under **Fler inställningar** på repositoriets sida **Inställningar**. Den är på för alla repositorier och sparas så fort du slår om den. När den är av ignorerar appen omnämnanden, tilldelningar och utlösaretiketten i det repositoriet, och svarar alla som frågar med en länk till brytaren.
 
 Samma sida har **GitHub Trigger Label** under **Fler inställningar**, om du vill ha en annan etikett än `oneuptime`.
 

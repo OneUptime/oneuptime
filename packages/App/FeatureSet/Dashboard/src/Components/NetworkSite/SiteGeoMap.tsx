@@ -1117,9 +1117,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 {unplacedCount > 0
                   ? translator.translatePlural(
                       {
-                        one: "{{count}} site has no coordinates — neither on it nor on anything beneath. Add a latitude and longitude to the sites at the bottom of your hierarchy and everything above them lands on the map automatically.",
+                        one: "{{count}} site has no coordinates. Add a latitude and longitude to the sites at the bottom of your hierarchy, and the sites above them appear too.",
                         other:
-                          "{{count}} sites have no coordinates — neither on them nor on anything beneath. Add a latitude and longitude to the sites at the bottom of your hierarchy and everything above them lands on the map automatically.",
+                          "{{count}} sites have no coordinates. Add a latitude and longitude to the sites at the bottom of your hierarchy, and the sites above them appear too.",
                       },
                       unplacedCount,
                     )

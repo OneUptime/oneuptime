@@ -42,8 +42,9 @@
  *   ?data=   none or fail: what the project's events say it sends, as the
  *            Rule Library reads them - nothing this week, or a read that
  *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
- *   ?lang=   de, ja or fa: the Dashboard's German, Japanese or Persian
- *            locale (Persian right to left).
+ *   ?lang=   de, fr, it, nl, ja or fa: the Dashboard's German, French,
+ *            Italian, Dutch, Japanese or Persian locale (Persian right to
+ *            left).
  *   ?values= custom: the project made its case statuses and priorities its
  *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
  *            Eradicating and Closed - Duplicate among the statuses, and
@@ -79,9 +80,6 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
-import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
-import ja from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
@@ -358,12 +356,29 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
   ? params.get("data")
   : "";
 /*
- * ?lang=: the Dashboard's German, Japanese or Persian locale, loaded and
- * switched to, for the pages that are checked in other languages (the Rule
- * Library, Connected Signals). Persian reads right to left.
+ * ?lang=: the Dashboard's German, Spanish, French, Italian, Portuguese,
+ * Dutch, Japanese or Persian locale, loaded and switched to, for the pages
+ * that are checked in other languages (the Rule Library, Connected Signals,
+ * the side menu's longest names). Persian reads right to left.
+ *
+ * Each loads only when ?lang= names it: a locale is some four megabytes of
+ * JSON, which every page the suite opens would parse if it were bundled
+ * into the entry.
  */
-const LANGUAGES = ["de", "ja", "fa"];
-const language = LANGUAGES.includes(params.get("lang"))
+// A Map, so ?lang= picks one of these loaders and nothing an object inherits.
+const LOCALE_LOADERS = new Map(
+  Object.entries({
+    de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
+    es: () => import("../../../App/FeatureSet/Dashboard/src/Locales/es.json"),
+    fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
+    fr: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json"),
+    it: () => import("../../../App/FeatureSet/Dashboard/src/Locales/it.json"),
+    ja: () => import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json"),
+    nl: () => import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json"),
+    pt: () => import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json"),
+  }),
+);
+const language = LOCALE_LOADERS.has(params.get("lang"))
   ? params.get("lang")
   : "en";
 /*
@@ -3419,15 +3434,18 @@ API.put = async (options) => handleApi("PUT", options);
 API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
 
+const resources = { en: { translation: {} } };
+
+if (language !== "en") {
+  resources[language] = {
+    translation: (await LOCALE_LOADERS.get(language)()).default,
+  };
+}
+
 await i18next.use(initReactI18next).init({
   lng: language,
   fallbackLng: "en",
-  resources: {
-    en: { translation: {} },
-    de: { translation: de },
-    fa: { translation: fa },
-    ja: { translation: ja },
-  },
+  resources,
   interpolation: { escapeValue: false },
 });
 document.documentElement.lang = language;

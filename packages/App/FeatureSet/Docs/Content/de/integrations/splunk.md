@@ -78,6 +78,7 @@ Jede Zeile, die die Suche zurückgibt, wird zu einem Ereignis Detection Finding 
 | `status_label`, sonst `status_description`, sonst der Name des Prüfstatus, den `status` enthält | Status |
 | `annotations.mitre_attack` und Felder wie `mitre_technique_id` und `mitre_tactic` | MITRE-ATT&CK-Taktiken und -Techniken |
 | `user` oder `src_user`; `src`, `src_ip` oder `src_host`; `process`, `process_name` oder `parent_process` | Benutzer, IP, Host und Prozess des Akteurs |
+| `process_name` oder `process_exec`, `process_path` und `process`; `parent_process_name` oder `parent_process_exec`, `parent_process_path` und `parent_process` | Prozessname, -pfad und -befehlszeile; Name, Pfad und Befehlszeile des übergeordneten Prozesses |
 | `dest_user`; `dest`, `dest_ip` oder `dest_host`; `dest_port` | Benutzer, IP, Host und Port des Ziels |
 | `file_path`, `url` oder `risk_object` | Zielressource |
 | Jeder Benutzer, Host und jede IP, sowie `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` und `risk_object` | Observables |

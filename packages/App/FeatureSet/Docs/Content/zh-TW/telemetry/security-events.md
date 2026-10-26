@@ -44,7 +44,7 @@ flowchart TB
 | **Threat Intel** | Detections | 已知惡意指標的 STIX/TAXII 情資來源 |
 | **ATT&CK Coverage** | Detections | 你的規則涵蓋的 MITRE ATT&CK 技術 |
 | **Playbooks** | Playbooks | 在案件上自動或手動執行的步驟 |
-| **等待核准** | Playbooks | 等待有人核准或拒絕的劇本步驟 |
+| **待核准** | Playbooks | 等待有人核准或拒絕的劇本步驟 |
 | **劇本執行記錄** | Playbooks | 每個劇本逐步做了什麼 |
 | **Protected Entities** | Playbooks | 任何劇本都不會圍堵的使用者和主機 |
 | **設定** | 人工智慧 | OneUptime AI 是否研判每個新案件 |
@@ -205,10 +205,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 嚴重程度 | `severityName`，值為 Unknown、Informational、Low、Medium、High、Critical、Fatal 或 Other 之一，以及 `severityId` |
 | 誰做的 | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 涉及了什麼 | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
-| 處理程序 | `processName`、`processPath` 和 `processCommandLine`：在處理程序啟動事件中是被啟動的處理程序，其他事件中是執行動作的處理程序。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：啟動它的處理程序 |
+| 處理程序 | `processName`、`processPath` 和 `processCommandLine`：在處理程序活動事件中是被啟動、開啟、注入或結束的處理程序，其他事件中是執行動作的處理程序。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：啟動它的處理程序 |
 | 來源 | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 內容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：從事件中擷取出的每個使用者、主機、IP 位址、網域和雜湊 |
 | 屬性 | 完整的來源承載資料，展平為以點分隔的鍵 |
+
+在 OneUptime 14.0.84 之前儲存的事件，處理程序欄位為空，只以 `principalProcess`（執行動作的處理程序）記錄其處理程序。之後不會補齊：在保留期結束之前，它們保持儲存時的內容。
 
 ## 探索安全性事件
 

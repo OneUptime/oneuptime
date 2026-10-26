@@ -23,7 +23,7 @@ import * as React from "react";
  * Connections and Settings folded on the overview and open on their own
  * pages, exactly
  * the entry of the page you are on lit, the counts beside Open Cases,
- * Assigned to Me and Waiting for Approval (each asking what its page
+ * Assigned to Me and Approvals (each asking what its page
  * lists), and the phone's "Section / Page" summary.
  *
  * Workspace is the one every product's menu has (WorkspaceSideMenuSection):
@@ -143,10 +143,7 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Playbooks",
     [
       ["Playbooks", PageMap.SECURITY_PLAYBOOKS],
-      [
-        "Waiting for Approval",
-        PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-      ],
+      ["Approvals", PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL],
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
       ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
     ],
@@ -298,14 +295,14 @@ describe("Security Events side menu", () => {
     }
   });
 
-  test("keeps the old addresses on what they showed: the case queue on Open Cases, the runs page on Waiting for Approval", async () => {
+  test("keeps the old addresses on what they showed: the case queue on Open Cases, the runs page on Approvals", async () => {
     await renderSecurityMenu();
 
     expect(entryAnchor("Security Cases", "Open Cases")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/security-events/cases`,
     );
-    expect(entryAnchor("Playbooks", "Waiting for Approval")).toHaveAttribute(
+    expect(entryAnchor("Playbooks", "Approvals")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/security-events/playbook-runs`,
     );
@@ -418,20 +415,16 @@ describe("Security Events side menu", () => {
     expect(activeLinkTitles()).toEqual([]);
   });
 
-  test("counts what each page lists beside Open Cases, Assigned to Me and Waiting for Approval, and nowhere else", async () => {
+  test("counts what each page lists beside Open Cases, Assigned to Me and Approvals, and nowhere else", async () => {
     await renderSecurityMenu();
 
     expect(badgeOf("Security Cases", "Open Cases")).toBe("6");
     expect(badgeOf("Security Cases", "Assigned to Me")).toBe("2");
-    expect(badgeOf("Playbooks", "Waiting for Approval")).toBe("1");
+    expect(badgeOf("Playbooks", "Approvals")).toBe("1");
 
     for (const [section, entries] of EXPECTED) {
       for (const [title] of entries) {
-        if (
-          ["Open Cases", "Assigned to Me", "Waiting for Approval"].includes(
-            title,
-          )
-        ) {
+        if (["Open Cases", "Assigned to Me", "Approvals"].includes(title)) {
           continue;
         }
 
@@ -569,7 +562,7 @@ describe("Security Events side menu", () => {
 
     goTo(routeFor(PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL));
     await renderSecurityMenu();
-    expect(mobileSummaryText()).toContain("Playbooks / Waiting for Approval");
+    expect(mobileSummaryText()).toContain("Playbooks / Approvals");
     cleanup();
 
     goTo(routeFor(PageMap.SECURITY_EVENTS));

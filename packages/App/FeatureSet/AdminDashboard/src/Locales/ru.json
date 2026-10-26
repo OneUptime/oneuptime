@@ -901,13 +901,6 @@
   "Test passed, with a warning": "Проверка пройдена, но есть предупреждение",
   "Test failed": "Проверка не пройдена",
   "Opens in a new tab": "Откроется в новой вкладке",
-  "Note": "Примечание",
-  "Tip": "Совет",
-  "Info": "Информация",
-  "Important": "Важно",
-  "Warning": "Предупреждение",
-  "Caution": "Осторожно",
-  "Danger": "Опасно",
   "Such as your company or team name. You can change it later.": "Например, название вашей компании или команды. Его можно изменить позже.",
   "If you have one, from an offer or a reseller.": "Если он у вас есть — от акции или реселлера.",
   "Plan": "План",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "Не удалось загрузить.",
   "Try again": "Повторить попытку",
   "Dismiss": "Скрыть",
-  "Loading": "Загрузка"
+  "Loading": "Загрузка",
+  "markdownCallouts": {
+    "caution": "Осторожно",
+    "danger": "Опасно",
+    "important": "Важно",
+    "info": "Информация",
+    "note": "Примечание",
+    "tip": "Совет",
+    "warning": "Предупреждение"
+  }
 }

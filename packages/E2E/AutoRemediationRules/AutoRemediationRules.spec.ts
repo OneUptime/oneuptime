@@ -413,13 +413,13 @@ const repositoriesPicker: (dialog: Locator) => Locator = (
   return dialog.getByRole("combobox", { name: "Code Repositories" });
 };
 
-// The repositories picked, as the picker's chips draw them (EntityDropdown).
+// The repositories picked, as the picker's chips name them (EntityDropdown).
 const repositoryChips: (dialog: Locator) => Locator = (
   dialog: Locator,
 ): Locator => {
   return dialog
     .getByTestId("rule-code-repositories-picker")
-    .locator("div.flex-wrap > span span.truncate");
+    .getByTestId("entity-dropdown-chip-label");
 };
 
 const pullRequestSwitch: (dialog: Locator, title: string) => Locator = (
@@ -2468,9 +2468,9 @@ test.describe("code repositories and pull requests", () => {
 
   /*
    * A repository a rule names that the reader may not read stays on the
-   * rule, named as one they cannot access - in words short enough for its
-   * chip, which cuts at 14rem ("A repository you do not have acces..." lost
-   * its last word there).
+   * rule, named as one they cannot access - in full: a chip cut at 14rem
+   * ("A repository you do not have acces..." lost its last word there), and
+   * a chip now shows the whole name, wrapping if it must.
    */
   test("a repository the reader cannot access stays on the rule, its chip named in full", async ({
     page,

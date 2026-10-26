@@ -20,7 +20,7 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import { LibraryStatusFilter } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
-import { RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryTable";
+import { BUTTON_DISABLED_CLASS_NAME as RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME } from "../../../UI/Components/Button/Button";
 import RuleLibraryPage, {
   RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
   RULE_LIBRARY_DATA_FILTER_TEST_ID,
@@ -1514,7 +1514,7 @@ describe("who may add, and a library that cannot be read", () => {
     expect(
       screen.getByTestId(`rule-library-add-${BRUTE_FORCE.id}`),
     ).toBeDisabled();
-    // And looks it: the outline button has no disabled look of its own.
+    // And looks it: Button's faded, not-allowed look.
     expect(
       screen.getByTestId(`rule-library-add-${BRUTE_FORCE.id}`).className,
     ).toContain(RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME);

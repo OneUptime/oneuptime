@@ -121,9 +121,15 @@ describe("a table's Duration says its two largest units", () => {
       "const compactText: string = getText(TABLE_DURATION_MAX_UNITS);",
     );
     expect(source).toContain("title={compactText === text ? undefined : text}");
-    // In the reader's language: its units, and its words for under a minute.
+    /*
+     * In the reader's language - or, inside a sentence, the sentence's: its
+     * units, and its words for under a minute.
+     */
     expect(source).toContain(
-      "return formatEventDurationParts(parts, translator.language);",
+      "const language: string = useSentenceLanguage() ?? translator.language;",
+    );
+    expect(source).toContain(
+      "return formatEventDurationParts(parts, language);",
     );
     expect(source).toContain("translator.translateText(LESS_THAN_A_MINUTE)");
   });

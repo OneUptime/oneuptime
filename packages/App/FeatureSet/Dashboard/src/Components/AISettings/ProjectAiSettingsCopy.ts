@@ -206,7 +206,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks, or with a pull request.",
+        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.",
       ),
     }),
     {
@@ -229,7 +229,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks, or with a pull request.",
+        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.",
       ),
     }),
   ],

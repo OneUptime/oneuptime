@@ -455,14 +455,21 @@ export function aiLogs(now, skip) {
     return { entries: [], totalCount: 0 };
   }
 
-  const insight = (id, title, serviceName) => {
-    return { id, title, serviceName };
+  // Its kind too, as the server sends it: a verdict is said in its words.
+  const insight = (id, title, serviceName, type) => {
+    return { id, title, serviceName, type };
   };
-  const spike = insight(AI_INSIGHT_IDS.spike, SPIKE_TITLE, "payments");
+  const spike = insight(
+    AI_INSIGHT_IDS.spike,
+    SPIKE_TITLE,
+    "payments",
+    AIInsightType.ExceptionSpike,
+  );
   const newException = insight(
     AI_INSIGHT_IDS.newException,
     NEW_EXCEPTION_TITLE,
     "checkout",
+    AIInsightType.NewException,
   );
 
   const entries = [

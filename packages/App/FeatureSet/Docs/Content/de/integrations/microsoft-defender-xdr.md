@@ -83,6 +83,7 @@ Jede [Warnung](https://learn.microsoft.com/en-us/graph/api/resources/security-al
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` oder `category`, wenn es eine ATT&CK-Taktik ist: Aus `CredentialAccess` wird `TA0006`. Andere Kategorien bleiben in `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | Die `evidence` mit der Rolle `source`, `attacker` oder `compromised`, sonst die erste ihrer Art |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | Der Prozess-Nachweis, aus dem `principalProcess` stammt: sein `imageFile`, `processCommandLine` und `parentProcessImageFile`. Graph liefert keine Befehlszeile des übergeordneten Prozesses. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | Die `evidence` mit einer Zielrolle, etwa `destination` oder `attacked`. URLs, Postfächer und Cloud-Ressourcen füllen `targetResource`. |
 | `observables` | Jeder Hostname, jede IP, jeder Benutzer, Dateiname, SHA-1 und SHA-256, jede URL, Domäne, jedes Postfach und jede Ressourcen-ID in `evidence` |
 | `attributes` | Die ganze Warnung, flach gemacht zu Schlüsseln mit Punkten wie `evidence.0.hostName`, `serviceSource` und `incidentId` |

@@ -1428,6 +1428,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                         </div>
                         <div className="flex-shrink-0 pt-5">
                           <Button
+                            ariaLabel="Remove"
                             icon={IconProp.Trash}
                             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                             buttonSize={ButtonSize.Small}

@@ -195,8 +195,16 @@ export interface TelemetryAiLogEntryJSON {
   // ISO-8601: when it started.
   at: string;
   state: TelemetryAiLogState;
-  // The problem it was about.
-  insight: { id: string; title: string; serviceName?: string | undefined };
+  /*
+   * The problem it was about, and its kind (AIInsightType): an
+   * investigation's verdict is said in its kind's words.
+   */
+  insight: {
+    id: string;
+    title: string;
+    serviceName?: string | undefined;
+    type?: string | undefined;
+  };
   // A person asked for it (on the insight); otherwise OneUptime did, itself.
   requestedBy?: string | undefined;
   // PullRequest: the Code task, its repository and its pull request.
@@ -256,6 +264,12 @@ function parseEntry(value: unknown): TelemetryAiLogEntryJSON | null {
 
   if (serviceName) {
     entry.insight.serviceName = serviceName;
+  }
+
+  const insightType: string = readText((insight as JSONObject)["type"]);
+
+  if (insightType) {
+    entry.insight.type = insightType;
   }
 
   for (const key of [

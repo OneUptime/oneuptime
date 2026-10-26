@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   ADD_ROLE_TO_API_KEY_DESCRIPTION,
   ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+  ADD_ROLE_TO_TEAM_DESCRIPTION,
   API_KEY_COUNT_TEMPLATE,
   API_KEY_OWNED_SCOPE_REASON,
   API_KEYS_GET_EVERYTHING,
@@ -10,6 +11,8 @@ import {
   APPLIED_PERMISSION_COUNT_TEMPLATE,
   doesApiKeyMissPartOfRole,
   EVERY_API_KEY_HAS_ROLE_TOOLTIP,
+  EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP,
+  EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP,
   getAddRoleToApiKeyDescription,
   getApiKeyOwnedScopeReason,
   getApiKeyRolePermissionCountText,
@@ -36,6 +39,7 @@ import {
   ROLE_GIVEN_TO_NO_TEAM,
   ROLE_GIVEN_TO_NOTHING,
   TEAM_COUNT_TEMPLATE,
+  TemplatedSentence,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCopy";
 import { PERMISSION_SCOPE_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -586,19 +590,54 @@ describe("what an API key gets of a role, and why not the rest", () => {
   });
 
   test("a key's Add Custom Role: the Owned exception only when a role on offer has such a permission", () => {
+    const plain: TemplatedSentence = getAddRoleToApiKeyDescription({
+      isAnyOfferedRolePartlyOwned: false,
+    });
+    const owned: TemplatedSentence = getAddRoleToApiKeyDescription({
+      isAnyOfferedRolePartlyOwned: true,
+    });
+
+    expect(plain.template).toBe(ADD_ROLE_TO_API_KEY_DESCRIPTION);
+    expect(plain.values).toEqual({});
+    expect(owned.template).toBe(ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED);
+
+    // The Roles page is a slot the dialog fills with a link to it.
+    const roles: string = "Roles";
+
     expect(
-      getAddRoleToApiKeyDescription(ENGLISH, {
-        isAnyOfferedRolePartlyOwned: false,
+      ENGLISH.translateTemplate(plain.template, {
+        ...plain.values,
+        roles: roles,
       }),
     ).toBe(
       "The key gets everything the role allows. Make or change roles on the Roles page.",
     );
     expect(
-      getAddRoleToApiKeyDescription(ENGLISH, {
-        isAnyOfferedRolePartlyOwned: true,
+      ENGLISH.translateTemplate(owned.template, {
+        ...owned.values,
+        roles: roles,
       }),
     ).toBe(
       "The key gets everything the role allows, except permissions scoped to “Only resources they own”: a key owns nothing. Make or change roles on the Roles page.",
+    );
+  });
+
+  test("the team's and the key's Add Custom Role name the Roles page as a slot, never as words", () => {
+    for (const template of [
+      ADD_ROLE_TO_API_KEY_DESCRIPTION,
+      ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+      ADD_ROLE_TO_TEAM_DESCRIPTION,
+    ]) {
+      expect(template).toContain("on the {{roles}} page.");
+      expect(template).not.toContain("the Roles page");
+    }
+
+    // A tooltip cannot hold a link: it says only why the button is locked.
+    expect(EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP).toBe(
+      "This team has every custom role already.",
+    );
+    expect(EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP).toBe(
+      "This key has every custom role already.",
     );
   });
 
@@ -620,6 +659,9 @@ describe("what an API key gets of a role, and why not the rest", () => {
       API_KEYS_GET_PART_TEMPLATE.other,
       ADD_ROLE_TO_API_KEY_DESCRIPTION,
       ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+      ADD_ROLE_TO_TEAM_DESCRIPTION,
+      EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP,
+      EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP,
       GIVE_ROLE_TO_API_KEY_DESCRIPTION,
       GIVE_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
       NO_API_KEY_IN_PROJECT_TOOLTIP,

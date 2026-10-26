@@ -92,7 +92,7 @@ export interface SourceScanResult {
 export type SourceKind = "ui" | "models";
 
 export interface SourceRoot {
-  // Repository-relative directory.
+  // Repository-relative directory, or one file in a directory of its own.
   directory: string;
   kind: SourceKind;
 }
@@ -127,6 +127,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * show them as written there.
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
+  /*
+   * What a monitor's pages are told by the shared monitor helpers: the
+   * overview's hero, facts and sections, its uptime windows and its metric
+   * groups - each helper writes them with the reader's Translator.
+   */
+  { directory: "packages/Common/Utils/Monitor", kind: "ui" },
+  // A cron schedule in words: the monitor's interval, a workflow's schedule.
+  { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
+  // The common schedules a workflow's Schedule trigger offers.
+  { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
 ];
 
 /*
@@ -1217,6 +1227,17 @@ export const listSourceFiles: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
   const files: Array<string> = [];
+
+  // A root that is one file is that file, when it is a source file at all.
+  if (fs.existsSync(directory) && fs.statSync(directory).isFile()) {
+    const name: string = path.basename(directory);
+
+    return SOURCE_FILE_NAME.test(name) &&
+      !name.endsWith(".d.ts") &&
+      !TEST_FILE_NAME.test(name)
+      ? [directory]
+      : [];
+  }
 
   const walk: (current: string) => void = (current: string): void => {
     if (!fs.existsSync(current)) {

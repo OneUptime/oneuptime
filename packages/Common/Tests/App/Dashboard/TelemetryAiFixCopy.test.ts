@@ -437,8 +437,9 @@ describe("where Fix with AI's picker and button sit", () => {
     expect(button).toContain("self-start");
     // Beside the picker, it lines up with the picker's bottom.
     expect(button).toContain("[@container(min-width:26rem)]:self-end");
-    // A button that cannot be pressed yet looks it.
-    expect(button).toContain("disabled:opacity-50");
+    // A button that cannot be pressed yet looks it: Button's own look.
+    expect(button).not.toContain("disabled:opacity-50");
+    expect(button).not.toContain("opacity-50");
   });
 
   test("both strips - Traces' and the Profiler's - use the one layout", () => {

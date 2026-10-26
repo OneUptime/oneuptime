@@ -195,6 +195,32 @@ describe("SideMenuSection", () => {
     });
 
     /*
+     * Open, the body was capped at max-h-[2000px] with overflow-hidden, so a
+     * long section's last rows were cut off with nothing to scroll to: the
+     * menu scrolls, a section does not. Nothing caps it now.
+     */
+    test("open, a section is as tall as its rows: no height cap cuts the last ones off", () => {
+      render(
+        <SideMenuSection title={SECTION_TITLE} defaultCollapsed={true}>
+          {menuRows()}
+        </SideMenuSection>,
+      );
+
+      fireEvent.click(sectionToggle());
+
+      expect(
+        Array.from(sectionBody().classList).filter((name: string) => {
+          return name.startsWith("max-h-");
+        }),
+      ).toEqual([]);
+      expect(sectionBody()).toHaveClass("opacity-100", "transition-opacity");
+
+      fireEvent.click(sectionToggle());
+
+      expect(sectionBody()).toHaveClass("max-h-0", "opacity-0", "invisible");
+    });
+
+    /*
      * Both directions, because a header that only ever closes is the worse
      * failure: the user loses the rows and has no way to get them back without
      * reloading the page.

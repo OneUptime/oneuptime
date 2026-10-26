@@ -493,7 +493,7 @@ describe("AI insight detail — Create Monitor", () => {
     expect(button).not.toBeNull();
     expect(button).toBeDisabled();
     // Looks disabled rather than swallowing the click.
-    expect(button).toHaveClass("disabled:opacity-50");
+    expect(button).toHaveClass("opacity-50", "cursor-not-allowed");
 
     const tooltip: HTMLElement = await tooltipOf(button!);
 

@@ -303,10 +303,8 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
           </div>
           <div className="flex flex-shrink-0 items-center gap-2 md:justify-end">
             {/*
-             * NORMAL, not OUTLINE: the OUTLINE style is carried by a
-             * `btn-outline-secondary` class no stylesheet in this repo
-             * defines, so it renders as bare text - and "Decline" reading as
-             * a caption rather than a control is how somebody presses it by
+             * A bordered button beside Accept & Join: "Decline" reading as a
+             * caption rather than a control is how somebody presses it by
              * accident.
              */}
             <Button
@@ -443,9 +441,9 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
           title={`Decline invitation`}
           description={translator.translatePlural(
             {
-              one: "Are you sure you want to decline the invitation to {{project}}? You will lose access to {{count}} team in this project, and will need a new invitation to join.",
+              one: "Decline the invitation to {{project}}? You lose access to {{count}} team there and need a new invitation to join.",
               other:
-                "Are you sure you want to decline the invitation to {{project}}? You will lose access to {{count}} teams in this project, and will need a new invitation to join.",
+                "Decline the invitation to {{project}}? You lose access to {{count}} teams there and need a new invitation to join.",
             },
             invitationToDecline.teamMemberIds.length,
             {

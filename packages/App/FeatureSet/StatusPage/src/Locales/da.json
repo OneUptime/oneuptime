@@ -396,13 +396,6 @@
   "Email is not valid.": "E-mailen er ugyldig.",
   "Next": "Næste",
   "Opens in a new tab": "Åbner i en ny fane",
-  "Note": "Bemærk",
-  "Tip": "Tip",
-  "Info": "Info",
-  "Important": "Vigtigt",
-  "Warning": "Advarsel",
-  "Caution": "Forsigtig",
-  "Danger": "Fare",
   "Loading the latest version": "Indlæser den nyeste version",
   "A newer version of this page is available. It's loading now.": "En nyere version af denne side er tilgængelig. Den indlæses nu.",
   "You're offline": "Du er offline",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "Dette kunne ikke indlæses.",
   "Try again": "Prøv igen",
   "Loading...": "Indlæser...",
-  "Loading": "Indlæser"
+  "Loading": "Indlæser",
+  "markdownCallouts": {
+    "caution": "Forsigtig",
+    "danger": "Fare",
+    "important": "Vigtigt",
+    "info": "Info",
+    "note": "Bemærk",
+    "tip": "Tip",
+    "warning": "Advarsel"
+  }
 }

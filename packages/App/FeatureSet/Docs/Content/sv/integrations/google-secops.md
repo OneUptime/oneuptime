@@ -227,7 +227,18 @@ Ett [threat intel-flöde](/docs/telemetry/threat-intelligence#så-läses-google-
 
 ## Skicka säkerhetshändelser till Google SecOps
 
-OneUptime kan också skicka det det hittar till Google SecOps, så att det SIEM ditt team arbetar i ser OneUptimes detektioner bredvid sina egna. Varje säkerhetshändelse importeras som en UDM-händelse: en inloggning som `USER_LOGIN`, en processtart som `PROCESS_LAUNCH`, en nätverksanslutning som `NETWORK_CONNECTION` och allt annat som `GENERIC_EVENT`, med sin allvarlighetsgrad, sina MITRE ATT&CK-taggar och regeln som hittade den.
+OneUptime kan också skicka det det hittar till Google SecOps, så att det SIEM ditt team arbetar i ser OneUptimes detektioner bredvid sina egna. Varje säkerhetshändelse importeras som en UDM-händelse, med sin allvarlighetsgrad, sina MITRE ATT&CK-taggar och regeln som hittade den:
+
+| Säkerhetshändelse | UDM-händelsetyp |
+| --- | --- |
+| En inloggning | `USER_LOGIN` |
+| En process som startas, öppnas, injiceras i eller avslutas | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| En process som höjde sina behörigheter | `PROCESS_PRIVILEGE_ESCALATION` |
+| All annan processaktivitet | `PROCESS_UNCATEGORIZED` |
+| En nätverksanslutning | `NETWORK_CONNECTION` |
+| Allt annat, eller en händelse utan de fält som dess typ behöver | `GENERIC_EVENT` |
+
+I en processhändelse är `principal` den process som agerade och `target` den process den agerade på: vid en start den överordnade processen och den process den startade.
 
 :::steps
 ### Skapa en nyckel som får importera händelser

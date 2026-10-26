@@ -35,6 +35,7 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/ResourceTools";
 import { QueryAlertsTool } from "../../../../Server/Utils/AI/Toolbox/AlertTools";
 import { QueryMonitorsTool } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
+import { SearchSecurityEventsTool } from "../../../../Server/Utils/AI/Toolbox/SecurityEventTools";
 import { ObservabilityTool } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { JSONObject } from "../../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
@@ -510,6 +511,20 @@ describe("page guidance stays in sync with the tool schemas it summarises", () =
       argument: "problemsOnly",
       enumValue: null,
       guidancePhrase: "problemsOnly",
+    },
+    {
+      type: AIChatPageContextType.SecurityEvents,
+      tool: SearchSecurityEventsTool,
+      argument: "processName",
+      enumValue: null,
+      guidancePhrase: "process name",
+    },
+    {
+      type: AIChatPageContextType.SecurityEvents,
+      tool: SearchSecurityEventsTool,
+      argument: "commandLineSearchText",
+      enumValue: null,
+      guidancePhrase: "command line",
     },
   ])(
     "$type guidance names the $argument affordance its tool really has",

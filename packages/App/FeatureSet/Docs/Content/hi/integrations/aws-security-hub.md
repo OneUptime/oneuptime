@@ -93,6 +93,7 @@ flowchart TB
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` या `SUPPRESSED`, नहीं तो पुराना `WorkflowState` | स्थिति |
 | `TTPs/` के नीचे `Types`: `TTPs/Initial Access/...` `TA0001` बन जाता है | MITRE ATT&CK टैक्टिक और तकनीकें |
 | किसी एक्सेस कुंजी या यूज़र रिसोर्स का IAM यूज़र, `Network.SourceIpV4` या `SourceIpV6`, `Process.Name` या `Process.Path` | प्रिंसिपल यूज़र, IP और प्रोसेस |
+| `Process.Name` और `Process.Path` | प्रोसेस का नाम और पाथ। फ़ाइंडिंग में न कमांड लाइन होती है, न पैरेंट प्रोसेस। |
 | किसी `AwsEc2Instance` रिसोर्स की इंस्टेंस ID, `Network.DestinationIpV4` या `DestinationIpV6`, `Network.DestinationPort`, पहला `Resources[].Id` | टारगेट होस्ट, IP, पोर्ट और रिसोर्स |
 | ये सब, हर `Resources[].Id`, `AwsAccountId`, नेटवर्क के डोमेन, मैलवेयर के नाम और थ्रेट इंटेलिजेंस मान | Observable |
 | पूरी फ़ाइंडिंग, डॉट वाली कुंजियों में फैलाई हुई, जैसे `Compliance.Status` और `Remediation.Recommendation.Url` | `attributes` |

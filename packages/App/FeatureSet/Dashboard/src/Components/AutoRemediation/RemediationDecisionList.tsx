@@ -7,6 +7,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import ArrowGluedText from "../AI/ArrowGluedText";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -143,17 +144,20 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                         index: number,
                       ): ReactElement => {
                         return (
+                          /*
+                           * The arrow glued to the last word
+                           * (ArrowGluedText): an inline-flex link put it
+                           * alone at the far edge when a long setting's
+                           * name wrapped.
+                           */
                           <Link
                             key={`${line.key}-link-${index}`}
                             to={decisionLink.route}
-                            className="inline-flex items-center gap-1 rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                            className="min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                           >
-                            <span className="break-words">
-                              {decisionLink.text}
-                            </span>
-                            <Icon
-                              icon={IconProp.ArrowRight}
-                              className="h-4 w-4"
+                            <ArrowGluedText
+                              text={decisionLink.text}
+                              arrowTestId="remediation-decision-link-arrow"
                             />
                           </Link>
                         );

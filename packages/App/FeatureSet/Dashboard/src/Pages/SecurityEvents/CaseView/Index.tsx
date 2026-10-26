@@ -31,7 +31,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * detections map to - the kind of attack this is.
  *
  * Its parts are pages of their own, in the case's side menu: the Timeline,
- * the Detections, the Entities, the Playbook Runs and the Private Notes.
+ * the Detections, the Entities, the Playbooks and the Private Notes.
  */
 const SecurityCaseOverviewPage: FunctionComponent<
   PageComponentProps

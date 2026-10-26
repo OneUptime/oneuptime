@@ -68,7 +68,7 @@ La página de una tarea es una conversación: lo que se pidió y el contexto añ
 | **Fallido** | El turno no pudo terminar, y dice por qué. **Volver a intentar** pide lo mismo otra vez. |
 | **Detenido** | Alguien la detuvo. **Volver a intentar** pide lo mismo otra vez. |
 
-Para seguir, escribe en el cuadro de abajo, que sigue a la vista mientras la conversación se desplaza: responde a la IA, añade contexto o pide cambios. Cada respuesta es el siguiente turno de la misma tarea: trabaja en la misma rama y sube al mismo pull request mientras siga abierto. Una tarea hace un turno cada vez, así que el cuadro espera mientras la IA trabaja. El **Registro** de cada turno es la constancia literal de lo que hizo.
+Para seguir, escribe en el cuadro de abajo, que sigue a la vista mientras la conversación se desplaza: responde a la IA, añade contexto o pide cambios. Cada respuesta es el siguiente turno de la misma tarea: trabaja en la misma rama y sube al mismo pull request mientras siga abierto. Una tarea hace un turno cada vez, así que el cuadro espera mientras la IA trabaja. El **Registro** de cada turno es la constancia literal de lo que hizo. En una tarea con más de un turno, un selector en la parte superior de la página **Registro** pasa de un turno a otro.
 
 Quien puede leer un repositorio lee sus tareas. Pedirle algo a la IA, responder y detener una tarea requieren permiso para editar el repositorio, y también ver el diff de un cambio: los demás ven qué archivos cambiaron. Las tareas que OneUptime inicia por su cuenta (abajo) también están en su repositorio, como conversaciones en las que puedes responder.
 
@@ -77,17 +77,18 @@ Quien puede leer un repositorio lee sus tareas. Pedirle algo a la IA, responder 
 ```mermaid title="De un clic a un pull request"
 flowchart TB
     S["Una petición, un<br/>botón o un<br/>disparador"] --> Q["Se pone en cola<br/>una tarea de<br/>corrección"]
-    Q --> R["Un Runner que ejecuta<br/>correcciones de código<br/>con IA la toma"]
+    Q --> R["El Runner del<br/>repositorio la toma"]
     R --> C["Clona el repositorio<br/>y crea una rama"]
     C --> A["El agente de código<br/>escribe el cambio"]
-    A --> V["Lo verifican los comandos<br/>de configuración,<br/>compilación y prueba"]
+    A -->|"en un Runner propio"| V["Compila y prueba<br/>el cambio como<br/>dice AGENTS.md"]
     V -->|"un fallo"| A
     V --> P["Commit, push y<br/>apertura de un<br/>pull request"]
+    A -->|"en el Runner global"| P
     P --> H["Una persona lo revisa<br/>y lo fusiona"]
 ```
 
 1. Haces clic en **Iniciar tarea** en Código, o en **Corregir con IA** en una excepción sin resolver, u otro botón o disparador inicia una tarea (consulta [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección)).
-2. La tarea se pone en cola en su repositorio, y el Runner que elige el repositorio la toma: uno de tus Runners, o un Runner global cuando no elige ninguno (consulta [Elige el Runner del repositorio](#elige-el-runner-del-repositorio)).
+2. La tarea se pone en cola en su repositorio, y el Runner en el que trabaja el repositorio la toma: el que elige, si no el Runner predeterminado del proyecto, y si no un Runner global (consulta [Elige el Runner del repositorio](#elige-el-runner-del-repositorio)).
 3. El Runner obtiene el contexto de la tarea. Para una petición, son sus palabras, el contexto añadido y la conversación hasta ahora; para una excepción, su tipo, su mensaje y su stack trace.
 4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución. Una petición parte de la rama elegida cuando se hizo, y su pull request se abre hacia ella. Una respuesta trabaja, en cambio, en la rama del pull request abierto de la tarea.
 5. Un agente de código, impulsado por el proveedor de LLM de tu proyecto, lee el código y escribe el cambio. El servidor de OneUptime hace las llamadas al LLM, así que el Runner nunca tiene la clave de API de tu proveedor, y cada llamada se mide y aparece en los registros de IA. Una corrección de una excepción, de una traza lenta o de un incidente también lee datos de producción mientras trabaja: las excepciones, las trazas, los logs y las métricas de los servicios del repositorio (consulta [Telemetría de producción en una corrección](#telemetría-de-producción-en-una-corrección)).
@@ -111,7 +112,7 @@ Cada ejecución está sujeta a presupuestos que impone el servidor: como máximo
 | La página **Trazas** de un servicio | **Mejorar el trazado** | Añade spans y atributos donde falta el tracing del servicio, sin cambiar el comportamiento. |
 | Una función en **Perfiles de rendimiento** | **Corregir con IA** | Hace que la función haga el mismo trabajo con menos tiempo o memoria, con su perfil como evidencia. |
 
-Estos botones solo aparecen donde pueden iniciar una tarea. Con la IA desactivada para el proyecto, no aparece ninguno y el menú lateral de una excepción no tiene **Asistencia de IA**. **Mejorar los registros** y **Mejorar el trazado** aparecen en cuanto hay un repositorio conectado, y **Acelerar con IA** solo en una traza que vale la pena corregir (consulte [Explorador de trazas](/docs/telemetry/traces-explorer)). El botón **Corregir con IA** de una función solo aparece en el código propio de la aplicación que ocupa al menos el 5 % del tiempo o la memoria del perfil, o cuya proporción creció 3 puntos o más desde la ventana con la que se compara (consulta [Perfilado continuo](/docs/telemetry/profiles)).
+Estos botones solo aparecen donde pueden iniciar una tarea. Con la IA desactivada para el proyecto, no aparece ninguno y el menú lateral de una excepción no tiene **Asistencia de IA**. **Mejorar los registros** y **Mejorar el trazado** aparecen en cuanto hay un repositorio conectado y nada impide trabajar en él a la IA (como el plan, los créditos de IA agotados o ningún Runner en línea), y **Acelerar con IA** solo en una traza que vale la pena corregir (consulte [Explorador de trazas](/docs/telemetry/traces-explorer)). El botón **Corregir con IA** de una función solo aparece en el código propio de la aplicación que ocupa al menos el 5 % del tiempo o la memoria del perfil, o cuya proporción creció 3 puntos o más desde la ventana con la que se compara (consulta [Perfilado continuo](/docs/telemetry/profiles)).
 
 Para abrir la página **Asistencia de IA** de una excepción, abre la excepción en **Productos → Observabilidad → Excepciones** y elige **Asistencia de IA** en su menú lateral. Una excepción resuelta o archivada tiene que marcarse primero como no resuelta.
 
@@ -175,7 +176,7 @@ Un repositorio dice cómo se compila y se prueba en un `AGENTS.md` en su raíz, 
 
 | Dónde trabaja la IA | Qué hace con la compilación y las pruebas del repositorio |
 | --- | --- |
-| Uno de tus Runners | Compila y prueba su cambio antes de que se abra el pull request, corrige lo que falla y vuelve a comprobar, y dice en su resumen qué comprobaciones ejecutó. Cada comando que ejecuta tiene hasta 2 minutos, sin las credenciales propias del Runner en su entorno. |
+| Uno de tus Runners | Compila y prueba su cambio antes de que se abra el pull request, corrige lo que falla y vuelve a comprobar, y dice en su resumen qué comprobaciones ejecutó. Cada comando que ejecuta tiene 2 minutos, o hasta 10 para una instalación, una compilación o una batería de pruebas lenta, sin las credenciales propias del Runner en su entorno. |
 | **Runner global** | No ejecuta ningún comando: escribe el cambio y abre el pull request, y la CI propia de tu repositorio lo comprueba. |
 
 Nada de un pull request que viene de un fork se lee nunca como instrucciones del repositorio: una revisión rechaza ese pull request, y una reseña lee la rama base.
@@ -218,7 +219,7 @@ Abre **Repositorios** en el menú lateral de Código y haz clic en **Conectar re
 
 Los comandos desde comentarios y las revisiones de producción necesitan la GitHub App, así que por ahora solo funcionan en repositorios de GitHub, y los **Ajustes** del repositorio lo dicen.
 
-Para GitLab, Forgejo o Gitea, introduce la dirección del servidor (GitLab.com y Codeberg vienen rellenados) y el token, y elige los repositorios que conectar: la lista ofrece solo aquellos a los que el token puede subir cambios, y conectar más después puede reutilizar el token. OneUptime comprueba cada token con su servidor antes de guardarlo, lo guarda cifrado y no vuelve a mostrarlo. Los **Ajustes** del repositorio muestran su servidor, la cuenta y los últimos caracteres del token, con **Reemplazar el token de acceso**. Cuando el servidor rechaza un token caducado o revocado, sus repositorios muestran **Token rechazado** y la IA deja de trabajar en ellos, hasta que reemplazar el token vuelve a conectar todos los repositorios que lo usan.
+Para GitLab, Forgejo o Gitea, introduce la dirección del servidor (GitLab.com y Codeberg vienen rellenados) y el token, y elige los repositorios que conectar: la lista ofrece solo aquellos a los que el token puede subir cambios, y conectar más después puede reutilizar el token. OneUptime comprueba cada token con su servidor antes de guardarlo, lo guarda cifrado y no vuelve a mostrarlo. Los **Ajustes** del repositorio muestran su servidor, la cuenta y los últimos caracteres del token, con **Reemplazar el token de acceso**. Cuando el servidor rechaza un token caducado o revocado, sus repositorios muestran **Token rechazado** y la IA deja de trabajar en ellos, hasta que reemplazar el token vuelve a conectar todos los repositorios que lo usan. En un repositorio de GitLab, los ajustes hablan de merge requests, como GitLab: **Merge requests**, **Merge requests de corrección con IA** y **Máximo de merge requests de corrección abiertos**.
 
 ### Un servidor Git en una red privada
 
@@ -233,7 +234,7 @@ Una tarea necesita tres cosas. El cuadro de peticiones de Código y la página *
 | Un proveedor de LLM | Nada que configurar: un proyecto sin proveedor propio usa el proveedor global, pagado con los créditos de IA del proyecto. Un proveedor propio, en **Ajustes del proyecto → IA → Proveedores de LLM**, tiene prioridad. | Define una vez las variables de entorno `GLOBAL_LLM_PROVIDER_*` en el servidor, o añade un proveedor al proyecto. |
 | Un repositorio conectado mediante la GitHub App | **Productos → Código**, luego **Conectar GitHub**. Si la app ya está instalada en la cuenta de GitHub, haz clic en **Conectar una instalación existente** en su lugar: instalarla de nuevo no la conecta. Requiere el plan Growth. | Lo mismo, una vez que tu instancia tiene una GitHub App (consulta [Integración con GitHub](/docs/self-hosted/github-integration)). |
 | O un repositorio en GitLab, Forgejo o Gitea, o en cualquier servidor Git | **Repositorios** en Código, luego **Conectar repositorios** (consulta [Conectar un repositorio](#conectar-un-repositorio)). Requiere el plan Growth. | Lo mismo, sin GitHub App que configurar. |
-| Un Runner que ejecuta correcciones de código con IA | Nada que operar: un repositorio que no elige ninguno trabaja en los Runners globales de OneUptime. | El servicio `runner` de Docker Compose, o el Runner del chart de Helm (`runner.enabled`, activado por defecto), se registra solo y ejecuta correcciones de código con IA en cada repositorio que no elige ningún Runner. |
+| Un Runner que ejecuta correcciones de código con IA | Nada que operar: un repositorio que no elige ninguno trabaja en el Runner predeterminado del proyecto o, si no lo hay, en los Runners globales de OneUptime. | El servicio `runner` de Docker Compose, o el Runner del chart de Helm (`runner.enabled`, activado por defecto), se registra solo y ejecuta correcciones de código con IA en cada repositorio que trabaja en un Runner global. |
 
 En una instancia autoalojada, el proveedor global es un bloque de `config.env` (Docker Compose) o de tus valores de Helm. Para un Ollama autoalojado:
 
@@ -251,14 +252,14 @@ No asignas repositorios a servicios. Cuando una tarea empieza, OneUptime encuent
 
 ### Elige el Runner del repositorio
 
-Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, abre **Más ajustes**, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que importa la GitHub App empieza en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, cuando lo tiene. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
+Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, abre **Más ajustes**, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que no elige ninguno trabaja en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, la primera opción, marcada **Predeterminado del proyecto**, y se mueve con él cuando otro Runner pasa a ser el predeterminado. En un proyecto sin Runner predeterminado, trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos. Para mantener un repositorio en **Runner global** mientras el proyecto tiene un Runner predeterminado, elígelo.
 
 | Runner | Qué hace con una tarea |
 | --- | --- |
 | **Runner global** | Escribe el cambio y abre el pull request sin compilarlo ni probarlo: la CI propia de tu repositorio comprueba el cambio. |
 | Uno de tus Runners | También compila y prueba el cambio como indica el `AGENTS.md` del repositorio, en un host que tú controlas. |
 
-Solo el Runner que elige un repositorio recibe sus tareas y un token para él. En un proyecto que desactiva **Usar Runners globales** en **Runbooks → Agentes de runbook**, cada repositorio necesita uno de los Runners propios del proyecto. La página de un Runner lista los repositorios que lo eligen.
+Solo el Runner en el que trabaja un repositorio recibe sus tareas y un token para él. En un proyecto que desactiva **Usar Runners globales** en **Runbooks → Agentes de runbook**, cada repositorio necesita uno de los Runners propios del proyecto: el que elige, o el Runner predeterminado del proyecto. La página de un Runner lista los repositorios que trabajan en él.
 
 ### Ejecuta un Runner propio
 
@@ -317,11 +318,11 @@ No se pudo aplicar la corrección, no se pudo acceder al repositorio o a la rama
 :::
 
 :::details El Runner se detiene en mitad de una ejecución
-Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como fallida con un error. Nunca se vuelve a poner en cola por sí sola, porque el Runner puede haber subido ya parte de una rama de corrección; iníciala de nuevo desde donde la iniciaste.
+Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como fallida con un error. Nunca se vuelve a poner en cola por sí sola, porque el Runner puede haber subido ya parte de una rama de corrección; iníciala de nuevo desde donde la iniciaste. Un comando que ejecuta el agente de código mantiene vivo el heartbeat mientras se ejecuta, así que una compilación o una batería de pruebas larga no se toma por un Runner detenido.
 :::
 
 :::details Ningún Runner toma la tarea
-Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no está conectado - el que elige su repositorio, o un Runner global para un repositorio que no elige ninguno - falla, con un mensaje que dice cuál, así que nunca aparece en curso para siempre. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
+Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no está conectado - el que elige su repositorio, el Runner predeterminado del proyecto para un repositorio que no elige ninguno, o un Runner global - falla, con un mensaje que dice cuál, así que nunca aparece en curso para siempre. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
 :::
 
 ## Privacidad

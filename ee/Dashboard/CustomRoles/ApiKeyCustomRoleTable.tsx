@@ -12,12 +12,15 @@ import {
   loadCustomRoles,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
 import {
+  EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP,
   getAddRoleToApiKeyDescription,
   getApiKeyOwnedScopeReason,
   getApiKeyRolePermissionCountText,
   getRoleRemoveFromApiKeySentence,
+  TemplatedSentence,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
 import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
+import RolesPageLink from "./RolesPageLink";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
@@ -185,6 +188,11 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
     },
   );
 
+  // Add a Custom Role's words, with the Roles page drawn as a link.
+  const addRoleDescription: TemplatedSentence = getAddRoleToApiKeyDescription({
+    isAnyOfferedRolePartlyOwned: isAnyOfferedRolePartlyOwned,
+  });
+
   const roleOptions: Array<CardSelectOption> = offeredRoles.map(
     (role: CustomRoleSummary): CardSelectOption => {
       return getCustomRoleCardSelectOption(translator, role, {
@@ -214,9 +222,10 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
       buttonStyle: ButtonStyleType.NORMAL,
       // Every role the project has is the key's already: nothing to add.
       disabled: roleOptions.length === 0,
+      // The card's description just above links to the Roles page.
       tooltip:
         roleOptions.length === 0
-          ? "This key has every custom role already. Make another on the Roles page."
+          ? EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP
           : undefined,
       onClick: () => {
         setIsAdding(true);
@@ -259,16 +268,7 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
               <TranslatedSentence
                 template="Named sets of permissions, made on the {{roles}} page. Changing a role changes this key too."
                 slots={{
-                  roles: (
-                    <AppLink
-                      className="font-medium text-indigo-600 hover:underline"
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.TEAM_ROLES] as Route,
-                      )}
-                    >
-                      {translator.translateText("Roles") || ""}
-                    </AppLink>
-                  ),
+                  roles: <RolesPageLink />,
                 }}
               />
             ),
@@ -365,9 +365,16 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
         <ModelFormModal<ApiKeyCustomRole>
           title="Add a Custom Role"
           name="Add a custom role to an API key"
-          description={getAddRoleToApiKeyDescription(translator, {
-            isAnyOfferedRolePartlyOwned: isAnyOfferedRolePartlyOwned,
-          })}
+          // Roles is a link here too: the dialog sends people to make one.
+          description={
+            <TranslatedSentence
+              template={addRoleDescription.template}
+              values={addRoleDescription.values}
+              slots={{
+                roles: <RolesPageLink />,
+              }}
+            />
+          }
           modelType={ApiKeyCustomRole}
           modalWidth={ModalWidth.Large}
           submitButtonText="Add Role"

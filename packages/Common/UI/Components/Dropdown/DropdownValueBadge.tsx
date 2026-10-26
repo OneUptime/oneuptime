@@ -1,4 +1,11 @@
+import { Indigo500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import {
+  PillSize,
+  WRAPPING_PILL_CLASS_NAME,
+  WRAPPING_PILL_DOT_CLASS_NAME,
+  PILL_DOT_CLASS_NAME,
+} from "../Pill/Pill";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   getPillColors,
@@ -19,6 +26,12 @@ export interface ComponentProps {
   className?: string | undefined;
 }
 
+/*
+ * A value without a colour of its own is drawn in the product's indigo, as
+ * it always was - now through the same colour work as every other pill.
+ */
+export const DROPDOWN_VALUE_DEFAULT_COLOR: Color = Indigo500;
+
 const getColor: (color: Color | string | undefined) => Color | undefined = (
   color: Color | string | undefined,
 ): Color | undefined => {
@@ -37,36 +50,39 @@ const getColor: (color: Color | string | undefined) => Color | undefined = (
   }
 };
 
+/*
+ * A dropdown's value, shown as a pill: a monitor's status, a custom field's
+ * choice, a related record in a detail card. It is the product's one pill
+ * (Pill's shape and size, its colours worked out the way a Pill's are: a dot
+ * in the exact colour, a pale wash and ring of it, text in a shade of it
+ * that reads, in both themes through Theme.css's [data-ou-pill] rules). It
+ * was a 12px badge with square-ish corners beside 13px round label pills.
+ * A long value runs onto a next line inside it, as a wrapping Pill's does,
+ * rather than being cut short.
+ */
 const DropdownValueBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const color: Color | undefined = getColor(props.color);
-  /*
-   * A coloured value is painted the way a Pill is (PillColors.ts): a dot in
-   * the exact colour, a pale wash and ring of it, and text in a shade of it
-   * that reads - in both themes, through Theme.css's [data-ou-pill] rules.
-   */
-  const colors: PillColors | undefined = color
-    ? getPillColors(color)
-    : undefined;
+  const colors: PillColors = getPillColors(
+    color || DROPDOWN_VALUE_DEFAULT_COLOR,
+  );
 
   return (
     <span
       data-dropdown-value-badge="true"
       data-dropdown-value-color={color?.toString()}
-      data-ou-pill={colors ? "" : undefined}
-      className={`inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium ${
-        colors
-          ? ""
-          : "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
-      }${props.className ? ` ${props.className}` : ""}`}
-      style={colors ? getPillToneStyle(colors) : undefined}
+      data-ou-pill=""
+      className={`${WRAPPING_PILL_CLASS_NAME} [overflow-wrap:anywhere]${
+        props.className ? ` ${props.className}` : ""
+      }`}
+      style={{ fontSize: PillSize.Normal, ...getPillToneStyle(colors) }}
     >
       <span
         aria-hidden="true"
-        data-ou-pill-dot={colors ? "" : undefined}
-        className={`h-1.5 w-1.5 rounded-full ${colors ? "" : "bg-indigo-500"}`}
-        style={colors ? getPillDotStyle(colors) : undefined}
+        data-ou-pill-dot=""
+        className={`${PILL_DOT_CLASS_NAME} ${WRAPPING_PILL_DOT_CLASS_NAME}`}
+        style={getPillDotStyle(colors)}
       ></span>
       {props.label}
     </span>

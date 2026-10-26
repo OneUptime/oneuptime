@@ -88,7 +88,7 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | Side menu section | Pages |
 | --- | --- |
 | **Overview** | **Overview**, **Timeline** |
-| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbook Runs** |
+| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
 | **Notes** | **Private Notes** |
 | **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
@@ -101,7 +101,7 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).
-- **Playbook Runs**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbook Runs**.
+- **Playbooks**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbooks**.
 - **Private Notes**: what the team wrote about the case.
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
 - **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.
@@ -311,7 +311,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
-A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step, on the case's timeline and in the project's audit log. **Waiting for Approval**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run. On **Playbook Runs** and on a playbook's page, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself.
+A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step, on the case's timeline and in the project's audit log. **Approvals**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run. On **Playbook Runs** and on a playbook's page, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself.
 
 A run that stops hearing from its worker, after a restart for example, is picked up again: a queued run is queued again after 2 minutes, and a run that has said nothing for 30 minutes is failed.
 

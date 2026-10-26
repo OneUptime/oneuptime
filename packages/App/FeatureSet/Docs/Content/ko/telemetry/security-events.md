@@ -44,7 +44,7 @@ flowchart TB
 | **Threat Intel** | Detections | 알려진 악성 지표의 STIX/TAXII 피드 |
 | **ATT&CK Coverage** | Detections | 규칙이 다루는 MITRE ATT&CK 기법 |
 | **Playbooks** | Playbooks | 케이스에 대해 자동으로 또는 직접 실행되는 단계 |
-| **승인 대기 중** | Playbooks | 누군가 승인하거나 거부하기를 기다리는 플레이북 단계 |
+| **승인 대기** | Playbooks | 누군가 승인하거나 거부하기를 기다리는 플레이북 단계 |
 | **플레이북 실행** | Playbooks | 각 플레이북이 한 일을 단계별로 |
 | **Protected Entities** | Playbooks | 어떤 플레이북도 봉쇄하지 않는 사용자와 호스트 |
 | **설정** | AI | OneUptime AI가 새 케이스마다 트리아지할지 여부 |
@@ -205,10 +205,12 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | 심각도 | `severityName`(Unknown, Informational, Low, Medium, High, Critical, Fatal, Other 중 하나)과 `severityId` |
 | 누가 했는지 | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | 무엇에 영향을 주었는지 | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| 프로세스 | `processName`, `processPath`, `processCommandLine`: 프로세스 실행에서는 시작된 프로세스, 그 밖에는 동작한 프로세스. `parentProcessName`, `parentProcessPath`, `parentProcessCommandLine`: 그 프로세스를 시작한 프로세스 |
+| 프로세스 | `processName`, `processPath`, `processCommandLine`: 프로세스 활동에서는 시작, 열기, 인젝션, 종료의 대상이 된 프로세스, 그 밖에는 동작한 프로세스. `parentProcessName`, `parentProcessPath`, `parentProcessCommandLine`: 그 프로세스를 시작한 프로세스 |
 | 소스 | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | 내용 | `message`, `mitreTactics`, `mitreTechniques`, `observables`: 이벤트에서 뽑아낸 모든 사용자, 호스트, IP 주소, 도메인, 해시 |
 | 속성 | 소스의 페이로드 전체를 점으로 구분한 키로 평탄화한 것 |
+
+OneUptime 14.0.84 이전에 저장된 이벤트는 프로세스 필드가 비어 있고, 프로세스를 동작한 프로세스인 `principalProcess`로만 나타냅니다. 나중에 채워지지 않으며, 보존 기간이 끝날 때까지 저장될 때의 내용을 유지합니다.
 
 ## 보안 이벤트 탐색하기
 

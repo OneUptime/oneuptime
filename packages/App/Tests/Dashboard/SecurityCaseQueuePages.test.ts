@@ -481,7 +481,7 @@ describe("what each case page asks the server for", () => {
 });
 
 describe("the runs pages", () => {
-  test("are Waiting for Approval and Playbook Runs, each a page of its own", () => {
+  test("are Approvals and Playbook Runs, each a page of its own", () => {
     expect(
       SECURITY_PLAYBOOK_RUN_VIEWS.map(
         (view: SecurityPlaybookRunView): [string, string, string] => {
@@ -489,16 +489,12 @@ describe("the runs pages", () => {
         },
       ),
     ).toEqual([
-      [
-        "waiting",
-        "Waiting for Approval",
-        "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL",
-      ],
+      ["waiting", "Approvals", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["all", "Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
     ]);
   });
 
-  test("Waiting for Approval asks for the runs held for an approval; Playbook Runs for every run", () => {
+  test("Approvals asks for the runs held for an approval; Playbook Runs for every run", () => {
     expect(getSecurityPlaybookRunView("waiting").query).toEqual({
       status: SecurityPlaybookRunStatus.WaitingForApproval,
     });
@@ -507,7 +503,7 @@ describe("the runs pages", () => {
     expect(PLAYBOOK_RUNS_PAGE_LIMIT).toBe(50);
   });
 
-  test("an empty Waiting for Approval is good news; an empty Playbook Runs is a first visit", () => {
+  test("an empty Approvals is good news; an empty Playbook Runs is a first visit", () => {
     expect(
       SECURITY_PLAYBOOK_RUN_VIEWS.map(
         (view: SecurityPlaybookRunView): [string, boolean, string] => {

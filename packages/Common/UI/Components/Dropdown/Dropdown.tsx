@@ -139,6 +139,18 @@ export interface ComponentProps {
 }
 
 /*
+ * A picked value's name. A single pick longer than the control - a
+ * template's name on a phone - ends in an ellipsis (min-w-0 lets it shrink).
+ * A multi-select's chip shows the whole name instead, wrapping inside the
+ * chip, and the chip is never wider than the control.
+ */
+export const SINGLE_SELECT_VALUE_LABEL_CLASS_NAME: string =
+  "truncate text-sm font-medium text-gray-900";
+
+export const MULTI_SELECT_CHIP_LABEL_CLASS_NAME: string =
+  "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium text-gray-900";
+
+/*
  * The colours of one option in the open menu. A picked option is indigo-200,
  * the one the keys or the mouse are on indigo-100 - except an option that
  * cannot be picked (isDisabled): react-select still moves focus onto it, and
@@ -629,12 +641,22 @@ const Dropdown: FunctionComponent<ComponentProps> = (
        * on a Persian page is cut at its end, not its beginning. A label of
        * the product's own words (isInPageDirection) reads the page's way.
        */
+      /*
+       * A multi-select's chip shows the whole name, on two lines if it must:
+       * truncated, a phone's narrow control cut every long pick to a few
+       * letters and an ellipsis (a probe's "Singapore (ap-southeast-1)"),
+       * so the picks could not be told apart.
+       */
       return (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <div className="flex min-w-0 max-w-full items-center gap-2">
             {renderOptionColorIndicator(option.color)}
             <span
-              className="truncate text-sm font-medium text-gray-900"
+              className={
+                props.isMultiSelect
+                  ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
+                  : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
+              }
               dir={option.isInPageDirection ? undefined : "auto"}
               data-testid="dropdown-value-label"
             >
@@ -929,6 +951,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               border: "1px solid #c7d2fe", // indigo-200
               paddingLeft: 4,
               paddingRight: 4,
+              // A chip is never wider than the control: its name wraps.
+              maxWidth: "100%",
             };
           },
           multiValueLabel: (
@@ -939,6 +963,14 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               color: "#312e81", // indigo-800
               fontSize: "0.875rem",
               fontWeight: 500,
+              /*
+               * react-select cuts a chip's name to one line with an
+               * ellipsis; the whole name shows instead (see
+               * MULTI_SELECT_CHIP_LABEL_CLASS_NAME).
+               */
+              whiteSpace: "normal",
+              textOverflow: "clip",
+              overflowWrap: "anywhere",
             };
           },
           multiValueRemove: (

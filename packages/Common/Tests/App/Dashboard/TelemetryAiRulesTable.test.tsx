@@ -183,6 +183,11 @@ describe("the profile AI rules table", () => {
       title: TELEMETRY_AI_RULES_CARD_TITLE,
       description:
         TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].rulesCardDescription,
+      /*
+       * The card carries the table's id, so the lane switch's "Review the
+       * AI rules" opens More settings at it (AiRulesFixNothing).
+       */
+      id: getTelemetryAiRulesTableId(TelemetryAiLane.Profile),
     });
     expect(props["noItemsMessage"]).toBe(
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].noRulesMessage,

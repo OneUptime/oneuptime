@@ -258,9 +258,14 @@ describe("getFoldedSectionItemsShown", () => {
 });
 
 describe("foldedSectionItem", () => {
-  test("a page names a card by its title, unset unless it says so", () => {
+  /*
+   * Its key is the card's place after its title (Utils/PageAnchor) - the
+   * place a card in a page's More settings takes after its title too - so a
+   * link names the item and lands on its card.
+   */
+  test("a page names a card by its title, keyed by the card's place after it, unset unless it says so", () => {
     expect(foldedSectionItem("Block Permissions")).toEqual({
-      key: "Block Permissions",
+      key: "block-permissions",
       title: "Block Permissions",
       isSet: false,
     });
@@ -285,7 +290,7 @@ describe("foldedSectionItem", () => {
     expect(
       foldedSectionItem("Block Permissions", { isSet: false, value: "0" }),
     ).toEqual({
-      key: "Block Permissions",
+      key: "block-permissions",
       title: "Block Permissions",
       isSet: false,
     });
@@ -299,7 +304,7 @@ describe("foldedSectionItem", () => {
         translateValue: true,
       }),
     ).toEqual({
-      key: "Search Engine Indexing",
+      key: "search-engine-indexing",
       title: "Search Engine Indexing",
       isSet: true,
       value: "Off",

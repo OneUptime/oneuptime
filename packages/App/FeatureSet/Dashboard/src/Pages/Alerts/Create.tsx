@@ -3,7 +3,6 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Alert from "Common/Models/DatabaseModels/Alert";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -193,9 +192,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   stepId: "alert-details",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
-                  description: MarkdownUtil.getMarkdownCheatsheet(
-                    "Describe the alert details here",
-                  ),
+                  description: "Describe the alert details here.",
                 },
                 /*
                  * Left empty, the alert starts where every new alert does, the

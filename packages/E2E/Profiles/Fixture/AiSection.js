@@ -247,8 +247,14 @@ export function aiLogs(now, skip) {
     return { entries: [], totalCount: 0 };
   }
 
+  // Its kind too, as the server sends it: a verdict is said in its words.
   const insight = (id, title) => {
-    return { id, title, serviceName: "checkout" };
+    return {
+      id,
+      title,
+      serviceName: "checkout",
+      type: AIInsightType.ProfileHotspot,
+    };
   };
 
   const entries = [
@@ -279,7 +285,8 @@ export function aiLogs(now, skip) {
         AI_INSIGHT_IDS.grew,
         "normalizeLineItems grew to 9% of the CPU time in checkout, from 3%",
       ),
-      classification: "Actionable",
+      // The verdict the triage wrote: avoidable work in the code.
+      classification: "code-fault",
     },
     {
       runId: AI_TASK_IDS.asked,

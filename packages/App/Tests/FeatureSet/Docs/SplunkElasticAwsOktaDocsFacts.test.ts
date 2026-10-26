@@ -604,6 +604,8 @@ describe("Splunk Enterprise Security", () => {
       "Status",
       "MITRE ATT&CK tactics and techniques",
       "Principal user, IP, host and process",
+      // Held to the normalizer in SecurityConnectionProcessDocsFacts.
+      "Process name, path and command line; parent process name, path and command line",
       "Target user, IP, host and port",
       "Target resource",
       "Observables",
@@ -1069,6 +1071,8 @@ describe("Elastic Security", () => {
       "kibana.alert.workflow_status",
       "kibana.alert.rule.threat",
       "user.name",
+      // The process row, held to the normalizer in SecurityConnectionProcessDocsFacts.
+      "process.name",
       "user.target.name",
       "related.*",
       "_index",

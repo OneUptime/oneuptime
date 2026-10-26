@@ -78,6 +78,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 | `status_label`، وگرنه `status_description`، وگرنه نام وضعیت بازبینی‌ای که `status` نگه می‌دارد | وضعیت |
 | `annotations.mitre_attack`، و فیلدهایی مانند `mitre_technique_id` و `mitre_tactic` | تاکتیک‌ها و تکنیک‌های MITRE ATT&CK |
 | `user` یا `src_user`؛ `src`، `src_ip` یا `src_host`؛ `process`، `process_name` یا `parent_process` | کاربر، IP، میزبان و فرایند اصلی |
+| `process_name` یا `process_exec`، `process_path` و `process`؛ `parent_process_name` یا `parent_process_exec`، `parent_process_path` و `parent_process` | نام، مسیر و خط فرمان فرایند؛ نام، مسیر و خط فرمان فرایند والد |
 | `dest_user`؛ `dest`، `dest_ip` یا `dest_host`؛ `dest_port` | کاربر، IP، میزبان و پورت هدف |
 | `file_path`، `url` یا `risk_object` | منبع هدف |
 | هر کاربر، میزبان و IP، و `dvc`، `host`، `file_hash`، `file_name`، `url`، `domain`، `query` و `risk_object` | Observableها |

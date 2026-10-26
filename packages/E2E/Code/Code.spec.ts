@@ -1611,13 +1611,13 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     ).toHaveText(
       "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
     );
-    // More settings holds only what GitLab has.
+    // More settings holds only what GitLab has, in GitLab's word.
     const moreSettings: Locator = page.getByTestId(
       "code-repository-more-settings",
     );
     await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
       "Runner",
-      "Pull Requests",
+      "Merge Requests",
     ]);
     await expect(
       page.getByTestId("code-repository-github-commands"),
@@ -1688,6 +1688,67 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     await expect(page.locator("#pull-requests")).toHaveCount(0);
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repository-settings-git");
+  });
+
+  /*
+   * The Runner card and its picker say what AI's work becomes on the
+   * repository's host, as its Merge Requests or Branches card does: the
+   * merge request on GitLab, the branch AI pushes to a Git server - never
+   * "before the pull request opens" beside a Merge Requests card.
+   */
+  test("a GitLab repository's Runner speaks of the merge request, and a Git server's of the branch AI pushes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const cases: Array<{
+      path: string;
+      onGlobalRunner: string;
+      pickOne: string;
+      onOwnRunner: string;
+    }> = [
+      {
+        path: `${settingsPath(BILLING)}?hosts=1#runner`,
+        onGlobalRunner:
+          "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.",
+        pickOne:
+          "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the merge request opens.",
+        onOwnRunner:
+          "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the merge request.",
+      },
+      {
+        path: `${settingsPath(INFRA)}?hosts=1&gitrunner=none#runner`,
+        onGlobalRunner:
+          "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.",
+        pickOne:
+          "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the branch is pushed.",
+        onOwnRunner:
+          "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and pushes its branch.",
+      },
+    ];
+
+    for (const each of cases) {
+      await page.goto(each.path);
+
+      const runner: Locator = page.locator("#runner");
+      await expect(
+        runner.getByTestId("code-repository-runner-skips"),
+      ).toHaveText(each.onGlobalRunner);
+
+      await runner.getByRole("button", { name: "Edit" }).click();
+      const picker: Locator = page.getByTestId("code-repository-runner-picker");
+      const help: Locator = picker.getByTestId(
+        "code-repository-runner-picker-help",
+      );
+      await expect(help).toHaveText(each.pickOne);
+
+      await picker.getByRole("combobox").click();
+      const options: Locator = page.getByRole("option");
+      await expect(options.first()).toContainText(each.onGlobalRunner);
+      await options.filter({ hasText: "prod-eu-west-1" }).click();
+      await expect(help).toHaveText(each.onOwnRunner);
+      await expect(page.getByTestId("modal")).not.toContainText("pull request");
+    }
   });
 
   test("a Git server only a Runner reaches, with none picked: AI says so, and Pick a Runner opens its Runner setting", async ({
@@ -3054,6 +3115,94 @@ test.describe("a repository's Runner", () => {
     await expectRunnerValue(page, "Global Runner", "Connected");
   });
 
+  /*
+   * A repository that picks no Runner follows the project's default Runner
+   * (Common/Types/Runner/CodeRepositoryRunner), and moves with it: the card
+   * names the default, tagged, and the picker offers it first - then Global
+   * Runner, a pick of its own that stays on it beside a default.
+   */
+  test("with a project default Runner, a repository that picks none works on it, and picking Global Runner keeps it off the default", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("default=prod"));
+
+    const value: Locator = await expectRunnerValue(
+      page,
+      "prod-eu-west-1",
+      "Connected",
+    );
+    await expect(value.getByRole("link")).toHaveText("prod-eu-west-1");
+    await expect(
+      value.getByTestId("code-repository-runner-default-tag"),
+    ).toHaveText("Project default");
+    // The pill Runbooks -> Runners draws beside the default's name.
+    await expect(
+      value
+        .getByTestId("code-repository-runner-default-tag")
+        .getByTestId("pill"),
+    ).toBeVisible();
+    // One of the project's own: it builds and tests, nothing says otherwise.
+    await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
+      0,
+    );
+    await screenshot(page, testInfo, "code-repository-runner-default");
+
+    const modal: Locator = await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText("prod-eu-west-1");
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "AI works on the project's default Runner, and moves with it when another Runner becomes the default. It builds and tests its change there the way the repository's AGENTS.md says.",
+    );
+
+    await runnerPicker(page).getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("prod-eu-west-1");
+    await expect(options.nth(0)).toContainText("Project default");
+    await expect(options.nth(1)).toContainText("Global Runner");
+    await expect(options.nth(2)).toContainText("office-runner");
+    await screenshot(page, testInfo, "code-repository-runner-default-picker");
+
+    await options.nth(1).click();
+    const saved: Record<string, unknown> = await save(page, modal);
+    expect(saved["runnerId"]).toBeNull();
+    expect(saved["isGlobalRunnerPicked"]).toBe(true);
+    await expectRunnerValue(page, "Global Runner", "Connected");
+    await expect(
+      page
+        .getByTestId("code-repository-runner")
+        .getByTestId("code-repository-runner-default-tag"),
+    ).toHaveCount(0);
+  });
+
+  test("a repository that picked Global Runner beside a default follows the default again once the default is picked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(atRunner("default=prod&gpick=1"));
+    await expectRunnerValue(page, "Global Runner", "Connected");
+
+    const modal: Locator = await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText("Global Runner");
+    await runnerPicker(page).getByRole("combobox").click();
+    await page.getByRole("option").first().click();
+
+    const saved: Record<string, unknown> = await save(page, modal);
+    // No Runner of its own, and no Global Runner pick: it follows the default.
+    expect(saved["runnerId"]).toBeNull();
+    expect(saved["isGlobalRunnerPicked"]).toBe(false);
+    await expectRunnerValue(page, "prod-eu-west-1", "Connected");
+    await expect(
+      page
+        .getByTestId("code-repository-runner")
+        .getByTestId("code-repository-runner-default-tag"),
+    ).toHaveText("Project default");
+  });
+
   test("a project that turned global Runners off says so, and its picker asks for one of the project's own", async ({
     page,
   }: {
@@ -3257,11 +3406,15 @@ test.describe("a task OneUptime started on its own, from slow code it found", ()
     await expect(origin).toContainText(
       "OneUptime started this task from an AI insight: parseOrder takes 34% of the CPU time in checkout",
     );
+    // Slow code the Profiler found opens in the Profiler's AI section.
     await expect(
       origin.getByRole("link", {
         name: "parseOrder takes 34% of the CPU time in checkout",
       }),
-    ).toHaveAttribute("href", `${DASHBOARD}/ai/insights/${INSIGHT_ID}`);
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/profiles/ai/insights/${INSIGHT_ID}`,
+    );
     await expect(origin.getByTestId("code-turn-request-message")).toContainText(
       "OneUptime found this in the service's profiles on its own.",
     );
@@ -3563,6 +3716,186 @@ test.describe("a task's conversation", () => {
     await page.getByTestId("code-task-log-back").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
     await expect(page.getByTestId("code-task-turns")).toBeVisible();
+  });
+
+  /*
+   * A task of more than one turn: the Log page lists them (Components/Code/
+   * CodeTaskLogTurns), so another turn's record is one pick away rather
+   * than a trip back to the conversation.
+   */
+  test("a task's Log picks between its turns: the next turn's record is one pick away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // The retries task's second turn (the fixture's reply).
+    const secondTurn: string = "40000000-0000-4000-8000-0000000001d1";
+
+    await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
+    await expect(page.getByText("Session Log")).toBeVisible();
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toBeVisible();
+    await expect(picker).toContainText("Turn 1");
+    await expect(picker.getByRole("combobox")).toHaveAccessibleName("Turn");
+    await expectNoSidewaysScroll(page);
+
+    await picker.getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText("Turn 1");
+    await expect(options.nth(1)).toContainText("Turn 2");
+    await screenshot(page, testInfo, "code-task-log-turn-picker");
+
+    await options.nth(1).click();
+    await expect(page).toHaveURL(
+      `${taskPath(TASK.retries)}/log?turn=${secondTurn}`,
+    );
+    await expect(picker).toContainText("Turn 2");
+    // The way back is still there, and the record is the second turn's.
+    await expect(page.getByTestId("code-task-log-back")).toBeVisible();
+    await expect(page.getByText("Session Log")).toBeVisible();
+  });
+
+  /*
+   * Under a picker that names one turn, the record is that turn's, and the
+   * page says so: "this turn". A task of one turn's record is the task's.
+   */
+  test("the record under the turn picker is said to be the turn's; a task of one turn's, the task's", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    /*
+     * The Session Log card's description - drawn from a tablet up: a
+     * card's description is folded away on a phone, as every card's is.
+     */
+    const description: Locator = page.getByTestId("card-description").first();
+    const isPhone: boolean = testInfo.project.name === "phone";
+
+    await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
+    await expect(page.getByTestId("code-task-log-turn-picker")).toBeVisible();
+    await expect(description).toHaveText(
+      "Every step this turn took, in order. Expand a step to see what the model was sent and what it said.",
+    );
+    if (!isPhone) {
+      await expect(description).toBeVisible();
+    }
+
+    await page.goto(`${taskPath(TASK.failed)}/log`);
+    await expect(description).toHaveText(
+      "Every step this task took, in order. Expand a step to see what the model was sent and what it said.",
+    );
+    await expect(page.getByTestId("code-task-log-turn-picker")).toHaveCount(0);
+  });
+
+  /*
+   * A step's row: on a phone the time and the tool's pill fill a line, so
+   * the step's words take the next one, lined up with the time - the row
+   * used to keep one line there and cut the words to nothing. On a laptop
+   * they stay beside the time.
+   */
+  test("each step's words are read in full: under its time on a phone, beside it on a laptop", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
+
+    const words: Locator = page.getByTestId("code-task-log-entry-message");
+    await expect(words).toHaveCount(7);
+    await expect(words.first()).toHaveText("src/payments/client.ts");
+
+    const rows: Array<{
+      text: string;
+      wordsLeft: number;
+      wordsTop: number;
+      wordsWidth: number;
+      isCut: boolean;
+      timeLeft: number;
+      timeBottom: number;
+    }> = await words.evaluateAll(
+      (
+        elements: Array<Element>,
+      ): Array<{
+        text: string;
+        wordsLeft: number;
+        wordsTop: number;
+        wordsWidth: number;
+        isCut: boolean;
+        timeLeft: number;
+        timeBottom: number;
+      }> => {
+        return elements.map((element: Element) => {
+          const own: DOMRect = element.getBoundingClientRect();
+          // The row's first part is the step's time.
+          const time: DOMRect =
+            element.parentElement!.firstElementChild!.getBoundingClientRect();
+
+          return {
+            text: element.textContent || "",
+            wordsLeft: own.left,
+            wordsTop: own.top,
+            wordsWidth: own.width,
+            isCut: element.scrollWidth > element.clientWidth,
+            timeLeft: time.left,
+            timeBottom: time.bottom,
+          };
+        });
+      },
+    );
+
+    const isPhone: boolean = testInfo.project.name === "phone";
+
+    for (const row of rows) {
+      expect(row.wordsWidth, row.text).toBeGreaterThan(0);
+      expect(row.isCut, row.text).toBe(false);
+
+      if (isPhone) {
+        expect(row.wordsTop, row.text).toBeGreaterThanOrEqual(
+          row.timeBottom - 1,
+        );
+        expect(Math.abs(row.wordsLeft - row.timeLeft), row.text).toBeLessThan(
+          1.5,
+        );
+      } else {
+        expect(row.wordsTop, row.text).toBeLessThan(row.timeBottom);
+        expect(row.wordsLeft, row.text).toBeGreaterThan(row.timeLeft);
+      }
+    }
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-log-steps");
+  });
+
+  /*
+   * A record that could not be read: said under the way back and the turn
+   * picker, which stay, with Refresh - a finished turn's page does not
+   * poll, so nothing else would read it again.
+   */
+  test("a turn's record that could not be read keeps the way back and the picker, and Refresh reads it again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(
+      `${taskPath(TASK.retries)}/log?turn=${TASK.retries}&fail=logonce`,
+    );
+
+    await expect(page.getByText("The log could not be read.")).toBeVisible();
+    await expect(page.getByTestId("code-task-log-back")).toBeVisible();
+    await expect(page.getByTestId("code-task-log-turn-picker")).toContainText(
+      "Turn 1",
+    );
+    await screenshot(page, testInfo, "code-task-log-unread");
+
+    await page.getByTestId("refresh-button").click();
+
+    await expect(page.getByText("Session Log")).toBeVisible();
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/payments/client.ts");
+    await expect(page.getByText("The log could not be read.")).toHaveCount(0);
   });
 
   test("its header says where it works - its repository, the branch it works from - how much it changed, and opens its pull request", async ({

@@ -396,13 +396,6 @@
   "Email is not valid.": "Электронная почта недействительна.",
   "Next": "Далее",
   "Opens in a new tab": "Откроется в новой вкладке",
-  "Note": "Примечание",
-  "Tip": "Совет",
-  "Info": "Информация",
-  "Important": "Важно",
-  "Warning": "Предупреждение",
-  "Caution": "Осторожно",
-  "Danger": "Опасно",
   "Loading the latest version": "Загружается последняя версия",
   "A newer version of this page is available. It's loading now.": "Доступна более новая версия этой страницы. Она уже загружается.",
   "You're offline": "Вы не в сети",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "Не удалось загрузить.",
   "Try again": "Повторить попытку",
   "Loading...": "Загрузка...",
-  "Loading": "Загрузка"
+  "Loading": "Загрузка",
+  "markdownCallouts": {
+    "caution": "Осторожно",
+    "danger": "Опасно",
+    "important": "Важно",
+    "info": "Информация",
+    "note": "Примечание",
+    "tip": "Совет",
+    "warning": "Предупреждение"
+  }
 }

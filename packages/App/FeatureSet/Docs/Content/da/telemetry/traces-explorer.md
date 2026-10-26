@@ -91,7 +91,7 @@ Klik på et span i en vilkårlig visning for at åbne dets panel med faner for d
 Et stort spor indlæser 500 spans ad gangen. Klik på knappen nederst i sporet for at indlæse flere eller dem alle.
 
 > [!TIP]
-> **Ret ydeevnen med AI** vises kun på et spor, der er værd at rette: et med en N+1-forespørgsel, kald efter hinanden, der kunne køre parallelt, eller ét kald, der tager det meste af anmodningen, når det koster reel tid (100 ms eller mere for kaldene tilsammen, 500 ms eller mere for et enkelt kald og mindst en tiendedel af anmodningen). Den nævner, hvad den fandt, for eksempel "Den samme databaseforespørgsel kørte 40 gange i ReportService.build", og starter en AI-opgave, der åbner en pull request med rettelsen. Se [Kode](/docs/ai/ai-agent).
+> **Ret ydeevnen med AI** vises kun på et spor, der er værd at rette: et med en N+1-forespørgsel, kald efter hinanden, der kunne køre parallelt, eller ét kald, der tager det meste af anmodningen, når det koster reel tid (100 ms eller mere for kaldene tilsammen, 500 ms eller mere for et enkelt kald og mindst en tiendedel af anmodningen). Den nævner, hvad den fandt, for eksempel "Den samme databaseforespørgsel kørte 40 gange i ReportService.build", og starter en AI-opgave, der åbner en pull request med rettelsen. Når en rettelse af sporet allerede har gjort sit arbejde, linker sporet til dens opgave i stedet for at tilbyde en til. Når noget andet forhindrer AI i at arbejde, som abonnementet, opbrugte AI-kreditter eller ingen Runner online, siger sporet hvad, med linket, der løser det. Se [Kode](/docs/ai/ai-agent).
 
 ## Vis dine spans i diagrammer
 
@@ -150,7 +150,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Spor → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Spor**, som åbner de spans, det handler om, fra den time, det blev fundet i, i **Seer**. For en fejlende operation opretter **Opret monitor** en spormonitor på dens fejlede spans.
-- **Spor → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- **Spor → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med spans, når de ankommer

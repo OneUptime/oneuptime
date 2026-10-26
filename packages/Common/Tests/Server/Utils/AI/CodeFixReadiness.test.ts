@@ -370,10 +370,19 @@ describe("CodeFixReadiness.getAgentCheck", () => {
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
-      repository: { projectId, runnerId: RUNNER_ID },
+      repository: {
+        projectId,
+        runnerId: RUNNER_ID,
+        isGlobalRunnerPicked: null,
+      },
     });
 
-    expect(status).toHaveBeenCalledWith({ projectId, runnerId: RUNNER_ID });
+    // The repository's facts, as the rule reads them.
+    expect(status).toHaveBeenCalledWith({
+      projectId,
+      runnerId: RUNNER_ID,
+      isGlobalRunnerPicked: null,
+    });
     expect(check.ok).toBe(true);
     expect(check.title).toBe("Runner online: prod-runner");
   });
@@ -388,7 +397,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
-      repository: { projectId },
+      repository: { projectId, runnerId: null, isGlobalRunnerPicked: null },
     });
 
     expect(check.ok).toBe(true);
@@ -433,7 +442,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
 
       const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
         projectId,
-        repository: { projectId },
+        repository: { projectId, runnerId: null, isGlobalRunnerPicked: null },
       });
 
       expect(check.ok).toBe(false);

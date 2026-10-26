@@ -8,6 +8,7 @@ import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
   GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
   NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+  getProjectDefaultRunnerOfflineDetail,
   getRepositoryRunnerOfflineDetail,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import CodeRepositoryRunnerChoice, {
@@ -87,6 +88,8 @@ interface World {
   reachedLimit: ProjectAiDailyLimitStatus | null;
   // The Runner the repository picks (its Runner setting in Code), if any.
   repositoryRunnerId: ObjectID | undefined;
+  // Whether it picked the Global Runner itself.
+  repositoryPicksGlobalRunner: boolean | undefined;
   // What it runs on now, and whether that is online.
   runnerStatus: CodeRepositoryRunnerStatus;
 }
@@ -175,6 +178,7 @@ beforeEach(() => {
     llmDetail: "",
     reachedLimit: null,
     repositoryRunnerId: undefined,
+    repositoryPicksGlobalRunner: undefined,
     runnerStatus: {
       decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
       isOnline: true,
@@ -237,6 +241,9 @@ beforeEach(() => {
       row._id = REPOSITORY_ID.toString();
       if (world.repositoryRunnerId) {
         row.runnerId = world.repositoryRunnerId;
+      }
+      if (world.repositoryPicksGlobalRunner !== undefined) {
+        row.isGlobalRunnerPicked = world.repositoryPicksGlobalRunner;
       }
       return row;
     });
@@ -437,7 +444,10 @@ describe("CodeTaskGate.getBlocker", () => {
     expect(CodeRepositoryService.findOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         id: REPOSITORY_ID,
-        select: expect.objectContaining({ runnerId: true }),
+        select: expect.objectContaining({
+          runnerId: true,
+          isGlobalRunnerPicked: true,
+        }),
         props: { isRoot: true },
       }),
     );
@@ -446,6 +456,40 @@ describe("CodeTaskGate.getBlocker", () => {
     ).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       runnerId: RUNNER_ID,
+      isGlobalRunnerPicked: undefined,
+    });
+  });
+
+  test("hands over whether the repository picked the Global Runner, so it never follows the default", async () => {
+    world.repositoryPicksGlobalRunner = true;
+
+    await blocker();
+
+    expect(
+      (
+        CodeRepositoryRunnerChoice.getStatusForRepository as unknown as jest.Mock
+      ).mock.calls[0]![0],
+    ).toEqual({
+      projectId: PROJECT_ID,
+      runnerId: undefined,
+      isGlobalRunnerPicked: true,
+    });
+  });
+
+  test("the project's default Runner the repository follows is offline: RunnerNotOnline, naming it as the default", async () => {
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: false,
+      runnerName: "build-box",
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getProjectDefaultRunnerOfflineDetail("build-box"),
+      runnerName: "build-box",
     });
   });
 
@@ -532,6 +576,94 @@ describe("CodeTaskGate.getBlocker", () => {
       CodeTaskBlockerType.NoAgent,
     ]);
     expect(await blocker()).toBeNull();
+  });
+});
+
+/*
+ * Work whose repository is not known yet - a code-fix run a person asks for
+ * on a trace or a service, which finds its repository as it starts
+ * (CodeFixStartGate passes null when none resolves): everything that does
+ * not depend on a repository is asked all the same, and nothing about a
+ * repository's connection or its Runner.
+ */
+describe("CodeTaskGate.getBlocker, before the repository is known", () => {
+  async function blockerWithoutRepository(
+    data: { props?: DatabaseCommonInteractionProps } = {},
+  ): Promise<CodeTaskBlocker | null> {
+    return await CodeTaskGate.getBlocker({
+      props: data.props || props(),
+      projectId: PROJECT_ID,
+      repository: null,
+      canAsk: true,
+      billingEnabled: true,
+    });
+  }
+
+  test("nothing stops it when the project's gates are open", async () => {
+    expect(await blockerWithoutRepository()).toBeNull();
+  });
+
+  test("no repository's connection or Runner is read", async () => {
+    const connections: jest.Mock = jest.spyOn(
+      CodeHostAccess,
+      "getConnectionSummaries",
+    ) as unknown as jest.Mock;
+    // Even with every Runner offline: there is no repository to ask about.
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+    };
+
+    expect(await blockerWithoutRepository()).toBeNull();
+    expect(connections).not.toHaveBeenCalled();
+    expect(CodeRepositoryService.findOneById).not.toHaveBeenCalled();
+    expect(
+      CodeRepositoryRunnerChoice.getStatusForRepository,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("the bill and the plan are asked all the same", async () => {
+    expect(
+      (
+        await blockerWithoutRepository({
+          props: props({ isSubscriptionUnpaid: true }),
+        })
+      )?.type,
+    ).toBe(CodeTaskBlockerType.SubscriptionUnpaid);
+    expect(
+      await blockerWithoutRepository({
+        props: props({ currentPlan: PlanType.Free }),
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.PlanRequired,
+      message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+    });
+  });
+
+  test("the AI switch, the LLM provider and the daily limit are asked all the same", async () => {
+    world.enableAi = false;
+    expect((await blockerWithoutRepository())?.type).toBe(
+      CodeTaskBlockerType.AiDisabled,
+    );
+
+    world.enableAi = true;
+    world.llmOk = false;
+    world.llmDetail = CODE_FIX_AI_CREDITS_USED_UP_DETAIL;
+    expect(await blockerWithoutRepository()).toEqual({
+      type: CodeTaskBlockerType.NoAiCredits,
+      message: CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+    });
+
+    world.llmOk = true;
+    world.reachedLimit = {
+      reachedLimit: ProjectAiDailyLimit.Tokens,
+      tokenLimit: 100000,
+      spendLimitInUSD: null,
+      usage: { usedTokensToday: 100500, spentTodayInUSDCents: 0 },
+    } as unknown as ProjectAiDailyLimitStatus;
+    expect((await blockerWithoutRepository())?.type).toBe(
+      CodeTaskBlockerType.DailyLimitReached,
+    );
   });
 });
 
@@ -819,8 +951,64 @@ describe("CodeTaskGate.getBlocker, for a repository off GitHub", () => {
 
     // Once the repository picks one, its Runner is what is asked about.
     world.repositoryRunnerId = RUNNER_ID;
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.Custom,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: true,
+      runnerName: "office-runner",
+    };
 
     expect(await blocker()).toBeNull();
+  });
+
+  /*
+   * A repository that picks none follows the project's default Runner - a
+   * Runner of the project's own - so a Git server only a private network
+   * reaches works there as it would on a Runner it picked.
+   */
+  test("a Git server only a private network reaches works on the project's default Runner the repository follows", async () => {
+    connectedAs(
+      summary({
+        provider: CodeRepositoryType.Git,
+        isReachableFromServer: false,
+      }),
+    );
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: true,
+      runnerName: "build-box",
+    };
+
+    expect(await blocker()).toBeNull();
+
+    // Offline, it says so as a Runner that is offline, not as one missing.
+    world.runnerStatus = { ...world.runnerStatus, isOnline: false };
+
+    expect((await blocker())!.type).toBe(CodeTaskBlockerType.RunnerNotOnline);
+  });
+
+  test("a Git server only a private network reaches, on a repository that picked the Global Runner: it needs a Runner of the project's own", async () => {
+    connectedAs(
+      summary({
+        provider: CodeRepositoryType.Git,
+        isReachableFromServer: false,
+      }),
+    );
+    world.repositoryPicksGlobalRunner = true;
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: true,
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+      message: CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
+    });
   });
 
   test("the plan, permission and the AI switch are still asked first", async () => {

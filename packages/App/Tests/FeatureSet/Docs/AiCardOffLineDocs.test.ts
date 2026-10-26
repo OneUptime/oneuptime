@@ -110,15 +110,25 @@ describe("the AI SRE page says when the AI card is one line", () => {
     }
   });
 
-  test("names the line's two titles, its chevron and Ask OneUptime AI as the line draws them", () => {
+  /*
+   * The line's three titles: what is off now - for the record, or for the
+   * whole project - and, once what was off is on again, that it was
+   * (AiOffSummaryData's was-off title, which the page did not name).
+   */
+  test("names the line's three titles, its chevron and Ask OneUptime AI as the line draws them", () => {
     expect(AI_OFF_TITLES.investigationOff).toBe("AI investigation is off");
     expect(AI_OFF_TITLES.projectAiOff).toBe("AI is off for this project");
+    expect(AI_OFF_TITLES.investigationWasOff).toBe("AI investigation was off");
     expect(AI_OFF_WHAT_YOU_CAN_DO).toBe("What you can do");
     expect(AI_OFF_ASK_AI).toBe("Ask OneUptime AI");
 
     expect(PARAGRAPH).toContain(
-      `gets a one-line card instead: **${AI_OFF_TITLES.investigationOff}** (or **${AI_OFF_TITLES.projectAiOff}**, while it is), and why.`,
+      `gets a one-line card instead: **${AI_OFF_TITLES.investigationOff}** (or **${AI_OFF_TITLES.projectAiOff}**, while it is; **${AI_OFF_TITLES.investigationWasOff}** once it is on again), and why.`,
     );
+    // Every title the line can draw is named: none left out.
+    for (const title of Object.values(AI_OFF_TITLES)) {
+      expect(PARAGRAPH).toContain(`**${title}**`);
+    }
     expect(PARAGRAPH).toContain(
       `Its chevron, **${AI_OFF_WHAT_YOU_CAN_DO}**, opens what to turn on`,
     );
@@ -193,6 +203,7 @@ describe("every language says it in the English page's places", () => {
       for (const label of [
         AI_OFF_TITLES.investigationOff,
         AI_OFF_TITLES.projectAiOff,
+        AI_OFF_TITLES.investigationWasOff,
         AI_OFF_WHAT_YOU_CAN_DO,
         AI_OFF_ASK_AI,
         "Remediation",
@@ -205,10 +216,11 @@ describe("every language says it in the English page's places", () => {
         });
       }
 
-      // The two titles and the chevron are this language's own words.
+      // The three titles and the chevron are this language's own words.
       for (const label of [
         AI_OFF_TITLES.investigationOff,
         AI_OFF_TITLES.projectAiOff,
+        AI_OFF_TITLES.investigationWasOff,
         AI_OFF_WHAT_YOU_CAN_DO,
       ]) {
         expect({ label, kept: paragraph.includes(`**${label}**`) }).toEqual({
