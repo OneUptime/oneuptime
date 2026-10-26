@@ -108,6 +108,7 @@ import SubscriberContactSql from "../Utils/StatusPage/SubscriberContactSql";
 import Exception from "../../Types/Exception/Exception";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import { EntityManager, FindOptionsWhere, MoreThan, Raw } from "typeorm";
+import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -3020,7 +3021,8 @@ Stay informed about service availability! 🚀`.toString();
     SmsService.sendSms(
       {
         to: data.subscriber.subscriberPhone,
-        message: data.message,
+        // OneUptime's own words, in GSM-7's characters (SubscriberSms).
+        message: writeDefaultSubscriberSms(data.message),
       },
       {
         projectId: data.subscriber.projectId,

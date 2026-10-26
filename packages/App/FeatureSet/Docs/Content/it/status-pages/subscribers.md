@@ -446,6 +446,8 @@ Altre quattro sezioni, in **Altre impostazioni** in fondo a **Impostazioni iscri
 
 Conviene configurare presto l'SMTP personalizzato se avete iscritti email: la posta che parte dal vostro dominio ha molte meno probabilità di essere filtrata, e molte più probabilità di ottenere la fiducia del cliente che la legge alle 2 di notte.
 
+Gli SMS predefiniti sono scritti con i caratteri che un SMS trasporta al minor costo: virgolette tipografiche, trattini e simili partono come il loro equivalente semplice e un'emoji viene omessa, così un solo carattere in un titolo non fa mai costare a un SMS due o tre parti. I link partono esattamente come sono scritti. Un modello SMS personalizzato parte come l'hai scritto, con i valori che inserisce.
+
 ## Annunci
 
 Un annuncio è un record a livello di progetto (il modello `StatusPageAnnouncement`) che distribuite su una o più pagine di stato, facoltativamente limitato a monitor specifici, con una finestra durante la quale viene mostrato.
