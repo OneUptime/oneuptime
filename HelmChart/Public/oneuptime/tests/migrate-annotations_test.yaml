@@ -1,0 +1,265 @@
+# migrate.annotations and migrate.podAnnotations: annotations for the migrate
+# Job and for its pod. What they are for, mostly: a GitOps tool's own hook
+# annotations on the Job (Argo CD renders the chart with `helm template`, so the
+# Job keeps one name, <release>-migrate-1, on every sync), and a service mesh's
+# opt-out on the pod (an injected sidecar can keep the pod running after the
+# migrations finish, so the Job never completes).
+#
+# With migrate.hook the chart writes the Job's Helm hook annotations itself. The
+# user's go beside them and no key is written twice: a helm.sh/hook-weight or
+# helm.sh/hook-delete-policy of the user's replaces the chart's. helm.sh/hook
+# itself is refused: the runtime pods' wait for the Job
+# (DATABASE_MIGRATION_WAIT_TIMEOUT_MS, migrate-runtime-wait_test.yaml) is worked
+# out from migrate.hook, and a hook it does not know of can leave them waiting
+# for a Job that only runs after them.
+suite: migrate Job and pod annotations
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # --- unset ------------------------------------------------------------------
+  # No key at all, not an empty one: an empty `annotations:` would show up as a
+  # change in `helm diff` for every existing install.
+  - it: annotates neither the Job nor its pod by default
+    templates:
+      - templates/migrate-job.yaml
+    asserts:
+      - notExists:
+          path: metadata.annotations
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  - it: takes empty values as unset
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate.annotations: null
+      migrate.podAnnotations: null
+    asserts:
+      - notExists:
+          path: metadata.annotations
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  # --- where each one goes ----------------------------------------------------
+  - it: annotates the Job with migrate.annotations, and not its pod
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        annotations:
+          argocd.argoproj.io/hook: Sync
+          argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            argocd.argoproj.io/hook: Sync
+            argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  # The value stays the string "false": unquoted it would be a boolean, which
+  # the API server refuses in an annotation.
+  - it: annotates the Job's pod with migrate.podAnnotations, and not the Job
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        podAnnotations:
+          sidecar.istio.io/inject: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            sidecar.istio.io/inject: "false"
+      - notExists:
+          path: metadata.annotations
+
+  - it: keeps the pod's labels beside its annotations
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        podAnnotations:
+          sidecar.istio.io/inject: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: migrate
+
+  # They are the Job's alone: the runtime pods run beside a mesh, and the app's
+  # pod template carries annotations of its own.
+  - it: leaves the app's pods alone
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      migrate:
+        annotations:
+          example.com/owner: migrate-job
+        podAnnotations:
+          sidecar.istio.io/inject: "false"
+    asserts:
+      - notExists:
+          path: metadata.annotations["example.com/owner"]
+      - notExists:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+
+  # --- with migrate.hook ------------------------------------------------------
+  - it: adds them beside the hook's own on a hook install
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        hook: true
+        annotations:
+          example.com/owner: platform
+        podAnnotations:
+          sidecar.istio.io/inject: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            helm.sh/hook: post-install
+            helm.sh/hook-weight: "-5"
+            helm.sh/hook-delete-policy: before-hook-creation
+            example.com/owner: platform
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            sidecar.istio.io/inject: "false"
+
+  - it: adds them beside the hook's own on a hook upgrade
+    templates:
+      - templates/migrate-job.yaml
+    release:
+      upgrade: true
+    set:
+      migrate:
+        hook: true
+        annotations:
+          example.com/owner: platform
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            helm.sh/hook: pre-upgrade
+            helm.sh/hook-weight: "-5"
+            helm.sh/hook-delete-policy: before-hook-creation
+            example.com/owner: platform
+
+  # The weight and the delete policy decide nothing about the pods' wait, so a
+  # key here replaces the chart's: for example hook-succeeded, to delete each
+  # revision's hook Job once it has succeeded.
+  - it: lets them change the hook's weight and delete policy
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        hook: true
+        annotations:
+          helm.sh/hook-weight: "-10"
+          helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            helm.sh/hook: post-install
+            helm.sh/hook-weight: "-10"
+            helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+
+  # Without migrate.hook the Job is not a hook: a weight or a delete policy on
+  # it is written as given, and Helm takes no notice of either.
+  - it: writes a hook's weight as given on a Job that is not a hook
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        annotations:
+          helm.sh/hook-weight: "-10"
+    asserts:
+      - equal:
+          path: metadata.annotations
+          value:
+            helm.sh/hook-weight: "-10"
+      - exists:
+          path: spec.ttlSecondsAfterFinished
+
+  # --- helm.sh/hook is migrate.hook's -------------------------------------------
+  # Without migrate.hook the new pods wait for the Job. A post-install hook runs
+  # only once they are ready (under --wait and Argo CD), and a pre-install one
+  # before the database it migrates exists.
+  - it: refuses helm.sh/hook, which would make the Job a hook the pods wait for
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        annotations:
+          helm.sh/hook: post-install
+    asserts:
+      - failedTemplate:
+          errorPattern: "migrate.annotations sets helm.sh/hook.*Set migrate.hook: true instead"
+
+  - it: refuses helm.sh/hook with migrate.hook too, which sets it itself
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        hook: true
+        annotations:
+          helm.sh/hook: pre-install,pre-upgrade
+    asserts:
+      - failedTemplate:
+          errorPattern: "migrate.annotations sets helm.sh/hook"
+
+  # With the Job off, nothing reads them.
+  - it: says nothing about helm.sh/hook when the Job is off
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        enabled: false
+        annotations:
+          helm.sh/hook: post-install
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- the schema -------------------------------------------------------------
+  # Annotation values are strings. A YAML false, true or number is caught at
+  # install time, naming the key, instead of by the API server mid-deploy.
+  - it: rejects a pod annotation that is not a string
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        podAnnotations:
+          sidecar.istio.io/inject: false
+    asserts:
+      - failedTemplate:
+          errorPattern: "migrate.podAnnotations"
+
+  - it: rejects a Job annotation that is not a string
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        annotations:
+          argocd.argoproj.io/sync-wave: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "migrate.annotations"
+
+  - it: rejects annotations that are not a map
+    templates:
+      - templates/migrate-job.yaml
+    set:
+      migrate:
+        podAnnotations:
+          - sidecar.istio.io/inject
+    asserts:
+      - failedTemplate:
+          errorPattern: "migrate.podAnnotations"
