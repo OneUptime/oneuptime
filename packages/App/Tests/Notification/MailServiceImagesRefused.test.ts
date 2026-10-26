@@ -588,7 +588,7 @@ describe("SendGrid refuses an email for anything else", () => {
     sendGrid.answerNextWith(SENDGRID_UNAUTHORIZED_ANSWER);
 
     const refusal: string =
-      "SendGrid did not accept the API key (HTTP 401 Unauthorized). Check the SendGrid API Key in the admin dashboard, under Settings > Emails. SendGrid said: The provided authorization grant is invalid, expired, or revoked";
+      "SendGrid did not accept the API key (HTTP 401 Unauthorized). Check the SendGrid API Key in the Admin Dashboard, under Settings > Emails. SendGrid said: The provided authorization grant is invalid, expired, or revoked";
 
     await expect(
       MailService.send(await incidentWithScreenshot(), {

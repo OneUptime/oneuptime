@@ -258,7 +258,7 @@ export default class SendGridMailProvider {
     let meaning: string = `SendGrid did not accept the email (${status}).`;
 
     if (statusCode === 401) {
-      meaning = `SendGrid did not accept the API key (${status}). Check the SendGrid API Key in the admin dashboard, under Settings > Emails.`;
+      meaning = `SendGrid did not accept the API key (${status}). Check the SendGrid API Key in the Admin Dashboard, under Settings > Emails.`;
     } else if (statusCode === 403) {
       meaning = `SendGrid would not send this email (${status}). The API key needs the Mail Send permission, and the From Email must be a sender verified in SendGrid.`;
     } else if (statusCode === 429) {

@@ -407,7 +407,7 @@ describe("what a refusal says, for whoever reads the Email Log", () => {
         { hadInlineImages: true },
       ).message,
     ).toBe(
-      "SendGrid did not accept the API key (HTTP 401 Unauthorized). Check the SendGrid API Key in the admin dashboard, under Settings > Emails. SendGrid said: The provided authorization grant is invalid, expired, or revoked",
+      "SendGrid did not accept the API key (HTTP 401 Unauthorized). Check the SendGrid API Key in the Admin Dashboard, under Settings > Emails. SendGrid said: The provided authorization grant is invalid, expired, or revoked",
     );
   });
 
