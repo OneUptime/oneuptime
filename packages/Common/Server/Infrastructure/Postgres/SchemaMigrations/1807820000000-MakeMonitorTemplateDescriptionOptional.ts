@@ -9,10 +9,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the create form asked for a description every time. Dropping NOT NULL
  * rewrites no row, and every template keeps the description it has.
  */
-export class MakeMonitorTemplateDescriptionOptional1807730000000
+export class MakeMonitorTemplateDescriptionOptional1807820000000
   implements MigrationInterface
 {
-  public name: string = "MakeMonitorTemplateDescriptionOptional1807730000000";
+  public name: string = "MakeMonitorTemplateDescriptionOptional1807820000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -35,6 +35,7 @@ import {
   INCIDENT_SINGLE_MEMBERSHIP,
 } from "../../../Types/Episode/EpisodeSingleMembership";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -1447,6 +1448,259 @@ describePostgres(
             },
           ]);
           expect(await membersOf(kind, third)).toEqual([]);
+        });
+
+        /*
+         * TWO ADDS OF ONE RECORD, AT ONE MOMENT (#4933).
+         *
+         * Both read the record's memberships before either is written - held
+         * here until both have read, as two requests on two servers can be -
+         * and both found none. The database takes one first membership per
+         * record (isFirstMembership), so the add that loses is refused by it
+         * and made again: refused while the switch is on, added as a second
+         * membership while it is off.
+         */
+        type FindLatest = (...args: Array<unknown>) => Promise<unknown>;
+
+        async function raceTwoAdds(
+          s: Seeded,
+          episodes: [ObjectID, ObjectID],
+        ): Promise<Array<PromiseSettledResult<unknown>>> {
+          const service: { findLatestEpisodeIdOf: FindLatest } =
+            kind.memberService as unknown as {
+              findLatestEpisodeIdOf: FindLatest;
+            };
+          // The service's own read, from its class: never a stand-in left over.
+          const read: FindLatest = (
+            Object.getPrototypeOf(service) as {
+              findLatestEpisodeIdOf: FindLatest;
+            }
+          ).findLatestEpisodeIdOf.bind(service);
+
+          let reads: number = 0;
+          let release: () => void = (): void => {};
+          const bothRead: Promise<void> = new Promise<void>(
+            (resolve: () => void): void => {
+              release = resolve;
+            },
+          );
+
+          const held: { mockRestore: () => void } = jest
+            .spyOn(service, "findLatestEpisodeIdOf")
+            .mockImplementation((async (...args: Array<unknown>) => {
+              const latest: unknown = await read(...args);
+              reads++;
+
+              if (reads === 2) {
+                release();
+              }
+
+              // The two first reads wait for each other; a later one does not.
+              if (reads <= 2) {
+                await bothRead;
+              }
+
+              return latest;
+            }) as never);
+
+          const props: DatabaseCommonInteractionProps = userProps(
+            s.projectId,
+            personId,
+            Permission.ProjectMember,
+          );
+
+          try {
+            return await Promise.allSettled(
+              episodes.map((episodeId: ObjectID): Promise<unknown> => {
+                const member: DatabaseBaseModel = new kind.memberModel();
+                member.setColumnValue("projectId", s.projectId);
+                member.setColumnValue(kind.episodeIdColumn, episodeId);
+                member.setColumnValue(kind.recordIdColumn, s.minorRecordId);
+                member.setColumnValue("addedBy", "api");
+
+                return kind.memberService["create"]!({
+                  data: member,
+                  props: props,
+                }) as Promise<unknown>;
+              }),
+            );
+          } finally {
+            held.mockRestore();
+          }
+        }
+
+        interface Membership {
+          episodeId: string;
+          isFirst: boolean;
+        }
+
+        async function membershipsOf(
+          recordId: ObjectID,
+        ): Promise<Array<Membership>> {
+          return await database.query(
+            `SELECT "${kind.episodeIdColumn}" AS "episodeId", "isFirstMembership" AS "isFirst" FROM "${kind.name}EpisodeMember" WHERE "${kind.recordIdColumn}" = $1 AND "deletedAt" IS NULL ORDER BY "createdAt"`,
+            [recordId.toString()],
+          );
+        }
+
+        test(`switch on: two adds of one in no episode, at one moment, to two episodes: one is added, the other refused`, async () => {
+          const s: Seeded = await seed(kind);
+          await setSwitch(s.projectId, true);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+          const third: ObjectID = await insertEpisodeLike(s, "Third", 9);
+
+          const results: Array<PromiseSettledResult<unknown>> =
+            await raceTwoAdds(s, [second, third]);
+
+          const added: Array<PromiseSettledResult<unknown>> = results.filter(
+            (result: PromiseSettledResult<unknown>): boolean => {
+              return result.status === "fulfilled";
+            },
+          );
+          // Why each refused add was refused.
+          const refused: Array<{ reason: unknown }> = results
+            .filter((result: PromiseSettledResult<unknown>): boolean => {
+              return result.status === "rejected";
+            })
+            .map(
+              (result: PromiseSettledResult<unknown>): { reason: unknown } => {
+                return result as unknown as { reason: unknown };
+              },
+            );
+
+          expect(added).toHaveLength(1);
+          expect(refused).toHaveLength(1);
+          expect(refused[0]!.reason).toBeInstanceOf(BadDataException);
+          expect((refused[0]!.reason as Error).message).toContain(
+            "is already in episode",
+          );
+          expect((refused[0]!.reason as Error).message).toContain(
+            kind.singleMembership.rule,
+          );
+
+          // In one episode only, as its first membership.
+          const memberships: Array<Membership> = await membershipsOf(
+            s.minorRecordId,
+          );
+
+          expect(memberships).toHaveLength(1);
+          expect(memberships[0]!.isFirst).toBe(true);
+          expect([second.toString(), third.toString()]).toContain(
+            memberships[0]!.episodeId,
+          );
+        });
+
+        test(`switch off: the same two adds put it in both episodes, the second as its second membership`, async () => {
+          const s: Seeded = await seed(kind);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+          const third: ObjectID = await insertEpisodeLike(s, "Third", 9);
+
+          const results: Array<PromiseSettledResult<unknown>> =
+            await raceTwoAdds(s, [second, third]);
+
+          // Each answer, or why it was refused.
+          expect(
+            results.map((result: PromiseSettledResult<unknown>): string => {
+              return result.status === "rejected"
+                ? String((result as unknown as { reason: unknown }).reason)
+                : result.status;
+            }),
+          ).toEqual(["fulfilled", "fulfilled"]);
+
+          const memberships: Array<Membership> = await membershipsOf(
+            s.minorRecordId,
+          );
+
+          expect(
+            memberships
+              .map((membership: Membership): string => {
+                return membership.episodeId;
+              })
+              .sort(),
+          ).toEqual([second.toString(), third.toString()].sort());
+          expect(
+            memberships.filter((membership: Membership): boolean => {
+              return membership.isFirst;
+            }),
+          ).toHaveLength(1);
+        });
+
+        test(`an add of one in no episode is its first membership; one in an episode already is not`, async () => {
+          const s: Seeded = await seed(kind);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+          const props: DatabaseCommonInteractionProps = userProps(
+            s.projectId,
+            personId,
+            Permission.ProjectMember,
+          );
+
+          expect(
+            await add(kind, second, [s.minorRecordId.toString()], props),
+          ).toEqual({
+            added: [s.minorRecordId.toString()],
+            alreadyInEpisode: [],
+            notAdded: [],
+          });
+          expect(
+            (await add(kind, second, [s.alreadyRecordId.toString()], props))
+              .added,
+          ).toEqual([s.alreadyRecordId.toString()]);
+
+          expect(await membershipsOf(s.minorRecordId)).toEqual([
+            { episodeId: second.toString(), isFirst: true },
+          ]);
+          expect(
+            (await membershipsOf(s.alreadyRecordId)).map(
+              (membership: Membership): boolean => {
+                return membership.isFirst;
+              },
+            ),
+          ).toEqual([false, false]);
+        });
+
+        test(`the database itself takes one first membership per ${kind.name.toLowerCase()}`, async () => {
+          const s: Seeded = await seed(kind);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+          const third: ObjectID = await insertEpisodeLike(s, "Third", 9);
+
+          const insert: (
+            episodeId: ObjectID,
+            isFirst: boolean,
+          ) => Promise<unknown> = (
+            episodeId: ObjectID,
+            isFirst: boolean,
+          ): Promise<unknown> => {
+            return database.query(
+              `INSERT INTO "${kind.name}EpisodeMember" ("_id","projectId","${kind.episodeIdColumn}","${kind.recordIdColumn}","addedBy","isFirstMembership","version") VALUES ($1,$2,$3,$4,'api',$5,1)`,
+              [
+                ObjectID.generate().toString(),
+                s.projectId.toString(),
+                episodeId.toString(),
+                s.minorRecordId.toString(),
+                isFirst,
+              ],
+            );
+          };
+
+          await insert(second, true);
+
+          let refusal: unknown = null;
+
+          try {
+            await insert(third, true);
+          } catch (error) {
+            refusal = error;
+          }
+
+          expect(
+            PostgresErrorTranslator.isUniqueViolationOf(
+              refusal,
+              `IDX_${kind.name}EpisodeMember_first_membership`,
+            ),
+          ).toBe(true);
+
+          // A second membership that is not a first is taken.
+          await expect(insert(third, false)).resolves.toBeDefined();
         });
       });
     });

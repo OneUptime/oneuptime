@@ -3331,9 +3331,25 @@ describe("reminder rules", () => {
       expect(reminders).toContain(`| **${answer}** | ${description}`);
     }
 
-    // The list marks such a rule, as it marks a label rule that adds nothing.
+    /*
+     * The API and Terraform refuse such a rule (ScheduledMaintenanceReminder
+     * NeverReminds); the list marks one saved before, as it marks a label
+     * rule that adds nothing.
+     */
     expect(reminders).toContain(
-      "never sends a reminder: the list marks it **Never reminds**, and its form asks you to pick one.",
+      "The API and Terraform refuse a rule that would wait for the event to start and stop when it starts: it would never send a reminder. An older rule saved that way is marked **Never reminds** in the list, and its form asks you to pick when to remind.",
+    );
+    expect(
+      readCommonSource(
+        "Server/Services/ScheduledMaintenanceReminderRuleService.ts",
+      ),
+    ).toContain("SCHEDULED_MAINTENANCE_REMINDER_TIMING_RULE,");
+    expect(
+      readCommonSource(
+        "Types/Reminder/ScheduledMaintenanceReminderNeverReminds.ts",
+      ),
+    ).toContain(
+      "values.remindWhileScheduled !== true &&\n    values.stopRemindersOnState ===\n      ScheduledMaintenanceReminderStopState.Ongoing",
     );
     expect(timing).toContain(
       'export const MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT: string =\n  translationKey("Never reminds");',

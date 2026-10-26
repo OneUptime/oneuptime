@@ -82,7 +82,7 @@ Under **Påmindelser** indstiller du **Påmindelsesinterval (minutter)**, hvor o
 | **Før den starter** | Fra begivenheden er planlagt, til den starter. |
 | **Før den starter, og mens den er i gang** | Fra begivenheden er planlagt, til den slutter. |
 
-En regel gemt via API'en eller Terraform, der venter på, at begivenheden starter, og stopper, når den starter, sender aldrig en påmindelse: Listen markerer den med **Påminder aldrig**, og dens formular beder dig vælge et svar.
+API'en og Terraform afviser en regel, der ville vente på, at begivenheden starter, og stoppe, når den starter: Den ville aldrig sende en påmindelse. En ældre regel, der er gemt sådan, er markeret med **Påminder aldrig** i listen, og dens formular beder dig vælge, hvornår der skal sendes påmindelser.
 
 Ejerne får hver påmindelse som **Maintenance reminder**, som er slået til via e-mail for hvert nyt medlem. At gemme, ændre eller slette en påmindelsesregel matcher hver begivenhed, der ikke er fuldført, igen. For at stoppe påmindelserne for én begivenhed slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer, så snart du slår den om.
 

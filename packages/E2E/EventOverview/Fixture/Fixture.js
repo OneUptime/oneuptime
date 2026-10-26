@@ -168,8 +168,9 @@
  *            (Bob Smith is still paged on the level, and Platform leads is
  *            next at 18:40), restart (the last level: the policy starts
  *            again from its first, First responders), stopped (nobody is
- *            left to page), acknowledged (Sam Lee acknowledged it
- *            meanwhile: the POST refuses) or two (two policies page the
+ *            left to page), acknowledged (Sam Rivera acknowledged it
+ *            meanwhile: the POST refuses, and incident #1042 is
+ *            Acknowledged from then on) or two (two policies page the
  *            viewer about it). Once escalated, the record no longer pages
  *            the viewer.
  *   ?unknown= the people Slack does not know, as POST .../add answers them
@@ -1582,19 +1583,23 @@ if (feedMode === "oncall-run") {
       createdAt: at("18:01", seconds),
     });
   };
+  /*
+   * A level as the Escalate dialog names it - "First responders (Level 1
+   * of 3)" - with the schedule in the same brackets.
+   */
   runStep(
     25,
-    `On-call policy **${checkoutPolicy}** paged **${sam}** at escalation rule **First responders** (schedule **EU days**).\n\nNotification sent by SMS and push.`,
+    `On-call policy **${checkoutPolicy}** paged **${sam}** at **First responders** (Level 1 of 3, schedule **EU days**).\n\nNotification sent by SMS and push.`,
     "#3b82f6",
   );
   runStep(
     35,
-    `On-call policy **${checkoutPolicy}** paged nobody at escalation rule **Backup**: nobody was on call in schedule **EU nights**.`,
+    `On-call policy **${checkoutPolicy}** paged nobody at **Platform leads** (Level 2 of 3): nobody was on call in schedule **EU nights**.`,
     "#f59e0b",
   );
   runStep(
     50,
-    `**${sam}** acknowledged the page from on-call policy **${checkoutPolicy}** at escalation rule **First responders** (schedule **EU days**).`,
+    `**${sam}** acknowledged the page from on-call policy **${checkoutPolicy}** at **First responders** (Level 1 of 3, schedule **EU days**).`,
     "#22c55e",
   );
 }
@@ -6805,6 +6810,51 @@ function openPassOnPages(recordType, recordId) {
   });
 }
 
+/*
+ * ?passOn=acknowledged: Sam Rivera acknowledged the record while the
+ * viewer's Escalate dialog asked. The POST that finds it so leaves incident
+ * #1042 Acknowledged, by Sam, as the server has it by then - and the record
+ * no longer pages the viewer. The page reads both again (onRecordChanged):
+ * its header offers Resolve, not Acknowledge or Escalate.
+ */
+function acknowledgeMeanwhile(recordType, recordId) {
+  passedOnRecords.add(`${recordType}:${recordId}`);
+
+  if (recordType !== "incident" || recordId !== mainIncident.record._id) {
+    return;
+  }
+
+  const acknowledged = incidentStates.acknowledged;
+  const timeline = table(IncidentStateTimeline).filter((row) => {
+    return String(row.incidentId) === mainIncident.record._id;
+  });
+
+  if (
+    timeline.some((row) => {
+      return String(row.incidentStateId) === String(acknowledged.id);
+    })
+  ) {
+    return;
+  }
+
+  const last = timeline[timeline.length - 1];
+  if (last) {
+    last.endsAt = NOW;
+  }
+
+  insert(IncidentStateTimeline, {
+    incidentId: mainIncident.id,
+    incidentStateId: acknowledged.id,
+    incidentState: acknowledged,
+    startsAt: NOW,
+    createdAt: NOW,
+    createdByUser: people.sam,
+    createdByUserId: people.sam.id,
+  });
+  mainIncident.record.currentIncidentState = acknowledged;
+  mainIncident.record.currentIncidentStateId = acknowledged.id;
+}
+
 function passOnAnswers(recordType, recordId) {
   const pages = openPassOnPages(recordType, recordId);
 
@@ -6813,11 +6863,13 @@ function passOnAnswers(recordType, recordId) {
   }
 
   if (passOnMode === "acknowledged") {
+    acknowledgeMeanwhile(recordType, recordId);
+
     return [
       {
         passedOn: false,
         refusal: "RecordAcknowledged",
-        acknowledgedByName: "Sam Lee",
+        acknowledgedByName: people.sam.name.toString(),
       },
     ];
   }

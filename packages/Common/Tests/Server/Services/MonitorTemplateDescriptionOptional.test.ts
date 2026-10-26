@@ -1,6 +1,6 @@
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import { MakeMonitorTemplateDescriptionOptional1807730000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1807730000000-MakeMonitorTemplateDescriptionOptional";
+import { MakeMonitorTemplateDescriptionOptional1807820000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1807820000000-MakeMonitorTemplateDescriptionOptional";
 import Migrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
@@ -100,8 +100,8 @@ describe("the migration that lets a template go without one", () => {
         statements.push(sql);
       },
     };
-    const migration: MakeMonitorTemplateDescriptionOptional1807730000000 =
-      new MakeMonitorTemplateDescriptionOptional1807730000000();
+    const migration: MakeMonitorTemplateDescriptionOptional1807820000000 =
+      new MakeMonitorTemplateDescriptionOptional1807820000000();
 
     await migration.up(queryRunner as never);
     await migration.down(queryRunner as never);
@@ -111,13 +111,13 @@ describe("the migration that lets a template go without one", () => {
       `ALTER TABLE "MonitorTemplate" ALTER COLUMN "templateDescription" SET NOT NULL`,
     ]);
     expect(migration.name).toBe(
-      "MakeMonitorTemplateDescriptionOptional1807730000000",
+      "MakeMonitorTemplateDescriptionOptional1807820000000",
     );
   });
 
   it("is registered, so it runs", () => {
     expect(Migrations).toContain(
-      MakeMonitorTemplateDescriptionOptional1807730000000,
+      MakeMonitorTemplateDescriptionOptional1807820000000,
     );
   });
 });

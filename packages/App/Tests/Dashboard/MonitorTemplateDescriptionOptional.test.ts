@@ -13,7 +13,7 @@ import ts from "typescript";
  * leave it to whoever has something to say: not required, no minimum length
  * (a field that may be left blank has no business refusing one character),
  * and no API wording under it. The column is nullable to match
- * (MakeMonitorTemplateDescriptionOptional1807730000000), and the template's
+ * (MakeMonitorTemplateDescriptionOptional1807820000000), and the template's
  * page says "No description" for one without.
  */
 

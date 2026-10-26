@@ -390,7 +390,9 @@ export default class PermissionGate {
    * answers what the record's gate answered (which, on its own, is "not
    * allowed, nothing to say"). A column that declares no update permissions
    * is not judged here either - there is no permission to name - and the
-   * server keeps the last word on it.
+   * server keeps the last word on it. Refused by the record's own gate, it
+   * names the permissions that would open the column, not every one that
+   * opens the record (narrowRecordRefusalToColumn).
    */
   public static checkColumnUpdate(
     model: PermissionCheckableModel & ColumnPermissionCheckableModel,
@@ -403,12 +405,21 @@ export default class PermissionGate {
       options,
     );
 
-    if (!recordGate.isAllowed || User.isMasterAdmin()) {
+    if (User.isMasterAdmin()) {
       return recordGate;
     }
 
     const columnPermissions: Array<Permission> =
       model.getColumnAccessControlForAllColumns()[columnName]?.update || [];
+
+    if (!recordGate.isAllowed) {
+      return this.narrowRecordRefusalToColumn({
+        model: model,
+        recordGate: recordGate,
+        columnPermissions: columnPermissions,
+        options: options,
+      });
+    }
 
     const held: HeldPermissions = this.getHeldPermissions(options);
 
@@ -435,6 +446,65 @@ export default class PermissionGate {
         sentence: options?.sentence,
         permissions: columnPermissions,
         held: held,
+      }),
+    };
+  }
+
+  /*
+   * A column switch refused because the record's own gate refuses - a
+   * Viewer, say - names what would let the reader change THIS column: the
+   * column's update permissions that open the record too. A column is often
+   * narrower than its record: "An incident can be in only one episode" is
+   * for a project's owners and admins, while a project as a whole may also
+   * be updated by its billing roles and Edit Project - and the lock under
+   * that switch used to send a Viewer to Billing Admin, which would not have
+   * let them flip it. A column whose permissions are its record's, or that
+   * declares none, or whose permissions open no part of the record, keeps
+   * the record's answer, as does one with nothing to say (no snapshot yet).
+   */
+  private static narrowRecordRefusalToColumn(data: {
+    model: PermissionCheckableModel & ColumnPermissionCheckableModel;
+    recordGate: PermissionGateResult;
+    columnPermissions: Array<Permission>;
+    options?: PermissionGateOptions | undefined;
+  }): PermissionGateResult {
+    if (
+      !data.recordGate.disabledReason ||
+      data.columnPermissions.length === 0
+    ) {
+      return data.recordGate;
+    }
+
+    const recordPermissions: Array<Permission> = this.getModelPermissions(
+      data.model,
+      ModelAction.Update,
+    );
+
+    const opening: Array<Permission> = data.columnPermissions.filter(
+      (permission: Permission): boolean => {
+        return recordPermissions.includes(permission);
+      },
+    );
+
+    const isNarrower: boolean =
+      opening.length > 0 &&
+      recordPermissions.some((permission: Permission): boolean => {
+        return !opening.includes(permission);
+      });
+
+    if (!isNarrower) {
+      return data.recordGate;
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: this.buildMissingPermissionMessage({
+        singularName:
+          data.options?.singularName || data.model.singularName || "item",
+        verb: (data.options?.verb?.trim() || ModelAction.Update).toLowerCase(),
+        sentence: data.options?.sentence,
+        permissions: opening,
+        held: this.getHeldPermissions(data.options),
       }),
     };
   }

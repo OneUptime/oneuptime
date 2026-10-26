@@ -199,7 +199,9 @@ import { AddBackups1807450000000 } from "./1807450000000-AddBackups";
 import { AddSecurityEntityRisk1807600000000 } from "./1807600000000-AddSecurityEntityRisk";
 import { AddCodeRepositoryGlobalRunnerPick1807700000000 } from "./1807700000000-AddCodeRepositoryGlobalRunnerPick";
 import { KeepCodeRepositoriesOnGlobalRunners1807710000000 } from "./1807710000000-KeepCodeRepositoriesOnGlobalRunners";
-import { MakeMonitorTemplateDescriptionOptional1807730000000 } from "./1807730000000-MakeMonitorTemplateDescriptionOptional";
+import { AddEpisodeMemberFirstMembership1807800000000 } from "./1807800000000-AddEpisodeMemberFirstMembership";
+import { AddEpisodeMemberFirstMembershipIndexes1807810000000 } from "./1807810000000-AddEpisodeMemberFirstMembershipIndexes";
+import { MakeMonitorTemplateDescriptionOptional1807820000000 } from "./1807820000000-MakeMonitorTemplateDescriptionOptional";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1601,5 +1603,7 @@ export default [
   AddSecurityEntityRisk1807600000000,
   AddCodeRepositoryGlobalRunnerPick1807700000000,
   KeepCodeRepositoriesOnGlobalRunners1807710000000,
-  MakeMonitorTemplateDescriptionOptional1807730000000,
+  AddEpisodeMemberFirstMembership1807800000000,
+  AddEpisodeMemberFirstMembershipIndexes1807810000000,
+  MakeMonitorTemplateDescriptionOptional1807820000000,
 ];

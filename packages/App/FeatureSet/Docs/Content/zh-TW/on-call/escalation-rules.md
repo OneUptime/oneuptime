@@ -134,6 +134,13 @@ Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 
 嚴重程度、編號和連結永遠不會被截斷。標題至少保留 20 個字元：如果連這些也放不下，例如位址或產品名稱很長，簡訊就會占用第二段，把內容全部寫出。
 
+當策略因已確認的事件或警示仍未解決而再次通知時，簡訊會在編號和專案之後寫明這一點，這幾個字也永遠不會被截斷：
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 只要有一個字元不在簡訊的基本字元集中，整則訊息就會按每段 70 個字元傳送。因此，彎引號和破折號會寫成 `"` 、 `'` 和 `-` ， `…` 寫成 `...` ，像 `ç` 和 `ł` 這樣的字母會去掉重音符號；表情符號會被省略。以其他文字（例如日文或俄文）撰寫的標題會照原樣傳送，占用兩段或更多。
 
 OneUptime 傳給你的其他簡訊，例如你作為擁有者的事件有所變更，或你的待命班次開始時的簡訊，也以 `OneUptime:` 開頭，以 `Turn off in User Settings > Notification Settings.` 結尾；如果去掉這句話才能放進一段，這句話就會被省略。
@@ -221,7 +228,7 @@ flowchart TB
 
 工作流程直接傳給相關人員的呼叫沒有級別：升級後你不會再被呼叫，當它呼叫的所有人都已升級時，呼叫停止。
 
-每次升級都會被記錄。執行的 **執行時間軸** 會把此人的那一列標為 **已升級** ，事件的 Feed 會寫 "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1."，策略執行在 Slack 和 Microsoft Teams 中的訊息會註明此人已升級，此人的 **待命日誌** 也會把這次呼叫顯示為 **已升級** 。
+每次升級都會被記錄。執行的 **執行時間軸** 會把此人的那一列標為 **已升級** ，事件的 Feed 會寫 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3."，策略執行在 Slack 和 Microsoft Teams 中的訊息會註明此人已升級，此人的 **待命日誌** 也會把這次呼叫顯示為 **已升級** 。
 
 ## 編輯、重新排序和刪除規則
 

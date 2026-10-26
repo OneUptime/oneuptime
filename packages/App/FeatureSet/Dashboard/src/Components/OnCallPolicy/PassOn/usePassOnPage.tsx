@@ -29,6 +29,7 @@ import {
   getPassedOnResults,
   hasPageAgain,
   isAnyPassedOn,
+  isRecordTakenMeanwhile,
   passOnPages,
 } from "./PassOnPage";
 
@@ -128,6 +129,13 @@ export default function usePassOnPage(data: {
   recordId: ObjectID;
   // After a page was escalated or acknowledged here: the record's feed has news.
   onPassedOn?: (() => void) | undefined;
+  /*
+   * Somebody acknowledged or resolved the record while the dialog asked
+   * ("Already acknowledged", isRecordTakenMeanwhile): the page reads it
+   * again, so its header stops offering Acknowledge for a record already
+   * taken.
+   */
+  onRecordChanged?: (() => void) | undefined;
 }): PassOnPageControls {
   const translator: Translator = useTranslator();
   const recordKey: string = `${data.recordType}:${data.recordId.toString()}`;
@@ -185,6 +193,10 @@ export default function usePassOnPage(data: {
         if (isAnyPassedOn(passed)) {
           data.onPassedOn?.();
         }
+
+        if (isRecordTakenMeanwhile(passed)) {
+          data.onRecordChanged?.();
+        }
       })
       .catch(() => {
         setError(
@@ -193,7 +205,7 @@ export default function usePassOnPage(data: {
         );
         setStage(DialogStage.Asking);
       });
-  }, [recordKey, data.onPassedOn, translator]);
+  }, [recordKey, data.onPassedOn, data.onRecordChanged, translator]);
 
   const acknowledge: () => void = useCallback((): void => {
     setIsAcknowledging(true);

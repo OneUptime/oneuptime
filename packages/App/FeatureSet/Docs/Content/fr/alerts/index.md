@@ -77,7 +77,7 @@ Allez dans **Alertes → Toutes les alertes** et cliquez sur **Créer une alerte
 
 ### Décrire l'alerte
 
-Remplissez le **Titre** et choisissez une **Gravité de l'alerte** ; les deux sont obligatoires. Ajoutez une **Description** si elle aide. Sous **Plus de champs**, replié, vous pouvez choisir un **État initial**, ajouter des **Étiquettes** ou activer **Alerte privée**. **Propriétaires** s'y trouve aussi : vous devenez de toute façon propriétaire de l'alerte que vous créez, et chaque équipe dont vous êtes membre est à un clic sous le sélecteur.
+Remplissez le **Titre** et choisissez une **Gravité de l'alerte** ; les deux sont obligatoires. Ajoutez une **Description** si elle aide. Sous **Plus de champs**, replié, vous pouvez choisir un **État initial**, ajouter des **Étiquettes** ou activer **Alerte privée**. **Propriétaires** s'y trouve aussi : vous devenez de toute façon propriétaire de l'alerte que vous créez, et chaque équipe dont vous êtes membre est à un clic sous le sélecteur. Un administrateur principal, qui gère toute l'installation, est la seule exception : il ne devient pas propriétaire de ce qu'il crée.
 
 ### Choisir ce qu'elle touche et qui est alerté
 

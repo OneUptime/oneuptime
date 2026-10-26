@@ -134,6 +134,13 @@ Indica la gravità e cosa è successo (un incidente, un avviso o un episodio di 
 
 La gravità, il numero e il link non vengono mai tagliati. Un titolo conserva almeno 20 caratteri: se nemmeno così entra, ad esempio con un indirizzo o un nome di prodotto molto lungo, l'SMS occupa una seconda parte e dice tutto.
 
+Quando una policy avvisa di nuovo perché un incidente o un avviso riconosciuto non è ancora risolto, l'SMS lo dice dopo il numero e il progetto, e nemmeno quelle parole vengono mai tagliate:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un solo carattere fuori dall'alfabeto semplice degli SMS fa partire l'intero messaggio in parti da 70 caratteri. Per questo le virgolette e i trattini tipografici vengono scritti come `"`, `'` e `-`, `…` come `...`, e lettere come `ç` e `ł` perdono i loro accenti; le emoji vengono omesse. Un titolo in un'altra scrittura, come il giapponese o il russo, viene inviato così come è scritto e occupa due parti o più.
 
 Gli altri SMS che OneUptime ti invia, ad esempio per una modifica a un incidente di cui sei proprietario o l'inizio del tuo turno di reperibilità, iniziano anch'essi con `OneUptime:` e terminano con `Turn off in User Settings > Notification Settings.`, una frase che viene omessa quando è proprio questo a far stare l'SMS in una parte.
@@ -221,7 +228,7 @@ Escalare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere
 
 Un avviso che un workflow invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
 
-Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
+Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
 
 ## Modificare, riordinare ed eliminare le regole
 

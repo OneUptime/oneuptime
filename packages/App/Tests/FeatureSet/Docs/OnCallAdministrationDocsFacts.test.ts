@@ -42,7 +42,11 @@ import {
   DEFAULT_ESCALATE_AFTER_IN_MINUTES,
   getDefaultEscalationRuleName,
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
-import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
+import {
+  ON_CALL_POLICY_REPEAT_TIMES_REFUSAL,
+  getOnCallPolicyRepeatRefusal,
+  getOnCallPolicyRepeatsAllowed,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import {
   DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
   MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
@@ -1034,11 +1038,35 @@ describe("repeating a policy", () => {
         repeatPolicyIfNoOneAcknowledgesNoOfTimes: 0,
       }),
     ).toBe(0);
+    // The API refuses that pair now, and takes 1 or more (OnCallDutyPolicyRepeat).
+    expect(
+      getOnCallPolicyRepeatRefusal({
+        repeatPolicyIfNoOneAcknowledges: true,
+        repeatPolicyIfNoOneAcknowledgesNoOfTimes: 0,
+      }),
+    ).toBe(ON_CALL_POLICY_REPEAT_TIMES_REFUSAL);
+    expect(
+      getOnCallPolicyRepeatRefusal({
+        repeatPolicyIfNoOneAcknowledges: true,
+        repeatPolicyIfNoOneAcknowledgesNoOfTimes: 1,
+      }),
+    ).toBeNull();
+    expect(
+      getOnCallPolicyRepeatRefusal({
+        repeatPolicyIfNoOneAcknowledges: true,
+        repeatPolicyIfNoOneAcknowledgesNoOfTimes: 1.5,
+      }),
+    ).toBe(ON_CALL_POLICY_REPEAT_TIMES_REFUSAL);
+    expect(
+      readCommonSource("Server/Services/OnCallDutyPolicyService.ts"),
+    ).toContain(
+      "ColumnRuleCheck.checkCreate(createBy.data, ON_CALL_POLICY_REPEAT_RULE);",
+    );
     expect(english(ON_CALL_POLICIES)).toContain(
       "A policy that starts again three more times goes through its levels four times in all.",
     );
     expect(english(ON_CALL_POLICIES)).toContain(
-      "`repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true` and `repeatPolicyIfNoOneAcknowledgesNoOfTimes` at `0`, a policy never repeats, and the dashboard shows it as **Stop paging**.",
+      "`repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` must be a whole number of 1 or more: OneUptime refuses `0`. An older policy saved with `0` never repeats, and the dashboard shows it as **Stop paging**.",
     );
     expect(english(ON_CALL_POLICIES)).toContain(
       "| **If nobody acknowledges after the last level** | `repeatPolicyIfNoOneAcknowledges` |",
