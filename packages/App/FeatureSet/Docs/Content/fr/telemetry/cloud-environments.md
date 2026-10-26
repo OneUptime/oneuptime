@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 La **Vue d'ensemble** d'un environnement affiche :
 
-- **Requêtes**, **Taux d'erreur** et **p95 latency**, issus de vos traces, avec des graphiques des requêtes, des erreurs et de la mémoire sur la période choisie.
+- **Requêtes**, **Taux d'erreur** et **Latence p95**, issus de vos traces, avec des graphiques des requêtes, des erreurs et de la mémoire sur la période choisie.
 - **CPU** et **Mémoire** sur les instances actives, et une liste **Principales instances par CPU**. Ils proviennent de métriques `container.cpu.utilization` et `container.memory.usage` qui portent l'identité de l'instance ; sur ECS, de `ecs.task.cpu.utilized` et `ecs.task.memory.utilized` du récepteur `awsecscontainermetrics`.
 - **Instances** : combien ont remonté des données au cours des 15 dernières minutes. L'onglet **Instances** compte une ligne par instance.
 - Les onglets **Journaux**, **Traces** et **Métriques**, filtrés sur l'environnement.

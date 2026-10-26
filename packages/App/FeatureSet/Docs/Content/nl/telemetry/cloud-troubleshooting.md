@@ -101,8 +101,8 @@ Een omgeving toont **Verbinding verbroken** als er 15 minuten geen telemetrie vo
 
 Instanties volgen twee klokken:
 
-- **Stale:** het tabblad **Instanties** markeert een taak, instantie of replica als **Stale** als die de laatste 15 minuten niet heeft gerapporteerd, en het overzicht telt alleen de andere als live.
-- **Verwijderd:** een opruimtaak verwijdert instantierijen die `CLOUD_INSTANCE_STALE_MINUTES` niet zijn gezien (standaard 15, minstens 10), gemeten vanaf de laatste telemetrie van de omgeving zelf, zodat een storing van de collector die klok bevriest in plaats van de laatst bekende takenlijst te wissen. Serverless functies gebruiken `SERVERLESS_INSTANCE_STALE_MINUTES`. Een hogere drempel bewaart rijen langer; hij verandert niet wanneer ze **Stale** worden.
+- **Verouderd:** het tabblad **Instanties** markeert een taak, instantie of replica als **Verouderd** als die de laatste 15 minuten niet heeft gerapporteerd, en het overzicht telt alleen de andere als live.
+- **Verwijderd:** een opruimtaak verwijdert instantierijen die `CLOUD_INSTANCE_STALE_MINUTES` niet zijn gezien (standaard 15, minstens 10), gemeten vanaf de laatste telemetrie van de omgeving zelf, zodat een storing van de collector die klok bevriest in plaats van de laatst bekende takenlijst te wissen. Serverless functies gebruiken `SERVERLESS_INSTANCE_STALE_MINUTES`. Een hogere drempel bewaart rijen langer; hij verandert niet wanneer ze **Verouderd** worden.
 
 ## Twee omgevingen waar er één zou moeten zijn
 

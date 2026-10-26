@@ -101,8 +101,8 @@ Et miljø viser **Frakoblet** når det ikke har kommet telemetri for det på 15 
 
 Instanser følger to klokker:
 
-- **Stale:** fanen **Instanser** merker en oppgave, instans eller replika som **Stale** når den ikke har rapportert de siste 15 minuttene, og oversikten teller bare de andre som levende.
-- **Slettet:** en opprydding sletter instansrader som ikke er sett på `CLOUD_INSTANCE_STALE_MINUTES` (standard 15, minst 10), målt fra miljøets egen siste telemetri, så et avbrudd i collectoren fryser den klokken i stedet for å slette den sist kjente listen over oppgaver. Serverløse funksjoner bruker `SERVERLESS_INSTANCE_STALE_MINUTES`. En høyere terskel beholder rader lenger; den endrer ikke når de blir **Stale**.
+- **Foreldet:** fanen **Instanser** merker en oppgave, instans eller replika som **Foreldet** når den ikke har rapportert de siste 15 minuttene, og oversikten teller bare de andre som levende.
+- **Slettet:** en opprydding sletter instansrader som ikke er sett på `CLOUD_INSTANCE_STALE_MINUTES` (standard 15, minst 10), målt fra miljøets egen siste telemetri, så et avbrudd i collectoren fryser den klokken i stedet for å slette den sist kjente listen over oppgaver. Serverløse funksjoner bruker `SERVERLESS_INSTANCE_STALE_MINUTES`. En høyere terskel beholder rader lenger; den endrer ikke når de blir **Foreldet**.
 
 ## To miljøer der det burde være ett
 

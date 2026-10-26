@@ -101,8 +101,8 @@ Et miljø viser **Afbrudt**, når der ikke er kommet telemetri til det i 15 minu
 
 Instanser følger to ure:
 
-- **Stale:** fanen **Instanser** markerer en opgave, instans eller replika som **Stale**, når den ikke har rapporteret inden for de seneste 15 minutter, og oversigten tæller kun de andre som levende.
-- **Slettet:** en oprydning sletter instansrækker, der ikke er set i `CLOUD_INSTANCE_STALE_MINUTES` (standard 15, mindst 10), målt fra miljøets egen seneste telemetri, så et nedbrud i collectoren fryser det ur i stedet for at slette den sidst kendte liste over opgaver. Serverløse funktioner bruger `SERVERLESS_INSTANCE_STALE_MINUTES`. En højere grænse beholder rækker længere; den ændrer ikke, hvornår de bliver **Stale**.
+- **Forældet:** fanen **Instanser** markerer en opgave, instans eller replika som **Forældet**, når den ikke har rapporteret inden for de seneste 15 minutter, og oversigten tæller kun de andre som levende.
+- **Slettet:** en oprydning sletter instansrækker, der ikke er set i `CLOUD_INSTANCE_STALE_MINUTES` (standard 15, mindst 10), målt fra miljøets egen seneste telemetri, så et nedbrud i collectoren fryser det ur i stedet for at slette den sidst kendte liste over opgaver. Serverløse funktioner bruger `SERVERLESS_INSTANCE_STALE_MINUTES`. En højere grænse beholder rækker længere; den ændrer ikke, hvornår de bliver **Forældet**.
 
 ## To miljøer, hvor der burde være ét
 

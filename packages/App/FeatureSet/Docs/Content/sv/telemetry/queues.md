@@ -16,7 +16,7 @@ Det fungerar på samma sätt för alla brokrar (Apache Kafka, RabbitMQ, Apache A
 | Källa | Vad den behöver från dig | Vad den lägger till på köns sida |
 | --- | --- | --- |
 | **Applikationsspår** | Instrumenterade applikationer (OpenTelemetry); se [Instrumentera applikationer](#instrumentera-applikationer) | Publicerade och konsumerade meddelanden, fel och bearbetningstid, tjänsterna på båda sidor och själva spåren |
-| **Brokermätvärden** (en OpenTelemetry Collector) | Collector-receivern eller skrapningen för din broker; se [Brokerns hälsomätvärden](#brokerns-hälsomätvärden) | **Broker health**: eftersläpning, konsumentlagg, dead letters, det äldsta meddelandets ålder, strypning och brokerns egna meddelandehastigheter |
+| **Brokermätvärden** (en OpenTelemetry Collector) | Collector-receivern eller skrapningen för din broker; se [Brokerns hälsomätvärden](#brokerns-hälsomätvärden) | **Brokerhälsa**: eftersläpning, konsumentlagg, dead letters, det äldsta meddelandets ålder, strypning och brokerns egna meddelandehastigheter |
 
 ```mermaid title="Två källor, en kösida"
 flowchart TB
@@ -212,7 +212,7 @@ builder.Services.AddOpenTelemetry()
 
 En broker vet det som ingen applikation kan se: hur många meddelanden som väntar, hur långt efter varje konsumentgrupp ligger, vad som hamnade i en dead-letter-kö. Varje avsnitt nedan har collectorkonfigurationen för ett system: en komplett OpenTelemetry Collector-konfiguration som slutar med OTLP-exportören som skickar till OneUptime. Lägg en telemetri-intagningsnyckel (**Projektinställningar → Telemetri och APM → Intagningsnycklar**) i `x-oneuptime-token`, ersätt `https://oneuptime.com` med din egen värd om du självhostar, och kör den med `otel/opentelemetry-collector-contrib` 0.161.0 eller senare (varje konfiguration här är validerad mot 0.161.0). Nyare collectorer loggar att `otlphttp` är föråldrad till förmån för `otlp_http`; båda namnen är samma exportör. För att samla in flera system slår du ihop deras receivrar i en collector.
 
-Avsnittet **Broker health** för varje kö visar de mätvärden som listas för dess system (en gauge som sitt värde, ett antal per period summerat per intervall, en räknare som takt per sekund) och kombinerar en kös serier så som varje mätvärde kräver (de redo och obekräftade meddelandena i en RabbitMQ-kö läggs ihop; den konsumentgrupp som ligger längst efter är laggen). Allt som collectorn skickar finns också i utforskaren **Mätvärden**. Så länge inget listat mätvärde har kommit in för en kö visar avsnittet var det systemets mätvärden kommer ifrån, med en länk till dess avsnitt här.
+Avsnittet **Brokerhälsa** för varje kö visar de mätvärden som listas för dess system (en gauge som sitt värde, ett antal per period summerat per intervall, en räknare som takt per sekund) och kombinerar en kös serier så som varje mätvärde kräver (de redo och obekräftade meddelandena i en RabbitMQ-kö läggs ihop; den konsumentgrupp som ligger längst efter är laggen). Allt som collectorn skickar finns också i utforskaren **Mätvärden**. Så länge inget listat mätvärde har kommit in för en kö visar avsnittet var det systemets mätvärden kommer ifrån, med en länk till dess avsnitt här.
 
 ### Amazon SNS
 
@@ -791,7 +791,7 @@ metrics
   });
 ```
 
-Den visas på köns flik **Mätvärden**. OneUptime har inga egna BullMQ-mätvärden att visa under **Broker health**.
+Den visas på köns flik **Mätvärden**. OneUptime har inga egna BullMQ-mätvärden att visa under **Brokerhälsa**.
 
 ### Google Cloud Pub/Sub
 
@@ -945,9 +945,9 @@ service:
 
 Köer bevakas med **Mätvärden**-monitorer över sina brokermätvärden (se [Metrikövervakning](/docs/monitor/metrics-monitor)).
 
-**Från köns sida.** Varje gauge och varje antal per period under **Broker health** har **Create monitor**: den öppnar en ny mätvärdesmonitor över det mätvärdet, filtrerad på exakt de attributvärden som namnger den här kön i det, med ett starttröskelvärde där mätvärdet mäter något med en uppenbart dålig riktning: eftersläpning, dead letters, konsumentlagg, det äldsta meddelandets ålder, strypning eller fel. Fyra av dem startar utan tröskelvärde, eftersom ett fast tröskelvärde på dem vilseleder: Kafkas partitionslagg (`kafka.consumer_group.lag`), som dess konsumentgrupps lagg redan täcker; ActiveMQ:s genomsnittliga tid i kön (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), ett genomsnitt sedan brokern startade som förblir högt långt efter ett stopp; och Pulsars eftersläpningsålder (`pulsar_storage_backlog_age_seconds`), som visar `-1` så länge brokern inte kan avgöra det. Räknare får ingen monitor: deras diagram visar en takt, och en monitor har ingen taktfunktion.
+**Från köns sida.** Varje gauge och varje antal per period under **Brokerhälsa** har **Create monitor**: den öppnar en ny mätvärdesmonitor över det mätvärdet, filtrerad på exakt de attributvärden som namnger den här kön i det, med ett starttröskelvärde där mätvärdet mäter något med en uppenbart dålig riktning: eftersläpning, dead letters, konsumentlagg, det äldsta meddelandets ålder, strypning eller fel. Fyra av dem startar utan tröskelvärde, eftersom ett fast tröskelvärde på dem vilseleder: Kafkas partitionslagg (`kafka.consumer_group.lag`), som dess konsumentgrupps lagg redan täcker; ActiveMQ:s genomsnittliga tid i kön (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), ett genomsnitt sedan brokern startade som förblir högt långt efter ett stopp; och Pulsars eftersläpningsålder (`pulsar_storage_backlog_age_seconds`), som visar `-1` så länge brokern inte kan avgöra det. Räknare får ingen monitor: deras diagram visar en takt, och en monitor har ingen taktfunktion.
 
-**Räknare.** RabbitMQ:s, Apache ActiveMQ:s och Apache RocketMQ:s räknare når collectorn som kumulativa summor, som en `cumulative_to_delta`-processor (`cumulativetodelta` i äldre collectorer) gör om till deltan som en monitor kan varna för. Konvertera en kopia under ett eget namn, aldrig själva räknaren: kösidan läser var och en av dessa räknare som en löpande summa och visar hur snabbt den växer, så en räknare som gjorts om till deltan visar nonsens under **Broker health** och på fliken **Mätvärden**: jämn trafik visas som 0 meddelanden per sekund. Apache Kafkas offsets (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) och Apache Pulsars `pulsar_in_messages_total` och `pulsar_out_messages_total` kommer som gauges, som `cumulative_to_delta` lämnar i fred: varna i stället för de systemens gauges för lagg och eftersläpning.
+**Räknare.** RabbitMQ:s, Apache ActiveMQ:s och Apache RocketMQ:s räknare når collectorn som kumulativa summor, som en `cumulative_to_delta`-processor (`cumulativetodelta` i äldre collectorer) gör om till deltan som en monitor kan varna för. Konvertera en kopia under ett eget namn, aldrig själva räknaren: kösidan läser var och en av dessa räknare som en löpande summa och visar hur snabbt den växer, så en räknare som gjorts om till deltan visar nonsens under **Brokerhälsa** och på fliken **Mätvärden**: jämn trafik visas som 0 meddelanden per sekund. Apache Kafkas offsets (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) och Apache Pulsars `pulsar_in_messages_total` och `pulsar_out_messages_total` kommer som gauges, som `cumulative_to_delta` lämnar i fred: varna i stället för de systemens gauges för lagg och eftersläpning.
 
 Konfigurationen för [RabbitMQ](#rabbitmq) med en kopia av `rabbitmq.message.published` att varna för:
 

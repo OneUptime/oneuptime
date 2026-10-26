@@ -38,7 +38,7 @@ Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o hor
 | --- | --- |
 | **Ao vivo** | Visto nos últimos 30 minutos. |
 | **Recent** | Visto no último dia. |
-| **Stale** | Não visto há mais de um dia. A página **Gone Quiet** lista esses itens. |
+| **Desatualizado** | Não visto há mais de um dia. A página **Gone Quiet** lista esses itens. |
 
 A cada três horas, o OneUptime remove os itens descobertos que ficaram em silêncio por mais tempo que a janela do seu tipo, inclusive os arquivados, e os valores de campos personalizados deles vão junto. Itens espelhados e os que você adicionou nunca são removidos dessa forma.
 

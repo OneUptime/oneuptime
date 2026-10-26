@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Et miljøs **Oversigt** viser:
 
-- **Anmodninger**, **Fejlrate** og **p95 latency** fra dine spor, med grafer over anmodninger, fejl og hukommelse i det tidsrum, du vælger.
+- **Anmodninger**, **Fejlrate** og **p95-latens** fra dine spor, med grafer over anmodninger, fejl og hukommelse i det tidsrum, du vælger.
 - **CPU** og **Hukommelse** på tværs af de levende instanser og en liste **Øverste instanser efter CPU**. De kommer fra metrikkerne `container.cpu.utilization` og `container.memory.usage`, der bærer instansidentiteten; på ECS fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`.
 - **Instanser**: hvor mange der har rapporteret inden for de seneste 15 minutter. Fanen **Instanser** har én række for hver.
 - Fanerne **Protokoller**, **Spor** og **Metrikker**, filtreret til miljøet.
