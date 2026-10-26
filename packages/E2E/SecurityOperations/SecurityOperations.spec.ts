@@ -3301,6 +3301,45 @@ test.describe("a case", () => {
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 
+  /*
+   * A case no playbook has run on says so the way Approvals and Playbook
+   * Runs do: the product's empty state, in the reader's language, with no
+   * card description saying it a second time. It was a line of grey
+   * English under that description.
+   */
+  test("the case's Playbooks page before any run: the product's empty state, in German too, whole on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const views: Array<[number, OpenOptions["lang"] | undefined, string]> = [
+      [1440, undefined, "No playbook has run on this case yet"],
+      [390, undefined, "No playbook has run on this case yet"],
+      [1440, "de", "Für diesen Fall ist noch kein Playbook gelaufen"],
+    ];
+
+    for (const [width, lang, title] of views) {
+      await open(
+        page,
+        `${TRAVEL_CASE_PATH}/playbook-runs`,
+        lang ? { width, lang } : { width },
+      );
+
+      await expect(
+        page.getByTestId("security-case-playbook-runs-empty"),
+      ).toBeVisible({ timeout: 30000 });
+      await expect(
+        page.getByTestId("security-case-playbook-runs-empty-title"),
+      ).toHaveText(title);
+      await expect(
+        cardTitled(page, "Playbooks").getByTestId("card-description"),
+      ).toHaveCount(0);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    }
+
+    await screenshot(page, "case-playbooks-empty-de", { fullPage: false });
+  });
+
   test("the case's Playbooks page: the held run with Approve and Reject, and its count beside the entry", async ({
     page,
   }: {

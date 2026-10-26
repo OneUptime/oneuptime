@@ -42,6 +42,13 @@ import SecurityPlaybookRunsPage, {
   VIEW_PLAYBOOKS,
   VIEW_PLAYBOOKS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns";
+import SecurityCasePlaybookRuns, {
+  CASE_PLAYBOOK_RUNS_DESCRIPTION,
+  CASE_PLAYBOOK_RUNS_EMPTY_DESCRIPTION,
+  CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID,
+  CASE_PLAYBOOK_RUNS_EMPTY_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityCasePlaybookRuns";
+import { TableEmptyStateKind } from "../../../UI/Components/Table/TableEmptyState";
 import {
   PLAYBOOK_RUNS_PAGE_LIMIT,
   SECURITY_PLAYBOOK_RUN_VIEWS,
@@ -334,5 +341,110 @@ describe("a runs page with runs", () => {
     );
 
     expect(caseLink).not.toBeNull();
+  });
+});
+
+/*
+ * A case's own Playbooks page draws its runs as the runs pages do, and says
+ * what it is for the way they do: before any playbook has run on the case,
+ * an empty state of the product's kind - not a line of grey text under a
+ * description saying the same thing.
+ */
+describe("a case's Playbooks", () => {
+  async function renderCaseRuns(): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <SecurityCasePlaybookRuns securityCaseId={new ObjectID(CASE_ID)} />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  test("reads the case's runs only, newest first", async () => {
+    await renderCaseRuns();
+
+    expect(listRequests[0]).toEqual({
+      query: { securityCaseId: new ObjectID(CASE_ID) },
+      sort: { createdAt: SortOrder.Descending },
+      limit: 25,
+    });
+  });
+
+  test("with no run yet, the empty state says what runs here, and the card does not say it a second time", async () => {
+    await renderCaseRuns();
+
+    const empty: HTMLElement = await screen.findByTestId(
+      CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Playbooks" }),
+    ).toBeInTheDocument();
+    expect(empty).toHaveAttribute(
+      "data-empty-state-kind",
+      TableEmptyStateKind.Empty,
+    );
+    expect(
+      screen.getByTestId(`${CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID}-title`),
+    ).toHaveTextContent("No playbook has run on this case yet");
+    expect(CASE_PLAYBOOK_RUNS_EMPTY_TITLE).toBe(
+      "No playbook has run on this case yet.",
+    );
+    expect(
+      screen.getByTestId(`${CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID}-description`),
+    ).toHaveTextContent(CASE_PLAYBOOK_RUNS_EMPTY_DESCRIPTION);
+    expect(screen.queryByTestId("card-description")).toBeNull();
+    expect(screen.queryByText(CASE_PLAYBOOK_RUNS_DESCRIPTION)).toBeNull();
+  });
+
+  test("with runs, the card says what it holds and draws each run whole, with no empty state", async () => {
+    listedRuns = [finishedRun()];
+
+    await renderCaseRuns();
+
+    expect(
+      await screen.findByTestId("security-playbook-run-card"),
+    ).toHaveTextContent("Enrich New Cases");
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      CASE_PLAYBOOK_RUNS_DESCRIPTION,
+    );
+    expect(screen.queryByTestId(CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID)).toBeNull();
+  });
+
+  test("while its runs load, the card keeps its description and says it is busy", async () => {
+    let answer: (value: ListResult<BaseModel>) => void = (): void => {
+      // Replaced below.
+    };
+    jest
+      .spyOn(ModelAPI, "getList")
+      .mockImplementation((): Promise<ListResult<BaseModel>> => {
+        return new Promise(
+          (resolve: (value: ListResult<BaseModel>) => void) => {
+            answer = resolve;
+          },
+        );
+      });
+
+    await renderCaseRuns();
+
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      CASE_PLAYBOOK_RUNS_DESCRIPTION,
+    );
+    expect(screen.queryByTestId(CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID)).toBeNull();
+
+    await act(async () => {
+      answer({
+        data: [],
+        count: 0,
+        skip: 0,
+        limit: 25,
+      } as unknown as ListResult<BaseModel>);
+    });
+
+    expect(
+      await screen.findByTestId(CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID),
+    ).toBeInTheDocument();
   });
 });

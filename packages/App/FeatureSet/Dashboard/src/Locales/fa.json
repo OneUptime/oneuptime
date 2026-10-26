@@ -28276,7 +28276,6 @@
   "No finding named an entity in this window.": "در این بازه هیچ یافته‌ای از موجودیتی نام نبرد.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "هیچ پرونده بازی نیست. پرونده‌های تازه با رخ دادن شناسایی‌ها این‌جا نمایش داده می‌شوند.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "هنوز هیچ پلی‌بوکی اجرا نشده است.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35028,5 +35027,7 @@
   "Every week (Sunday at midnight)": "هر هفته (یکشنبه نیمه‌شب)",
   "Every year (Jan 1st at midnight)": "هر سال (۱ ژانویه، نیمه‌شب)",
   "Approvals": "تأییدها",
-  "This playbook is already running on this case. Its run is under the case's Playbooks.": "این پلی‌بوک از قبل روی این پرونده در حال اجراست. اجرای آن در «Playbooks» این پرونده است."
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "این پلی‌بوک از قبل روی این پرونده در حال اجراست. اجرای آن در «Playbooks» این پرونده است.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "پلی‌بوک وقتی اینجا اجرا می‌شود که پرونده باز شود یا بزرگ‌تر شود، یا کسی آن را روی پرونده اجرا کند.",
+  "No playbook has run on this case yet.": "هنوز هیچ پلی‌بوکی روی این پرونده اجرا نشده است."
 }

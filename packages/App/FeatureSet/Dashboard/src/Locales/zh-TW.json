@@ -28276,7 +28276,6 @@
   "No finding named an entity in this window.": "此時間範圍內沒有發現提到任何實體。",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "沒有未結案例。偵測觸發時，新案例會出現在這裡。",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "還沒有執行過任何劇本。",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35028,5 +35027,7 @@
   "Every week (Sunday at midnight)": "每週（週日午夜）",
   "Every year (Jan 1st at midnight)": "每年（1月1日午夜）",
   "Approvals": "待核准",
-  "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在這個案例上執行。它的執行在案例的「Playbooks」中。"
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在這個案例上執行。它的執行在案例的「Playbooks」中。",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "當案例開啟或擴大時，或有人對這個案例執行劇本時，劇本就會在這裡執行。",
+  "No playbook has run on this case yet.": "這個案例還沒有執行過任何劇本。"
 }

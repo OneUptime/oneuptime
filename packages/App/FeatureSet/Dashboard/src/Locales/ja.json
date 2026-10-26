@@ -28276,7 +28276,6 @@
   "No finding named an entity in this window.": "この期間にエンティティを示した検出結果はありません。",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "未解決のケースはありません。検出が発生すると、新しいケースがここに表示されます。",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "まだ実行されたプレイブックはありません。",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35028,5 +35027,7 @@
   "Every week (Sunday at midnight)": "毎週（日曜日の午前0時）",
   "Every year (Jan 1st at midnight)": "毎年（1月1日の午前0時）",
   "Approvals": "承認待ち",
-  "This playbook is already running on this case. Its run is under the case's Playbooks.": "このプレイブックはこのケースですでに実行中です。実行はケースの「Playbooks」にあります。"
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "このプレイブックはこのケースですでに実行中です。実行はケースの「Playbooks」にあります。",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "ケースが開かれたとき、ケースが拡大したとき、または誰かがこのケースに対して実行したときに、プレイブックがここで実行されます。",
+  "No playbook has run on this case yet.": "このケースではまだプレイブックが実行されていません。"
 }

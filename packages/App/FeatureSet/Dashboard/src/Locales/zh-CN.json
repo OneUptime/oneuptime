@@ -28276,7 +28276,6 @@
   "No finding named an entity in this window.": "此时间段内没有发现提到任何实体。",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "没有未结案例。检测触发时，新案例会出现在这里。",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "还没有运行过任何剧本。",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35028,5 +35027,7 @@
   "Every week (Sunday at midnight)": "每周（周日午夜）",
   "Every year (Jan 1st at midnight)": "每年（1月1日午夜）",
   "Approvals": "待审批",
-  "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在这个案例上运行。它的运行在案例的“Playbooks”中。"
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在这个案例上运行。它的运行在案例的“Playbooks”中。",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "当案例开启或扩大时，或有人对这个案例运行剧本时，剧本就会在这里运行。",
+  "No playbook has run on this case yet.": "这个案例还没有运行过任何剧本。"
 }

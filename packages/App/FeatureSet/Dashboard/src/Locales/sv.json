@@ -28276,7 +28276,6 @@
   "No finding named an entity in this window.": "Inget fynd nämnde en entitet under den här perioden.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Inga öppna ärenden. Nya visas här när detektioner utlöses.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Ingen playbook har körts än.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35028,5 +35027,7 @@
   "Every week (Sunday at midnight)": "Varje vecka (söndag vid midnatt)",
   "Every year (Jan 1st at midnight)": "Varje år (1 januari vid midnatt)",
   "Approvals": "Godkännanden",
-  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Den här playbooken körs redan för ärendet. Körningen finns under ärendets Playbooks."
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Den här playbooken körs redan för ärendet. Körningen finns under ärendets Playbooks.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "En playbook körs här när ärendet öppnas eller växer, eller när någon kör den på ärendet.",
+  "No playbook has run on this case yet.": "Ingen playbook har körts för det här ärendet än."
 }

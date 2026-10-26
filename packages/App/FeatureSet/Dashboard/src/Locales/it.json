@@ -28276,7 +28276,6 @@
   "No finding named an entity in this window.": "Nessun rilevamento ha nominato un'entità in questo periodo.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Nessun caso aperto. I nuovi compaiono qui man mano che scattano i rilevamenti.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Nessun playbook è stato ancora eseguito.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35028,5 +35027,7 @@
   "Every week (Sunday at midnight)": "Ogni settimana (domenica a mezzanotte)",
   "Every year (Jan 1st at midnight)": "Ogni anno (1° gennaio a mezzanotte)",
   "Approvals": "Approvazioni",
-  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Questo playbook è già in esecuzione su questo caso. La sua esecuzione è in Playbooks del caso."
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Questo playbook è già in esecuzione su questo caso. La sua esecuzione è in Playbooks del caso.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Un playbook viene eseguito qui quando il caso si apre o cresce, oppure quando qualcuno lo esegue sul caso.",
+  "No playbook has run on this case yet.": "Nessun playbook è stato ancora eseguito su questo caso."
 }
