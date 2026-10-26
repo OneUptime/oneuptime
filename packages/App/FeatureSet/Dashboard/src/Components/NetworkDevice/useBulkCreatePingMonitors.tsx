@@ -13,9 +13,9 @@ import {
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -244,9 +244,6 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
     actionProps: BulkActionOnClickProps<NetworkDevice>,
     probeIds: Array<string>,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      actionProps;
-
     // Close the form modal first so the progress modal is visible.
     setShowModal(false);
 
@@ -292,51 +289,35 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
       return;
     }
 
-    onBulkActionStart();
+    /*
+     * Through the shared runner (progress, Stop, failures by device), one
+     * device at a time: every monitor created counts against the project's
+     * limit on active monitors, and each create must see the one before it.
+     */
+    await runBulkAction<NetworkDevice>({
+      actionProps: actionProps,
+      concurrency: 1,
+      step: async (item: NetworkDevice): Promise<void> => {
+        let skippedMessage: string | null = null;
 
-    const totalItems: Array<NetworkDevice> = [...items];
-    const inProgressItems: Array<NetworkDevice> = [...items];
-    const successItems: Array<NetworkDevice> = [];
-    const failedItems: Array<BulkActionFailed<NetworkDevice>> = [];
+        try {
+          skippedMessage = await provisionOne(item, probeIds, seedIds);
+        } catch (err) {
+          const message: string = API.getFriendlyMessage(err);
 
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
-        const skippedMessage: string | null = await provisionOne(
-          item,
-          probeIds,
-          seedIds,
-        );
-
-        if (skippedMessage) {
-          failedItems.push({
-            item: item,
-            // The progress list shows it as given: a fixed sentence is looked up.
-            failedMessage:
-              translator.translateText(skippedMessage) || skippedMessage,
-          });
-        } else {
-          successItems.push(item);
+          // The progress list shows it as given: a fixed sentence is looked up.
+          throw new Error(translator.translateText(message) || message);
         }
-      } catch (err) {
-        const message: string = API.getFriendlyMessage(err);
 
-        failedItems.push({
-          item: item,
-          failedMessage: translator.translateText(message) || message,
-        });
-      }
+        // Skipped, and listed with why among the devices not provisioned.
+        if (skippedMessage) {
+          throw new Error(
+            translator.translateText(skippedMessage) || skippedMessage,
+          );
+        }
+      },
+    });
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
   };
 

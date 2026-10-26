@@ -504,6 +504,41 @@ describe("the run", () => {
     );
   });
 
+  test("writes several rows at once on a list whose rows switch nothing they share (issue #5299)", async () => {
+    // Subscribers unsubscribed, say: the list passes a concurrency.
+    render(
+      <Harness<Workflow>
+        config={{ modelType: Workflow, column: "isEnabled", concurrency: 3 }}
+        items={[0, 1, 2, 3, 4].map((index: number) => {
+          return workflow(index, true);
+        })}
+        singularLabel="Workflow"
+        pluralLabel="Workflows"
+      />,
+    );
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Disable" }));
+
+    await screen.findByText("Completed");
+
+    expect(updateCalls).toHaveLength(5);
+
+    // The most writes in flight at once: never more than the list allows.
+    const mostAtOnce: number = Math.max(
+      ...updateCalls.map((call: UpdateCall) => {
+        return updateCalls.filter((other: UpdateCall) => {
+          return (
+            other.startedAt <= call.startedAt &&
+            call.startedAt < other.finishedAt
+          );
+        }).length;
+      }),
+    );
+
+    expect(mostAtOnce).toBe(3);
+  });
+
   test("says how many changed, in the action's own words", async () => {
     renderWorkflows([workflow(0, true), workflow(1, true)]);
     openMenu();

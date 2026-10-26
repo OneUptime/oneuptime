@@ -486,6 +486,14 @@ beforeEach(() => {
     WorkspaceProjectAuthTokenService,
     "getProjectAuths",
   ).mockResolvedValue([] as never);
+  /*
+   * Slack is connected (the post below is where it would go); no rule opens
+   * a channel, so the connections themselves are never read.
+   */
+  getJestSpyOn(
+    WorkspaceNotificationRuleService,
+    "hasConnectedWorkspace",
+  ).mockResolvedValue(true as never);
   getJestSpyOn(
     WorkspaceUtil,
     "postMessageToAllWorkspaceChannelsAsBot",
