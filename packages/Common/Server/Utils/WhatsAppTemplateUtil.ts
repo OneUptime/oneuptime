@@ -92,6 +92,16 @@ const templateIdByEventType: Partial<
     WhatsAppTemplateIds.IncidentMemberAddedNotification,
   [NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.IncidentReminderOwnerNotification,
+  /*
+   * WhatsApp sends only templates Meta has approved, for OneUptime Cloud and
+   * for every installation's own WhatsApp Business account, and a new one
+   * sends nothing until it is. An SLA breach says what the approved "still
+   * open" reminder says - the incident, its state, how long it has been
+   * open - which is true of a missed response or resolution deadline, where
+   * the "has been created" template it had borrowed was not.
+   */
+  [NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.IncidentReminderOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.AlertReminderOwnerNotification,
   [NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION]:

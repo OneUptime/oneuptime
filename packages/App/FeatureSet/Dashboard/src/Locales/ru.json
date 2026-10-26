@@ -35082,5 +35082,7 @@
   "Approvals": "Одобрения",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Этот плейбук уже запущен по этому кейсу. Запуск — в разделе «Playbooks» кейса.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Плейбук запускается здесь, когда кейс открывается или пополняется, или когда кто-то запускает его для кейса.",
-  "No playbook has run on this case yet.": "Для этого кейса плейбуки ещё не запускались."
+  "No playbook has run on this case yet.": "Для этого кейса плейбуки ещё не запускались.",
+  "Incident SLA breached": "Нарушен SLA инцидента",
+  "An incident you own misses its SLA response or resolution deadline.": "Инцидент, которым вы владеете, не уложился в срок SLA на реакцию или решение."
 }

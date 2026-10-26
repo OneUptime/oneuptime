@@ -35082,5 +35082,7 @@
   "Approvals": "تأییدها",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "این پلی‌بوک از قبل روی این پرونده در حال اجراست. اجرای آن در «Playbooks» این پرونده است.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "پلی‌بوک وقتی اینجا اجرا می‌شود که پرونده باز شود یا بزرگ‌تر شود، یا کسی آن را روی پرونده اجرا کند.",
-  "No playbook has run on this case yet.": "هنوز هیچ پلی‌بوکی روی این پرونده اجرا نشده است."
+  "No playbook has run on this case yet.": "هنوز هیچ پلی‌بوکی روی این پرونده اجرا نشده است.",
+  "Incident SLA breached": "نقض SLA حادثه",
+  "An incident you own misses its SLA response or resolution deadline.": "حادثه‌ای که مالکش هستید مهلت پاسخ یا رفع SLA خود را از دست می‌دهد."
 }

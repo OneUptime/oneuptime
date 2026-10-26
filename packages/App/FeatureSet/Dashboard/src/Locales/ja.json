@@ -35082,5 +35082,7 @@
   "Approvals": "承認待ち",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "このプレイブックはこのケースですでに実行中です。実行はケースの「Playbooks」にあります。",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "ケースが開かれたとき、ケースが拡大したとき、または誰かがこのケースに対して実行したときに、プレイブックがここで実行されます。",
-  "No playbook has run on this case yet.": "このケースではまだプレイブックが実行されていません。"
+  "No playbook has run on this case yet.": "このケースではまだプレイブックが実行されていません。",
+  "Incident SLA breached": "インシデントの SLA 違反",
+  "An incident you own misses its SLA response or resolution deadline.": "あなたが所有するインシデントが SLA の応答期限または解決期限を過ぎました。"
 }

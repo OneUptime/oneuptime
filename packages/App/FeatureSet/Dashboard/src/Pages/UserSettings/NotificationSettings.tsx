@@ -215,6 +215,12 @@ const EVENT_LIBRARY: Record<
     description:
       "Periodic reminder that an incident you own is still open, based on the project's reminder rules.",
   },
+  [NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION]:
+    {
+      label: "Incident SLA breached",
+      description:
+        "An incident you own misses its SLA response or resolution deadline.",
+    },
   [NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION]: {
     label: "Incident note posted",
     description: "Someone posts a note on an incident you own.",
@@ -993,6 +999,7 @@ const incidents: Array<SectionDef> = [
     NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,

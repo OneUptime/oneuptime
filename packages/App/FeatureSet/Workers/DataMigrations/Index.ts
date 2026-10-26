@@ -149,6 +149,7 @@ import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMem
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
+import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
@@ -867,6 +868,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * "Incident SLA breached" gets a notification setting of its own: every
+   * existing member gets it, on email and the channels they have on for
+   * "Incident created", which SLA breaches were sent through before.
+   * Idempotent; no ordering requirement of its own.
+   */
+  new AddIncidentSlaBreachedNotificationSettingsForUsers(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

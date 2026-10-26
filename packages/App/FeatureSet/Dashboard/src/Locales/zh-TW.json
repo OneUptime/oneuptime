@@ -35082,5 +35082,7 @@
   "Approvals": "待核准",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在這個案例上執行。它的執行在案例的「Playbooks」中。",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "當案例開啟或擴大時，或有人對這個案例執行劇本時，劇本就會在這裡執行。",
-  "No playbook has run on this case yet.": "這個案例還沒有執行過任何劇本。"
+  "No playbook has run on this case yet.": "這個案例還沒有執行過任何劇本。",
+  "Incident SLA breached": "事件 SLA 違約",
+  "An incident you own misses its SLA response or resolution deadline.": "您擁有的事件錯過了 SLA 回應或解決期限。"
 }

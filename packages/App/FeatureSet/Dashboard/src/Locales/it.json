@@ -35082,5 +35082,7 @@
   "Approvals": "Approvazioni",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Questo playbook è già in esecuzione su questo caso. La sua esecuzione è in Playbooks del caso.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Un playbook viene eseguito qui quando il caso si apre o cresce, oppure quando qualcuno lo esegue sul caso.",
-  "No playbook has run on this case yet.": "Nessun playbook è stato ancora eseguito su questo caso."
+  "No playbook has run on this case yet.": "Nessun playbook è stato ancora eseguito su questo caso.",
+  "Incident SLA breached": "SLA dell'incidente violato",
+  "An incident you own misses its SLA response or resolution deadline.": "Un incidente di cui sei proprietario supera la scadenza SLA di risposta o di risoluzione."
 }

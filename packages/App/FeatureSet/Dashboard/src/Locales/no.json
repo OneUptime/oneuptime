@@ -35082,5 +35082,7 @@
   "Approvals": "Godkjenninger",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Denne playbooken kjører allerede på saken. Kjøringen står under sakens Playbooks.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "En playbook kjører her når saken åpnes eller vokser, eller når noen kjører den på saken.",
-  "No playbook has run on this case yet.": "Ingen playbook har kjørt på denne saken ennå."
+  "No playbook has run on this case yet.": "Ingen playbook har kjørt på denne saken ennå.",
+  "Incident SLA breached": "SLA for hendelse brutt",
+  "An incident you own misses its SLA response or resolution deadline.": "En hendelse du eier, overskrider SLA-fristen for respons eller løsning."
 }

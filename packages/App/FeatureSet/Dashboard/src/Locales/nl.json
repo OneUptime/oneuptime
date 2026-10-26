@@ -35082,5 +35082,7 @@
   "Approvals": "Goedkeuringen",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Dit playbook loopt al voor deze zaak. De uitvoering staat onder Playbooks van de zaak.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Een playbook draait hier wanneer de zaak wordt geopend of groeit, of wanneer iemand het op de zaak uitvoert.",
-  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak."
+  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak.",
+  "Incident SLA breached": "SLA van incident geschonden",
+  "An incident you own misses its SLA response or resolution deadline.": "Een incident waarvan u eigenaar bent, haalt de SLA-deadline voor reactie of oplossing niet."
 }

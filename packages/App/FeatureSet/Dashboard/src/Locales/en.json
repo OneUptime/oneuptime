@@ -35082,5 +35082,7 @@
   "Approvals": "Approvals",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "This playbook is already running on this case. Its run is under the case's Playbooks.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "A playbook runs here when the case opens or grows, or when someone runs it on the case.",
-  "No playbook has run on this case yet.": "No playbook has run on this case yet."
+  "No playbook has run on this case yet.": "No playbook has run on this case yet.",
+  "Incident SLA breached": "Incident SLA breached",
+  "An incident you own misses its SLA response or resolution deadline.": "An incident you own misses its SLA response or resolution deadline."
 }
