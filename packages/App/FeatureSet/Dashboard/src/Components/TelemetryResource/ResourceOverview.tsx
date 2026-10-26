@@ -8,10 +8,16 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
+import {
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
+import { getTileTitleWordsClassName } from "./TileTitleWords";
 import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
 
 export interface ResourceOverviewChip {
@@ -164,8 +170,28 @@ const STATUS_TONE_CLASSES: Record<
 const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
   props: ResourceOverviewTile,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     tileColorClasses[props.iconColor];
+  /*
+   * A page hands the tile its English name ("Page loads", "Queries"), and the
+   * tile draws it in the reader's language, as the shared components do with
+   * the English they are given (Locales/README.md, stage 2). The link laid
+   * over a linked tile and the line read while it loads say the same name in
+   * the same language; the (i) takes the English and words its own label.
+   */
+  const title: string = translator.translateText(props.title) || props.title;
+  /*
+   * A translated name can hold a word longer than a narrow tile's line - a
+   * Portuguese "Carregamentos" in a phone's two columns. It breaks where
+   * its language hyphenates it, the title saying which language it is in
+   * (TileTitleWords), and never runs under the icon, which keeps its size.
+   */
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.title,
+    drawn: title,
+    language: translator.language,
+  });
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -214,15 +240,25 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
           to={props.to}
           className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          <span className="sr-only">{`View ${props.title}`}</span>
+          <span className="sr-only">
+            {translateNamedAction(translator, {
+              template: "View {{itemName}}",
+              itemName: props.title,
+            })}
+          </span>
         </AppLink>
       ) : (
         <></>
       )}
       <div className="flex items-center justify-between mb-3">
         <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {props.title}
+          <span
+            className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
+              { text: title, lang: titleLanguage },
+            )}`}
+            lang={titleLanguage}
+          >
+            {title}
           </span>
           <InfoTooltip
             label={props.title}
@@ -231,14 +267,19 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
           />
         </div>
         <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >
           <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
         </div>
       </div>
       {props.loading ? (
         <div role="status" aria-live="polite">
-          <span className="sr-only">Loading {props.title}</span>
+          <span className="sr-only">
+            {translateNamedAction(translator, {
+              template: "Loading {{itemsName}}",
+              itemName: props.title,
+            })}
+          </span>
           <div
             className="h-6 w-24 rounded bg-gray-100 motion-safe:animate-pulse"
             aria-hidden="true"

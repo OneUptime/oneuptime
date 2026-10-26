@@ -107,7 +107,9 @@ case:
    field `title`/`description`/`placeholder`, Button `title`, Modal `title` and
    button texts, Pill and StatusBadge `text`, Tooltip `text`, MoreMenuItem,
    Checkbox, CollapsibleSection, SideOver, Link, EmptyState, the "What AI may
-   do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), and more. Do not
+   do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), the telemetry
+   overviews' metric tiles (`ResourceOverview` `tiles[].title`) and
+   `ChartCard` `title`, and more. Do not
    translate a prop before you pass it. Write it as a literal, so the extractor
    sees it. `USER_FACING_PROPS` in `scripts/i18n/ExtractStrings.ts` lists the
    prop names the extractor reads.
@@ -411,4 +413,9 @@ translated the same locale. Take either side, then run
   and the rest) were translated that way: `DocsQuotedLabelsTranslated` holds
   each of them translated in every language, or kept as written for the
   reason it gives, and every page that quotes it in the same words.
+- The infrastructure pages' metric tiles
+  (`Components/Infrastructure/GoldenMetricTile`) draw their title as a page
+  hands it, so a page that wants it translated words it itself (the VMware
+  host tab does); the telemetry overviews' tiles and `ChartCard` translate
+  theirs. A chart's legend draws its series names as given.
 - `ee/Dashboard` and documentation markdown are not scanned.
