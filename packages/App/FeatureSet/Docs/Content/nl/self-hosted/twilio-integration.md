@@ -35,21 +35,21 @@ Sla de inloggegevens op voor één project, of eenmalig voor de hele installatie
 | | Projectconfiguratie | Configuratie voor de hele installatie |
 | --- | --- | --- |
 | Waar | De kaart **Twilio-configuratie** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** | **Admin Dashboard > Instellingen > Oproep en sms** |
-| Wie kan het instellen | **Project Owner**, **Project Admin**, of **Create Call and SMS** in een aangepaste rol | Een master-admin |
-| Wie het Auth Token kan lezen | **Project Owner**, **Project Admin**, of **Read Call and SMS** in een aangepaste rol. Anderen die de configuratie zien, zien de rest ervan; het token wordt versleuteld opgeslagen | Een master-admin |
+| Wie kan het instellen | **Projecteigenaar**, **Projectbeheerder**, of **Create Call and SMS** in een aangepaste rol | Een master-admin |
+| Wie het Auth Token kan lezen | **Projecteigenaar**, **Projectbeheerder**, of **Read Call and SMS** in een aangepaste rol. Anderen die de configuratie zien, zien de rest ervan; het token wordt versleuteld opgeslagen | Een master-admin |
 | Gebruikt voor | Sms en oproepen naar de leden van het project zolang het de projectstandaard is, de statuspagina's waaraan het is toegewezen en het beleid voor inkomende oproepen dat het gebruikt | Sms en oproepen naar de leden van elk project dat geen standaardconfiguratie heeft |
 
 Zo voegt u een projectconfiguratie toe:
 
 :::steps
 1. Ga naar **Projectinstellingen > Meldingen > Meldingsinstellingen**.
-2. Kies in **Twilio-configuratie** de knop **Twilio-configuratie aanmaken**.
-3. Vul een naam in en kies bij **Dit account gebruiken voor** wat het account verstuurt: **Oproepen en sms**, **Alleen sms** of **Alleen oproepen**. Vul daarna **Twilio Account SID**, **Twilio Auth Token** en het nummer in waar die keuze om vraagt: **Twilio primair telefoonnummer** voor oproepen, of **Twilio sms-telefoonnummers** voor **Alleen sms**. Vul onder **Meer velden** eventueel door komma's gescheiden **Twilio secundaire telefoonnummers** in voor andere landen, en **Twilio sms-telefoonnummers** als uw nummers geen sms kunnen versturen.
+2. Kies in **Twilio-configuratie** de knop **Twilio-configuratie maken**.
+3. Vul een naam in en kies bij **Dit account gebruiken voor** wat het account verstuurt: **Oproepen en sms**, **Alleen sms** of **Alleen oproepen**. Vul daarna **Twilio-account-SID**, **Twilio-authenticatietoken** en het nummer in waar die keuze om vraagt: **Twilio primair telefoonnummer** voor oproepen, of **Twilio sms-telefoonnummers** voor **Alleen sms**. Vul onder **Meer velden** eventueel door komma's gescheiden **Twilio secundaire telefoonnummers** in voor andere landen, en **Twilio sms-telefoonnummers** als uw nummers geen sms kunnen versturen.
 4. **Instellen als projectstandaard** staat aan voor de eerste configuratie van het project, zodat de sms en oproepen naar de leden van het project, inclusief on-call-meldingen, er meteen na het opslaan via lopen. Zet het uit als dit account alleen voor statuspagina's of inkomende oproepen is. Een latere configuratie begint met de schakelaar uit: zet hem aan, of kies **Instellen als projectstandaard** in het rijmenu van de configuratie, om die berichten ernaartoe te verplaatsen. Een API-verzoek dat `isProjectDefault` weglaat, wordt op dezelfde manier behandeld.
 5. Sla op. Slechts één configuratie kan de projectstandaard zijn. Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
 
 > [!IMPORTANT]
-> **SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar, een **Billing Admin** of iemand met **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
+> **SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
 :::
 
 Voor een standaard voor de hele installatie kan een beheerder in plaats daarvan **Admin Dashboard > Instellingen > Oproep en sms** openen, kiezen wat het account verstuurt, de Twilio-inloggegevens en telefoonnummers bewerken en opslaan. Meldingen aan leden gebruiken deze globale configuratie wanneer hun project geen standaard heeft. Houd het Auth Token geheim.
@@ -150,7 +150,7 @@ Voor ontwikkeling beschrijft de [handleiding voor het testen van webhooks](https
 
 :::steps
 1. Controleer van buiten uw bedrijfsnetwerk en VPN dat de callback-hostnaam naar de openbare gateway oplost en een geldig TLS-certificaat aanbiedt. Een GET vanuit de browser test deze POST-callbacks niet.
-2. Gebruik **Test-sms verzenden** en **Testoproep verzenden** op de Twilio-configuratie van het project. Bevestig de ontvangst op de bestemmingstelefoon. Beide vereisen toestemming om Twilio-configuraties toe te voegen: **Project Owner**, **Project Admin**, of **Create Call and SMS** en **Read Call and SMS** in een aangepaste rol.
+2. Gebruik **Test-sms verzenden** en **Testoproep verzenden** op de Twilio-configuratie van het project. Bevestig de ontvangst op de bestemmingstelefoon. Beide vereisen toestemming om Twilio-configuraties toe te voegen: **Projecteigenaar**, **Projectbeheerder**, of **Create Call and SMS** en **Read Call and SMS** in een aangepaste rol.
 3. Stel voor de gebruiker een geverifieerd sms- of oproepcontact en meldingsregels in en activeer daarna een gecontroleerde on-call-melding. Druk op 1 en controleer de bevestiging in OneUptime. Gebruikt u beleid voor inkomende oproepen, bel dan het geconfigureerde nummer en controleer de routering en het oproeplogboek.
 4. Controleer de bezorgstatus van de sms in OneUptime en in de berichtlogboeken van Twilio. Een geaccepteerde verzending bewijst geen bezorging; [Twilio meldt latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

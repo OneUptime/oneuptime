@@ -228,7 +228,7 @@ Enhetene er mottakerens egne OTLP-enheter, som OneUptime skalerer for visning: `
 
 ### Strømtilstanden til VM-er
 
-Mottakeren sender ingen metrikk for strømtilstanden til en VM. Den sender `vcenter.vm.cpu.*` **bare for påslåtte VM-er**, så OneUptime utleder tilstanden fra det som kom inn i hver innsamling: En VM som rapporterte CPU-metrikker, er **Powered on**; en som bare rapporterte minne- og diskbruk, er **Powered off** (eller suspendert: vSphere skiller ikke mellom de to her). VM-maler har ingen strømtilstand. Dette leser **en hel innsamling om gangen**, og derfor har den medfølgende prosessoren `batch` en stor `send_batch_size` og med vilje ingen `send_batch_max_size`: En innsamling fordelt over to eksporter ville nullstille inventartellingene og "slå av" VM-er. Behold batch-innstillingene slik de leveres.
+Mottakeren sender ingen metrikk for strømtilstanden til en VM. Den sender `vcenter.vm.cpu.*` **bare for påslåtte VM-er**, så OneUptime utleder tilstanden fra det som kom inn i hver innsamling: En VM som rapporterte CPU-metrikker, er **Powered on**; en som bare rapporterte minne- og diskbruk, er **Slått av** (eller suspendert: vSphere skiller ikke mellom de to her). VM-maler har ingen strømtilstand. Dette leser **en hel innsamling om gangen**, og derfor har den medfølgende prosessoren `batch` en stor `send_batch_size` og med vilje ingen `send_batch_max_size`: En innsamling fordelt over to eksporter ville nullstille inventartellingene og "slå av" VM-er. Behold batch-innstillingene slik de leveres.
 
 ## vCenter-et i OneUptime
 
@@ -249,7 +249,7 @@ Velg en vert for å åpne siden dens. Den svarer på det siden til en vert utenf
 
 Når vCenter slutter å rapportere en vert, sier siden det over fanene, med når vCenter sist rapporterte den. Etter 15 minutter uten rapport forlater verten inventaret: siden dens sier det da, og viser fortsatt de tidligere målingene.
 
-De fem vertsvarslene (CPU- og minnemetning, høy disklatens, nettverkspakkefeil og forkastede pakker) overvåker hver for seg alle vertene i vCenter og utløses for hver vert som går over dem. Kortet **Vertsvarsler** på en verts side viser hvilke som er slått på, og knappen åpner vCenters **Recommendations** med de manglende allerede valgt: Opprett dem der, én gang, for alle vertene.
+De fem vertsvarslene (CPU- og minnemetning, høy disklatens, nettverkspakkefeil og forkastede pakker) overvåker hver for seg alle vertene i vCenter og utløses for hver vert som går over dem. Kortet **Vertsvarsler** på en verts side viser hvilke som er slått på, og knappen åpner vCenters **Anbefalinger** med de manglende allerede valgt: Opprett dem der, én gang, for alle vertene.
 
 ### Virtuelle maskiner
 

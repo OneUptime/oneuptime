@@ -74,7 +74,7 @@ Pro Projekt soll jeweils nur ein Status jedes Flag tragen – die Abfragen holen
 - **Sie behalten ihre Reihenfolge.** Der Erstellungsstatus kommt vor dem bestätigten, der bestätigte vor dem behobenen. Ein Ziehen, das das bricht – etwa **Behoben** über **Bestätigt** –, wird abgelehnt, die Zeilen springen zurück, und die Seite sagt, warum.
 - **Sie lassen sich nicht löschen.** Ihr **Löschen** bleibt im Zeilenmenü, gesperrt, mit Begründung. Ein Massenlöschen überspringt sie und listet sie als nicht gelöscht. Auch die API lehnt das Löschen des letzten Erstellungs-, bestätigten oder behobenen Status eines Projekts ab.
 
-Weil die Oberfläche Statusnamen dynamisch liest, ändert eine Umbenennung, was Sie überall sehen – die Kennzahlenkacheln (**Acknowledged in** und **Resolved in** mit den vorangelegten Namen), die Bestätigung **Vorfall als … markieren** eines eigenen Status und das Etikett in der Vorfallliste folgen alle dem Namen, den Sie der Zeile gegeben haben.
+Weil die Oberfläche Statusnamen dynamisch liest, ändert eine Umbenennung, was Sie überall sehen – die Kennzahlenkacheln (**Bestätigt nach** und **Behoben nach** mit den vorangelegten Namen), die Bestätigung **Vorfall als … markieren** eines eigenen Status und das Etikett in der Vorfallliste folgen alle dem Namen, den Sie der Zeile gegeben haben.
 
 ## Eigene Status anlegen
 

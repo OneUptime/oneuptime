@@ -142,13 +142,13 @@ Hosts e dispositivos de rede são descritos pelos mesmos dados, guardados com as
 | Endereço IP | `host.ip` | Cada endereço que o coletor informa | O endereço que o OneUptime consulta, quando é um endereço IP; senão, o endereço para o qual a sonda resolveu esse nome DNS |
 | Endereço MAC | `host.mac` | Detectado | Digitado no dispositivo, ou aprendido na tabela ARP de um roteador percorrido |
 | Número de série | `host.serial_number` | Carimbado | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | Carimbado | ENTITY-MIB, senão o que `sysDescr` ou `sysObjectID` cita |
+| Fabricante | `device.manufacturer` | Carimbado | ENTITY-MIB, senão o que `sysDescr` ou `sysObjectID` cita |
 | Modelo | `device.model.name` | Carimbado | ENTITY-MIB, senão o que `sysDescr` cita |
 | Versão do firmware | `device.firmware.version` | Carimbada | ENTITY-MIB, senão o que `sysDescr` cita |
 | Sistema operacional | `os.name` | `os.description` (ou `os.type`) | O que `sysDescr` cita: Cisco IOS, Junos OS, Arista EOS, Linux |
 | Versão do SO | `os.version` | Detectada | ENTITY-MIB, senão o que `sysDescr` cita |
 | Device Type | `device.type` | Carimbado. Senão o cartão o classifica pelo sistema operacional e pelo nome (Servidor, Firewall, ...) | A sua função: a que você atribuiu, senão aquela com que o mapa de topologia o desenha |
-| Location | `device.location` | Carimbada. Senão o cartão mostra a sua zona de nuvem | `sysLocation`. O cartão mostra primeiro o seu site |
+| Local | `device.location` | Carimbada. Senão o cartão mostra a sua zona de nuvem | `sysLocation`. O cartão mostra primeiro o seu site |
 
 A [tabela de hosts](#atributos-de-ativo-dos-hosts) e a [tabela de dispositivos de rede](#atributos-de-ativo-dos-dispositivos-de-rede) abaixo dizem em detalhe de onde vem cada valor.
 

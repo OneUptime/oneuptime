@@ -74,7 +74,7 @@ Se espera que solo un estado por proyecto tenga cada indicador: las búsquedas t
 - **Conservan su orden.** El de creación va antes que el reconocido, y el reconocido antes que el resuelto. Un arrastre que rompería eso —**Resuelto** por encima de **Reconocido**, por ejemplo— se rechaza, las filas vuelven a su sitio y la página dice por qué.
 - **No se pueden eliminar.** Su **Eliminar** sigue en el menú de la fila, bloqueado, con el motivo. Una eliminación masiva los omite y los lista como no eliminados. La API también se niega a eliminar el último estado de creación, reconocido o resuelto de un proyecto.
 
-Como la interfaz lee los nombres de los estados de forma dinámica, renombrar un estado cambia lo que ves en todas partes: los indicadores (**Acknowledged en** y **Resolved en** con los nombres iniciales), la confirmación **Marcar incidente como …** de un estado personalizado y la etiqueta de la lista de incidentes siguen el nombre que diste a la fila.
+Como la interfaz lee los nombres de los estados de forma dinámica, renombrar un estado cambia lo que ves en todas partes: los indicadores (**Reconocido en** y **Resuelto en** con los nombres iniciales), la confirmación **Marcar incidente como …** de un estado personalizado y la etiqueta de la lista de incidentes siguen el nombre que diste a la fila.
 
 ## Añadir tus propios estados
 

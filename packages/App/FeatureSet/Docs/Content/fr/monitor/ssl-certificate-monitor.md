@@ -92,7 +92,7 @@ Un nouveau moniteur de certificat SSL commence avec trois critères, donc il vou
 2. **Certificat bientôt expiré** — le certificat est valide mais expire dans 14 jours ou moins. Une **alerte** appelée « _monitor name_ certificate expires soon » est créée.
 3. **Certificat valide** — le moniteur est marqué **Opérationnel**.
 
-L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'apparaît pas sur vos pages de statut, il ne prévient personne tant que vous n'y ajoutez pas une politique d'astreinte, et il ne change pas l'état du moniteur. Il utilise la deuxième gravité d'alerte de votre projet, **Low** sur un nouveau projet. Quand le certificat renouvelé est pris en compte, le moniteur revient sur « Certificat valide » et l'alerte se résout d'elle-même.
+L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'apparaît pas sur vos pages de statut, il ne prévient personne tant que vous n'y ajoutez pas une politique d'astreinte, et il ne change pas l'état du moniteur. Il utilise la deuxième gravité d'alerte de votre projet, **Faible** sur un nouveau projet. Quand le certificat renouvelé est pris en compte, le moniteur revient sur « Certificat valide » et l'alerte se résout d'elle-même.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. C'est pourquoi « bientôt expiré » se trouve au-dessus de « valide » : un certificat qui va expirer est encore valide, il correspondrait donc aux deux.
 

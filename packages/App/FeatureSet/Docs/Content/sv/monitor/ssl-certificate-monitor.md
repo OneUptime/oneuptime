@@ -92,7 +92,7 @@ En ny SSL-certifikatmonitor börjar med tre kriterier, så den varnar dig innan 
 2. **Certifikatet går snart ut** — certifikatet är giltigt men går ut om 14 dagar eller mindre. Ett **larm** med namnet "_monitor name_ certificate expires soon" skapas.
 3. **Certifikatet är giltigt** — monitorn markeras som **Fungerar**.
 
-Varningen "går snart ut" är ett larm, inte en incident: det visas inte på dina statussidor, det kallar inte in någon om du inte lägger till en jourpolicy på det, och det ändrar inte monitorns status. Det använder projektets andra larmallvarlighetsgrad, **Low** i ett nytt projekt. När det förnyade certifikatet plockas upp är monitorn tillbaka på "Certifikatet är giltigt", och larmet löser sig själv.
+Varningen "går snart ut" är ett larm, inte en incident: det visas inte på dina statussidor, det kallar inte in någon om du inte lägger till en jourpolicy på det, och det ändrar inte monitorns status. Det använder projektets andra larmallvarlighetsgrad, **Låg** i ett nytt projekt. När det förnyade certifikatet plockas upp är monitorn tillbaka på "Certifikatet är giltigt", och larmet löser sig själv.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. Därför ligger "går snart ut" ovanför "är giltigt": ett certifikat som håller på att gå ut är fortfarande giltigt, så det skulle matcha båda.
 
@@ -103,7 +103,7 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 
 1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera Övervakningskriterier**.
 2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Is Valid Certificate** / **Sant**, klicka på **Lägg till filter** och sätt det andra till **Expires In Days** / **Mindre än eller lika med** / `14`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
-3. Slå på **När filter matchar, skapa en varning.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
+3. Slå på **När filter matchar, skapa ett larm.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.
 :::
 

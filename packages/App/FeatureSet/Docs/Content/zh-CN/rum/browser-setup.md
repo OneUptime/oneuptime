@@ -11,7 +11,7 @@
 
 ## 工作原理
 
-SDK 在访问者的浏览器中运行。它为每次页面加载和请求记录一个 span，并使用 **Browser** 摄取密钥直接导出到 OneUptime，中间不需要你自己的收集器或代理。
+SDK 在访问者的浏览器中运行。它为每次页面加载和请求记录一个 span，并使用 **浏览器** 摄取密钥直接导出到 OneUptime，中间不需要你自己的收集器或代理。
 
 ```mermaid title="浏览器遥测的去向"
 flowchart TB
@@ -35,8 +35,8 @@ flowchart TB
 
 1. 前往 **产品 → 项目设置** 。
 2. 在侧边菜单中打开 **遥测与 APM** ，然后选择 **摄取密钥** 。
-3. 点击 **创建摄取密钥** ，并在 **密钥类型** 中选择 **Browser** 。
-4. 在 **浏览器设置** 步骤中，以 JSON 数组的形式在 **Allowed Origins** 中列出你的来源，例如 `["https://app.example.com"]` ，然后创建密钥。在 OneUptime Cloud 的 Free 套餐中，最后一个 **账单** 步骤会先显示遥测价格。
+3. 点击 **创建摄取密钥** ，并在 **密钥类型** 中选择 **浏览器** 。
+4. 在 **浏览器设置** 步骤中，以 JSON 数组的形式在 **允许的来源** 中列出你的来源，例如 `["https://app.example.com"]` ，然后创建密钥。在 OneUptime Cloud 的 Free 套餐中，最后一个 **账单** 步骤会先显示遥测价格。
 
 ![项目设置中的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 | 设置 | 作用 |
 | --- | --- |
-| **Allowed Origins** | 只接受来自这些来源的请求，每个来源都包含协议和端口（如有）。主机可以以一个 `*.` 通配符开头： `https://*.example.com` 涵盖 `example.com` 的所有子域，但不包括 `example.com` 本身。 |
+| **允许的来源** | 只接受来自这些来源的请求，每个来源都包含协议和端口（如有）。主机可以以一个 `*.` 通配符开头： `https://*.example.com` 涵盖 `example.com` 的所有子域，但不包括 `example.com` 本身。 |
 | **Requests Per Minute Limit** | 所有使用该密钥的访问者共享的一个上限：除非你自行设置，否则为每分钟 6000 个请求。 |
-| **Pinned Service Name** | 对密钥写入的所有数据强制使用 `service.name` ，因此复制品无法将其遥测伪装成你的某个后端服务。 |
+| **固定的服务名称** | 对密钥写入的所有数据强制使用 `service.name` ，因此复制品无法将其遥测伪装成你的某个后端服务。 |
 | **过期时间** | 过了这个日期，密钥将不再被接受。 |
 | **已启用** | 关闭它可以立即阻止泄露的密钥。 |
 
@@ -245,7 +245,7 @@ new FetchInstrumentation({
 
 如果你还在使用 [会话回放](/docs/telemetry/session-replay) ，你的 **后端** 遥测无需在这里写任何代码就会与录制关联。会话上传期间，录制器会在页面发往自身来源的请求中添加一个携带会话 ID 的 `tracestate` 成员，并把 `traceparent` 留给你的 `FetchInstrumentation` / `XMLHttpRequestInstrumentation` 。在每个延续 W3C 追踪上下文的服务中，后端 span 会在摄取时被打上会话 ID，其日志和异常则通过追踪 ID 关联到录制。工作原理、不涵盖的内容以及关闭它的开关，请参见 [与其他遥测关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。
 
-无论调用传入的是 URL（带或不带 init 对象）还是 `Request` 对象，录制器都会读回你的插桩设置的 `traceparent` ，因此回放中的每个请求行都会链接到其后端追踪。对于另一个来源上的 API，请将它列在上面的 `propagateTraceHeaderCorsUrls` 中；它的请求不携带会话 ID，而是通过追踪 ID 关联到录制。对于 *没有* 使用此 SDK 的页面，应用程序回放策略中的 **Trace propagation origins** 起同样的作用。
+无论调用传入的是 URL（带或不带 init 对象）还是 `Request` 对象，录制器都会读回你的插桩设置的 `traceparent` ，因此回放中的每个请求行都会链接到其后端追踪。对于另一个来源上的 API，请将它列在上面的 `propagateTraceHeaderCorsUrls` 中；它的请求不携带会话 ID，而是通过追踪 ID 关联到录制。对于 *没有* 使用此 SDK 的页面，应用程序回放策略中的 **追踪传播来源** 起同样的作用。
 
 请求头无法覆盖的是此 SDK 自己的浏览器 span：文档加载、路由切换以及你上报的错误。要把它们也归入录制，请在每个 span 开始时打上 `session.id` 。录制器通过 `onSessionChange` 告诉你 ID：如果会话已存在，它会立即触发，之后每当 ID 变化时再次触发：访问者空闲 30 分钟后回来时、达到 4 小时上限时、 `identify()` 指定了另一个用户时，或者同一访问者的另一个标签页先更改了它时。
 
@@ -430,7 +430,7 @@ metrics.setGlobalMeterProvider(
 :::
 
 :::details OneUptime 拒绝了请求
-- `422` 加上 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（协议、主机和端口）不在密钥的 **Allowed Origins** 中。
+- `422` 加上 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（协议、主机和端口）不在密钥的 **允许的来源** 中。
 - `422` 加上 `This telemetry ingestion key has been disabled.` 表示有人关闭了该密钥。请重新打开它，或使用另一个密钥。
 - `401` 表示密钥未知、已撤销或已过期。运行 [设置步骤](#设置步骤) 中的密钥检查，然后创建一个有效的 Browser 密钥。
 - `404` 表示 URL 有误。追踪导出器需要完整路径 `/otlp/v1/traces` 。

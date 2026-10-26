@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynder
 
 - **Dit abonnement.** På OneUptime Cloud kræver skabeloner abonnementet **Growth** eller højere.
-- **Din rolle.** At oprette en skabelon kræver **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** eller **Scheduled Maintenance Member** eller en brugerdefineret rolle, der må oprette skabeloner for planlagt vedligeholdelse.
+- **Din rolle.** At oprette en skabelon kræver **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vedligeholdelsesadministrator** eller **Vedligeholdelsesmedlem** eller en brugerdefineret rolle, der må oprette skabeloner for planlagt vedligeholdelse.
 
 ## Opret en skabelon
 

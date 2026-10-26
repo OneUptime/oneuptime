@@ -42,18 +42,18 @@ A tela é dividida em duas:
 | Parte | O que contém |
 | ---- | ------------- |
 | **Navegador de grupos** (à esquerda) | Todos os grupos da página, em árvore, com uma caixa **Search groups...** acima e uma contagem abaixo, como `3 groups · 12 resources`. Uma lista longa termina com um botão **Show N more of M**. |
-| **Top of page** | A primeira linha do navegador: os recursos sem grupo, que os visitantes veem primeiro, acima de todos os grupos. Em uma página sem grupos, o painel da direita se chama **All resources**. |
+| **Topo da página** | A primeira linha do navegador: os recursos sem grupo, que os visitantes veem primeiro, acima de todos os grupos. Em uma página sem grupos, o painel da direita se chama **Todos os recursos**. |
 | **Painel de recursos** (à direita) | Os recursos do grupo selecionado. Seu cabeçalho contém **Edit Group**, o botão principal **Adicionar monitor** e um menu **Mais ações**. |
 | Cabeçalho do cartão | **New Group** e um menu de três pontos com **Import groups from CSV** e **Atualizar**. |
 
-**Os estados vazios dizem o que fazer.** Um grupo vazio mostra **No monitors here yet** com **Adicionar monitor**, **Add Multiple** e, só enquanto a página não tem nenhum grupo, **Create a Group**. Uma pesquisa sem resultados mostra **No resources match your search**.
+**Os estados vazios dizem o que fazer.** Um grupo vazio mostra **No monitors here yet** com **Adicionar monitor**, **Add Multiple** e, só enquanto a página não tem nenhum grupo, **Create a Group**. Uma pesquisa sem resultados mostra **Nenhum recurso corresponde à sua pesquisa**.
 
 ## Adicionar um monitor
 
 :::steps
 ### Escolher onde a linha fica
 
-No navegador de grupos, selecione o grupo a que o recurso pertence, ou **Top of page** para uma linha sem grupo.
+No navegador de grupos, selecione o grupo a que o recurso pertence, ou **Topo da página** para uma linha sem grupo.
 
 ### Clicar em Adicionar monitor
 
@@ -196,7 +196,7 @@ A ordem é você quem define, não o alfabeto:
 | ---- | ----------------- |
 | Recursos dentro de um grupo | Arraste uma linha. O painel avisa: **Drag a row to change the order visitors see**. |
 | Grupos entre si | **Mover para cima** / **Mover para baixo** no menu da linha do navegador, ou **Move group up** / **Move group down** em **Mais ações**. |
-| Recursos sem grupo | Ficam em **Top of page** e sempre aparecem acima de todos os grupos, então coloque ali a coisa que todo mundo verifica primeiro. |
+| Recursos sem grupo | Ficam em **Topo da página** e sempre aparecem acima de todos os grupos, então coloque ali a coisa que todo mundo verifica primeiro. |
 
 **Dois casos em que arrastar fica desativado.** Pesquisar na caixa **Search in {group}...** desativa a reordenação (o painel diz `N of M shown · drag to reorder is off while filtering`), então limpe a pesquisa primeiro. E os grupos em grade nunca se reordenam arrastando, porque o lugar de um monitor vem da sua linha e da sua coluna.
 
@@ -204,12 +204,12 @@ Coloque no topo o serviço sobre o qual mais perguntam. Os visitantes que chegam
 
 ## Adicionar monitores automaticamente com regras de monitores
 
-Uma regra de monitores adiciona monitores à página por você: descreva os monitores uma vez, e cada monitor que corresponde vai para o grupo que você escolheu. Você as encontra em **Regras → Monitor Rules**, logo abaixo de Recursos no menu lateral da página.
+Uma regra de monitores adiciona monitores à página por você: descreva os monitores uma vez, e cada monitor que corresponde vai para o grupo que você escolheu. Você as encontra em **Regras → Regras de monitor**, logo abaixo de Recursos no menu lateral da página.
 
 :::steps
 ### Abrir Monitor Rules
 
-Abra a página de status, escolha **Monitor Rules** na seção **Regras** do menu lateral dela (clique no título da seção se ela estiver recolhida) e clique em **Criar regra de monitores**.
+Abra a página de status, escolha **Regras de monitor** na seção **Regras** do menu lateral dela (clique no título da seção se ela estiver recolhida) e clique em **Criar regra de monitores**.
 
 ### Dizer a quais monitores ela corresponde
 
@@ -221,7 +221,7 @@ Em **Grupo**, escolha **Adicionar monitores a**, ou deixe vazio para adicionar o
 
 ### Salvar a regra
 
-A regra é executada na hora contra cada monitor que já existe, e a lista mostra o grupo a que ela adiciona monitores em **Adds Monitors To**. Uma regra nova vem ativada: a chave **Habilitado** dela fica no formulário de edição.
+A regra é executada na hora contra cada monitor que já existe, e a lista mostra o grupo a que ela adiciona monitores em **Adiciona monitores a**. Uma regra nova vem ativada: a chave **Habilitado** dela fica no formulário de edição.
 :::
 
 Depois disso, uma regra é executada de novo para um monitor sempre que um é criado ou quando seus rótulos, seu nome ou sua descrição mudam. Uma regra remove só os recursos que ela adicionou: desativá-la ou excluí-la tira esses recursos da página, e um monitor que você adicionou à mão nunca é tocado. Um monitor que já está na página nunca é adicionado duas vezes.

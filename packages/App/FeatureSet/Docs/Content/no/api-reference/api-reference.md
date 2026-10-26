@@ -31,7 +31,7 @@ Alle API-forespørsler autentiseres med en API-nøkkel. En nøkkel hører til et
 :::steps
 ### Opprett en API-nøkkel
 
-Åpne **Prosjektinnstillinger → Avansert → API-nøkler**, og klikk på **Opprett API-nøkkel**. Gi den et **Navn**, og velg under **Tilgang** hva den får gjøre: **Prosjektadministrator**, **Prosjektmedlem**, **Viser** eller **Velg tillatelser senere** for å legge til enkelttillatelser på nøkkelens side. Nøkkelen utløper om et år, med mindre du velger en annen dato under **Avansert**.
+Åpne **Prosjektinnstillinger → Avansert → API-nøkler**, og klikk på **Opprett API-nøkkel**. Gi den et **Navn**, og velg under **Tilgang** hva den får gjøre: **Prosjektadministrator**, **Prosjektmedlem**, **Leser** eller **Velg tillatelser senere** for å legge til enkelttillatelser på nøkkelens side. Nøkkelen utløper om et år, med mindre du velger en annen dato under **Avansert**.
 
 ### Kopier nøkkelen
 

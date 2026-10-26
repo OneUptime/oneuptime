@@ -60,7 +60,7 @@ flowchart TB
 ## 開始之前
 
 - **包含工作流程的方案。** 在 OneUptime Cloud 上，工作流程需要 **Growth** 方案或更高，每個方案每 30 天允許一定數量的執行——請參閱 [方案限制](/docs/workflows/configuration#方案限制)。沒有計費的自行託管安裝兩種限制都沒有。
-- **建構的權限。** 建立和變更工作流程需要 **Workflow Admin**、**Project Admin** 或 **Project Owner**，或具有相應權限的自訂角色。**Workflow Member** 可以開啟工作流程並手動執行，但不能變更它們。請參閱 [權限](/docs/workflows/configuration#權限)。
+- **建構的權限。** 建立和變更工作流程需要 **工作流程管理員**、**專案管理員** 或 **專案擁有者**，或具有相應權限的自訂角色。**工作流程成員** 可以開啟工作流程並手動執行，但不能變更它們。請參閱 [權限](/docs/workflows/configuration#權限)。
 
 ## 在 OneUptime 中哪裡找到工作流程
 
@@ -122,7 +122,7 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊，然後在 **新增觸發器** 面板中點選 **Popular** 底下的 **On Create Incident**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，然後在 **新增觸發器** 面板中點選 **熱門** 底下的 **On Create Incident**。
 
 觸發器會取代虛線區塊的位置。它上面的 ID `incident-on-create-1` 就是後續區塊參照它的方式。
 
@@ -134,7 +134,7 @@ flowchart TB
 
 ### 新增 API 區塊
 
-點選 **新增元件**，然後點選 **Popular** 底下的 **API Post (JSON)**。從觸發器的 **Success** 點向下拖曳到新區塊頂端的點。
+點選 **新增元件**，然後點選 **熱門** 底下的 **API Post (JSON)**。從觸發器的 **Success** 點向下拖曳到新區塊頂端的點。
 
 ### 填寫請求
 

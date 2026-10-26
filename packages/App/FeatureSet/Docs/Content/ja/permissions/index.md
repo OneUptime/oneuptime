@@ -78,7 +78,7 @@ flowchart TB
 
 `ProjectOwner` は最上位のアクセス権で、請求、プロジェクトの削除、そして管理者にできることすべてを含みます。`ProjectAdmin` は請求とプロジェクト削除を除くすべてをカバーします。
 
-プロジェクトの SMS、音声通話、WhatsApp、Telegram のオン・オフは、メッセージごとに費用がかかるため請求の扱いになります。これらのスイッチを **プロジェクト設定 > 通知 > 通知設定** で変更できるのは `ProjectOwner`、`BillingAdmin` ロール（**Billing Admin**）、`ManageProjectBilling` 権限（**Manage Billing**）だけで、`ProjectAdmin` は変更できません。
+プロジェクトの SMS、音声通話、WhatsApp、Telegram のオン・オフは、メッセージごとに費用がかかるため請求の扱いになります。これらのスイッチを **プロジェクト設定 > 通知 > 通知設定** で変更できるのは `ProjectOwner`、`BillingAdmin` ロール（**請求管理者**）、`ManageProjectBilling` 権限（**Manage Billing**）だけで、`ProjectAdmin` は変更できません。
 
 プロジェクトの前払い残高のチャージも請求の扱いになります。OneUptime Cloud では、SMS、音声通話、WhatsApp、Telegram は **プロジェクト設定 > 通知 > 通知設定** の残高から、AI は **プロジェクト設定 > AI > AI クレジット** の AI クレジットから支払われます。これらをチャージしたり **自動チャージ** を変更したりできるのは、プロジェクトのオーナーまたは **Manage Billing** を持つユーザーだけで、プロジェクト管理者はできません。残高不足を知らせるメッセージには誰が残高を追加できるかが書かれ、使える **残高をチャージ** ボタンやページへのリンクが表示されるのはその人たちだけです。
 

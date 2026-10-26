@@ -30,7 +30,7 @@ Les modifications s'enregistrent automatiquement. Une pastille dans la barre d'o
 
 Le bouton de la barre d'outils affiche **Ajouter un déclencheur** tant que le workflow n'a pas de déclencheur, puis **Ajouter un composant** dès qu'il en a un.
 
-Les deux panneaux s'ouvrent sur les blocs que la plupart des workflows utilisent, sous **Popular**, suivis des autres blocs intégrés. Sous **Ressources OneUptime**, cliquez sur une ressource comme **Incident** pour voir ce que vous pouvez en faire ; **Parcourir toutes les ressources** les liste toutes. Ou cherchez : tapez quelques mots, comme `create incident`, et la meilleure correspondance vient en premier. Appuyez sur `/` pour aller au champ de recherche, sur les flèches pour parcourir les résultats et sur **Entrée** pour ajouter le bloc en surbrillance. Un clic sur un bloc l'ajoute.
+Les deux panneaux s'ouvrent sur les blocs que la plupart des workflows utilisent, sous **Populaires**, suivis des autres blocs intégrés. Sous **Ressources OneUptime**, cliquez sur une ressource comme **Incident** pour voir ce que vous pouvez en faire ; **Parcourir toutes les ressources** les liste toutes. Ou cherchez : tapez quelques mots, comme `create incident`, et la meilleure correspondance vient en premier. Appuyez sur `/` pour aller au champ de recherche, sur les flèches pour parcourir les résultats et sur **Entrée** pour ajouter le bloc en surbrillance. Un clic sur un bloc l'ajoute.
 
 Un nouveau bloc se place sous le bloc le plus bas du canevas, et un nouveau déclencheur prend la place du bloc en pointillés, en haut. Le nouveau bloc est sélectionné et, s'il atterrit hors de la vue, le canevas défile juste assez pour l'afficher. Ses paramètres ne s'ouvrent pas d'eux-mêmes : cliquez sur le bloc quand vous êtes prêt à le configurer. Tant que ses paramètres obligatoires ne sont pas remplis, il affiche **Click to set up**.
 
@@ -130,7 +130,7 @@ Le plus rapide pour prendre le canevas en main est un workflow de deux blocs que
 
 :::steps
 1. Cliquez sur le bloc d'espace réservé en pointillés, puis sur **Manuel** dans le panneau **Ajouter un déclencheur**.
-2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Popular**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log, en dessous.
+2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Populaires**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log, en dessous.
 3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et tapez `Hello from ` dans sa **Value**. Cliquez sur **{ }**, puis sur **JSON** sous **Manuel**. Le paramètre affiche **Manual › JSON** et enregistre `{{local.components.manual-1.returnValues.value}}`. `manual-1` est l'**Identifiant** du déclencheur, affiché sur le bloc déclencheur. Cliquez sur **Enregistrer**.
 4. De retour dans le **Constructeur**, cliquez sur **Exécuter le flux de travail**, mettez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le workflow est toujours désactivé, et il n'a pas besoin d'être activé : une exécution que vous lancez vous-même est une **Exécution de test**.
 5. Un panneau **Exécution du flux de travail** s'ouvre de lui-même et suit l'exécution. Il indique **Exécution de test** en haut, et le journal affiche `Value:` suivi de `Hello from` et du JSON que vous avez tapé.

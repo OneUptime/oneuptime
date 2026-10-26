@@ -22,7 +22,7 @@ flowchart TB
 
 ## 开始之前
 
-- **你的角色。** 创建事件需要 **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Scheduled Maintenance Admin** 或 **Scheduled Maintenance Member** ，或拥有 **Create Scheduled Maintenance** 权限的自定义角色。
+- **你的角色。** 创建事件需要 **项目所有者** 、 **项目管理员** 、 **项目成员** 、 **计划维护管理员** 或 **计划维护成员** ，或拥有 **Create Scheduled Maintenance** 权限的自定义角色。
 - **你的状态页。** 要通知客户，你需要一个显示计划维护事件的状态页。请参阅 [状态页概览](/docs/status-pages/index)。
 
 ## 创建事件

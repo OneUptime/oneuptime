@@ -57,7 +57,7 @@ Klikk på **Flere monitortyper** under **Monitortype** og velg **Ceph** under **
 
 ### Velg klyngen
 
-Velg klyngen i **Ceph Cluster** under **Ceph Monitor Configuration**. Alle klynger som har sendt data, står i listen.
+Velg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger som har sendt data, står i listen.
 
 ### Velg hva som skal overvåkes
 
@@ -65,11 +65,11 @@ Velg én av de tre fanene:
 
 - **Quick Setup** — klikk på en [mal](#ferdige-varselmaler). Den setter metrikker, filtre, aggregering, tidsintervall og terskler, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
 - **Custom Metric** — velg én metrikk i **Ceph Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **OSD** og **Pool ID** snevrer den inn til én daemon eller pool.
-- **Avansert** — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Group by** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
+- **Avansert** — bygg spørringer og formler selv under **Velg målinger**, for eksempel et forhold for brukt kapasitet fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Bruk **Grupper etter** `ceph_daemon` eller `pool_id` for å vurdere hver daemon eller pool for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Threshold**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at en metrikk faller til null, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -77,19 +77,19 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 :::
 
 > [!TIP]
-> For å sette opp flere maler på én gang åpner du klyngen fra **Produkter → Infrastruktur → Ceph** og går til **Recommendations**. Velg malene du vil ha og hvem som skal varsles, så oppretter OneUptime én monitor per mal.
+> For å sette opp flere maler på én gang åpner du klyngen fra **Produkter → Infrastruktur → Ceph** og går til **Anbefalinger**. Velg malene du vil ha og hvem som skal varsles, så oppretter OneUptime én monitor per mal.
 
 ## Monitorinnstillinger
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **Ceph Cluster** | Alle | Påkrevd. Begrenser hver spørring til `resource.ceph.cluster.name`. |
+| **Ceph-klynge** | Alle | Påkrevd. Begrenser hver spørring til `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `ceph_daemon`, for eksempel `osd.3`. |
 | **Pool ID** | Custom Metric, Avansert | Valgfritt. Eksakt treff på etiketten `pool_id`, for eksempel `2`. |
 | **Ceph Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter med metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Group by**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
 Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_pool_metadata`. Filtrer og grupper poolserier etter `pool_id`, og slå opp navnet i `ceph_pool_metadata` når du trenger det.
 
@@ -220,10 +220,10 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Metrikk** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må stemme, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
-| **Følsomhet** | Bare for anomalibetingelser. **Low** (4σ), **Medium** (3σ, standard) eller **High** (2σ). |
+| **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Følsomhet** | Bare for anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |
-| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
+| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
 Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk.
 
@@ -241,7 +241,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 Disse standardene passer for få Ceph-metrikker: `ceph_health_status` er 0 når klyngen er frisk. Velg en mal, eller sett dine egne kriterier.
 
 > [!IMPORTANT]
-> Stillhet treffer ingen av kriteriene: En klynge som slutter å sende data, lar monitoren stå som den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Trigger** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> Stillhet treffer ingen av kriteriene: En klynge som slutter å sende data, lar monitoren stå som den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 

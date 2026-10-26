@@ -65,7 +65,7 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 | **Hjälp → Dokumentation** | En kort guide till inventariet, med de typer av objekt det känner igen. |
 | **Avancerad → Arkiverad** | De objekt du har arkiverat. Återställ dem härifrån. |
 
-Öppna ett objekt, så har dess egen sidomeny objektets **Översikt** (typ, källa och status, och varje attribut som har observerats på det), dess **Connections** och dess **Anpassade fält**; dess **Loggar**, **Spår**, **Mätvärden**, **Prestandaprofiler** och **Undantag**; och dess **Incidenter**, **Varningar** och **Schemalagt underhåll**. Under **Avancerad** finns dess **Inställningar**, dess **Granskningsloggar** och **Delete Item**. Telemetrisidorna visar det som objektet självt har skickat. Incidenterna, varningarna och underhållshändelserna är de som hör till den tjänst, värd eller det Kubernetes-kluster som objektet står för; på alla andra objekt talar de sidorna om vilken resurs du ska titta på i stället.
+Öppna ett objekt, så har dess egen sidomeny objektets **Översikt** (typ, källa och status, och varje attribut som har observerats på det), dess **Anslutningar** och dess **Anpassade fält**; dess **Loggar**, **Spår**, **Mätvärden**, **Prestandaprofiler** och **Undantag**; och dess **Incidenter**, **Larm** och **Schemalagt underhåll**. Under **Avancerad** finns dess **Inställningar**, dess **Granskningsloggar** och **Delete Item**. Telemetrisidorna visar det som objektet självt har skickat. Incidenterna, larmen och underhållshändelserna är de som hör till den tjänst, värd eller det Kubernetes-kluster som objektet står för; på alla andra objekt talar de sidorna om vilken resurs du ska titta på i stället.
 
 ### Tillgångsdetaljer
 
@@ -80,7 +80,7 @@ Samma uppgifter är kolumner i listan **All Items**, dolda tills du slår på de
 
 ### Anslutningar
 
-Ett objekts sida **Connections** listar dess grannar i båda riktningarna, grupperade i **Anrop**, **Called by**, **Runs on** och **Related**. Varje grupp visar sin totalsumma (en grupp med fler än 100 000 anslutningar visar ”100 000+”), och **Visa mer** bläddrar igenom resten, så att ett upptaget kluster, en upptagen namnrymd eller nod visar varje anslutning i stället för bara de första. Sidan är inte begränsad till ett tidsintervall: den tar med relationer som har lagts till manuellt via API:t och grannar som har arkiverats. En granne som inte längre finns i inventariet visas med sin nyckel.
+Ett objekts sida **Anslutningar** listar dess grannar i båda riktningarna, grupperade i **Anrop**, **Anropad av**, **Körs på** och **Relaterat**. Varje grupp visar sin totalsumma (en grupp med fler än 100 000 anslutningar visar ”100 000+”), och **Visa mer** bläddrar igenom resten, så att ett upptaget kluster, en upptagen namnrymd eller nod visar varje anslutning i stället för bara de första. Sidan är inte begränsad till ett tidsintervall: den tar med relationer som har lagts till manuellt via API:t och grannar som har arkiverats. En granne som inte längre finns i inventariet visas med sin nyckel.
 
 ## Lägg till något manuellt
 
@@ -102,8 +102,8 @@ Klicka på **Lägg till Item**. Välj dess **Typ**, ge det ett **Namn** och even
 
 Tre typer kan du lägga till manuellt:
 
-- `external.service` (**External Service**): ett API från tredje part eller ett beroende av en programvarutjänst.
-- `external.database` (**External Database**): en databas som inte är en server OneUptime kan modellera. En databasserver, egendriven eller hanterad, från PostgreSQL till Snowflake, hör i stället hemma under **Databases → Skapa Databas** ([Databaser](/docs/telemetry/databases)): den posten kopplas till de traces, containrar och motormätvärden som nämner samma adress, vilket ett inventarieobjekt aldrig gör, och lägger du till samma server på båda sätten blir det två okopplade poster.
+- `external.service` (**Extern tjänst**): ett API från tredje part eller ett beroende av en programvarutjänst.
+- `external.database` (**Extern databas**): en databas som inte är en server OneUptime kan modellera. En databasserver, egendriven eller hanterad, från PostgreSQL till Snowflake, hör i stället hemma under **Databases → Skapa Databas** ([Databaser](/docs/telemetry/databases)): den posten kopplas till de traces, containrar och motormätvärden som nämner samma adress, vilket ett inventarieobjekt aldrig gör, och lägger du till samma server på båda sätten blir det två okopplade poster.
 - `appliance` (**Appliance**): hårdvara eller programvara utan agent.
 
 Begränsningen förhindrar dubbletter. Ett manuellt skapat objekt av en typ som OneUptime kan observera, som en värd, skulle få nyckel efter namnet du skrev, medan det upptäckta objektet för samma maskin får nyckel efter de attribut den rapporterar. De två skulle aldrig gå ihop, så samma värd skulle stå två gånger i din lista för alltid.
@@ -125,7 +125,7 @@ För att arkivera objekt markerar du dem i **All Items** och arkiverar dem på e
 
 ## Relationer och topologi
 
-OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topology Map** ritar dem, och ett objekts sida **Connections** listar dess egna. Se [Topologi](/docs/telemetry/topology).
+OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topology Map** ritar dem, och ett objekts sida **Anslutningar** listar dess egna. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | Till exempel |
 | --- | --- |

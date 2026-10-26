@@ -292,7 +292,7 @@ Enregistrer l'URL concrète au lieu du modèle de route crée une série tempore
 
 ## Alerter sur un vital
 
-La page **Recommendations** de l'application propose un moniteur prêt à l'emploi pour chaque vital. Chacun lit la moyenne sur cinq minutes de sa métrique et se déclenche quand elle atteint le seuil « mauvais » de Google :
+La page **Recommandations** de l'application propose un moniteur prêt à l'emploi pour chaque vital. Chacun lit la moyenne sur cinq minutes de sa métrique et se déclenche quand elle atteint le seuil « mauvais » de Google :
 
 | Recommandation | Métrique | Se déclenche à | Gravité |
 | --- | --- | --- | --- |

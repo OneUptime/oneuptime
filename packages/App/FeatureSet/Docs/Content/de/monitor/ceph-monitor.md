@@ -221,7 +221,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Fenster) oder **Any Value** (einer genügt). |
 | **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
 | **Schwellenwert** | Der Vergleichswert. Daneben steht eine Einheitenauswahl, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht sichtbar. |
-| **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Low** (4σ), **Medium** (3σ, Standard) oder **Hoch** (2σ). |
+| **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (Standard), 28, 60 oder 90 Tage Verlauf. |
 | **Bei keinen Daten** | Unter **Weitere Felder**. Was passiert, wenn das Fenster keine Messwerte enthält: **Ignore** (Standard), **Treat As Zero** oder **Auslöser**. |
 

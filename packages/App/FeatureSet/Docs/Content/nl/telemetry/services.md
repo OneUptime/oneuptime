@@ -25,7 +25,7 @@ flowchart TB
 
 - **De naam is de identiteit van de service.** Hoofdletters en kleine letters tellen niet mee bij de vergelijking, dus `Checkout-API` en `checkout-api` zijn één service. Een nieuwe `service.name` begint een nieuwe service.
 - **Containers geven zichzelf een naam.** Telemetrie van de Docker- en Podman-agents geeft een service de naam van zijn container als er geen `service.name` is.
-- **Een ingestiesleutel kan de service vastleggen.** OpenTelemetry-gegevens die worden verzonden met een sleutel met een **Pinned Service Name** komen onder die naam terecht, wat hun `service.name` ook zegt. Zie [Ingestiesleutels](/docs/telemetry/ingestion-keys#een-browsersleutel-afschermen).
+- **Een ingestiesleutel kan de service vastleggen.** OpenTelemetry-gegevens die worden verzonden met een sleutel met een **Vastgezette servicenaam** komen onder die naam terecht, wat hun `service.name` ook zegt. Zie [Ingestiesleutels](/docs/telemetry/ingestion-keys#een-browsersleutel-afschermen).
 - **Browsers en telefoons zijn geen services.** Telemetrie uit een browser of een mobiele app hoort in plaats daarvan bij een [RUM-applicatie](/docs/rum/applications).
 - **Labels kunnen met de telemetrie meekomen.** Een resource-attribuut met de naam `oneuptime.label.<name>` geeft de service het label `<name>:<value>`, zoals `oneuptime.label.team=payments` voor `team:payments`.
 
@@ -61,7 +61,7 @@ Het zijmenu van een service heeft vijf secties:
 
 | Sectie | Pagina's |
 | --- | --- |
-| **Basis** | **Overzicht**: verzoeken, foutpercentage en p95-latentie uit de spans, grafieken en de details. **Recommendations**: kant-en-klare monitors voor de service, gekozen op basis van de taal. **Eigenaren**: de mensen en teams die verantwoordelijk zijn. **Feed**: alles wat er met de service gebeurd is, van hoe hij is aangemaakt tot elke wijziging sindsdien. |
+| **Basis** | **Overzicht**: verzoeken, foutpercentage en p95-latentie uit de spans, grafieken en de details. **Aanbevelingen**: kant-en-klare monitors voor de service, gekozen op basis van de taal. **Eigenaren**: de mensen en teams die verantwoordelijk zijn. **Feed**: alles wat er met de service gebeurd is, van hoe hij is aangemaakt tot elke wijziging sindsdien. |
 | **Telemetrie** | De **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen**, **Uitzonderingen** en **Source Maps**, al gefilterd op deze service. |
 | **Activiteit** | De **Incidenten**, **Waarschuwingen** en gebeurtenissen van **Geplande onderhoud** die de service raken. |
 | **Ontwikkelaars** | **Terraform**, **API** en **AI-assistenten**: de service vanuit code beheerd. Deze sectie is eerst ingeklapt. |

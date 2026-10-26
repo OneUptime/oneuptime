@@ -56,7 +56,7 @@ Tapez une requête et appuyez sur Entrée, par exemple `service:checkout status:
 
 ### Affiner avec des filtres
 
-Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce. La barre latérale filtre par **Service**, par l'hôte, le cluster ou l'autre ressource qui a envoyé le span, par **Statut**, **Catégorie de span**, **Possède une exception**, **Type de span**, **Nom du span**, **Service Instance** et **Nom de l'hôte**.
+Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce. La barre latérale filtre par **Service**, par l'hôte, le cluster ou l'autre ressource qui a envoyé le span, par **Statut**, **Catégorie de span**, **Possède une exception**, **Type de span**, **Nom du span**, **Instance de service** et **Nom de l'hôte**.
 
 ### Ouvrir un span
 
@@ -102,7 +102,7 @@ Pour aller plus loin, passez la liste de **Spans** à **Analytique**. Choisissez
 ## Suivre, enregistrer et partager
 
 - Cliquez sur **En pause** au-dessus de la liste pour activer les mises à jour en direct. Le bouton affiche alors **En direct**, et la liste cherche de nouveaux spans toutes les 10 secondes. Cliquez de nouveau pour mettre en pause.
-- **Saved Views** garde une recherche, ses filtres et la plage de temps sous un nom, pour tout le projet. Les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
+- **Vues enregistrées** garde une recherche, ses filtres et la plage de temps sous un nom, pour tout le projet. Les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
 - Les boutons **Journaux** et **Métriques** ouvrent ces explorateurs sur la même fenêtre de temps, avec autant de votre filtrage qu'ils peuvent en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre.
 
 ## Analyses des traces

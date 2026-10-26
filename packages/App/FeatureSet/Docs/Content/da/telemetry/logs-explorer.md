@@ -100,11 +100,11 @@ Søg, filtrér, og vælg de kolonner, du vil beholde.
 
 ### Gem den
 
-Åbn **Saved Views**, og klik på **+ Save Current View**. Angiv et **Navn**, sæt hak i **Indstil som standard**, hvis visningen skal åbne, hver gang nogen åbner protokollerne, og klik på **Gem visning**.
+Åbn **Gemte visninger**, og klik på **+ Gem aktuel visning**. Angiv et **Navn**, sæt hak i **Indstil som standard**, hvis visningen skal åbne, hver gang nogen åbner protokollerne, og klik på **Gem visning**.
 
 ### Brug den
 
-Vælg visningen i **Saved Views** for at anvende den, og **Clear view** for at gå tilbage til den seneste time uden filtre. Peg på en visning i listen for at **Rediger** eller **Slet** den, eller, mens den er anvendt, for at **Opdater** den med dine ændringer.
+Vælg visningen i **Gemte visninger** for at anvende den, og **Ryd visning** for at gå tilbage til den seneste time uden filtre. Peg på en visning i listen for at **Rediger** eller **Slet** den, eller, mens den er anvendt, for at **Opdater** den med dine ændringer.
 :::
 
 Gemte visninger hører til projektet, så alle i det ser den samme liste. Et rullende interval som den seneste time bliver ved med at rulle: visningen viser timen, før du åbner den, ikke den time, hvor du gemte den. Så længe projektet ikke har en standardvisning, bliver den næste gemte visning standard, og et projekt har én standard ad gangen.
@@ -117,7 +117,7 @@ Klik på **Liste** for at gå tilbage til selve linjerne.
 
 ## Åbn tilhørende spor og metrikker
 
-Knapperne **Spor** og **Metrikker** ved siden af **Saved Views** åbner [Sporudforsker](/docs/telemetry/traces-explorer) eller [Måleudforsker](/docs/telemetry/metrics-explorer) for det samme tidsvindue, med så meget af din filtrering, som den udforsker kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
+Knapperne **Spor** og **Metrikker** ved siden af **Gemte visninger** åbner [Sporudforsker](/docs/telemetry/traces-explorer) eller [Måleudforsker](/docs/telemetry/metrics-explorer) for det samme tidsvindue, med så meget af din filtrering, som den udforsker kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
 
 ## Indsigter i protokoller
 

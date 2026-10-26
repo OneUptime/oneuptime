@@ -11,7 +11,7 @@ Per creare una dashboard, apri **Prodotti → Dashboard** e fai clic su **Crea d
 
 ## Prima di iniziare
 
-I proprietari e gli amministratori del progetto possono creare e modificare tutte le dashboard. Tutti gli altri hanno bisogno di un'autorizzazione del team: `CreateDashboard` per creare dashboard ed `EditDashboard` per modificarle. I membri e i visualizzatori del progetto possono leggere le dashboard senza nessuna delle due. Chi non può modificare una dashboard apre comunque il suo menu **⋯**, dove **Edit Dashboard** è bloccato e indica l'autorizzazione necessaria.
+I proprietari e gli amministratori del progetto possono creare e modificare tutte le dashboard. Tutti gli altri hanno bisogno di un'autorizzazione del team: `CreateDashboard` per creare dashboard ed `EditDashboard` per modificarle. I membri e i visualizzatori del progetto possono leggere le dashboard senza nessuna delle due. Chi non può modificare una dashboard apre comunque il suo menu **⋯**, dove **Modifica dashboard** è bloccato e indica l'autorizzazione necessaria.
 
 ## Creare la dashboard
 
@@ -45,7 +45,7 @@ I modelli, in base alla categoria sotto cui li elenca il selettore:
 
 ## Modificare e salvare
 
-Una dashboard si apre in modalità di lettura. Per cambiarla, apri il menu **⋯** nella sua barra degli strumenti e scegli **Edit Dashboard**. La barra degli strumenti mostra **Editing** accanto al nome, e sostituisce l'intervallo di tempo e gli altri controlli con **Aggiungi widget**, **Variabili**, **Annulla** e **Salva modifiche**, con sotto una riga per l'**Intervallo di tempo predefinito** e l'**Aggiornamento automatico predefinito** della dashboard.
+Una dashboard si apre in modalità di lettura. Per cambiarla, apri il menu **⋯** nella sua barra degli strumenti e scegli **Modifica dashboard**. La barra degli strumenti mostra **Modifica in corso** accanto al nome, e sostituisce l'intervallo di tempo e gli altri controlli con **Aggiungi widget**, **Variabili**, **Annulla** e **Salva modifiche**, con sotto una riga per l'**Intervallo di tempo predefinito** e l'**Aggiornamento automatico predefinito** della dashboard.
 
 ```mermaid title="Dalla lettura di una dashboard alla sua modifica, e ritorno"
 flowchart TB
@@ -122,7 +122,7 @@ La prima voce di ogni selettore indica il valore predefinito della dashboard, co
 
 Non devi ricorrere al selettore dell'intervallo di tempo per esaminare un picco. Trascina sul tratto interessante di un qualsiasi grafico a linee o ad aree e **tutta la dashboard** passa a quella finestra, esattamente come se l'avessi scelta nel selettore dell'intervallo di tempo: ogni widget che usa l'intervallo di tempo riesegue la query insieme, così leggi un unico momento su tutta la dashboard invece di un grafico a una scala diversa dai suoi vicini. Gli elenchi in tempo reale continuano a mostrare ciò che sta succedendo adesso, come sempre.
 
-**Fai doppio clic su un grafico qualsiasi** per annullare: la dashboard torna all'intervallo che aveva prima che iniziassi a ingrandire, per quante volte tu abbia approfondito. Un pulsante **Reset zoom** compare accanto al selettore dell'intervallo di tempo mentre uno zoom è attivo, e fare doppio clic su una dashboard non ingrandita non fa nulla.
+**Fai doppio clic su un grafico qualsiasi** per annullare: la dashboard torna all'intervallo che aveva prima che iniziassi a ingrandire, per quante volte tu abbia approfondito. Un pulsante **Reimposta lo zoom** compare accanto al selettore dell'intervallo di tempo mentre uno zoom è attivo, e fare doppio clic su una dashboard non ingrandita non fa nulla.
 
 Una finestra ingrandita è fissa, quindi smette di avanzare mentre l'aggiornamento automatico è attivo; è voluto, perché una finestra che ti scivolasse via a metà indagine sarebbe peggio. Reimposta lo zoom per farla avanzare di nuovo.
 
@@ -130,7 +130,7 @@ Lo zoom funziona solo in modalità di lettura; in modalità di modifica, trascin
 
 ## Schermo intero
 
-**⋯ → Full Screen** mostra i widget della dashboard su tutto lo schermo, per un display a parete o una riunione. Premi Esc per uscire.
+**⋯ → Schermo intero** mostra i widget della dashboard su tutto lo schermo, per un display a parete o una riunione. Premi Esc per uscire.
 
 ## Consigli per dashboard che invecchiano bene
 

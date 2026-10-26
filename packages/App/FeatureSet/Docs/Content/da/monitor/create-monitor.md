@@ -19,7 +19,7 @@ Gå til **Monitorer**, og klik på **Opret monitor**. Formularen åbner på sit 
 Det første spørgsmål er **Monitortype**: hvad vil du overvåge?
 
 - De seks typer, som de fleste opretter, kommer først: **Websted**, **API**, **Ping**, **Port**, **SSL Certificate** og **Incoming Request** til heartbeats fra cronjobs og webhooks.
-- **Flere monitortyper** viser alle andre typer under deres kategori, som **Infrastruktur** (Kubernetes, Docker, vært) og **Telemetri** (protokoller, metrikker, spor). **Manual**, en monitor, hvis status du selv sætter, og **Sondestatus**, der giver besked, når en probe mister forbindelsen, ligger under **Andet**.
+- **Flere monitortyper** viser alle andre typer under deres kategori, som **Infrastruktur** (Kubernetes, Docker, vært) og **Telemetri** (protokoller, metrikker, spor). **Manuel**, en monitor, hvis status du selv sætter, og **Sondestatus**, der giver besked, når en probe mister forbindelsen, ligger under **Andet**.
 - Eller skriv i søgefeltet. Det kender de ord, du allerede bruger, som `k8s`, `postgres`, `heartbeat` eller `tls`, og **Enter** vælger det første resultat.
 
 Den valgte type skrumper til én linje. Klik på **Skift** for at vælge en anden; tryk på **Escape**, mens du vælger, for at beholde den type, du havde.
@@ -28,7 +28,7 @@ Den valgte type skrumper til én linje. Klik på **Skift** for at vælge en ande
 
 Udfyld **Navn**. Det bruges i advarsler og i hændelsers titler. **Beskrivelse** og **Etiketter** er valgfrie og venter under **Flere felter**.
 
-En **Manual**-monitor behøver ikke mere, så **Opret monitor** ligger på dette trin. For alle andre typer klikker du på **Næste**.
+En **Manuel**-monitor behøver ikke mere, så **Opret monitor** ligger på dette trin. For alle andre typer klikker du på **Næste**.
 :::
 
 ## Kriterier

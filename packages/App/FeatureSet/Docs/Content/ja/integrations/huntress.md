@@ -40,7 +40,7 @@ sequenceDiagram
 
 ## 始める前に
 
-- OneUptime で、ワークフローを作成・編集できるロール (**Project Owner**、**Project Admin**、**Workflow Admin** など)。
+- OneUptime で、ワークフローを作成・編集できるロール (**プロジェクト所有者**、**プロジェクト管理者**、**ワークフロー管理者** など)。
 - Huntress の **Account Admin** ロール。Webhook を追加できるのはアカウント管理者だけです。
 - 呼び出すオンコールポリシー。
 - OneUptime Cloud では、ワークフローを含むプラン (Growth 以上)。Huntress が送るイベント 1 件が、ワークフローの実行 1 回です。

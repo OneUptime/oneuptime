@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### Værdier fra en grupperet monitor
 
-En metrikbaseret monitor med attributter i **Group by** åbner én hændelse pr. serie, og hvert attributs værdi er en variabel under attributtens navn. Gruppering efter `host.name` giver `{{host.name}}`, og gruppering efter `resource.k8s.pod.name` giver `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` indeholder dem alle, som et objekt.
+En metrikbaseret monitor med attributter i **Gruppér efter** åbner én hændelse pr. serie, og hvert attributs værdi er en variabel under attributtens navn. Gruppering efter `host.name` giver `{{host.name}}`, og gruppering efter `resource.k8s.pod.name` giver `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` indeholder dem alle, som et objekt.
 
 En grupperet [Log-monitor](/docs/monitor/logs-monitor) fungerer på samme måde: hver grupperingsattributs værdi er en variabel under dens nøgle.
 
@@ -457,7 +457,7 @@ Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-
 | --- | --- | --- |
 | `metricName` | Navnet på den metrik, monitorens første forespørgsel læser, som `container.cpu.time`. | `string` |
 
-Grupperede har de også værdien af hver attribut i **Group by** samt `seriesLabels`: se [Værdier fra en grupperet monitor](#værdier-fra-en-grupperet-monitor). IoT Device-monitorens skabeloner grupperer efter enhed, så en monitor, der er lavet ud fra en af dem, har også `{{device.id}}`.
+Grupperede har de også værdien af hver attribut i **Gruppér efter** samt `seriesLabels`: se [Værdier fra en grupperet monitor](#værdier-fra-en-grupperet-monitor). IoT Device-monitorens skabeloner grupperer efter enhed, så en monitor, der er lavet ud fra en af dem, har også `{{device.id}}`.
 
 ### Andre monitortyper
 

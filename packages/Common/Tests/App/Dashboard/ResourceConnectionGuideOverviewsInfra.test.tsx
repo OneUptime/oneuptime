@@ -630,7 +630,9 @@ describe("Kubernetes: a cluster created by hand, then View cluster (the reported
     await renderOverview(KUBERNETES);
 
     expect(heroBadge(KUBERNETES)).toBe("Disconnected");
-    expect(heroBlock(KUBERNETES)).toHaveTextContent("Last seen never");
+    // One whole sentence, never "Last seen never".
+    expect(heroBlock(KUBERNETES)).toHaveTextContent("Never seen");
+    expect(heroBlock(KUBERNETES)).not.toHaveTextContent("Last seen");
 
     const card: HTMLElement = expectGuideCard("never-connected");
 

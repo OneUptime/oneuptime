@@ -160,11 +160,11 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 | **No expiry reported**     | 공급자가 토큰의 만료 시점을 알려 주지 않아, 실행마다 새 토큰을 가져옵니다.                                                           |
 | **Refresh failed**         | 마지막 토큰 가져오기가 실패했습니다. 공급자의 이유가 발생 시각과 함께 전부 표시됩니다. 다음 갱신이 성공하면 사라집니다.              |
 
-상태 아래의 **지금 새로고침**은 새 토큰을 바로 가져옵니다. 워크플로를 실행하지 않고 새 설정을 확인할 때 쓰세요. **OAuth 2.0 Settings** 카드의 **Update Credentials**는 클라이언트 시크릿이나 refresh token을 바꾸고, 그것으로 토큰을 가져옵니다. 설정(토큰 URL, 클라이언트 ID, 범위 등)을 바꾸면 캐시된 토큰이 버려져, 다음 실행이 새 설정으로 토큰을 가져옵니다.
+상태 아래의 **지금 새로고침**은 새 토큰을 바로 가져옵니다. 워크플로를 실행하지 않고 새 설정을 확인할 때 쓰세요. **OAuth 2.0 Settings** 카드의 **자격 증명 업데이트**는 클라이언트 시크릿이나 refresh token을 바꾸고, 그것으로 토큰을 가져옵니다. 설정(토큰 URL, 클라이언트 ID, 범위 등)을 바꾸면 캐시된 토큰이 버려져, 다음 실행이 새 설정으로 토큰을 가져옵니다.
 
 ### 공급자가 거부할 때
 
-토큰이 필요했던 단계는 실행되기 전에 실패하고, 실행의 로그에는 변수 이름과 공급자의 응답이 인용됩니다. 예: `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` 같은 이유가 변수의 **접근 토큰** 카드에도 표시됩니다. Refresh Token 변수에서 `invalid_grant` 는 거의 항상 refresh token 자체가 만료되었거나 취소되었다는 뜻이며, 해결책은 **Update Credentials**입니다.
+토큰이 필요했던 단계는 실행되기 전에 실패하고, 실행의 로그에는 변수 이름과 공급자의 응답이 인용됩니다. 예: `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` 같은 이유가 변수의 **접근 토큰** 카드에도 표시됩니다. Refresh Token 변수에서 `invalid_grant` 는 거의 항상 refresh token 자체가 만료되었거나 취소되었다는 뜻이며, 해결책은 **자격 증명 업데이트**입니다.
 
 캐시된 토큰이 실제로는 아직 만료되지 않았는데(1분의 여유 범위 안에 있었을 뿐인데) 갱신이 실패하면, 단계는 캐시된 토큰으로 계속하고 로그에 그렇게 남습니다.
 

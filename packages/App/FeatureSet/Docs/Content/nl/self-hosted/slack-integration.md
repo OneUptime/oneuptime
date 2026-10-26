@@ -39,7 +39,7 @@ sequenceDiagram
 - Een Slack-werkruimte waarin u apps kunt aanmaken en installeren.
 - Een openbare HTTPS-hostnaam voor OneUptime die Slack kan bereiken. Zie [Netwerktoegang](#netwerktoegang-voor-zelf-gehoste-installaties).
 - Toegang tot de configuratie van de server: `config.env` bij Docker Compose, of uw Helm-values bij Kubernetes.
-- Om een project te verbinden, de rol **Project Owner**, **Project Admin** of **Project Member** in dat project.
+- Om een project te verbinden, de rol **Projecteigenaar**, **Projectbeheerder** of **Projectlid** in dat project.
 
 ## De Slack-app instellen
 
@@ -239,7 +239,7 @@ Als Slack u terugstuurt en de verbinding niet tot stand is gekomen, toont de Sla
 | De pagina zegt | Wat u doet |
 | --- | --- |
 | **"Deze verbindingslink is ongeldig, verlopen of al gebruikt. Begin opnieuw."** | De link werkt één keer, 15 minuten lang, in de browser die hem startte. Begin opnieuw vanaf de Slack-pagina en rond het in Slack binnen 15 minuten af, in dezelfde browser. |
-| **"Je hebt geen toestemming om dit project met Slack te verbinden."** | OneUptime in Slack installeren vereist **Project Owner**, **Project Admin** of **Project Member**. Dat wordt opnieuw gecontroleerd wanneer Slack u terugstuurt, dus een rol die u intussen is afgenomen, beëindigt de verbinding ook hier. |
+| **"Je hebt geen toestemming om dit project met Slack te verbinden."** | OneUptime in Slack installeren vereist **Projecteigenaar**, **Projectbeheerder** of **Projectlid**. Dat wordt opnieuw gecontroleerd wanneer Slack u terugstuurt, dus een rol die u intussen is afgenomen, beëindigt de verbinding ook hier. |
 | **"Je bent geen lid meer van dit project."** | Om uw eigen Slack-account te verbinden, moet u lid van het project zijn wanneer Slack u terugstuurt. |
 | **"Dit project is nog niet verbonden met een Slack-werkruimte."** | Installeer OneUptime eerst in Slack vanuit **Projectinstellingen > Werkruimte > Slack** en verbind daarna uw eigen account. |
 | **"Je bent aangemeld bij een andere Slack-werkruimte dan die waarmee dit project verbonden is."** | Verbind uw account terwijl u bent aangemeld bij de Slack-werkruimte waarin het project is geïnstalleerd. |

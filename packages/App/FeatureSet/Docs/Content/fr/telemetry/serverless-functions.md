@@ -197,7 +197,7 @@ Un attribut de ressource qui commence par `oneuptime.label.` devient une étique
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Pour étiqueter les fonctions ou attribuer des propriétaires d'après leurs noms, ouvrez **Produits → Infrastructure → Serverless** et utilisez **Règles d'étiquettes** et **Règles de propriétaire** dans le menu latéral. Les règles s'exécutent quand une fonction est créée, y compris celles découvertes automatiquement. Pour appliquer une règle aux fonctions que vous avez déjà, utilisez son bouton **Run Now** (voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now)).
+Pour étiqueter les fonctions ou attribuer des propriétaires d'après leurs noms, ouvrez **Produits → Infrastructure → Serverless** et utilisez **Règles d'étiquettes** et **Règles de propriétaire** dans le menu latéral. Les règles s'exécutent quand une fonction est créée, y compris celles découvertes automatiquement. Pour appliquer une règle aux fonctions que vous avez déjà, utilisez son bouton **Exécuter maintenant** (voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now)).
 
 ## Dépannage
 

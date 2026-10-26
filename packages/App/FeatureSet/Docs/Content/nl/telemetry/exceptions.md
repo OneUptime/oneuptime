@@ -77,7 +77,7 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 | **Context** | De attributen van het laatste voorval, de sessie-opname als die er is, en de stappen die ertoe leidden. |
 | **Logboeken** | De logboeken die rond het laatste voorval zijn geschreven. |
 | **AI Assistance** | AI-taken die de uitzondering verhelpen of testen. |
-| **Instellingen** | De uitzondering oplossen of archiveren. Staat onder **Manage**, dat eerst ingeklapt is. |
+| **Instellingen** | De uitzondering oplossen of archiveren. Staat onder **Beheren**, dat eerst ingeklapt is. |
 
 ## Oplossen, heropenen en archiveren
 
@@ -86,7 +86,7 @@ De knoppen bovenaan de pagina van de uitzondering, en haar pagina **Instellingen
 | Actie | Wanneer u die gebruikt | Wat er daarna gebeurt |
 | --- | --- | --- |
 | **Oplossen** | U hebt de oplossing uitgerold. | Ze verlaat de lijst **Niet opgelost**. Een nieuw voorval heropent haar. |
-| **Reopen** | De oplossing werkte niet. | Ze is weer niet opgelost. |
+| **Heropenen** | De oplossing werkte niet. | Ze is weer niet opgelost. |
 | **Archiveren** | Het is ruis die u niet wilt verhelpen. | Ze verlaat de lijst. Nieuwe voorvallen worden geteld maar sturen geen meldingen meer. |
 | **Uit archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
 
@@ -124,8 +124,8 @@ Elke 15 minuten doorzoekt OneUptime uw uitzonderingen op nieuwe, op uitzondering
 
 | Bevinding | Wanneer OneUptime die vastlegt | De pull request |
 | --- | --- | --- |
-| **New Exception** | Een uitzondering die in de afgelopen 24 uur voor het eerst is gezien en al 3 keer of vaker is opgetreden. | Verhelpt de uitzondering, of handelt haar beter af. |
-| **Exception Spike** | Een uitzondering die in het afgelopen uur 10 keer of vaker is opgetreden, met 5 keer of meer haar uurtempo van de 24 uur daarvoor. | Verhelpt de uitzondering, of handelt haar beter af. |
+| **Nieuwe uitzondering** | Een uitzondering die in de afgelopen 24 uur voor het eerst is gezien en al 3 keer of vaker is opgetreden. | Verhelpt de uitzondering, of handelt haar beter af. |
+| **Piek in uitzonderingen** | Een uitzondering die in het afgelopen uur 10 keer of vaker is opgetreden, met 5 keer of meer haar uurtempo van de 24 uur daarvoor. | Verhelpt de uitzondering, of handelt haar beter af. |
 | **Ontbrekende stack trace** | De uitzonderingen die een service de afgelopen dag vastlegde, hebben geen stacktrace en zijn samen 20 keer of vaker opgetreden. | Laat de service bij elke uitzondering een stacktrace vastleggen. |
 
 De pull request van een nieuwe of stijgende uitzondering is de eigen AI-taak van de uitzondering, die haar pagina **AI Assistance** start, en hij wacht tot OneUptime AI de bevinding heeft onderzocht. Vindt het de schuldige code (`code-fault`), dan verhelpt de pull request die, zoals **Fix this exception with AI** doet. Vindt het een verwachte fout (`user-error` of `expected-denial`), dan handelt de pull request de fout beter af, zoals **Foutafhandeling verbeteren** doet. Elk ander oordeel opent zelf geen pull request. Met **Verwachte uitzonderingen archiveren** aan wordt een verwachte weigering in plaats daarvan gearchiveerd en krijgt die geen pull request.

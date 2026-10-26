@@ -29,7 +29,7 @@ Fai clic su **Crea: Runbook**, inserisci un **Nome** e, se vuoi, una **Descrizio
 
 ### Aggiungi i passaggi
 
-In **Start your runbook**, scegli il tipo del primo passaggio; sotto l'ultimo passaggio, **Add another step** offre gli stessi sette tipi. Ogni passaggio si apre con il suo **Titolo** e ciò che serve al suo tipo; il resto, come la sua **Descrizione** e i timeout, è raccolto in **Altri campi**. Quando il runbook ha almeno un passaggio, **Aggiungi passaggio**, in alto nella scheda, aggiunge un passaggio Manual.
+In **Inizia il tuo runbook**, scegli il tipo del primo passaggio; sotto l'ultimo passaggio, **Aggiungi un altro passaggio** offre gli stessi sette tipi. Ogni passaggio si apre con il suo **Titolo** e ciò che serve al suo tipo; il resto, come la sua **Descrizione** e i timeout, è raccolto in **Altri campi**. Quando il runbook ha almeno un passaggio, **Aggiungi passaggio**, in alto nella scheda, aggiunge un passaggio Manual.
 
 ### Metti in ordine i passaggi
 
@@ -37,7 +37,7 @@ I passaggi vengono eseguiti **in ordine**. Per cambiare l'ordine, trascina un pa
 
 ### Salva i passaggi
 
-Fai clic su **Save Steps**. Finché non lo fai, l'editor mostra **Modifiche non salvate**. Una volta salvato, vedi **Salvato** e il runbook è pronto per essere [eseguito](/docs/runbooks/running).
+Fai clic su **Salva passaggi**. Finché non lo fai, l'editor mostra **Modifiche non salvate**. Una volta salvato, vedi **Salvato** e il runbook è pronto per essere [eseguito](/docs/runbooks/running).
 :::
 
 ## Anatomia di un passaggio
@@ -98,11 +98,11 @@ Una chiamata HTTP in uscita, effettuata dal Worker di OneUptime. Non serve alcun
 
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
-| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` o `HEAD`. | `GET` |
+| **Metodo** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` o `HEAD`. | `GET` |
 | **URL** | L'endpoint da chiamare. | Vuoto |
-| **Headers (JSON)** | In **Altri campi**. Un oggetto JSON, ad esempio `{ "Authorization": "Bearer ..." }`. Header che non sono JSON valido fanno fallire il passaggio. | Nessuno |
-| **Body** | Mostrato per `POST`, `PUT`, `PATCH` e `DELETE`. Inviato come JSON se è interpretabile come JSON, altrimenti come testo. | Nessuno |
-| **Request timeout** | Quanto attendere la risposta dell'endpoint prima di far fallire il passaggio. | 30 secondi |
+| **Intestazioni (JSON)** | In **Altri campi**. Un oggetto JSON, ad esempio `{ "Authorization": "Bearer ..." }`. Header che non sono JSON valido fanno fallire il passaggio. | Nessuno |
+| **Corpo** | Mostrato per `POST`, `PUT`, `PATCH` e `DELETE`. Inviato come JSON se è interpretabile come JSON, altrimenti come testo. | Nessuno |
+| **Timeout della richiesta** | Quanto attendere la risposta dell'endpoint prima di far fallire il passaggio. | 30 secondi |
 
 Il passaggio riesce con una risposta `2xx` o `3xx` e fallisce con qualsiasi altra, con `HTTP <status>` come errore. I reindirizzamenti non vengono seguiti. Stato, header e corpo della risposta vengono acquisiti, fino a 50 KB.
 
@@ -190,9 +190,9 @@ Chiedi all'IA di analizzare, riassumere o decidere qualcosa durante l'esecuzione
 | Campo | Cosa fa |
 | --- | --- |
 | **Prompt** | Cosa deve fare l'IA. Ad esempio: «Esamina l'output dei passaggi precedenti e di' se è sicuro procedere con il rimedio.» |
-| **LLM provider** | Facoltativo. **Predefinito del progetto** usa il provider predefinito del progetto. Fissa un provider quando il passaggio ha bisogno di un modello specifico, ad esempio uno self-hosted per dati che non devono lasciare la tua rete. Vedi [Provider LLM](/docs/ai/llm-provider). |
-| **Include previous step context** | Se attivo, l'IA vede tutto dei passaggi eseguiti prima di questo: titolo, tipo, stato, output e messaggi di errore. Riceve fino a 4.000 caratteri dell'output di ogni passaggio. |
-| **Include trigger context** | Se attivo, l'IA vede cosa ha avviato l'esecuzione: l'incidente, l'avviso o l'evento di manutenzione programmata collegato (descrizione, gravità, stato attuale, monitor coinvolti, causa principale, cronologia degli stati e note pubbliche), oppure chi ha avviato il runbook a mano. |
+| **Provider LLM** | Facoltativo. **Predefinito del progetto** usa il provider predefinito del progetto. Fissa un provider quando il passaggio ha bisogno di un modello specifico, ad esempio uno self-hosted per dati che non devono lasciare la tua rete. Vedi [Provider LLM](/docs/ai/llm-provider). |
+| **Includi il contesto del passaggio precedente** | Se attivo, l'IA vede tutto dei passaggi eseguiti prima di questo: titolo, tipo, stato, output e messaggi di errore. Riceve fino a 4.000 caratteri dell'output di ogni passaggio. |
+| **Includi il contesto del trigger** | Se attivo, l'IA vede cosa ha avviato l'esecuzione: l'incidente, l'avviso o l'evento di manutenzione programmata collegato (descrizione, gravità, stato attuale, monitor coinvolti, causa principale, cronologia degli stati e note pubbliche), oppure chi ha avviato il runbook a mano. |
 
 Per tenere una persona nel processo, attiva **Richiedi approvazione** sul passaggio che segue un passaggio IA: l'IA analizza, qualcuno legge la risposta, e il passaggio di rimedio viene eseguito solo dopo che quella persona lo ha approvato.
 
@@ -226,7 +226,7 @@ Tramite l'API e Terraform, l'interruttore è il campo `requireApprovalBeforeRunn
 
 ## Salvare e modificare
 
-Le modifiche ai passaggi hanno effetto quando fai clic su **Save Steps**. Ogni esecuzione lavora sull'istantanea presa al suo avvio, quindi le esecuzioni già in corso mantengono i passaggi con cui sono partite e una modifica non riscrive mai la storia delle esecuzioni passate.
+Le modifiche ai passaggi hanno effetto quando fai clic su **Salva passaggi**. Ogni esecuzione lavora sull'istantanea presa al suo avvio, quindi le esecuzioni già in corso mantengono i passaggi con cui sono partite e una modifica non riscrive mai la storia delle esecuzioni passate.
 
 ## Un esempio completo
 

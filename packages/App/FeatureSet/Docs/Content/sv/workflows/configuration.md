@@ -99,7 +99,7 @@ Webhook-utlösare ger dig en unik URL. Alla som känner till URL:en kan anropa d
 - För känsliga arbetsflöden ber du det anropande systemet att skicka en delad token som header (som `X-Webhook-Token`) och kontrollerar den med ett **If / Else**-block innan något viktigt händer. Spara den förväntade token som en hemlig variabel.
 - För mycket känsliga arbetsflöden är en utlösare för OneUptime-händelser och ett manuellt importsteg att föredra framför en offentlig webhook.
 
-Bara personer som kan redigera arbetsflödet — **Project Owner**, **Project Admin**, **Workflow Admin** eller **Edit Workflow** — kan se eller återställa dess webhook-URL. Alla som har URL:en kan starta arbetsflödet varifrån som helst, utan att logga in, så alla andra ser en notering om vem de kan fråga i stället. Det gäller även en **Workflow Member**, som kör arbetsflödet manuellt från **Byggare**.
+Bara personer som kan redigera arbetsflödet — **Projektägare**, **Projektadministratör**, **Arbetsflödesadministratör** eller **Edit Workflow** — kan se eller återställa dess webhook-URL. Alla som har URL:en kan starta arbetsflödet varifrån som helst, utan att logga in, så alla andra ser en notering om vem de kan fråga i stället. Det gäller även en **Arbetsflödesmedlem**, som kör arbetsflödet manuellt från **Byggare**.
 
 ## Säkerhet för inkommande e-post
 
@@ -110,7 +110,7 @@ Incoming Email-utlösaren ger arbetsflödet en egen adress, och alla som känner
 - Vem som helst kan sätta vilken avsändare som helst på ett e-postmeddelande, så **From** bevisar inte vem som skickade det. Innan ett arbetsflöde gör något viktigt kontrollerar du något som bara den riktiga avsändaren vet — en token i ämnet eller i en header — med ett **If / Else**-block. Spara den förväntade token som en hemlig variabel.
 - Nyckeln döljs i allt som körningen tar emot — **To**, **CC**, headers och innehållet — eftersom körningens logg är synlig för alla som kan läsa arbetsflödets körningar.
 
-Bara personer som kan redigera arbetsflödet — **Project Owner**, **Project Admin**, **Workflow Admin** eller **Edit Workflow** — kan se eller återställa dess adress. Alla andra ser en notering om vem de kan fråga.
+Bara personer som kan redigera arbetsflödet — **Projektägare**, **Projektadministratör**, **Arbetsflödesadministratör** eller **Edit Workflow** — kan se eller återställa dess adress. Alla andra ser en notering om vem de kan fråga.
 
 ## Utgående nätverksåtkomst
 
@@ -166,30 +166,30 @@ Fel i validering, konfiguration, åtkomst, gränser, krediter, samtidighet, leve
 
 Arbetsflöden följer projektets rollbaserade åtkomstkontroll. De tre arbetsflödesrollerna:
 
-- **Workflow Admin** — bygger arbetsflöden: skapar, ändrar, kör och tar bort dem, och hanterar variablerna de använder.
-- **Workflow Member** — använder dem: öppnar arbetsflöden och deras körningar, och kör ett arbetsflöde manuellt med **Kör arbetsflöde**. En medlem kan inte skapa, ändra eller ta bort ett arbetsflöde, eller köra ett av dess steg för sig.
-- **Workflow Viewer** — läser arbetsflöden och deras körningar.
+- **Arbetsflödesadministratör** — bygger arbetsflöden: skapar, ändrar, kör och tar bort dem, och hanterar variablerna de använder.
+- **Arbetsflödesmedlem** — använder dem: öppnar arbetsflöden och deras körningar, och kör ett arbetsflöde manuellt med **Kör arbetsflöde**. En medlem kan inte skapa, ändra eller ta bort ett arbetsflöde, eller köra ett av dess steg för sig.
+- **Arbetsflödestittare** — läser arbetsflöden och deras körningar.
 
-**Project Owner** och **Project Admin** kan göra allt som en Workflow Admin kan. **Project Member** kan skapa och ta bort arbetsflöden, men inte ändra eller köra dem.
+**Projektägare** och **Projektadministratör** kan göra allt som en Workflow Admin kan. **Projektmedlem** kan skapa och ta bort arbetsflöden, men inte ändra eller köra dem.
 
 De enskilda behörigheterna, för ett team eller en API-nyckel som behöver exakt en sak:
 
 - **Create / Read / Edit / Delete Workflow** — de grundläggande behörigheterna på själva arbetsflödet. Att ändra ett arbetsflöde, inklusive att slå på eller av och arkivera det, kräver **Edit Workflow**; **Delete Workflow** tar bara bort.
-- **Edit Workflow** — är också det som krävs för att köra ett steg för sig med **Run just this step**, och för att se eller återställa ett arbetsflödes webhook-URL och adress för inkommande e-post. Att köra ett helt arbetsflöde manuellt kräver **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
+- **Edit Workflow** — är också det som krävs för att köra ett steg för sig med **Run just this step**, och för att se eller återställa ett arbetsflödes webhook-URL och adress för inkommande e-post. Att köra ett helt arbetsflöde manuellt kräver **Edit Workflow**, **Arbetsflödesadministratör** eller **Arbetsflödesmedlem**.
 - **Read Workflow Log** — krävs för att se körningar.
 - **Create / Read / Edit / Delete Workflow Variables** — hantering av globala variabler och arbetsflödesvariabler.
 
 En manuell körning når bara arbetsflöden som du kan öppna: en roll som är begränsad till vissa etiketter, eller till arbetsflödena som ditt team äger, kör bara dem. Den som inte kan köra ett arbetsflöde ser **Kör arbetsflöde** nedtonad, med orsaken i verktygstipset.
 
-Ge dem som bygger automatisering **Workflow Admin**, och dem som bara startar den **Workflow Member**. Spara redigeringsåtkomst till variabler för dem som hanterar projektets hemligheter. Se [Användare, team och behörigheter](/docs/permissions/index) för hur roller tilldelas.
+Ge dem som bygger automatisering **Arbetsflödesadministratör**, och dem som bara startar den **Arbetsflödesmedlem**. Spara redigeringsåtkomst till variabler för dem som hanterar projektets hemligheter. Se [Användare, team och behörigheter](/docs/permissions/index) för hur roller tilldelas.
 
 ## Vad arbetsflödessteg får göra
 
-De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, Update och Delete, och utlösarna On Create, On Update, On Create or Update och On Delete — agerar som en **Project Admin** i arbetsflödets projekt. Vem som än byggde arbetsflödet möter ett steg samma kontroller som en Project Admin möter i instrumentpanelen och API:t:
+De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, Update och Delete, och utlösarna On Create, On Update, On Create or Update och On Delete — agerar som en **Projektadministratör** i arbetsflödets projekt. Vem som än byggde arbetsflödet möter ett steg samma kontroller som en Project Admin möter i instrumentpanelen och API:t:
 
 - **Bara arbetsflödets eget projekt.** Ett steg läser och skriver posterna i det projekt som arbetsflödet tillhör och inget annat, och en Update flyttar aldrig en post till ett annat projekt.
-- **Bara det en Project Admin får göra.** Ett steg kan inte göra det som bara **Project Owner** och behörigheter för fakturering eller borttagning av projektet tillåter, och det kan inte läsa vem som skapade en probe eller en AI-agent, vilket bara projektägare ser.
-- **Inte vem som har åtkomst.** Ett steg skapar, ändrar och tar inte bort team, teammedlemmar, teambehörigheter, anpassade roller eller API-nyckelbehörigheter, även om en Project Admin får det. Den som bygger ett arbetsflöde bestämmer vad dess steg gör, och det kan vara en **Project Member**, så ett steg som kunde det skulle ge den som byggde det åtkomst som den inte har fått, som **Project Admin**. Steget avvisas, och körningens logg säger att en person som hanterar projektets team och API-nycklar måste göra ändringen. Utlösare och Find-steg för dessa poster fungerar som förut.
+- **Bara det en Project Admin får göra.** Ett steg kan inte göra det som bara **Projektägare** och behörigheter för fakturering eller borttagning av projektet tillåter, och det kan inte läsa vem som skapade en probe eller en AI-agent, vilket bara projektägare ser.
+- **Inte vem som har åtkomst.** Ett steg skapar, ändrar och tar inte bort team, teammedlemmar, teambehörigheter, anpassade roller eller API-nyckelbehörigheter, även om en Project Admin får det. Den som bygger ett arbetsflöde bestämmer vad dess steg gör, och det kan vara en **Projektmedlem**, så ett steg som kunde det skulle ge den som byggde det åtkomst som den inte har fått, som **Projektadministratör**. Steget avvisas, och körningens logg säger att en person som hanterar projektets team och API-nycklar måste göra ändringen. Utlösare och Find-steg för dessa poster fungerar som förut.
 - **Inte läsning av inställningar som innehåller autentiseringsuppgifter.** En Project Admin får läsa SMTP-servrar, leverantörer för samtal och SMS, SNMP-autentiseringsuppgifter, videosamtalsanslutningar och API-nycklar, men det lånas aldrig ut till ett steg, oavsett vem som byggde eller sparade arbetsflödet. Ett steg kan inte ange någon av dessa inställningar, som SMTP-servern en statussida skickar e-post med eller API-nyckeln en behörighet ges till. Steget avvisas, och dess körlogg säger att en person som får läsa dem (läsbehörigheten för den sortens inställning, eller en Project Owner eller Project Admin) måste göra ändringen. Ett steg som behåller inställningen som en post redan anger, eller tömmer den, avvisas inte.
 - **Bara det din plan omfattar.** I OneUptime Cloud avvisas ett steg som skapar eller ändrar något som din plan inte omfattar, med den plan som krävs, precis som i instrumentpanelen. Självhostade installationer utan fakturering har inga plangränser.
 - **Inget som OneUptime håller för sig själv.** Det här avvisas för alla, arbetsflöden inräknade:

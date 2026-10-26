@@ -24,7 +24,7 @@ flowchart TB
 - Le sostituzioni vengono rispettate. Quando qualcuno ti sostituisce, l'evento passa a quella persona (viene aggiunto `(covering for <Name>)`) e resta lo stesso evento nella tua app di calendario, così si aggiorna sul posto invece di duplicarsi. Una sostituzione parziale divide il turno in eventi contigui.
 - Due giorni di storico e 90 giorni in avanti per impostazione predefinita. Puoi estenderli a 60 giorni indietro e 180 in avanti; un feed che supererebbe i 5.000 eventi viene accorciato e lo dice nella descrizione del suo calendario.
 - Gli eventi sono segnati come liberi (`TRANSP:TRANSPARENT`), quindi un feed sottoscritto non blocca mai la tua disponibilità, e nulla è segnato come privato, così un calendario di team condiviso mostra i titoli a chiunque possa vederlo.
-- Gli orari sono inviati in UTC e convertiti dalla tua app di calendario; la descrizione riporta l'ora locale nel fuso della pianificazione e nel tuo. Imposta il tuo fuso orario come **Fuso orario** nel tuo **Profilo** (la tua foto in alto a destra nella dashboard), e quello della pianificazione nella scheda **Schedule timezone** della sua pagina **Livelli**. Una pianificazione senza fuso orario viene calcolata nel fuso del server, come per gli avvisi, e l'evento lo indica.
+- Gli orari sono inviati in UTC e convertiti dalla tua app di calendario; la descrizione riporta l'ora locale nel fuso della pianificazione e nel tuo. Imposta il tuo fuso orario come **Fuso orario** nel tuo **Profilo** (la tua foto in alto a destra nella dashboard), e quello della pianificazione nella scheda **Fuso orario della pianificazione** della sua pagina **Livelli**. Una pianificazione senza fuso orario viene calcolata nel fuso del server, come per gli avvisi, e l'evento lo indica.
 
 Le assegnazioni fisse — un utente o un team nominato direttamente in una regola di una policy di escalation — non hanno inizio né fine e non compaiono in nessun feed. Su OneUptime Cloud i feed seguono lo stesso piano delle pianificazioni di reperibilità (Growth); un progetto sotto quel piano riceve un calendario vuoto invece di un errore.
 
@@ -327,7 +327,7 @@ Queste app convalidano TLS sul dispositivo. Importa la tua CA interna nell'archi
 :::
 
 :::details Gli orari sono sbagliati
-Tutti gli orari nel file sono in UTC; l'app di calendario li converte nel proprio fuso. Se i turni sembrano spostati di un intervallo fisso, controlla il fuso della pianificazione (**Schedule timezone** nella sua pagina **Livelli**) e il tuo (**Fuso orario** nel tuo **Profilo**). Una pianificazione senza fuso orario viene calcolata nel fuso del server, e l'evento lo indica.
+Tutti gli orari nel file sono in UTC; l'app di calendario li converte nel proprio fuso. Se i turni sembrano spostati di un intervallo fisso, controlla il fuso della pianificazione (**Fuso orario della pianificazione** nella sua pagina **Livelli**) e il tuo (**Fuso orario** nel tuo **Profilo**). Una pianificazione senza fuso orario viene calcolata nel fuso del server, e l'evento lo indica.
 :::
 
 :::details Il feed dice di essere stato accorciato

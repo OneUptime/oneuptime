@@ -64,7 +64,7 @@ L'email di invito nomina il progetto. Il suo pulsante è **Create Your Account**
 | Dove si trova | Che cosa vede | Dove fa clic |
 | --- | --- | --- |
 | Ancora in nessun progetto | L'invito, sulla pagina in cui arriva dopo l'accesso | **Accept & Join**, oppure **Decline** |
-| Già in un altro progetto | L'invito in sospeso sulla campanella in alto a destra, che apre **Inviti al progetto** | **Accetta**, oppure **Reject** |
+| Già in un altro progetto | L'invito in sospeso sulla campanella in alto a destra, che apre **Inviti al progetto** | **Accetta**, oppure **Rifiuta** |
 
 Accettando entra subito nel progetto, con le autorizzazioni del suo team e la configurazione delle notifiche con cui parte ogni membro: vedi [Con che cosa inizi](/docs/notifications/index#con-cosa-partite). Rifiutare elimina l'invito, quindi per entrare più tardi ne serve uno nuovo.
 

@@ -21,7 +21,7 @@ flowchart LR
     neighbours["Vizinhos que os seus<br/>dispositivos informam<br/>via LLDP"] --> network["Rede"]
 ```
 
-- **Só o que esteve ativo é desenhado.** Uma visão mostra os serviços e os recursos que enviaram dados no intervalo de tempo, e as conexões vistas nele. Ative **Show inactive** para desenhar também os que ficaram em silêncio.
+- **Só o que esteve ativo é desenhado.** Uma visão mostra os serviços e os recursos que enviaram dados no intervalo de tempo, e as conexões vistas nele. Ative **Mostrar inativos** para desenhar também os que ficaram em silêncio.
 - **As chamadas são contadas em uma janela recente.** O OneUptime procura chamadas entre serviços a cada 10 minutos, e os números de tráfego cobrem os últimos 15 minutos, não o intervalo de tempo inteiro.
 - **A visão de rede é ao vivo.** Ela mostra os seus dispositivos como estão conectados agora, então não tem intervalo de tempo.
 
@@ -32,7 +32,7 @@ flowchart LR
 
 ## Abrir a topologia
 
-Acesse **Produtos → Observabilidade → Topologia**. **Inventário → Topology Map** abre a mesma página. Ela abre no **Service Map**, para o período **Past 1 Day**.
+Acesse **Produtos → Observabilidade → Topologia**. **Inventário → Topology Map** abre a mesma página. Ela abre no **Service Map**, para o período **Último dia**.
 
 | Visão | A pergunta que ela responde |
 | --- | --- |
@@ -40,7 +40,7 @@ Acesse **Produtos → Observabilidade → Topologia**. **Inventário → Topolog
 | **Infraestrutura** | O que roda onde na sua infraestrutura? |
 | **Rede** | Como os seus dispositivos de rede estão conectados? |
 
-Ao lado do seletor de tempo, **Show inactive** acrescenta o que não enviou dados no intervalo, e o botão de atualizar carrega a visão de novo. **What is shown · About this data** explica o que a visão desenha e com que frequência ela é calculada. A barra de endereço guarda a visão em que você está, então um link que você compartilha abre a mesma visão.
+Ao lado do seletor de tempo, **Mostrar inativos** acrescenta o que não enviou dados no intervalo, e o botão de atualizar carrega a visão de novo. **O que é exibido · Sobre estes dados** explica o que a visão desenha e com que frequência ela é calculada. A barra de endereço guarda a visão em que você está, então um link que você compartilha abre a mesma visão.
 
 ## Ler o mapa de serviços
 
@@ -65,21 +65,21 @@ Clique em **Requer atenção** para manter só esses serviços e as conexões di
 
 ### Abrir um serviço
 
-Clique em um serviço para ver as requisições, os erros e a latência média dele nos últimos 15 minutos, os seus **Incidentes ativos** e **Alertas ativos**, e links para **Traces for this service** e para os seus **Inventory details**.
+Clique em um serviço para ver as requisições, os erros e a latência média dele nos últimos 15 minutos, os seus **Incidentes ativos** e **Alertas ativos**, e links para **Traços deste serviço** e para os seus **Detalhes do inventário**.
 
 ### Abrir uma conexão
 
 Clique em uma seta para ver a taxa de requisições, a taxa de erro e a latência média dela. Entre dois serviços que você instrumenta, ela também tem um **History** de chamadas, erros e latência.
 :::
 
-**Connection labels** escreve um número em cada seta: **Request rate**, **Taxa de erro** ou **Average latency**, ou nenhum até você passar o mouse por cima. **Tabela** lista os mesmos serviços com as suas **Requisições**, **Taxa de erro**, **Avg latency** e **Connections**, e **Show on map** desenha um deles.
+**Rótulos das conexões** escreve um número em cada seta: **Taxa de requisições**, **Taxa de erro** ou **Latência média**, ou nenhum até você passar o mouse por cima. **Tabela** lista os mesmos serviços com as suas **Requisições**, **Taxa de erro**, **Latência média** e **Conexões**, e **Mostrar no mapa** desenha um deles.
 
 ## Explorar a sua infraestrutura
 
 **Infraestrutura** mostra onde os seus serviços rodam: clusters, hosts, pods, contêineres e os outros recursos que enviam dados. As réplicas de uma mesma carga de trabalho são agrupadas em uma só entrada, e você pode abrir qualquer coisa para ver o que há dentro.
 
-- **Navegue do seu jeito.** Mostre-a como **Lista** ou como **Map**, de toda a sua infraestrutura até um único pod. As contagens acima dela dizem quantos recursos e cargas de trabalho ela desenha, quantos serviços consegue posicionar e quantos recursos silenciosos deixa de fora.
-- **Encontre um recurso.** Pesquise-o pelo nome e clique em **View details** para abrir a página dele.
+- **Navegue do seu jeito.** Mostre-a como **Lista** ou como **Mapa**, de toda a sua infraestrutura até um único pod. As contagens acima dela dizem quantos recursos e cargas de trabalho ela desenha, quantos serviços consegue posicionar e quantos recursos silenciosos deixa de fora.
+- **Encontre um recurso.** Pesquise-o pelo nome e clique em **Ver detalhes** para abrir a página dele.
 - **Passe de uma visão a outra.** Um serviço listado em um recurso abre no **Service Map**, e os recursos em que um serviço roda abrem em **Infraestrutura**.
 
 ## Abrir o mapa próprio de um recurso
@@ -103,11 +103,11 @@ O OneUptime procura chamadas entre serviços nos seus traços a cada 10 minutos.
 :::
 
 :::details Um serviço que eu removi continua no mapa
-Ele enviou dados dentro do intervalo de tempo. Escolha um intervalo mais curto, ou espere até que a última telemetria dele saia do intervalo. Com **Show inactive** ativado, o mapa também desenha o que parou de enviar dados.
+Ele enviou dados dentro do intervalo de tempo. Escolha um intervalo mais curto, ou espere até que a última telemetria dele saia do intervalo. Com **Mostrar inativos** ativado, o mapa também desenha o que parou de enviar dados.
 :::
 
 :::details O mapa diz que só uma parte dele é mostrada
-Um projeto muito grande atinge os limites do mapa, e um aviso diz quantos recursos ou conexões ele mostra. Pesquise um serviço, ou use **Show on map** na tabela, para desenhar uma parte legível dele.
+Um projeto muito grande atinge os limites do mapa, e um aviso diz quantos recursos ou conexões ele mostra. Pesquise um serviço, ou use **Mostrar no mapa** na tabela, para desenhar uma parte legível dele.
 :::
 
 ## Próximos passos

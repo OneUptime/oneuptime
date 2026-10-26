@@ -92,7 +92,7 @@ Ein neuer SSL-Zertifikat-Monitor beginnt mit drei Kriterien, sodass er Sie ohne 
 2. **Zertifikat läuft bald ab** — das Zertifikat ist gültig, läuft aber in 14 Tagen oder früher ab. Eine **Warnung** namens „_monitor name_ certificate expires soon“ wird erstellt.
 3. **Zertifikat ist gültig** — der Monitor wird als **Betriebsbereit** markiert.
 
-Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint nicht auf Ihren Statusseiten, sie alarmiert niemanden, solange Sie ihr keine Bereitschaftsrichtlinie hinzufügen, und sie ändert den Status des Monitors nicht. Sie verwendet den zweiten Warnungsschweregrad Ihres Projekts, bei einem neuen Projekt **Low**. Sobald das erneuerte Zertifikat erkannt wird, landet der Monitor wieder bei „Zertifikat ist gültig“, und die Warnung löst sich von selbst auf.
+Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint nicht auf Ihren Statusseiten, sie alarmiert niemanden, solange Sie ihr keine Bereitschaftsrichtlinie hinzufügen, und sie ändert den Status des Monitors nicht. Sie verwendet den zweiten Warnungsschweregrad Ihres Projekts, bei einem neuen Projekt **Niedrig**. Sobald das erneuerte Zertifikat erkannt wird, landet der Monitor wieder bei „Zertifikat ist gültig“, und die Warnung löst sich von selbst auf.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Deshalb steht „läuft bald ab“ über „ist gültig“: Ein ablaufendes Zertifikat ist noch gültig und würde daher auf beide zutreffen.
 

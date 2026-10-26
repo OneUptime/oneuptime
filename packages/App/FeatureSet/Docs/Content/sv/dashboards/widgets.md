@@ -17,15 +17,15 @@ Börja med frågan som rutan ska besvara:
 | Frågan | Widgeten |
 | --- | --- |
 | Hur har ett mätvärde förändrats över tid? | **Diagram** |
-| Hur många loggar, av vilken allvarlighetsgrad, över tid? | **Log Chart** |
-| Hur snabba är förfrågningarna, och hur många misslyckas, över tid? | **Trace Chart** |
+| Hur många loggar, av vilken allvarlighetsgrad, över tid? | **Loggdiagram** |
+| Hur snabba är förfrågningarna, och hur många misslyckas, över tid? | **Spårdiagram** |
 | Vad är ett visst tal just nu? | **Värde**, eller **Mätare** när det har ett känt intervall |
-| Vilka värdar, tjänster eller slutpunkter sticker ut? | **Tabell** eller **Trace Table** |
+| Vilka värdar, tjänster eller slutpunkter sticker ut? | **Tabell** eller **Spårtabell** |
 | Vad händer just nu? | **Loggström**, **Spårlista**, **Incidentlista** eller **Larmlista** |
 | Är alla våra webbplatser uppe? | **Övervakningslista** |
-| Håller vi den tillförlitlighet vi har lovat? | **SLO** eller **SLO List** |
+| Håller vi den tillförlitlighet vi har lovat? | **SLO** eller **SLO-lista** |
 | I vilket tillstånd är våra kluster och värdar? | En widget i gruppen Infrastruktur |
-| Var i världen finns vårt nätverk, och vad är nere? | **Network Map** |
+| Var i världen finns vårt nätverk, och vad är nere? | **Nätverkskarta** |
 | En rubrik, en anteckning, tiden på ett annat kontor? | **Text** eller **Klocka** |
 | Data som finns utanför OneUptime? | En widget i gruppen Externa datakällor |
 | Något som ingen widget täcker? | **HTML**, när du är säker på att ingen annan widget gör det |
@@ -127,13 +127,13 @@ Den som kan redigera instrumentpanelen bestämmer vad den här widgeten kör, oc
 
 | Widget | Vad den visar | Inställningar som spelar roll |
 | --- | --- | --- |
-| **Log Chart** | Loggvolym över tid, en serie per allvarlighetsgrad, som staplar, linjer eller ytor. | Allvarlighetsgrader, text som innehållet innehåller, attributfilter. |
+| **Loggdiagram** | Loggvolym över tid, en serie per allvarlighetsgrad, som staplar, linjer eller ytor. | Allvarlighetsgrader, text som innehållet innehåller, attributfilter. |
 | **Loggström** | De senaste loggraderna som matchar ett filter. | Allvarlighetsgrad, text som innehållet innehåller, attributfilter som `@service.name:checkout`, hur många rader. |
-| **Trace Chart** | Antal förfrågningar, antal fel eller svarstid (medel, minimum, maximum, P50 till P99) över tid. | Mätvärdet, vilka spann som räknas, och ett attribut att dela upp serierna efter. |
+| **Spårdiagram** | Antal förfrågningar, antal fel eller svarstid (medel, minimum, maximum, P50 till P99) över tid. | Mätvärdet, vilka spann som räknas, och ett attribut att dela upp serierna efter. |
 | **Spårlista** | De senaste spåren, med deras varaktighet och status. | Status, hur många rader. |
-| **Trace Table** | De främsta spannamnen, statusarna eller attributvärdena efter antal förfrågningar, med median-, medel-, minimi- och maximisvarstider. | Vad raderna grupperas efter, och vilka spann som räknas. |
-| **Security Events** | De senaste säkerhetshändelserna, med allvarlighetsgrad, händelseklass och värd. | Allvarlighetsgrader, händelseklasser, text som meddelandet innehåller. |
-| **Security Events Flow** | Ett flöde av säkerhetshändelser från deras källa, genom deras händelseklass, till deras allvarlighetsgrad. | Allvarlighetsgrader, hur många händelser. |
+| **Spårtabell** | De främsta spannamnen, statusarna eller attributvärdena efter antal förfrågningar, med median-, medel-, minimi- och maximisvarstider. | Vad raderna grupperas efter, och vilka spann som räknas. |
+| **Säkerhetshändelser** | De senaste säkerhetshändelserna, med allvarlighetsgrad, händelseklass och värd. | Allvarlighetsgrader, händelseklasser, text som meddelandet innehåller. |
+| **Flöde av säkerhetshändelser** | Ett flöde av säkerhetshändelser från deras källa, genom deras händelseklass, till deras allvarlighetsgrad. | Allvarlighetsgrader, hur många händelser. |
 
 Spårwidgetarna räknar bara rotspann, som spårutforskaren gör, om du inte tar med underordnade spann i deras inställningar. Ett vanligt mönster är ett svarstidsdiagram överst med en lista över långsamma spår under.
 
@@ -143,7 +143,7 @@ Spårwidgetarna räknar bara rotspann, som spårutforskaren gör, om du inte tar
 | --- | --- | --- |
 | **Incidentlista** | Incidenter med deras tillstånd och allvarlighetsgrad. | Olösta, bekräftade eller lösta; allvarlighetsgrad, tillstånd, övervakare och etiketter. |
 | **Larmlista** | Larm med deras tillstånd och allvarlighetsgrad. | Olösta, bekräftade eller lösta; allvarlighetsgrad, tillstånd, övervakare och etiketter. |
-| **Övervakningslista** | Övervakare med deras aktuella status. | I drift eller inte, status, övervakartyp och etiketter, eller en **Label Variable** som tittarna väljer i verktygsfältet. |
+| **Övervakningslista** | Övervakare med deras aktuella status. | I drift eller inte, status, övervakartyp och etiketter, eller en **Etikettvariabel** som tittarna väljer i verktygsfältet. |
 
 Som de flesta listwidgetar kan de här tre rita en bikaka av celler färgade efter status i stället för en tabell: välj det under **Visningsläge**. De visar aktuellt tillstånd, oavsett instrumentpanelens tidsintervall.
 
@@ -164,7 +164,7 @@ SLO-widgeten fungerar på [offentliga instrumentpaneler](/docs/dashboards/sharin
 
 ### SLO List
 
-Varje SLO med dess status, SLI, felbudget och burn rate, med minst återstående budget först. Filtrera den efter status eller etiketter, eller med en **Label Variable** som tittarna väljer i verktygsfältet. [SLO-metriker och -instrumentpaneler](/docs/slo/metrics) visar båda SLO-widgetarna i arbete.
+Varje SLO med dess status, SLI, felbudget och burn rate, med minst återstående budget först. Filtrera den efter status eller etiketter, eller med en **Etikettvariabel** som tittarna väljer i verktygsfältet. [SLO-metriker och -instrumentpaneler](/docs/slo/metrics) visar båda SLO-widgetarna i arbete.
 
 ## Infrastruktur
 
@@ -177,10 +177,10 @@ Var och en av de här widgetarna listar resurserna som en agent eller en collect
 | **Docker** | **Värdar**, **Behållare**, **Avbildningar**, **Nätverk**, **Volymer** | Docker-agenten |
 | **Docker Swarm** | **Noder**, **Tjänster** | Docker Swarm-agenten |
 | **Podman** | **Värdar**, **Behållare**, **Avbildningar**, **Nätverk**, **Volymer** | Podman-agenten |
-| **Proxmox** | **Noder**, **Guests** | Proxmox-agenten |
+| **Proxmox** | **Noder**, **Gäster** | Proxmox-agenten |
 | **VMware** | **Värdar**, **Virtuella maskiner** | VMware-agenten, eller ett vCenter som du ansluter |
-| **Ceph** | **OSDs**, som en vägg färgad efter tillstånd, och **Pools** | Ceph-agenten |
-| **Lagringsarrayer** | **Volymer**, och **Hardware** som en vägg färgad efter status | Storage Array-agenten |
+| **Ceph** | **OSD:er**, som en vägg färgad efter tillstånd, och **Pools** | Ceph-agenten |
+| **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Storage Array-agenten |
 
 Använd dem för en sida som blandar tillståndet i din infrastruktur med telemetrin från arbetslasterna som körs på den.
 
@@ -231,7 +231,7 @@ Via API:et och Terraform är ordningen widgetens `arguments.sort`: en kolumn och
 
 En [offentlig instrumentpanel](/docs/dashboards/sharing) ritar de flesta widgetar för sina besökare, och var och en visar bara det den har ställts in att visa. Några få kan inte visas utan en inloggad session:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** och **Security Events Flow** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
+- **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser** och **Flöde av säkerhetshändelser** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
 - Widgetarna i Externa datakällor utelämnas helt från en offentlig instrumentpanel, eftersom deras inställningar är själva frågan.
 
 ## När en widget inte kan visas

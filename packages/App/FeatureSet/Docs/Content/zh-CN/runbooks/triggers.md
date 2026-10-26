@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>运行各步骤"]
 ```
 
-触发器启动运行的方式与 **Run Now** 相同：这次运行执行 Runbook 当前的步骤，不关联任何事件、告警或计划维护事件。每次运行都会记录是什么启动了它。Runbook 的 **执行** 和 **运行手册 → 执行** 在 **触发者** 中显示这一点，并附上计划运行的预定时间或调用 Webhook 的地址，两个列表都可以按此筛选。
+触发器启动运行的方式与 **立即运行** 相同：这次运行执行 Runbook 当前的步骤，不关联任何事件、告警或计划维护事件。每次运行都会记录是什么启动了它。Runbook 的 **执行** 和 **运行手册 → 执行** 在 **触发者** 中显示这一点，并附上计划运行的预定时间或调用 Webhook 的地址，两个列表都可以按此筛选。
 
 ## 开始之前
 
@@ -44,7 +44,7 @@ flowchart TB
 **时区** 默认是你自己的时区。计划中的时间按此时区的时钟计算。
 
 ### 保存
-点击 **保存计划**。计划随即开启，卡片用一句话显示计划及其 **Next runs**。
+点击 **保存计划**。计划随即开启，卡片用一句话显示计划及其 **下次运行**。
 :::
 
 | **重复** | 你选择的内容 | 示例 |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### 检查运行
-响应会指出它启动的运行：`{"runbookExecutionId": "...", "status": "Scheduled"}`。这次运行出现在 Runbook 的 **执行** 中，**触发者** 显示 **Webhook**，其页面的 **Inputs** 中显示调用发送的内容。
+响应会指出它启动的运行：`{"runbookExecutionId": "...", "status": "Scheduled"}`。这次运行出现在 Runbook 的 **执行** 中，**触发者** 显示 **Webhook**，其页面的 **输入** 中显示调用发送的内容。
 :::
 
 **发送测试请求** 会像其他工具一样，用你编写的正文向该 URL 发送 `POST`，并链接到它启动的运行。这是一次真实的 Runbook 运行。
@@ -136,7 +136,7 @@ URL 中含有 Runbook 的密钥：任何拿到它的人都能启动该 Runbook�
 | --- | --- |
 | Bash 和 kubectl | 环境变量：每个顶层值一个 `ONEUPTIME_INPUT_<NAME>`，`ONEUPTIME_INPUTS` 以 JSON 形式包含整个对象，`ONEUPTIME_TRIGGER` 表示启动运行的方式，例如 `Webhook` 或 `Schedule`。 |
 | JavaScript | `args.inputs`（按发送时的样子提供的对象）和 `args.trigger`。 |
-| AI | 当 **Include trigger context** 打开时，在其提示中作为来自 OneUptime 外部的数据标出。 |
+| AI | 当 **包含触发器上下文** 打开时，在其提示中作为来自 OneUptime 外部的数据标出。 |
 | HTTP request 和 SSH | 完全不读取。它们的 URL、脚本和目标就是 Runbook 中写的内容，调用方发送的任何内容都无法改变它们。 |
 
 变量名是值的名称转为大写，其中字母和数字以外的每个字符都写成 `_`：`host-name` 会变成 `ONEUPTIME_INPUT_HOST_NAME`。文本按原样传递，数字以及 `true` 或 `false` 按书写方式传递，对象和列表以 JSON 传递。一个步骤最多获得 100 个这样的变量，超过 100 个字符的名称不会成为变量；所有值仍都在 `ONEUPTIME_INPUTS` 中。每个名称都以 `ONEUPTIME_` 开头，因此调用方无法设置 `PATH` 或 Runner 读取的任何其他变量。
@@ -163,7 +163,7 @@ return { host };
 
 ## 谁可以设置触发器
 
-计划或 Webhook 会在无人在场时启动运行，因此设置它们需要编辑和运行该 Runbook 的权限：Project Owner、Project Admin 或 Runbook Admin，或者 **Edit Runbook** 加上 Project Member、Runbook Member 或 **Create Runbook Execution**。与 **Run Now** 一样，角色所限的标签也会计入。查看或重置 Webhook URL 需要同样的权限。
+计划或 Webhook 会在无人在场时启动运行，因此设置它们需要编辑和运行该 Runbook 的权限：Project Owner、Project Admin 或 Runbook Admin，或者 **Edit Runbook** 加上 Project Member、Runbook Member 或 **Create Runbook Execution**。与 **立即运行** 一样，角色所限的标签也会计入。查看或重置 Webhook URL 需要同样的权限。
 
 关闭计划或 Webhook 不会启动任何内容，因此只需要编辑该 Runbook 的权限。能编辑但不能运行该 Runbook 的人会看到 **设置计划** 被锁定的 **触发器** 页面，并被告知谁可以查看 Webhook URL。
 

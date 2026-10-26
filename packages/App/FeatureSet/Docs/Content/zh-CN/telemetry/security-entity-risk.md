@@ -29,7 +29,7 @@ flowchart TB
 ## 开始之前
 
 - 有安全事件流入，并且有检测规则、威胁情报或已连接产品能在其中发现问题。请参阅[安全入门](/docs/telemetry/security-getting-started)。
-- 按指向某人的字段分组的检测规则：**Group By Field**，例如 `principalUser`、`principalHost` 或 `principalIp`，或关联规则分组所用的字段。不按任何字段分组的规则不会增加风险。
+- 按指向某人的字段分组的检测规则：**分组字段**，例如 `principalUser`、`principalHost` 或 `principalIp`，或关联规则分组所用的字段。不按任何字段分组的规则不会增加风险。
 - 要更改 **风险评分**：开关和阈值需要 Project Owner 或 Project Admin，实体列表需要可以创建检测规则的角色。Security Viewer 可以查看全部内容。请参阅[角色](/docs/permissions/reference#角色)。
 
 ## 分数如何计算

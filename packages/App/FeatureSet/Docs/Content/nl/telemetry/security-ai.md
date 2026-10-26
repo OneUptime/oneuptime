@@ -62,7 +62,7 @@ Ze kan ook de rest van OneUptime lezen zoals het onderzoek van een incident dat 
 | Waarschijnlijk vals positief | De detectie lijkt normale activiteit verkeerd te hebben gelezen | False Positive |
 | Onduidelijk | Er was niet genoeg bewijs om te beslissen, en een mens moet kijken | Niets |
 
-De lezing is die van OneUptime AI, nooit het oordeel van de zaak: **Close Case** begint bij het oordeel dat ze voorstelt, en een mens kiest. Onder de lezing toont de kaart:
+De lezing is die van OneUptime AI, nooit het oordeel van de zaak: **Zaak sluiten** begint bij het oordeel dat ze voorstelt, en een mens kiest. Onder de lezing toont de kaart:
 
 - **Voorgestelde prioriteit**, met **Prioriteit instellen** als de zaak een andere prioriteit heeft.
 - **Voorgesteld playbook**, met **Playbook uitvoeren**, dat het namens jou uitvoert, met elke goedkeuring die het nodig heeft. Zolang dat playbook al op de zaak loopt, staat de status van zijn uitvoering, zoals **Wacht op goedkeuring**, in plaats van **Playbook uitvoeren**: de uitvoering staat onder **Playbooks** van de zaak, en een tweede zou opnieuw om dezelfde goedkeuring vragen.
@@ -88,7 +88,7 @@ Nieuwe projecten beginnen met de optie aan; een eerder aangemaakt project houdt 
 
 ## Een playbook uitvoeren na een beoordeling
 
-Een playbook met als **Trigger** **Beoordeeld als waarschijnlijk kwaadaardig** draait één keer op een zaak, wanneer een beoordeling de zaak als Waarschijnlijk kwaadaardig leest. **For Cases At Least**, **Only For Detections From** en **Only For These Detection Rules** beperken het zoals bij elke trigger, en de inperkingsstappen wachten zoals altijd op goedkeuring. Het draait niet:
+Een playbook met als **Trigger** **Beoordeeld als waarschijnlijk kwaadaardig** draait één keer op een zaak, wanneer een beoordeling de zaak als Waarschijnlijk kwaadaardig leest. **Voor zaken van minstens**, **Alleen voor detecties uit** en **Alleen voor deze detectieregels** beperken het zoals bij elke trigger, en de inperkingsstappen wachten zoals altijd op goedkeuring. Het draait niet:
 
 - na een beoordeling die tekst vond die een AI moet sturen;
 - een tweede keer op dezelfde zaak, hoe vaak de zaak ook wordt beoordeeld;
@@ -98,7 +98,7 @@ Een nieuw playbook krijgt deze trigger alleen aangeboden zolang de AI van het pr
 
 ## Een detectieregel laten opstellen
 
-Klik op de pagina **Detection Rules**, onder het veld **Sigma Rule (YAML)**, op **Draft with AI** en zeg wat de regel moet vangen, bijvoorbeeld tien mislukte aanmeldingen vanaf één IP-adres binnen vijf minuten. **Regel opstellen** zet een Sigma-regel in het veld, gecontroleerd zoals een opgeslagen regel. Lees hem, pas hem aan waar nodig en sla hem op zoals altijd: er wordt niets opgeslagen tot je dat doet. Staat er al een regel in het veld, dan heet de knop **Opnieuw opstellen met AI**, en vervangt het concept die regel.
+Klik op de pagina **Detectieregels**, onder het veld **Sigma-regel (YAML)**, op **Concept met AI** en zeg wat de regel moet vangen, bijvoorbeeld tien mislukte aanmeldingen vanaf één IP-adres binnen vijf minuten. **Regel opstellen** zet een Sigma-regel in het veld, gecontroleerd zoals een opgeslagen regel. Lees hem, pas hem aan waar nodig en sla hem op zoals altijd: er wordt niets opgeslagen tot je dat doet. Staat er al een regel in het veld, dan heet de knop **Opnieuw opstellen met AI**, en vervangt het concept die regel.
 
 Voor een concept is een rol nodig die detectieregels mag aanmaken.
 
@@ -131,7 +131,7 @@ Een deel van de gegevens van de zaak, zoals een gebeurtenisbericht of een gebrui
 :::
 
 :::details Een playbook met de AI-trigger is niet gedraaid
-Controleer of het playbook is ingeschakeld, of de beoordeling de zaak als Waarschijnlijk kwaadaardig las, en of de instellingen **For Cases At Least**, **Only For Detections From** en **Only For These Detection Rules** bij de zaak passen. Het draait één keer per zaak, en niet na een beoordeling die tekst vond die een AI moet sturen.
+Controleer of het playbook is ingeschakeld, of de beoordeling de zaak als Waarschijnlijk kwaadaardig las, en of de instellingen **Voor zaken van minstens**, **Alleen voor detecties uit** en **Alleen voor deze detectieregels** bij de zaak passen. Het draait één keer per zaak, en niet na een beoordeling die tekst vond die een AI moet sturen.
 :::
 
 ## Volgende stappen

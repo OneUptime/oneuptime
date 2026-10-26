@@ -35,7 +35,7 @@ Haz clic en **Añadir variable**. Una variable nueva lee un atributo de telemetr
 
 ### Rellenarla
 
-Dale un **Nombre**, que usan los widgets y los enlaces, como `service`: letras, dígitos y guiones bajos, empezando por una letra o un guion bajo, y distinto de los demás nombres del panel. Añade una **Etiqueta** para la barra de herramientas si quieres, un valor **Predeterminado** con el que empezar, y marca **Allow multi-select** para que los espectadores puedan elegir varios valores.
+Dale un **Nombre**, que usan los widgets y los enlaces, como `service`: letras, dígitos y guiones bajos, empezando por una letra o un guion bajo, y distinto de los demás nombres del panel. Añade una **Etiqueta** para la barra de herramientas si quieres, un valor **Predeterminado** con el que empezar, y marca **Permitir selección múltiple** para que los espectadores puedan elegir varios valores.
 
 ### Guardarla
 
@@ -63,7 +63,7 @@ Es el origen más habitual, porque no necesita una lista propia: los valores son
 
 ### Project Labels
 
-Elige etiquetas de proyecto existentes para ofrecerlas como un desplegable del panel. Por ejemplo, crea una variable llamada `UNIT`, pon su origen en **Project Labels** y elige las etiquetas `0660` y `0661`.
+Elige etiquetas de proyecto existentes para ofrecerlas como un desplegable del panel. Por ejemplo, crea una variable llamada `UNIT`, pon su origen en **Etiquetas del proyecto** y elige las etiquetas `0660` y `0661`.
 
 El panel guarda los ID y los nombres visibles de las etiquetas elegidas. El filtrado usa los ID, así que cambiar el nombre de una etiqueta del proyecto no rompe su vínculo. Los nombres visibles se guardan con el panel; vuelve a seleccionar una etiqueta renombrada en el editor de variables para actualizar su nombre visible. Los paneles públicos muestran estas mismas opciones guardadas.
 
@@ -81,7 +81,7 @@ Una variable Query de un panel antiguo se conserva y muestra un cuadro de texto 
 
 ## Selección múltiple y valores predeterminados
 
-Con **Allow multi-select** marcado, los espectadores eligen uno o varios valores, y los widgets muestran cualquiera de ellos. Una selección vacía significa **Todos**, y una variable de selección múltiple siempre empieza en **Todos**, por lo que su valor **Predeterminado** aparece atenuado.
+Con **Permitir selección múltiple** marcado, los espectadores eligen uno o varios valores, y los widgets muestran cualquiera de ellos. Una selección vacía significa **Todos**, y una variable de selección múltiple siempre empieza en **Todos**, por lo que su valor **Predeterminado** aparece atenuado.
 
 Una variable de selección única empieza en su valor **Predeterminado**, o en **Todos** si no tiene ninguno. **Todos** quita el filtro de la variable, así que los widgets lo muestran todo.
 
@@ -91,8 +91,8 @@ Usa la selección múltiple para comparar "checkout y payments juntos" sin salir
 
 Cada origen llega a los widgets a su manera:
 
-- Las variables **Telemetry Attribute** filtran widgets sin que tengas que configurar nada en ellos: cada gráfico, valor, indicador y tabla de métricas; el **Gráfico de registros**, el **Flujo de registros**, el **Gráfico de trazas** y la **Tabla de trazas**; y las listas de infraestructura cuyos recursos llevan el atributo, como `host.name` en las listas de hosts y `k8s.namespace.name` en las listas de Kubernetes. El gráfico de una métrica sin ese atributo no muestra datos mientras haya un valor elegido: elige **Todos** para volver a verlo. La **Lista de trazas** y las listas de incidentes y alertas no las siguen.
-- Las variables **Project Labels** filtran una **Lista de monitores** o una **Lista de SLO** cuya **Variable de etiqueta** las nombra.
+- Las variables **Atributo de telemetría** filtran widgets sin que tengas que configurar nada en ellos: cada gráfico, valor, indicador y tabla de métricas; el **Gráfico de registros**, el **Flujo de registros**, el **Gráfico de trazas** y la **Tabla de trazas**; y las listas de infraestructura cuyos recursos llevan el atributo, como `host.name` en las listas de hosts y `k8s.namespace.name` en las listas de Kubernetes. El gráfico de una métrica sin ese atributo no muestra datos mientras haya un valor elegido: elige **Todos** para volver a verlo. La **Lista de trazas** y las listas de incidentes y alertas no las siguen.
+- Las variables **Etiquetas del proyecto** filtran una **Lista de monitores** o una **Lista de SLO** cuya **Variable de etiqueta** las nombra.
 - **Cualquier variable** puede escribirse en un texto como `{{name}}`: en un [widget HTML](/docs/dashboards/widgets#html), en la consulta de una [fuente de datos externa](/docs/dashboards/data-sources), y en el título de una **Lista de monitores** o una **Lista de SLO**. Un título como `{{UNIT}} NETWORK` muestra `0660 NETWORK`, `0660, 0661 NETWORK` o `All NETWORK`. Un título solo controla el texto que se muestra; configura **Variable de etiqueta** para filtrar la consulta de monitores.
 
 El [widget SLO](/docs/dashboards/widgets#slo) puede seguir una variable Telemetry Attribute sobre la clave `sloName`, para que los espectadores elijan qué SLO muestra.

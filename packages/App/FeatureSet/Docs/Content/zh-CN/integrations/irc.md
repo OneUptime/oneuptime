@@ -46,7 +46,7 @@ sequenceDiagram
 ## 开始之前
 
 - 在 OneUptime Cloud 上，需要 **Growth** 或更高的套餐：工作流及其变量都包含在内。没有计费的自托管安装没有套餐限制。
-- 一个能构建工作流的角色：**Project Owner**、**Project Admin** 或 **Workflow Admin**。
+- 一个能构建工作流的角色：**项目所有者**、**项目管理员** 或 **工作流管理员**。
 - 如果 IRC 网络要求登录，还需要该网络上的账号。Libera.Chat 对来自部分云和 VPN 地址的连接要求登录。
 
 ## 设置集成
@@ -87,7 +87,7 @@ sequenceDiagram
 工作流会在 **生成器** 中打开，包含三个步骤：**On Create Incident**；**Send Message to IRC**，用两行发布事件的编号、标题、严重程度和状态；以及接在其 **错误** 输出上的 **日志** 步骤，用来记录消息为何没有送达。服务器和频道保存为工作流变量 `ircServer` 和 `ircChannel`。如果你在上一步保存了密码，点击 **Send Message to IRC**，打开 **更多字段**，用各设置的 **{ }** 按钮选择对应的变量。
 @tab 从零开始
 1. 打开 **工作流**，点击 **创建工作流**，选择 **从零开始**，给工作流命名，然后点击 **创建工作流**。
-2. 在 **生成器** 中点击 **Choose what starts this workflow**，在 **Popular** 下选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择消息要显示的事件字段，例如标题。
+2. 在 **生成器** 中点击 **选择启动此工作流的方式**，在 **热门** 下选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择消息要显示的事件字段，例如标题。
 3. 点击 **添加组件**，搜索 `irc`，点击 **Send Message to IRC**。把触发器的 **成功** 输出连到这个步骤。
 4. 点击新步骤，填写 **IRC Server**、**Channel** 和 **Message Text**。**Message Text** 中的 **{ }** 按钮可以插入事件的字段，例如标题。
 5. 如果你在上一步保存了密码，打开 **更多字段**。在 **Server Password**、**SASL Password** 或 **Channel Key** 中点击 **{ }**，在 **Global variables** 下选择变量。在 **SASL Username** 中填入你的账号名。

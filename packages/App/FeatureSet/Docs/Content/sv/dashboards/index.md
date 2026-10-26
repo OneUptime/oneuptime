@@ -48,7 +48,7 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 | **Instrumentpaneler** | Projektets instrumentpaneler. Skapa en, eller hämta in instrumentpaneler med **Import JSON**. |
 | **Inställningar → Ägarregler** | Lägg automatiskt till ägare på nya instrumentpaneler. |
 | **Inställningar → Etikettregler** | Lägg automatiskt till etiketter på nya instrumentpaneler. |
-| **Inställningar → Data Sources** | Anslut Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller ett REST-API. |
+| **Inställningar → Datakällor** | Anslut Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller ett REST-API. |
 | **Avancerad → Arkiverad** | Instrumentpaneler som du har arkiverat. Avarkivera dem härifrån. |
 
 Öppna en instrumentpanel, så har dess egen sidomeny de här sidorna. Alla avsnitt utom **Grundläggande** börjar hopfällda: klicka på rubriken för att öppna dem.

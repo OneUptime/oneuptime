@@ -40,7 +40,7 @@ Hændelsen gemmer rapportens nummer i sine brugerdefinerede felter som `huntress
 
 ## Før du begynder
 
-- I OneUptime en rolle, der kan oprette og redigere workflows, f.eks. **Project Owner**, **Project Admin** eller **Workflow Admin**.
+- I OneUptime en rolle, der kan oprette og redigere workflows, f.eks. **Projektejer**, **Projektadministrator** eller **Arbejdsgangsadministrator**.
 - I Huntress rollen **Account Admin**: Kun kontoadministratorer kan tilføje webhooks.
 - En vagtpolitik at tilkalde.
 - På OneUptime Cloud et abonnement med workflows: Growth eller højere. Hver begivenhed, Huntress sender, er én workflowkørsel.

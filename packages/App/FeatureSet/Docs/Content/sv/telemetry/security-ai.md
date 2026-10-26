@@ -62,7 +62,7 @@ Den kan också läsa resten av OneUptime som utredningen av en incident gör: lo
 | Troligen falskt positiv | Detektionen verkar ha feltolkat normal aktivitet | False Positive |
 | Oklart | Bevisen räckte inte för att avgöra, och en person måste titta | Ingenting |
 
-AI-bedömningen är OneUptime AI:s, aldrig ärendets bedömning: **Close Case** börjar på den bedömning som den föreslår, och en person väljer. Under AI-bedömningen visar kortet:
+AI-bedömningen är OneUptime AI:s, aldrig ärendets bedömning: **Stäng ärende** börjar på den bedömning som den föreslår, och en person väljer. Under AI-bedömningen visar kortet:
 
 - **Föreslagen prioritet**, med **Ange prioritet** när ärendet har en annan prioritet.
 - **Föreslagen playbook**, med **Kör playbook**, som kör den i ditt namn, med varje godkännande som den behöver. Medan den playbooken redan körs på ärendet står körningens status, till exempel **Väntar på godkännande**, i stället för **Kör playbook**: körningen finns under ärendets **Playbooks**, och en till skulle be om samma godkännande igen.
@@ -88,7 +88,7 @@ Nya projekt startar med det påslaget; ett projekt som skapades tidigare har det
 
 ## Kör en playbook efter en AI-bedömning
 
-En playbook vars **Utlösare** är **Bedömd som troligen skadlig** körs en gång på ett ärende, när en AI-bedömning läser det som Troligen skadlig. **For Cases At Least**, **Only For Detections From** och **Only For These Detection Rules** avgränsar den som för vilken utlösare som helst, och dess begränsningssteg väntar som alltid på godkännande. Den körs inte:
+En playbook vars **Utlösare** är **Bedömd som troligen skadlig** körs en gång på ett ärende, när en AI-bedömning läser det som Troligen skadlig. **För ärenden med minst**, **Bara för detektioner från** och **Bara för de här detektionsreglerna** avgränsar den som för vilken utlösare som helst, och dess begränsningssteg väntar som alltid på godkännande. Den körs inte:
 
 - efter en AI-bedömning som hittade text skriven för att styra en AI;
 - en andra gång på samma ärende, hur ofta ärendet än bedöms;
@@ -98,7 +98,7 @@ En ny playbook erbjuds den här utlösaren bara medan projektets AI är påslage
 
 ## Skriv ett utkast till en detektionsregel
 
-Klicka på sidan **Detection Rules**, under fältet **Sigma Rule (YAML)**, på **Draft with AI** och säg vad regeln ska fånga, till exempel tio misslyckade inloggningar från en IP-adress inom fem minuter. **Skriv regel** lägger in en Sigma-regel i fältet, kontrollerad på samma sätt som en sparad regel. Läs den, ändra den vid behov och spara den som vanligt: ingenting sparas förrän du gör det. Står det redan en regel i fältet heter knappen **Skriv om med AI**, och utkastet ersätter den regeln.
+Klicka på sidan **Detektionsregler**, under fältet **Sigma-regel (YAML)**, på **Utkast med AI** och säg vad regeln ska fånga, till exempel tio misslyckade inloggningar från en IP-adress inom fem minuter. **Skriv regel** lägger in en Sigma-regel i fältet, kontrollerad på samma sätt som en sparad regel. Läs den, ändra den vid behov och spara den som vanligt: ingenting sparas förrän du gör det. Står det redan en regel i fältet heter knappen **Skriv om med AI**, och utkastet ersätter den regeln.
 
 Ett utkast kräver en roll som får skapa detektionsregler.
 
@@ -131,7 +131,7 @@ Något i ärendets data, som ett händelsemeddelande eller ett användarnamn, sk
 :::
 
 :::details En playbook med AI-utlösaren kördes inte
-Kontrollera att playbooken är påslagen, att AI-bedömningen läste ärendet som Troligen skadlig, och att dess inställningar **For Cases At Least**, **Only For Detections From** och **Only For These Detection Rules** passar ärendet. Den körs en gång per ärende, och inte efter en AI-bedömning som hittade text skriven för att styra en AI.
+Kontrollera att playbooken är påslagen, att AI-bedömningen läste ärendet som Troligen skadlig, och att dess inställningar **För ärenden med minst**, **Bara för detektioner från** och **Bara för de här detektionsreglerna** passar ärendet. Den körs en gång per ärende, och inte efter en AI-bedömning som hittade text skriven för att styra en AI.
 :::
 
 ## Nästa steg

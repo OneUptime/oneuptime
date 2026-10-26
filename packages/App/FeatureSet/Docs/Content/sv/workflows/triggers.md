@@ -11,20 +11,20 @@ En utlösare är det första blocket i ett arbetsflöde — den avgör när arbe
 - [Utlösare för OneUptime-händelser](#utlösare-för-oneuptime-händelser): Reagera när en post skapas, uppdateras eller tas bort.
 :::
 
-För att lägga till utlösaren klickar du på det streckade blocket **Choose what starts this workflow** på ett nytt arbetsflödes arbetsyta. För att ändra den tar du bort utlösarblocket, så kommer det streckade blocket tillbaka. Se [Skapa ett arbetsflöde](/docs/workflows/authoring#lägg-till-block).
+För att lägga till utlösaren klickar du på det streckade blocket **Välj vad som startar det här arbetsflödet** på ett nytt arbetsflödes arbetsyta. För att ändra den tar du bort utlösarblocket, så kommer det streckade blocket tillbaka. Se [Skapa ett arbetsflöde](/docs/workflows/authoring#lägg-till-block).
 
 ## Vilken utlösare ska jag använda?
 
 | Om du vill …                                   | Välj                        |
 | ---------------------------------------------- | --------------------------- |
-| Klicka på en knapp för att köra arbetsflödet   | **Manual**                  |
+| Klicka på en knapp för att köra arbetsflödet   | **Manuell**                  |
 | Köra enligt ett återkommande schema            | **Schema**                  |
 | Låta ett annat system skicka in data           | **Webhook**                 |
 | Börja från ett e-postmeddelande                | **Incoming Email**          |
 | Agera på incidentrapporter från Huntress       | **Huntress Incident Report** |
 | Reagera på något i OneUptime                   | **OneUptime-händelse**      |
 
-Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta samma automatisering bygger du den gemensamma logiken i ett arbetsflöde med en **Manual**-utlösare och startar det från två tunna ”omslags”-arbetsflöden med ett **Execute Workflow**-block.
+Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta samma automatisering bygger du den gemensamma logiken i ett arbetsflöde med en **Manuell**-utlösare och startar det från två tunna ”omslags”-arbetsflöden med ett **Execute Workflow**-block.
 
 ## Manual
 
@@ -39,7 +39,7 @@ Bra för: automatisering med ett klick som du vill ha en knapp för, som ”rote
 
 ## Schedule
 
-Kör arbetsflödet enligt ett återkommande schema. Ange hur ofta i **Schedule at**: välj ett av **Common schedules**, skriv ett **Custom cron**-uttryck eller välj en **Variabel** som innehåller ett. Under fältet beskrivs schemat i ord, tillsammans med **Next runs**.
+Kör arbetsflödet enligt ett återkommande schema. Ange hur ofta i **Schedule at**: välj ett av **Common schedules**, skriv ett **Custom cron**-uttryck eller välj en **Variabel** som innehåller ett. Under fältet beskrivs schemat i ord, tillsammans med **Nästa körningar**.
 
 Bra för: städning på natten, synkronisering varje timme, veckorapporter.
 
@@ -206,7 +206,7 @@ För att testa en händelseutlösare utan att vänta på händelsen klickar du p
 | **Statussida Prenumerant**                | Välkomna någon som prenumererar på en statussida.                                         |
 | **Jourpolicy**                            | Synkronisera ändringar i policyn med ett annat jourschemasystem.                          |
 
-I panelen **Lägg till utlösare** finns de under **OneUptime resources**: klicka på resursen och sedan på utlösaren. **Browse all resources** har alla, och sökfältet hittar en utlösare utifrån några få ord, som `incident created`.
+I panelen **Lägg till utlösare** finns de under **OneUptime-resurser**: klicka på resursen och sedan på utlösaren. **Bläddra bland alla resurser** har alla, och sökfältet hittar en utlösare utifrån några få ord, som `incident created`.
 
 ## Nästa steg
 

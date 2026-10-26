@@ -56,7 +56,7 @@ Skriv ditt skript i redigeraren **Playwright Code**. Utgå från [exemplet nedan
 
 ### Välj webbläsare och skärmstorlekar
 
-En ny monitor börjar med **Chromium** under **Webbläsartyp** och **Desktop** under **Skärmtyp**; markera fler för att täcka mer. Skriptet körs en gång för varje kombination, så två webbläsare och tre storlekar ger sex körningar per kontroll, och det behöver minst en webbläsare och en storlek. Under **Fler fält** gör **Antal återförsök vid fel** om en misslyckad körning upp till 5 gånger.
+En ny monitor börjar med **Chromium** under **Webbläsartyp** och **Dator** under **Skärmtyp**; markera fler för att täcka mer. Skriptet körs en gång för varje kombination, så två webbläsare och tre storlekar ger sex körningar per kontroll, och det behöver minst en webbläsare och en storlek. Under **Fler fält** gör **Antal återförsök vid fel** om en misslyckad körning upp till 5 gånger.
 
 ### Testa det
 
@@ -239,7 +239,7 @@ En körning kan samla in högst 100 mätvärden, bara med numeriska värden, och
 
 Varje filter kontrolleras mot varje körning och matchar när någon enda körning matchar det. Filtren kontrolleras var för sig, inte körning för körning: **Fel** Är inte tom tillsammans med **Webbläsartyp** Lika med `Firefox` matchar när någon körning misslyckades och en av körningarna använde Firefox — inte bara när Firefox-körningen misslyckades. Om du vill följa en webbläsare för sig ger du den en egen monitor.
 
-I incident- och larmmallar finns varje körning i `{{syntheticResponses}}`: se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating#syntetiska-monitorer).
+I incident- och larmmallar finns varje körning i `{{syntheticResponses}}`: se [Incident- och larmmallar](/docs/monitor/incident-alert-templating#syntetiska-monitorer).
 
 ## Moduler som är tillgängliga i skriptet
 

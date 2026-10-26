@@ -104,7 +104,7 @@ Cloud-overvågnings-API'er (CloudWatch, Azure Monitor og Cloud Monitoring) offen
 
 Instrumenterede klienter kan også rapportere metrikker: OpenTelemetrys metrikker for messaging-klienter `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` og `messaging.process.duration`, deres ældre navne `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` og `messaging.client.published.messages` samt Azure SDK til Javas `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` og `messaging.servicebus.settlement.sequence_number`. Hvert datapunkt nævner sit system og sin destination, som et span gør (Azure SDK'ets Service Bus-metrikker nævner intet system, så deres navn træder i stedet), og knyttes til den kø, når det indtages, så det vises på køens fane **Metrikker**. Det samme gælder enhver egen metrik, der bærer `messaging.system` og `messaging.destination.name` på hvert datapunkt (ikke på ressourcen, hvor de ikke læses), såsom en gauge for kødybden (se [BullMQ](#bullmq)).
 
-Messaging-klienters metrikker opretter aldrig en kø: det gør traces, brokermetrikker eller en person. En klientmetrik, der nævner en eksisterende kø, holder dens **Last seen** opdateret, som dens spans gør. En egen metrik gør ingen af delene: den vises kun på køens fane **Metrikker**.
+Messaging-klienters metrikker opretter aldrig en kø: det gør traces, brokermetrikker eller en person. En klientmetrik, der nævner en eksisterende kø, holder dens **Sidst set** opdateret, som dens spans gør. En egen metrik gør ingen af delene: den vises kun på køens fane **Metrikker**.
 
 ### Hvad der gør to observationer til én kø
 
@@ -158,7 +158,7 @@ Traces og brokermetrikker opretter kun selv køer, så længe projektet har fær
 
 ### Livscyklus og arkivering
 
-- **Last seen** er det tidspunkt, hvor registreringen sidst så køen, i traces, messaging-klienters metrikker eller brokermetrikker.
+- **Sidst set** er det tidspunkt, hvor registreringen sidst så køen, i traces, messaging-klienters metrikker eller brokermetrikker.
 - **Arkivér for at afvise.** At slette en registreret kø fjerner den kun, indtil den ses igen: dens næste observation bringer den tilbage som en ny kø. For at afvise en for altid skal du **arkivere** den. En arkiveret kø beholder sin identitet, så alt, hvad der nævner den, forbliver knyttet til den arkiverede kø i stedet for at oprette en ny.
 - **Automatisk arkivering.** En registreret kø, der ikke er set i 7 dage (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`), arkiveres automatisk, medmindre en person har omdøbt den, beskrevet den, givet den labels eller givet den ejere. Labels og ejere, som label- eller ejerregler har tilføjet af sig selv, tæller ikke med.
 - **Gendannelse.** En automatisk arkiveret kø gendannes automatisk, når den ses igen. Køer, du har oprettet manuelt, og køer, som en person har arkiveret, bliver aldrig arkiveret eller gendannet af registreringen. En kø, som en person gendanner, forbliver gendannet i 30 dage (eller arkivvinduet, hvis det er længere), selv hvis intet ser den; fra dens næste observation gælder 7-dagesreglen igen.

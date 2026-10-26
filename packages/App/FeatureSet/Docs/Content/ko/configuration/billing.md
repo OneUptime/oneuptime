@@ -144,10 +144,10 @@ SMS, 전화, WhatsApp 및 Telegram 메시지는 프로젝트 잔액에서, OneUp
 
 | 하려는 일 | 필요한 것 |
 | --- | --- |
-| 결제 페이지 읽기: 요금제, 청구서, 사용량, 잔액, 결제 방법 | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** 또는 **Billing Viewer** |
-| 청구서 다운로드 | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** 또는 **Billing Member** |
-| 청구지 주소와 청구서 이메일 변경 | Project Owner, **Manage Billing**, **Billing Admin** 또는 **Billing Member** |
-| SMS, 전화, WhatsApp 또는 Telegram 켜기 및 끄기 | Project Owner, **Manage Billing** 또는 **Billing Admin** |
+| 결제 페이지 읽기: 요금제, 청구서, 사용량, 잔액, 결제 방법 | Project Owner, **Manage Billing**, **결제 관리자**, **결제 구성원** 또는 **결제 뷰어** |
+| 청구서 다운로드 | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **결제 관리자** 또는 **결제 구성원** |
+| 청구지 주소와 청구서 이메일 변경 | Project Owner, **Manage Billing**, **결제 관리자** 또는 **결제 구성원** |
+| SMS, 전화, WhatsApp 또는 Telegram 켜기 및 끄기 | Project Owner, **Manage Billing** 또는 **결제 관리자** |
 | 결제 수단 추가 | Project Owner, **Manage Billing** 또는 **Create Payment Method** |
 | 청구서 결제 | Project Owner, **Manage Billing** 또는 **Edit Invoices** |
 | 요금제 변경, 잔액 충전, 자동 충전 변경 | Project Owner 또는 **Manage Billing** |

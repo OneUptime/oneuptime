@@ -113,7 +113,7 @@ flowchart TB
 
 :::steps
 1. 開啟 **工作流程**，點選 **建立工作流程**，然後點選 **從零開始**。為工作流程命名，然後點選 **建立工作流程**。
-2. 點選虛線的 **Choose what starts this workflow** 區塊，選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**。
+2. 點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**。
 3. 在另一個工具中，把它的 Webhook 以 `POST` 請求傳送到該 URL，並帶上 `Content-Type: application/json`。
 4. 新增處理它的區塊。這些區塊透過 `{{local.components.webhook-1.returnValues.request-body.status}}` 這樣的引用讀取請求：用 **If / Else** 區塊檢查某個欄位，再用 **Create One Incident** 宣告事件。
 5. 在 **建構器** 頂部開啟 **已啟用**，從另一個工具傳送一次測試，然後開啟 **日誌 → 執行記錄** 檢視收到了什麼。

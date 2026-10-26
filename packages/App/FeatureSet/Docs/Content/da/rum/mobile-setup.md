@@ -51,7 +51,7 @@ Gør `device.id` til et id pr. installation, aldrig et reklame-id eller noget an
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> Nøglen følger med i din app, og en app kan pakkes ud, så gå ud fra, at nogen kopierer den. Sæt et **Pinned Service Name** på nøglens side, så en kopi ikke kan skrive under dine backend-tjenesters navne, tilføj en **Requests Per Minute Limit** og en dato under **Udløber den**, og udskift nøglen med dine udgivelser.
+> Nøglen følger med i din app, og en app kan pakkes ud, så gå ud fra, at nogen kopierer den. Sæt et **Fastgjort tjenestenavn** på nøglens side, så en kopi ikke kan skrive under dine backend-tjenesters navne, tilføj en **Requests Per Minute Limit** og en dato under **Udløber den**, og udskift nøglen med dine udgivelser.
 
 ## Sæt din platform op
 
@@ -193,9 +193,9 @@ Kør appen, og brug den et øjeblik. Den vises under **Produkter → Ressourcer 
 
 ## Session Replay på mobil
 
-React Native-apps kan optage sessioner med `@oneuptime/react-native-replay`. Den optager det native visningstræ som en trådramme, aldrig skærmbilleder eller teksten på skærmen, og dens optagelser åbner i samme afspiller som webapps. Den sender med en **Browser**-nøgle, hvis **Allowed Origins** angiver din app som `app://` efterfulgt af dens Android-applikations-id eller iOS-bundle-id: en anden nøgle end den Server-nøgle, dit OpenTelemetry-SDK bruger. [Installer i React Native](/docs/telemetry/session-replay#installation-i-react-native) guider dig igennem.
+React Native-apps kan optage sessioner med `@oneuptime/react-native-replay`. Den optager det native visningstræ som en trådramme, aldrig skærmbilleder eller teksten på skærmen, og dens optagelser åbner i samme afspiller som webapps. Den sender med en **Browser**-nøgle, hvis **Tilladte oprindelser** angiver din app som `app://` efterfulgt af dens Android-applikations-id eller iOS-bundle-id: en anden nøgle end den Server-nøgle, dit OpenTelemetry-SDK bruger. [Installer i React Native](/docs/telemetry/session-replay#installation-i-react-native) guider dig igennem.
 
-Native Android- og iOS-apps og de andre platforme har ingen sessionsoptager: Deres side **Session Replay** forbliver tom, mens spor, logs, metrikker, undtagelser og siden **Klienter** virker som normalt.
+Native Android- og iOS-apps og de andre platforme har ingen sessionsoptager: Deres side **Sessionsafspilning** forbliver tom, mens spor, logs, metrikker, undtagelser og siden **Klienter** virker som normalt.
 
 ## Fejlfinding
 

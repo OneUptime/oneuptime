@@ -157,7 +157,7 @@ Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **O
 
 ## Wer das ändern kann
 
-Regeln, benutzerdefinierte Felder und Messungen brauchen einen Project Owner oder Project Admin oder eine eigene Rolle mit der eigenen Berechtigung dieser Regel. **Alert Member** arbeitet mit Warnungen und Episoden, ihren Notizen, Eigentümern und Statuszeitachsen sowie mit Notiz-Vorlagen, und **Alert Admin** verwaltet zusätzlich Warnungsstatus und Schweregrade. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Regeln, benutzerdefinierte Felder und Messungen brauchen einen Project Owner oder Project Admin oder eine eigene Rolle mit der eigenen Berechtigung dieser Regel. **Warnungs-Mitglied** arbeitet mit Warnungen und Episoden, ihren Notizen, Eigentümern und Statuszeitachsen sowie mit Notiz-Vorlagen, und **Warnungs-Administrator** verwaltet zusätzlich Warnungsstatus und Schweregrade. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Nächste Schritte
 

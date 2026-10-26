@@ -71,7 +71,7 @@ Il pannello dei dettagli ha due schede:
 
 | Scheda | Cosa mostra |
 | --- | --- |
-| **Dettagli** | Il **Corpo del log**, il suo **ID traccia**, **Span ID** e **Session** quando li ha, e i suoi **Attributi**, come elenco o come JSON. |
+| **Dettagli** | Il **Corpo del log**, il suo **ID traccia**, **Span ID** e **Sessione** quando li ha, e i suoi **Attributi**, come elenco o come JSON. |
 | **Context** | Il log tra i suoi vicini. **Nearby (service + time)** mostra le cinque righe prima e dopo dello stesso servizio, e **This trace** mostra fino a 100 log della sua traccia. |
 
 - Fate clic sull'ID traccia per aprire l'intera richiesta nell'[Esploratore tracce](/docs/telemetry/traces-explorer).
@@ -80,9 +80,9 @@ Il pannello dei dettagli ha due schede:
 
 ## Seguire i log in diretta
 
-Fate clic su **Live** sopra l'elenco. L'esploratore passa alla prima pagina, ordinata dal più recente, e cerca nuovi log ogni 10 secondi, così le righe compaiono man mano che i vostri servizi le scrivono.
+Fate clic su **In diretta** sopra l'elenco. L'esploratore passa alla prima pagina, ordinata dal più recente, e cerca nuovi log ogni 10 secondi, così le righe compaiono man mano che i vostri servizi le scrivono.
 
-La modalità in diretta si spegne da sola quando cambiate la ricerca, un filtro o l'intervallo di tempo, o passate a un'altra pagina di risultati: mostra solo i log più recenti. Fate di nuovo clic su **Live** per riprendere.
+La modalità in diretta si spegne da sola quando cambiate la ricerca, un filtro o l'intervallo di tempo, o passate a un'altra pagina di risultati: mostra solo i log più recenti. Fate di nuovo clic su **In diretta** per riprendere.
 
 ## Scegliere le colonne ed esportare
 
@@ -100,11 +100,11 @@ Cercate, filtrate e scegliete le colonne che volete conservare.
 
 ### Salvarla
 
-Aprite **Saved Views** e fate clic su **+ Save Current View**. Inserite un **Nome**, spuntate **Imposta come predefinito** se questa vista deve aprirsi ogni volta che qualcuno apre i log, e fate clic su **Salva vista**.
+Aprite **Viste salvate** e fate clic su **+ Salva vista corrente**. Inserite un **Nome**, spuntate **Imposta come predefinito** se questa vista deve aprirsi ogni volta che qualcuno apre i log, e fate clic su **Salva vista**.
 
 ### Usarla
 
-Scegliete la vista da **Saved Views** per applicarla, e **Clear view** per tornare all'ultima ora senza filtri. Puntate una vista nell'elenco per **Modifica** o **Elimina**, oppure, mentre è applicata, per **Aggiorna** con le vostre modifiche.
+Scegliete la vista da **Viste salvate** per applicarla, e **Cancella vista** per tornare all'ultima ora senza filtri. Puntate una vista nell'elenco per **Modifica** o **Elimina**, oppure, mentre è applicata, per **Aggiorna** con le vostre modifiche.
 :::
 
 Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono lo stesso elenco. Un intervallo mobile come l'ultima ora resta mobile: la vista mostra l'ora che precede la sua apertura, non l'ora in cui l'avete salvata. Finché il progetto non ha una vista predefinita, la prossima vista salvata lo diventa, e un progetto ha una sola predefinita alla volta.
@@ -117,7 +117,7 @@ Fate clic su **Elenco** per tornare alle righe stesse.
 
 ## Aprire tracce e metriche collegate
 
-I pulsanti **Tracce** e **Metriche** accanto a **Saved Views** aprono l'[Esploratore tracce](/docs/telemetry/traces-explorer) o l'[Esploratore metriche](/docs/telemetry/metrics-explorer) per la stessa finestra di tempo, con tutto il vostro filtraggio che quell'esploratore può usare. Puntate un pulsante per vedere che cosa non può riportare.
+I pulsanti **Tracce** e **Metriche** accanto a **Viste salvate** aprono l'[Esploratore tracce](/docs/telemetry/traces-explorer) o l'[Esploratore metriche](/docs/telemetry/metrics-explorer) per la stessa finestra di tempo, con tutto il vostro filtraggio che quell'esploratore può usare. Puntate un pulsante per vedere che cosa non può riportare.
 
 ## Informazioni sui log
 
@@ -207,7 +207,7 @@ Una ricerca che dura più di 45 secondi viene interrotta. Scegliete un intervall
 :::
 
 :::details La modalità in diretta continua a spegnersi
-La modalità in diretta segue solo i log più recenti, quindi cambiare la ricerca, un filtro, l'intervallo di tempo o la pagina la spegne. Fate di nuovo clic su **Live** quando i filtri sono pronti.
+La modalità in diretta segue solo i log più recenti, quindi cambiare la ricerca, un filtro, l'intervallo di tempo o la pagina la spegne. Fate di nuovo clic su **In diretta** quando i filtri sono pronti.
 :::
 
 ## Passaggi successivi

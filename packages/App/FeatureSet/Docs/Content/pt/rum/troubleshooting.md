@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` com `"valid": true` | O OneUptime aceita a chave. A resposta também informa o seu `keyType` e o seu `projectId`. Passe para a próxima verificação. |
 | `401` com `"valid": false` | A chave está ausente, é desconhecida, foi revogada, desativada ou expirou, e a `message` diz qual. Crie uma chave ativa em **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. |
 
-Um aplicativo web precisa de uma chave **Browser**, e um aplicativo móvel de uma chave **Servidor**: consulte [Configuração para navegadores](/docs/rum/browser-setup) e [Configuração para dispositivos móveis](/docs/rum/mobile-setup). Os endpoints de exportação também rejeitam uma chave errada com `401`, como a especificação OTLP pede, então um SDK bem-comportado registra a rejeição em vez de tentar de novo. Essa linha passa despercebida com facilidade no console do navegador, e esta verificação responde diretamente.
+Um aplicativo web precisa de uma chave **Navegador**, e um aplicativo móvel de uma chave **Servidor**: consulte [Configuração para navegadores](/docs/rum/browser-setup) e [Configuração para dispositivos móveis](/docs/rum/mobile-setup). Os endpoints de exportação também rejeitam uma chave errada com `401`, como a especificação OTLP pede, então um SDK bem-comportado registra a rejeição em vez de tentar de novo. Essa linha passa despercebida com facilidade no console do navegador, e esta verificação responde diretamente.
 
 ## Verificar o que sai do navegador
 
@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 Um navegador raramente envia lotes tão grandes, a menos que os spans carreguem atributos grandes, como uma pilha de chamadas inteira ou um corpo de resposta. Reduzi-los é a melhor solução.
 
-**`422`.** O OneUptime recusou a chave aqui, e a mensagem diz por quê. `Origin https://app.example.com is not allowed for this browser ingestion key.` significa que a origem exata da página, com o seu esquema e a sua porta, se houver, está faltando nos **Allowed Origins** da chave. `This telemetry ingestion key has been disabled.` significa que alguém desativou a chave.
+**`422`.** O OneUptime recusou a chave aqui, e a mensagem diz por quê. `Origin https://app.example.com is not allowed for this browser ingestion key.` significa que a origem exata da página, com o seu esquema e a sua porta, se houver, está faltando nos **Origens permitidas** da chave. `This telemetry ingestion key has been disabled.` significa que alguém desativou a chave.
 
 **`429`.** O **Requests Per Minute Limit** da chave se esgotou: `Too many telemetry requests for this ingestion key. Please retry later.` Uma chave Browser permite 6000 requisições por minuto para todos os seus visitantes juntos, a menos que você defina um limite próprio na chave.
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-A página **Health** da aplicação, na seção **Session Replay** dela, e o painel **Test your installation** de **Replay Policy** verificam a chave, as listas de origens permitidas e a política do lado do servidor, e dizem por que nada chega. O console do navegador dá a metade que o servidor não consegue ver.
+A página **Integridade** da aplicação, na seção **Reprodução de sessões** dela, e o painel **Test your installation** de **Replay Policy** verificam a chave, as listas de origens permitidas e a política do lado do servidor, e dizem por que nada chega. O console do navegador dá a metade que o servidor não consegue ver.
 
 Com a política padrão, um gravador envia um fragmento a cada 15 segundos, mais ou menos, enquanto o usuário interage com a página. Uma aba ociosa não tem nada para enviar, então clique ou mova o mouse primeiro; depois, se não houver nenhuma requisição de fragmento, algo está errado. Se o aplicativo só envia _On error or frustration_, o silêncio é esperado até algo falhar. Chame `OneUptimeReplay.captureSession()` para forçar um envio e testar o caminho de qualquer forma.
 

@@ -126,7 +126,7 @@ En ny domänmonitor börjar med tre kriterier, så den varnar dig innan en regis
 2. **Domänen går snart ut** — registreringen har inte gått ut men går ut om 30 dagar eller mindre. Ett **larm** med namnet "_monitor name_ domain expires soon" skapas.
 3. **Domänen har inte gått ut** — monitorn markeras som **Fungerar**.
 
-Varningen "går snart ut" är ett larm, inte en incident: det visas inte på dina statussidor, det kallar inte in någon om du inte lägger till en jourpolicy på det, och det ändrar inte monitorns status. Det använder projektets andra larmallvarlighetsgrad, **Low** i ett nytt projekt. När förnyelsen syns i registreringsposten löser larmet sig själv. Ett register som inte publicerar något utgångsdatum ger inte varningen något att gå på, så den förblir tyst.
+Varningen "går snart ut" är ett larm, inte en incident: det visas inte på dina statussidor, det kallar inte in någon om du inte lägger till en jourpolicy på det, och det ändrar inte monitorns status. Det använder projektets andra larmallvarlighetsgrad, **Låg** i ett nytt projekt. När förnyelsen syns i registreringsposten löser larmet sig själv. Ett register som inte publicerar något utgångsdatum ger inte varningen något att gå på, så den förblir tyst.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. Därför ligger "går snart ut" ovanför "har inte gått ut": en domän som håller på att gå ut har ännu inte gått ut, så den skulle matcha båda.
 
@@ -137,7 +137,7 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 
 1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera Övervakningskriterier**.
 2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Domain Is Expired** / **Falskt**, klicka på **Lägg till filter** och sätt det andra till **Domain Expires In Days** / **Mindre än eller lika med** / `30`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
-3. Slå på **När filter matchar, skapa en varning.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
+3. Slå på **När filter matchar, skapa ett larm.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.
 :::
 

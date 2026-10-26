@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["Il Worker di OneUptime<br/>esegue i passaggi"]
 ```
 
-Un trigger avvia un'esecuzione come fa **Run Now**: l'esecuzione riguarda i passaggi attuali del runbook e non è collegata ad alcun incidente, avviso o evento di manutenzione pianificata. Ogni esecuzione registra cosa l'ha avviata. Le **Esecuzioni** del runbook e **Runbook → Esecuzioni** lo mostrano sotto **Attivato da**, con l'orario previsto di un'esecuzione pianificata o l'indirizzo che ha chiamato il webhook, ed entrambi gli elenchi si possono filtrare in base a questo.
+Un trigger avvia un'esecuzione come fa **Esegui ora**: l'esecuzione riguarda i passaggi attuali del runbook e non è collegata ad alcun incidente, avviso o evento di manutenzione pianificata. Ogni esecuzione registra cosa l'ha avviata. Le **Esecuzioni** del runbook e **Runbook → Esecuzioni** lo mostrano sotto **Attivato da**, con l'orario previsto di un'esecuzione pianificata o l'indirizzo che ha chiamato il webhook, ed entrambi gli elenchi si possono filtrare in base a questo.
 
 ## Prima di iniziare
 
@@ -44,7 +44,7 @@ Fai clic su **Imposta pianificazione**. In **Quando viene eseguito**, scegli un'
 **Fuso orario** parte dal tuo. Gli orari della pianificazione si leggono sull'orologio di questo fuso.
 
 ### Salvarla
-Fai clic su **Salva pianificazione**. La pianificazione viene attivata e la scheda la mostra in una frase con le sue **Next runs**.
+Fai clic su **Salva pianificazione**. La pianificazione viene attivata e la scheda la mostra in una frase con le sue **Prossime esecuzioni**.
 :::
 
 | **Ripeti** | Cosa scegli | Esempio |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### Controllare l'esecuzione
-La risposta indica l'esecuzione avviata: `{"runbookExecutionId": "...", "status": "Scheduled"}`. L'esecuzione si trova nelle **Esecuzioni** del runbook, dove **Attivato da** indica **Webhook**, e la sua pagina mostra ciò che la chiamata ha inviato sotto **Inputs**.
+La risposta indica l'esecuzione avviata: `{"runbookExecutionId": "...", "status": "Scheduled"}`. L'esecuzione si trova nelle **Esecuzioni** del runbook, dove **Attivato da** indica **Webhook**, e la sua pagina mostra ciò che la chiamata ha inviato sotto **Input**.
 :::
 
 **Invia richiesta di test** invia all'URL un `POST` con un corpo che scrivi tu, come farebbe un altro strumento, e collega l'esecuzione avviata. È un'esecuzione reale del runbook.
@@ -136,7 +136,7 @@ I valori di primo livello del corpo diventano gli input dell'esecuzione. Raggiun
 | --- | --- |
 | Bash e kubectl | Variabili d'ambiente: una `ONEUPTIME_INPUT_<NAME>` per ogni valore di primo livello, `ONEUPTIME_INPUTS` con l'intero oggetto in JSON e `ONEUPTIME_TRIGGER` con ciò che ha avviato l'esecuzione, come `Webhook` o `Schedule`. |
 | JavaScript | `args.inputs`, l'oggetto così come è stato inviato, e `args.trigger`. |
-| AI | Nel suo prompt, contrassegnati come dati provenienti dall'esterno di OneUptime, quando **Include trigger context** è attivo. |
+| AI | Nel suo prompt, contrassegnati come dati provenienti dall'esterno di OneUptime, quando **Includi il contesto del trigger** è attivo. |
 | HTTP request e SSH | Per niente. Il loro URL, lo script e la destinazione sono quelli scritti nel runbook, e nulla di ciò che invia chi chiama li cambia. |
 
 Il nome di una variabile è il nome del valore in maiuscolo, con ogni carattere diverso da una lettera o una cifra scritto come `_`: `host-name` diventa `ONEUPTIME_INPUT_HOST_NAME`. Il testo viene passato così com'è, i numeri e `true` o `false` come sono scritti, e oggetti ed elenchi in JSON. Un passaggio riceve al massimo 100 di queste variabili, e un nome più lungo di 100 caratteri non ne diventa nessuna; ogni valore resta comunque in `ONEUPTIME_INPUTS`. Ogni nome inizia con `ONEUPTIME_`, così chi chiama non può impostare `PATH` né alcun'altra variabile letta dal Runner.
@@ -163,7 +163,7 @@ return { host };
 
 ## Chi può configurare i trigger
 
-Una pianificazione o un webhook avvia esecuzioni senza nessuno presente, quindi configurarne uno richiede il permesso di modificare il runbook e di eseguirlo: Project Owner, Project Admin o Runbook Admin, oppure **Edit Runbook** insieme a Project Member, Runbook Member o **Create Runbook Execution**. Contano le etichette a cui un ruolo è limitato, come per **Run Now**. Vedere o reimpostare l'URL del webhook richiede lo stesso.
+Una pianificazione o un webhook avvia esecuzioni senza nessuno presente, quindi configurarne uno richiede il permesso di modificare il runbook e di eseguirlo: Project Owner, Project Admin o Runbook Admin, oppure **Edit Runbook** insieme a Project Member, Runbook Member o **Create Runbook Execution**. Contano le etichette a cui un ruolo è limitato, come per **Esegui ora**. Vedere o reimpostare l'URL del webhook richiede lo stesso.
 
 Disattivare una pianificazione o un webhook non avvia nulla, quindi richiede solo il permesso di modificare il runbook. Chi può modificare il runbook ma non eseguirlo vede la pagina **Trigger** con **Imposta pianificazione** bloccato, e viene informato di chi può vedere l'URL del webhook.
 

@@ -1,6 +1,6 @@
 # CLI – Översikt
 
-OneUptimes CLI, `oneuptime`, hanterar ditt OneUptime-projekt från en terminal eller ett skript. Den listar, läser, skapar, ändrar, tar bort och räknar monitorer, incidenter, varningar, statussidor och de andra poster som OneUptimes API erbjuder, med en API-nyckel till ditt projekt.
+OneUptimes CLI, `oneuptime`, hanterar ditt OneUptime-projekt från en terminal eller ett skript. Den listar, läser, skapar, ändrar, tar bort och räknar monitorer, incidenter, larm, statussidor och de andra poster som OneUptimes API erbjuder, med en API-nyckel till ditt projekt.
 
 :::cards
 - [Så fungerar CLI:n](#så-fungerar-clin): Ett kommando, en API-begäran, ett svar.

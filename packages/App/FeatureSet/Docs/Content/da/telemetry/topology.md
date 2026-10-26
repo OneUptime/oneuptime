@@ -21,7 +21,7 @@ flowchart LR
     neighbours["Naboer, som dine<br/>enheder melder<br/>via LLDP"] --> network["Netværk"]
 ```
 
-- **Kun det, der var aktivt, tegnes.** En visning viser de tjenester og ressourcer, der sendte data i tidsintervallet, og de forbindelser, der blev set i det. Slå **Show inactive** til for også at tegne de tavse.
+- **Kun det, der var aktivt, tegnes.** En visning viser de tjenester og ressourcer, der sendte data i tidsintervallet, og de forbindelser, der blev set i det. Slå **Vis inaktive** til for også at tegne de tavse.
 - **Kald tælles over et nyligt vindue.** OneUptime leder efter kald mellem tjenester hvert 10. minut, og trafiktallene dækker de seneste 15 minutter, ikke hele tidsintervallet.
 - **Netværksvisningen er live.** Den viser dine enheder, som de er forbundet nu, så den har intet tidsinterval.
 
@@ -32,7 +32,7 @@ flowchart LR
 
 ## Åbn Topologi
 
-Gå til **Produkter → Observabilitet → Topologi**. **Inventar → Topology Map** åbner den samme side. Den åbner på **Service Map** for **Past 1 Day**.
+Gå til **Produkter → Observabilitet → Topologi**. **Inventar → Topology Map** åbner den samme side. Den åbner på **Service Map** for **Seneste dag**.
 
 | Visning | Spørgsmålet, den besvarer |
 | --- | --- |
@@ -40,7 +40,7 @@ Gå til **Produkter → Observabilitet → Topologi**. **Inventar → Topology M
 | **Infrastruktur** | Hvad kører hvor i din infrastruktur? |
 | **Netværk** | Hvordan er dine netværksenheder forbundet? |
 
-Ved siden af tidsvælgeren tilføjer **Show inactive** det, der ikke sendte data i intervallet, og opdateringsknappen indlæser visningen igen. **What is shown · About this data** fortæller, hvad visningen tegner, og hvor ofte den beregnes. Adresselinjen husker den visning, du er i, så et link, du deler, åbner den samme visning.
+Ved siden af tidsvælgeren tilføjer **Vis inaktive** det, der ikke sendte data i intervallet, og opdateringsknappen indlæser visningen igen. **Hvad der vises · Om disse data** fortæller, hvad visningen tegner, og hvor ofte den beregnes. Adresselinjen husker den visning, du er i, så et link, du deler, åbner den samme visning.
 
 ## Læs tjenestekortet
 
@@ -65,21 +65,21 @@ Klik på **Kræver opmærksomhed** for kun at beholde de tjenester og deres dire
 
 ### Åbn en tjeneste
 
-Klik på en tjeneste for at se dens anmodninger, fejl og gennemsnitlige latenstid i de seneste 15 minutter, dens **Aktive hændelser** og **Aktive advarsler**, og links til **Traces for this service** og dens **Inventory details**.
+Klik på en tjeneste for at se dens anmodninger, fejl og gennemsnitlige latenstid i de seneste 15 minutter, dens **Aktive hændelser** og **Aktive advarsler**, og links til **Spor for denne tjeneste** og dens **Inventardetaljer**.
 
 ### Åbn en forbindelse
 
 Klik på en pil for at se dens anmodningsrate, fejlrate og gennemsnitlige latenstid. Mellem to tjenester, du instrumenterer, har den også en **History** over kald, fejl og latenstid.
 :::
 
-**Connection labels** skriver et tal på hver pil: **Request rate**, **Fejlrate** eller **Average latency**, eller intet, før du holder musen over. **Tabel** viser de samme tjenester med deres **Anmodninger**, **Fejlrate**, **Avg latency** og **Connections**, og **Show on map** tegner en af dem.
+**Forbindelsesetiketter** skriver et tal på hver pil: **Anmodningshastighed**, **Fejlrate** eller **Gennemsnitlig latens**, eller intet, før du holder musen over. **Tabel** viser de samme tjenester med deres **Anmodninger**, **Fejlrate**, **Gns. latens** og **Forbindelser**, og **Vis på kortet** tegner en af dem.
 
 ## Udforsk din infrastruktur
 
 **Infrastruktur** viser, hvor dine tjenester kører: klynger, værter, pods, containere og de andre ressourcer, der sender data. Replikaer af én workload samles i én post, og du kan åbne hvad som helst for at se indeni.
 
-- **Gennemse den på din måde.** Vis den som **Liste** eller **Map**, fra hele din infrastruktur ned til én pod. Tallene over den viser, hvor mange ressourcer og workloads den tegner, hvor mange tjenester den kan placere, og hvor mange tavse ressourcer den udelader.
-- **Find en ressource.** Søg efter den ved navn, og klik på **View details** for at åbne dens side.
+- **Gennemse den på din måde.** Vis den som **Liste** eller **Kort**, fra hele din infrastruktur ned til én pod. Tallene over den viser, hvor mange ressourcer og workloads den tegner, hvor mange tjenester den kan placere, og hvor mange tavse ressourcer den udelader.
+- **Find en ressource.** Søg efter den ved navn, og klik på **Vis detaljer** for at åbne dens side.
 - **Skift mellem visninger.** En tjeneste, der står på en ressource, åbner på **Service Map**, og de ressourcer, en tjeneste kører på, åbner på **Infrastruktur**.
 
 ## Åbn en ressources eget kort
@@ -103,11 +103,11 @@ OneUptime finder kald mellem tjenester i dine spor hvert 10. minut. Det ser et k
 :::
 
 :::details En tjeneste, jeg har fjernet, er stadig på kortet
-Den sendte data inden for tidsintervallet. Vælg et kortere interval, eller vent, til dens seneste telemetri falder uden for intervallet. Med **Show inactive** slået til tegner kortet også det, der er holdt op med at sende data.
+Den sendte data inden for tidsintervallet. Vælg et kortere interval, eller vent, til dens seneste telemetri falder uden for intervallet. Med **Vis inaktive** slået til tegner kortet også det, der er holdt op med at sende data.
 :::
 
 :::details Kortet siger, at kun en del af det vises
-Et meget stort projekt når kortets grænser, og en meddelelse fortæller, hvor mange ressourcer eller forbindelser det viser. Søg efter en tjeneste, eller brug **Show on map** i tabellen, for at tegne en læsbar del af det.
+Et meget stort projekt når kortets grænser, og en meddelelse fortæller, hvor mange ressourcer eller forbindelser det viser. Søg efter en tjeneste, eller brug **Vis på kortet** i tabellen, for at tegne en læsbar del af det.
 :::
 
 ## Næste skridt

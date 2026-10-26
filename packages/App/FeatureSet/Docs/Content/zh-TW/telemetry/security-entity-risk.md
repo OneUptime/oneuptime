@@ -29,7 +29,7 @@ flowchart TB
 ## 開始之前
 
 - 有安全性事件流入，並且有偵測規則、威脅情資或已連線產品能在其中發現問題。請參閱[安全性入門](/docs/telemetry/security-getting-started)。
-- 依指向某人的欄位分組的偵測規則：**Group By Field**，例如 `principalUser`、`principalHost` 或 `principalIp`，或關聯規則分組所用的欄位。不依任何欄位分組的規則不會增加風險。
+- 依指向某人的欄位分組的偵測規則：**分組欄位**，例如 `principalUser`、`principalHost` 或 `principalIp`，或關聯規則分組所用的欄位。不依任何欄位分組的規則不會增加風險。
 - 若要變更 **風險評分**：開關和閾值需要 Project Owner 或 Project Admin，實體清單需要可以建立偵測規則的角色。Security Viewer 可以檢視全部內容。請參閱[角色](/docs/permissions/reference#角色)。
 
 ## 分數如何計算

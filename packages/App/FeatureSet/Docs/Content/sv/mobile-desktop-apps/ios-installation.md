@@ -6,8 +6,8 @@ Installera **OneUptime On-Call** från App Store på en iPhone eller iPad, anslu
 - [Installera appen](#installera-appen): Från App Store.
 - [Logga in](#logga-in): Adressen till ditt OneUptime, sedan ditt konto.
 - [Kontrollera att larmen når enheten](#kontrollera-att-larmen-når-enheten): Hitta den i instrumentpanelen och testa den.
-- [Ring igenom tyst läge](#ring-igenom-tyst-läge): Kritiska varningar, larmljudet och dess volym.
-- [Felsökning](#felsökning): Problem med inloggning, aviseringar och kritiska varningar.
+- [Ring igenom tyst läge](#ring-igenom-tyst-läge): Kritiska larm, larmljudet och dess volym.
+- [Felsökning](#felsökning): Problem med inloggning, aviseringar och kritiska larm.
 :::
 
 ## Innan du börjar
@@ -72,12 +72,12 @@ Dina jourregler avgör vilka larm som går till enheten, och hur snabbt: se **An
 
 ## Ring igenom tyst läge
 
-Som standard följer ett jourlarm enhetens ljudinställningar: tyst läge håller det tyst, och ett Fokus som Stör ej håller tillbaka det. Kritiska varningar låter jourlarm ringa igenom båda. De är avstängda tills du slår på dem, enhet för enhet.
+Som standard följer ett jourlarm enhetens ljudinställningar: tyst läge håller det tyst, och ett Fokus som Stör ej håller tillbaka det. Kritiska larm låter jourlarm ringa igenom båda. De är avstängda tills du slår på dem, enhet för enhet.
 
 ```mermaid title="Om ett jourlarm ringer igenom på en iPhone eller iPad"
 flowchart TB
     Page["Ett jourlarm<br/>till den här enheten"]
-    Rule{"Regel satt till<br/>Kritisk varning?"}
+    Rule{"Regel satt till<br/>Kritiskt larm?"}
     Device{"Critical On-Call<br/>Alerts på?"}
     Quiet["Följer enhetens<br/>ljud och Fokus"]
     Loud["Spelar ditt larm,<br/>med din volym,<br/>genom tyst läge<br/>och Fokus"]
@@ -92,21 +92,21 @@ flowchart TB
 ### Slå på Critical On-Call Alerts
 Öppna **Settings** i appen och slå på **Critical On-Call Alerts** under **Notifications**.
 
-### Tillåt kritiska varningar
-När iOS frågar om OneUptime On-Call får skicka kritiska varningar trycker du på **Tillåt**. iOS lägger då till ett reglage **Kritiska varningar** för appen under **Inställningar → Notiser → OneUptime On-Call**, där du kan ändra dig senare. Raden under appens reglage säger om larm kommer att ringa igenom.
+### Tillåt kritiska larm
+När iOS frågar om OneUptime On-Call får skicka kritiska larm trycker du på **Tillåt**. iOS lägger då till ett reglage **Kritiska larm** för appen under **Inställningar → Notiser → OneUptime On-Call**, där du kan ändra dig senare. Raden under appens reglage säger om larm kommer att ringa igenom.
 
 ### Välj ett larmljud och dess volym
-Tryck på **Alarm sound** under reglaget. Förutom enhetens eget ljud för kritiska varningar erbjuder appen Klaxon, Siren, Digital alarm, Smoke alarm och Rising alarm, som börjar mjukt och blir starkare. Tryck på spela upp bredvid ett ljud för att höra det. Välj sedan volymen ett larm spelas med: 25 %, 50 %, 75 % eller 100 %, standardvärdet.
+Tryck på **Alarm sound** under reglaget. Förutom enhetens eget ljud för kritiska larm erbjuder appen Klaxon, Siren, Digital alarm, Smoke alarm och Rising alarm, som börjar mjukt och blir starkare. Tryck på spela upp bredvid ett ljud för att höra det. Välj sedan volymen ett larm spelas med: 25 %, 50 %, 75 % eller 100 %, standardvärdet.
 :::
 
-Bara jourlarm ringer igenom, och bara från jourregler satta till **Kritisk varning**, standardvärdet. En regel satt till **Normal** följer enhetens inställningar oavsett vad reglaget säger, så att du kan väckas av en kritisk incident och larmas tyst för en mindre. Skicka en **Testavisering** med enheten i tyst läge för att höra vad ett larm kommer att göra. Förhandslyssningen på skärmen **Alarm sound** spelas med ringvolymen och inte alls i tyst läge; ett riktigt larm ringer igenom tyst läge med den volym du valde.
+Bara jourlarm ringer igenom, och bara från jourregler satta till **Kritiskt larm**, standardvärdet. En regel satt till **Normal** följer enhetens inställningar oavsett vad reglaget säger, så att du kan väckas av en kritisk incident och larmas tyst för en mindre. Skicka en **Testavisering** med enheten i tyst läge för att höra vad ett larm kommer att göra. Förhandslyssningen på skärmen **Alarm sound** spelas med ringvolymen och inte alls i tyst läge; ett riktigt larm ringer igenom tyst läge med den volym du valde.
 
 > [!NOTE]
-> Kritiska varningar kräver OneUptime On-Call 1.5.0 eller senare från App Store. Tidigare versioner byggdes utan Apples tillstånd för kritiska varningar, så iOS erbjöd dem aldrig reglaget.
+> Kritiska larm kräver OneUptime On-Call 1.5.0 eller senare från App Store. Tidigare versioner byggdes utan Apples tillstånd för kritiska larm, så iOS erbjöd dem aldrig reglaget.
 
 ## Undvik att larm hålls tillbaka
 
-Utan kritiska varningar kan ett Fokus eller en sammanfattning hålla tillbaka larm:
+Utan kritiska larm kan ett Fokus eller en sammanfattning hålla tillbaka larm:
 
 - **Fokus.** Lägg till OneUptime On-Call bland de appar varje Fokus tillåter, under **Inställningar → Fokus**.
 - **Schemalagd sammanfattning.** Håll OneUptime On-Call utanför den, under **Inställningar → Notiser → Schemalagd sammanfattning**: en notis i sammanfattningen väntar till sammanfattningens nästa tidpunkt.
@@ -136,12 +136,12 @@ Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, i
 - På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).
 :::
 
-:::details Inget reglage för kritiska varningar i iOS-inställningarna
-Slå först på **Critical On-Call Alerts** i appen: iOS lägger till sitt reglage först när appen har bett om kritiska varningar. Säger appen att den här versionen inte kan ta emot kritiska varningar uppdaterar du OneUptime On-Call från App Store.
+:::details Inget reglage för kritiska larm i iOS-inställningarna
+Slå först på **Critical On-Call Alerts** i appen: iOS lägger till sitt reglage först när appen har bett om kritiska larm. Säger appen att den här versionen inte kan ta emot kritiska larm uppdaterar du OneUptime On-Call från App Store.
 :::
 
-:::details Kritiska varningar är tysta
-Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas. Kontrollera att **Kritiska varningar** är på under **Inställningar → Notiser → OneUptime On-Call**, och att volymen på appens skärm **Alarm sound** inte står lågt.
+:::details Kritiska larm är tysta
+Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas. Kontrollera att **Kritiska larm** är på under **Inställningar → Notiser → OneUptime On-Call**, och att volymen på appens skärm **Alarm sound** inte står lågt.
 :::
 
 :::details Inget reglage för Biometrics Login

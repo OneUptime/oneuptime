@@ -51,7 +51,7 @@ En el paso **Remitente**, introduce el **Correo del remitente** y el **Nombre de
 
 ### Guardar y enviar un correo de prueba
 
-Guarda la configuración. Una vez guardada una configuración de proyecto, **Enviar correo de prueba** en su fila comprueba que funciona. Necesita permiso para añadir configuraciones SMTP: **Project Owner**, **Project Admin**, o **Create SMTP Config** y **Read SMTP Config** en un rol personalizado. En OneUptime Cloud también necesita el plan **Growth**, como añadir una configuración. Para cualquier otra persona aparece bloqueado, y su descripción emergente dice qué hace falta.
+Guarda la configuración. Una vez guardada una configuración de proyecto, **Enviar correo de prueba** en su fila comprueba que funciona. Necesita permiso para añadir configuraciones SMTP: **Propietario del proyecto**, **Administrador del proyecto**, o **Create SMTP Config** y **Read SMTP Config** en un rol personalizado. En OneUptime Cloud también necesita el plan **Growth**, como añadir una configuración. Para cualquier otra persona aparece bloqueado, y su descripción emergente dice qué hace falta.
 
 La prueba pide una dirección de **Correo electrónico** a la que enviar, la tuya para empezar. Comprueba que el mensaje llega.
 :::

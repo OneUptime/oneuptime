@@ -60,7 +60,7 @@ Fate clic su **Crea chiave di ingestione**. La finestra parte con il nome **Chia
 
 ### Aggiungere le origini di una chiave Browser
 
-Una chiave **Browser** chiede le sue **Allowed Origins** al passaggio successivo, **Impostazioni del browser**, con il suo **Pinned Service Name** in **Avanzato**. Vedete [Proteggere una chiave Browser](#proteggere-una-chiave-browser).
+Una chiave **Browser** chiede le sue **Origini consentite** al passaggio successivo, **Impostazioni del browser**, con il suo **Nome del servizio fissato** in **Avanzato**. Vedete [Proteggere una chiave Browser](#proteggere-una-chiave-browser).
 
 ### Creare la chiave e copiarne il segreto
 
@@ -88,8 +88,8 @@ Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste 
 
 | Impostazione | Che cosa fa |
 | --- | --- |
-| **Allowed Origins** | Le sole origini da cui la chiave è accettata. Una richiesta da qualsiasi altra origine, o senza alcuna intestazione `Origin`, viene rifiutata. Una chiave Browser deve conservarne almeno una. |
-| **Pinned Service Name** | Archivia tutto ciò che la chiave invia su OTLP/HTTP sotto quest'unico servizio, qualunque `service.name` abbia impostato il mittente. Una copia della chiave può allora scrivere solo in quel servizio. |
+| **Origini consentite** | Le sole origini da cui la chiave è accettata. Una richiesta da qualsiasi altra origine, o senza alcuna intestazione `Origin`, viene rifiutata. Una chiave Browser deve conservarne almeno una. |
+| **Nome del servizio fissato** | Archivia tutto ciò che la chiave invia su OTLP/HTTP sotto quest'unico servizio, qualunque `service.name` abbia impostato il mittente. Una copia della chiave può allora scrivere solo in quel servizio. |
 | **Requests Per Minute Limit** | Il numero massimo di richieste per cui la chiave è accettata ogni minuto, condiviso da tutti i visitatori. Una chiave Browser ne riceve 6.000 se lasciate il campo vuoto. |
 | **Scade il** | La data dopo la quale la chiave viene rifiutata, così una copia pubblicata smette di funzionare. |
 
@@ -130,8 +130,8 @@ Una richiesta rifiutata riceve uno stato e una frase che dice il perché.
 | `422` con `This telemetry ingestion key has been disabled.` | Qualcuno ha disattivato **Abilitato**. |
 | `422` con `A browser ingestion key cannot be used for` | Una chiave Browser ha raggiunto un endpoint che accetta solo chiavi Server. |
 | `422` con `did not send an Origin header` | Una chiave Browser è stata inviata da fuori un browser. Lì usate una chiave Server. |
-| `422` con `is not allowed for this browser ingestion key` | L'origine della pagina non è in **Allowed Origins**. |
-| `422` con `is pinned to a single service` | Una chiave con un **Pinned Service Name** è stata usata per registrare un agente. Usate una chiave Server senza nome fissato. |
+| `422` con `is not allowed for this browser ingestion key` | L'origine della pagina non è in **Origini consentite**. |
+| `422` con `is pinned to a single service` | Una chiave con un **Nome del servizio fissato** è stata usata per registrare un agente. Usate una chiave Server senza nome fissato. |
 | `429` con `Too many telemetry requests for this ingestion key` | La chiave ha raggiunto il suo **Requests Per Minute Limit**. Gli esportatori riprovano dopo il tempo indicato da `Retry-After`. |
 
 Per le altre risposte che un esportatore OTLP può ricevere, vedete [Risposte](/docs/telemetry/open-telemetry#risposte).

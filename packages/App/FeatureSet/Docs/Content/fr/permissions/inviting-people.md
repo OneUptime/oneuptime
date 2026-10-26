@@ -64,7 +64,7 @@ L'e-mail d'invitation nomme le projet. Son bouton est **Create Your Account** po
 | Où elle se trouve | Ce qu'elle voit | Ce sur quoi elle clique |
 | --- | --- | --- |
 | Dans aucun projet encore | L'invitation, sur la page où elle arrive après s'être connectée | **Accepter et rejoindre**, ou **Refuser** |
-| Déjà dans un autre projet | L'invitation en attente sur la cloche en haut à droite, qui ouvre **Invitations au projet** | **Accepter**, ou **Reject** |
+| Déjà dans un autre projet | L'invitation en attente sur la cloche en haut à droite, qui ouvre **Invitations au projet** | **Accepter**, ou **Rejeter** |
 
 L'acceptation la place aussitôt dans le projet, avec les autorisations de son équipe et la configuration de notifications avec laquelle tout membre commence : voir [Ce avec quoi vous commencez](/docs/notifications/index#ce-dont-vous-disposez-au-départ). Refuser supprime l'invitation : pour rejoindre plus tard, il en faut une nouvelle.
 

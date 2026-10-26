@@ -52,7 +52,7 @@ De workflow opent in de **Bouwer** met drie stappen: **On Create Incident**; **S
 @tab Vanaf nul
 1. Sla de URL op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflow Variabele aanmaken**, noem hem `DISCORD_WEBHOOK_URL` en klik op **Volgende**. Plak de URL in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
-3. Klik in de **Bouwer** op **Choose what starts this workflow** en kies **On Create Incident** onder **Popular**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Incident Number With Prefix**.
+3. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **On Create Incident** onder **Populair**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Incident Number With Prefix**.
 4. Klik op **Component toevoegen**, zoek naar `discord` en klik op **Send Message to Discord**. Verbind de uitgang **Success** van de trigger met deze stap.
 5. Klik op de nieuwe stap. Klik in **Discord Incoming Webhook URL** op **{ }** en kies `DISCORD_WEBHOOK_URL` onder **Global variables**. Schrijf het bericht in **Message Text** en voeg de velden van het incident in met **{ }**.
 :::

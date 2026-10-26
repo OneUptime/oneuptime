@@ -71,7 +71,7 @@ Die Felder unter **Weitere Felder**:
 | --- | --- | --- |
 | **Beschreibung** | Wofür das SLO da ist. | Leer |
 | **Risikoschwellenwert (%)** | Der Anteil des verbleibenden Fehlerbudgets, bei dem das SLO **Gefährdet** wird. Eine ganze Zahl von 0 bis 100. | 20 |
-| **Typ des Zeitfensters** | **Rollierend**: die letzten N Tage, die sich erholen, während alte Ausfallzeit aus dem Fenster fällt. **Calendar Month**: jeder Monat für sich, zurückgesetzt am 1. | **Rollierend** |
+| **Typ des Zeitfensters** | **Rollierend**: die letzten N Tage, die sich erholen, während alte Ausfallzeit aus dem Fenster fällt. **Kalendermonat**: jeder Monat für sich, zurückgesetzt am 1. | **Rollierend** |
 | **Zeitfenster (Tage)** | Nur rollierende Zeitfenster: wie viele Tage zurückgeschaut wird, von 1 bis 366. Üblich sind 28 oder 30. | 30 |
 | **Zeitzone** | Nur Kalendermonate: die Zeitzone, in der jeder Monat beginnt und endet. | UTC |
 | **Beschriftungen** | Beschriftungen, um SLOs zu ordnen und zu filtern. | Keine |
@@ -82,7 +82,7 @@ Alles, was bestimmt, wie das SLO misst, startet mit einem Standardwert, den Sie 
 | --- | --- | --- |
 | Monitore | Keinen | **Monitore** oder **Monitor-Regeln** |
 | Ausfall-Status | Jedem nicht betriebsbereiten Status des Projekts | **Einstellungen** → **Berechnung der Ausfallzeit** |
-| Multi-Monitor-Modus | **Any Monitor Down** | **Einstellungen** → **Berechnung der Ausfallzeit** |
+| Multi-Monitor-Modus | **Beliebiger Monitor ausgefallen** | **Einstellungen** → **Berechnung der Ausfallzeit** |
 | Auswertung | Ein | **Einstellungen** → **Auswertung** |
 | Burn-Rate-Regeln | Einer Regel **Fast burn** und einer Regel **Slow burn**, an das Zeitfenster angepasst | **Burn-Rate-Regeln** |
 
@@ -109,18 +109,18 @@ Jedes SLO hat seine eigene Liste von Monitorstatus, die als Ausfallzeit zählen.
 | Fenstertyp | Wie es sich verhält |
 | --- | --- |
 | **Rollierend** | Schaut eine feste Zahl von Tagen ab jetzt zurück. Alte Ausfallzeit fällt aus dem Fenster, also kommt das Budget nach und nach zurück. |
-| **Calendar Month** | Misst ab dem Ersten des Monats, in der Zeitzone des SLO (standardmäßig UTC). Das ganze Budget kommt zu Beginn jedes Monats zurück. |
+| **Kalendermonat** | Misst ab dem Ersten des Monats, in der Zeitzone des SLO (standardmäßig UTC). Das ganze Budget kommt zu Beginn jedes Monats zurück. |
 
 ### Mehrere Monitore in einem SLO
 
-Misst ein SLO mehr als einen Monitor, entscheidet sein **Multi-Monitor-Modus**, wie sich deren Ausfallzeit zusammensetzt. Ein neues SLO verwendet **Any Monitor Down**.
+Misst ein SLO mehr als einen Monitor, entscheidet sein **Multi-Monitor-Modus**, wie sich deren Ausfallzeit zusammensetzt. Ein neues SLO verwendet **Beliebiger Monitor ausgefallen**.
 
 | Modus | Wie Ausfallzeit zählt | Geeignet, wenn |
 | --- | --- | --- |
-| **Any Monitor Down** | Jeder Moment, in dem mindestens ein Monitor ausgefallen ist, zählt als Ausfallzeit für das ganze SLO. Überlappende Ausfälle zählen einmal. | Die Monitore zusammen sind ein Dienst: Fällt einer aus, merken es die Nutzer. |
-| **Monitor Seconds Average** | Die Ausfallzeit jedes Monitors zählt für sich, gemittelt über die gesamte überwachte Zeit: SLI = 1 − (Ausfallsekunden aller Monitore ÷ überwachte Sekunden aller Monitore). | Die Monitore sind eine Flotte gleichartiger Ressourcen, und teilweise Auswirkungen sollen teilweise zählen. |
+| **Beliebiger Monitor ausgefallen** | Jeder Moment, in dem mindestens ein Monitor ausgefallen ist, zählt als Ausfallzeit für das ganze SLO. Überlappende Ausfälle zählen einmal. | Die Monitore zusammen sind ein Dienst: Fällt einer aus, merken es die Nutzer. |
+| **Durchschnitt der Monitorsekunden** | Die Ausfallzeit jedes Monitors zählt für sich, gemittelt über die gesamte überwachte Zeit: SLI = 1 − (Ausfallsekunden aller Monitore ÷ überwachte Sekunden aller Monitore). | Die Monitore sind eine Flotte gleichartiger Ressourcen, und teilweise Auswirkungen sollen teilweise zählen. |
 
-Zum Beispiel ist Monitor A von 10:00 bis 11:00 ausgefallen, während Monitor B verfügbar bleibt. **Any Monitor Down** erfasst 60 Minuten Ausfallzeit; **Monitor Seconds Average** erfasst das Äquivalent von 30 Minuten, weil einer von zwei Monitoren eine Stunde lang ausgefallen war. In diesem Modus wird auch das Budget in Monitorsekunden gezählt: siehe [Fehlerbudgets](/docs/slo/error-budget).
+Zum Beispiel ist Monitor A von 10:00 bis 11:00 ausgefallen, während Monitor B verfügbar bleibt. **Beliebiger Monitor ausgefallen** erfasst 60 Minuten Ausfallzeit; **Durchschnitt der Monitorsekunden** erfasst das Äquivalent von 30 Minuten, weil einer von zwei Monitoren eine Stunde lang ausgefallen war. In diesem Modus wird auch das Budget in Monitorsekunden gezählt: siehe [Fehlerbudgets](/docs/slo/error-budget).
 
 ## SLO-Status
 
@@ -235,7 +235,7 @@ Auch das Seitenmenü eines Monitors hat eine Seite **SLOs**: die SLOs, die diese
 
 Ein SLO mit rollierendem Zeitfenster, das jünger ist als sein Fenster, wird über die bisher vorhandenen Daten gemessen: Ein 30-Tage-SLO, das gestern erstellt wurde, hat einen Tag Daten. Sein Fehlerbudget beginnt klein und wächst, während sich das Fenster füllt, daher schwanken seine ersten Zahlen stärker als später.
 
-Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen Chip **Window 23% full** (**Window under 1% full** am ersten Tag), und die Kachel **Verbleibendes Fehlerbudget** wiederholt ihn unter ihrer Zahl. Beide verschwinden, sobald das Fenster voll ist. Kalendermonat-SLOs zeigen sie nie, weil ihr Budget vom ersten Tag an den ganzen Monat abdeckt, und SLOs im Modus **Monitor Seconds Average** ebenfalls nicht, weil ihr Budget über Monitore hinweg gezählt wird.
+Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen Chip **Window 23% full** (**Window under 1% full** am ersten Tag), und die Kachel **Verbleibendes Fehlerbudget** wiederholt ihn unter ihrer Zahl. Beide verschwinden, sobald das Fenster voll ist. Kalendermonat-SLOs zeigen sie nie, weil ihr Budget vom ersten Tag an den ganzen Monat abdeckt, und SLOs im Modus **Durchschnitt der Monitorsekunden** ebenfalls nicht, weil ihr Budget über Monitore hinweg gezählt wird.
 
 ## Fehlerbehebung
 
@@ -243,7 +243,7 @@ Ein Banner oben auf den Seiten des SLO sagt, was es am Messen hindert:
 
 | Banner | Bedeutung | Was zu tun ist |
 | --- | --- | --- |
-| **No monitors attached** | Das SLO hat keine Monitore, es gibt also nichts zu messen. | Monitore zuordnen oder eine Monitor-Regel erstellen. |
+| **Keine Monitore verbunden** | Das SLO hat keine Monitore, es gibt also nichts zu messen. | Monitore zuordnen oder eine Monitor-Regel erstellen. |
 | **Waiting for SLO evaluation** | Monitore sind zugeordnet, aber die letzte Auswertung hatte keine Statusdaten von ihnen. | Prüfen Sie, ob die Monitore geprüft werden. Zahlen erscheinen nach der nächsten Auswertung mit Daten. |
 | **Measurement is paused** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet. | Schalten Sie die Überwachung für mindestens einen Monitor wieder ein, oder warten Sie, bis die Wartung endet. |
 | **The target is out of range** | Das Ziel ist nicht größer als 0 und kleiner als 100. | Legen Sie ein Ziel wie 99,9 unter **Einstellungen** → **Ziel** fest. |

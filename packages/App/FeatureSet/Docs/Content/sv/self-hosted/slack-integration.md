@@ -39,7 +39,7 @@ sequenceDiagram
 - En Slack-arbetsyta där du kan skapa och installera appar.
 - Ett offentligt HTTPS-värdnamn för OneUptime som Slack kan nå. Se [Nätverksåtkomst](#nätverksåtkomst-för-egenvärdade-installationer).
 - Åtkomst till serverns konfiguration: `config.env` för Docker Compose, eller dina Helm-values för Kubernetes.
-- För att ansluta ett projekt: rollen **Project Owner**, **Project Admin** eller **Project Member** i det.
+- För att ansluta ett projekt: rollen **Projektägare**, **Projektadministratör** eller **Projektmedlem** i det.
 
 ## Konfigurera Slack-appen
 
@@ -239,7 +239,7 @@ När Slack skickar tillbaka dig och anslutningen inte gjordes visar Slack-sidan 
 | Sidan säger | Vad du gör |
 | --- | --- |
 | **"Den här anslutningslänken är ogiltig, har gått ut eller har redan använts. Börja om."** | Länken fungerar en gång, i 15 minuter, i webbläsaren som startade den. Börja om från Slack-sidan och slutför i Slack inom 15 minuter, i samma webbläsare. |
-| **"Du har inte behörighet att ansluta det här projektet till Slack."** | Att installera OneUptime i Slack kräver **Project Owner**, **Project Admin** eller **Project Member**. Det kontrolleras igen när Slack skickar tillbaka dig, så en roll som tagits bort under tiden avslutar också anslutningen här. |
+| **"Du har inte behörighet att ansluta det här projektet till Slack."** | Att installera OneUptime i Slack kräver **Projektägare**, **Projektadministratör** eller **Projektmedlem**. Det kontrolleras igen när Slack skickar tillbaka dig, så en roll som tagits bort under tiden avslutar också anslutningen här. |
 | **"Du är inte längre medlem i det här projektet."** | För att ansluta ditt eget Slack-konto måste du vara medlem i projektet när Slack skickar tillbaka dig. |
 | **"Det här projektet är ännu inte anslutet till någon Slack-arbetsyta."** | Installera först OneUptime i Slack från **Projektinställningar > Arbetsyta > Slack** och anslut sedan ditt eget konto. |
 | **"Du loggade in i en annan Slack-arbetsyta än den som det här projektet är anslutet till."** | Anslut ditt konto medan du är inloggad i den Slack-arbetsyta som projektet är installerat i. |

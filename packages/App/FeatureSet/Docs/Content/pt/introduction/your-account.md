@@ -109,7 +109,7 @@ No topo da página, clique em **Enable two-factor authentication** e confirme. O
 Você pode pertencer a quantos projetos quiser. O seletor de projetos, no canto superior esquerdo do painel, lista todos eles: escolha um para trocar.
 
 - **Criar um projeto**: abra o seletor de projetos e clique em **Criar Novo Projeto**. Em uma instalação auto-hospedada, o administrador pode reservar a criação de projetos aos administradores.
-- **Aceitar um convite**: quando alguém convida você, o sino no canto superior direito mostra o convite pendente e abre **Convites do projeto**. Ali você pode **Aceitar** ou clicar em **Reject**.
+- **Aceitar um convite**: quando alguém convida você, o sino no canto superior direito mostra o convite pendente e abre **Convites do projeto**. Ali você pode **Aceitar** ou clicar em **Rejeitar**.
 - **Sair de um projeto**: peça a alguém que gerencia os usuários do projeto para remover você, com **Remover do Projeto** na página **Usuários** dele.
 
 ## O que cada projeto guarda para você

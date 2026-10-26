@@ -17,15 +17,15 @@ Begin bij de vraag die de tegel moet beantwoorden:
 | De vraag | De widget |
 | --- | --- |
 | Hoe is een metric in de loop van de tijd veranderd? | **Grafiek** |
-| Hoeveel logs, van welke ernst, in de loop van de tijd? | **Log Chart** |
-| Hoe snel zijn verzoeken, en hoeveel mislukken er, in de loop van de tijd? | **Trace Chart** |
+| Hoeveel logs, van welke ernst, in de loop van de tijd? | **Logboekgrafiek** |
+| Hoe snel zijn verzoeken, en hoeveel mislukken er, in de loop van de tijd? | **Tracegrafiek** |
 | Wat is één getal op dit moment? | **Waarde**, of **Meter** als het een bekend bereik heeft |
-| Welke hosts, services of endpoints springen eruit? | **Tabel** of **Trace Table** |
+| Welke hosts, services of endpoints springen eruit? | **Tabel** of **Tracetabel** |
 | Wat gebeurt er op dit moment? | **Logstroom**, **Tracelijst**, **Incidentenlijst** of **Waarschuwingslijst** |
 | Zijn al onze sites in de lucht? | **Monitorlijst** |
-| Halen we de betrouwbaarheid die we hebben beloofd? | **SLO** of **SLO List** |
+| Halen we de betrouwbaarheid die we hebben beloofd? | **SLO** of **SLO-lijst** |
 | In welke toestand zijn onze clusters en hosts? | Een widget uit de groep Infrastructuur |
-| Waar ter wereld ligt ons netwerk, en wat ligt er plat? | **Network Map** |
+| Waar ter wereld ligt ons netwerk, en wat ligt er plat? | **Netwerkkaart** |
 | Een kop, een notitie, de tijd op een ander kantoor? | **Tekst** of **Klok** |
 | Gegevens die buiten OneUptime staan? | Een widget uit de groep Externe gegevensbronnen |
 | Iets wat geen enkele widget dekt? | **HTML**, zodra je zeker weet dat geen andere widget het doet |
@@ -127,13 +127,13 @@ Wie het dashboard kan bewerken, bepaalt wat deze widget uitvoert, en iedereen di
 
 | Widget | Wat hij toont | Instellingen die ertoe doen |
 | --- | --- | --- |
-| **Log Chart** | Logvolume in de loop van de tijd, één reeks per ernst, als staven, lijnen of vlakken. | Ernstniveaus, tekst die de body bevat, attribuutfilters. |
+| **Logboekgrafiek** | Logvolume in de loop van de tijd, één reeks per ernst, als staven, lijnen of vlakken. | Ernstniveaus, tekst die de body bevat, attribuutfilters. |
 | **Logstroom** | De nieuwste logregels die aan een filter voldoen. | Ernst, tekst die de body bevat, attribuutfilters zoals `@service.name:checkout`, hoeveel rijen. |
-| **Trace Chart** | Aantal verzoeken, aantal fouten of responstijd (gemiddeld, minimum, maximum, P50 tot P99) in de loop van de tijd. | De metric, welke spans er tellen, en een attribuut om de reeksen op te splitsen. |
+| **Tracegrafiek** | Aantal verzoeken, aantal fouten of responstijd (gemiddeld, minimum, maximum, P50 tot P99) in de loop van de tijd. | De metric, welke spans er tellen, en een attribuut om de reeksen op te splitsen. |
 | **Tracelijst** | De nieuwste traces, met hun duur en status. | Status, hoeveel rijen. |
-| **Trace Table** | De belangrijkste spannamen, statussen of attribuutwaarden naar aantal verzoeken, met mediane, gemiddelde, minimale en maximale responstijden. | Waarop de rijen worden gegroepeerd, en welke spans er tellen. |
-| **Security Events** | De nieuwste beveiligingsgebeurtenissen, met ernst, gebeurtenisklasse en host. | Ernstniveaus, gebeurtenisklassen, tekst die het bericht bevat. |
-| **Security Events Flow** | Een stroom van beveiligingsgebeurtenissen vanaf hun bron, via hun gebeurtenisklasse, naar hun ernst. | Ernstniveaus, hoeveel gebeurtenissen. |
+| **Tracetabel** | De belangrijkste spannamen, statussen of attribuutwaarden naar aantal verzoeken, met mediane, gemiddelde, minimale en maximale responstijden. | Waarop de rijen worden gegroepeerd, en welke spans er tellen. |
+| **Beveiligingsgebeurtenissen** | De nieuwste beveiligingsgebeurtenissen, met ernst, gebeurtenisklasse en host. | Ernstniveaus, gebeurtenisklassen, tekst die het bericht bevat. |
+| **Stroom van beveiligingsgebeurtenissen** | Een stroom van beveiligingsgebeurtenissen vanaf hun bron, via hun gebeurtenisklasse, naar hun ernst. | Ernstniveaus, hoeveel gebeurtenissen. |
 
 De tracewidgets tellen alleen rootspans, net als de trace-verkenner, tenzij je onderliggende spans opneemt in hun instellingen. Een gangbaar patroon is een latentiegrafiek bovenaan met een lijst trage traces eronder.
 
@@ -143,7 +143,7 @@ De tracewidgets tellen alleen rootspans, net als de trace-verkenner, tenzij je o
 | --- | --- | --- |
 | **Incidentenlijst** | Incidenten met hun toestand en ernst. | Onopgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
 | **Waarschuwingslijst** | Waarschuwingen met hun toestand en ernst. | Onopgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
-| **Monitorlijst** | Monitors met hun huidige status. | Operationeel of niet, status, monitortype en labels, of een **Label Variable** die kijkers in de werkbalk kiezen. |
+| **Monitorlijst** | Monitors met hun huidige status. | Operationeel of niet, status, monitortype en labels, of een **Labelvariabele** die kijkers in de werkbalk kiezen. |
 
 Net als de meeste lijstwidgets kunnen deze drie een honingraat tekenen van cellen gekleurd naar status in plaats van een tabel: kies dat onder **Weergavemodus**. Ze tonen de huidige toestand, wat het tijdsbereik van het dashboard ook is.
 
@@ -164,7 +164,7 @@ De SLO-widget werkt op [openbare dashboards](/docs/dashboards/sharing). Wat er w
 
 ### SLO List
 
-Elke SLO met zijn status, SLI, error budget en burn rate, met het minste resterende budget bovenaan. Filter hem op status of labels, of met een **Label Variable** die kijkers in de werkbalk kiezen. [SLO-metrics en -dashboards](/docs/slo/metrics) laat beide SLO-widgets in actie zien.
+Elke SLO met zijn status, SLI, error budget en burn rate, met het minste resterende budget bovenaan. Filter hem op status of labels, of met een **Labelvariabele** die kijkers in de werkbalk kiezen. [SLO-metrics en -dashboards](/docs/slo/metrics) laat beide SLO-widgets in actie zien.
 
 ## Infrastructuur
 
@@ -177,9 +177,9 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **Docker** | **Hosts**, **Containers**, **Images**, **Netwerken**, **Volumes** | De Docker-agent |
 | **Docker Swarm** | **Knooppunten**, **Services** | De Docker Swarm-agent |
 | **Podman** | **Hosts**, **Containers**, **Images**, **Netwerken**, **Volumes** | De Podman-agent |
-| **Proxmox** | **Knooppunten**, **Guests** | De Proxmox-agent |
+| **Proxmox** | **Knooppunten**, **Gasten** | De Proxmox-agent |
 | **VMware** | **Hosts**, **Virtuele machines** | De VMware-agent, of een vCenter die je koppelt |
-| **Ceph** | **OSDs**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
+| **Ceph** | **OSD's**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
 | **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Storage Array-agent |
 
 Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien.
@@ -231,7 +231,7 @@ Via de API en Terraform is de volgorde de `arguments.sort` van de widget: een ko
 
 Een [openbaar dashboard](/docs/dashboards/sharing) tekent de meeste widgets voor zijn bezoekers, en elk toont alleen wat hij moest tonen. Een paar kunnen niet worden weergegeven zonder aangemelde sessie:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** en **Security Events Flow** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
+- **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen** en **Stroom van beveiligingsgebeurtenissen** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
 - De widgets van Externe gegevensbronnen worden helemaal weggelaten uit een openbaar dashboard, omdat hun instellingen de query zelf zijn.
 
 ## Als een widget niet kan worden weergegeven

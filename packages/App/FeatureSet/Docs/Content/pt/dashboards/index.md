@@ -48,7 +48,7 @@ O menu lateral da lista tem as páginas que cuidam de todos os seus painéis:
 | **Painéis** | Os painéis do projeto. Crie um, ou traga painéis com **Import JSON**. |
 | **Configurações → Regras de proprietário** | Adicionar proprietários aos novos painéis automaticamente. |
 | **Configurações → Regras de Rótulos** | Adicionar rótulos aos novos painéis automaticamente. |
-| **Configurações → Data Sources** | Conectar Prometheus, bancos de dados SQL, ClickHouse, Loki, Elasticsearch ou uma API REST. |
+| **Configurações → Fontes de dados** | Conectar Prometheus, bancos de dados SQL, ClickHouse, Loki, Elasticsearch ou uma API REST. |
 | **Avançado → Arquivado** | Os painéis que você arquivou. Desarquive-os daqui. |
 
 Abra um painel, e o menu lateral dele tem estas páginas. Toda seção, exceto **Básico**, começa recolhida: clique no título dela para abri-la.

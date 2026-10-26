@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["Le Worker OneUptime<br/>exécute les étapes"]
 ```
 
-Un déclencheur démarre une exécution comme le fait **Run Now** : l'exécution porte sur les étapes actuelles du runbook et n'est rattachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée. Chaque exécution enregistre ce qui l'a démarrée. Les **Exécutions** du runbook et **Runbooks → Exécutions** l'affichent sous **Déclenché par**, avec l'heure prévue d'une exécution planifiée ou l'adresse qui a appelé le webhook, et les deux listes peuvent être filtrées sur ce critère.
+Un déclencheur démarre une exécution comme le fait **Exécuter maintenant** : l'exécution porte sur les étapes actuelles du runbook et n'est rattachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée. Chaque exécution enregistre ce qui l'a démarrée. Les **Exécutions** du runbook et **Runbooks → Exécutions** l'affichent sous **Déclenché par**, avec l'heure prévue d'une exécution planifiée ou l'adresse qui a appelé le webhook, et les deux listes peuvent être filtrées sur ce critère.
 
 ## Avant de commencer
 
@@ -163,7 +163,7 @@ return { host };
 
 ## Qui peut configurer les déclencheurs
 
-Une planification ou un webhook démarre des exécutions sans personne présente ; en configurer un demande donc l'autorisation de modifier le runbook et de l'exécuter : Project Owner, Project Admin ou Runbook Admin, ou **Edit Runbook** associé à Project Member, Runbook Member ou **Create Runbook Execution**. Les libellés auxquels un rôle est limité comptent, comme pour **Run Now**. Voir ou réinitialiser l'URL du webhook demande la même chose.
+Une planification ou un webhook démarre des exécutions sans personne présente ; en configurer un demande donc l'autorisation de modifier le runbook et de l'exécuter : Project Owner, Project Admin ou Runbook Admin, ou **Edit Runbook** associé à Project Member, Runbook Member ou **Create Runbook Execution**. Les libellés auxquels un rôle est limité comptent, comme pour **Exécuter maintenant**. Voir ou réinitialiser l'URL du webhook demande la même chose.
 
 Désactiver une planification ou un webhook ne démarre rien et ne demande donc que l'autorisation de modifier le runbook. Une personne qui peut modifier le runbook sans pouvoir l'exécuter voit la page **Déclencheurs** avec **Configurer la planification** verrouillé, et apprend qui peut voir l'URL du webhook.
 

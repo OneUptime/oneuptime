@@ -42,7 +42,7 @@ Videogesprekken (een Teams-vergadering voor een incident) gebruiken deze bot nie
 - Een account dat app-registraties kan maken in Microsoft Entra ID, en een Microsoft 365-beheerder die beheerderstoestemming verleent.
 - Een openbare HTTPS-hostnaam voor OneUptime die Azure Bot Service kan bereiken. Zie [Netwerktoegang](#netwerktoegang).
 - Toegang tot de serverconfiguratie: `config.env` bij Docker Compose, of je Helm-values bij Kubernetes.
-- Om een project te verbinden: de rol **Project Owner**, **Project Admin** of **Project Member** in dat project.
+- Om een project te verbinden: de rol **Projecteigenaar**, **Projectbeheerder** of **Projectlid** in dat project.
 
 ## De integratie instellen
 
@@ -382,7 +382,7 @@ Wanneer Microsoft je terugstuurt en de verbinding niet tot stand is gekomen (bij
 | De pagina zegt | Wat te doen |
 | --- | --- |
 | **"Deze verbindingslink is ongeldig, verlopen of al gebruikt. Begin opnieuw."** | De link werkt één keer, 15 minuten lang, in de browser die hem startte. Begin opnieuw vanaf de Microsoft Teams-pagina en rond binnen 15 minuten af, in dezelfde browser. |
-| **"Je hebt geen toestemming om dit project met Microsoft Teams te verbinden."** | Beheerderstoestemming verlenen voor het project vereist **Project Owner**, **Project Admin** of **Project Member**. Dat wordt opnieuw gecontroleerd wanneer Microsoft je terugstuurt. |
+| **"Je hebt geen toestemming om dit project met Microsoft Teams te verbinden."** | Beheerderstoestemming verlenen voor het project vereist **Projecteigenaar**, **Projectbeheerder** of **Projectlid**. Dat wordt opnieuw gecontroleerd wanneer Microsoft je terugstuurt. |
 | **"Je bent geen lid meer van dit project."** | Om je eigen Microsoft-account te verbinden, moet je lid van het project zijn wanneer Microsoft je terugstuurt. |
 | **"Je bent aangemeld bij een andere Microsoft 365-organisatie dan die waarvoor deze verbinding bedoeld is."** | Meld je aan met een account uit de Microsoft 365-organisatie die beheerderstoestemming heeft verleend, of waarmee het project is verbonden. |
 | **"Je Microsoft 365-organisatie heeft nog geen teams."** | Maak een team aan in Microsoft Teams en verleen daarna opnieuw beheerderstoestemming. |

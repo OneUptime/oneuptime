@@ -88,10 +88,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Routing Phone Number",
     "Status",
     "Yes",
-    // Role names, as a custom role's permission list shows them.
-    "Project Admin",
-    "Project Member",
-    "Viewer",
   ],
 };
 

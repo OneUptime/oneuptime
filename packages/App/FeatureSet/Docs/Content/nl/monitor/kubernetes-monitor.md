@@ -97,7 +97,7 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 
 ### Wat wordt geëvalueerd
 
-Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfigureerde metriekquery of formule. Het criteriaformulier heeft geen keuze voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Threshold**.
+Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfigureerde metriekquery of formule. Het criteriaformulier heeft geen keuze voor het filtertype; het toont **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**.
 
 ### Aggregatietypen
 
@@ -112,7 +112,7 @@ Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfig
 
 ### Voorwaarden
 
-Statische drempels worden vergeleken met de **Threshold** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**.
+Statische drempels worden vergeleken met de **Drempel** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**.
 
 Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies een van deze voorwaarden, en het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster**:
 

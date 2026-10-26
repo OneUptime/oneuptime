@@ -23,7 +23,7 @@ flowchart TB
 - **Bereikbaarheidsdienst** > **Tijdlijn van bereikbaarheidsschema's** toont elk schema dat u kunt zien, gegroepeerd per eigenaarsteam. De knop **Tijdlijnweergave** op **Bereikbaarheidsschema's** opent dezelfde pagina.
 - **Teams** > een team > **Bereikbaarheidsschema's** toont alleen de schema's van dat team.
 
-Een team is eigenaar van een schema wanneer het op de pagina **Eigenaren** van het schema staat. Schema's zonder eigenaarsteam staan gegroepeerd onder **No owner team**. Zet **Group by team** uit om alle schema's in één lijst te zien, gesorteerd op naam.
+Een team is eigenaar van een schema wanneer het op de pagina **Eigenaren** van het schema staat. Schema's zonder eigenaarsteam staan gegroepeerd onder **Geen eigenaarteam**. Zet **Groeperen op team** uit om alle schema's in één lijst te zien, gesorteerd op naam.
 
 ## Het raster lezen
 
@@ -34,16 +34,16 @@ Een team is eigenaar van een schema wanneer het op de pagina **Eigenaren** van h
 | Een balk met **⇄** | Een override: iemand neemt een dienst over. De smalle baan eronder noemt de persoon wiens dienst wordt overgenomen, doorgestreept. |
 | Een gearceerd amberkleurig blok | Een dekkingsgat: niemand heeft dienst. Een waarschuwing die naar dat schema escaleert, roept dan niemand op. |
 | De rode lijn | Nu. |
-| De regel onder de naam van een schema | Wie er nu dienst heeft, of **No one on call now**. |
+| De regel onder de naam van een schema | Wie er nu dienst heeft, of **Nu niemand bereikbaar**. |
 
 Beweeg de muis over een balk of een gat, of ga er met het toetsenbord naartoe, voor de details.
 
-Onder het raster toont **On call this week** (**On call this month** in de maandweergave) iedereen die in de periode dienst heeft. Beweeg de muis over een naam om te zien hoe lang die persoon dienst heeft, en in hoeveel schema's.
+Onder het raster toont **Bereikbaar deze week** (**Bereikbaar deze maand** in de maandweergave) iedereen die in de periode dienst heeft. Beweeg de muis over een naam om te zien hoe lang die persoon dienst heeft, en in hoeveel schema's.
 
 ## De periode en de tijdzone wijzigen
 
 - Wissel tussen **Week** en **Maand**, blader met de pijlen en ga terug met **Vandaag**.
-- Tijden worden in uw eigen tijdzone getoond. De tijdzoneknop opent **View timeline in timezone**, dat de tijdlijn in een andere zone toont zonder te veranderen wanneer iemand dienst heeft: elk schema draagt de dienst nog steeds over in zijn eigen tijdzone.
+- Tijden worden in uw eigen tijdzone getoond. De tijdzoneknop opent **Tijdlijn bekijken in tijdzone**, dat de tijdlijn in een andere zone toont zonder te veranderen wanneer iemand dienst heeft: elk schema draagt de dienst nog steeds over in zijn eigen tijdzone.
 - De tijdlijn beslaat 180 dagen terug en 365 dagen vooruit.
 
 > [!NOTE]
@@ -52,9 +52,9 @@ Onder het raster toont **On call this week** (**On call this month** in de maand
 ## Een schema of een persoon vinden
 
 - **Zoeken** vindt namen van schema's, namen van teams en de mensen die dienst hebben.
-- Het teamfilter beperkt de weergave tot één team of tot **My teams**; **Schedules I'm on** houdt alleen de schema's over waar u deel van uitmaakt.
-- Klik boven het raster op **with no one on call now** of **with coverage gaps this week** (**with coverage gaps this month** in de maandweergave) om alleen die schema's te zien. Klik er nogmaals op om ze allemaal te zien.
-- Klik op een persoon onder het raster, of op een van diens balken, om al diens diensten te markeren. **Clear highlight** maakt dat ongedaan, en **Clear filters** zet de zoekopdracht en de filters terug.
+- Het teamfilter beperkt de weergave tot één team of tot **Mijn teams**; **Schema's waarin ik sta** houdt alleen de schema's over waar u deel van uitmaakt.
+- Klik boven het raster op **met nu niemand bereikbaar** of **met gaten in de dekking deze week** (**met gaten in de dekking deze maand** in de maandweergave) om alleen die schema's te zien. Klik er nogmaals op om ze allemaal te zien.
+- Klik op een persoon onder het raster, of op een van diens balken, om al diens diensten te markeren. **Markering wissen** maakt dat ongedaan, en **Filters wissen** zet de zoekopdracht en de filters terug.
 
 ## Wie wat ziet
 

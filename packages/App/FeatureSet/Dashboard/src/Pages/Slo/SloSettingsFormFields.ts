@@ -98,6 +98,19 @@ export const SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS: Record<
   ),
 };
 
+/*
+ * Each mode's name, as its answer and the Settings card read it. The enum
+ * value is its English name, which is what is stored; the name is looked
+ * up from here, in the reader's language.
+ */
+export const SLO_MULTI_MONITOR_MODE_NAMES: Record<SloMultiMonitorMode, string> =
+  {
+    [SloMultiMonitorMode.AnyDown]: translationKey("Any Monitor Down"),
+    [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
+      "Monitor Seconds Average",
+    ),
+  };
+
 export type GetSloMultiMonitorModeChoicesFunction = () => Array<RadioButton>;
 
 export const getSloMultiMonitorModeChoices: GetSloMultiMonitorModeChoicesFunction =
@@ -105,7 +118,7 @@ export const getSloMultiMonitorModeChoices: GetSloMultiMonitorModeChoicesFunctio
     return Object.values(SloMultiMonitorMode).map(
       (mode: SloMultiMonitorMode): RadioButton => {
         return {
-          title: mode,
+          title: SLO_MULTI_MONITOR_MODE_NAMES[mode],
           value: mode,
           description: SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS[mode],
         };

@@ -35,8 +35,8 @@ Enregistrez les identifiants pour un projet, ou une seule fois pour toute l'inst
 | | Configuration du projet | Configuration de l'installation |
 | --- | --- | --- |
 | Où | La carte **Configuration Twilio** dans **Paramètres du projet > Notifications > Paramètres de notification** | **Admin Dashboard > Paramètres > Appel et SMS** |
-| Qui peut la définir | **Project Owner**, **Project Admin**, ou **Create Call and SMS** dans un rôle personnalisé | Un administrateur principal |
-| Qui peut lire son Auth Token | **Project Owner**, **Project Admin**, ou **Read Call and SMS** dans un rôle personnalisé. Les autres personnes qui voient la configuration en voient le reste ; le token est stocké chiffré | Un administrateur principal |
+| Qui peut la définir | **Propriétaire du projet**, **Administrateur du projet**, ou **Create Call and SMS** dans un rôle personnalisé | Un administrateur principal |
+| Qui peut lire son Auth Token | **Propriétaire du projet**, **Administrateur du projet**, ou **Read Call and SMS** dans un rôle personnalisé. Les autres personnes qui voient la configuration en voient le reste ; le token est stocké chiffré | Un administrateur principal |
 | Utilisée pour | Les SMS et appels vers les membres du projet tant qu'elle est la configuration par défaut du projet, les pages de statut auxquelles elle est attribuée et les politiques d'appels entrants qui l'utilisent | Les SMS et appels vers les membres de tout projet qui n'a pas de configuration par défaut |
 
 Pour ajouter une configuration de projet :
@@ -49,7 +49,7 @@ Pour ajouter une configuration de projet :
 5. Enregistrez. Une seule configuration peut être la configuration par défaut du projet. Les pages de statut utilisent la configuration explicitement attribuée à chacune d'elles.
 
 > [!IMPORTANT]
-> **SMS** et **Appels téléphoniques** sont désactivés au départ dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet, un **Billing Admin** ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
+> **SMS** et **Appels téléphoniques** sont désactivés au départ dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
 :::
 
 Pour une configuration par défaut à l'échelle de l'installation, un administrateur peut plutôt ouvrir **Admin Dashboard > Paramètres > Appel et SMS**, choisir ce que le compte envoie, modifier les identifiants et les numéros de téléphone Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale quand leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
@@ -150,7 +150,7 @@ Pour le développement, le [guide de test des webhooks](https://www.twilio.com/d
 
 :::steps
 1. Depuis l'extérieur du réseau de l'entreprise et du VPN, vérifiez que le nom d'hôte des callbacks se résout vers la passerelle publique et présente un certificat TLS valide. Un GET dans le navigateur ne teste pas ces callbacks POST.
-2. Utilisez **Envoyer un SMS de test** et **Envoyer un appel de test** sur la configuration Twilio du projet. Confirmez la réception sur le téléphone de destination. Les deux exigent l'autorisation d'ajouter des configurations Twilio : **Project Owner**, **Project Admin**, ou **Create Call and SMS** et **Read Call and SMS** dans un rôle personnalisé.
+2. Utilisez **Envoyer un SMS de test** et **Envoyer un appel de test** sur la configuration Twilio du projet. Confirmez la réception sur le téléphone de destination. Les deux exigent l'autorisation d'ajouter des configurations Twilio : **Propriétaire du projet**, **Administrateur du projet**, ou **Create Call and SMS** et **Read Call and SMS** dans un rôle personnalisé.
 3. Configurez le contact SMS ou appel vérifié de l'utilisateur et ses règles de notification, puis déclenchez une alerte d'astreinte contrôlée. Appuyez sur 1 et confirmez l'acquittement dans OneUptime. Si vous utilisez des politiques d'appels entrants, appelez le numéro configuré et vérifiez son routage et son journal d'appels.
 4. Confirmez le statut de livraison des SMS dans OneUptime et dans les journaux de messages de Twilio. Un envoi accepté n'est pas une preuve de livraison ; [Twilio signale les changements de statut ultérieurs par des callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

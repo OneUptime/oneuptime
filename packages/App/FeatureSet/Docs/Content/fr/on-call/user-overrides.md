@@ -68,7 +68,7 @@ Quand quelqu'un quitte le projet, chaque remplacement qui le nomme et qui n'est 
 
 ## Qui peut ajouter des remplacements
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member** peuvent ajouter et supprimer des remplacements ; **Viewer** et **On-Call Viewer** peuvent les voir. Dans un rôle personnalisé, les permissions sont **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** et **Read On-Call Duty Policy User Override**. Sur la **Chronologie des astreintes**, seules les personnes qui peuvent lire les remplacements voient quelle permanence est remplacée.
+**Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes** peuvent ajouter et supprimer des remplacements ; **Lecteur** et **Lecteur des astreintes** peuvent les voir. Dans un rôle personnalisé, les permissions sont **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** et **Read On-Call Duty Policy User Override**. Sur la **Chronologie des astreintes**, seules les personnes qui peuvent lire les remplacements voient quelle permanence est remplacée.
 
 Sur OneUptime Cloud, les remplacements d'utilisateur nécessitent l'offre **Growth**.
 

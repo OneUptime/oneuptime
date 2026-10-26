@@ -46,7 +46,7 @@ La spesa è il segnale più sicuro di un agente fuori controllo. Un budget somma
 :::steps
 1. Apri **Prodotti → AI / LLM → Budget** e fai clic su **Crea: LLM Cost Budget**. Imposta un **Budget giornaliero (USD)** e scegli il servizio dell'agente in **Servizio (facoltativo)**, così il budget sorveglia solo quell'agente.
 2. Nel menu della riga del nuovo budget, scegli **Mostra ID** e copia l'ID.
-3. Crea un [monitor di metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budget.percent.used`, filtrato per l'attributo `oneuptime.llm.budget.id` con l'ID che hai copiato, e imposta il suo **Intervallo di tempo** su **Past 30 Minutes**.
+3. Crea un [monitor di metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budget.percent.used`, filtrato per l'attributo `oneuptime.llm.budget.id` con l'ID che hai copiato, e imposta il suo **Intervallo di tempo** su **Ultimi 30 minuti**.
 4. Aggiungi un criterio **Maggiore o uguale a** `100` che crei un avviso, e dagli un **Titolo dell'avviso** che nomini l'agente, come `LLM budget exceeded: support-bot`. Il flusso di lavoro e il tuo endpoint leggono entrambi quel titolo.
 :::
 
@@ -125,7 +125,7 @@ Apri **Prodotti → Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. 
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Alert** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Fields to pass on** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Alert** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Fields to pass on** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 
 ### Controlla il titolo
 
@@ -197,7 +197,7 @@ L'intestazione `Authorization` non corrisponde al token che il tuo endpoint si a
 :::
 
 :::details L'avviso di budget si apre e si risolve di continuo
-L'**Intervallo di tempo** del monitor è più breve dei 15 minuti tra due punti del budget. Impostalo su **Past 30 Minutes**.
+L'**Intervallo di tempo** del monitor è più breve dei 15 minuti tra due punti del budget. Impostalo su **Ultimi 30 minuti**.
 :::
 
 :::details La richiesta non raggiunge mai il tuo endpoint
