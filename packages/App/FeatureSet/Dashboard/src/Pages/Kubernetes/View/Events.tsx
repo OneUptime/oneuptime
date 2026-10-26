@@ -11,6 +11,7 @@ import {
   mergeKubernetesEventRows,
 } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesEventsTable from "../../../Components/Kubernetes/KubernetesEventsTable";
+import KubernetesWarningEventsAlertLine from "../../../Components/Kubernetes/KubernetesWarningEventsAlertLine";
 import {
   KubernetesEventsViewState,
   hasKubernetesEventsFilters,
@@ -558,6 +559,20 @@ const KubernetesClusterEvents: FunctionComponent<
               <></>
             )}
           </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Whether these warnings reach anyone: the monitor that alerts on
+         * them, or the cluster's Warning Events recommendation to turn on
+         * (follow-up of #5201).
+         */}
+        {clusterIdentifier ? (
+          <KubernetesWarningEventsAlertLine
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+          />
         ) : (
           <></>
         )}
