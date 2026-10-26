@@ -34782,6 +34782,7 @@
   "Describe the alert details here.": "アラートの詳細をここに記述します。",
   "Describe the episode details here.": "エピソードの詳細をここに記述します。",
   "Describe the incident details here.": "インシデントの詳細をここに記述します。",
+  "Describe the root cause of this alert here.": "このアラートの根本原因をここに記述します。",
   "Describe the root cause of this incident here.": "このインシデントの根本原因をここに記述します。",
   "Describe the scheduled maintenance event here.": "定期メンテナンスイベントの内容をここに記述します。",
   "Describe the status page group here.": "ステータスページのグループをここに記述します。",
