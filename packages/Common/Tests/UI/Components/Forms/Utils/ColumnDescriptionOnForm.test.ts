@@ -61,9 +61,12 @@ describe("isRestatingColumnDescription", () => {
     "A friendly name for this code repository",
     "A description for this notification template",
     "NAME OF THIS SLA RULE",
-  ])("a name, description or title of the record: %p", (description: string) => {
-    expect(isRestatingColumnDescription(description)).toBe(true);
-  });
+  ])(
+    "a name, description or title of the record: %p",
+    (description: string) => {
+      expect(isRestatingColumnDescription(description)).toBe(true);
+    },
+  );
 
   test.each([
     "Friendly name for this connection, shown wherever a call is started, e.g. 'Incident Zoom'.",
