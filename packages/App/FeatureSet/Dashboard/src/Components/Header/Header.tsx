@@ -348,100 +348,100 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   const realtimeAlertEpisodeCountRefresh: (
     refreshCount: CoalescedRefresh,
   ) => VoidFunction = (refreshCount: CoalescedRefresh): VoidFunction => {
-      const stopListeningOnCreate: VoidFunction =
-        Realtime.listenToModelEvent<AlertEpisode>(
-          {
-            eventType: ModelEventType.Create,
-            modelType: AlertEpisode,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-          },
-          () => {
-            refreshCount.request();
-          },
-        );
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<AlertEpisode>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: AlertEpisode,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
+        },
+        () => {
+          refreshCount.request();
+        },
+      );
 
-      const stopListeningOnUpdate: VoidFunction =
-        Realtime.listenToModelEvent<AlertEpisode>(
-          {
-            eventType: ModelEventType.Update,
-            modelType: AlertEpisode,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-          },
-          () => {
-            refreshCount.request();
-          },
-        );
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<AlertEpisode>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: AlertEpisode,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
+        },
+        () => {
+          refreshCount.request();
+        },
+      );
 
-      const stopListeningOnDelete: VoidFunction =
-        Realtime.listenToModelEvent<AlertEpisode>(
-          {
-            eventType: ModelEventType.Delete,
-            modelType: AlertEpisode,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-          },
-          () => {
-            refreshCount.request();
-          },
-        );
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<AlertEpisode>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: AlertEpisode,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
+        },
+        () => {
+          refreshCount.request();
+        },
+      );
 
-      const stopListening: VoidFunction = () => {
-        // on unmount.
-        stopListeningOnCreate();
-        stopListeningOnUpdate();
-        stopListeningOnDelete();
-      };
-
-      return stopListening;
+    const stopListening: VoidFunction = () => {
+      // on unmount.
+      stopListeningOnCreate();
+      stopListeningOnUpdate();
+      stopListeningOnDelete();
     };
+
+    return stopListening;
+  };
 
   const realtimeIncidentEpisodeCountRefresh: (
     refreshCount: CoalescedRefresh,
   ) => VoidFunction = (refreshCount: CoalescedRefresh): VoidFunction => {
-      const stopListeningOnCreate: VoidFunction =
-        Realtime.listenToModelEvent<IncidentEpisode>(
-          {
-            eventType: ModelEventType.Create,
-            modelType: IncidentEpisode,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-          },
-          () => {
-            refreshCount.request();
-          },
-        );
+    const stopListeningOnCreate: VoidFunction =
+      Realtime.listenToModelEvent<IncidentEpisode>(
+        {
+          eventType: ModelEventType.Create,
+          modelType: IncidentEpisode,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
+        },
+        () => {
+          refreshCount.request();
+        },
+      );
 
-      const stopListeningOnUpdate: VoidFunction =
-        Realtime.listenToModelEvent<IncidentEpisode>(
-          {
-            eventType: ModelEventType.Update,
-            modelType: IncidentEpisode,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-          },
-          () => {
-            refreshCount.request();
-          },
-        );
+    const stopListeningOnUpdate: VoidFunction =
+      Realtime.listenToModelEvent<IncidentEpisode>(
+        {
+          eventType: ModelEventType.Update,
+          modelType: IncidentEpisode,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
+        },
+        () => {
+          refreshCount.request();
+        },
+      );
 
-      const stopListeningOnDelete: VoidFunction =
-        Realtime.listenToModelEvent<IncidentEpisode>(
-          {
-            eventType: ModelEventType.Delete,
-            modelType: IncidentEpisode,
-            tenantId: ProjectUtil.getCurrentProjectId()!,
-          },
-          () => {
-            refreshCount.request();
-          },
-        );
+    const stopListeningOnDelete: VoidFunction =
+      Realtime.listenToModelEvent<IncidentEpisode>(
+        {
+          eventType: ModelEventType.Delete,
+          modelType: IncidentEpisode,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
+        },
+        () => {
+          refreshCount.request();
+        },
+      );
 
-      const stopListening: VoidFunction = () => {
-        // on unmount.
-        stopListeningOnCreate();
-        stopListeningOnUpdate();
-        stopListeningOnDelete();
-      };
-
-      return stopListening;
+    const stopListening: VoidFunction = () => {
+      // on unmount.
+      stopListeningOnCreate();
+      stopListeningOnUpdate();
+      stopListeningOnDelete();
     };
+
+    return stopListening;
+  };
 
   useEffect(() => {
     const incidentCountRefresh: CoalescedRefresh = new CoalescedRefresh({
@@ -456,11 +456,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       refresh: fetchAlertEpisodesCount,
       minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
     });
-    const incidentEpisodeCountRefresh: CoalescedRefresh =
-      new CoalescedRefresh({
-        refresh: fetchIncidentEpisodesCount,
-        minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
-      });
+    const incidentEpisodeCountRefresh: CoalescedRefresh = new CoalescedRefresh({
+      refresh: fetchIncidentEpisodesCount,
+      minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
+    });
 
     const realtimeIncidentStop: VoidFunction =
       realtimeIncidentCountRefresh(incidentCountRefresh);

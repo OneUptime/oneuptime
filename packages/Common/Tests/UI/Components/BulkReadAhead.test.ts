@@ -56,7 +56,9 @@ function makeReader(data: {
     getKey: (row: Row): string => {
       return row._id;
     },
-    readWindow: async (windowItems: Array<Row>): Promise<Map<string, string>> => {
+    readWindow: async (
+      windowItems: Array<Row>,
+    ): Promise<Map<string, string>> => {
       windowsAsked.push(
         windowItems.map((row: Row) => {
           return row._id;

@@ -18,8 +18,7 @@ import CoalescedRefresh, {
 class FakeTimers implements CoalescedRefreshTimers {
   public time: number = 1_000_000;
   private nextId: number = 1;
-  private timers: Array<{ id: number; at: number; callback: () => void }> =
-    [];
+  private timers: Array<{ id: number; at: number; callback: () => void }> = [];
 
   public now: () => number = (): number => {
     return this.time;

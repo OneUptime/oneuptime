@@ -1118,9 +1118,7 @@ const BulkUpdateForm: <T extends GenericObject>(
            * stop keeps Close, unavailable until it ends - and once it has
            * ended, Close.
            */
-          disableSubmitButton={
-            actionInProgress && (!isStoppable || isStopping)
-          }
+          disableSubmitButton={actionInProgress && (!isStoppable || isStopping)}
           submitButtonText={getProgressButtonText()}
           onSubmit={() => {
             if (actionInProgress) {

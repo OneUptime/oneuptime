@@ -133,7 +133,11 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
           .map((id: string): Record<string, unknown> => {
             return {
               _id: id,
-              id: { toString: (): string => id },
+              id: {
+                toString: (): string => {
+                  return id;
+                },
+              },
               ...serverRecords[id],
             };
           });
@@ -606,9 +610,7 @@ describe("a bulk Resolve of alerts", () => {
     // The ones already running when Stop came finish; no others start.
     expect(created.length).toBeLessThanOrEqual(1 + BULK_ACTION_CONCURRENCY);
     expect(notStarted.length).toBe(selection.length - created.length);
-    expect(last.successItems.length + notStarted.length).toBe(
-      selection.length,
-    );
+    expect(last.successItems.length + notStarted.length).toBe(selection.length);
 
     // Not one alert that was not started was written.
     const writtenIds: Set<string> = new Set(

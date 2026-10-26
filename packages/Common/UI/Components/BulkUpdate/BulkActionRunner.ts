@@ -313,10 +313,7 @@ export async function runBulkAction<T extends GenericObject>(
     const item: T = totalItems[index]!;
 
     try {
-      const outcome: BulkItemOutcome | void = await options.step(
-        item,
-        index,
-      );
+      const outcome: BulkItemOutcome | void = await options.step(item, index);
 
       results[index] =
         outcome && outcome.status === BulkItemStatus.Unchanged

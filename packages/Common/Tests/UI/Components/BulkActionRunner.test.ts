@@ -107,8 +107,7 @@ function snapshot(info: ProgressInfo<Row>): Snapshot {
 class FakeClock implements BulkActionClock {
   public time: number = 1_000_000;
   private nextId: number = 1;
-  private timers: Array<{ id: number; at: number; callback: () => void }> =
-    [];
+  private timers: Array<{ id: number; at: number; callback: () => void }> = [];
 
   public now: () => number = (): number => {
     return this.time;

@@ -266,45 +266,46 @@ function useEventStateActions<T extends BaseModel>(
    * one the viewer may not read: it is moved as before, and the server
    * answers for it.
    */
-  const readWindow: (items: Array<T>) => Promise<Map<string, BaseModel>> =
-    async (items: Array<T>): Promise<Map<string, BaseModel>> => {
-      const ids: Array<string> = items
-        .map((item: T): string => {
-          return item.id?.toString() || "";
-        })
-        .filter((id: string): boolean => {
-          return id.length > 0;
-        });
+  const readWindow: (
+    items: Array<T>,
+  ) => Promise<Map<string, BaseModel>> = async (
+    items: Array<T>,
+  ): Promise<Map<string, BaseModel>> => {
+    const ids: Array<string> = items
+      .map((item: T): string => {
+        return item.id?.toString() || "";
+      })
+      .filter((id: string): boolean => {
+        return id.length > 0;
+      });
 
-      const found: Map<string, BaseModel> = new Map<string, BaseModel>();
+    const found: Map<string, BaseModel> = new Map<string, BaseModel>();
 
-      if (ids.length === 0) {
-        return found;
-      }
-
-      const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>(
-        {
-          modelType: definition.eventModelType,
-          query: {
-            _id: new Includes(ids),
-          } as never,
-          limit: ids.length,
-          skip: 0,
-          select: currentSelect as never,
-          sort: {},
-        },
-      );
-
-      for (const record of result.data) {
-        const id: string = record.id?.toString() || "";
-
-        if (id) {
-          found.set(id, record);
-        }
-      }
-
+    if (ids.length === 0) {
       return found;
-    };
+    }
+
+    const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
+      modelType: definition.eventModelType,
+      query: {
+        _id: new Includes(ids),
+      } as never,
+      limit: ids.length,
+      skip: 0,
+      select: currentSelect as never,
+      sort: {},
+    });
+
+    for (const record of result.data) {
+      const id: string = record.id?.toString() || "";
+
+      if (id) {
+        found.set(id, record);
+      }
+    }
+
+    return found;
+  };
 
   /*
    * Moves one record: reads the state it is in now, leaves it alone if the
@@ -482,17 +483,16 @@ function useEventStateActions<T extends BaseModel>(
       return;
     }
 
-    const reader: BulkReadAhead<T, BaseModel> = new BulkReadAhead<
-      T,
-      BaseModel
-    >({
-      items: actionProps.items,
-      getKey: (item: T): string => {
-        return item.id?.toString() || "";
+    const reader: BulkReadAhead<T, BaseModel> = new BulkReadAhead<T, BaseModel>(
+      {
+        items: actionProps.items,
+        getKey: (item: T): string => {
+          return item.id?.toString() || "";
+        },
+        readWindow: readWindow,
+        readOne: readOne,
       },
-      readWindow: readWindow,
-      readOne: readOne,
-    });
+    );
 
     await runBulkAction<T>({
       actionProps: actionProps,

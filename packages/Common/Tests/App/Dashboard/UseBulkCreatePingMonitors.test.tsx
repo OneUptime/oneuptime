@@ -839,10 +839,7 @@ describe("useBulkCreatePingMonitors", () => {
         progressSnapshots[progressSnapshots.length - 1]!;
       expect(last.inProgressIds).toEqual([]);
       expect(last.successIds).toEqual([DEVICE_THREE_ID]);
-      expect(last.failedIds).toEqual([
-        DEVICE_ONE_ID,
-        DEVICE_TWO_ID,
-      ]);
+      expect(last.failedIds).toEqual([DEVICE_ONE_ID, DEVICE_TWO_ID]);
       expect(onBulkActionStartMock).toHaveBeenCalledTimes(1);
       expect(onBulkActionEndMock).toHaveBeenCalledTimes(1);
     });

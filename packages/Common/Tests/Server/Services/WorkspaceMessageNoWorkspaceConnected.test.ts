@@ -72,7 +72,10 @@ beforeEach((): void => {
   posted = [];
 
   jest
-    .spyOn(WorkspaceNotificationRuleService, "createChannelsForRulesThatNowMatch")
+    .spyOn(
+      WorkspaceNotificationRuleService,
+      "createChannelsForRulesThatNowMatch",
+    )
     .mockImplementation((async () => {
       readsAfterTheQuestion.push("rules that open a channel");
       return [];
