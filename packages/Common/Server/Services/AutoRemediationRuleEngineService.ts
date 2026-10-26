@@ -488,11 +488,6 @@ export function mayMcpFixChangeWithoutAsking(data: {
 }
 
 /*
- * Does any of these suggestions belong to a resource-level round? A signal
- * with one is in the resource lane, so the cluster lane must not start a
- * round on it (one AI fix lane per signal).
- */
-/*
  * What an update of an incident or alert writes when it links it to
  * something a fix can act on: its lists of Kubernetes clusters and of
  * resources with an AI agent, and its monitors (a fix finds the cluster or
@@ -550,6 +545,11 @@ export function isLinkedToNothing(entries: unknown): boolean {
   );
 }
 
+/*
+ * Does any of these suggestions belong to a resource-level round? A signal
+ * with one is in the resource lane, so the cluster lane must not start a
+ * round on it (one AI fix lane per signal).
+ */
 function hasResourceRound(
   suggestions: Array<AutoRemediationSuggestion>,
 ): boolean {
@@ -1520,28 +1520,6 @@ class AutoRemediationRuleEngineServiceClass {
   }
 
   /*
-   * Someone linked an incident or alert to what it is about - its Affected
-   * Resources Edit, add_incident_affected_resources in Ask AI, the API -
-   * after auto-remediation found nothing it could fix on it because it was
-   * linked to nothing (#5293). Its Remediation card asked them to add the
-   * cluster or host it is about; once they have, OneUptime AI tries again,
-   * as it would for a new incident: Enable AI, the fixing switch, the AI
-   * rules, each cluster's and resource's own fix mode and the per-subject
-   * cap all decide as they do then. Only:
-   *
-   *   - when its latest evaluation found it linked to nothing (one waiting
-   *     for its investigation reads the new links when the investigation
-   *     hands it over, and one that found something says why it did what
-   *     it did - turning a cluster's fixes on, say, is not a link);
-   *   - while it is open;
-   *   - and when it is now linked to a cluster or resource remediation can
-   *     reach.
-   *
-   * Serialized per subject and decided again inside the lock, so two edits
-   * made together evaluate it once; without the lock (Valkey unreachable)
-   * it does not try again rather than risk two fixes at once. Never throws.
-   */
-  /*
    * An update of an incident or alert, as its service's onUpdateSuccess
    * hands it over: when the update writes what links it to something a fix
    * acts on (REMEDIATION_LINK_COLUMNS), OneUptime AI may try again
@@ -1565,6 +1543,28 @@ class AutoRemediationRuleEngineServiceClass {
     });
   }
 
+  /*
+   * Someone linked an incident or alert to what it is about - its Affected
+   * Resources Edit, add_incident_affected_resources in Ask AI, the API -
+   * after auto-remediation found nothing it could fix on it because it was
+   * linked to nothing (#5293). Its Remediation card asked them to add the
+   * cluster or host it is about; once they have, OneUptime AI tries again,
+   * as it would for a new incident: Enable AI, the fixing switch, the AI
+   * rules, each cluster's and resource's own fix mode and the per-subject
+   * cap all decide as they do then. Only:
+   *
+   *   - when its latest evaluation found it linked to nothing (one waiting
+   *     for its investigation reads the new links when the investigation
+   *     hands it over, and one that found something says why it did what
+   *     it did - turning a cluster's fixes on, say, is not a link);
+   *   - while it is open;
+   *   - and when it is now linked to a cluster or resource remediation can
+   *     reach.
+   *
+   * Serialized per subject and decided again inside the lock, so two edits
+   * made together evaluate it once; without the lock (Valkey unreachable)
+   * it does not try again rather than risk two fixes at once. Never throws.
+   */
   @CaptureSpan()
   public async onSubjectLinksChanged(data: {
     projectId: ObjectID;

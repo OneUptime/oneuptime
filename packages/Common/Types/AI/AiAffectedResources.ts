@@ -168,10 +168,10 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
 /*
  * The resource pages Ask AI opens on whose resource an incident or alert
  * cannot be linked to yet - it has no list of them - and so is never linked
- * from there. Each says why; the model is told the same, and a guard
- * (AiAffectedResourcesCoverResourcePages) holds every other page's resource
- * to a list of both models. A model that gains the list moves its kind
- * above.
+ * from there. Each says why; the model is told the same, and
+ * Tests/Types/AI/AiAffectedResources.test.ts holds every other page's
+ * resource to a list of both models. A model that gains the list moves its
+ * kind above.
  */
 export const AI_RESOURCE_TYPES_NOT_LINKABLE: Readonly<
   Partial<Record<AIResourceType, string>>
