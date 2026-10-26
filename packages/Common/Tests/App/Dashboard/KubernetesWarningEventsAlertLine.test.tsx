@@ -334,8 +334,10 @@ describe("the Events card's footer, under the pager", () => {
     expect(classes).toEqual(
       expect.arrayContaining(["flex", "items-start", "gap-2"]),
     );
-    // A line, not a box: no background, no rounded border of its own, and
-    // no edges of its own - CardSurface gives them.
+    /*
+     * A line, not a box: no background, no rounded border of its own, and
+     * no edges of its own - CardSurface gives them.
+     */
     for (const className of classes) {
       expect(className).not.toMatch(
         /^(bg-|rounded|shadow|border|-mx-|md:-mx-|-mb-)/,
