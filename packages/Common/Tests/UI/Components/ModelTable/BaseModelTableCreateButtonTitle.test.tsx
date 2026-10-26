@@ -344,4 +344,86 @@ describe("BaseModelTable header create button title", () => {
 
     expect(onCreateClick).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * On a phone the header's main button shares its line with the ⋯, and a
+   * long title - "Create Scheduled Maintenance Event" - broke onto two
+   * lines. It says its verb alone there, named by its whole title, which
+   * holds that word as the reader's language writes both.
+   */
+  describe("on a phone", () => {
+    type CreateButtonFunction = () => HTMLElement;
+
+    const createButton: CreateButtonFunction = (): HTMLElement => {
+      return document.querySelector<HTMLElement>(
+        '[data-testid="card-button"]',
+      )!;
+    };
+
+    const setViewportWidth: (width: number) => void = (width: number): void => {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: width,
+      });
+    };
+
+    beforeEach(() => {
+      setViewportWidth(390);
+    });
+
+    afterEach(() => {
+      setViewportWidth(1024);
+    });
+
+    test("says its verb alone, named by its whole title", async () => {
+      expect(
+        await renderedTitle({ singularName: "Scheduled Maintenance Event" }),
+      ).toBe("Create");
+      expect(createButton()).toHaveAttribute(
+        "aria-label",
+        "Create Scheduled Maintenance Event",
+      );
+    });
+
+    test("in German: Erstellen, named Monitor erstellen", async () => {
+      dictionary = {
+        "Create Monitor": "Monitor erstellen",
+        Create: "Erstellen",
+      };
+
+      expect(await renderedTitle({})).toBe("Erstellen");
+      expect(createButton()).toHaveAttribute("aria-label", "Monitor erstellen");
+    });
+
+    test("where the title takes another word than the verb, its whole title", async () => {
+      dictionary = {
+        "Create Monitor": "Monitor maken",
+        Create: "Aanmaken",
+      };
+
+      expect(await renderedTitle({})).toBe("Monitor maken");
+      expect(createButton()).not.toHaveAttribute("aria-label");
+    });
+
+    test("Link and Declare keep their whole title", async () => {
+      expect(
+        await renderedTitle({ createVerb: "Link", singularName: "Alert" }),
+      ).toBe("Link Alert");
+      cleanup();
+      expect(
+        await renderedTitle({
+          createVerb: "Declare",
+          singularName: "Incident",
+        }),
+      ).toBe("Declare Incident");
+    });
+
+    test("from md up, its whole title", async () => {
+      setViewportWidth(768);
+
+      expect(await renderedTitle({})).toBe("Create Monitor");
+      expect(createButton()).not.toHaveAttribute("aria-label");
+    });
+  });
 });

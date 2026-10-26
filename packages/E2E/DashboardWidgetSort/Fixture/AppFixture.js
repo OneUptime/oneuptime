@@ -15,6 +15,8 @@
  *   - theme=dark    (read by server.js) the dark theme
  *   - board=narrow  the second dashboard: a narrow metric table and the
  *                   security events list (Boards.js buildNarrowConfig)
+ *   - titles=long   the first incident's title a long sentence, as an
+ *                   incident's often is (Boards.js incidents)
  *
  * Everything the page asks for is recorded on window.__dashboardWidgetSortFixture:
  * every list read with its sort, phase and limit (lists), every trace table
@@ -75,6 +77,8 @@ const params = new URLSearchParams(window.location.search);
 const language = params.get("lang") === "de" ? "de" : "en";
 // ?board=narrow: the second dashboard (Boards.js buildNarrowConfig).
 const isNarrowBoard = params.get("board") === "narrow";
+// ?titles=long: an incident's title a long sentence (Boards.js incidents).
+const hasLongTitles = params.get("titles") === "long";
 const BOARD_KEY = isNarrowBoard ? `${SERVER_KEY}-narrow` : SERVER_KEY;
 
 // The fixture's clock: rows are minutes and hours before it.
@@ -180,7 +184,7 @@ function plain(value) {
 const TABLES = {
   Monitor: () => monitors(),
   KubernetesResource: () => pods(),
-  Incident: () => incidents(NOW),
+  Incident: () => incidents(NOW, { longTitles: hasLongTitles }),
 };
 
 /*

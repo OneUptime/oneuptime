@@ -44,3 +44,21 @@ export const useIsTableCard: () => boolean = (): boolean => {
 
   return isTableCell && isTableCard;
 };
+
+/*
+ * Whether the table leaves out a column here that a cell is to show the
+ * value of in its own place (Column.hideBelowLargeScreen): below lg, on a
+ * tablet's rows and a phone's cards alike, when the table has such a
+ * column. A cell reads it to draw that value - and draws it nowhere else,
+ * so a value is never in a row twice.
+ */
+export const TableFoldedColumnsContext: React.Context<boolean> =
+  React.createContext<boolean>(false);
+
+// Whether an element is drawn in a cell of a row whose table folds a column.
+export const useAreTableColumnsFolded: () => boolean = (): boolean => {
+  const isTableCell: boolean = useContext(TableCellContext);
+  const areColumnsFolded: boolean = useContext(TableFoldedColumnsContext);
+
+  return isTableCell && areColumnsFolded;
+};

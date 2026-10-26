@@ -967,6 +967,7 @@ const UserViewNotificationMethods: FunctionComponent<
             ? [
                 {
                   title: "Add notification method",
+                  phoneTitle: "Add",
                   icon: IconProp.Add,
                   buttonStyle: ButtonStyleType.NORMAL,
                   buttonSize: ButtonSize.Small,

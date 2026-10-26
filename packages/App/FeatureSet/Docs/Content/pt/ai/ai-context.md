@@ -83,7 +83,7 @@ A contagem de tokens é uma estimativa: o tamanho das notas em bytes UTF-8 divid
 
 ## O que uma execução leu
 
-Cada execução registra palavra por palavra as notas que leu. A atividade dela diz **Lido o contexto de IA do projeto**, ou de quantas regras de IA também leu as notas, com mais ou menos quantos tokens foram. **Visualizar** abre as notas como a execução as leu: primeiro as do projeto, depois as de cada regra sob o nome dela, mesmo depois que forem alteradas. Quando as notas de uma regra ficaram de fora pelo limite da execução, um aviso diz isso.
+Cada execução registra palavra por palavra as notas que leu. A atividade dela diz **Lido o contexto de IA do projeto**, ou de quantas regras de IA também leu as notas, com mais ou menos quantos tokens foram. **Ver** abre as notas como a execução as leu: primeiro as do projeto, depois as de cada regra sob o nome dela, mesmo depois que forem alteradas. Quando as notas de uma regra ficaram de fora pelo limite da execução, um aviso diz isso.
 
 ## Quem pode alterá-lo
 

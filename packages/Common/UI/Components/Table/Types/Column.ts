@@ -61,6 +61,17 @@ export default interface Column<T extends GenericObject> {
   key?: keyof T | null; //can be null because actions column does not have a key.
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   /*
+   * Not drawn below lg (1024px): neither on a phone's card nor in a
+   * tablet's rows. Beside a side menu a card is 430 to 700px wide there,
+   * and a table of four columns ran past it - the Rule Library's Add, a
+   * Kubernetes event's Last seen, under the sticky last column at 768px.
+   * The page shows the column's value in another column's cell instead,
+   * where useAreTableColumnsFolded says to (TableCellContext): a rule's
+   * severity under its name, an event's count and when it was last seen
+   * beside its reason. Its header, and sorting by it, come back from lg up.
+   */
+  hideBelowLargeScreen?: boolean | undefined;
+  /*
    * A phone's card draws this column's value without its name above it.
    * For the one field a card is about, which says what it is by itself -
    * a Kubernetes event's reason and message, its other columns folded

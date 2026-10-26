@@ -346,7 +346,7 @@ describe("a non-sortable column with a header tooltip", () => {
 
       const content: HTMLElement = buttons[0]!.parentElement as HTMLElement;
       expect(content.className).toBe(
-        "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-6 pr-6 justify-start",
+        "flex w-full items-center gap-1 whitespace-nowrap py-2.5 [[data-wrap-headers=true]_&]:whitespace-normal pl-6 pr-6 justify-start",
       );
       expect(buttons[0]).toHaveClass("font-normal");
 
@@ -374,7 +374,7 @@ describe("a non-sortable column with a header tooltip", () => {
     });
 
     expect(info.parentElement?.className).toBe(
-      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-6 pr-6 justify-end",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 [[data-wrap-headers=true]_&]:whitespace-normal pl-6 pr-6 justify-end",
     );
   });
 });
@@ -448,7 +448,7 @@ describe("columns without a header tooltip render exactly as before", () => {
 
     expect(button.parentElement).toBe(cell);
     expect(button.className).toContain(
-      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-6 pr-3 justify-start",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 [[data-wrap-headers=true]_&]:whitespace-normal pl-6 pr-3 justify-start",
     );
   });
 
@@ -460,10 +460,10 @@ describe("columns without a header tooltip render exactly as before", () => {
 
     expect(within(notes).queryByRole("button")).not.toBeInTheDocument();
     expect((notes.firstElementChild as HTMLElement).className).toBe(
-      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-3 pr-3 justify-start",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 [[data-wrap-headers=true]_&]:whitespace-normal pl-3 pr-3 justify-start",
     );
     expect((actions.firstElementChild as HTMLElement).className).toBe(
-      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-3 pr-6 justify-end",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 [[data-wrap-headers=true]_&]:whitespace-normal pl-3 pr-6 justify-end",
     );
   });
 

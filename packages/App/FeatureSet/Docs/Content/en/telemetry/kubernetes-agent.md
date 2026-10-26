@@ -241,6 +241,8 @@ The agent sends every Kubernetes event of the cluster to OneUptime: from every n
 | Count | How many times it happened: a repeat raises the count rather than adding a row |
 | Last seen | When it last happened; hover to see when it first did |
 
+On a screen narrower than 1024 pixels, the **Event** column also shows **Count** and **Last seen**, which have no columns of their own there.
+
 ### Search and alert on events
 
 Every event is also a log. A warning is stored with the **Warning** severity, and what the event says is in its attributes:

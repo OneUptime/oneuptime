@@ -256,6 +256,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
           buttons: [
             {
               title: "Add Processor",
+              phoneTitle: "Add",
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
                 setShowProcessorForm(true);

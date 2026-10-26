@@ -1,5 +1,6 @@
 import DatabaseServerElement from "./DatabaseServerElement";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_DATABASES_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const DatabaseServersElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.databaseServers}
-      moreText="more databases"
+      moreTemplate={MORE_DATABASES_TEMPLATE}
       getEachElement={(databaseServer: DatabaseServer) => {
         return (
           <DatabaseServerElement

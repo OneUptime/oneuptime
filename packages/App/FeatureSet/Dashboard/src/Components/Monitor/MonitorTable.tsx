@@ -781,6 +781,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       PermissionGate.gateCardButton(
         {
           title: "Create Monitor",
+          phoneTitle: "Create",
           onClick: () => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(

@@ -86,7 +86,7 @@ Uma entrada é um valor ou um padrão com `*`, sem diferenciar maiúsculas: `dc-
 
 ## A página de uma entidade
 
-Clique em **Visualizar** numa linha de **Risco de entidades**, ou no risco ao lado de uma entidade na página **Entidades** de um caso:
+Clique em **Ver** numa linha de **Risco de entidades**, ou no risco ao lado de uma entidade na página **Entidades** de um caso:
 
 | Parte | O que mostra |
 | --- | --- |

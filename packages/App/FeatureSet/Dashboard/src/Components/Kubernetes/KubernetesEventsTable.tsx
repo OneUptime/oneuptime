@@ -14,7 +14,10 @@ import {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Table from "Common/UI/Components/Table/Table";
-import { useIsTableCard } from "Common/UI/Components/Table/TableCellContext";
+import {
+  useAreTableColumnsFolded,
+  useIsTableCard,
+} from "Common/UI/Components/Table/TableCellContext";
 import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
 import Column from "Common/UI/Components/Table/Types/Column";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
@@ -332,7 +335,14 @@ const EventCell: FunctionComponent<{
     isCard && props.showObject && Boolean(row.objectName);
   const hasNamespaceChip: boolean =
     isCard && props.showNamespace && Boolean(row.namespace);
-  const hasCount: boolean = isCard && row.count > 1;
+  /*
+   * Below lg the Count and Last seen columns are left out
+   * (hideBelowLargeScreen): how many times and when go in the Event's own
+   * lines, on a tablet's row as on a phone's card.
+   */
+  const areColumnsFolded: boolean = useAreTableColumnsFolded();
+  const isCountAndTimeFolded: boolean = isCard || areColumnsFolded;
+  const hasCount: boolean = isCountAndTimeFolded && row.count > 1;
 
   /*
    * The icon hangs to the left of the Event's lines, as on the Overview's
@@ -367,7 +377,7 @@ const EventCell: FunctionComponent<{
               {typeText}
             </span>
           )}
-          {isCard ? (
+          {isCountAndTimeFolded ? (
             <LastSeenTime
               row={row}
               className="ml-auto flex-shrink-0 whitespace-nowrap text-xs font-normal text-gray-500"
@@ -593,6 +603,12 @@ const KubernetesEventsTable: FunctionComponent<ComponentProps> = (
         "How many times Kubernetes saw it happen. A repeat updates the event's count rather than adding a new event.",
       ),
       hideOnMobile: true,
+      /*
+       * In the Event's lines below lg (EventCell), and Last seen with it:
+       * beside the cluster's side menu at 768px the card is 478px wide, and
+       * the four columns needed 680px.
+       */
+      hideBelowLargeScreen: true,
       getElement: (row: KubernetesEventRow): ReactElement => {
         return (
           <span
@@ -609,6 +625,7 @@ const KubernetesEventsTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
       key: "lastSeenAt",
       hideOnMobile: true,
+      hideBelowLargeScreen: true,
       getElement: (row: KubernetesEventRow): ReactElement => {
         return (
           <LastSeenTime row={row} className="whitespace-nowrap text-gray-700" />

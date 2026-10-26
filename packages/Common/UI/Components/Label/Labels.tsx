@@ -6,8 +6,7 @@ import TableColumnListComponent from "../TableColumnList/TableColumnListComponen
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
 import useTranslateValue from "../../Utils/Translation";
-import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
-import useTranslator from "../../Utils/UseTranslator";
+import { PluralTemplate } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
@@ -93,7 +92,6 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translator: Translator = useTranslator();
   const isDetailValue: boolean = useIsDetailValue();
   const isTableCell: boolean = useIsTableCell();
   const isTableCard: boolean = useIsTableCard();
@@ -109,10 +107,6 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
 
   const noItemsMessage: string =
     translateString("No labels attached.") || "No labels attached.";
-
-  const getMoreText: (count: number) => string = (count: number): string => {
-    return translator.translatePlural(TABLE_LABELS_MORE_TEMPLATE, count);
-  };
 
   if (isDetailValue && labels.length > 0) {
     return (
@@ -146,7 +140,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
     return (
       <TableColumnListComponent<LabelModel>
         items={labels}
-        getMoreText={getMoreText}
+        moreTemplate={TABLE_LABELS_MORE_TEMPLATE}
         noItemsMessage={noItemsMessage}
         className={TABLE_LABELS_CLASS_NAME}
         dataTestId={TABLE_LABELS_TEST_ID}
@@ -169,7 +163,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent<LabelModel>
       items={labels}
-      getMoreText={getMoreText}
+      moreTemplate={TABLE_LABELS_MORE_TEMPLATE}
       className={labels.length > 0 ? "-mb-1 -mt-1" : ""}
       getEachElement={(label: LabelModel) => {
         return (

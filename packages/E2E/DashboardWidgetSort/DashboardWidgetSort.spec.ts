@@ -480,6 +480,96 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     ]);
   });
 
+  /*
+   * At 6 units a list whose titles are long - an incident's, a host's name,
+   * a container's image - drew each on one line, whole, and ran past its
+   * widget: the rows scrolled sideways, and the default sort's arrow, on
+   * the last column (Declared), was out of sight. A title gives way now,
+   * ending in "...", down to 6rem (DashboardResourceListBase).
+   */
+  test("at 6 units, an incident list with a long title fits its widget: the title ends in ... and the sort's arrow is in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openApp(page, "?titles=long");
+
+    const incidents: Locator = tableWith(page, "declared");
+    const title: Locator = incidents
+      .locator("tbody td")
+      .filter({ hasText: "Elevated 5xx on the public API gateway" })
+      .first();
+    await expect(title).toBeVisible();
+
+    const fit: {
+      boxWidth: number;
+      scrollWidth: number;
+      box: { left: number; right: number };
+    } = await incidents.evaluate(
+      (
+        element: Element,
+      ): {
+        boxWidth: number;
+        scrollWidth: number;
+        box: { left: number; right: number };
+      } => {
+        const box: HTMLElement = element.parentElement as HTMLElement;
+        const rect: DOMRect = box.getBoundingClientRect();
+
+        return {
+          boxWidth: box.clientWidth,
+          scrollWidth: box.scrollWidth,
+          box: { left: rect.left, right: rect.right },
+        };
+      },
+    );
+
+    // The rows fit the widget: nothing scrolls sideways.
+    expect(fit.scrollWidth).toBeLessThanOrEqual(fit.boxWidth + 1);
+
+    // The title is cut short on its line, and keeps 6rem of its words.
+    const cut: { width: number; isCut: boolean; lines: number } =
+      await title.evaluate(
+        (cell: Element): { width: number; isCut: boolean; lines: number } => {
+          const style: CSSStyleDeclaration = getComputedStyle(cell);
+          const range: Range = document.createRange();
+          range.selectNodeContents(cell);
+          const tops: Set<number> = new Set(
+            Array.from(range.getClientRects())
+              .filter((rect: DOMRect): boolean => {
+                return rect.width > 0;
+              })
+              .map((rect: DOMRect): number => {
+                return Math.round(rect.top);
+              }),
+          );
+
+          return {
+            width: cell.getBoundingClientRect().width,
+            isCut:
+              style.textOverflow === "ellipsis" &&
+              cell.scrollWidth > cell.clientWidth,
+            lines: tops.size,
+          };
+        },
+      );
+    expect(cut.isCut).toBe(true);
+    expect(cut.lines).toBe(1);
+    expect(cut.width).toBeGreaterThanOrEqual(96);
+
+    // The default order's arrow, on Declared, inside the widget.
+    const arrow: Locator = header(incidents, "declared").getByTestId(
+      "dashboard-widget-sort-arrow",
+    );
+    await expect(arrow).toBeVisible();
+    const arrowBox: { x: number; width: number } = (await arrow.boundingBox())!;
+    expect(arrowBox.x).toBeGreaterThanOrEqual(fit.box.left);
+    expect(arrowBox.x + arrowBox.width).toBeLessThanOrEqual(fit.box.right);
+
+    await shoot(page, testInfo, "incidents-long-title", undefined);
+  });
+
   test("an incident list sorts by the project's severity order, and a security events list by severity in ClickHouse", async ({
     page,
   }: {
