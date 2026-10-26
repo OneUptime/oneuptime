@@ -7,14 +7,20 @@
     "0 (kiss-o'-death {{kissCode}})",
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
+    "Google SecOps",
     "ICMP (ping)",
+    "MITRE ATT&CK",
     "Null",
     "PR #{{number}}",
     "PV",
     "PVC",
     "Runner",
     "VMware vCenter",
+    "ip",
     "kubectl set image deployment/web * -n web",
+    "message",
+    "name",
+    "security-alerts",
     "syslog"
   ]
 }

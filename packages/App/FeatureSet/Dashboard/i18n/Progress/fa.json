@@ -6,13 +6,19 @@
   "sameAsEnglish": [
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
+    "Google SecOps",
     "ICMP (ping)",
+    "MITRE ATT&CK",
     "PV",
     "PVC",
     "Runner",
     "SNMP trap",
     "VMware vCenter",
+    "ip",
     "kubectl set image deployment/web * -n web",
+    "message",
+    "name",
+    "security-alerts",
     "syslog"
   ]
 }
