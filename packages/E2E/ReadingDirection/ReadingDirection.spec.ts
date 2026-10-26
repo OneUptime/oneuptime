@@ -581,12 +581,13 @@ test.describe("chevrons and arrows point the way the line reads", () => {
     expect(await styleOf(chevron, "transform")).toBe("none");
 
     await page.getByTestId("folded-section-header").click();
-    await page.waitForTimeout(300);
 
     // Turned down (90deg), then mirrored: still pointing down.
-    expect(await styleOf(chevron, "transform")).toBe(
-      "matrix(0, 1, -1, 0, 0, 0)",
-    );
+    await expect
+      .poll(async () => {
+        return styleOf(chevron, "transform");
+      })
+      .toBe("matrix(0, 1, -1, 0, 0, 0)");
     expect(await styleOf(chevron, "scale")).toBe("-1 1");
   });
 
@@ -603,12 +604,19 @@ test.describe("chevrons and arrows point the way the line reads", () => {
         .getByRole("button", { expanded: false })
         .locator("svg");
 
-      // ChevronDown turned -90deg points right; +90deg points left.
-      expect(await styleOf(collapsed, "transform")).toBe(
-        language === "fa"
-          ? "matrix(0, 1, -1, 0, 0, 0)"
-          : "matrix(0, -1, 1, 0, 0, 0)",
-      );
+      /*
+       * ChevronDown turned -90deg points right; +90deg points left. Read
+       * once the turn has run: the chevron eases into it (duration-200).
+       */
+      await expect
+        .poll(async () => {
+          return styleOf(collapsed, "transform");
+        })
+        .toBe(
+          language === "fa"
+            ? "matrix(0, 1, -1, 0, 0, 0)"
+            : "matrix(0, -1, 1, 0, 0, 0)",
+        );
     }
   });
 });
