@@ -62,6 +62,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | 步驟的最長執行時間 | 5 分鐘 | 1 小時 |
 | 機密變數 | 您允許全域 Runner 使用的那些 | 列出了它的那些 |
 | OneUptime AI 的 Bash 指令 | 從不執行 | 選擇它的 AI 規則的指令 |
+| OneUptime AI 的程式碼修復 | 不建置也不測試，直接開啟供審查 | 在拉取請求開啟前建置並測試 |
 
 全域 Runner 會執行許多專案的步驟，因此每個步驟都與其他所有步驟彼此隔離：
 
@@ -70,15 +71,17 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 - 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
+全域 Runner 也負責 OneUptime AI 的程式碼修復，涵蓋每個在 **全域 Runner** 上工作的程式碼儲存庫。它撰寫每個修復並開啟拉取請求，但不執行任何指令，連儲存庫的設定、建置與測試指令也不執行，因此拉取請求會說明其驗證已略過。它只透過 HTTPS 存取網際網路上的 Git 伺服器；但在自行託管的 OneUptime 上，它也可以存取伺服器本身可以存取的私有 Git 伺服器。
+
 對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
 
 在 OneUptime Cloud 上，由 OneUptime 執行它們。自行託管的安裝預設會執行一個自己的全域 Runner，就像它執行自己的全域探測器一樣：Docker Compose 中的 `global-runner` 服務，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的金鑰 `GLOBAL_RUNNER_KEY`，不持有伺服器的任何其他東西。
 
-主管理員可以新增更多全域 Runner，以便從其他主機執行步驟：在 Admin Dashboard 中依序開啟 **設定** 、 **全域 Runner** ，建立一個，然後在可以存取網際網路的主機上執行其 **顯示 ID 和金鑰** 提供的命令。
+主管理員可以新增更多全域 Runner，以便從其他主機執行步驟與程式碼修復：在 Admin Dashboard 中依序開啟 **設定** 、 **全域 Runner** ，建立一個，然後在可以存取網際網路的主機上執行其 **顯示 ID 和金鑰** 提供的命令。
 
-若要關閉內建的全域 Runner，請在 Docker Compose 的 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中將 `globalRunner.enabled` 設為 `false`。完全沒有全域 Runner 時， **運行手冊 → Runbook 代理程式** 只會列出您自己的 Runner，每個 JavaScript 步驟都要選擇其中一個。
+若要關閉內建的全域 Runner，請在 Docker Compose 的 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中將 `globalRunner.enabled` 設為 `false`。完全沒有全域 Runner 時， **運行手冊 → Runbook 代理程式** 只會列出您自己的 Runner，每個 JavaScript 步驟與每個程式碼儲存庫都要選擇其中一個。
 
 ## 開始之前
 
@@ -302,7 +305,7 @@ docker rm -f oneuptime-runner
 | `POST /job/:jobId/result` | 提交最終結果。如果租約已經轉移，則忽略。 |
 | `POST /disconnect` | 正常關閉時登出。 |
 
-您不需要手動呼叫它們：隨附的 Runner 會呼叫。在這裡記錄它們，是為了在我們的代理程式不符合您的限制時，您可以自行建構代理程式。
+您不需要手動呼叫它們：Runner 容器會呼叫。在這裡記錄它們，是為了在我們的代理程式不符合您的限制時，您可以自行建構代理程式。
 
 ## 疑難排解
 

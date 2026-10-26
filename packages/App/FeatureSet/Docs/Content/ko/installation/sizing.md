@@ -100,7 +100,7 @@ PostgreSQL은 텔레메트리가 아니라 구성과 운영 상태를 저장하�
 | 인그레스 게이트웨이 | `nginx` | 요청량 |
 | 텔레메트리 라이터(켠 경우) | `telemetryWriter` | 부하에 따라 커지지 않습니다. 모든 텔레메트리 삽입을 ClickHouse로 묶어 보내므로 ClickHouse가 감당할 수 있는 양에 맞춰 사이징합니다 |
 
-차트에는 **KEDA**가 포함되어 있어, 앱, 워커, 프로브, Runner가 큐에 쌓인 작업량에 따라 확장될 수 있습니다. `keda.enabled`와 함께 각 서비스의 `keda.enabled`(예: `app.keda.enabled`)를 켜세요. 아직 KEDA가 없는 클러스터에서는 첫 설치에 추가 단계가 필요합니다. 차트의 [KEDA 가이드](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)를 참고하세요. KEDA가 관리하지 않는 서비스는 대신 CPU나 메모리 기반 자동 확장기(`autoscaling`)를 쓸 수 있습니다.
+차트에는 **KEDA**가 포함되어 있어, 앱, 워커, 프로브, 글로벌 Runner가 큐에 쌓인 작업량에 따라 확장될 수 있습니다. `keda.enabled`와 함께 각 서비스의 `keda.enabled`(예: `app.keda.enabled`)를 켜세요. 아직 KEDA가 없는 클러스터에서는 첫 설치에 추가 단계가 필요합니다. 차트의 [KEDA 가이드](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)를 참고하세요. KEDA가 관리하지 않는 서비스는 대신 CPU나 메모리 기반 자동 확장기(`autoscaling`)를 쓸 수 있습니다.
 
 ## 시작 단계
 

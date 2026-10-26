@@ -62,6 +62,7 @@ Globale Runner sind die Runner, die OneUptime für jedes Projekt betreibt. Ein J
 | Längste Laufzeit eines Schritts | 5 Minuten | 1 Stunde |
 | Geheime Variablen | Die, die Sie globale Runner nutzen lassen | Die, die ihn aufführen |
 | Bash-Befehle von OneUptime AI | Nie | Für die KI-Regeln, die ihn wählen |
+| Codekorrekturen von OneUptime AI | Zur Durchsicht geöffnet, ohne sie zu bauen oder zu testen | Gebaut und getestet, bevor sich der Pull Request öffnet |
 
 Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Schritt von allen anderen getrennt gehalten:
 
@@ -70,15 +71,17 @@ Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Sc
 - Er erhält eine geheime Variable nur, wenn ihr Schalter **Globale Runner dürfen es nutzen** eingeschaltet ist, und nur für einen Schritt aus dem eigenen Projekt der Variable.
 - Ein Projekt führt höchstens drei Schritte gleichzeitig auf globalen Runnern aus, sodass kein Projekt sie für sich allein belegt.
 
+Ein globaler Runner übernimmt auch die Codekorrekturen von OneUptime AI, in jedem Code-Repository, das auf **Globaler Runner** arbeitet. Er schreibt jede Korrektur und öffnet den Pull Request, führt aber keinen Befehl aus, auch nicht die Setup-, Build- und Testbefehle des Repositorys, daher sagt der Pull Request, dass seine Prüfung übersprungen wurde. Er erreicht Git-Server nur im Internet, über HTTPS, außer bei einem selbst gehosteten OneUptime, wo er auch die privaten Git-Server erreichen darf, die der Server selbst erreichen darf.
+
 Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, läuft dann auf dem Standard-Runner des Projekts oder schlägt, wenn keiner festgelegt ist, mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall. Ein Code-Repository, das in seinen Einstellungen in Code keinen Runner auswählt, arbeitet ebenfalls auf dem Standard-Runner des Projekts oder, wenn keiner festgelegt ist, auf einem globalen Runner und braucht einen Ihrer Runner, solange der Schalter aus ist; siehe [Code](/docs/ai/ai-agent#den-runner-des-repositorys-auswählen).
 
 ### Woher globale Runner kommen
 
 In OneUptime Cloud betreibt OneUptime sie. Eine selbst gehostete Installation betreibt standardmäßig einen eigenen, so wie sie ihre eigenen globalen Probes betreibt: den Dienst `global-runner` in Docker Compose und das Deployment `globalRunner` im Helm-Chart. Er besitzt seinen eigenen Schlüssel, `GLOBAL_RUNNER_KEY`, und sonst nichts vom Server.
 
-Ein Master-Admin kann weitere hinzufügen, um Schritte von anderen Hosts aus auszuführen: Öffnen Sie im Admin-Dashboard **Einstellungen**, dann **Globale Runner**, legen Sie einen an und führen Sie den Befehl, den sein **ID und Schlüssel anzeigen** liefert, auf einem Host aus, der das Internet erreicht.
+Ein Master-Admin kann weitere hinzufügen, um Schritte und Codekorrekturen von anderen Hosts aus auszuführen: Öffnen Sie im Admin-Dashboard **Einstellungen**, dann **Globale Runner**, legen Sie einen an und führen Sie den Befehl, den sein **ID und Schlüssel anzeigen** liefert, auf einem Host aus, der das Internet erreicht.
 
-Um den mitgelieferten auszuschalten, setzen Sie `GLOBAL_RUNNER_REPLICAS=0` in der `config.env` von Docker Compose oder `globalRunner.enabled` auf `false` im Helm-Chart. Ganz ohne globalen Runner listet **Runbooks → Runbook-Agents** nur Ihre eigenen Runner auf, und jeder JavaScript-Schritt wählt einen davon.
+Um den mitgelieferten auszuschalten, setzen Sie `GLOBAL_RUNNER_REPLICAS=0` in der `config.env` von Docker Compose oder `globalRunner.enabled` auf `false` im Helm-Chart. Ganz ohne globalen Runner listet **Runbooks → Runbook-Agents** nur Ihre eigenen Runner auf, und jeder JavaScript-Schritt und jedes Code-Repository wählt einen davon.
 
 ## Bevor Sie beginnen
 
@@ -302,7 +305,7 @@ Für Interessierte: Der Runner nutzt diese Endpunkte, eingehängt unter `/runner
 | `POST /job/:jobId/result` | Das Endergebnis einreichen. Wird ignoriert, wenn das Lease bereits weitergegangen ist. |
 | `POST /disconnect` | Sich bei einem sauberen Herunterfahren abmelden. |
 
-Sie sollten diese nicht von Hand aufrufen müssen: Der mitgelieferte Runner tut es. Sie sind hier dokumentiert, damit Sie einen eigenen Agenten bauen können, falls Sie eine Einschränkung haben, zu der unserer nicht passt.
+Sie sollten diese nicht von Hand aufrufen müssen: Der Runner-Container tut es. Sie sind hier dokumentiert, damit Sie einen eigenen Agenten bauen können, falls Sie eine Einschränkung haben, zu der unserer nicht passt.
 
 ## Fehlerbehebung
 

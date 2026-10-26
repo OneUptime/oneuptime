@@ -62,6 +62,7 @@ Globale Runnere er Runnerne OneUptime kjører for alle prosjekter. Et JavaScript
 | Lengste kjøring for et trinn | 5 minutter | 1 time |
 | Hemmelige variabler | De du lar globale Runnere bruke | De som viser den |
 | Bash-kommandoene til OneUptime AI | Aldri | For AI-reglene som velger den |
+| Koderettingene til OneUptime AI | Åpnet for gjennomgang uten å bli bygget eller testet | Bygget og testet før pull requesten åpnes |
 
 En global Runner kjører trinnene til mange prosjekter, så hvert trinn holdes atskilt fra alle andre:
 
@@ -70,15 +71,17 @@ En global Runner kjører trinnene til mange prosjekter, så hvert trinn holdes a
 - Den får bare en hemmelig variabel når variabelens bryter **Globale Runnere kan bruke den** er slått på, og bare for et trinn i variabelens eget prosjekt.
 - Et prosjekt kjører høyst tre trinn om gangen på globale Runnere, så ingen prosjekter holder dem for seg selv.
 
+En global Runner tar også koderettingene til OneUptime AI, i hvert koderepositorium som jobber på **Global Runner**. Den skriver hver retting og åpner pull requesten, men kjører ingen kommando, heller ikke repositoriets oppsett-, bygge- og testkommandoer, så pull requesten sier at kontrollen ble hoppet over. Den når bare Git-servere på internett, over HTTPS, unntatt på en selvhostet OneUptime, der den også kan nå de private Git-serverne som serveren selv kan nå.
+
 Velg en av dine egne Runnere for et trinn som må nå nettverket ditt, eller for å holde trinnet på verter du kontrollerer. For å holde hvert trinn på dine egne Runnere slår du av **Bruk globale Runnere** nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trinn som ikke velger noen Runner, kjører da på prosjektets standard-Runner eller feiler, hvis det ikke er angitt en, og sier fra, til det velger en av dine; et trinn som velger en av dine Runnere, beholder den uansett. Et koderepositorium som ikke velger noen Runner i innstillingene sine i Kode, jobber også på prosjektets standard-Runner eller, hvis det ikke er angitt en, på en global Runner, og trenger en av dine mens bryteren er av; se [Kode](/docs/ai/ai-agent#velg-repositoriets-runner).
 
 ### Hvor globale Runnere kommer fra
 
 I OneUptime Cloud kjører OneUptime dem. En selvhostet installasjon kjører sin egen som standard, slik den kjører sine egne globale prober: tjenesten `global-runner` i Docker Compose og deploymentet `globalRunner` i Helm-chartet. Den har sin egen nøkkel, `GLOBAL_RUNNER_KEY`, og ingenting annet fra serveren.
 
-En masteradministrator kan legge til flere for å kjøre trinn fra andre verter: Åpne **Innstillinger** og deretter **Globale Runnere** i Admin-dashbordet, opprett en, og kjør kommandoen som **Vis ID og nøkkel** gir, på en vert som når internett.
+En masteradministrator kan legge til flere for å kjøre trinn og koderettinger fra andre verter: Åpne **Innstillinger** og deretter **Globale Runnere** i Admin-dashbordet, opprett en, og kjør kommandoen som **Vis ID og nøkkel** gir, på en vert som når internett.
 
-For å slå av den medfølgende setter du `GLOBAL_RUNNER_REPLICAS=0` i Docker Compose sin `config.env`, eller `globalRunner.enabled` til `false` i Helm-chartet. Helt uten global Runner viser **Runbooks → Runbook-agenter** bare dine egne Runnere, og hvert JavaScript-trinn velger en av dem.
+For å slå av den medfølgende setter du `GLOBAL_RUNNER_REPLICAS=0` i Docker Compose sin `config.env`, eller `globalRunner.enabled` til `false` i Helm-chartet. Helt uten global Runner viser **Runbooks → Runbook-agenter** bare dine egne Runnere, og hvert JavaScript-trinn og hvert koderepositorium velger en av dem.
 
 ## Før du begynner
 
@@ -302,7 +305,7 @@ For de nysgjerrige: Runneren bruker disse endepunktene, montert under `/runner-i
 | `POST /job/:jobId/result` | Send inn det endelige resultatet. Ignoreres hvis leasen allerede har gått videre. |
 | `POST /disconnect` | Logg av ved en ryddig avslutning. |
 
-Du skal ikke trenge å kalle dem manuelt: den medfølgende Runneren gjør det. De er dokumentert her slik at du kan bygge din egen agent hvis du har en begrensning som vår ikke passer til.
+Du skal ikke trenge å kalle dem manuelt: Runner-containeren gjør det. De er dokumentert her slik at du kan bygge din egen agent hvis du har en begrensning som vår ikke passer til.
 
 ## Feilsøking
 

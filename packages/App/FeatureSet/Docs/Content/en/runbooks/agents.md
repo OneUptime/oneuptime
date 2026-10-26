@@ -62,6 +62,7 @@ Global Runners are the Runners OneUptime runs for every project. A JavaScript st
 | Longest a step runs | 5 minutes | 1 hour |
 | Secret variables | The ones you let global Runners use | The ones that list it |
 | OneUptime AI's Bash commands | Never | For the AI rules that pick it |
+| OneUptime AI's code fixes | Opened for review without building or testing them | Built and tested before the pull request opens |
 
 A global Runner runs the steps of many projects, so each step is kept apart from every other:
 
@@ -70,15 +71,17 @@ A global Runner runs the steps of many projects, so each step is kept apart from
 - It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
 
+A global Runner also takes OneUptime AI's code fixes, in every code repository that works on **Global Runner**. It writes each fix and opens the pull request, but runs no command, not even the repository's setup, build and test commands, so the pull request says its verification was skipped. It reaches Git servers on the internet only, over HTTPS, except on a self-hosted OneUptime, where it may also reach the private Git servers the server itself may reach.
+
 Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on the project's default Runner too or, with none set, on a global Runner, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
 
 On OneUptime Cloud, OneUptime runs them. A self-hosted install runs one of its own by default, as it runs its own global probes: the `global-runner` service in Docker Compose, and the `globalRunner` deployment in the Helm chart. It holds its own key, `GLOBAL_RUNNER_KEY`, and nothing else of the server's.
 
-A master admin can add more, to run steps from other hosts: in the Admin Dashboard, open **Settings**, then **Global Runners**, create one, and run the command its **Show ID and Key** gives on a host that can reach the internet.
+A master admin can add more, to run steps and code fixes from other hosts: in the Admin Dashboard, open **Settings**, then **Global Runners**, create one, and run the command its **Show ID and Key** gives on a host that can reach the internet.
 
-To turn the bundled one off, set `GLOBAL_RUNNER_REPLICAS=0` in Docker Compose's `config.env`, or `globalRunner.enabled` to `false` in the Helm chart. With no global Runner at all, **Runbooks → Runners** lists your own Runners only, and every JavaScript step picks one of them.
+To turn the bundled one off, set `GLOBAL_RUNNER_REPLICAS=0` in Docker Compose's `config.env`, or `globalRunner.enabled` to `false` in the Helm chart. With no global Runner at all, **Runbooks → Runners** lists your own Runners only, and every JavaScript step and every code repository picks one of them.
 
 ## Before you begin
 
@@ -302,7 +305,7 @@ For the curious: the Runner uses these endpoints, mounted under `/runner-ingest`
 | `POST /job/:jobId/result` | Submit the final outcome. Ignored if the lease has already moved on. |
 | `POST /disconnect` | Sign off on a clean shutdown. |
 
-You should not need to call these by hand: the bundled Runner does. They're documented here so you can build your own agent if you have a constraint that ours doesn't fit.
+You should not need to call these by hand: the Runner container does. They're documented here so you can build your own agent if you have a constraint that ours doesn't fit.
 
 ## Troubleshooting
 

@@ -62,6 +62,7 @@ Runners globais são os Runners que o OneUptime executa para todos os projetos. 
 | Tempo máximo de uma etapa | 5 minutos | 1 hora |
 | Variáveis secretas | As que você deixa os Runners globais usarem | As que o listam |
 | Comandos Bash da OneUptime AI | Nunca | Para as regras de IA que o escolhem |
+| Correções de código da OneUptime AI | Abertas para revisão sem compilá-las nem testá-las | Compiladas e testadas antes de o pull request abrir |
 
 Um Runner global executa as etapas de muitos projetos, então cada etapa fica separada de todas as outras:
 
@@ -70,15 +71,17 @@ Um Runner global executa as etapas de muitos projetos, então cada etapa fica se
 - Ele só recebe uma variável secreta quando o interruptor **Runners globais podem usá-lo** dela está ligado, e só para uma etapa do próprio projeto da variável.
 - Um projeto roda no máximo três etapas por vez nos Runners globais, então nenhum projeto fica com eles só para si.
 
+Um Runner global também cuida das correções de código da OneUptime AI, em todo repositório de código que trabalha em **Runner global**. Ele escreve cada correção e abre o pull request, mas não executa nenhum comando, nem mesmo os comandos de preparação, compilação e teste do repositório, então o pull request diz que a verificação foi ignorada. Ele só alcança servidores Git na internet, por HTTPS, exceto num OneUptime auto-hospedado, onde também pode alcançar os servidores Git privados que o próprio servidor pode alcançar.
+
 Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a rodar no Runner padrão do projeto ou, se não houver um, a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha no Runner padrão do projeto ou, se não houver um, em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
 
 ### De onde vêm os Runners globais
 
 No OneUptime Cloud, o OneUptime os executa. Uma instalação auto-hospedada executa um próprio por padrão, assim como executa as próprias sondas globais: o serviço `global-runner` no Docker Compose e o deployment `globalRunner` no chart Helm. Ele tem a própria chave, `GLOBAL_RUNNER_KEY`, e nada mais do servidor.
 
-Um administrador principal pode adicionar mais, para rodar etapas a partir de outros hosts: no Painel de administração, abra **Configurações**, depois **Runners globais**, crie um e rode o comando que o **Mostrar ID e chave** dele fornece em um host que alcance a internet.
+Um administrador principal pode adicionar mais, para rodar etapas e correções de código a partir de outros hosts: no Painel de administração, abra **Configurações**, depois **Runners globais**, crie um e rode o comando que o **Mostrar ID e chave** dele fornece em um host que alcance a internet.
 
-Para desligar o incluído, defina `GLOBAL_RUNNER_REPLICAS=0` no `config.env` do Docker Compose, ou `globalRunner.enabled` como `false` no chart Helm. Sem nenhum Runner global, **Runbooks → Agentes de runbook** lista apenas os seus próprios Runners, e toda etapa JavaScript escolhe um deles.
+Para desligar o incluído, defina `GLOBAL_RUNNER_REPLICAS=0` no `config.env` do Docker Compose, ou `globalRunner.enabled` como `false` no chart Helm. Sem nenhum Runner global, **Runbooks → Agentes de runbook** lista apenas os seus próprios Runners, e toda etapa JavaScript e todo repositório de código escolhe um deles.
 
 ## Antes de começar
 
@@ -302,7 +305,7 @@ Para os curiosos: o Runner usa estes endpoints, montados em `/runner-ingest`. O 
 | `POST /job/:jobId/result` | Enviar o resultado final. É ignorado se o lease já tiver passado adiante. |
 | `POST /disconnect` | Desconectar-se em um desligamento limpo. |
 
-Você não deve precisar chamá-los manualmente: o Runner incluído faz isso. Eles estão documentados aqui para que você possa construir seu próprio agente se tiver uma restrição à qual o nosso não se adapta.
+Você não deve precisar chamá-los manualmente: o contêiner do Runner faz isso. Eles estão documentados aqui para que você possa construir seu próprio agente se tiver uma restrição à qual o nosso não se adapta.
 
 ## Solução de problemas
 
