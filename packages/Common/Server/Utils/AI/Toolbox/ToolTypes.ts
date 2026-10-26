@@ -56,6 +56,14 @@ export interface PreparedMutation {
    */
   arguments: JSONObject;
   /*
+   * The approval card's title, when the prepare names the record better
+   * than buildActionTitle can from the arguments alone: "Link incident
+   * #42 to affected resources", by the number the person knows it by,
+   * never its ID. Read with the person's own permissions; left out,
+   * buildActionTitle's title stands.
+   */
+  title?: string | undefined;
+  /*
    * One sentence for the approval card, under its title, naming what the
    * arguments name by ID: "Linked to host "test01"." Read with the
    * person's own permissions.

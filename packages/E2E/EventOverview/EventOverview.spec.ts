@@ -17654,7 +17654,7 @@ test.describe("the Remediation card of a record linked to nothing (issue #5293)"
   const NOTHING_LINKED_INCIDENT: string =
     "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.";
   const WHAT_TO_DO: string =
-    "Add the one it is about under Affected Resources, and OneUptime AI tries again.";
+    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.";
   const GO_TO_AFFECTED_RESOURCES: string = "Go to Affected Resources";
 
   function decisionLine(page: Page): Locator {
@@ -17755,6 +17755,8 @@ test.describe("the Remediation card of a record linked to nothing (issue #5293)"
         "data-page-anchor-landed",
         "true",
       );
+      // The button's focus is handed on: Tab goes on from the card.
+      await expect(affectedResources).toBeFocused();
       await expect
         .poll(
           async (): Promise<number> => {
@@ -17852,8 +17854,9 @@ test.describe("an action linking what a record is about waits for approval (issu
     const prompt: Locator = approvalPrompt(page);
 
     await expect(prompt).toContainText("The AI wants to perform 1 action");
+    // Named by its number: never by the ID the arguments carry.
     await expect(prompt).toContainText(
-      "Link this incident to affected resources",
+      "Link incident #1042 to affected resources",
     );
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
@@ -17880,7 +17883,7 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt).toHaveCount(0);
     await expect(
       answer.getByRole("list", { name: "Actions" }).getByRole("listitem"),
-    ).toHaveText(["Link this incident to affected resources · Done"]);
+    ).toHaveText(["Link incident #1042 to affected resources · Done"]);
   });
 
   test("an alert's card names the host the same way", async ({
@@ -17891,7 +17894,7 @@ test.describe("an action linking what a record is about waits for approval (issu
     await openConversation(page, "thread=linking", ALERT_PATH);
     const prompt: Locator = approvalPrompt(page);
 
-    await expect(prompt).toContainText("Link this alert to affected resources");
+    await expect(prompt).toContainText("Link alert #311 to affected resources");
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );

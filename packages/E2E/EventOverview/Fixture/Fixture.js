@@ -5506,8 +5506,9 @@ function seedThread(kind, number) {
    * Issue #5293: asked to link the record to the host it is about,
    * OneUptime AI waits for approval of add_<kind>_affected_resources. The
    * server prepared the action (prepareMutation): the record's id and the
-   * host are written into its arguments, and its description names the
-   * host, so the card shows the name and leaves the list's IDs out.
+   * host are written into its arguments, its title names the record by
+   * its number - never by that id - and its description names the host,
+   * so the card shows the names and leaves the list's IDs out.
    */
   if (threadMode === "linking") {
     const runId = threadRunId();
@@ -5518,7 +5519,7 @@ function seedThread(kind, number) {
         {
           id: "call_link",
           toolName: `add_${kind}_affected_resources`,
-          title: `Link this ${kind} to affected resources`,
+          title: `Link ${kind} #${number} to affected resources`,
           description: 'Adds host "checkout-api-7f9c".',
           arguments: {
             [`${kind}Id`]:

@@ -81,6 +81,39 @@ function getAlertId(args: JSONObject, ctx: ToolContext): ObjectID | undefined {
   return undefined;
 }
 
+/*
+ * How the person knows an alert - its number with the project's prefix -
+ * read with their own props, for an approval card's title. Null when they
+ * may not read it or the read fails: the card then keeps
+ * buildActionTitle's title, and running the action says why.
+ */
+async function getAlertNumberForPerson(data: {
+  alertId: ObjectID;
+  ctx: ToolContext;
+}): Promise<string | null> {
+  try {
+    const alert: Alert | null = await AlertService.findOneById({
+      id: data.alertId,
+      select: {
+        _id: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+      },
+      props: data.ctx.props,
+    });
+
+    if (alert?.alertNumberWithPrefix) {
+      return alert.alertNumberWithPrefix;
+    }
+
+    return typeof alert?.alertNumber === "number"
+      ? `#${alert.alertNumber}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 async function changeAlertStateTool(data: {
   args: JSONObject;
   ctx: ToolContext;
@@ -288,8 +321,19 @@ export const AddAlertAffectedResourcesTool: ObservabilityTool = {
         defaultsToPage: false,
       });
 
+    /*
+     * The card names the alert by its number: written out, its ID would
+     * otherwise be all buildActionTitle can name it by.
+     */
+    const alertNumber: string | null = alertId
+      ? await getAlertNumberForPerson({ alertId, ctx })
+      : null;
+
     return {
       arguments: prepared,
+      ...(alertNumber
+        ? { title: `Link alert ${alertNumber} to affected resources` }
+        : {}),
       description: AffectedResourceLinks.describeForPerson({
         linked: toLink.linked,
         hasNotLinked: toLink.notLinked.length > 0,

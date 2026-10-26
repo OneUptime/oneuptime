@@ -279,6 +279,70 @@ describe("add_alert_affected_resources", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  test("prepared, the card is titled by the alert's number, read as the person - never its ID", async () => {
+    const read: jest.SpyInstance = jest
+      .spyOn(AlertService, "findOneById")
+      .mockImplementation((async (): Promise<Alert> => {
+        const alert: Alert = new Alert();
+        alert._id = ALERT_ID;
+        alert.alertNumber = 7;
+        alert.alertNumberWithPrefix = "ALR-7";
+        return alert;
+      }) as never);
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([named(Host, HOST_ID, "test01")] as never);
+    const ctx: ToolContext = context(ALERT_PAGE);
+
+    const prepared: PreparedMutation =
+      await AddAlertAffectedResourcesTool.prepareMutation!(
+        { affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }] },
+        ctx,
+      );
+
+    expect(prepared.arguments["alertId"]).toBe(ALERT_ID);
+    expect(prepared.title).toBe("Link alert ALR-7 to affected resources");
+    expect(prepared.title).not.toContain(ALERT_ID);
+    expect(prepared.description).toBe('Adds host "test01".');
+    const args: { id: ObjectID; props: unknown } = read.mock.calls[0]![0] as {
+      id: ObjectID;
+      props: unknown;
+    };
+    expect(args.id.toString()).toBe(ALERT_ID);
+    expect(args.props).toBe(ctx.props);
+  });
+
+  test("prepared for an alert with no prefix, '#' and its number; for one the person may not read, no title", async () => {
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([named(Host, HOST_ID, "test01")] as never);
+    const numbered: Alert = new Alert();
+    numbered._id = ALERT_ID;
+    numbered.alertNumber = 7;
+    jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValueOnce(numbered as never)
+      .mockResolvedValueOnce(null as never)
+      .mockRejectedValueOnce(new Error("database is gone") as never);
+    const call: JSONObject = {
+      alertId: ALERT_ID,
+      affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
+    };
+
+    expect(
+      (await AddAlertAffectedResourcesTool.prepareMutation!(call, context()))
+        .title,
+    ).toBe("Link alert #7 to affected resources");
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      const prepared: PreparedMutation =
+        await AddAlertAffectedResourcesTool.prepareMutation!(call, context());
+
+      expect(prepared.title).toBeUndefined();
+      expect(prepared.description).toBe('Adds host "test01".');
+    }
+  });
+
   test("is a mutation that needs what the alert's Affected Resources Edit needs", () => {
     expect(AddAlertAffectedResourcesTool.isMutation).toBe(true);
     expect(AddAlertAffectedResourcesTool.requiredPermissions).toEqual(

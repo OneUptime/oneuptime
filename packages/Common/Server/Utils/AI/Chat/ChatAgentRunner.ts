@@ -163,6 +163,13 @@ export interface ResumeToolDecision {
 }
 
 /*
+ * What a prepared mutation says on its approval card: its title, when the
+ * prepare names the record better than buildActionTitle can, and its line
+ * (PreparedMutation).
+ */
+type PreparedActionWords = Pick<PreparedMutation, "title" | "description">;
+
+/*
  * Per-turn limits. A turn is not rationed: no wall clock, and step counts
  * that only guard against a runaway loop (AIAgentRunLimits). The model is
  * asked to answer once one is hit.
@@ -1065,9 +1072,10 @@ export default class ChatAgentRunner {
           /*
            * What the action will do, settled before anyone approves it: the
            * arguments it runs with (what the tool fills in from the
-           * conversation written out) and a line naming what they name.
+           * conversation written out), and the card's title and line
+           * naming what they name.
            */
-          const actionDescription: string | undefined = isMutation
+          const actionWords: PreparedActionWords | undefined = isMutation
             ? await this.prepareMutation(toolCall, toolContext)
             : undefined;
 
@@ -1082,7 +1090,7 @@ export default class ChatAgentRunner {
               true,
               AIChatToolActionStatus.Pending,
               undefined,
-              actionDescription,
+              actionWords,
             );
             pendingApproval.push(toolCall);
             continue;
@@ -1096,7 +1104,7 @@ export default class ChatAgentRunner {
               false,
               AIChatToolActionStatus.Approved,
               undefined,
-              actionDescription,
+              actionWords,
             );
           }
 
@@ -1413,17 +1421,18 @@ export default class ChatAgentRunner {
   }
 
   /*
-   * A mutation's arguments as they will run, and the approval card's line
-   * about them (ObservabilityTool.prepareMutation): written onto the call
-   * itself, so the pending call that is persisted for approval - and the
-   * assistant message that holds it - carry what the person approves.
-   * Arguments that did not parse are left to fail as they are; a prepare
-   * that fails leaves the model's arguments as they were.
+   * A mutation's arguments as they will run, and the approval card's title
+   * and line about them (ObservabilityTool.prepareMutation): the arguments
+   * written onto the call itself, so the pending call that is persisted
+   * for approval - and the assistant message that holds it - carry what
+   * the person approves. Arguments that did not parse are left to fail as
+   * they are; a prepare that fails leaves the model's arguments as they
+   * were, and the card its usual title.
    */
   private static async prepareMutation(
     toolCall: LLMToolCall,
     toolContext: ToolContext,
-  ): Promise<string | undefined> {
+  ): Promise<PreparedActionWords | undefined> {
     const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
       toolCall.name,
     );
@@ -1440,7 +1449,10 @@ export default class ChatAgentRunner {
 
       toolCall.arguments = prepared.arguments;
 
-      return prepared.description;
+      return {
+        ...(prepared.title ? { title: prepared.title } : {}),
+        ...(prepared.description ? { description: prepared.description } : {}),
+      };
     } catch (error) {
       logger.error(
         `AI chat could not prepare ${toolCall.name}; it runs with the model's arguments: ${
@@ -1458,8 +1470,8 @@ export default class ChatAgentRunner {
     requiresApproval: boolean,
     status: AIChatToolActionStatus,
     resultSummary?: string,
-    // What the action names, for the approval card (prepareMutation).
-    description?: string,
+    // The card's title and line about the action (prepareMutation).
+    words?: PreparedActionWords | undefined,
   ): void {
     const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
       toolCall.name,
@@ -1470,11 +1482,14 @@ export default class ChatAgentRunner {
           return candidate.definition.name === toolCall.name;
         });
 
-    const title: string = tool?.buildActionTitle
-      ? tool.buildActionTitle(toolCall.arguments)
-      : extraTool?.buildActionTitle
-        ? extraTool.buildActionTitle(toolCall.arguments)
-        : toolCall.name;
+    const title: string = words?.title
+      ? words.title
+      : tool?.buildActionTitle
+        ? tool.buildActionTitle(toolCall.arguments)
+        : extraTool?.buildActionTitle
+          ? extraTool.buildActionTitle(toolCall.arguments)
+          : toolCall.name;
+    const description: string | undefined = words?.description;
 
     const existing: AIChatToolAction | undefined = state.toolActions.find(
       (action: AIChatToolAction) => {

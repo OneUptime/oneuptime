@@ -668,6 +668,83 @@ describe("add_incident_affected_resources", () => {
     expect(prepared.description).toBe('Adds host "test01".');
   });
 
+  test("prepared, the card is titled by the incident's number, read as the person - never its ID", async () => {
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([named(Host, HOST_ID, "test01")] as never);
+    const read: jest.SpyInstance = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (): Promise<Incident> => {
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID;
+        incident.incidentNumber = 12;
+        incident.incidentNumberWithPrefix = "INC-12";
+        return incident;
+      }) as never);
+    const ctx: ToolContext = context(HOST_PAGE);
+
+    const prepared: PreparedMutation =
+      await AddIncidentAffectedResourcesTool.prepareMutation!(
+        { incidentId: INCIDENT_ID },
+        ctx,
+      );
+
+    expect(prepared.title).toBe("Link incident INC-12 to affected resources");
+    expect(prepared.title).not.toContain(INCIDENT_ID);
+    const args: { id: ObjectID; props: unknown } = read.mock.calls[0]![0] as {
+      id: ObjectID;
+      props: unknown;
+    };
+    expect(args.id.toString()).toBe(INCIDENT_ID);
+    expect(args.props).toBe(ctx.props);
+  });
+
+  test("prepared for an incident with no prefix, the title says '#' and its number", async () => {
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([named(Host, HOST_ID, "test01")] as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (): Promise<Incident> => {
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID;
+        incident.incidentNumber = 12;
+        return incident;
+      }) as never);
+
+    const prepared: PreparedMutation =
+      await AddIncidentAffectedResourcesTool.prepareMutation!(
+        { incidentId: INCIDENT_ID },
+        context(HOST_PAGE),
+      );
+
+    expect(prepared.title).toBe("Link incident #12 to affected resources");
+  });
+
+  test("prepared for an incident the person may not read, or that cannot be read, no title is offered", async () => {
+    jest
+      .spyOn(HostService, "findBy")
+      .mockResolvedValue([named(Host, HOST_ID, "test01")] as never);
+    const read: jest.SpyInstance = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValueOnce(null as never)
+      .mockRejectedValueOnce(new Error("database is gone") as never);
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      const prepared: PreparedMutation =
+        await AddIncidentAffectedResourcesTool.prepareMutation!(
+          { incidentId: INCIDENT_ID },
+          context(HOST_PAGE),
+        );
+
+      // buildActionTitle's title stands, and the line still names the host.
+      expect(prepared.title).toBeUndefined();
+      expect(prepared.description).toBe('Adds host "test01".');
+    }
+
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
   test("prepared on an incident's page: the incident is written out", async () => {
     jest
       .spyOn(HostService, "findBy")

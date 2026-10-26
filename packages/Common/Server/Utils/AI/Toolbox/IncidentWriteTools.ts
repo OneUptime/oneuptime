@@ -97,6 +97,39 @@ function getIncidentId(
 }
 
 /*
+ * How the person knows an incident - its number with the project's prefix,
+ * "INC-42" or "#42" - read with their own props, for an approval card's
+ * title. Null when they may not read it or the read fails: the card then
+ * keeps buildActionTitle's title, and running the action says why.
+ */
+async function getIncidentNumberForPerson(data: {
+  incidentId: ObjectID;
+  ctx: ToolContext;
+}): Promise<string | null> {
+  try {
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: data.incidentId,
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+      },
+      props: data.ctx.props,
+    });
+
+    if (incident?.incidentNumberWithPrefix) {
+      return incident.incidentNumberWithPrefix;
+    }
+
+    return typeof incident?.incidentNumber === "number"
+      ? `#${incident.incidentNumber}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/*
  * Write tools mutate the project. They are gated twice: once by the tool's
  * requiredPermissions (RBAC) and once by the conversation's permission mode
  * (approval / auto-run / hidden in read-only). Each write is the one the
@@ -395,8 +428,19 @@ export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
         defaultsToPage: false,
       });
 
+    /*
+     * The card names the incident by its number: written out, its ID
+     * would otherwise be all buildActionTitle can name it by.
+     */
+    const incidentNumber: string | null = incidentId
+      ? await getIncidentNumberForPerson({ incidentId, ctx })
+      : null;
+
     return {
       arguments: prepared,
+      ...(incidentNumber
+        ? { title: `Link incident ${incidentNumber} to affected resources` }
+        : {}),
       description: AffectedResourceLinks.describeForPerson({
         linked: toLink.linked,
         hasNotLinked: toLink.notLinked.length > 0,

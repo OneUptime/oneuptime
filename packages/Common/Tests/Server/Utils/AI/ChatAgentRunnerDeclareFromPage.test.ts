@@ -456,3 +456,77 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
     );
   });
 });
+
+/*
+ * The prepare writes the incident's ID into the arguments it approves, so
+ * the title buildActionTitle makes of them would name the incident by that
+ * ID. The prepare names it by the number the person knows it by instead,
+ * read with their own props - and the persisted action keeps that title.
+ */
+describe("linking an existing incident from a host's page: the card names it by its number", () => {
+  const LINK_CALL: { id: string; name: string; arguments: JSONObject } = {
+    id: "call-link",
+    name: "add_incident_affected_resources",
+    arguments: { incidentId: INCIDENT_ID },
+  };
+
+  function mockIncidentNumber(): SpyInstance {
+    return jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (): Promise<Incident> => {
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID;
+        incident.incidentNumber = 12;
+        incident.incidentNumberWithPrefix = "INC-12";
+        return incident;
+      }) as never);
+  }
+
+  test("titled by the incident's number, never its ID, and named what it adds", async () => {
+    const spies: Spies = installSpies();
+    const incidentRead: SpyInstance = mockIncidentNumber();
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({ stopReason: "tool_use", toolCalls: [LINK_CALL] }) as never,
+    );
+    const request: ChatTurnRequest = buildRequest();
+
+    await ChatAgentRunner.runTurn(request);
+
+    const actions: Array<AIChatToolAction> = lastToolActions(spies);
+    expect(actions).toHaveLength(1);
+    expect(actions[0]!.status).toBe(AIChatToolActionStatus.Pending);
+    expect(actions[0]!.title).toBe(
+      "Link incident INC-12 to affected resources",
+    );
+    expect(actions[0]!.title).not.toContain(INCIDENT_ID);
+    expect(actions[0]!.description).toBe('Adds host "test01".');
+    expect(actions[0]!.arguments).toEqual({
+      incidentId: INCIDENT_ID,
+      affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
+    });
+
+    // The number was read as the person asking - never as root.
+    const read: { props: unknown } = incidentRead.mock.calls[0]![0] as {
+      props: unknown;
+    };
+    expect(read.props).toBe(request.props);
+  });
+
+  test("an incident the person may not read keeps buildActionTitle's title", async () => {
+    const spies: Spies = installSpies();
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(null as never);
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({ stopReason: "tool_use", toolCalls: [LINK_CALL] }) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const actions: Array<AIChatToolAction> = lastToolActions(spies);
+    expect(actions[0]!.title).toBe(
+      "Link incident " + INCIDENT_ID + " to affected resources",
+    );
+    expect(actions[0]!.description).toBe('Adds host "test01".');
+  });
+});
