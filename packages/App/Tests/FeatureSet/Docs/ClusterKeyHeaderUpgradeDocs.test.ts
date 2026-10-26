@@ -3,7 +3,7 @@ import { inlineCode } from "./DocsTranslationChecks";
 import { flattened, otherChangesItems } from "./UpgradingDocsNotes";
 import {
   ClusterKeyRoute,
-  RUNNER_REGISTRATION_MIDDLEWARE,
+  SERVICE_MIDDLEWARE,
   findClusterKeyRoutes,
 } from "Common/Tests/Server/TestingUtils/ClusterKeyRoutes";
 import {
@@ -36,9 +36,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
  *   - the header it names is the one OneUptime's services present
  *     (ClusterKeyAuthorization.getClusterKeyHeaders), and a request whose
  *     URL carries the key is refused;
- *   - the one route it says reads a body for the key is the in-cluster
- *     Runner's registration, the only route ClusterKeyRoutes finds handed
- *     the check that reads one;
+ *   - no route reads a body for the key: every route ClusterKeyRoutes finds
+ *     is handed the check that reads the header alone, which finds no key in
+ *     a body, and no Runner registers with the key any more;
  *   - the routes it says are removed take the cluster key nowhere, and no
  *     router of the product serves them any more;
  *   - the support bundle it points at reads the queues;
@@ -209,24 +209,65 @@ describe("the English upgrade note on the header ONEUPTIME_SECRET travels in", (
     ]);
   });
 
-  it("says a body is read only by the in-cluster Runner's registration, the one route handed the check that reads one", () => {
+  it("says a body is read only by the in-cluster Runner's registration", () => {
     expect(ENGLISH_NOTE).toContain(
       "a body is read for it only by the in-cluster Runner's registration, so a Runner of an earlier release still registers while the app logs that it should be updated",
     );
+  });
 
-    const readingABody: Array<ClusterKeyRoute> = findClusterKeyRoutes().filter(
-      (route: ClusterKeyRoute): boolean => {
-        return route.middleware === RUNNER_REGISTRATION_MIDDLEWARE;
+  it("is held to code in which no route reads a body for the key, and no Runner registers with it", async () => {
+    const routes: Array<ClusterKeyRoute> = findClusterKeyRoutes();
+
+    // Every route is handed the check that reads the header alone.
+    expect(routes.length).toBeGreaterThan(0);
+    expect(
+      routes
+        .filter((route: ClusterKeyRoute): boolean => {
+          return route.middleware !== SERVICE_MIDDLEWARE;
+        })
+        .map((route: ClusterKeyRoute): string => {
+          return `${route.method} ${route.file}`;
+        }),
+    ).toEqual([]);
+
+    // That check finds no key in a body, the right one included.
+    const middleware: AnyModule = loadMiddleware();
+    const ClusterKeyAuthorization: AnyModule = middleware.default;
+    const sent: Array<unknown> = [];
+    const res: Record<string, unknown> = {};
+
+    res["status"] = (): unknown => {
+      return res;
+    };
+    res["send"] = (body: unknown): void => {
+      sent.push(body);
+    };
+
+    let passed: boolean = false;
+
+    await ClusterKeyAuthorization.isAuthorizedServiceMiddleware(
+      {
+        headers: {},
+        query: {},
+        params: {},
+        body: { clusterKey: ClusterKeyAuthorization.getClusterKey() },
+      },
+      res,
+      () => {
+        passed = true;
       },
     );
 
-    expect(
-      readingABody.map((route: ClusterKeyRoute): string => {
-        return `${route.method} ${route.file}`;
+    expect(passed).toBe(false);
+    expect(sent).toEqual([
+      expect.objectContaining({
+        message: middleware.CLUSTER_KEY_NOT_FOUND_MESSAGE,
       }),
-    ).toEqual(["POST packages/Common/Server/API/AIAgentAPI.ts"]);
-    expect(source("packages/Runner/Services/RegisterRunner.ts")).toContain(
-      '.addRoute("/api/ai-agent/register")',
+    ]);
+
+    // The Runner's registration with the key is gone, from the Runner too.
+    expect(source("packages/Runner/Services/RegisterRunner.ts")).not.toContain(
+      "/api/ai-agent/register",
     );
   });
 
