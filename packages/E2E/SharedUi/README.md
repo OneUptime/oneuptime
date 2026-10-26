@@ -6,7 +6,8 @@ first focus, the Duplicate, Reset and Delete cards (`DuplicateModel`,
 `ResetObjectID`, `ModelDelete`) and their dialogs, `CollapsibleSection` and
 `SideMenuSection`, the pills (`Label`, `BooleanValue`, `DropdownValueBadge`),
 the stat tiles (`InfoCard`), the multi-selects' chips (`Dropdown`,
-`EntityDropdown`) and `PeopleAvatar`. A network device's Connectivity tools are
+`EntityDropdown`), `PeopleAvatar`, and the radios and checkboxes
+(`ChoiceRows`, `Checkbox`; `?section=choices`). A network device's Connectivity tools are
 the real `DeviceDiagnostics`. It bundles the production components with
 esbuild, replaces only the `ModelAPI` / `API` data boundary and the synthetic
 user's permissions, and serves them on `127.0.0.1:4329`. No Docker, no
@@ -46,7 +47,13 @@ The suite checks what jsdom cannot:
   capitals, tracking or dot; a multi-select's chips show whole names on a
   phone;
 - a team's avatar stands out from a dark card at 3:1 on every edge, its
-  initials at 4.5:1.
+  initials at 4.5:1;
+- in the dark theme, radios and checkboxes are the theme's own rather than the
+  browser's grey discs: unchecked the card with the strong border (3:1),
+  checked the brand indigo (3:1 on the card) with a white dot, tick or dash,
+  locked faded, focused with an indigo ring, in place beside their titles
+  (sizes and margins the components' own), on a phone too; the light theme
+  keeps the browser's own.
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on
