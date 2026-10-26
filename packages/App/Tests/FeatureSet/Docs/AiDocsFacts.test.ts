@@ -1004,7 +1004,7 @@ describe("Code", () => {
 
     // Told to check its change only where it can run commands at all.
     expect(flat(agent)).toContain(
-      "canRunCommands: RUNS_PROJECT_AUTHORED_COMMANDS,",
+      "canRunCommands: runsProjectAuthoredCommands(),",
     );
 
     // A command the model composed runs without the Runner's own key.
@@ -1264,10 +1264,10 @@ describe("Code", () => {
     expect(section).toContain(
       "every repository needs one of the project's own Runners: the one it picks, or the project's default Runner.",
     );
-    // The bundled Runner never runs a repository's commands.
+    // A global Runner never runs a repository's commands.
     expect(
-      readRepoFile("Runner/Config.ts").includes(
-        "export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;",
+      flat(readRepoFile("Runner/Config.ts")).includes(
+        "export function runsProjectAuthoredCommands(): boolean { return !GlobalRunnerMode.isActive(); }",
       ),
     ).toBe(true);
     expect(
