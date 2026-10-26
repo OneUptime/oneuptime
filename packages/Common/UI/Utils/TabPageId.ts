@@ -1,3 +1,4 @@
+import Route from "../../Types/API/Route";
 import ObjectID from "../../Types/ObjectID";
 
 /*
@@ -102,12 +103,13 @@ export default class TabPageId {
 
   /*
    * Whether a path of this app opens another page than this tab's: one under
-   * /<segment>/<id> that names any other page. A tab that does not know its
-   * page yet cannot tell, and answers no.
+   * /<segment>/<id> that names any other page, read as navigation opens it
+   * (getOpenedPath). A tab that does not know its page yet cannot tell, and
+   * answers no.
    */
   public isAnotherPagesPath(path: string): boolean {
     const value: string | null = TabPageId.getSegmentValue({
-      path: path,
+      path: TabPageId.getOpenedPath(path),
       segment: this.segment,
     });
 
@@ -121,7 +123,37 @@ export default class TabPageId {
       return false;
     }
 
-    return value.toLowerCase() !== own.toString();
+    return value !== own.toString();
+  }
+
+  /*
+   * The path navigation opens for a path of this app: repeated slashes made
+   * one, as Route makes them in every path it is given, then dot segments
+   * resolved, as the browser resolves them in the address it goes to (../
+   * and %2e%2e/ alike), without the query and fragment. So
+   * /<segment>/<own id>/../<another id> and /<segment>//<another id> are
+   * read as the other page's addresses they open. In lower case: the app's
+   * router matches the segment in any case, and ids are kept in lower case.
+   * What Route or the browser cannot read is read as written.
+   */
+  private static getOpenedPath(path: string): string {
+    let opened: string = (path || "").trim();
+
+    try {
+      opened = new Route(opened).toString();
+    } catch {
+      // Route refuses it, and nothing navigates to it.
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        opened = new window.URL(opened, window.location.origin).pathname;
+      } catch {
+        // Not an address the browser reads: kept as Route left it.
+      }
+    }
+
+    return opened.toLowerCase();
   }
 
   // The path of an address or a path: what is before its query and fragment.

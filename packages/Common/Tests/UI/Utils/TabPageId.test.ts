@@ -275,6 +275,61 @@ describe("TabPageId.isAnotherPagesPath", () => {
     expect(pageInTab.isAnotherPagesPath(path)).toBe(false);
   });
 
+  /*
+   * Read as navigation opens it. Route makes repeated slashes one in every
+   * path it is given, and the browser then resolves dot segments in the
+   * address it goes to (../ and %2e%2e/ alike): each of these, though it
+   * starts with this page's address or names no page, opens page B. Written
+   * as it was, page A's id in front, a sign-in redirect led to page B.
+   */
+  test.each([
+    [`/status-page/${PAGE_A}/../${PAGE_B}`],
+    [`/status-page/${PAGE_A}/../${PAGE_B}/subscribe/email`],
+    [`/status-page/${PAGE_A}/incidents/../../${PAGE_B}/incidents`],
+    [`/status-page/${PAGE_A}/./../${PAGE_B}`],
+    [`/status-page/${PAGE_A}/%2e%2e/${PAGE_B}`],
+    [`/status-page/${PAGE_A}/%2E%2e/${PAGE_B}?x=1#y`],
+    [`/status-page//${PAGE_B}`],
+    [`/status-page///${PAGE_B}/incidents`],
+    // Slashes are made one before the dots are resolved, as navigation does.
+    [`/status-page/${PAGE_A}//../${PAGE_B}`],
+    [`/status-page/${PAGE_A}//..//${PAGE_B}`],
+    [`/incidents/../status-page/${PAGE_B}`],
+    // The router matches the segment in any case.
+    [`/STATUS-PAGE/${PAGE_B}`],
+    [`/Status-Page/${PAGE_B.toUpperCase()}/incidents`],
+  ])("on its own page's address, %s opens another page", (path: string) => {
+    setUrl(`/status-page/${PAGE_A}`);
+
+    expect(pageInTab.isAnotherPagesPath(path)).toBe(true);
+  });
+
+  test.each([
+    [`/status-page/${PAGE_A}/incidents/../announcements`],
+    [`/status-page/${PAGE_B}/../${PAGE_A}/incidents`],
+    [`/status-page/${PAGE_A}/./incidents`],
+    [`/status-page//${PAGE_A}`],
+    [`/STATUS-PAGE/${PAGE_A}/incidents`],
+    [`/status-page/${PAGE_B}/..`],
+    ["/incidents/../announcements"],
+  ])(
+    "on its own page's address, %s opens its own page or none",
+    (path: string) => {
+      setUrl(`/status-page/${PAGE_A}`);
+
+      expect(pageInTab.isAnotherPagesPath(path)).toBe(false);
+    },
+  );
+
+  test("a path Route refuses is still read as written", () => {
+    setUrl(`/status-page/${PAGE_A}`);
+
+    expect(pageInTab.isAnotherPagesPath(`/status-page/${PAGE_B}/"`)).toBe(true);
+    expect(pageInTab.isAnotherPagesPath(`/status-page/${PAGE_A}/"`)).toBe(
+      false,
+    );
+  });
+
   test("on a custom domain, its own preview address is its own, another page's is not", () => {
     setUrl("/");
     pageInTab.set(PAGE_A);

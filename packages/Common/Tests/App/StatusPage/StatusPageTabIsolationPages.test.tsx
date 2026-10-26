@@ -890,6 +890,63 @@ describe("the sign-in pages of a tab", () => {
     expect(navigatedTo).toEqual([{ to: goingTo, force: true }]);
   });
 
+  /*
+   * A link to page A's password prompt whose way back starts with page A's
+   * address but opens page B's - its dots resolved by the browser, its
+   * slashes made one by Route - leads to page A's own overview once the
+   * password is right, never into page B.
+   */
+  test.each([
+    [`/status-page/${PAGE_A}/../${PAGE_B}/subscribe/email`],
+    [`/status-page/${PAGE_A}/%2e%2e/${PAGE_B}`],
+    [`/status-page//${PAGE_B}/incidents`],
+  ])(
+    "the password prompt, sent on to %s, stays on its own page",
+    async (goingTo: string) => {
+      openAt(
+        `/status-page/${PAGE_A}/master-password?redirectUrl=${encodeURIComponent(goingTo)}`,
+      );
+      StatusPageUtil.setStatusPageId(new ObjectID(PAGE_A));
+      StatusPageUtil.setIsPrivateStatusPage(true);
+      StatusPageUtil.setRequiresMasterPassword(true);
+
+      getJestSpyOn(API, "post").mockImplementation(
+        async (): Promise<HTTPResponse<JSONObject>> => {
+          return new HTTPResponse<JSONObject>(200, {}, {});
+        },
+      );
+
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <MasterPassword
+              statusPageName="Page A"
+              logoFileId={new ObjectID("")}
+            />
+          </MemoryRouter>,
+        );
+      });
+
+      fireEvent.change(screen.getByLabelText("Password"), {
+        target: { value: "open sesame" },
+      });
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Unlock Status Page" }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(navigatedTo.length).toBeGreaterThan(0);
+      });
+
+      expect(navigatedTo).toEqual([
+        { to: `/status-page/${PAGE_A}`, force: true },
+      ]);
+    },
+  );
+
   test("signing out signs out of the tab's own page, once, and lands on its sign-in", async () => {
     openAt(`/status-page/${PAGE_A}/logout`);
     StatusPageUtil.setStatusPageId(new ObjectID(PAGE_A));

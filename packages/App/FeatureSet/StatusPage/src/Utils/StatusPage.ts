@@ -44,8 +44,10 @@ export default class StatusPageUtil {
   /*
    * A place on this status page to go to once signed in, or null: never
    * another site, never a sign-in page, and never another status page's
-   * address (/status-page/<another id>/...) - signing in to one page leads
-   * to that page, not to the page another tab or another link named.
+   * address (/status-page/<another id>/..., however it is written:
+   * /status-page/<id>/../<another id> opens the other page too) - signing in
+   * to one page leads to that page, not to the page another tab or another
+   * link named.
    */
   public static getSafeRedirectPath(redirectUrl: string | null): string | null {
     if (

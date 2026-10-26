@@ -23,8 +23,10 @@ import ts from "typescript";
  * browser module of both apps and holds each storage call to that:
  *
  *   - no name written out as a string - one name for every page;
- *   - a name computed with the page's id, or one of the few names kept for
- *     the visitor rather than for a page, each with its reason below.
+ *   - a name computed with the page's id - itself, or in the variable it is
+ *     held in, by where that variable takes its value from, whatever it is
+ *     called - or one of the few names kept for the visitor rather than for
+ *     a page, each with its reason below.
  */
 
 const FEATURE_SET: string = path.join(__dirname, "..", "..", "FeatureSet");
@@ -64,10 +66,17 @@ const VISITOR_WIDE_NAMES: Record<string, string> = {
 };
 
 /*
- * Variables holding a name computed with the page's id (the page's
- * getPageStorageKey / getDashboardStorageKey, User's per-page names).
+ * The functions that build a name with the page's id: the status page's and
+ * the dashboard's own name for something about the tab's page, and the
+ * names a sign-out clears for one page. A variable a storage call is made
+ * with takes its value from one of these (or is computed with the page's id
+ * itself), and each of them is held below to reading the page's id.
  */
-const PAGE_SCOPED_VARIABLES: Array<string> = ["storageKey"];
+const PAGE_KEY_BUILDERS: Array<string> = [
+  "getPageStorageKey",
+  "getDashboardStorageKey",
+  "getMasterPasswordStorageKeys",
+];
 
 // Identifiers that are the page's id, in a name computed from it.
 const PAGE_ID_IDENTIFIERS: Array<string> = ["statusPageId", "dashboardId"];
@@ -79,6 +88,12 @@ interface StorageCall {
   method: string;
   key: ts.Expression | undefined;
   keyText: string;
+  /*
+   * For a name held in a variable: the expression the variable takes its
+   * value from, where the call sees it (null for a parameter, or a name the
+   * module imports).
+   */
+  keyValue: ts.Expression | null;
 }
 
 const listSourceFiles: (root: string) => Array<string> = (
@@ -105,6 +120,68 @@ const listSourceFiles: (root: string) => Array<string> = (
   }
 
   return files;
+};
+
+const declares: (
+  declaration: ts.VariableDeclaration,
+  name: string,
+) => boolean = (declaration: ts.VariableDeclaration, name: string): boolean => {
+  return ts.isIdentifier(declaration.name) && declaration.name.text === name;
+};
+
+/*
+ * Where a variable a call sees takes its value from, looked up from the call
+ * outwards as the language does: the iterable of a for...of that declares
+ * it, the initializer of a declaration in an enclosing block or the module,
+ * and null for a function's parameter or anything not declared here (an
+ * import).
+ */
+const findValueOf: (from: ts.Node, name: string) => ts.Expression | null = (
+  from: ts.Node,
+  name: string,
+): ts.Expression | null => {
+  for (let node: ts.Node = from.parent; node; node = node.parent) {
+    if (
+      ts.isForOfStatement(node) &&
+      ts.isVariableDeclarationList(node.initializer) &&
+      node.initializer.declarations.some(
+        (declaration: ts.VariableDeclaration): boolean => {
+          return declares(declaration, name);
+        },
+      )
+    ) {
+      return node.expression;
+    }
+
+    if (ts.isBlock(node) || ts.isSourceFile(node)) {
+      for (const statement of node.statements) {
+        if (!ts.isVariableStatement(statement)) {
+          continue;
+        }
+
+        for (const declaration of statement.declarationList.declarations) {
+          if (declares(declaration, name)) {
+            return declaration.initializer || null;
+          }
+        }
+      }
+    }
+
+    if (
+      ts.isFunctionLike(node) &&
+      node.parameters.some((parameter: ts.ParameterDeclaration): boolean => {
+        return ts.isIdentifier(parameter.name) && parameter.name.text === name;
+      })
+    ) {
+      return null;
+    }
+
+    if (ts.isSourceFile(node)) {
+      return null;
+    }
+  }
+
+  return null;
 };
 
 // Every storage call in a module's text, with the name it is called with.
@@ -138,6 +215,8 @@ const findStorageCalls: (file: string, text: string) => Array<StorageCall> = (
         method: node.expression.name.text,
         key,
         keyText: key ? key.getText(source) : "",
+        keyValue:
+          key && ts.isIdentifier(key) ? findValueOf(node, key.text) : null,
       });
     }
 
@@ -149,9 +228,12 @@ const findStorageCalls: (file: string, text: string) => Array<StorageCall> = (
   return calls;
 };
 
-// Whether a name is computed with the page's id: "<id>user_email", `...-${id}`.
-const isComputedWithPageId: (key: ts.Expression) => boolean = (
-  key: ts.Expression,
+/*
+ * Whether a name - or the body of a function that builds one - is computed
+ * with the page's id: "<id>user_email", `...-${id}`.
+ */
+const isComputedWithPageId: (key: ts.Node) => boolean = (
+  key: ts.Node,
 ): boolean => {
   let found: boolean = false;
 
@@ -178,6 +260,24 @@ const isWrittenOut: (call: StorageCall) => boolean = (
   );
 };
 
+// A call to one of the functions that build a name with the page's id.
+const isPageKeyBuilderCall: (value: ts.Expression) => boolean = (
+  value: ts.Expression,
+): boolean => {
+  if (!ts.isCallExpression(value)) {
+    return false;
+  }
+
+  const callee: ts.Expression = value.expression;
+  const calleeName: string = ts.isPropertyAccessExpression(callee)
+    ? callee.name.text
+    : ts.isIdentifier(callee)
+      ? callee.text
+      : "";
+
+  return PAGE_KEY_BUILDERS.includes(calleeName);
+};
+
 const isExplained: (call: StorageCall) => boolean = (
   call: StorageCall,
 ): boolean => {
@@ -186,9 +286,18 @@ const isExplained: (call: StorageCall) => boolean = (
   }
 
   if (ts.isIdentifier(call.key)) {
-    return (
-      PAGE_SCOPED_VARIABLES.includes(call.key.text) ||
-      call.key.text in VISITOR_WIDE_NAMES
+    if (call.key.text in VISITOR_WIDE_NAMES) {
+      return true;
+    }
+
+    /*
+     * A name held in a variable is the page's own only by where the
+     * variable's value comes from - not by what the variable is called.
+     */
+    return Boolean(
+      call.keyValue &&
+        (isPageKeyBuilderCall(call.keyValue) ||
+          isComputedWithPageId(call.keyValue)),
     );
   }
 
@@ -263,6 +372,48 @@ describe("the status page and public dashboard apps' storage", () => {
     }
   });
 
+  /*
+   * A variable is let through by where its value comes from, so each
+   * function that builds a name for the page is held here to reading the
+   * page's id: one that built a name without it would be every page's.
+   */
+  test("every function that builds a name for a page reads the page's id", () => {
+    const builders: Map<string, ts.Node> = new Map();
+
+    for (const root of BROWSER_ROOTS) {
+      for (const file of listSourceFiles(root)) {
+        const source: ts.SourceFile = ts.createSourceFile(
+          file,
+          fs.readFileSync(file, "utf8"),
+          ts.ScriptTarget.Latest,
+          true,
+          file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+        );
+
+        const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+          if (
+            ts.isMethodDeclaration(node) &&
+            ts.isIdentifier(node.name) &&
+            PAGE_KEY_BUILDERS.includes(node.name.text) &&
+            node.body
+          ) {
+            builders.set(node.name.text, node.body);
+          }
+
+          ts.forEachChild(node, visit);
+        };
+
+        visit(source);
+      }
+    }
+
+    expect([...builders.keys()].sort()).toEqual([...PAGE_KEY_BUILDERS].sort());
+
+    for (const [name, body] of builders) {
+      expect([name, isComputedWithPageId(body)]).toEqual([name, true]);
+    }
+  });
+
   test("it catches the names the apps used to share, and a new name for every page", () => {
     const calls: Array<StorageCall> = findStorageCalls(
       path.join(FEATURE_SET, "StatusPage", "src", "Earlier.ts"),
@@ -272,8 +423,28 @@ describe("the status page and public dashboard apps' storage", () => {
         "window.localStorage.setItem(`redirectUrl`, path);",
         "window.sessionStorage.setItem(currentPage, path);",
         'LocalStorage.setItem(statusPageId.toString() + "user_id", id);',
-        "LocalStorage.getItem(storageKey);",
         "window.localStorage.getItem(LANGUAGE_STORAGE_KEY);",
+        "function remember(path: string): void {",
+        "  const storageKey: string | null = StatusPageUtil.getPageStorageKey(KEY);",
+        "  window.sessionStorage.setItem(storageKey, path);",
+        "}",
+        "function forget(statusPageId: ObjectID): void {",
+        "  for (const storageKey of this.getMasterPasswordStorageKeys(statusPageId)) {",
+        "    LocalStorage.removeItem(storageKey);",
+        "  }",
+        "}",
+        "function named(statusPageId: ObjectID): void {",
+        "  const pageKey: string = `isPrivateStatusPage-${statusPageId.toString()}`;",
+        "  LocalStorage.getItem(pageKey);",
+        "}",
+        // Called what the page's own names are called, and every page's.
+        "function shared(): void {",
+        '  const storageKey: string = "statusPageId";',
+        "  LocalStorage.setItem(storageKey, id);",
+        "}",
+        "function handed(storageKey: string): void {",
+        "  LocalStorage.getItem(storageKey);",
+        "}",
       ].join("\n"),
     );
 
@@ -288,13 +459,15 @@ describe("the status page and public dashboard apps' storage", () => {
           return !isExplained(call);
         })
         .map((call: StorageCall) => {
-          return call.keyText;
+          return `${call.line} ${call.keyText}`;
         }),
     ).toEqual([
-      '"statusPageId"',
-      '"dashboardId"',
-      "`redirectUrl`",
-      "currentPage",
+      '1 "statusPageId"',
+      '2 "dashboardId"',
+      "3 `redirectUrl`",
+      "4 currentPage",
+      "22 storageKey",
+      "25 storageKey",
     ]);
   });
 });

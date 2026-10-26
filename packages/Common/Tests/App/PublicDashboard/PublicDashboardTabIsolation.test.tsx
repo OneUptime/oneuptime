@@ -208,8 +208,38 @@ describe("where the password prompt leads", () => {
     [`/public-dashboard/${BOARD_B}`],
     [`/public-dashboard/${BOARD_B}?var-env=prod`],
     [`/public-dashboard/${BOARD_B.toUpperCase()}`],
+    // Dashboard A's address in front, dashboard B's where the browser lands.
+    [`/public-dashboard/${BOARD_A}/../${BOARD_B}`],
+    [`/public-dashboard/${BOARD_A}/%2e%2e/${BOARD_B}?var-env=prod`],
+    [`/public-dashboard//${BOARD_B}`],
+    [`/PUBLIC-DASHBOARD/${BOARD_B}`],
   ])(
     "on dashboard A's prompt, never to another dashboard: %s",
+    (redirectUrl: string) => {
+      openAt(
+        `/public-dashboard/${BOARD_A}/master-password?redirectUrl=${encodeURIComponent(
+          redirectUrl,
+        )}`,
+      );
+
+      expect(PublicDashboardUtil.getSafeRedirectUrl()).toBeNull();
+    },
+  );
+
+  /*
+   * By the rule every navigation keeps (Navigation.isSafeInternalRoute):
+   * the prompt sends the visitor on in full, and navigation refuses these
+   * outright - so the visitor got an error instead of their dashboard.
+   */
+  test.each([
+    ["https://evil.example/path"],
+    ["//evil.example/path"],
+    ["/\\evil.example/path"],
+    ["javascript:alert(1)"],
+    ["dashboard"],
+    ['/"'],
+  ])(
+    "on dashboard A's prompt, never to another site or an address navigation refuses: %s",
     (redirectUrl: string) => {
       openAt(
         `/public-dashboard/${BOARD_A}/master-password?redirectUrl=${encodeURIComponent(

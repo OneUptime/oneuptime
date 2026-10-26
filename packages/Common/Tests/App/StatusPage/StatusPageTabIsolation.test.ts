@@ -255,6 +255,15 @@ describe("where signing in leads", () => {
     [`/status-page/${PAGE_B}`],
     [`/status-page/${PAGE_B}/subscribe/email`],
     [`/status-page/${PAGE_B.toUpperCase()}/incidents`],
+    /*
+     * Page A's address in front, page B's where navigation lands: Route
+     * makes the slashes one, the browser resolves the dots.
+     */
+    [`/status-page/${PAGE_A}/../${PAGE_B}/subscribe/email`],
+    [`/status-page/${PAGE_A}/%2e%2e/${PAGE_B}`],
+    [`/status-page//${PAGE_B}/incidents`],
+    [`/status-page/${PAGE_A}//../${PAGE_B}`],
+    [`/STATUS-PAGE/${PAGE_B}/incidents`],
   ])(
     "on page A's address, never to another page: %s",
     (redirectPath: string) => {
@@ -281,6 +290,29 @@ describe("where signing in leads", () => {
       StatusPageUtil.getSafeRedirectPath(`/status-page/${PAGE_A}/incidents`),
     ).toBe(`/status-page/${PAGE_A}/incidents`);
     expect(StatusPageUtil.getSafeRedirectPath("/incidents")).toBe("/incidents");
+    expect(
+      StatusPageUtil.getSafeRedirectPath(
+        `/status-page/${PAGE_A}/../${PAGE_B}/incidents`,
+      ),
+    ).toBeNull();
+    expect(
+      StatusPageUtil.getSafeRedirectPath(`/incidents/../status-page/${PAGE_B}`),
+    ).toBeNull();
+  });
+
+  test("a place on the page itself, dots and all, is kept as written", () => {
+    setUrl(`/status-page/${PAGE_A}/login`);
+
+    expect(
+      StatusPageUtil.getSafeRedirectPath(
+        `/status-page/${PAGE_A}/incidents/../announcements`,
+      ),
+    ).toBe(`/status-page/${PAGE_A}/incidents/../announcements`);
+    expect(
+      StatusPageUtil.getSafeRedirectPath(
+        `/status-page/${PAGE_B}/../${PAGE_A}/incidents`,
+      ),
+    ).toBe(`/status-page/${PAGE_B}/../${PAGE_A}/incidents`);
   });
 
   test("a redirect query naming another page is dropped", () => {

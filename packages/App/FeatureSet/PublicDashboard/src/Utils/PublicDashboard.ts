@@ -33,8 +33,10 @@ export default class PublicDashboardUtil {
 
   /*
    * Where the password prompt sends the visitor once it opens: a place on
-   * this dashboard, never another site, never a prompt, and never another
-   * dashboard's address (/public-dashboard/<another id>/...).
+   * this dashboard, never another site (by the rule every navigation keeps,
+   * Navigation.isSafeInternalRoute: /\host is another site too), never a
+   * prompt, and never another dashboard's address
+   * (/public-dashboard/<another id>/..., however it is written).
    */
   public static getSafeRedirectUrl(): string | null {
     const redirectUrl: string | null =
@@ -42,8 +44,7 @@ export default class PublicDashboardUtil {
 
     if (
       !redirectUrl ||
-      !redirectUrl.startsWith("/") ||
-      redirectUrl.startsWith("//") ||
+      !Navigation.isSafeInternalRoute(redirectUrl) ||
       PublicDashboardUtil.isAuthPath(redirectUrl) ||
       DashboardInTab.isAnotherPagesPath(redirectUrl)
     ) {
