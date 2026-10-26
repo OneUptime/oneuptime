@@ -1,22 +1,33 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  getReportedResourceOverviewDetailRows,
+  hasResourceOverviewDetailValue,
+} from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverviewDetails";
 
 /*
- * An infrastructure resource's Overview does not repeat its side menu.
+ * A resource's Overview does not repeat its side menu, and its Details card
+ * says only what the resource reported.
  *
- * Five Overviews - a database, a queue, a serverless function, a cloud
- * environment and a cloud resource - drew an "Explore telemetry" card of
- * links under their Details: Traces, Logs, Metrics, Instances, Endpoints,
- * Owners, Documentation. Every one was a page of the side menu beside it,
- * so the card made a long Overview longer and said nothing new. They pass
- * no quick links now; this holds that every page the card linked to is in
- * that resource's side menu, so nothing became harder to find, and that a
- * database's "Runs on" - the one link the card had that the menu does not -
- * is still a link on the Overview.
+ * Every resource Overview built on ResourceOverview - a database, a queue, a
+ * serverless function, a cloud environment, a cloud resource, a service and a
+ * RUM application - drew an "Explore telemetry" card of links under its
+ * Details: Traces, Logs, Metrics, Exceptions, Profiles, Session Replay,
+ * Instances, Endpoints, Owners, Documentation. Every one was a page of the
+ * side menu beside it, so the card made a long Overview longer and said
+ * nothing new. #4979 took it off the five infrastructure Overviews; its
+ * follow-up of #4980 took it off the Service and RUM Overviews and out of the
+ * shared component, so no Overview can draw it again. This holds that every
+ * page the card linked to is in that resource's side menu, so nothing became
+ * harder to find, and that a database's "Runs on" - the one link the card had
+ * that the menu does not - is still a link on the Overview.
  *
- * (The Service and RUM Overviews of the telemetry products still draw the
- * card; they are not infrastructure pages.)
+ * The Details card listed every fact a page knows how to show, "—" for each
+ * the resource never reported: a new service's card was ten rows of which
+ * two said something, beside a second "Service Details" card (#4980). A row
+ * is drawn only when it has a value now, and the Service Overview has one
+ * Details card.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -101,6 +112,29 @@ const OVERVIEWS: Array<OverviewCase> = [
       "CLOUD_RESOURCE_VIEW_DOCUMENTATION",
     ],
   },
+  {
+    name: "Service",
+    overview: "Pages/Service/View/Index.tsx",
+    sideMenu: "Pages/Service/View/SideMenu.tsx",
+    formerLinks: [
+      "SERVICE_VIEW_TRACES",
+      "SERVICE_VIEW_LOGS",
+      "SERVICE_VIEW_METRICS",
+      "SERVICE_VIEW_EXCEPTIONS",
+      "SERVICE_VIEW_PROFILES",
+    ],
+  },
+  {
+    name: "RUM application",
+    overview: "Pages/Rum/View/Overview.tsx",
+    sideMenu: "Pages/Rum/View/SideMenu.tsx",
+    formerLinks: [
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY",
+      "RUM_APPLICATION_VIEW_TRACES",
+      "RUM_APPLICATION_VIEW_LOGS",
+      "RUM_APPLICATION_VIEW_METRICS",
+    ],
+  },
 ];
 
 describe.each(OVERVIEWS)("$name Overview", (overviewCase: OverviewCase) => {
@@ -121,6 +155,36 @@ describe.each(OVERVIEWS)("$name Overview", (overviewCase: OverviewCase) => {
   );
 });
 
+/*
+ * Every page that draws ResourceOverview is one of the cases above, so a new
+ * Overview is held to the same rules the day it is added. (Not the detail
+ * pages' ResourceOverviewTab, a different component.)
+ */
+const DRAWS_RESOURCE_OVERVIEW: RegExp = /<ResourceOverview[\s>]/;
+
+test("every Overview drawn with ResourceOverview is held to these rules", () => {
+  const drawers: Array<string> = [];
+  const walk: (directory: string) => void = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const full: string = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith(".tsx")) {
+        if (DRAWS_RESOURCE_OVERVIEW.test(fs.readFileSync(full, "utf8"))) {
+          drawers.push(path.relative(DASHBOARD_SRC, full).split(path.sep).join("/"));
+        }
+      }
+    }
+  };
+  walk(path.join(DASHBOARD_SRC, "Pages"));
+
+  expect(drawers.sort()).toEqual(
+    OVERVIEWS.map((overviewCase: OverviewCase): string => {
+      return overviewCase.overview;
+    }).sort(),
+  );
+});
+
 test("a database's Runs on is still a link on its Overview, to the cluster or host", () => {
   const overview: string = code("Pages/Database/View/Overview.tsx");
 
@@ -132,13 +196,16 @@ test("a database's Runs on is still a link on its Overview, to the cluster or ho
   );
 });
 
-test("the shared component draws the card only for a page that passes links", () => {
+test("the shared component has no Explore telemetry card to draw", () => {
   const component: string = code(
     "Components/TelemetryResource/ResourceOverview.tsx",
   );
 
-  expect(component).toContain(
-    "{props.quickLinks && props.quickLinks.length > 0 ? (",
+  expect(component).not.toContain("quickLinks");
+  expect(component).not.toContain("ResourceOverviewQuickLink");
+  expect(component).not.toContain("Explore telemetry");
+  expect(component).not.toContain(
+    "Drill into the raw signals for this resource.",
   );
 });
 
@@ -186,17 +253,119 @@ test("the Details rows line up with the card's title at every width", () => {
   expect(component).toContain(
     "const ruledListClassName: string = useCardRuledListClassName();",
   );
-  // The Details rows and the quick links both.
-  expect(component.split("<div className={ruledListClassName}>").length).toBe(
-    3,
+  // The Details rows, a description list, are the one ruled list.
+  expect(component.split("className={ruledListClassName}").length).toBe(2);
+  expect(component).toContain(
+    '<dl data-testid="resource-overview-details" className={ruledListClassName} >',
   );
   // And each row's words back in by the card's padding.
   expect(component).toContain(
     'className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"',
   );
-  expect(component).toContain(
-    'className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 md:px-6"',
-  );
   expect(component).not.toContain("-m-6");
   expect(component).not.toMatch(/"px-4 py-3/);
+});
+
+describe("the Details card draws only the rows a resource reported", () => {
+  test("the component draws the reported rows, never a dash for a missing one", () => {
+    const component: string = code(
+      "Components/TelemetryResource/ResourceOverview.tsx",
+    );
+
+    expect(component).toContain(
+      "getReportedResourceOverviewDetailRows(props.detailRows)",
+    );
+    expect(component).toContain("{reportedDetailRows.map(");
+    expect(component).not.toContain("{props.detailRows.map(");
+    expect(component).not.toContain(': "—"}');
+    // With nothing reported, one line says so.
+    expect(component).toContain(
+      'translator.translateText("No details reported yet.")',
+    );
+  });
+
+  test("a row with a value is drawn, an empty or blank one is not", () => {
+    const rows: Array<{ label: string; value: string | undefined }> = [
+      { label: "Service ID", value: "6d1c..." },
+      { label: "Cloud Provider", value: undefined },
+      { label: "Cloud Region", value: "" },
+      { label: "Cloud Account ID", value: "   " },
+      { label: "Runtime", value: "node 22.4.0" },
+    ];
+
+    expect(
+      getReportedResourceOverviewDetailRows(rows).map(
+        (row: { label: string }): string => {
+          return row.label;
+        },
+      ),
+    ).toEqual(["Service ID", "Runtime"]);
+  });
+
+  test("the rows keep the page's order and every field of the row", () => {
+    const element: { kind: string } = { kind: "element" };
+    const rows: Array<{
+      label: string;
+      value: string | undefined;
+      mono?: boolean;
+      element?: { kind: string };
+    }> = [
+      { label: "Agent version", value: "14.0.80", element: element },
+      { label: "Version", value: undefined },
+      { label: "Engine", value: "postgresql", mono: false },
+    ];
+
+    expect(getReportedResourceOverviewDetailRows(rows)).toEqual([
+      { label: "Agent version", value: "14.0.80", element: element },
+      { label: "Engine", value: "postgresql", mono: false },
+    ]);
+  });
+
+  test("nothing reported is no rows", () => {
+    expect(
+      getReportedResourceOverviewDetailRows([
+        { label: "Cloud Provider", value: undefined },
+        { label: "Cloud Region", value: null },
+      ]),
+    ).toEqual([]);
+    expect(getReportedResourceOverviewDetailRows([])).toEqual([]);
+  });
+
+  test("a value is a non-blank string", () => {
+    expect(hasResourceOverviewDetailValue("x")).toBe(true);
+    expect(hasResourceOverviewDetailValue("0")).toBe(true);
+    expect(hasResourceOverviewDetailValue("")).toBe(false);
+    expect(hasResourceOverviewDetailValue(" \t ")).toBe(false);
+    expect(hasResourceOverviewDetailValue(undefined)).toBe(false);
+    expect(hasResourceOverviewDetailValue(null)).toBe(false);
+  });
+});
+
+describe("the Service Overview has one Details card", () => {
+  const overview: string = code("Pages/Service/View/Index.tsx");
+
+  test("no second Service Details card beside Details", () => {
+    expect(overview).not.toContain("CardModelDetail");
+    expect(overview).not.toContain('title: "Service Details"');
+    expect(overview).not.toContain("model-detail-service");
+  });
+
+  test("its ID and technology are Details rows, its labels the Labels card, its settings one link", () => {
+    expect(overview).toContain(
+      '{ label: "Service ID", value: modelId.toString() },',
+    );
+    expect(overview).toContain('label: "Technology",');
+    expect(overview).toContain("<TechStackView techStack={techStack} />");
+    expect(overview).toContain("labels={r.labels}");
+    expect(overview).toContain(
+      "settingsRoute={populate(PageMap.SERVICE_VIEW_SETTINGS)}",
+    );
+    // The labels are read with the service, for the Labels card.
+    expect(overview).toContain("labels: { name: true, color: true, },");
+  });
+
+  test("the language is one Technology row, not a second SDK Language row", () => {
+    expect(overview).not.toContain("SDK Language (telemetry.sdk.language)");
+    expect(overview.split('label: "Technology"').length).toBe(2);
+  });
 });
