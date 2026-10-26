@@ -85,14 +85,22 @@ export const BULK_PROGRESS_INTERVAL_IN_MS: number = 100;
  */
 export const BULK_ESTIMATE_AFTER_IN_MS: number = 2000;
 
-// Where a run reads the time. Tests pass their own.
+// Where a run reads the time and waits. Tests pass their own.
 export interface BulkActionClock {
   now: () => number;
+  setTimeout: (callback: () => void, delayInMs: number) => unknown;
+  clearTimeout: (handle: unknown) => void;
 }
 
 export const SYSTEM_BULK_ACTION_CLOCK: BulkActionClock = {
   now: (): number => {
     return Date.now();
+  },
+  setTimeout: (callback: () => void, delayInMs: number): unknown => {
+    return setTimeout(callback, delayInMs);
+  },
+  clearTimeout: (handle: unknown): void => {
+    clearTimeout(handle as ReturnType<typeof setTimeout>);
   },
 };
 
@@ -203,7 +211,11 @@ export async function runBulkAction<T extends GenericObject>(
   let wasStopped: boolean = false;
 
   const startedAt: number = clock.now();
-  let lastReportAt: number = startedAt;
+  // When the modal last heard: the first item done is reported at once.
+  let lastReportAt: number | null = null;
+  // A report held back by the interval, sent when it has passed.
+  let heldReport: unknown = null;
+  let isFinished: boolean = false;
 
   type Snapshot = BulkActionRunResult<T> & { inProgress: Array<T> };
 
@@ -248,8 +260,32 @@ export async function runBulkAction<T extends GenericObject>(
   ): Snapshot | null => {
     const now: number = clock.now();
 
-    if (!isFinal && now - lastReportAt < progressIntervalInMs) {
-      return null;
+    if (!isFinal && lastReportAt !== null) {
+      const waitInMs: number = lastReportAt + progressIntervalInMs - now;
+
+      /*
+       * Too soon after the last one: held back, and sent once the interval
+       * has passed - so a burst of items done, then a slow one, still moves
+       * the bar while the slow one runs.
+       */
+      if (waitInMs > 0) {
+        if (heldReport === null) {
+          heldReport = clock.setTimeout((): void => {
+            heldReport = null;
+
+            if (!isFinished) {
+              report(false);
+            }
+          }, waitInMs);
+        }
+
+        return null;
+      }
+    }
+
+    if (heldReport !== null) {
+      clock.clearTimeout(heldReport);
+      heldReport = null;
     }
 
     lastReportAt = now;
@@ -344,6 +380,13 @@ export async function runBulkAction<T extends GenericObject>(
       finalSnapshot = report(true);
     }
   } finally {
+    isFinished = true;
+
+    if (heldReport !== null) {
+      clock.clearTimeout(heldReport);
+      heldReport = null;
+    }
+
     onBulkActionEnd();
   }
 

@@ -671,7 +671,11 @@ const NetworkDevices: FunctionComponent<
   };
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
-    useBulkLabelActions<NetworkDevice>({ modelType: NetworkDevice });
+    useBulkLabelActions<NetworkDevice>({
+      modelType: NetworkDevice,
+      // One at a time: each device's labels match its alert policies again.
+      concurrency: 1,
+    });
 
   // Owners in Bulk Actions too: the list shows and filters devices by them.
   const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
@@ -684,6 +688,8 @@ const NetworkDevices: FunctionComponent<
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<NetworkDevice>({
       modelType: NetworkDevice,
+      // One at a time: each device's write recomputes its site's health.
+      concurrency: 1,
     });
 
   /*

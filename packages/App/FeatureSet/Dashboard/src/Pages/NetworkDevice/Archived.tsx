@@ -23,6 +23,8 @@ const NetworkDeviceArchivedPage: FunctionComponent<
   const { unarchiveBulkActions, unarchiveRowActions } =
     useBulkArchiveActions<NetworkDevice>({
       modelType: NetworkDevice,
+      // One at a time: each device's write recomputes its site's health.
+      concurrency: 1,
     });
 
   /*
