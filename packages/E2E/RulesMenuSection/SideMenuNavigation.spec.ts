@@ -591,6 +591,48 @@ test.describe("the lit entry is in sight in a menu taller than the window", () =
     expect(after.bottom).toBeLessThanOrEqual(windowHeight - 24 + 1);
   });
 
+  /*
+   * Something drawn above the page once it has loaded - a banner of the
+   * app's - moves the menu down after it was fitted: its card is fitted
+   * again, rather than running on below the window until the page is
+   * scrolled.
+   */
+  test("a banner arriving above the page later moves the menu down, and its card is fitted again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, STATUS_PAGE_PATH);
+    const card: Locator = desktopMenu(page).locator("div.sticky > div");
+    const windowHeight: number = 560;
+    const before: Box = await boxOf(card);
+
+    expect(before.bottom).toBeLessThanOrEqual(windowHeight - 24 + 1);
+
+    await page.evaluate((): void => {
+      const banner: HTMLDivElement = document.createElement("div");
+      banner.style.height = "120px";
+      document.body.insertBefore(banner, document.getElementById("root"));
+    });
+
+    await expect
+      .poll(async (): Promise<number> => {
+        return Math.round((await boxOf(card)).top);
+      })
+      .toBe(Math.round(before.top) + 120);
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await boxOf(card)).bottom;
+      })
+      .toBeLessThanOrEqual(windowHeight - 24 + 1);
+    // Only the menu's card moved; the page was not scrolled.
+    expect(
+      await page.evaluate((): number => {
+        return window.scrollY;
+      }),
+    ).toBe(0);
+  });
+
   test("a page at the top of the menu leaves the list where it starts", async ({
     page,
   }: {

@@ -496,6 +496,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
    * is (SideMenuScroll.fitSideMenuCard): under the page's title on a page not
    * yet scrolled, below the app's header once it sticks there. As the page
    * scrolls, the card grows into the room it is given; nothing re-renders.
+   * A banner or a title that arrives above it later moves the card down:
+   * the page grows then, and the card is fitted again.
    */
   useEffect(() => {
     if (isMobile) {
@@ -515,10 +517,16 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     window.addEventListener("scroll", refit, { passive: true });
     window.addEventListener("resize", refit);
 
+    // Missing in jsdom and older browsers: scroll and resize still refit.
+    const pageSize: ResizeObserver | null =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(refit);
+    pageSize?.observe(document.body);
+
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", refit);
       window.removeEventListener("resize", refit);
+      pageSize?.disconnect();
     };
   }, [isMobile]);
 

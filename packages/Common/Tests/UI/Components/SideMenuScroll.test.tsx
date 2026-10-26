@@ -784,6 +784,94 @@ describe("the side menu scrolls its lit entry into sight", () => {
     });
   });
 
+  /*
+   * A banner or a title that arrives above the menu after it was fitted
+   * moves its card down, and the page grows: the card is fitted again
+   * then, not only when the page is scrolled or the window resized.
+   */
+  test("its card is fitted again when the page changes size, as a banner arriving above it makes it", async () => {
+    const observers: Array<{ notify: () => void; targets: Array<Element> }> =
+      [];
+
+    class RecordingResizeObserver {
+      private readonly record: {
+        notify: () => void;
+        targets: Array<Element>;
+      };
+
+      public constructor(callback: () => void) {
+        this.record = { notify: callback, targets: [] };
+        observers.push(this.record);
+      }
+
+      public observe(target: Element): void {
+        this.record.targets.push(target);
+      }
+
+      public unobserve(): void {}
+
+      public disconnect(): void {
+        this.record.targets = [];
+      }
+    }
+
+    const globals: { ResizeObserver?: unknown } = window as unknown as {
+      ResizeObserver?: unknown;
+    };
+    const ownResizeObserver: unknown = globals.ResizeObserver;
+    globals.ResizeObserver = RecordingResizeObserver;
+
+    try {
+      let cardTop: number = 200;
+      jest
+        .spyOn(Element.prototype, "getBoundingClientRect")
+        .mockImplementation((): DOMRect => {
+          return { top: cardTop, bottom: cardTop + 300 } as DOMRect;
+        });
+      goTo("/k/1/topology");
+
+      await act(async () => {
+        render(clusterMenu());
+      });
+
+      const card: HTMLElement = document.querySelector(
+        "aside[role='navigation'] div.sticky > div",
+      ) as HTMLElement;
+
+      expect(card.style.maxHeight).toBe(
+        `${window.innerHeight - 200 - SIDE_MENU_BOTTOM_GAP_IN_PX}px`,
+      );
+
+      const pageWatch:
+        | { notify: () => void; targets: Array<Element> }
+        | undefined = observers.find(
+        (observer: { targets: Array<Element> }): boolean => {
+          return observer.targets.includes(document.body);
+        },
+      );
+
+      expect(pageWatch).toBeDefined();
+
+      // A banner 120px tall arrives above the page.
+      cardTop = 320;
+      await act(async () => {
+        pageWatch!.notify();
+      });
+
+      await waitFor(() => {
+        expect(card.style.maxHeight).toBe(
+          `${window.innerHeight - 320 - SIDE_MENU_BOTTOM_GAP_IN_PX}px`,
+        );
+      });
+    } finally {
+      if (ownResizeObserver === undefined) {
+        delete globals.ResizeObserver;
+      } else {
+        globals.ResizeObserver = ownResizeObserver;
+      }
+    }
+  });
+
   test("on a phone, when its menu is opened", async () => {
     setViewportWidth(375);
     goTo("/k/1/vpas");
