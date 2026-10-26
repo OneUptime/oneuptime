@@ -10,9 +10,9 @@ import postcss, { AtRule, ChildNode, Declaration, Root, Rule } from "postcss";
  * include under their hero: two rows of logos that drift past in opposite
  * directions. Each row is drawn twice, side by side, and moves left by half
  * its length before it starts again - so the copy has to be the row exactly,
- * one gap after it, or the loop jumps. The copy is for the eye only. Anyone
- * can stop the motion, and visitors who ask for less motion get every logo
- * once, standing still.
+ * one gap after it, or the loop jumps. The copy is for the eye only. Hovering
+ * stops the motion, and visitors who ask for less motion get every logo once,
+ * standing still.
  */
 
 const VIEWS_ROOT: string = path.join(__dirname, "..", "Views");
@@ -406,7 +406,7 @@ describe("the loop", () => {
 });
 
 describe("stopping it", () => {
-  test("pauses both rows while the pointer is over them, or the pause control is on", () => {
+  test("pauses both rows while the pointer is over them", () => {
     let paused: Rule | null = null;
 
     sheet.each((node: ChildNode) => {
@@ -419,77 +419,15 @@ describe("stopping it", () => {
     });
 
     expect(paused).not.toBeNull();
-    expect(paused!.selectors.sort()).toEqual([
-      ".customer-logos-pause:checked ~ div .customer-logos-track",
+    expect(paused!.selectors).toEqual([
       ".customer-logos-viewport:hover .customer-logos-track",
     ]);
   });
 
-  test("offers a pause control anyone can reach, with a name", () => {
-    const pause: HTMLInputElement = document.getElementById(
-      "customer-logos-paused",
-    ) as HTMLInputElement;
-    const label: Element = section.querySelector(
-      "label[for='customer-logos-paused']",
-    )!;
-
-    expect(pause.type).toBe("checkbox");
-    expect(pause.classList.contains("customer-logos-pause")).toBe(true);
-    // Hidden from sight, not from the keyboard or a screen reader.
-    expect(pause.classList.contains("sr-only")).toBe(true);
-    expect(pause.hasAttribute("disabled")).toBe(false);
-    expect(pause.getAttribute("tabindex")).toBeNull();
-    expect(label.textContent!.trim()).toBe("Pause the moving logos");
-    expect(label.querySelector(".sr-only")!.textContent).toBe(
-      "Pause the moving logos",
-    );
-
-    for (const icon of Array.from(label.querySelectorAll("svg"))) {
-      expect(icon.getAttribute("aria-hidden")).toBe("true");
-    }
-  });
-
-  test("puts the pause control where its stylesheet finds the rows and its label", () => {
-    const pause: Element = document.getElementById("customer-logos-paused")!;
-
-    // `.customer-logos-pause:checked ~ div ...`: the rows and the label are in divs after it.
-    expect(pause.parentElement).toBe(section);
-    expect(section.firstElementChild).toBe(pause);
-
-    for (const selector of [
-      ".customer-logos-track",
-      ".customer-logos-toggle",
-      ".customer-logos-pause-icon",
-      ".customer-logos-resume-icon",
-    ]) {
-      const target: Element = section.querySelector(selector)!;
-      const holder: Element = target.closest("section > div")!;
-
-      expect([selector, holder !== null]).toEqual([selector, true]);
-      expect(holder.tagName).toBe("DIV");
-    }
-  });
-
-  test("shows the resume icon in place of the pause icon while paused, and a focus ring", () => {
+  test("has no pause button: nothing in the strip is there to be pressed", () => {
     expect(
-      rulesFor(sheet, ".customer-logos-pause:checked ~ div .customer-logos-pause-icon"),
-    ).toEqual([{ display: "none" }]);
-    expect(rulesFor(sheet, ".customer-logos-resume-icon")).toEqual([
-      { display: "none" },
-    ]);
-    expect(
-      rulesFor(
-        sheet,
-        ".customer-logos-pause:checked ~ div .customer-logos-resume-icon",
-      ),
-    ).toEqual([{ display: "block" }]);
-
-    const [focus] = rulesFor(
-      sheet,
-      ".customer-logos-pause:focus-visible ~ div .customer-logos-toggle",
-    );
-
-    expect(focus!["outline"]).toMatch(/^2px solid /);
+      section.querySelectorAll("input, label, button, [tabindex]"),
+    ).toHaveLength(0);
   });
 });
 
@@ -516,7 +454,7 @@ describe("for visitors who ask for less motion", () => {
     ]);
   });
 
-  test("drops the copy and the pause control, which have nothing left to do", () => {
+  test("drops the copy, which has nothing left to do", () => {
     let hidden: Rule | null = null;
 
     reduced.each((node: ChildNode) => {
@@ -528,10 +466,8 @@ describe("for visitors who ask for less motion", () => {
       }
     });
 
-    expect(hidden!.selectors.sort()).toEqual([
+    expect(hidden!.selectors).toEqual([
       '.customer-logos-list[aria-hidden="true"]',
-      ".customer-logos-pause",
-      ".customer-logos-toggle",
     ]);
   });
 });
@@ -543,13 +479,21 @@ describe("each logo", () => {
     images = Array.from(section.querySelectorAll("img"));
   });
 
-  test("loads near the viewport and decodes off the main thread", () => {
+  test("loads with the page, after everything else, and decodes off the main thread", () => {
+    /*
+     * Not lazily. The rows move on the compositor, which draws no new frame
+     * on the page itself, and a lazy image only asks whether it is near the
+     * screen when the page draws one: while the visitor sat still, a logo
+     * sliding in was never fetched, and the rows drifted past with gaps
+     * where their logos should be.
+     */
     expect(images.length).toBe(64);
 
     for (const image of images) {
       expect([image.getAttribute("src"), image.getAttribute("loading")]).toEqual(
-        [image.getAttribute("src"), "lazy"],
+        [image.getAttribute("src"), "eager"],
       );
+      expect(image.getAttribute("fetchpriority")).toBe("low");
       expect(image.getAttribute("decoding")).toBe("async");
       expect(image.classList.contains("customer-logo")).toBe(true);
     }
@@ -651,7 +595,7 @@ describe("the pages that show it", () => {
     ).length;
   };
 
-  test("include it at most once each: its pause control has an id", () => {
+  test("include it at most once each: its caption has an id", () => {
     const including: Array<string> = templatesIncluding(VIEWS_ROOT).filter(
       (template: string) => {
         return includesOf(template) > 0;
