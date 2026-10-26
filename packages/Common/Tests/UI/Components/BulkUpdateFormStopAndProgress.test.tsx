@@ -30,6 +30,7 @@ import {
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * THE BULK PROGRESS DIALOG, WHILE A RUN GOES ON AND WHEN IT ENDS (#5299).
@@ -330,7 +331,17 @@ describe("BulkUpdateForm while a run goes on", () => {
     await screen.findByText("In Progress");
 
     const whileRunning: Event = new Event("beforeunload", { cancelable: true });
+    /*
+     * Cancelled, which is what makes a browser ask: an empty returnValue
+     * alone does not (a test's plain Event reads "" as false, a browser's
+     * BeforeUnloadEvent does not).
+     */
+    const preventDefault: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      whileRunning,
+      "preventDefault",
+    );
     window.dispatchEvent(whileRunning);
+    expect(preventDefault).toHaveBeenCalled();
     expect(whileRunning.defaultPrevented).toBe(true);
 
     await act(async () => {
