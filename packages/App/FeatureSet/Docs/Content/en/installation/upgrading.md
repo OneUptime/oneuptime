@@ -1521,7 +1521,10 @@ API, SSO, or the Slack and Microsoft Teams apps.
   longer has the `runner` deployment and ignores `runner.*` values, which its
   schema still accepts so old values files keep working: remove `runner:` from
   your values, and move `runner.keda` to `globalRunner.keda`, which has the same
-  fields. If you set `GLOBAL_RUNNER_REPLICAS=0` or `globalRunner.enabled: false`,
+  fields. A Runner still started as the shared Runner, with
+  `ONEUPTIME_RUNNER_SHARED` set to `true`, now logs that the shared Runner is
+  gone and stops: remove it from your deployment. If you set
+  `GLOBAL_RUNNER_REPLICAS=0` or `globalRunner.enabled: false`,
   that now also stops AI code fixes in the repositories on **Global Runner**:
   turn the global Runner back on, or pick a Runner of your own for those
   repositories in Code. The Admin Dashboard's Global AI Agents page, under

@@ -34,8 +34,9 @@ import {
  * Contract under test - what the Runner ingress does for a global Runner,
  * one the OneUptime server runs for every project:
  *
- *   - its heartbeat tells it it is global and that it runs runbook steps
- *     only (code fixes and AI commands off whatever the row says);
+ *   - its heartbeat tells it it is global, that it runs JavaScript steps
+ *     and takes code fixes, and that it never runs AI commands, whatever
+ *     the row says;
  *   - its claim is served from the global lane only
  *     (claimNextGlobalJob - never the per-Runner claim), for the types
  *     global Runners run, narrowed further by what it asks for;
