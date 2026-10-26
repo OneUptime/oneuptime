@@ -7,6 +7,7 @@ import {
   SearchSecurityEventsTool,
   SecurityEventSummaryTool,
   securityEventSearchRow,
+  securityEventTableText,
 } from "../../../../../Server/Utils/AI/Toolbox/SecurityEventTools";
 import {
   ObservabilityTool,
@@ -28,6 +29,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 const projectId: ObjectID = new ObjectID(
@@ -330,8 +332,11 @@ describe("search_security_events", () => {
       (result.widget?.data.columns || []).map((column: AIChatWidgetColumn) => {
         return column.key;
       }),
-    ).toEqual(["time", "severity", "class", "message", "principalHost"]);
+    ).toEqual(["time", "severity", "eventShown", "principalHost"]);
     const rows: Array<JSONObject> = result.widget?.data.rows || [];
+    expect(rows[0]!["eventShown"]).toBe(
+      "Failed login for alice@example.com password=hunter2hunter2",
+    );
     expect(rows[0]!["principalIp"]).toBe("203.0.113.9");
     expect(rows[0]!["message"]).toBe(
       "Failed login for alice@example.com password=hunter2hunter2",
@@ -566,78 +571,283 @@ describe("search_security_events rows", () => {
     expect(result.dataForLlm).toContain("… [truncated]");
   });
 
+  /*
+   * The table a person reads beside the answer sits in the chat panel, at
+   * most 768px wide, and in a case's evidence: four columns, so what
+   * happened - with the process it is about - is in sight. A Class, a
+   * Message and a Process column ran the process past the panel's edge.
+   */
   describe("the table beside the answer", () => {
-    function columnKeys(result: ToolExecutionResult): Array<string> {
+    const COLUMNS: Array<string> = [
+      "time=Time",
+      "severity=Severity",
+      "eventShown=Event",
+      "principalHost=Host",
+    ];
+
+    function columnsOf(result: ToolExecutionResult): Array<string> {
       return (result.widget?.data.columns || []).map(
         (column: AIChatWidgetColumn) => {
-          return column.key;
+          return `${column.key}=${column.title}`;
         },
       );
     }
 
-    test("shows a Process column when an event names a process, its command line first", async () => {
+    function eventsOf(result: ToolExecutionResult): Array<unknown> {
+      return (result.widget?.data.rows || []).map((row: JSONObject) => {
+        return row["eventShown"];
+      });
+    }
+
+    const OKTA_SIGN_IN: JSONObject = {
+      time: time,
+      severityName: "Medium",
+      className: "Authentication",
+      activityName: "Logon",
+      statusName: "Success",
+      message: "User login to Okta",
+      principalUser: "alice@example.com",
+      principalIp: "203.0.113.9",
+    };
+
+    test("is when, how bad, what happened and where, when an event names a process", async () => {
       const result: ToolExecutionResult = await search([
         ENCODED_POWERSHELL,
-        { time: time, className: "Authentication", principalHost: "web-01" },
+        OKTA_SIGN_IN,
       ]);
 
-      expect(columnKeys(result)).toEqual([
-        "time",
-        "severity",
-        "class",
-        "message",
-        "processShown",
-        "principalHost",
+      expect(columnsOf(result)).toEqual(COLUMNS);
+      expect(eventsOf(result)).toEqual([
+        "Process Activity: Launch · powershell.exe -nop -enc JABzAD0A",
+        "User login to Okta",
       ]);
+    });
+
+    test("is the same four columns when no event names one", async () => {
+      expect(columnsOf(await search([OKTA_SIGN_IN]))).toEqual(COLUMNS);
+    });
+
+    test("reads a message that only names the class as the class and its activity, as OCSF names the type", async () => {
       expect(
-        (result.widget?.data.columns || []).find(
-          (column: AIChatWidgetColumn) => {
-            return column.key === "processShown";
-          },
-        )?.title,
-      ).toBe("Process");
-
-      const rows: Array<JSONObject> = result.widget?.data.rows || [];
-      expect(rows[0]!["processShown"]).toBe(
-        "powershell.exe -nop -enc JABzAD0A",
-      );
-      expect(rows[1]!["processShown"]).toBeUndefined();
+        eventsOf(
+          await search([
+            {
+              time: time,
+              className: "Process Activity",
+              activityName: "Inject",
+              message: "process activity",
+              processName: "explorer.exe",
+            },
+            { time: time, className: "Process Activity", processName: "sshd" },
+            {
+              time: time,
+              className: "Network Activity",
+              activityName: "Open",
+              message: "",
+            },
+          ]),
+        ),
+      ).toEqual([
+        "Process Activity: Inject · explorer.exe",
+        "Process Activity · sshd",
+        "Network Activity: Open",
+      ]);
     });
 
-    test("names a process by its name when there is no command line, else by the process that acted", async () => {
+    test("keeps a message of its own, with the process after it", async () => {
+      expect(
+        eventsOf(
+          await search([
+            {
+              ...ENCODED_POWERSHELL,
+              message: "Encoded PowerShell from an Office app",
+            },
+          ]),
+        ),
+      ).toEqual([
+        "Encoded PowerShell from an Office app · powershell.exe -nop -enc JABzAD0A",
+      ]);
+    });
+
+    test("names the process by its command line, else its name, else the process that acted", async () => {
+      expect(
+        eventsOf(
+          await search([
+            ENCODED_POWERSHELL,
+            {
+              time: time,
+              className: "Process Activity",
+              processName: "lsass.exe",
+              processPath: "C:\\Windows\\System32\\lsass.exe",
+            },
+            {
+              time: time,
+              className: "Process Activity",
+              principalProcess: "/usr/bin/cat /etc/shadow",
+            },
+          ]),
+        ),
+      ).toEqual([
+        "Process Activity: Launch · powershell.exe -nop -enc JABzAD0A",
+        "Process Activity · lsass.exe",
+        "Process Activity · /usr/bin/cat /etc/shadow",
+      ]);
+    });
+
+    test("does not name a process the words already name, as a word of their own", async () => {
+      expect(
+        eventsOf(
+          await search([
+            {
+              time: time,
+              className: "Process Activity",
+              activityName: "Inject",
+              message: "Process injection into LSASS.EXE",
+              processName: "lsass.exe",
+            },
+            {
+              time: time,
+              className: "Process Activity",
+              message: "alice ran /usr/bin/cat /etc/shadow as root",
+              processCommandLine: "/usr/bin/cat /etc/shadow",
+            },
+            {
+              time: time,
+              className: "Authentication",
+              message: "SSH brute force",
+              processName: "sh",
+            },
+            {
+              time: time,
+              className: "Process Activity",
+              message: "lsass.exe_dump written",
+              processName: "lsass.exe",
+            },
+          ]),
+        ),
+      ).toEqual([
+        "Process injection into LSASS.EXE",
+        "alice ran /usr/bin/cat /etc/shadow as root",
+        "SSH brute force · sh",
+        "lsass.exe_dump written · lsass.exe",
+      ]);
+    });
+
+    /*
+     * Okta writes one message for a sign-in that worked and one that did
+     * not: a table of failed sign-ins read like successful ones.
+     */
+    test("says an event failed, whatever its message; a success or an unknown outcome does not", async () => {
+      expect(
+        eventsOf(
+          await search([
+            { ...OKTA_SIGN_IN, statusName: "Failure" },
+            OKTA_SIGN_IN,
+            {
+              time: time,
+              className: "Authentication",
+              activityName: "Logon",
+              statusName: "Failure",
+              message: "Authentication",
+            },
+            {
+              time: time,
+              className: "Authentication",
+              activityName: "Logon",
+              statusName: "Unknown",
+            },
+            {
+              time: time,
+              className: "Process Activity",
+              activityName: "Launch",
+              statusName: "Failure",
+              processCommandLine: "cmd.exe /c whoami",
+            },
+          ]),
+        ),
+      ).toEqual([
+        "User login to Okta (Failure)",
+        "User login to Okta",
+        "Authentication: Logon (Failure)",
+        "Authentication: Logon",
+        "Process Activity: Launch (Failure) · cmd.exe /c whoami",
+      ]);
+    });
+
+    test("an event that says nothing has no event text, so the table draws a dash", async () => {
       const result: ToolExecutionResult = await search([
-        { time: time, className: "Process Activity", processName: "lsass.exe" },
-        {
-          time: time,
-          className: "Process Activity",
-          principalProcess: "/usr/bin/cat /etc/shadow",
-        },
+        { time: time, severityName: "Low", statusName: "Failure" },
       ]);
 
-      const rows: Array<JSONObject> = result.widget?.data.rows || [];
-      expect(rows[0]!["processShown"]).toBe("lsass.exe");
-      expect(rows[1]!["processShown"]).toBe("/usr/bin/cat /etc/shadow");
+      expect(result.widget?.data.rows?.[0]).not.toHaveProperty("eventShown");
     });
 
-    test("keeps the table it had when no event names a process", async () => {
-      const result: ToolExecutionResult = await search([
-        { time: time, className: "Authentication", principalHost: "web-01" },
-      ]);
-
-      expect(columnKeys(result)).toEqual([
-        "time",
-        "severity",
-        "class",
-        "message",
-        "principalHost",
-      ]);
-    });
-
-    test("never shows the model the table's own column", async () => {
+    test("never shows the model the table's own column, and keeps every field of the row", async () => {
       const result: ToolExecutionResult = await search([ENCODED_POWERSHELL]);
 
-      expect(result.dataForLlm).not.toContain("processShown");
+      expect(result.dataForLlm).not.toContain("eventShown");
+      expect(result.dataForLlm).not.toContain(" · ");
+
+      const row: JSONObject = result.widget?.data.rows?.[0] || {};
+      expect(row["message"]).toBe("Process Activity");
+      expect(row["commandLine"]).toBe("powershell.exe -nop -enc JABzAD0A");
+      expect(row["parentProcess"]).toBe("WINWORD.EXE");
     });
+  });
+});
+
+describe("securityEventTableText", () => {
+  test("reads an event as the table cell draws it", () => {
+    expect(
+      securityEventTableText({
+        class: "Process Activity",
+        activity: "Open",
+        message: "Process Activity",
+        process: "lsass.exe",
+        principalProcess: "procdump64.exe",
+      }),
+    ).toBe("Process Activity: Open · lsass.exe");
+    expect(securityEventTableText({})).toBe("");
+    expect(securityEventTableText({ process: "nc" })).toBe("nc");
+  });
+
+  /*
+   * The message and the process come from outside OneUptime, at any
+   * length. A process of 999 letters sits at every place of a message of
+   * 400,000 of the same letter, never as a word of its own: comparing each
+   * place took about 130 ms an event, and a search reads up to 50 events.
+   * Only the first 1,000 characters of the message are compared.
+   */
+  test("reads 50 events whose 400,000-character messages hold their process everywhere, in time that grows with the text", () => {
+    const message: string = "a".repeat(400000);
+    const process: string = "a".repeat(999);
+    const rows: Array<JSONObject> = [];
+    for (let index: number = 0; index < 50; index++) {
+      rows.push({ class: "Process Activity", message, process });
+    }
+
+    const read: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return rows.map(securityEventTableText);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.inMs).toBeLessThan(2000);
+    expect(read.result).toHaveLength(50);
+    expect(read.result[0]).toBe(`${message} · ${process}`);
+  });
+
+  test("names the process again when the words name it only past their first 1,000 characters", () => {
+    const process: string = "mimikatz.exe";
+    const words: string = `${"x".repeat(995)} ran ${process}`;
+
+    expect(securityEventTableText({ message: words, process: process })).toBe(
+      `${words} · ${process}`,
+    );
+    expect(
+      securityEventTableText({ message: words.slice(12), process: process }),
+    ).toBe(words.slice(12));
   });
 });
 
