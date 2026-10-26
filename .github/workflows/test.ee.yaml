@@ -171,7 +171,9 @@ jobs:
   # Dashboard's packages and nothing of App's or ee's own installs.
   backups-ui:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Holds the Chromium install's own limit, the suite's, and about 7 minutes
+    # for checkout and the npm installs (Tests/Ops/BrowserInstallLimits).
+    timeout-minutes: 42
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -193,12 +195,18 @@ jobs:
           working-directory: packages/E2E
           # Skip the preinstall hook that downloads every browser.
           args: --ignore-scripts
+      # `--with-deps` fetches about 25 MB of system packages and fonts from the
+      # runner's Ubuntu mirror, which some runners serve at a few dozen kB/s.
+      # The step takes about 25 seconds, but it ran past its old 10 minutes
+      # twice on master on 2026-10-26 and failed the job with nothing tested.
+      # So it has the 25 minutes App Test's browser installs have.
       - name: Install Chromium
         working-directory: packages/E2E
-        timeout-minutes: 10
+        timeout-minutes: 25
         run: npx playwright install --with-deps chromium
       - name: Run the Backups page's browser checks
         working-directory: packages/E2E
+        timeout-minutes: 10
         run: npm run test-backups-ui
       - name: Upload browser screenshots and failure traces
         if: always()
