@@ -45,7 +45,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **ATT&CK Coverage** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
-| **Exécutions de playbooks** | Playbooks | Ce que chaque playbook a fait, étape par étape |
+| **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
 | **Protected Entities** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |

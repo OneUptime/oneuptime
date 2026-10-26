@@ -300,7 +300,7 @@ Un e-mail ou une publication sans message propre envoie un résumé du dossier.
 
 ### Exécutions et approbations
 
-Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Exécutions de playbooks** :
+Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Exécutions** :
 
 | Statut de l'exécution | Signification |
 | --- | --- |
@@ -311,7 +311,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
-Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. La page **Approbations**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions. Sur **Exécutions de playbooks** et sur la page d'un playbook, chaque exécution tient sur une ligne qui dit jusqu'où elle est allée, ou l'étape où elle s'est arrêtée ; **Afficher les étapes** ouvre ses étapes. Une exécution en attente d'approbation s'ouvre d'elle-même.
+Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. La page **Approbations**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions** liste toutes les exécutions. Sur **Exécutions** et sur la page d'un playbook, chaque exécution tient sur une ligne qui dit jusqu'où elle est allée, ou l'étape où elle s'est arrêtée ; **Afficher les étapes** ouvre ses étapes. Une exécution en attente d'approbation s'ouvre d'elle-même.
 
 Une exécution dont le worker ne donne plus signe de vie, après un redémarrage par exemple, est reprise : une exécution en file d'attente est remise en file au bout de 2 minutes, et une exécution restée muette pendant 30 minutes passe en échec.
 

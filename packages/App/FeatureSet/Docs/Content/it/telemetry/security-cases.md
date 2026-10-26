@@ -300,7 +300,7 @@ Un'email o un post senza un messaggio proprio invia un riepilogo del caso.
 
 ### Esecuzioni e approvazioni
 
-Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbooks → Esecuzioni dei playbook**, passo per passo:
+Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbooks → Esecuzioni**, passo per passo:
 
 | Stato dell'esecuzione | Significa |
 | --- | --- |
@@ -311,7 +311,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events →
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
-Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. La pagina **Approvazioni**, sotto **Playbooks** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni dei playbook** elenca ogni esecuzione. In **Esecuzioni dei playbook** e nella pagina di un playbook, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola.
+Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. La pagina **Approvazioni**, sotto **Playbooks** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni** elenca ogni esecuzione. In **Esecuzioni** e nella pagina di un playbook, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola.
 
 Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un riavvio, viene ripresa: un'esecuzione in coda viene rimessa in coda dopo 2 minuti, e un'esecuzione che tace da 30 minuti viene segnata come non riuscita.
 

@@ -28341,7 +28341,7 @@
   "Pick what the step does, then fill in its settings.": "Pick what the step does, then fill in its settings.",
   "Playbook": "Playbook",
   "Playbook Name": "Playbook Name",
-  "Playbook Runs": "Playbook-Ausführungen",
+  "Playbook Runs": "Ausführungen",
   "Playbooks": "Playbooks",
   "Post a summary of the case to a Microsoft Teams channel, through the project's Microsoft Teams connection.": "Post a summary of the case to a Microsoft Teams channel, through the project's Microsoft Teams connection.",
   "Post a summary of the case to a Slack channel, through the project's Slack connection.": "Post a summary of the case to a Slack channel, through the project's Slack connection.",

@@ -45,7 +45,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **ATT&CK Coverage** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
 | **Aprobaciones** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
-| **Ejecuciones de playbooks** | Playbooks | Lo que hizo cada playbook, paso a paso |
+| **Ejecuciones** | Playbooks | Lo que hizo cada playbook, paso a paso |
 | **Protected Entities** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |

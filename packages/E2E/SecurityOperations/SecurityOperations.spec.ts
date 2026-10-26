@@ -188,8 +188,8 @@ interface OpenOptions {
   fail?: "status" | "overview";
   // What the project's events say it sends: nothing this week, or a read that fails.
   data?: "none" | "fail";
-  // The Dashboard's German, French, Italian, Dutch, Japanese or Persian locale.
-  lang?: "de" | "fr" | "it" | "nl" | "ja" | "fa";
+  // The Dashboard's German, Spanish, French, Italian, Portuguese, Dutch, Japanese or Persian locale.
+  lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ja" | "fa";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
   // Case numbers, comma separated, whose every change the server refuses.
@@ -5458,8 +5458,17 @@ test.describe("detections", () => {
    * Events' menu and the one of a case's - keeps its whole name, in English
    * and in the languages whose names ran longest, beside a tablet's menu and
    * a laptop's.
+   *
+   * So does every other entry a visit sees: the sections that start open
+   * (Overview, Security Cases, Events, Playbooks, and a case's own).
+   * Playbook Runs, under Approvals, was cut beside a tablet's menu in
+   * German, Spanish, French, Italian and Portuguese, and filled its row to
+   * the pixel in Dutch; it reads as each language's own word for runs
+   * (Ausführungen, Ejecuciones, Exécutions, Esecuzioni, Execuções,
+   * Uitvoeringen) under Playbooks. A folded section's entries show on their
+   * own pages.
    */
-  test("an entry keeps its whole name beside its count, beside a tablet's menu and in the longest languages", async ({
+  test("every entry in sight keeps its whole name, beside its count too, beside a tablet's menu and in the longest languages", async ({
     page,
   }: {
     page: Page;
@@ -5474,6 +5483,8 @@ test.describe("detections", () => {
       [1440, "fr"],
       [800, "it"],
       [800, "nl"],
+      [800, "es"],
+      [800, "pt"],
       [800, "ja"],
       [800, "fa"],
     ];
@@ -5514,6 +5525,25 @@ test.describe("detections", () => {
             );
           }
         }
+
+        // Every entry in sight: a folded section's are hidden.
+        const cutInSight: Array<string> = await sideMenu(page)
+          .locator("a span.truncate")
+          .evaluateAll((titles: Array<Element>): Array<string> => {
+            return titles
+              .filter((title: Element): boolean => {
+                return (
+                  getComputedStyle(title).visibility === "visible" &&
+                  title.scrollWidth > title.clientWidth
+                );
+              })
+              .map((title: Element): string => {
+                return `${title.textContent || ""}: ${title.scrollWidth - title.clientWidth}px`;
+              });
+          });
+        for (const title of cutInSight) {
+          cutShort.push(`${title} (${lang || "en"}, ${width}px, in sight)`);
+        }
       }
     }
 
@@ -5523,6 +5553,9 @@ test.describe("detections", () => {
     await expect(
       sideMenu(page).locator(`a[href="${RUNS_PATH}"]`),
     ).toContainText("Genehmigungen", { timeout: 30000 });
+    await expect(
+      sideMenu(page).locator(`a[href="${ALL_RUNS_PATH}"]`),
+    ).toHaveText("Ausführungen");
     await screenshot(page, "side-menu-tablet-de", { fullPage: false });
   });
 

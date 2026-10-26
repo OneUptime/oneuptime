@@ -300,7 +300,7 @@ Een e-mail of bericht zonder eigen tekst stuurt een samenvatting van de zaak.
 
 ### Uitvoeringen en goedkeuringen
 
-Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Playbook-uitvoeringen**:
+Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Uitvoeringen**:
 
 | Status van de uitvoering | Betekenis |
 | --- | --- |
@@ -311,7 +311,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
-Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. De pagina **Goedkeuringen**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Playbook-uitvoeringen** toont elke uitvoering. Op **Playbook-uitvoeringen** en op de pagina van een playbook is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open.
+Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. De pagina **Goedkeuringen**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Uitvoeringen** toont elke uitvoering. Op **Uitvoeringen** en op de pagina van een playbook is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open.
 
 Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstart, wordt weer opgepakt: een uitvoering in de wachtrij wordt na 2 minuten opnieuw in de wachtrij gezet, en een uitvoering die 30 minuten niets heeft gemeld, wordt als mislukt gemarkeerd.
 

@@ -45,7 +45,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **ATT&CK Coverage** | Detections | Le tecniche MITRE ATT&CK coperte dalle tue regole |
 | **Playbooks** | Playbooks | Passi che vengono eseguiti sui casi, da soli o a mano |
 | **Approvazioni** | Playbooks | I passi dei playbook in attesa che qualcuno li approvi o li rifiuti |
-| **Esecuzioni dei playbook** | Playbooks | Cosa ha fatto ogni playbook, passo per passo |
+| **Esecuzioni** | Playbooks | Cosa ha fatto ogni playbook, passo per passo |
 | **Protected Entities** | Playbooks | Gli utenti e gli host a cui nessun playbook applica il contenimento |
 | **Impostazioni** | IA | Se OneUptime AI classifica ogni nuovo caso |
 | **Connections** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |

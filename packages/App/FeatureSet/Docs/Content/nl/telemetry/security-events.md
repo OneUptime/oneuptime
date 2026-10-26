@@ -45,7 +45,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **ATT&CK Coverage** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
-| **Playbook-uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
+| **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
 | **Protected Entities** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |

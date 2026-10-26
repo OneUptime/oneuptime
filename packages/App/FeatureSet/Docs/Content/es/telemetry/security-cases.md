@@ -300,7 +300,7 @@ Un email o una publicación sin mensaje propio envía un resumen del caso.
 
 ### Ejecuciones y aprobaciones
 
-Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Ejecuciones de playbooks**:
+Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Ejecuciones**:
 
 | Estado de la ejecución | Significado |
 | --- | --- |
@@ -311,7 +311,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |
 
-Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso, en la cronología del caso y en el registro de auditoría del proyecto. La página **Aprobaciones**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones de playbooks** lista todas las ejecuciones. En **Ejecuciones de playbooks** y en la página de un playbook, cada ejecución es una línea que dice hasta dónde llegó, o el paso en el que se detuvo; **Mostrar pasos** abre sus pasos. Una ejecución que espera aprobación se abre sola.
+Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso, en la cronología del caso y en el registro de auditoría del proyecto. La página **Aprobaciones**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones** lista todas las ejecuciones. En **Ejecuciones** y en la página de un playbook, cada ejecución es una línea que dice hasta dónde llegó, o el paso en el que se detuvo; **Mostrar pasos** abre sus pasos. Una ejecución que espera aprobación se abre sola.
 
 Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un reinicio, se retoma: una ejecución en cola vuelve a ponerse en cola a los 2 minutos, y una ejecución que lleva 30 minutos sin dar señales se marca como fallida.
 

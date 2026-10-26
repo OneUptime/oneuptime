@@ -300,7 +300,7 @@ Eine E-Mail oder ein Beitrag ohne eigene Nachricht sendet eine Zusammenfassung d
 
 ### Ausführungen und Genehmigungen
 
-Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Playbook-Ausführungen** aufgelistet, Schritt für Schritt:
+Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Ausführungen** aufgelistet, Schritt für Schritt:
 
 | Status der Ausführung | Bedeutung |
 | --- | --- |
@@ -311,7 +311,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. Die Seite **Genehmigungen**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung. Auf **Playbook-Ausführungen** und auf der Seite eines Playbooks ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. Die Seite **Genehmigungen**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Ausführungen** listet jede Ausführung. Auf **Ausführungen** und auf der Seite eines Playbooks ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 

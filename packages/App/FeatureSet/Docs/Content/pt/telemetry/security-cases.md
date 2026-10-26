@@ -300,7 +300,7 @@ Um e-mail ou uma publicação sem mensagem própria envia um resumo do caso.
 
 ### Execuções e aprovações
 
-Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções de playbooks**, etapa por etapa:
+Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções**, etapa por etapa:
 
 | Status da execução | Significado |
 | --- | --- |
@@ -311,7 +311,7 @@ Cada execução aparece no caso dela e em **Produtos → Security Events → Pla
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
 
-Uma etapa aguardando aprovação mostra **Approve** e **Reject** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. A página **Aprovações**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções de playbooks** lista todas as execuções. Em **Execuções de playbooks** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
+Uma etapa aguardando aprovação mostra **Approve** e **Reject** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. A página **Aprovações**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções** lista todas as execuções. Em **Execuções** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
 
 Uma execução que deixa de receber sinais do worker dela, depois de uma reinicialização, por exemplo, é retomada: uma execução na fila volta para a fila depois de 2 minutos, e uma execução que não dá sinal por 30 minutos é marcada como falha.
 

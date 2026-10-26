@@ -356,10 +356,10 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
   ? params.get("data")
   : "";
 /*
- * ?lang=: the Dashboard's German, French, Italian, Dutch, Japanese or
- * Persian locale, loaded and switched to, for the pages that are checked in
- * other languages (the Rule Library, Connected Signals, the side menu's
- * longest names). Persian reads right to left.
+ * ?lang=: the Dashboard's German, Spanish, French, Italian, Portuguese,
+ * Dutch, Japanese or Persian locale, loaded and switched to, for the pages
+ * that are checked in other languages (the Rule Library, Connected Signals,
+ * the side menu's longest names). Persian reads right to left.
  *
  * Each loads only when ?lang= names it: a locale is some four megabytes of
  * JSON, which every page the suite opens would parse if it were bundled
@@ -367,11 +367,13 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
  */
 const LOCALE_LOADERS = {
   de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
+  es: () => import("../../../App/FeatureSet/Dashboard/src/Locales/es.json"),
   fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
   fr: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json"),
   it: () => import("../../../App/FeatureSet/Dashboard/src/Locales/it.json"),
   ja: () => import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json"),
   nl: () => import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json"),
+  pt: () => import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json"),
 };
 const LANGUAGES = Object.keys(LOCALE_LOADERS);
 const language = LANGUAGES.includes(params.get("lang"))

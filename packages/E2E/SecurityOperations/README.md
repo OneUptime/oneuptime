@@ -196,7 +196,10 @@ that list is not empty.
   adds only it; Detections is a section of
   pages, each its own address and entry; the side menu is nine sections of pages, the ones set up
   once folded (Settings among them), its Workspace section listing only the connected Slack, and on
-  a phone it names the section and the page; Entities ranks what the findings name in the
+  a phone it names the section and the page; every entry in sight, a counted one too, and a
+  case's, keeps its whole name beside a tablet's 224px menu in English, German, Spanish, French,
+  Italian, Portuguese, Dutch, Japanese and Persian (`?lang=`), and at 1440 in English, German and
+  French; Entities ranks what the findings name in the
   product's table over 1, 7 or 30 days, ten a page with the foot every list has, each row opening
   the entity in Correlate and, on a phone, a card of its figures, with the lookup under it, its box
   and Look Up one height on one line.
