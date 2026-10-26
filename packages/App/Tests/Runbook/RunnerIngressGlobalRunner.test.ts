@@ -361,7 +361,7 @@ describe("the Runner ingress, for a global Runner", () => {
   });
 
   describe("POST /heartbeat", () => {
-    test("tells a global Runner it is one, and that it runs runbook steps only", async () => {
+    test("tells a global Runner it is one, that it runs JavaScript steps, and that it takes code fixes", async () => {
       await callRoute({ uri: HEARTBEAT_ROUTE, agent: globalRunner() });
 
       expect(lastJsonResponse()).toEqual({
@@ -370,33 +370,50 @@ describe("the Runner ingress, for a global Runner", () => {
         globalStepTypes: [RunbookStepType.JavaScript],
         capabilities: {
           canRunRunbooks: true,
-          canRunCodeFixTasks: false,
+          canRunCodeFixTasks: true,
           canRunAiCommands: false,
         },
       });
     });
 
-    test("never grants a global Runner code fixes or AI commands, whatever its row says", async () => {
-      // Even were a repository to name it: a global Runner is never asked.
-      pickedSpy.mockResolvedValue(true);
+    test("grants a global Runner code fixes whether or not a repository names it, and never AI commands, whatever its row says", async () => {
+      for (const picked of [true, false]) {
+        pickedSpy.mockResolvedValue(picked);
 
+        await callRoute({
+          uri: HEARTBEAT_ROUTE,
+          agent: globalRunner({
+            canRunAiCommands: true,
+          }),
+        });
+
+        // It takes the repositories on the Global Runner: no pick is asked about.
+        expect(pickedSpy).not.toHaveBeenCalled();
+
+        expect(
+          (lastJsonResponse()["capabilities"] as JSONObject)[
+            "canRunCodeFixTasks"
+          ],
+        ).toBe(true);
+        expect(
+          (lastJsonResponse()["capabilities"] as JSONObject)[
+            "canRunAiCommands"
+          ],
+        ).toBe(false);
+      }
+    });
+
+    test("a paused global Runner (Runs Runbooks off) still takes code fixes", async () => {
       await callRoute({
         uri: HEARTBEAT_ROUTE,
-        agent: globalRunner({
-          canRunAiCommands: true,
-        }),
+        agent: globalRunner({ canRunRunbooks: false }),
       });
-
-      expect(pickedSpy).not.toHaveBeenCalled();
 
       expect(
         (lastJsonResponse()["capabilities"] as JSONObject)[
           "canRunCodeFixTasks"
         ],
-      ).toBe(false);
-      expect(
-        (lastJsonResponse()["capabilities"] as JSONObject)["canRunAiCommands"],
-      ).toBe(false);
+      ).toBe(true);
     });
 
     test("a paused global Runner (Runs Runbooks off) is told so", async () => {

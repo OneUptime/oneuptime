@@ -226,7 +226,7 @@ describe("POST /ai-agent-data/get-code-task-details", () => {
     expect(built.repository.id?.toString()).toBe(REPOSITORY_ID.toString());
   });
 
-  test("a shared Runner (no project of its own) gets it too", async () => {
+  test("a global Runner (no project of its own) gets it too", async () => {
     agentProjectId = undefined;
 
     expect((await ask(BODY)).details).toBeDefined();
