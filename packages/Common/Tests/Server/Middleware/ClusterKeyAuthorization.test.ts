@@ -65,7 +65,6 @@ interface Installation {
   };
   config: {
     IsClusterKeyShipped: boolean;
-    HasClusterKey: boolean;
     ClusterKeyWarning: string | null;
     isShippedSecretValue: (value: string | null | undefined) => boolean;
   };
@@ -940,19 +939,4 @@ describe("isShippedSecretValue", () => {
       expect(installation.config.isShippedSecretValue(value)).toBe(false);
     }
   });
-});
-
-describe("HasClusterKey still follows whether ONEUPTIME_SECRET is set at all", () => {
-  test.each([
-    ["unset", undefined, false],
-    ["empty", "", false],
-    ["blank", "   ", true],
-    ["a placeholder", "please-change-this-to-random-value", true],
-    ["an operator's key", OPERATOR_CLUSTER_KEYS[0]!.value, true],
-  ] as Array<[string, string | undefined, boolean]>)(
-    "%s",
-    (_label: string, value: string | undefined, expected: boolean) => {
-      expect(loadInstallation(value).config.HasClusterKey).toBe(expected);
-    },
-  );
 });

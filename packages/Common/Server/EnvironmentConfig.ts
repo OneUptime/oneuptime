@@ -660,12 +660,6 @@ export const ClusterKey: ObjectID = new ObjectID(
   process.env["ONEUPTIME_SECRET"] || "",
 );
 
-/*
- * Whether ONEUPTIME_SECRET is set at all: on a Runner, that its deployment
- * (from an earlier release) marks it as the shared Runner by giving it one.
- */
-export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
-
 export const IsClusterKeyShipped: boolean = isShippedSecretValue(
   process.env["ONEUPTIME_SECRET"],
 );

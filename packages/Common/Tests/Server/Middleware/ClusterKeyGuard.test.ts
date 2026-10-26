@@ -33,8 +33,8 @@ import ts from "typescript";
  *
  *   - only EnvironmentConfig reads ONEUPTIME_SECRET, and it has no fallback;
  *   - only ClusterKeyAuthorization reads the configured key
- *     (EnvironmentConfig.ClusterKey, IsClusterKeyShipped), and nothing reads
- *     whether one is set at all (HasClusterKey), as the Runner used to;
+ *     (EnvironmentConfig.ClusterKey, IsClusterKeyShipped), and nothing says
+ *     whether one is set at all, as HasClusterKey did for the Runner;
  *   - only ClusterKeyAuthorization reads a key a request carries - the
  *     clusterkey and x-clusterkey headers - and nothing writes one into a
  *     body or a URL (LogRedaction names it only to keep it out of logs);
@@ -316,7 +316,8 @@ describe("ONEUPTIME_SECRET is read in one place, with no fallback", () => {
         "IsClusterKeyShipped",
       ]),
     ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
-    expect(filesImportingFromEnvironmentConfig(["HasClusterKey"])).toEqual([]);
+    // HasClusterKey told the shared Runner it was one; it went with it.
+    expect(codeOf(ENVIRONMENT_CONFIG)).not.toContain("HasClusterKey");
   });
 });
 
