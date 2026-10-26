@@ -364,6 +364,8 @@ Le retard en secondes affiche zéro sur un primaire inactif même quand un répl
 
 Les compteurs qui se terminent par `total` sont cumulés depuis le démarrage du serveur. Comparez deux instants pour obtenir un taux ; une valeur isolée n'a de sens que par rapport à son propre historique, et elle revient à zéro quand le serveur redémarre (ce que **Uptime** vous montrera).
 
+**Cache Hit Ratio** et **Rollback Ratio** sont calculés à chaque vérification à partir de ce que leurs compteurs ont progressé depuis la vérification précédente du moniteur, et non depuis le démarrage du serveur : un cache qui se met à manquer se voit donc tout de suite. La première vérification après le démarrage de la sonde, et la première après un redémarrage du serveur, n'ont ni l'un ni l'autre.
+
 ## Configurer les critères
 
 | Type de filtre | Ce qu'il vérifie |

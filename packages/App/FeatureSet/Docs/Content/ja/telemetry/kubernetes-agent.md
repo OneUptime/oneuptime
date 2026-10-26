@@ -256,7 +256,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-**ログ** で検索したり、不要なものを破棄フィルターで破棄したり、[ログモニター](/docs/monitor/logs-monitor) で発生時に通知を受け取ったりできます。重大度 **警告** と `k8s.event.reason` で絞り込み、`k8s.object.name` でグループ化すると、ノードやオートスケーラーごとに 1 つのアラートになります。
+**ログ** で検索したり、不要なものを破棄フィルターで破棄したりできます。発生時に通知を受け取るには、クラスターの **推奨事項** ページで **Warning Events** をオンにするか、**イベント** ページの下部にある **警告のアラートをオンにする** を選択します。これはクラスターの警告に対する [ログモニター](/docs/monitor/logs-monitor) で、オブジェクトと理由ごとに 1 つのアラートを出し、その警告が新たに出ないまま 5 分経つと解決します。一部の理由だけ通知を受け取るには、フィルターに `k8s.event.reason` を追加します。
 
 ## 設定オプション
 

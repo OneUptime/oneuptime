@@ -8,6 +8,13 @@ import KubernetesEventAttribute, {
 } from "Common/Types/Kubernetes/KubernetesEvent";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import {
+  KUBERNETES_WARNING_EVENTS_GROUP_BY,
+  KUBERNETES_WARNING_EVENTS_WINDOW_SECONDS,
+  KubernetesEventAlertTemplate,
+  getKubernetesWarningEventsTemplate,
+} from "Common/Types/Monitor/KubernetesEventAlertTemplates";
+import ObjectID from "Common/Types/ObjectID";
+import {
   KubernetesEventFields,
   issue5179Events,
   kubernetesEventObject,
@@ -296,5 +303,87 @@ describe("the Kubernetes events section of the Kubernetes Agent page", () => {
       "utf8",
     );
     expect(configMap).toContain("- name: events\n            mode: watch");
+  });
+});
+
+/*
+ * Follow-up of #5201: the page tells a reader how to be alerted on warning
+ * events - the Warning Events recommendation, or the Events page's line -
+ * and what the alert does. Held to the template and the Dashboard.
+ */
+describe("the Kubernetes events section's alert", () => {
+  const ALERT_PARAGRAPH_START: string = "Search them in **Logs**";
+
+  function alertParagraph(): string {
+    const line: string | undefined = eventsSection()
+      .split("\n")
+      .find((candidate: string): boolean => {
+        return candidate.startsWith(ALERT_PARAGRAPH_START);
+      });
+
+    if (!line) {
+      throw new Error("No alert paragraph in the Kubernetes events section");
+    }
+
+    return line;
+  }
+
+  test("names the recommendation as the catalog names it, and where it is", () => {
+    const template: KubernetesEventAlertTemplate =
+      getKubernetesWarningEventsTemplate();
+
+    expect(alertParagraph()).toContain(
+      `turn on **${template.name}** on the cluster's **Recommendations** page`,
+    );
+    expect(
+      dashboardFile("Pages/Kubernetes/View/SideMenu.tsx"),
+    ).toContain("PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS");
+  });
+
+  test("names the Events page's link as the line draws it", () => {
+    expect(alertParagraph()).toContain(
+      "select **Turn on warning alerts** at the foot of its **Events** page",
+    );
+    expect(
+      dashboardFile(
+        "Components/Kubernetes/KubernetesWarningEventsAlertLine.tsx",
+      ),
+    ).toContain('translator.translateText("Turn on warning alerts")');
+  });
+
+  test("says what the alert does, as the template builds it", () => {
+    const window: number = KUBERNETES_WARNING_EVENTS_WINDOW_SECONDS / 60;
+
+    expect(alertParagraph()).toContain(
+      `raises one alert per object and reason, and resolves it once ${window} minutes pass without a new warning about it`,
+    );
+    // Per object and reason: the template splits by the object and the reason.
+    expect(KUBERNETES_WARNING_EVENTS_GROUP_BY).toEqual(
+      expect.arrayContaining([
+        KubernetesEventAttribute.ObjectKind,
+        KubernetesEventAttribute.ObjectName,
+        KubernetesEventAttribute.Reason,
+      ]),
+    );
+    // A Logs monitor, as the page links it.
+    expect(alertParagraph()).toContain(
+      "[Logs monitor](/docs/monitor/logs-monitor)",
+    );
+    expect(
+      getKubernetesWarningEventsTemplate().getMonitorStep({
+        clusterIdentifier: "c",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "c",
+      }).data?.logMonitor,
+    ).toBeDefined();
+  });
+
+  test("the reason it says to filter on is the one ingest stamps", () => {
+    expect(alertParagraph()).toContain(
+      `add \`${KubernetesEventAttribute.Reason}\` to its filter`,
+    );
   });
 });

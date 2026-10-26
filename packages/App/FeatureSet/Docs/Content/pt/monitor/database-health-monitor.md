@@ -364,6 +364,8 @@ O atraso em segundos marca zero em um primário ocioso mesmo quando uma réplica
 
 Contadores que terminam em `total` são cumulativos desde que o servidor foi iniciado. Compare dois momentos para obter uma taxa; um valor isolado só tem sentido em relação ao próprio histórico, e ele volta a zero quando o servidor reinicia (o que **Uptime** vai mostrar).
 
+**Cache Hit Ratio** e **Rollback Ratio** são calculados a cada verificação a partir do quanto seus contadores avançaram desde a verificação anterior do monitor, não desde que o servidor foi iniciado, então um cache que começa a falhar aparece na hora. A primeira verificação depois que a sonda inicia, e a primeira depois que o servidor reinicia, não têm nenhum dos dois.
+
 ## Configurar critérios
 
 | Tipo de filtro | O que verifica |

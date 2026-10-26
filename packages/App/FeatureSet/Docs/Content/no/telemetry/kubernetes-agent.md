@@ -256,7 +256,7 @@ Hver hendelse er også en logg. En advarsel lagres med alvorlighetsgraden **Warn
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Søk i dem under **Logger**, dropp dem du ikke vil ha med et drop-filter, eller bli varslet når en skjer med en [loggmonitor](/docs/monitor/logs-monitor): filtrer på alvorlighetsgraden **Warning** og `k8s.event.reason`, og grupper etter `k8s.object.name` for ett varsel per node eller autoskalerer.
+Søk i dem under **Logger**, eller dropp dem du ikke vil ha med et drop-filter. For å bli varslet når en skjer, slår du på **Warning Events** på klyngens side **Recommendations**, eller velger **Slå på varsler for advarsler** nederst på siden **Hendelser**: en [loggmonitor](/docs/monitor/logs-monitor) på klyngens advarsler som gir ett varsel per objekt og årsak, og lukker det når det har gått 5 minutter uten en ny advarsel om det. For å bli varslet om bare noen årsaker, legger du `k8s.event.reason` til i filteret.
 
 ## Konfigurasjonsvalg
 

@@ -364,6 +364,8 @@ Il ritardo in secondi segna zero su un primario inattivo anche quando una replic
 
 I contatori che finiscono con `total` sono cumulativi dall'avvio del server. Confronta due momenti per ottenere un tasso; un singolo valore ha senso solo rispetto alla propria storia, e torna a zero quando il server si riavvia (cosa che ti mostrerà **Uptime**).
 
+**Cache Hit Ratio** e **Rollback Ratio** vengono calcolati a ogni controllo da quanto sono avanzati i loro contatori dal controllo precedente del monitor, non dall'avvio del server, quindi una cache che comincia a mancare si vede subito. Il primo controllo dopo l'avvio della sonda, e il primo dopo un riavvio del server, non hanno né l'uno né l'altro.
+
 ## Imposta i criteri
 
 | Tipo di filtro | Cosa controlla |

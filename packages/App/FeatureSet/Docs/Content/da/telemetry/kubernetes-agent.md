@@ -256,7 +256,7 @@ Hver hændelse er også en log. En advarsel gemmes med alvorligheden **Warning**
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Søg i dem under **Protokoller**, drop dem, du ikke vil have, med et drop-filter, eller få besked, når en sker, med en [logmonitor](/docs/monitor/logs-monitor): filtrér på alvorligheden **Warning** og `k8s.event.reason`, og gruppér efter `k8s.object.name` for én alarm for hver node eller autoscaler.
+Søg i dem under **Protokoller**, eller drop dem, du ikke vil have, med et drop-filter. For at få besked, når en sker, skal du slå **Warning Events** til på klyngens side **Recommendations** eller vælge **Slå underretninger om advarsler til** nederst på dens side **Begivenheder**: en [logmonitor](/docs/monitor/logs-monitor) på klyngens advarsler, der giver én alarm for hvert objekt og hver årsag og lukker den, når der er gået 5 minutter uden en ny advarsel om det. For kun at få besked om nogle årsager skal du føje `k8s.event.reason` til dens filter.
 
 ## Konfigurationsmuligheder
 

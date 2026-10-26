@@ -364,6 +364,8 @@ Forsinkelsen i sekunder står på nul på en inaktiv primær server, selv når e
 
 Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign to tidspunkter for at få en rate; en enkelt værdi giver kun mening i forhold til dens egen historik, og den nulstilles, når serveren genstarter (hvilket **Uptime** viser dig).
 
+**Cache Hit Ratio** og **Rollback Ratio** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at proben starter, og den første efter at serveren genstarter, har ingen af dem.
+
 ## Opsæt kriterier
 
 | Filtertype | Hvad den kontrollerer |

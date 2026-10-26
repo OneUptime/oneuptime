@@ -256,7 +256,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-**로그**에서 검색하고, 원하지 않는 것은 드롭 필터로 버리거나, [로그 모니터](/docs/monitor/logs-monitor)로 발생 시 알림을 받을 수 있습니다. 심각도 **Warning**와 `k8s.event.reason`으로 필터링하고 `k8s.object.name`으로 그룹화하면 노드나 오토스케일러마다 알림이 하나씩 옵니다.
+**로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 알림을 받으려면 클러스터의 **Recommendations** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **경고 알림 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 알림을 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 알림을 받으려면 필터에 `k8s.event.reason`을 추가하세요.
 
 ## 구성 옵션
 
