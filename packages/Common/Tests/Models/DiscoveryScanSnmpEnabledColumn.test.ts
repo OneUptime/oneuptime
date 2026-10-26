@@ -165,13 +165,16 @@ describe("NetworkDeviceDiscoveryScan.isSnmpEnabled", () => {
   });
 
   /*
-   * The title is the label on the wizard's toggle and the heading in the
-   * generated API docs. It says "Check SNMP" rather than naming the column,
-   * because the operator's question is "do I want SNMP checked?" and not "is
-   * SNMP enabled on this record?".
+   * The title is the heading in the generated API docs, the Terraform
+   * schema and every column picker. It used to be "Check SNMP", the label of
+   * the Start Scan form's switch - but that switch became the Scan method's
+   * two cards, ICMP (ping) and SNMP (#4949), and nothing the reader sees says
+   * "Check SNMP" any more. A boolean that is true for an SNMP scan is titled
+   * after the scan it makes, in the form's own words (follow-up of #4949).
    */
-  test("is titled the way the wizard labels the toggle", () => {
-    expect(metadata().title).toBe("Check SNMP");
+  test("is titled after the scan method it stores, as the form words it", () => {
+    expect(metadata().title).toBe("SNMP Scan");
+    expect(metadata().title).not.toContain("Check SNMP");
   });
 
   /*
@@ -183,8 +186,39 @@ describe("NetworkDeviceDiscoveryScan.isSnmpEnabled", () => {
     const description: string = metadata().description ?? "";
 
     expect(description).toContain("ping");
-    expect(description).toContain("SNMP");
-    expect(description).toContain("ICMP-only");
+    // Both methods, by the names the form's two cards give them.
+    expect(description).toContain("SNMP scan");
+    expect(description).toContain("ICMP scan");
+    // Which value is which, and which one a scan gets without saying.
+    expect(description).toContain("true for an SNMP scan (the default)");
+    expect(description).toContain("false for an ICMP scan");
+    // Never the switch the form no longer has.
+    expect(description).not.toContain("Check SNMP");
+    expect(description).not.toContain("Turn it off");
+  });
+
+  /*
+   * No column of the scan, nor the table's own description, names the
+   * switch the form no longer has: every one says ICMP scan or SNMP scan,
+   * as the Start Scan form's cards do (follow-up of #4949).
+   */
+  test("no column or table description names the old Check SNMP switch", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+    const columns: Array<string> = scan.getTableColumns().columns;
+    expect(columns).toContain(COLUMN);
+
+    const mentions: Array<string> = columns.filter(
+      (column: string): boolean => {
+        const title: string = scan.getTableColumnMetadata(column).title ?? "";
+        const description: string =
+          scan.getTableColumnMetadata(column).description ?? "";
+        return `${title} ${description}`.includes("Check SNMP");
+      },
+    );
+
+    expect(mentions).toEqual([]);
+    expect(scan.tableDescription ?? "").not.toContain("Check SNMP");
+    expect(scan.tableDescription ?? "").toContain("an SNMP scan also queries");
   });
 
   /*
@@ -287,7 +321,7 @@ describe("NetworkDeviceDiscoveryScan.isSnmpEnabled", () => {
       (column: string): boolean => {
         return !(
           scan.getTableColumnMetadata(column).description ?? ""
-        ).includes("Ignored when Check SNMP is off.");
+        ).includes("Ignored on an ICMP scan.");
       },
     );
 

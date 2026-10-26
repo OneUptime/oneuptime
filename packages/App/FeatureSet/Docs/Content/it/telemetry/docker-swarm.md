@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## Aggiornare l'agent
 
-L'agent riporta la versione del collector che esegue. Quando è più vecchia della versione fissata da questa release di OneUptime, accanto alla versione dell'agent compare un segnale di avviso nella pagina **Panoramica** del cluster. Selezionalo per vedere questi comandi.
+L'agent riporta la versione dei suoi file: la release del collector che eseguono, con l'ultimo numero che sale ogni volta che OneUptime cambia i file e non il collector. Quando è più vecchia della versione distribuita da questa release di OneUptime, accanto alla versione dell'agent compare un segnale di avviso nella pagina **Panoramica** del cluster. Selezionalo per vedere questi comandi.
 
 Esegui di nuovo lo script di installazione sul nodo manager e rispondi alle sue domande con lo stesso URL, la stessa chiave e lo stesso nome di cluster. Scarica i file più recenti, scarica le immagini e riavvia l'agent:
 
@@ -239,7 +239,7 @@ Il nome del cluster viene da `DOCKER_SWARM_CLUSTER_NAME`. Cambialo in `.env` ed 
 :::
 
 :::details La CPU dei task è una linea piatta
-Un `otel-collector-config.yaml` più vecchio invia il valore di CPU calcolato dal receiver `docker_stats` stesso. Dal collector 0.150.0 il receiver lo ricava da una sola lettura delle statistiche: tutta la CPU usata da un container dal suo avvio, divisa per tutta la CPU usata dal nodo dal suo boot. La linea si muove appena e non segue il carico, mentre `container.cpu.usage.total` sì. La versione del collector non è cambiata, quindi non compare nessun segnale di avviso: scarica di nuovo i file dell'agent come mostra [Aggiornare l'agent](#aggiornare-lagent). Dalla sua seconda lettura in poi il collector invia allora la CPU usata da ogni container in ogni intervallo di 30 secondi. Le letture già salvate restano com'erano.
+Un `otel-collector-config.yaml` più vecchio invia il valore di CPU calcolato dal receiver `docker_stats` stesso. Dal collector 0.150.0 il receiver lo ricava da una sola lettura delle statistiche: tutta la CPU usata da un container dal suo avvio, divisa per tutta la CPU usata dal nodo dal suo boot. La linea si muove appena e non segue il carico, mentre `container.cpu.usage.total` sì. Un agent così riporta la versione 0.161.0 o precedente, quindi compare un segnale di avviso accanto alla sua versione: scarica di nuovo i file dell'agent come mostra [Aggiornare l'agent](#aggiornare-lagent). Dalla sua seconda lettura in poi il collector invia allora la CPU usata da ogni container in ogni intervallo di 30 secondi. Le letture già salvate restano com'erano.
 :::
 
 ## Passaggi successivi

@@ -440,7 +440,10 @@ describe("every new sentence is translated in every language", () => {
  */
 const TITLE_SAYS_IT_ALL: Array<[string, string]> = [
   ["Pages/Settings/ProjectSettings.tsx", "Project Details"],
-  ["Pages/Service/View/Index.tsx", "Service Details"],
+  /*
+   * (The Service Overview's own Service Details card is gone: its rows are
+   * in the Overview's one Details card, follow-up of #4980.)
+   */
   ["Pages/OnCallDuty/OnCallDutySchedule/Index.tsx", "On-Call Schedule Details"],
   [
     "Pages/OnCallDuty/IncomingCallPolicy/Index.tsx",

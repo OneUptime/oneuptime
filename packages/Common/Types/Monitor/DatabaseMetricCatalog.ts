@@ -223,7 +223,7 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     metricType: MonitorMetricType.DatabaseRollbackPercent,
     friendlyName: "Rollback Ratio",
     description:
-      "Share of transactions that rolled back rather than committed. A step change usually means the application started throwing where it used to succeed.",
+      "Share of transactions since the previous check that rolled back rather than committed. A step change usually means the application started throwing where it used to succeed.",
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Avg,
@@ -322,7 +322,7 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     metricType: MonitorMetricType.DatabaseCacheHitPercent,
     friendlyName: "Cache Hit Ratio",
     description:
-      "Share of block reads served from the buffer cache instead of disk. A sustained fall means the working set no longer fits in memory.",
+      "Share of block reads since the previous check served from the buffer cache instead of disk. A sustained fall means the working set no longer fits in memory.",
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Avg,

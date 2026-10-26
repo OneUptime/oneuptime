@@ -9,6 +9,7 @@ import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
 import { CriteriaAlert } from "../CriteriaAlert";
 import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "../DatabaseAlertTemplates";
+import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
 import MonitorRecommendationSeverityMapper from "./MonitorRecommendationSeverityMapper";
 import {
   MonitorRecommendation,
@@ -25,9 +26,10 @@ import {
  * Infrastructure configs carry a metric view plus a named resource
  * identifier. RUM uses generic metric, trace and exception configs, where the
  * application id lives in `telemetryServiceIds`. Databases use generic metric
- * configs scoped by an `oneuptime.database.server.id` query filter. The
- * optional fields below are the stable query inputs that distinguish those
- * shapes.
+ * configs scoped by an `oneuptime.database.server.id` query filter. A
+ * Kubernetes cluster's warning events are a Logs config scoped by the
+ * `resource.k8s.cluster.name` attribute. The optional fields below are the
+ * stable query inputs that distinguish those shapes.
  */
 interface RecommendationMonitorStepConfig {
   clusterIdentifier?: string | undefined;
@@ -49,6 +51,11 @@ interface RecommendationMonitorStepConfig {
   includeResolved?: boolean | undefined;
   includeArchived?: boolean | undefined;
   lastXSecondsOfExceptions?: number | undefined;
+  severityTexts?: Array<unknown> | undefined;
+  body?: string | undefined;
+  lastXSecondsOfLogs?: number | undefined;
+  groupByAttributes?: Array<string> | undefined;
+  resolvedByAttributes?: Record<string, unknown> | undefined;
 }
 
 /*
@@ -395,6 +402,7 @@ export default class MonitorRecommendationUtil {
       config.arrayIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
       this.getAttributeScopedResourceIdentifier(config) ||
+      this.getLogScopedResourceIdentifier(configKind, config) ||
       "";
 
     const metricNames: Array<string> = [];
@@ -476,6 +484,7 @@ export default class MonitorRecommendationUtil {
       "metricMonitor",
       "traceMonitor",
       "exceptionMonitor",
+      "logMonitor",
     ];
 
     const data: Record<string, unknown> = monitorStep.data as unknown as Record<
@@ -537,6 +546,29 @@ export default class MonitorRecommendationUtil {
   }
 
   /*
+   * The cluster a Logs step is scoped to by its attribute filter - a
+   * Kubernetes cluster's warning events (KubernetesEventAlertTemplates). The
+   * whole filter is part of the fingerprint through `configValues` anyway;
+   * this makes the step's resource as explicit as a Kubernetes monitor's
+   * clusterIdentifier, so "which resource does this monitor watch" has the
+   * same answer for both.
+   */
+  private static getLogScopedResourceIdentifier(
+    configKind: string,
+    config: RecommendationMonitorStepConfig,
+  ): string {
+    if (configKind !== "logMonitor") {
+      return "";
+    }
+
+    const value: unknown = (config.attributes || {})[
+      KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE
+    ];
+
+    return typeof value === "string" ? value.trim() : "";
+  }
+
+  /*
    * Query inputs that do not live in a metric view. They must participate in
    * coverage identity: an all-span trace monitor does not cover an error-span
    * recommendation, and a project-wide metric monitor does not cover the same
@@ -580,6 +612,29 @@ export default class MonitorRecommendationUtil {
         `includeArchived=${String(Boolean(config.includeArchived))}`,
         `lastXSecondsOfExceptions=${String(
           config.lastXSecondsOfExceptions ?? "",
+        )}`,
+      );
+    }
+
+    /*
+     * Everything a Logs step asks: the logs it counts, over how long, and
+     * what it splits them by. A monitor counting every warning of a cluster
+     * does not cover one that splits them per object - nor one over another
+     * window, nor one resolved by a log.
+     */
+    if (configKind === "logMonitor") {
+      values.push(
+        `attributes=${this.getStableRecordKey(config.attributes || {})}`,
+        `severityTexts=${(config.severityTexts || []).map(String).sort().join(",")}`,
+        `body=${config.body || ""}`,
+        `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
+        `lastXSecondsOfLogs=${String(config.lastXSecondsOfLogs ?? "")}`,
+        `groupByAttributes=${(config.groupByAttributes || [])
+          .slice()
+          .sort()
+          .join(",")}`,
+        `resolvedByAttributes=${this.getStableRecordKey(
+          config.resolvedByAttributes || {},
         )}`,
       );
     }

@@ -113,7 +113,9 @@ jobs:
   session-replay-ui:
     name: Session Replay UI
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Holds the Chromium install's own limit, each suite's, and about 7
+    # minutes for checkout and the npm installs (Tests/Ops/BrowserInstallLimits).
+    timeout-minutes: 57
     permissions:
       contents: read
     steps:
@@ -143,16 +145,21 @@ jobs:
           working-directory: packages/E2E
           # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
           args: --ignore-scripts
+      # A slow Ubuntu mirror can stretch this install from seconds to 20
+      # minutes (see dashboard-offline-ui below), so it has a limit of its own.
       - name: Install Chromium
         working-directory: packages/E2E
+        timeout-minutes: 25
         run: npx playwright install --with-deps chromium
       - name: Run Session Replay UI regressions
         working-directory: packages/E2E
+        timeout-minutes: 15
         run: npm run test-session-replay-ui
       # Runs even if the replay suite failed, so one run reports both.
       - name: Run User Flows UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
+        timeout-minutes: 10
         run: npm run test-user-flows-ui
       - name: Upload browser screenshots and failure traces
         if: always()
@@ -259,7 +266,10 @@ jobs:
           # Runbook Variables, had reached 25 and group 7 about 18. Navigation
           # Search (2.9 to 3.5 minutes) moved to group 10 on 2026-10-22, when
           # this group took 26.2 minutes on a slow runner and 20.9 on a fast
-          # one.
+          # one. Chart Time Zoom gained HostOverviewHeader.spec.ts on
+          # 2026-10-26 (8 tests, about 35 seconds locally: a host's name and
+          # its hero's controls at five widths, zoomed and not, and on a
+          # phone), when this group took 17.8 minutes: about 18.5.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -520,7 +530,14 @@ jobs:
           # phone and beside a side menu, open sections at their full height,
           # the pills, stat tiles and chips, and a team's avatar on a dark
           # card - at 1280 and 390 pixels, dark, German, Persian, Japanese and
-          # Chinese) joined them later that day: about 19.5.
+          # Chinese) joined them later that day: about 19.5. Docker Swarm
+          # Pages (1.7 minutes locally with its bundle, Chromium only: a
+          # swarm's Metrics tab and a task's Container ID on a phone, beside
+          # the side menu and at a laptop's width, and the Overview's name
+          # and agent version sign, dark and German) joined them on
+          # 2026-10-26, when this group's run step took 15.1 minutes on
+          # master's run of 03:08 that day, the lightest that holds several
+          # suites: about 17.
           - group: 8
             browsers: chromium
             suites: >-
@@ -535,6 +552,7 @@ jobs:
               test-meraki-traffic-ui
               test-new-version-ui
               test-shared-ui-ui
+              test-docker-swarm-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -844,4 +862,6 @@ jobs:
             output/playwright/snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png
             output/playwright/asset-details-ui/test-results
+            output/playwright/docker-swarm-pages-ui/*.png
+            output/playwright/docker-swarm-pages-ui/test-results
           retention-days: 7

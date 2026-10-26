@@ -10,7 +10,14 @@ import {
   getDockerSwarmAgentInstallScriptCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
-import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import {
+  AgentKind,
+  DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
+  DOCKER_SWARM_AGENT_VERSION,
+  HOST_COLLECTOR_VERSION,
+  getAgentVersionState,
+} from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { AgentVersionStatus } from "Common/Utils/AgentVersionUtil";
 import {
   PROXMOX_AGENT_COLLECTOR_IMAGE,
   PROXMOX_AGENT_RECREATE_COMMAND,
@@ -576,4 +583,54 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
       expect(guide).not.toContain("opentelemetry-collector-contrib:latest");
     },
   );
+});
+
+/*
+ * Follow-up of #5076: the Docker Swarm agent's config changed on the same
+ * collector, and its version did not move, so no Swarm on the old config
+ * showed a sign. Its files report their own version now (AgentKind), and
+ * the page says so - and, where it explains the flat CPU line, that such an
+ * agent shows the sign.
+ */
+describe("the Docker Swarm page says the agent's version is its files'", () => {
+  test("the upgrade section says what the version is and when the sign shows", () => {
+    const section: string = sectionInLanguage(
+      "en",
+      "telemetry/docker-swarm",
+      "## Upgrading the agent",
+    );
+
+    expect(section).toContain(
+      "The agent reports the version of its files: the collector release they run, with its last number raised whenever OneUptime changes the files and not the collector.",
+    );
+    expect(section).not.toContain("reports the collector version it runs");
+    // The files version is a patch of the collector the files run.
+    expect(DOCKER_SWARM_AGENT_VERSION.split(".").slice(0, 2)).toEqual(
+      DOCKER_SWARM_AGENT_COLLECTOR_VERSION.split(".").slice(0, 2),
+    );
+  });
+
+  test("the flat CPU line's entry says an agent on the old config shows the sign", () => {
+    const page: string = fs.readFileSync(
+      path.join(CONTENT_DIR, "en", "telemetry", "docker-swarm.md"),
+      "utf8",
+    );
+    const oldVersion: string = DOCKER_SWARM_AGENT_COLLECTOR_VERSION;
+
+    expect(page).toContain(
+      `Such an agent reports version ${oldVersion} or earlier, so a warning sign shows beside its version`,
+    );
+    expect(page).not.toContain("so no warning sign shows");
+    // As the Dashboard reads it: that version is behind the files'.
+    expect(
+      getAgentVersionState({
+        kind: AgentKind.DockerSwarmAgent,
+        agentVersion: oldVersion,
+        serverVersion: "14.0.95",
+      }),
+    ).toEqual({
+      status: AgentVersionStatus.Outdated,
+      latestVersion: DOCKER_SWARM_AGENT_VERSION,
+    });
+  });
 });

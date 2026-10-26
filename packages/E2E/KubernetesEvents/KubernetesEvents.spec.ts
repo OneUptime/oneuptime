@@ -1544,3 +1544,212 @@ test.describe("in German", () => {
     await expectNoSidewaysScroll(page);
   });
 });
+
+/*
+ * Follow-up of #5201: being told when Kubernetes warns. The Events page
+ * ends with whether the cluster's warnings raise alerts: the monitor that
+ * alerts on them, or - with none - a link that opens the cluster's
+ * Recommendations with the Warning Events alert (a Logs monitor over the
+ * cluster's warning events) selected, so one Create turns it on.
+ */
+test.describe("being told when Kubernetes warns", () => {
+  const WARNING_EVENTS: string = "Kubernetes:k8s-warning-events";
+  const RECOMMENDATIONS_PAGE: string = `${CLUSTER_PATH}/recommendations`;
+
+  test("nothing alerts on the warnings yet: the Events page ends by offering it, under the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page);
+
+    const line: Locator = page.getByTestId("kubernetes-warning-alerts");
+    await expect(line).toHaveText(
+      "Get an alert when Kubernetes reports a warning. Turn on warning alerts",
+    );
+
+    // Inside the Events card, after the list of events.
+    const card: Locator = page.getByTestId("kubernetes-events-view");
+    await expect(card.getByTestId("kubernetes-warning-alerts")).toHaveCount(1);
+    const lineBox: { y: number } | null = await line.boundingBox();
+    const filtersBox: { y: number; height: number } | null = await page
+      .getByTestId("kubernetes-events-filters")
+      .boundingBox();
+    expect(lineBox!.y).toBeGreaterThan(filtersBox!.y + filtersBox!.height);
+
+    await expect(
+      line.getByTestId("kubernetes-warning-alerts-turn-on"),
+    ).toHaveAttribute(
+      "href",
+      `${RECOMMENDATIONS_PAGE}?select=Kubernetes%3Ak8s-warning-events`,
+    );
+  });
+
+  test("Turn on warning alerts opens the cluster's Recommendations with Warning Events selected, last, under Events", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page);
+    await page.getByTestId("kubernetes-warning-alerts-turn-on").click();
+
+    await expect(page).toHaveURL(
+      `${RECOMMENDATIONS_PAGE}?select=Kubernetes%3Ak8s-warning-events`,
+    );
+
+    const card: Locator = page.getByTestId(
+      `recommendation-card-${WARNING_EVENTS}`,
+    );
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("Warning Events");
+    await expect(card).toContainText(
+      "Kubernetes reports a warning event: one alert per object and reason.",
+    );
+    await expect(
+      page.getByTestId(`recommendation-card-select-${WARNING_EVENTS}`),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    // Its own heading, Events, after every metric template's.
+    const headings: Array<string> = await page.locator("h4").allTextContents();
+    expect(headings[headings.length - 1]).toBe("Events");
+    expect(headings).toEqual(
+      expect.arrayContaining([
+        "Workload",
+        "Node",
+        "Control Plane",
+        "Storage",
+        "Scheduling",
+      ]),
+    );
+
+    await expect(card).toBeInViewport();
+    await screenshot(page, "kubernetes-warning-events-recommendation");
+  });
+
+  test("the Events page reads the project's Logs monitors once, and nothing it does not model", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page);
+    await expect(page.getByTestId("kubernetes-warning-alerts")).toBeVisible();
+
+    const monitorReads: Array<{ query: Record<string, unknown> }> =
+      await page.evaluate((): Array<{ query: Record<string, unknown> }> => {
+        return (
+          window as unknown as {
+            __kubernetesEventsFixture: {
+              listRequests: Array<{
+                modelName: string;
+                query: Record<string, unknown>;
+              }>;
+            };
+          }
+        ).__kubernetesEventsFixture.listRequests.filter(
+          (request: { modelName: string }): boolean => {
+            return request.modelName === "Monitor";
+          },
+        );
+      });
+
+    // The side menu's Recommendations count reads both kinds; the line, Logs.
+    expect(
+      monitorReads.filter((request: { query: Record<string, unknown> }) => {
+        return request.query["monitorType"] === "Logs";
+      }).length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  test("a monitor alerts on the warnings: the line names it, and its Recommendation reads Created", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page, "alerting=on");
+
+    const line: Locator = page.getByTestId("kubernetes-warning-alerts");
+    await expect(line).toHaveText(
+      "Warnings raise alerts through AKS Production (West Europe) - Warning Events.",
+    );
+    await expect(
+      line.getByTestId("kubernetes-warning-alerts-monitor"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/58000000-0000-4000-8000-000000000001`,
+    );
+    await expect(
+      line.getByTestId("kubernetes-warning-alerts-turn-on"),
+    ).toHaveCount(0);
+
+    // The Recommendations count it as created: 1 of 18, under Already created.
+    await page.goto(`${RECOMMENDATIONS_PAGE}?alerting=on`);
+    await expect(
+      page.getByText("1 of 18 recommended monitors created"),
+    ).toBeVisible();
+    await page
+      .getByRole("button", {
+        name: "Show the 1 recommendation that is already created",
+      })
+      .click();
+    await expect(
+      page.getByTestId(`recommendation-card-${WARNING_EVENTS}`),
+    ).toContainText("Created");
+  });
+
+  test("that monitor turned off: the line offers the alerts again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page, "alerting=disabled");
+
+    await expect(page.getByTestId("kubernetes-warning-alerts")).toHaveText(
+      "Get an alert when Kubernetes reports a warning. Turn on warning alerts",
+    );
+  });
+
+  test("on a phone, light and dark, the line wraps inside the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["", "theme=dark"]) {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openEventsPage(page, theme);
+
+      const line: Locator = page.getByTestId("kubernetes-warning-alerts");
+      await expect(line).toBeVisible();
+      await expectNoSidewaysScroll(page);
+
+      const lineBox: { x: number; width: number } | null =
+        await line.boundingBox();
+      expect(lineBox!.x).toBeGreaterThanOrEqual(0);
+      expect(lineBox!.x + lineBox!.width).toBeLessThanOrEqual(390);
+
+      // The link reads as a link in both themes: darker than its page in light, lighter in dark.
+      const link: Locator = line.getByTestId(
+        "kubernetes-warning-alerts-turn-on",
+      );
+      const linkLightness: number = await lightness(link, "color");
+      if (theme) {
+        expect(linkLightness).toBeGreaterThan(0.45);
+      } else {
+        expect(linkLightness).toBeLessThan(0.55);
+      }
+    }
+
+    await screenshot(page, "kubernetes-warning-alerts-line-phone-dark");
+  });
+
+  test("in German, the line and its link read in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page, "lang=de");
+
+    await expect(page.getByTestId("kubernetes-warning-alerts")).toHaveText(
+      `${GERMAN["Get an alert when Kubernetes reports a warning."]} ${GERMAN["Turn on warning alerts"]}`,
+    );
+  });
+});
