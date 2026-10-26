@@ -44,6 +44,17 @@ import ts from "typescript";
  *   7. showRecordLine={false} - a Detail that draws every field as a field -
  *      anywhere but the custom fields card, whose keys people name;
  *   8. the shared Detail no longer putting the times on the line.
+ *
+ * A resource's Overview drawn with ResourceOverview (a service, a database,
+ * a queue, a RUM application, a serverless function, a cloud environment or
+ * resource) builds its Details card from rows, not fields, and three of
+ * them led with "Service ID", "Database ID" and "Queue ID" rows spelling
+ * out all 36 characters (#5298's UI review). The card ends with the same ID
+ * line now (ResourceOverview's recordId), so this also fails on:
+ *
+ *   9. a ResourceOverview Details row whose value is the page's own record
+ *      ID, and a page that draws ResourceOverview without giving it the ID
+ *      for its line.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "..", "..");
@@ -705,6 +716,164 @@ describe("when the record was created and last updated, on details cards", () =>
         matches: false,
       });
     }
+  });
+});
+
+/*
+ * Rule 9: the pages that draw ResourceOverview, and every Details row they
+ * write (an object with a label and a value).
+ */
+const DRAWS_RESOURCE_OVERVIEW: RegExp = /<ResourceOverview[\s/>]/;
+
+interface OverviewRow {
+  file: string;
+  line: number;
+  label: string;
+  value: string;
+}
+
+function scanResourceOverviews(): {
+  pages: Array<string>;
+  rows: Array<OverviewRow>;
+  pagesWithoutRecordId: Array<string>;
+} {
+  const pages: Array<string> = [];
+  const rows: Array<OverviewRow> = [];
+  const pagesWithoutRecordId: Array<string> = [];
+
+  const files: Array<string> = listSourceFiles(
+    path.join(PACKAGES_DIR, "App", "FeatureSet", "Dashboard", "src", "Pages"),
+  );
+
+  for (const file of files) {
+    const text: string = fs.readFileSync(file, "utf8");
+
+    // Not the detail pages' ResourceOverviewTab, a different component.
+    if (!DRAWS_RESOURCE_OVERVIEW.test(text)) {
+      continue;
+    }
+
+    pages.push(relative(file));
+
+    const source: ts.SourceFile = ts.createSourceFile(
+      file,
+      text,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+
+    let givesRecordId: boolean = false;
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) &&
+        node.tagName.getText(source) === "ResourceOverview"
+      ) {
+        givesRecordId = node.attributes.properties.some(
+          (property: ts.JsxAttributeLike): boolean => {
+            return (
+              ts.isJsxAttribute(property) &&
+              property.name.getText(source) === "recordId"
+            );
+          },
+        );
+      }
+
+      if (
+        ts.isObjectLiteralExpression(node) &&
+        hasMember(node, "label") &&
+        hasMember(node, "value")
+      ) {
+        const label: ts.PropertyAssignment | undefined = findProperty(
+          node,
+          "label",
+        );
+        const value: ts.PropertyAssignment | undefined = findProperty(
+          node,
+          "value",
+        );
+
+        if (label && value) {
+          const labelExpression: ts.Expression = unwrap(label.initializer);
+          rows.push({
+            file: relative(file),
+            line:
+              source.getLineAndCharacterOfPosition(node.getStart(source))
+                .line + 1,
+            label: ts.isStringLiteral(labelExpression)
+              ? labelExpression.text
+              : labelExpression.getText(source),
+            value: unwrap(value.initializer).getText(source),
+          });
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    if (!givesRecordId) {
+      pagesWithoutRecordId.push(relative(file));
+    }
+  }
+
+  return { pages, rows, pagesWithoutRecordId };
+}
+
+// The page's own record ID, as the Overview pages read it.
+const OWN_RECORD_ID: RegExp = /\bmodelId(String)?\b/;
+
+describe("the record's own ID on a resource Overview's Details card", () => {
+  const scanned: {
+    pages: Array<string>;
+    rows: Array<OverviewRow>;
+    pagesWithoutRecordId: Array<string>;
+  } = scanResourceOverviews();
+
+  test("the scan finds the Overviews it is about, and their rows", () => {
+    expect(scanned.pages).toEqual(
+      expect.arrayContaining([
+        "packages/App/FeatureSet/Dashboard/src/Pages/Service/View/Index.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Database/View/Overview.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Overview.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview.tsx",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview.tsx",
+      ]),
+    );
+    // Technology, Runtime, Engine...: the rows are read.
+    expect(scanned.rows.length).toBeGreaterThan(30);
+    expect(
+      scanned.rows.some((row: OverviewRow): boolean => {
+        return row.label === "Technology";
+      }),
+    ).toBe(true);
+  });
+
+  test("no row spells out the page's own record ID: it is the card's ID line", () => {
+    const offenders: Array<string> = scanned.rows
+      .filter((row: OverviewRow): boolean => {
+        return OWN_RECORD_ID.test(row.value);
+      })
+      .map((row: OverviewRow): string => {
+        return `${row.file}:${row.line} ${row.label}: ${row.value}`;
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("every Overview gives ResourceOverview its record ID for the line", () => {
+    expect(scanned.pagesWithoutRecordId).toEqual([]);
+  });
+
+  test("the rule knows a row that spells out the ID when it sees one", () => {
+    expect(OWN_RECORD_ID.test("modelId.toString()")).toBe(true);
+    expect(OWN_RECORD_ID.test("modelIdString")).toBe(true);
+    expect(OWN_RECORD_ID.test("r.cloudAccountId")).toBe(false);
+    expect(OWN_RECORD_ID.test("q.queueIdentifier")).toBe(false);
   });
 });
 

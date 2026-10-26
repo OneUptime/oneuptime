@@ -5,6 +5,8 @@ import ts from "typescript";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_DESCRIPTION_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_TEST_ID,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_TEST_ID,
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
@@ -47,6 +49,18 @@ import {
  * own row (a title basis, the controls under it when they do not fit;
  * Common's DatabaseOverviewHeader suite): it has no <h1> beside an
  * AutoRefreshControl in one file, so rule 2 does not read it.
+ *
+ * #5298's UI review added:
+ *
+ *   5. Every hero draws the resource's description one way: under its
+ *      name, with ResourceHeroDescription - two lines that wrap between
+ *      words, 20rem from md. A Docker Swarm, a vCenter, a Proxmox cluster
+ *      and an IoT fleet cut it to one line that never wrapped: half a
+ *      sentence on a phone, and at 1280 the line claimed the identity's
+ *      whole width and pushed Refresh under the name. ResourceOverview
+ *      draws it the same way, in its title.
+ *   6. ResourceOverview's controls keep to the row's end when they wrap
+ *      from md, as the heroes' do: they wrapped to the left.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -328,7 +342,12 @@ describe("ResourceHeroLayout", () => {
 
   test("the controls take the rest of the row, under the name below 24rem, kept on the right", () => {
     expect(RESOURCE_HERO_CONTROLS_CLASS_NAME.split(" ")).toEqual([
-      "md:ml-auto",
+      /*
+       * The inline start's margin: the row's end on a right-to-left page as
+       * on a left-to-right one. ml-auto pushed a Persian hero's wrapped
+       * controls to the name's side (#5298's UI review).
+       */
+      "md:ms-auto",
       "md:min-w-[min(100%,24rem)]",
       "md:max-w-max",
       "md:flex-[1000_1_0%]",
@@ -337,6 +356,7 @@ describe("ResourceHeroLayout", () => {
     ]);
     // Never the old unshrinkable controls.
     expect(RESOURCE_HERO_CONTROLS_CLASS_NAME).not.toContain("flex-shrink-0");
+    expect(RESOURCE_HERO_CONTROLS_CLASS_NAME).not.toContain("ml-auto");
   });
 
   test("no container query: a container would hold the fixed dialogs a hero opens", () => {
@@ -478,6 +498,187 @@ describe("no file that draws the refresh control keeps the old hero row", () => 
     // Every hero, and the pages and components that draw the control alone.
     expect(filesRead).toBeGreaterThan(KNOWN_HEROES.length);
     expect(offenders).toEqual([]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 5: the description, one way in every hero
+ * ---------------------------------------------------------------------------
+ */
+const DESCRIPTION_COMPONENT: string = "ResourceHeroDescription";
+
+// The heroes that show their resource's description.
+const DESCRIBED_HEROES: Array<string> = [
+  "Pages/DockerSwarm/View/Index.tsx",
+  "Pages/IoT/View/Index.tsx",
+  "Pages/Proxmox/View/Index.tsx",
+  "Pages/VMware/View/Index.tsx",
+];
+
+// The line those four drew before: one line, cut short.
+const OLD_DESCRIPTION_LINE: string = "mt-1 truncate text-sm text-gray-500";
+
+// The identity element of a hero's top row.
+function identityOf(hero: Hero): JsxTag {
+  const row: JsxTag | undefined = jsxTags(hero.source).find(
+    (tag: JsxTag): boolean => {
+      return (
+        attributeIdentifier(tag, "className") ===
+        "RESOURCE_HERO_TOP_ROW_CLASS_NAME"
+      );
+    },
+  );
+  const identity: JsxTag | undefined = row ? childElements(row)[0] : undefined;
+  if (!identity) {
+    throw new Error(`${relative(hero.file)} has no hero identity`);
+  }
+  return identity;
+}
+
+/*
+ * Every `<something>.description` read inside an element that is not the
+ * `text` of a ResourceHeroDescription: a description drawn some other way.
+ */
+function descriptionsDrawnOtherwise(element: JsxTag): Array<string> {
+  const found: Array<string> = [];
+  visit(element, (node: ts.Node): void => {
+    if (
+      !ts.isPropertyAccessExpression(node) ||
+      node.name.text !== "description"
+    ) {
+      return;
+    }
+    let ancestor: ts.Node | undefined = node.parent;
+    let isComponentText: boolean = false;
+    while (ancestor && ancestor !== element) {
+      if (
+        ts.isJsxAttribute(ancestor) &&
+        ancestor.name.getText() === "text" &&
+        ts.isJsxSelfClosingElement(ancestor.parent.parent) &&
+        tagName(ancestor.parent.parent) === DESCRIPTION_COMPONENT
+      ) {
+        isComponentText = true;
+        break;
+      }
+      ancestor = ancestor.parent;
+    }
+    if (!isComponentText) {
+      found.push(node.getText());
+    }
+  });
+  return found;
+}
+
+describe("rule 5: every hero draws its description one way", () => {
+  test("the description's class: two lines that wrap, 20rem from md, aligned as the page", () => {
+    expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" ")).toEqual([
+      "mt-1",
+      "line-clamp-2",
+      "text-left",
+      "text-sm",
+      "text-gray-500",
+      "[overflow-wrap:anywhere]",
+      "md:min-w-[20rem]",
+      "rtl:text-right",
+    ]);
+    expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME).not.toContain("truncate");
+    expect(RESOURCE_HERO_DESCRIPTION_TEST_ID).toBe("resource-hero-description");
+  });
+
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s draws a description only with ResourceHeroDescription",
+    (_name: string, hero: Hero) => {
+      expect(descriptionsDrawnOtherwise(identityOf(hero))).toEqual([]);
+      expect(classNameLiterals(hero.source)).not.toContain(
+        OLD_DESCRIPTION_LINE,
+      );
+    },
+  );
+
+  test.each(DESCRIBED_HEROES)(
+    "%s shows its description under its name",
+    (file: string) => {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      expect(containsTag(identityOf(hero!), DESCRIPTION_COMPONENT)).toBe(true);
+    },
+  );
+
+  test("the component draws the shared class, its test id, its own script's direction and a hover title", () => {
+    const component: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "TelemetryResource",
+          "ResourceHeroDescription.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    expect(component).toContain(
+      '<p data-testid={RESOURCE_HERO_DESCRIPTION_TEST_ID} dir="auto" title={text} className={RESOURCE_HERO_DESCRIPTION_CLASS_NAME} >',
+    );
+  });
+
+  test("ResourceOverview draws it in its title, never as the Details card's line", () => {
+    const component: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "TelemetryResource",
+          "ResourceOverview.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    expect(component).toContain(
+      "<ResourceHeroDescription text={props.description} />",
+    );
+    // The Details card's own line says what its rows are, at every width.
+    expect(component).not.toContain("description={ props.description ||");
+    expect(component).toContain(
+      '<Card title="Details" description="Metadata captured from OpenTelemetry resource attributes."',
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 6: ResourceOverview's wrapped controls keep to the row's end
+ * ---------------------------------------------------------------------------
+ */
+describe("rule 6: ResourceOverview's controls keep to the row's end", () => {
+  const component: string = fs
+    .readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "TelemetryResource",
+        "ResourceOverview.tsx",
+      ),
+      "utf8",
+    )
+    .replace(/\s+/g, " ");
+
+  test("from md, by the inline start's margin, their own row too", () => {
+    expect(component).toContain(
+      'export const RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME: string = "max-w-full md:ms-auto md:[&>div]:justify-end";',
+    );
+    expect(component).toContain(
+      '<div data-testid="resource-overview-controls" className={RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME} >',
+    );
+    expect(component).not.toContain("ml-auto");
   });
 });
 

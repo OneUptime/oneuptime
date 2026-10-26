@@ -52,6 +52,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import KubernetesWarningEventsAlertLine, {
+  KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME,
   KUBERNETES_WARNING_ALERTS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesWarningEventsAlertLine";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -286,5 +287,64 @@ describe("what it reads, and when it says nothing", () => {
     expect(
       screen.queryByTestId(KUBERNETES_WARNING_ALERTS_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * #5298's UI review: the line sat right under the events list's "Showing
+ * 1-11 of 11 events", in the pager's grey, and read as part of the pager.
+ * It is a line of its own under a rule now, in either state.
+ */
+describe("a line of its own, under a rule", () => {
+  function classesOf(element: HTMLElement): Array<string> {
+    return element.className.split(" ").filter(Boolean);
+  }
+
+  test("the class: a rule above it, room on either side of the rule, no card", () => {
+    const classes: Array<string> =
+      KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME.split(" ");
+
+    expect(classes).toEqual(
+      expect.arrayContaining(["border-t", "border-gray-100", "mt-5", "pt-4"]),
+    );
+    // Its words and icon side by side, the icon on the first line.
+    expect(classes).toEqual(
+      expect.arrayContaining(["flex", "items-start", "gap-2"]),
+    );
+    // A line, not a box: no background, no rounded border of its own.
+    for (const className of classes) {
+      expect(className).not.toMatch(/^(bg-|rounded|shadow|border$)/);
+    }
+  });
+
+  test("offering to turn the alerts on, it is drawn that way", async () => {
+    arrange([]);
+    renderLine();
+
+    const line: HTMLElement = await screen.findByTestId(
+      KUBERNETES_WARNING_ALERTS_TEST_ID,
+    );
+    expect(classesOf(line)).toEqual(
+      KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME.split(" "),
+    );
+  });
+
+  test("naming the monitor that alerts, it is drawn the same way", async () => {
+    arrange([
+      logsMonitor({
+        id: "dddddddd-0000-4000-8000-000000000011",
+        name: "AKS Production - Warning Events",
+        logMonitor: buildKubernetesWarningEventsLogMonitor(CLUSTER),
+      }),
+    ]);
+    renderLine();
+
+    const monitorLink: HTMLElement = await screen.findByTestId(
+      KUBERNETES_WARNING_ALERTS_TEST_ID + "-monitor",
+    );
+    expect(monitorLink).toHaveTextContent("AKS Production - Warning Events");
+    expect(
+      classesOf(screen.getByTestId(KUBERNETES_WARNING_ALERTS_TEST_ID)),
+    ).toEqual(KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME.split(" "));
   });
 });

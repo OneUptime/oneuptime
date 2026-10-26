@@ -115,6 +115,8 @@ import DockerSwarmClusterOverview from "../../../../App/FeatureSet/Dashboard/src
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_DESCRIPTION_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_TEST_ID,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_TEST_ID,
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
@@ -234,10 +236,12 @@ describe("the layout's classes", () => {
         "md:flex-[1000_1_0%]",
         "md:max-w-max",
         "md:min-w-[min(100%,24rem)]",
-        "md:ml-auto",
+        // The row's end on a right-to-left page too (#5298's UI review).
+        "md:ms-auto",
         "md:[&>div]:justify-end",
       ]),
     );
+    expect(controls).not.toContain("md:ml-auto");
   });
 });
 
@@ -266,9 +270,19 @@ describe("the Docker Swarm Overview's hero", () => {
     });
     // A name longer than the whole row is cut inside the hero.
     expect(classesOf(name)).toContain("truncate");
-    expect(
-      within(identity).getByText("The production swarm in Frankfurt."),
-    ).toBeInTheDocument();
+    /*
+     * The description is every hero's (ResourceHeroDescription): two lines
+     * that wrap, never one cut line that claimed the row and pushed Refresh
+     * under the name at 1280 (#5298's UI review).
+     */
+    const description: HTMLElement = within(identity).getByTestId(
+      RESOURCE_HERO_DESCRIPTION_TEST_ID,
+    );
+    expect(description).toHaveTextContent("The production swarm in Frankfurt.");
+    expect(classesOf(description)).toEqual(
+      RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" "),
+    );
+    expect(classesOf(description)).not.toContain("truncate");
     expect(
       within(controls).getByRole("combobox", { name: "Auto-refresh" }),
     ).toBeInTheDocument();

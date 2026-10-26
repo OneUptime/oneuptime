@@ -22,6 +22,15 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * Rendered for real: the shared ResourceOverview with rows some of which
  * are empty, and the Service Overview page over a fake read of the service.
+ *
+ * #5298's UI review finished the card: the record's own ID is the small ID
+ * line every details card ends with (DetailRecordLine), not a row that
+ * spelled out 36 characters first; the description is the hero's line,
+ * under the name, where a phone shows it; the labels card is a phone's
+ * only (from 640px the page's header lists them); the row labels are in
+ * the reader's language; a value breaks after its own dots and slashes
+ * first, a sentence between its words (it used to be break-all: "switched
+ * off for th" / "is project").
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
@@ -31,12 +40,15 @@ const fetchMetricSeriesMock: MockFunction = getJestMockFunction();
 
 const SERVICE_ID: string = "dddddddd-0000-4000-8000-000000000004";
 
+// A test may give some English its German; the rest stays English.
+const TRANSLATIONS: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, opts?: { defaultValue?: string }): string => {
-          return opts?.defaultValue ?? key;
+          return TRANSLATIONS[key] ?? opts?.defaultValue ?? key;
         },
       };
     },
@@ -195,8 +207,11 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 });
 
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME,
+  RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME,
   ResourceOverviewDetailRow,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import { RESOURCE_HERO_DESCRIPTION_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
 import ServiceView from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { EDIT_IN_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/EditInSettingsLink";
@@ -219,12 +234,16 @@ function label(name: string): Label {
   return item;
 }
 
+const RECORD_ID: string = "6d1c4b2e-0000-4000-8000-000000000042";
+
 function renderOverview(
   rows: Array<ResourceOverviewDetailRow>,
   extra: {
     labels?: Array<Label>;
     settingsRoute?: Route;
     description?: string;
+    recordId?: string;
+    controls?: React.ReactElement;
   } = {},
 ): void {
   render(
@@ -242,9 +261,45 @@ function renderOverview(
         labels={extra.labels}
         settingsRoute={extra.settingsRoute}
         description={extra.description}
+        recordId={extra.recordId}
+        controls={extra.controls}
       />
     </MemoryRouter>,
   );
+}
+
+function classesOf(element: Element): Array<string> {
+  return (element.getAttribute("class") || "").split(" ").filter(Boolean);
+}
+
+// The text between the <wbr>s of an element's own children.
+function partsOf(holder: Element): Array<string> {
+  const parts: Array<string> = [""];
+
+  for (const node of Array.from(holder.childNodes)) {
+    if (node.nodeName === "WBR") {
+      parts.push("");
+      continue;
+    }
+    parts[parts.length - 1] += node.textContent || "";
+  }
+
+  return parts;
+}
+
+// A row's value (<dd>), found by its label.
+function valueOfRow(label: string): HTMLElement {
+  const row: HTMLElement | undefined = screen
+    .queryAllByTestId("resource-overview-detail-row")
+    .find((candidate: HTMLElement): boolean => {
+      return candidate.querySelector("dt")?.textContent === label;
+    });
+
+  if (!row) {
+    throw new Error(`No Details row "${label}"`);
+  }
+
+  return row.querySelector("dd") as HTMLElement;
 }
 
 // The Details card's rows, as label: value.
@@ -261,6 +316,9 @@ function detailRows(): Array<string> {
 afterEach(() => {
   cleanup();
   jest.clearAllMocks();
+  for (const key of Object.keys(TRANSLATIONS)) {
+    delete TRANSLATIONS[key];
+  }
 });
 
 describe("the Details card says only what the resource reported", () => {
@@ -337,18 +395,235 @@ describe("the Details card says only what the resource reported", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("the labels have their card, and Edit in Settings is on the Details card", () => {
-    renderOverview([{ label: "Database ID", value: "6d1c4b2e" }], {
-      labels: [label("payments")],
+  test("Edit in Settings is on the Details card; the card's line says what its rows are", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }], {
       settingsRoute: new Route("/dashboard/p/databases/1/settings"),
       description: "The orders database.",
     });
 
-    expect(screen.getByText("Labels")).toBeInTheDocument();
-    expect(screen.getByText("payments")).toBeInTheDocument();
     expect(screen.getByTestId(EDIT_IN_SETTINGS_TEST_ID)).toBeInTheDocument();
-    // The resource's description is the Details card's line.
-    expect(screen.getByText("The orders database.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Metadata captured from OpenTelemetry resource attributes.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("the labels are a phone's card only", () => {
+  test("from 640px the page's header lists them, so their card is hidden there", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }], {
+      labels: [label("payments"), label("team-orders")],
+    });
+
+    const card: HTMLElement = screen.getByTestId("resource-overview-labels");
+    expect(classesOf(card)).toContain("sm:hidden");
+    expect(classesOf(card)).not.toContain("hidden");
+    expect(card).toHaveTextContent("Labels");
+    expect(card).toHaveTextContent("payments");
+    expect(card).toHaveTextContent("team-orders");
+  });
+
+  test("no labels, no card", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }], { labels: [] });
+
+    expect(
+      screen.queryByTestId("resource-overview-labels"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the description is the hero's line, under the name", () => {
+  test("drawn in the hero, at every width, and not the Details card's line", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }], {
+      description: "The orders database.",
+    });
+
+    const description: HTMLElement = screen.getByTestId(
+      RESOURCE_HERO_DESCRIPTION_TEST_ID,
+    );
+    expect(description).toHaveTextContent("The orders database.");
+    expect(
+      screen.getByTestId("resource-overview-title-block"),
+    ).toContainElement(description);
+    // No breakpoint hides it: a card's description is hidden on a phone.
+    for (const className of classesOf(description)) {
+      expect(className).not.toMatch(/(^|:)hidden$/);
+    }
+    expect(screen.getAllByText("The orders database.")).toHaveLength(1);
+  });
+
+  test("a resource without one draws no line for it", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }]);
+
+    expect(
+      screen.queryByTestId(RESOURCE_HERO_DESCRIPTION_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the record's own ID is the card's ID line", () => {
+  test("the line ends the card: ID, its first group, a copy button", () => {
+    renderOverview(
+      [
+        { label: "Engine", value: "postgresql" },
+        { label: "Version", value: "16.4" },
+      ],
+      { recordId: RECORD_ID },
+    );
+
+    const body: HTMLElement = screen.getByTestId(
+      "resource-overview-details-body",
+    );
+    const line: HTMLElement = within(body).getByTestId("detail-id-line");
+
+    expect(within(line).getByTestId("detail-id-label")).toHaveTextContent(
+      "ID",
+    );
+    // The whole ID is its text, for a copy and find-in-page.
+    expect(within(line).getByTestId("detail-id-value").textContent).toBe(
+      RECORD_ID,
+    );
+    expect(within(line).getByTestId("detail-id-copy")).toBeInTheDocument();
+    // After the rows, never one of them.
+    expect(body.lastElementChild).toContainElement(line);
+    expect(detailRows()).toEqual(["Engine: postgresql", "Version: 16.4"]);
+    expect(
+      within(screen.getByTestId("resource-overview-details")).queryByText(
+        RECORD_ID,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a resource that reported nothing still has its ID line, under the one line that says so", () => {
+    renderOverview([{ label: "Cloud Provider", value: undefined }], {
+      recordId: RECORD_ID,
+    });
+
+    const body: HTMLElement = screen.getByTestId(
+      "resource-overview-details-body",
+    );
+    expect(within(body).getByTestId("resource-overview-no-details")).toHaveTextContent(
+      "No details reported yet.",
+    );
+    expect(within(body).getByTestId("detail-id-line")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("resource-overview-details"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("without a record ID there is no ID line", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }]);
+
+    expect(screen.queryByTestId("detail-id-line")).not.toBeInTheDocument();
+  });
+});
+
+describe("the rows are read in the reader's language", () => {
+  test("a row's label is looked up; a value is drawn as reported", () => {
+    TRANSLATIONS["Cloud Account ID"] = "Cloud-Konto-ID";
+    TRANSLATIONS["Discovered from"] = "Erkannt aus";
+
+    renderOverview([
+      { label: "Cloud Account ID", value: "123456789012" },
+      { label: "Discovered from", value: "Traces", mono: false },
+      { label: "Engine (db.system.name)", value: "postgresql" },
+    ]);
+
+    expect(detailRows()).toEqual([
+      "Cloud-Konto-ID: 123456789012",
+      "Erkannt aus: Traces",
+      // A label the locale leaves English stays English.
+      "Engine (db.system.name): postgresql",
+    ]);
+  });
+});
+
+describe("a long value wraps inside its row, where it reads", () => {
+  test("a name breaks after its own dots and slashes, and reads as written", () => {
+    renderOverview([
+      {
+        label: "Service Namespace",
+        value: "com.acme-commerce.inventory.reservations",
+      },
+    ]);
+
+    const value: HTMLElement = valueOfRow("Service Namespace");
+    expect(value.textContent).toBe("com.acme-commerce.inventory.reservations");
+    expect(partsOf(value)).toEqual([
+      "com.",
+      "acme-commerce.",
+      "inventory.",
+      "reservations",
+    ]);
+  });
+
+  test("anywhere only where a part is too long for the line: never break-all", () => {
+    renderOverview([
+      {
+        label: "Recording health",
+        value: "Session replay is switched off for this project",
+        mono: false,
+      },
+      { label: "Endpoints", value: "orders-db.internal:5432" },
+    ]);
+
+    for (const label of ["Recording health", "Endpoints"]) {
+      const value: HTMLElement = valueOfRow(label);
+      expect(classesOf(value)).toEqual(
+        expect.arrayContaining(
+          RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME.split(" "),
+        ),
+      );
+      expect(classesOf(value)).toContain("[overflow-wrap:anywhere]");
+      expect(classesOf(value)).not.toContain("break-all");
+    }
+    // A sentence keeps its words: no <wbr> in it.
+    expect(valueOfRow("Recording health").querySelectorAll("wbr")).toHaveLength(
+      0,
+    );
+  });
+
+  test("words are set in the page's type, raw values in monospace", () => {
+    renderOverview([
+      { label: "Discovered from", value: "Traces", mono: false },
+      { label: "Version", value: "16.4" },
+    ]);
+
+    expect(classesOf(valueOfRow("Discovered from"))).not.toContain(
+      "font-mono",
+    );
+    expect(classesOf(valueOfRow("Version"))).toContain("font-mono");
+  });
+});
+
+describe("the hero's controls", () => {
+  test("wrap under the title from md to the row's end, as every hero's do", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }], {
+      controls: <div data-testid="controls">controls</div>,
+    });
+
+    const controls: HTMLElement = screen.getByTestId(
+      "resource-overview-controls",
+    );
+    expect(classesOf(controls)).toEqual(
+      RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME.split(" "),
+    );
+    expect(classesOf(controls)).toEqual(
+      expect.arrayContaining([
+        "max-w-full",
+        // The inline start's margin: the end of a right-to-left row too.
+        "md:ms-auto",
+        "md:[&>div]:justify-end",
+      ]),
+    );
+    expect(classesOf(controls)).not.toContain("md:ml-auto");
+    // On a phone they start under the name, as every hero's do.
+    expect(
+      classesOf(controls).filter((className: string): boolean => {
+        return !className.startsWith("md:") && className !== "max-w-full";
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -404,13 +679,17 @@ describe("the Service Overview has one Details card", () => {
     await screen.findByTestId("resource-overview-details");
   }
 
-  test("a new service: its ID and detected language, nothing empty, no second card", async () => {
+  test("a new service: its detected language, its ID line, nothing empty, no second card", async () => {
     await renderService({ telemetrySdkLanguage: "nodejs" });
 
-    expect(detailRows()).toEqual([
-      `Service ID: ${SERVICE_ID}`,
-      "Technology: Node.js",
-    ]);
+    expect(detailRows()).toEqual(["Technology: Node.js"]);
+    // Its ID is the card's ID line, not a row.
+    expect(
+      within(screen.getByTestId("detail-id-line")).getByTestId(
+        "detail-id-value",
+      ).textContent,
+    ).toBe(SERVICE_ID);
+    expect(screen.queryByText("Service ID")).not.toBeInTheDocument();
     expect(screen.queryByText("Cloud Provider")).not.toBeInTheDocument();
     expect(screen.queryByText("Service Namespace")).not.toBeInTheDocument();
     expect(screen.queryByTestId("card-model-detail")).not.toBeInTheDocument();
@@ -434,7 +713,6 @@ describe("the Service Overview has one Details card", () => {
     });
 
     expect(detailRows()).toEqual([
-      `Service ID: ${SERVICE_ID}`,
       "Technology: Python",
       "Runtime: CPython 3.12.4",
       "Service Version: 2.7.0",
@@ -444,31 +722,34 @@ describe("the Service Overview has one Details card", () => {
     ]);
   });
 
-  test("a tech stack set in Settings is the Technology row", async () => {
+  test("a tech stack set in Settings is the Technology row, one line in words", async () => {
     await renderService({
       telemetrySdkLanguage: "nodejs",
       techStack: [TechStack.React, TechStack.NodeJS],
     });
 
-    const technology: HTMLElement | undefined = screen
-      .queryAllByTestId("resource-overview-detail-row")
-      .find((row: HTMLElement): boolean => {
-        return row.querySelector("dt")?.textContent === "Technology";
-      });
-
-    expect(technology).toBeDefined();
-    expect(
-      within(technology as HTMLElement).getByText(TechStack.React),
-    ).toBeInTheDocument();
+    const technology: HTMLElement = valueOfRow("Technology");
+    expect(technology.textContent).toBe(
+      `${TechStack.React}, ${TechStack.NodeJS}`,
+    );
+    // A list in words, not a column of <p>s.
+    expect(technology.querySelectorAll("p")).toHaveLength(0);
+    expect(classesOf(technology)).not.toContain("font-mono");
   });
 
-  test("its labels are the Labels card, and its settings one link on Details", async () => {
+  test("its labels are a phone's card, its description the hero's line, its settings one link on Details", async () => {
     await renderService({
       telemetrySdkLanguage: "go",
+      description: "Takes the basket to an order.",
       labels: [label("checkout-team")],
     });
 
-    expect(screen.getByText("checkout-team")).toBeInTheDocument();
+    expect(screen.getByTestId("resource-overview-labels")).toHaveTextContent(
+      "checkout-team",
+    );
+    expect(
+      screen.getByTestId(RESOURCE_HERO_DESCRIPTION_TEST_ID),
+    ).toHaveTextContent("Takes the basket to an order.");
     expect(screen.getAllByTestId(EDIT_IN_SETTINGS_TEST_ID)).toHaveLength(1);
   });
 
