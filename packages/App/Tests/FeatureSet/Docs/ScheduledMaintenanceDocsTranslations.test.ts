@@ -1069,8 +1069,8 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
-    // A role's name is kept, not drawn.
-    expect(dashboardLabels(RULES_AND_SETTINGS)).not.toContain("Project Admin");
+    // A role's name is drawn, as the role pickers draw it.
+    expect(dashboardLabels(RULES_AND_SETTINGS)).toContain("Project Admin");
     // A workflow component's name is kept.
     expect(dashboardLabels(RULES_AND_SETTINGS)).not.toContain(
       "Scheduled Maintenance State Timeline",

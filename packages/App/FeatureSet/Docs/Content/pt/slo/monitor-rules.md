@@ -1,6 +1,6 @@
 # Monitores e regras de monitor
 
-Um SLO mede a disponibilidade dos monitores associados a ele. Associe-os à mão, deixe que regras de monitor associem cada monitor que corresponde, ou faça as duas coisas. Esta página trata da página **Monitores** de um SLO, em **Configuração** no menu lateral dele, e da página **Monitor Rules**, em **Regras**.
+Um SLO mede a disponibilidade dos monitores associados a ele. Associe-os à mão, deixe que regras de monitor associem cada monitor que corresponde, ou faça as duas coisas. Esta página trata da página **Monitores** de um SLO, em **Configuração** no menu lateral dele, e da página **Regras de monitor**, em **Regras**.
 
 :::cards
 - [Escolher monitores à mão](#associar-monitores-à-mão): Ideal para um conjunto pequeno e fixo.
@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI e orçamento de erros"]
 ```
 
-Um SLO novo não tem monitores, porque o formulário de criação não pede nenhum. Enquanto não tiver um, ele não pode ser avaliado: suas páginas mostram **No monitors attached**, e a **Visão geral** dele oferece as duas formas de associar monitores.
+Um SLO novo não tem monitores, porque o formulário de criação não pede nenhum. Enquanto não tiver um, ele não pode ser avaliado: suas páginas mostram **Nenhum monitor vinculado**, e a **Visão geral** dele oferece as duas formas de associar monitores.
 
 ## Associar monitores à mão
 
@@ -47,7 +47,7 @@ A página **Monitores** mostra, para cada monitor:
 | Coluna | O que mostra |
 | --- | --- |
 | **Status Atual** | O status atual do monitor, ou **Arquivado**, **Desabilitado**, **Sondas não habilitadas**, **Sondas desconectadas** ou **Desconhecido** quando ele não está sendo verificado ou ainda não informou nada. |
-| **Origem** | **Rule** se uma das regras de monitor do SLO o associou, **Manual** se alguém o associou à mão. |
+| **Origem** | **Regra** se uma das regras de monitor do SLO o associou, **Manual** se alguém o associou à mão. |
 | **Rótulos** | Os rótulos do monitor. |
 
 ## Associar monitores com uma regra
@@ -57,7 +57,7 @@ Uma regra de monitor descreve os monitores que um SLO deve medir, como "todo mon
 :::steps
 ### Abrir Monitor Rules
 
-Abra o SLO, vá para **Monitor Rules** e clique em **Criar: SLO Monitor Rule**.
+Abra o SLO, vá para **Regras de monitor** e clique em **Criar: Regra de monitor do SLO**.
 
 ### Dar um nome à regra
 
@@ -69,10 +69,10 @@ Em **Critérios de Correspondência**, clique em **Adicionar condição**, escol
 
 ### Salvar a regra
 
-Clique em **Criar: SLO Monitor Rule**. A regra começa habilitada e os monitores do SLO são reavaliados na hora: cada monitor que corresponde é associado com a origem **Rule**.
+Clique em **Criar: Regra de monitor do SLO**. A regra começa habilitada e os monitores do SLO são reavaliados na hora: cada monitor que corresponde é associado com a origem **Regra**.
 :::
 
-A tabela de regras mostra, para cada regra, o nome, os critérios de correspondência por extenso e se ela está habilitada. Para pausar uma regra, desligue **Habilitado** no formulário de edição dela. **View Monitors** abre a página **Monitores** do SLO.
+A tabela de regras mostra, para cada regra, o nome, os critérios de correspondência por extenso e se ela está habilitada. Para pausar uma regra, desligue **Habilitado** no formulário de edição dela. **Ver monitores** abre a página **Monitores** do SLO.
 
 ### Critérios de correspondência
 
@@ -102,7 +102,7 @@ Um padrão é uma expressão regular, como `^api-.*`, ou um curinga `*`, como `*
 - Quando um rótulo é excluído, os SLOs cujas regras o usavam são reavaliados.
 - As regras mantêm a lista de monitores de um SLO atualizada mesmo enquanto o SLO está desligado ou arquivado, então ele retoma com os monitores certos.
 
-As regras se ressincronizam a cada salvamento, então **Run Now** serve para colocar em dia o que o SLO deixou passar. Ele está em cada linha, na página da regra (**Visualizar**) e nas ações em massa da tabela. Executar uma regra reavalia todas as regras de monitor habilitadas do SLO juntas, e depois a caixa de diálogo diz quantos monitores foram associados e desassociados. Executar uma regra exige permissão para editar as regras de monitor de SLO. Veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
+As regras se ressincronizam a cada salvamento, então **Executar agora** serve para colocar em dia o que o SLO deixou passar. Ele está em cada linha, na página da regra (**Ver**) e nas ações em massa da tabela. Executar uma regra reavalia todas as regras de monitor habilitadas do SLO juntas, e depois a caixa de diálogo diz quantos monitores foram associados e desassociados. Executar uma regra exige permissão para editar as regras de monitor de SLO. Veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
 
 ### Quais monitores pertencem a uma regra
 
@@ -114,7 +114,7 @@ As regras se ressincronizam a cada salvamento, então **Run Now** serve para col
 
 Enquanto pelo menos uma regra estiver habilitada, são as regras que gerenciam os monitores do SLO:
 
-- não é possível adicionar monitores à mão: **Adicionar monitores** fica desativado, e um banner diz **This SLO's monitors are managed by its monitor rules**, com um link **Manage Monitor Rules**;
+- não é possível adicionar monitores à mão: **Adicionar monitores** fica desativado, e um banner diz **Os monitores deste SLO são gerenciados pelas regras de monitor dele**, com um link **Gerenciar regras de monitor**;
 - os monitores que uma regra associou não podem ser removidos à mão, porque a regra os associaria de novo: o botão **Remover** deles fica bloqueado e a dica explica o motivo;
 - os monitores associados à mão antes de as regras serem ligadas ainda podem ser removidos.
 
@@ -153,7 +153,7 @@ Uma regra de monitor associou esse monitor e o associaria de novo. Mude ou desli
 :::
 
 :::details Um monitor ao qual uma regra deveria corresponder não está associado
-Confira se a regra está habilitada e se cada condição é atendida com **Corresponder a todas**. Os rótulos que uma regra de rótulos de monitor adiciona também contam. Clique em **Run Now** na regra para ressincronizar o SLO.
+Confira se a regra está habilitada e se cada condição é atendida com **Corresponder a todas**. Os rótulos que uma regra de rótulos de monitor adiciona também contam. Clique em **Executar agora** na regra para ressincronizar o SLO.
 :::
 
 :::details Salvar uma regra falha com um erro de padrão

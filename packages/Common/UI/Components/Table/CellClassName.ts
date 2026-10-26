@@ -9,6 +9,7 @@ import {
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_VALUE_GIVE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
   getTableCellPaddingClassName,
   hasMaxWidthClassName,
@@ -119,6 +120,46 @@ export function isFillingNameColumn<T extends GenericObject>(
   );
 }
 
+/*
+ * The kinds of value that are never cut short to make a table fit its card
+ * (TABLE_VALUE_GIVE_CLASS_NAME): a date, a number, a tick, a colour - each
+ * says what it says only whole.
+ */
+const VALUE_KINDS_KEPT_WHOLE: Array<FieldType> = [
+  FieldType.Actions,
+  FieldType.Date,
+  FieldType.DateTime,
+  FieldType.Number,
+  FieldType.Percent,
+  FieldType.Minutes,
+  FieldType.USDCents,
+  FieldType.Port,
+  FieldType.Boolean,
+  FieldType.Color,
+  FieldType.Icon,
+];
+
+/*
+ * Whether this column's values may be cut short a little more when their
+ * table would otherwise run past its card (useTableScrollState's second
+ * reading): one-line values under the table's own cap, in any column but
+ * the row's name (which has its own way of giving room,
+ * isFillingNameColumn), a column of prose (which wraps), a column a page
+ * sized itself, and the kinds kept whole.
+ */
+export function isGivingValueColumn<T extends GenericObject>(
+  column: Column<T>,
+  isPrimaryColumn: boolean | undefined,
+): boolean {
+  return Boolean(
+    !isPrimaryColumn &&
+      !VALUE_KINDS_KEPT_WHOLE.includes(column.type) &&
+      !column.wrapContent &&
+      !hasMaxWidthClassName(column.contentClassName) &&
+      !hasMinWidthClassName(column.contentClassName),
+  );
+}
+
 /**
  * The classes for the `<div>` that wraps a cell's content.
  *
@@ -166,6 +207,11 @@ export function getTableCellContentClassName<T extends GenericObject>(
        */
       if (isFillingNameColumn(column, options?.isPrimaryColumn)) {
         classNames.push(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME);
+      }
+
+      // ...and any other value gives way before the rows scroll sideways.
+      if (isGivingValueColumn(column, options?.isPrimaryColumn)) {
+        classNames.push(TABLE_VALUE_GIVE_CLASS_NAME);
       }
     }
 

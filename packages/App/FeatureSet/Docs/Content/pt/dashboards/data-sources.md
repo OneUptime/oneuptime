@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### Abra as fontes de dados
 
-Abra **Produtos → Painéis**, expanda **Configurações** no menu lateral e clique em **Data Sources**.
+Abra **Produtos → Painéis**, expanda **Configurações** no menu lateral e clique em **Fontes de dados**.
 
 ### Escolha o tipo
 
@@ -62,20 +62,20 @@ Em **Conexão**, uma fonte HTTP recebe a **URL** em que responde. Um banco de da
 
 ### Diga como entrar
 
-Em **Autenticação**, informe um **Nome de usuário** e uma **Senha** ou, para uma fonte HTTP, um **API Token**, enviado como token bearer. **Mais campos** contém **Custom HTTP Headers**, como `{ "X-Scope-OrgID": "tenant-1" }`, e **Additional Options**: `sslEnabled` e `sslRejectUnauthorized` para bancos de dados, e `elasticsearchIndex` para o Elasticsearch, que sem ele lê todos os índices (`*`).
+Em **Autenticação**, informe um **Nome de usuário** e uma **Senha** ou, para uma fonte HTTP, um **Token de API**, enviado como token bearer. **Mais campos** contém **Custom HTTP Headers**, como `{ "X-Scope-OrgID": "tenant-1" }`, e **Additional Options**: `sslEnabled` e `sslRejectUnauthorized` para bancos de dados, e `elasticsearchIndex` para o Elasticsearch, que sem ele lê todos os índices (`*`).
 
 ### Teste-a
 
 Clique em **Criar: Data Source** e depois em **Testar** na linha dela. O OneUptime se conecta com os dados que você informou, e diz se funcionou ou o que deu errado.
 :::
 
-Para alterar uma fonte de dados depois, abra-a pela lista. **Editar** em **Data Source Details** altera tudo menos os segredos; **Update Credentials** substitui a senha, o token ou os cabeçalhos, e deixa como estavam os campos que você deixar vazios; **Testar** verifica de novo.
+Para alterar uma fonte de dados depois, abra-a pela lista. **Editar** em **Data Source Details** altera tudo menos os segredos; **Atualizar credenciais** substitui a senha, o token ou os cabeçalhos, e deixa como estavam os campos que você deixar vazios; **Testar** verifica de novo.
 
 ## Usar em um widget
 
 Edite um painel, clique em **Adicionar widget** e escolha um widget do grupo Fontes de dados externas: um **Gráfico**, um **Valor**, um **Medidor** ou uma **Tabela**. Nas configurações dele:
 
-- Escolha a **Data Source** e escreva a **Query**. O editor indica a linguagem de consulta e mostra um exemplo para o tipo.
+- Escolha a **Data Source** e escreva a **Consulta**. O editor indica a linguagem de consulta e mostra um exemplo para o tipo.
 - Num gráfico, **Adicionar consulta** sobrepõe mais consultas nos mesmos eixos, e **Legend (optional)** dá nome a cada série a partir dos rótulos dela: `{{instance}} — errors` escreve na frente o rótulo `instance` da série.
 - Num valor ou num medidor, **Reduce** transforma os pontos em um único número: o último valor (o padrão), o primeiro, a média, a soma, o mínimo ou o máximo. **Unit** adiciona um sufixo, e ajusta a escala das unidades conhecidas: `Bytes` aparece como 1.5 MB, e `ms` como 2.4 s.
 - Numa tabela, qualquer consulta somente leitura funciona, e as linhas aparecem como chegam.
@@ -162,7 +162,7 @@ As consultas de intervalo do Prometheus e do Loki pedem cerca de 250 pontos ao l
 ## Segurança
 
 - **O SQL continua somente leitura.** Uma consulta precisa ser uma única instrução que comece com `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` ou `DESC`. Palavras que gravam ou alteram uma sessão, como `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` ou `SET`, são recusadas em qualquer lugar fora de strings e de nomes entre aspas, então coloque entre aspas uma coluna com o nome de uma delas. Escreva uma aspa dentro de uma string como duas aspas (`''`): uma barra invertida antes de uma aspa é recusada. As sessões do PostgreSQL, do MySQL e do ClickHouse também são somente leitura. O SQL Server não tem sessão somente leitura, então conecte-o com um login somente leitura.
-- **As credenciais são somente gravação.** **Senha**, **API Token** e **Custom HTTP Headers** são criptografados em repouso, e a API nunca os retorna, nem para você.
+- **As credenciais são somente gravação.** **Senha**, **Token de API** e **Custom HTTP Headers** são criptografados em repouso, e a API nunca os retorna, nem para você.
 - **Os endereços são verificados.** Endereços de loopback, de link local (onde ficam os metadados da nuvem) e outros endereços reservados são recusados em todos os casos. Endereços privados são recusados no OneUptime Cloud, e permitidos numa instalação auto-hospedada, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`: veja [Acesso à rede privada](/docs/self-hosted/private-network-access).
 - **Os painéis públicos nunca as executam.** Os widgets de Fontes de dados externas ficam fora de um [painel público](/docs/dashboards/sharing), com consultas e tudo.
 

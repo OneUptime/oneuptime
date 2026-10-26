@@ -56,7 +56,7 @@ Skriv en fråga och tryck på Enter, till exempel `service:checkout status:error
 
 ### Avgränsa med filter
 
-Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip. Sidopanelen filtrerar på **Tjänst**, på värden, klustret eller den andra resursen som skickade spannet, på **Status**, **Span-kategori**, **Har undantag**, **Span-typ**, **Span-namn**, **Service Instance** och **Värdens namn**.
+Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip. Sidopanelen filtrerar på **Tjänst**, på värden, klustret eller den andra resursen som skickade spannet, på **Status**, **Span-kategori**, **Har undantag**, **Span-typ**, **Span-namn**, **Tjänstinstans** och **Värdens namn**.
 
 ### Öppna ett span
 
@@ -102,7 +102,7 @@ För mer byter du listan från **Spans** till **Analytics**. Välj en tidsserie,
 ## Följ, spara och dela
 
 - Klicka på **Pausad** ovanför listan för att slå på liveuppdateringar. Knappen visar då **Live**, och listan letar efter nya spans var tionde sekund. Klicka igen för att pausa.
-- **Saved Views** behåller en sökning, dess filter och tidsintervallet under ett namn, för alla i projektet. Sparade vyer fungerar som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
+- **Sparade vyer** behåller en sökning, dess filter och tidsintervallet under ett namn, för alla i projektet. Sparade vyer fungerar som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
 - Knapparna **Loggar** och **Mätvärden** öppnar de utforskarna för samma tidsfönster, med så mycket av din filtrering som de kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
 
 ## Insikter i spår
@@ -182,7 +182,7 @@ Varje rad är ett span, inte en förfrågan. Välj **Root spans** under **Span-k
 
 :::cards
 - [Söksyntax](/docs/telemetry/search-syntax): Varje filter som sökrutan förstår.
-- [Spårningsövervakning](/docs/monitor/traces-monitor): Få varningar om misslyckade eller långsamma förfrågningar.
+- [Spårningsövervakning](/docs/monitor/traces-monitor): Få larm om misslyckade eller långsamma förfrågningar.
 - [Undantagsspårning](/docs/telemetry/exceptions): Gå igenom felen som dina spans registrerar.
 - [Loggutforskare](/docs/telemetry/logs-explorer): Läs loggraderna som en förfrågan skrev.
 :::

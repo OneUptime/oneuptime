@@ -1,4 +1,5 @@
 import StatusPageTheme, {
+  canStatusPageThemeBeDark,
   doesStatusPageThemeFollowDevice,
   getStatusPageColorScheme,
   getStatusPageThemeFromHeadSetting,
@@ -11,6 +12,7 @@ import StatusPageTheme, {
 } from "Common/Types/StatusPage/StatusPageTheme";
 import ThemeUtil, { THEME_CHANGE_EVENT, Theme } from "Common/UI/Utils/Theme";
 import React from "react";
+import StatusPageUtil from "./StatusPage";
 
 /*
  * A status page's theme, in the visitor's browser (Common/Types/StatusPage/
@@ -29,7 +31,11 @@ import React from "react";
  *   - switchColorScheme() is the visitor's own pick, from the footer of a
  *     page that follows their device. It is kept in their browser, and a
  *     pick that matches their device is forgotten, so the page follows the
- *     device again from then on. Light and Dark pages offer no pick.
+ *     device again from then on. Light and Dark pages offer no pick - but
+ *     on the Dashboard's preview of a page (its address on OneUptime,
+ *     /status-page/<id>) every page offers one, so its owner can see it in
+ *     the other theme too: there the pick lasts for the visit only, kept
+ *     nowhere, and the page opens in its own theme again.
  *
  * The scheme is drawn by Common's ThemeUtil.applyTheme (the dark class,
  * data-theme, color-scheme and the theme-color tag), as the dashboard's is,
@@ -47,6 +53,45 @@ export default class StatusPageThemeUtil {
   // The page's theme from its settings, once they are read.
   private static pageTheme: StatusPageTheme | null = null;
   private static isFollowingDevice: boolean = false;
+  /*
+   * On the Dashboard's preview of a Light or Dark page: the other scheme,
+   * picked from the footer to see the page in it. For the visit only.
+   */
+  private static previewColorScheme: StatusPageColorScheme | null = null;
+
+  // Whether the page is the Dashboard's preview (its OneUptime address).
+  public static isPreview(): boolean {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return StatusPageUtil.isPreviewPage();
+  }
+
+  /*
+   * Whether the footer offers this visitor a light / dark switch: a page
+   * that follows each visitor's device, and any page in the Dashboard's
+   * preview, where its owner checks how it looks both ways.
+   */
+  public static canVisitorSwitch(
+    theme: StatusPageTheme = StatusPageThemeUtil.getPageTheme(),
+  ): boolean {
+    return (
+      doesStatusPageThemeFollowDevice(theme) || StatusPageThemeUtil.isPreview()
+    );
+  }
+
+  /*
+   * Whether this visitor can see the page dark: a Dark page, one that
+   * follows the device, and any page in the Dashboard's preview, which can
+   * be switched to dark. The logo then needs what it is drawn on in the
+   * dark (LogoPlate).
+   */
+  public static canBeDarkForVisitor(
+    theme: StatusPageTheme = StatusPageThemeUtil.getPageTheme(),
+  ): boolean {
+    return canStatusPageThemeBeDark(theme) || StatusPageThemeUtil.isPreview();
+  }
 
   /*
    * The page's theme: its settings', once they are read, and until then
@@ -77,6 +122,11 @@ export default class StatusPageThemeUtil {
     const hasChanged: boolean = theme !== StatusPageThemeUtil.getPageTheme();
 
     StatusPageThemeUtil.pageTheme = theme;
+
+    // A preview's pick is of the theme it was made on.
+    if (hasChanged) {
+      StatusPageThemeUtil.previewColorScheme = null;
+    }
 
     if (typeof document !== "undefined") {
       // What the page is drawn in, for whatever reads <html> after this.
@@ -132,8 +182,18 @@ export default class StatusPageThemeUtil {
 
   // The scheme the page is drawn in for this visitor.
   public static getColorScheme(): StatusPageColorScheme {
+    const theme: StatusPageTheme = StatusPageThemeUtil.getPageTheme();
+
+    if (
+      !doesStatusPageThemeFollowDevice(theme) &&
+      StatusPageThemeUtil.previewColorScheme &&
+      StatusPageThemeUtil.isPreview()
+    ) {
+      return StatusPageThemeUtil.previewColorScheme;
+    }
+
     return getStatusPageColorScheme({
-      theme: StatusPageThemeUtil.getPageTheme(),
+      theme: theme,
       prefersDark: StatusPageThemeUtil.doesDevicePreferDark(),
       visitorChoice: StatusPageThemeUtil.getVisitorColorScheme(),
     });
@@ -146,8 +206,34 @@ export default class StatusPageThemeUtil {
    * or Dark page has no switch, and stays as it is.
    */
   public static switchColorScheme(): StatusPageColorScheme {
-    if (!doesStatusPageThemeFollowDevice(StatusPageThemeUtil.getPageTheme())) {
-      return StatusPageThemeUtil.getColorScheme();
+    const theme: StatusPageTheme = StatusPageThemeUtil.getPageTheme();
+
+    if (!doesStatusPageThemeFollowDevice(theme)) {
+      if (!StatusPageThemeUtil.isPreview()) {
+        return StatusPageThemeUtil.getColorScheme();
+      }
+
+      /*
+       * The Dashboard's preview of a Light or Dark page: the other scheme,
+       * for this visit. Kept nowhere - not even with the visitor's pick for
+       * pages that follow the device, which every page on this address
+       * shares - so the page opens in its own theme again, as its visitors
+       * see it.
+       */
+      const next: StatusPageColorScheme =
+        StatusPageThemeUtil.getColorScheme() === STATUS_PAGE_DARK_SCHEME
+          ? STATUS_PAGE_LIGHT_SCHEME
+          : STATUS_PAGE_DARK_SCHEME;
+
+      const own: StatusPageColorScheme =
+        theme === StatusPageTheme.Dark
+          ? STATUS_PAGE_DARK_SCHEME
+          : STATUS_PAGE_LIGHT_SCHEME;
+
+      StatusPageThemeUtil.previewColorScheme = next === own ? null : next;
+      StatusPageThemeUtil.apply();
+
+      return next;
     }
 
     const next: StatusPageColorScheme =

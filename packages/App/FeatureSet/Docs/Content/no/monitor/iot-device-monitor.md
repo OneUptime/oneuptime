@@ -46,7 +46,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
 ### Velg IoT Device
 
-Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT Device** under **Infrastruktur**, eller skriv `iot` i søkefeltet. Skriv inn et **Navn** - det brukes i titlene på hendelser og varsler - og klikk på **Neste**.
+Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT-enhet** under **Infrastruktur**, eller skriv `iot` i søkefeltet. Skriv inn et **Navn** - det brukes i titlene på hendelser og varsler - og klikk på **Neste**.
 
 ### Velg flåten
 
@@ -58,11 +58,11 @@ Velg en av de tre fanene:
 
 - **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
 - **Custom Metric** - velg én metrikk i **IoT Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én enhet eller én enhetstype. En egendefinert metrikk grupperes ikke: den vurderer flåten som helhet.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, også over dine egne metrikknavn, for eksempel minne i bruk i prosent av en enhets minnestørrelse. Bruk **Group by** `device.id` for å vurdere hver enhet for seg.
+- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, også over dine egne metrikknavn, for eksempel minne i bruk i prosent av en enhets minnestørrelse. Bruk **Grupper etter** `device.id` for å vurdere hver enhet for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Select Metric Variable**, **Aggregering**, **Betingelse** og **Threshold**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Select Metric Variable**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -70,7 +70,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 :::
 
 > [!TIP]
-> For å sette opp flere maler på én gang åpner du flåten fra **Produkter → Infrastruktur → IoT** og går til **Recommendations**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
+> For å sette opp flere maler på én gang åpner du flåten fra **Produkter → Infrastruktur → IoT** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
 
 ## Monitorinnstillinger
 
@@ -83,7 +83,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **IoT Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Group by**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
 Filtrene virker sammen: med en **Device ID** og en **Device Type** samsvarer en enhet av en annen type ikke med noe.
 
@@ -97,7 +97,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tilgjengelighet | Kritisk | `iot_device_up`, Min per `device.id`, siste 30 minutter | En måling er under 1, eller en registrert enhet sender ingenting i hele vinduet | Tilbake på 1 |
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, siste 5 minutter | Under 20 % | Ved 22 % eller mer |
-| Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, siste 5 minutter | Under -100 dBm | Ved -90 dBm eller mer |
+| Weak Signal | Tilkobling | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, siste 5 minutter | Under -100 dBm | Ved -90 dBm eller mer |
 | High Temperature | Miljø | Kritisk | `iot_temperature_celsius`, Max per `device.id`, siste 5 minutter | Over 70 °C | Ved 63 °C eller mindre |
 | High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, siste 5 minutter | Over 0.9 (90 % av CPU-en) | Ved 0.81 eller mindre |
 
@@ -120,7 +120,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 En registrert enhet beholdes også som offline i flåtens inventar, mens en uregistrert fjernes etter 15 minutter med stillhet. Deteksjon av stillhet krever regelen **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer opprettet fra malen har. En Device Offline-monitor som ble opprettet før enhetsregistrering fantes, må få den satt manuelt eller opprettes på nytt fra malen.
 
 > [!NOTE]
-> En uregistrert enhet som blir taus uten en Last Will eller en gatewayrapport, slutter bare å sende data, og en monitor som grupperer per enhet, kan ikke peke den ut. Registrer enhetene dine, eller gi en kritisk enhet sin egen monitor (**Custom Metric**, med dens **Device ID**), og sett **Hvis ingen data** til **Trigger**. Deteksjon av stillhet krever også at minst én annen enhet i flåten fortsatt rapporterer: en flåte som blir helt mørk, for eksempel under et gatewaybrudd, sender ut én hendelse for monitoren, ikke én per enhet.
+> En uregistrert enhet som blir taus uten en Last Will eller en gatewayrapport, slutter bare å sende data, og en monitor som grupperer per enhet, kan ikke peke den ut. Registrer enhetene dine, eller gi en kritisk enhet sin egen monitor (**Custom Metric**, med dens **Device ID**), og sett **Hvis ingen data** til **Utløser**. Deteksjon av stillhet krever også at minst én annen enhet i flåten fortsatt rapporterer: en flåte som blir helt mørk, for eksempel under et gatewaybrudd, sender ut én hendelse for monitoren, ikke én per enhet.
 
 ## Innsamlede metrikker
 
@@ -146,10 +146,10 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Select Metric Variable** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
-| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når en serie ikke har noen prøver i vinduet: **Ignore** (standarden) hopper over den, **Treat As Zero** leser den som `0`, og **Trigger** får kriteriet til å samsvare. |
+| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når en serie ikke har noen prøver i vinduet: **Ignore** (standarden) hopper over den, **Treat As Zero** leser den som `0`, og **Utløser** får kriteriet til å samsvare. |
 
 Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk.
 
@@ -163,7 +163,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | En hvilken som helst verdi er over `0` | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stillhet samsvarer ikke med noen av kriteriene: en flåte som slutter å sende data, lar monitoren stå slik den var. For å få beskjed når data uteblir, setter du **Hvis ingen data** til **Trigger** på et kriterium. Tid der OneUptime selv ikke mottok noe, teller aldri som manglende data: en sjekk der vinduet inneholder den tiden, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> Stillhet samsvarer ikke med noen av kriteriene: en flåte som slutter å sende data, lar monitoren stå slik den var. For å få beskjed når data uteblir, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok noe, teller aldri som manglende data: en sjekk der vinduet inneholder den tiden, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 
@@ -204,7 +204,7 @@ Flåter registrerer seg selv ut fra enhetenes data. Sjekk at enhetene sender `io
 :::
 
 :::details Én hendelse utløses for hele flåten i stedet for én per enhet
-Spørringen er ikke gruppert. Monitorer med **Custom Metric** vurderer flåten som helhet; bruk en mal, eller **Avansert** med **Group by** `device.id`.
+Spørringen er ikke gruppert. Monitorer med **Custom Metric** vurderer flåten som helhet; bruk en mal, eller **Avansert** med **Grupper etter** `device.id`.
 :::
 
 :::details En enhet døde, men Device Offline utløste ikke

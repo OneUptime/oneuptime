@@ -44,7 +44,7 @@ Todo projeto novo começa com três estados de alerta, nesta ordem:
 
 | Estado           | `order` | Sinalizador           | Cor       | O que significa                                   |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos alertas começam.         |
+| **Identificado**   | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos alertas começam.         |
 | **Confirmado**   | `2`     | `isAcknowledgedState` | `#ffbf53` | Alguém está cuidando, e os acionamentos param.    |
 | **Resolvido**    | `3`     | `isResolvedState`     | `#2ab57d` | O alerta terminou e não conta mais como ativo.    |
 
@@ -99,10 +99,10 @@ Todo projeto novo começa com duas gravidades de alerta, da mais grave para a me
 
 | Gravidade | `order` | Cor       | Descrição predefinida                                                             |
 | --------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High**  | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**   | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Alto**  | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **Baixo**   | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Os incidentes começam com três gravidades e os alertas com duas. Quando o modelo de uma recomendação de monitor diz **Crítico** ou **Warning**, o OneUptime o associa à sua primeira e segunda gravidade de alerta, que em um projeto novo são **High** e **Low**.
+Os incidentes começam com três gravidades e os alertas com duas. Quando o modelo de uma recomendação de monitor diz **Crítico** ou **Warning**, o OneUptime o associa à sua primeira e segunda gravidade de alerta, que em um projeto novo são **Alto** e **Baixo**.
 
 ## Editar as gravidades
 

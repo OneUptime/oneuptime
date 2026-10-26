@@ -32,16 +32,24 @@ describe("ColorContrast stands on its own", () => {
     expect(imports).toEqual(["../Types/Color"]);
   });
 
-  test.each([
+  /*
+   * What the Pill re-exports. The module has more (the words on a filled
+   * alert, FilledAlertLook), which the Pill has no use for.
+   */
+  const PILL_REEXPORTS: ReadonlyArray<
+    keyof typeof ColorContrast & keyof typeof PillColors
+  > = [
     "composite",
     "getAlphaForLuminance",
     "getContrastRatio",
     "getReadableShade",
     "getRelativeLuminance",
     "parseColor",
-  ] as const)(
+  ];
+
+  test.each(PILL_REEXPORTS)(
     "the Pill re-exports %s itself, not a copy",
-    (name: keyof typeof ColorContrast) => {
+    (name: keyof typeof ColorContrast & keyof typeof PillColors) => {
       expect(typeof ColorContrast[name]).toBe("function");
       expect(PillColors[name]).toBe(ColorContrast[name]);
     },

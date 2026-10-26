@@ -55,11 +55,11 @@ Kies een van de drie tabbladen:
 
 - **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de labelfilters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
 - **Custom Metric** - kies één metriek uit **Storage Array Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één volume, host, pod, component, bestandssysteem of bucket.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, bijvoorbeeld de gebruikte capaciteit als `purefa_array_space_bytes` gefilterd op `space=capacity` min dezelfde metriek gefilterd op `space=empty`. Gebruik **Group by** met het label van een object om elk object afzonderlijk te beoordelen.
+- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, bijvoorbeeld de gebruikte capaciteit als `purefa_array_space_bytes` gefilterd op `space=capacity` min dezelfde metriek gefilterd op `space=empty`. Gebruik **Groeperen op** met het label van een object om elk object afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Threshold**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -67,7 +67,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 :::
 
 > [!TIP]
-> Om meerdere templates tegelijk in te stellen, open je de array via **Producten → Infrastructuur → Storage Arrays** en ga je naar **Recommendations**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
+> Om meerdere templates tegelijk in te stellen, open je de array via **Producten → Infrastructuur → Storage Arrays** en ga je naar **Aanbevelingen**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
 
 ## Monitorinstellingen
 
@@ -78,12 +78,12 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Host** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén host zoals de array hem kent, via het label `host`, zoals `esxi-01`. |
 | **Pod** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén ActiveCluster- of ActiveDR-pod, via het label `name`, of `local_pod` op reeksen van replicakoppelingen. |
 | **Hardware Component** | Custom Metric, Geavanceerd | Eén hardwarecomponent, zoals `CH0.BAY1` of `CT0`: het label `component_name` op een FlashArray, `name` op een FlashBlade. |
-| **File System** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén bestandssysteem, via het label `name`. |
+| **Bestandssysteem** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén bestandssysteem, via het label `name`. |
 | **Bucket** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén objectopslagbucket, via het label `name`. |
 | **Storage Array Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). Het formulier voegt het labelfilter toe dat haar betekenis geeft, en groepeert haar op het object dat ze beschrijft, zodat elk volume, elke host of elk component afzonderlijk wordt beoordeeld. |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
-| **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 5 Minutes**; een eigen metriek van een bestandssysteem of bucket bij **Past 15 Minutes**; templates stellen hun eigen venster in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
+| **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Afgelopen 5 minuten**; een eigen metriek van een bestandssysteem of bucket bij **Afgelopen 15 minuten**; templates stellen hun eigen venster in. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
 De agent leest het array-endpoint elke 60 seconden, en volumes, hosts en pods elke 2 minuten, dus een venster van 5 minuten bevat altijd een monster. De bestandssystemen en buckets van een FlashBlade leest hij elke 5 minuten, vandaar 15, en FlashArray-mappen elke 30 minuten: geef een mapmonitor een venster van 60 minuten.
 
@@ -139,13 +139,13 @@ Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zij
 | Capacity Above 90%           | Capaciteit   | Kritiek  | `purefb_array_space_utilization` gefilterd op `type=array`, Max, laatste 5 minuten                             | > 90 — schrijfacties mislukken voor elke client als hij vol raakt; herstelt bij ≤ 81                                |
 | Hardware Component Unhealthy | Hardware     | Kritiek  | `purefb_hardware_health`, Min per `name`, laatste 5 minuten                                                    | < 1 — een blade, fabric-module, voeding of ventilator is niet gezond (een ongebruikt slot meldt 2). Eén incident per component; herstelt bij ≥ 1 |
 | High Read Latency            | Performance  | Warning  | `purefb_array_performance_latency_usec` gefilterd op `dimension=usec_per_read_op` en `protocol=all`, Avg, laatste 10 minuten | > 10000 µs (10 ms) over alle protocollen; herstelt bij ≤ 9000                                         |
-| File System Near Full        | File Systems | Warning  | `purefb_file_systems_space_bytes` gefilterd op `space=available_ratio`, Min per `name`, laatste 15 minuten     | < 0.1 — er is minder dan 10 % over van de toegewezen grootte van een bestandssysteem. Eén incident per bestandssysteem; herstelt bij ≥ 0.11 |
+| File System Near Full        | Bestandssystemen | Warning  | `purefb_file_systems_space_bytes` gefilterd op `space=available_ratio`, Min per `name`, laatste 15 minuten     | < 0.1 — er is minder dan 10 % over van de toegewezen grootte van een bestandssysteem. Eén incident per bestandssysteem; herstelt bij ≥ 0.11 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.
 
 - **Openstaande waarschuwingen en hardwaretoestanden gebruiken Max** van een reeks die alleen bestaat zolang de waarschuwing open is of het component in die toestand is, dus één uitlezing die haar toont overschrijdt de drempel.
 - **Elk template per object groepeert op het eigen label van het object** (`summary`, `component_name`, `host`, `local_pod`, `name`), dus er gaat één incident af per getroffen object, en het incident noemt het.
-- **Latentietemplates gebruiken Avg** van het eigen gemiddelde per operatie van de array, en capaciteitstemplates **Max** van het eigen bezettingspercentage. Latenties staan vast in microseconden en capaciteit in procenten.
+- **Latentietemplates gebruiken Avg** van het eigen gemiddelde per operatie van de array, en capaciteitstemplates **Max.** van het eigen bezettingspercentage. Latenties staan vast in microseconden en capaciteit in procenten.
 - **Hardware Component Unhealthy gebruikt Min** per component: de gezondheid is 1 als het gezond is en zakt naar 0 als dat niet zo is.
 
 Er is geen template voor de latentie van elk volume, omdat de juiste drempel van de workload afhangt: bouw het uit de catalogus met een groepering op `name`. Capaciteitsvoorspelling vraagt een groeitrend in plaats van een drempel, en voor slijtage van schijven bestaat geen reeks om op te waarschuwen.
@@ -264,7 +264,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Metriek** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
-| **Threshold** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
+| **Drempel** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen monsters heeft: **Ignore** (de standaard), **Treat As Zero** of **Trigger**. |

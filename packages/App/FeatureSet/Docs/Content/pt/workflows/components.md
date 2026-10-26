@@ -285,7 +285,7 @@ Converta entre texto e JSON, ou combine dois objetos JSON.
 
 ## Conditions
 
-Ramifique conforme uma comparação. No painel **Adicionar componente**, este bloco se chama **If / Else**, em **Popular**. Para escolher entre mais de dois caminhos, use [Switch / Case](#switch-case).
+Ramifique conforme uma comparação. No painel **Adicionar componente**, este bloco se chama **If / Else**, em **Populares**. Para escolher entre mais de dois caminhos, use [Switch / Case](#switch-case).
 
 As configurações dele se leem como uma frase: **Se** *valor a verificar* *comparação* *valor de comparação*, continue em **Yes**, senão em **No**. Abaixo das configurações, a condição é lida de volta em palavras, para você ver que ela diz o que você quer. No canvas, o bloco também mostra a condição dele, por exemplo *Se environment is equal to “production”*.
 
@@ -315,7 +315,7 @@ As comparações de números comparam números e as de texto comparam texto, ent
 
 ## Switch / Case
 
-Siga um de vários caminhos conforme um valor. No painel **Adicionar componente**, este bloco se chama **Switch / Case**, em **Popular**.
+Siga um de vários caminhos conforme um valor. No painel **Adicionar componente**, este bloco se chama **Switch / Case**, em **Populares**.
 
 Ele compara um valor com cada um dos seus casos, um de cada vez, de cima para baixo, e continua pelo primeiro caso que corresponde, ou por **Default** quando nenhum corresponde. Só um caminho roda: um valor que corresponde a dois casos segue o primeiro deles.
 
@@ -361,7 +361,7 @@ Use-o para compartilhar lógica comum: monte uma vez um workflow «publicar no c
 
 ## Componentes de dados do OneUptime
 
-Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), o painel **Adicionar componente** tem estes componentes: em **OneUptime resources**, clique no tipo de registro (**Browse all resources** tem os que não aparecem), ou pesquise pelo nome do tipo. Cada título é gerado a partir do tipo de registro, então o conjunto de Monitor fica assim:
+Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), o painel **Adicionar componente** tem estes componentes: em **Recursos do OneUptime**, clique no tipo de registro (**Navegar por todos os recursos** tem os que não aparecem), ou pesquise pelo nome do tipo. Cada título é gerado a partir do tipo de registro, então o conjunto de Monitor fica assim:
 
 | Componente               | O que faz                                                                      |
 | ------------------------ | ------------------------------------------------------------------------------ |
@@ -422,7 +422,7 @@ define **Notification Count** e deixa os outros campos personalizados do registr
 
 Você raramente digita essas chaves. Nas configurações do componente, **Add a field** (ou **Add a condition** em uma consulta) lista as colunas do modelo pelo nome, com o tipo de valor que cada uma aceita. Pesquise pelo nome, pela chave da coluna ou pelo que o campo faz, e pressione **Enter** para adicionar o melhor resultado. Em uma criação, os campos sem os quais o registro não pode ser criado vêm primeiro, depois os campos principais do modelo (os que ele preenche por você se você os omitir) e depois todo o resto.
 
-Os campos que o próprio OneUptime preenche não são oferecidos quando você grava um registro: o `_id` do registro, **Criado em**, **Atualizado em**, **Created by User**, slugs, números de registro e status de notificação. Quem criou, arquivou ou resolveu um registro, e quando, nunca cabe a um workflow definir: um registro criado por um workflow não tem criador, um valor que um workflow envia para um desses campos junto com outros campos é ignorado, e um Update que não envia mais nada falha com uma mensagem que os nomeia. Uma atualização só oferece os campos que podem mudar depois que um registro existe. Uma consulta ainda oferece o ID, os carimbos de data e hora e **Created by User**, porque são úteis para filtrar. **Deleted At** não é oferecido em lugar nenhum: os registros são excluídos de vez, então ele está sempre vazio.
+Os campos que o próprio OneUptime preenche não são oferecidos quando você grava um registro: o `_id` do registro, **Criado em**, **Atualizado em**, **Criado pelo usuário**, slugs, números de registro e status de notificação. Quem criou, arquivou ou resolveu um registro, e quando, nunca cabe a um workflow definir: um registro criado por um workflow não tem criador, um valor que um workflow envia para um desses campos junto com outros campos é ignorado, e um Update que não envia mais nada falha com uma mensagem que os nomeia. Uma atualização só oferece os campos que podem mudar depois que um registro existe. Uma consulta ainda oferece o ID, os carimbos de data e hora e **Criado pelo usuário**, porque são úteis para filtrar. **Deleted At** não é oferecido em lugar nenhum: os registros são excluídos de vez, então ele está sempre vazio.
 
 **Skip** e **Limit** são dois campos numéricos em Find Many, Update Many e Delete Many, em **Mais campos** — `Skip: 0` com `Limit: 100` pega os cem primeiros resultados. **Limit** vale `10` por padrão, e em Update Many e Delete Many ele limita quantos registros são de fato gravados, não só quantos voltam. Então `Items Deleted: 10` significa que dez registros foram excluídos, não que dez corresponderam. Aumente **Limit** quando quiser alterar mais de dez.
 

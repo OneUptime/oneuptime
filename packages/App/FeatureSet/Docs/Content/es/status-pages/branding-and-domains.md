@@ -33,10 +33,10 @@ La primera tarjeta, **Logotipo e imagen de portada**, tiene un botón **Editar i
 
 | Paso | Campos |
 | ---- | ------ |
-| **Logotipo** | La subida del logotipo (texto de ejemplo `Upload logo`) y **Texto alternativo del logotipo** (texto de ejemplo `Logo of My Company`). Si dejas el texto alternativo vacío, se usa el título de la página de estado. |
+| **Logotipo** | La subida del logotipo (texto de ejemplo `Upload logo`), **Logotipo para el tema oscuro** (texto de ejemplo `Upload logo for the dark theme`), un logotipo opcional hecho para un fondo oscuro, y **Texto alternativo del logotipo** (texto de ejemplo `Logo of My Company`). Si dejas el texto alternativo vacío, se usa el título de la página de estado. |
 | **Imagen de portada** | **Portada**, una subida (texto de ejemplo `Upload cover image`) para el banner ancho detrás de la cabecera, y **Texto alternativo de la imagen de portada**. Deja el texto alternativo vacío si la portada es puramente decorativa. |
 
-El logotipo, la imagen de portada y el favicon son archivos subidos en el propio proyecto de la página de estado, y eso se comprueba cada vez que se guarda uno, desde el panel, la API, Terraform o un flujo de trabajo. Un archivo subido en otro proyecto se rechaza con las mismas palabras que un archivo que ya no existe: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." o "The favicon's file could not be found. Upload the favicon again." Volver a subir la imagen desde la página lo arregla.
+El logotipo, el logotipo para el tema oscuro, la imagen de portada y el favicon son archivos subidos en el propio proyecto de la página de estado, y eso se comprueba cada vez que se guarda uno, desde el panel, la API, Terraform o un flujo de trabajo. Un archivo subido en otro proyecto se rechaza con las mismas palabras que un archivo que ya no existe: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." o "The favicon's file could not be found. Upload the favicon again." Volver a subir la imagen desde la página lo arregla.
 
 Tu página de estado solo muestra imágenes de su propio proyecto; una imagen que no puede mostrar se omite, como si la página no tuviera ninguna. El panel, la API y Terraform leen las imágenes de la página de la misma manera: una imagen de otro proyecto vuelve como ninguna imagen. Los correos que envía la página (a los suscriptores, y a los usuarios privados sobre su inicio de sesión) muestran su logotipo de la misma forma: un logotipo que la página no puede mostrar también se omite de ellos, en lugar de mostrarse como una imagen rota.
 
@@ -50,7 +50,9 @@ La tarjeta **Tema**, justo debajo del logotipo, decide cómo ven la página sus 
 | **Oscuro** | La página oscura, tenga como tenga configurado su dispositivo. |
 | **Según el dispositivo de cada visitante** | Clara u oscura, según esté configurado su dispositivo, y cambia con él mientras la página está abierta. Un botón de sol o de luna en el pie de la página permite al visitante cambiarla, y su navegador recuerda la elección. |
 
-En la página oscura, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien.
+En la página oscura, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien. Una página con un **Logotipo para el tema oscuro** muestra ese en su lugar en la página oscura, tal cual, sin fondo, en su cabecera y en sus páginas de inicio de sesión. Los correos que envía la página siempre muestran el logotipo.
+
+En la dirección de la página en OneUptime, `/status-page/:id`, una página en **Claro** u **Oscuro** también tiene el botón del sol o la luna en su pie de página, para que puedas verla en el otro tema, con su **Logotipo para el tema oscuro**, antes de elegir uno. Lo que elijas ahí dura hasta que se recarga la página y no se recuerda, así que la página siempre se abre en su propio tema, para ti y para cualquiera que abra esa dirección. En los dominios personalizados de la página, una página en **Claro** u **Oscuro** no tiene botón.
 
 Una página de estado creada a partir de ahora empieza con **Según el dispositivo de cada visitante**. En la API y en Terraform el campo es `theme`, con uno de los valores `Light`, `Dark` o `System` (**Según el dispositivo de cada visitante**), escritos exactamente así; cualquier otro valor se rechaza. Una configuración de Terraform que no indica ningún `theme` recibe `Light`, así que una configuración escrita antes del ajuste nunca planifica un cambio en una página que gestiona.
 
@@ -250,6 +252,8 @@ Si un pedido falla, la columna Estado lo dice, con el motivo en la línea de deb
 
 Si subiste tu propio certificado en **Más campos**, OneUptime sirve ese en su lugar, en menos de 15 minutos desde que lo guardas. Sube su sustituto antes de que caduque editando el dominio.
 
+Una instalación autoalojada sin clave de cuenta de Let's Encrypt, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` en el chart de Helm), no emite certificados gratuitos. Allí, un dominio está activo en cuanto se verifica su registro CNAME, y su columna Estado lo dice: sirve su HTTPS desde tu propio proxy o balanceador de carga, o sube un certificado en **Más campos**.
+
 ### Volver a emitir un certificado
 
 La renovación automática cubre el caso normal, pero a veces quieres un certificado completamente nuevo ahora mismo: una clave privada que prefieres no conservar, un certificado que no le gusta a tu propio escáner o un dominio que cambió aguas arriba. En cuanto se ha pedido un certificado gratuito para un dominio, su fila muestra una acción **Volver a emitir SSL**.
@@ -265,7 +269,7 @@ El mismo botón, con el mismo límite de 24 horas, está en los dominios persona
 
 ### Leer la columna Estado del dominio
 
-La columna **Estado** dice en qué punto está cada dominio de su camino a HTTPS, en uno de siete estados. Cuando un pedido ha fallado, el motivo aparece en la línea de debajo.
+La columna **Estado** dice en qué punto está cada dominio de su camino a HTTPS, en uno de ocho estados. Cuando un pedido ha fallado, el motivo aparece en la línea de debajo.
 
 | Lo que dice la columna Estado | Qué significa |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ La columna **Estado** dice en qué punto está cada dominio de su camino a HTTPS
 | Certificado emitido, se renueva automáticamente. | Listo. El dominio sirve su certificado por HTTPS, y OneUptime lo renueva. |
 | Certificado emitido, pero su renovación ha fallado. Lo seguimos intentando. | El dominio sigue sirviendo un certificado válido, pero su última renovación falló, por el motivo de la línea de debajo. OneUptime lo vuelve a intentar mucho antes de que caduque el certificado. |
 | Usa tu certificado subido. | El registro está verificado y el dominio se sirve con el certificado que subiste. |
+| Verificado. Usa el HTTPS de tu propio proxy. | En una instalación autoalojada sin clave de cuenta de Let's Encrypt, el registro está verificado y el dominio está activo. Su HTTPS corre a cargo de tu propio proxy, salvo que subas un certificado. |
 
 :::details Un dominio sigue en «Esperando al DNS» mucho después de añadir el registro
 Comprueba que el nombre del registro sea el dominio completo, como `status.yourcompany.com`, y que su valor coincida exactamente con el registro CNAME de tu instalación. En un dominio raíz, usa un registro ALIAS, ANAME o CNAME aplanado. Después haz clic en **Comprobar ahora** en **Configuración de DNS**.

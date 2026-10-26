@@ -225,7 +225,7 @@ Dalla scheda **Eventi** di un dispositivo i monitor osservano solo quel disposit
 
 Il syslog può arrivare prima che il dispositivo che lo invia venga aggiunto a OneUptime. Sulla tua sonda viene conservato, i suoi eventi sono nella pagina Eventi della rete con il nome che il dispositivo si dà da solo, e il suo indirizzo è elencato in **Invia syslog, non ancora un dispositivo**:
 
-- **Aggiungi come dispositivo** apre **Add Device** con l'indirizzo e la sonda già compilati. I messaggi già arrivati restano nella pagina della rete; quelli nuovi vanno al dispositivo.
+- **Aggiungi come dispositivo** apre **Aggiungi dispositivo** con l'indirizzo e la sonda già compilati. I messaggi già arrivati restano nella pagina della rete; quelli nuovi vanno al dispositivo.
 - **È uno dei miei dispositivi** aggiunge l'indirizzo agli **Altri indirizzi** di un dispositivo: usalo quando un dispositivo che hai già aggiunto invia da un altro indirizzo, come una loopback. I suoi messaggi vanno a quel dispositivo dal minuto successivo.
 
 Più dispositivi dietro un unico indirizzo NAT condividono quell'indirizzo, quindi i loro messaggi vanno all'unico dispositivo che lo ha, a meno che un messaggio non nomini il proprio dispositivo.

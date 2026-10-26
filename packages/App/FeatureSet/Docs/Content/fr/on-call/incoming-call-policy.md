@@ -56,7 +56,7 @@ La **Vue d'ensemble** de la politique affiche une carte **Configuration** avec t
 
 ### Ajouter un numéro de téléphone
 
-Dans la deuxième étape, cliquez sur **Ajouter un numéro de téléphone**. Choisissez **Use Existing Phone Number** pour utiliser un numéro que votre compte Twilio possède déjà, ou **Reserve New Phone Number** pour en obtenir un nouveau. OneUptime fait pointer le numéro vers lui-même, il n'y a donc rien à configurer dans Twilio. Voir [Numéros de téléphone](#numéros-de-téléphone).
+Dans la deuxième étape, cliquez sur **Ajouter un numéro de téléphone**. Choisissez **Utiliser un numéro de téléphone existant** pour utiliser un numéro que votre compte Twilio possède déjà, ou **Réserver un nouveau numéro de téléphone** pour en obtenir un nouveau. OneUptime fait pointer le numéro vers lui-même, il n'y a donc rien à configurer dans Twilio. Voir [Numéros de téléphone](#numéros-de-téléphone).
 
 ### Ajouter des règles d'escalade
 
@@ -68,7 +68,7 @@ Chaque personne qu'une règle peut faire sonner ajoute et vérifie son propre nu
 
 ### Appeler le numéro
 
-Une fois les trois étapes terminées, la carte devient **Phone Numbers & Twilio Configuration**. Appelez le numéro depuis n'importe quel téléphone, puis ouvrez les **Journaux d'appels** de la politique pour voir qui a sonné.
+Une fois les trois étapes terminées, la carte devient **Numéros de téléphone et configuration Twilio**. Appelez le numéro depuis n'importe quel téléphone, puis ouvrez les **Journaux d'appels** de la politique pour voir qui a sonné.
 :::
 
 ## Comment un appel est acheminé
@@ -131,12 +131,12 @@ Une politique peut avoir plusieurs numéros, et chacun fait sonner les mêmes r�
 
 :::tabs
 @tab Utiliser un numéro existant
-1. Cliquez sur **Ajouter un numéro de téléphone**, puis sur **Use Existing Phone Number**. OneUptime liste les numéros du compte Twilio de la politique.
+1. Cliquez sur **Ajouter un numéro de téléphone**, puis sur **Utiliser un numéro de téléphone existant**. OneUptime liste les numéros du compte Twilio de la politique.
 2. Cliquez sur **Sélectionner** à côté du numéro, puis sur **Attribuer un numéro**.
 
 Un numéro dont les appels vont déjà ailleurs l'indique par « Currently has a webhook configured ». L'attribuer envoie ses appels à OneUptime à la place.
 @tab Réserver un nouveau numéro
-1. Cliquez sur **Ajouter un numéro de téléphone**, puis sur **Reserve New Phone Number** et **Rechercher des numéros**.
+1. Cliquez sur **Ajouter un numéro de téléphone**, puis sur **Réserver un nouveau numéro de téléphone** et **Rechercher des numéros**.
 2. Choisissez un **Pays**. Remplissez éventuellement **Indicatif régional (facultatif)**, par exemple 415, ou **Contient (facultatif)** avec des chiffres que le numéro doit contenir. Cliquez sur **Rechercher** : jusqu'à 10 numéros locaux sont listés.
 3. Cliquez sur **Réserver** à côté d'un numéro, et confirmez avec **Réserver**. Twilio facture le numéro sur votre compte Twilio.
 :::
@@ -146,7 +146,7 @@ OneUptime définit le webhook vocal du numéro sur `https://<your host>/notifica
 Pour libérer un numéro, cliquez sur **Libérer** à côté de lui et confirmez avec **Libérer le numéro**.
 
 > [!CAUTION]
-> Libérer un numéro le rend à Twilio, même un numéro apporté avec **Use Existing Phone Number**, et vous risquez de ne pas le récupérer. Supprimer une politique, ou la configuration Twilio qu'elle utilise, libère aussi ses numéros.
+> Libérer un numéro le rend à Twilio, même un numéro apporté avec **Utiliser un numéro de téléphone existant**, et vous risquez de ne pas le récupérer. Supprimer une politique, ou la configuration Twilio qu'elle utilise, libère aussi ses numéros.
 
 ## Numéros des personnes d'astreinte
 
@@ -160,7 +160,7 @@ Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les 
 
 Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte. Voir [Méthodes de notification](/docs/notifications/notification-methods).
 
-Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Billing Admin** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
+Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
 
 ## Messages vocaux et paramètres de la politique
 
@@ -182,7 +182,7 @@ Twilio lit les messages avec une voix de synthèse : écrivez-les comme vous vou
 
 ## Journaux d'appels
 
-Chaque appel figure sur la page **Journaux d'appels** de la politique, sous **Journaux** dans son menu latéral : l'**Appelant**, le **Numéro appelé**, son **Statut**, qui a répondu (**Répondu par**), la **Durée**, et quand il a commencé (**Démarré le**). Cliquez sur **View Timeline** sur un appel pour voir sa **Chronologie de l'appel** : chaque personne qui a sonné, sur quel numéro, et comment chaque tentative s'est terminée.
+Chaque appel figure sur la page **Journaux d'appels** de la politique, sous **Journaux** dans son menu latéral : l'**Appelant**, le **Numéro appelé**, son **Statut**, qui a répondu (**Répondu par**), la **Durée**, et quand il a commencé (**Démarré le**). Cliquez sur **Voir la chronologie** sur un appel pour voir sa **Chronologie de l'appel** : chaque personne qui a sonné, sur quel numéro, et comment chaque tentative s'est terminée.
 
 | Statut | Ce qui s'est passé |
 | --- | --- |
@@ -225,8 +225,8 @@ Un workflow peut lire les journaux d'appels avec **Find One** et **Find Many**, 
 
 Les numéros de téléphone d'une politique suivent les mêmes rôles que la politique elle-même :
 
-- **Rechercher des numéros** - chercher chez Twilio un numéro à réserver, ou lister les numéros que votre compte Twilio possède déjà - nécessite l'autorisation de lire les politiques d'appels entrants et de lire les configurations d'appel et SMS, car cela lit votre compte Twilio via l'une d'elles. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** et **Settings Viewer** ont les deux. Dans un rôle personnalisé, ce sont **Read Incoming Call Policy** et **Read Call and SMS**.
-- **Réserver un numéro, en utiliser un existant et en libérer un** nécessitent l'autorisation de modifier les politiques d'appels entrants : **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** et **Settings Member**, ou **Edit Incoming Call Policy** dans un rôle personnalisé. Ces actions changent les numéros d'une politique que vous pouvez modifier : avec un rôle limité à certaines étiquettes, les politiques qui portent ces étiquettes.
+- **Rechercher des numéros** - chercher chez Twilio un numéro à réserver, ou lister les numéros que votre compte Twilio possède déjà - nécessite l'autorisation de lire les politiques d'appels entrants et de lire les configurations d'appel et SMS, car cela lit votre compte Twilio via l'une d'elles. **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Lecteur**, **Administrateur des paramètres**, **Membre des paramètres** et **Lecteur des paramètres** ont les deux. Dans un rôle personnalisé, ce sont **Read Incoming Call Policy** et **Read Call and SMS**.
+- **Réserver un numéro, en utiliser un existant et en libérer un** nécessitent l'autorisation de modifier les politiques d'appels entrants : **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des paramètres** et **Membre des paramètres**, ou **Edit Incoming Call Policy** dans un rôle personnalisé. Ces actions changent les numéros d'une politique que vous pouvez modifier : avec un rôle limité à certaines étiquettes, les politiques qui portent ces étiquettes.
 
 Un blocage d'équipe sans étiquettes sur l'une de ces autorisations la retire. Pour tous les autres, **Ajouter un numéro de téléphone** et **Libérer** restent sur la page, verrouillés, et leur info-bulle indique ce qu'il faut. L'API refuse leur requête avec une phrase qui dit ce qu'il faut : "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." ou "Adding or releasing a phone number needs permission to edit incoming call policies." Réserver un numéro est facturé sur votre propre compte Twilio, pas sur votre solde OneUptime, et ne nécessite donc aucune autorisation de facturation.
 
@@ -267,7 +267,7 @@ Si les appels aboutissent sur la messagerie d'une personne, réglez la **Durée 
 :::
 
 :::details Impossible de réserver un nouveau numéro
-Dans de nombreux pays, Twilio exige un dossier réglementaire (regulatory bundle) approuvé avant de vendre des numéros locaux, et certains numéros nécessitent un solde Twilio positif. Réglez cela dans la console Twilio, ou obtenez-y le numéro et ajoutez-le avec **Use Existing Phone Number**.
+Dans de nombreux pays, Twilio exige un dossier réglementaire (regulatory bundle) approuvé avant de vendre des numéros locaux, et certains numéros nécessitent un solde Twilio positif. Réglez cela dans la console Twilio, ou obtenez-y le numéro et ajoutez-le avec **Utiliser un numéro de téléphone existant**.
 :::
 
 :::details Impossible de changer le compte Twilio de la politique

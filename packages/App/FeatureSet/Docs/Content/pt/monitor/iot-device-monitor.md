@@ -46,7 +46,7 @@ Vá em **Monitores** e clique em **Criar monitor**.
 
 ### Escolher IoT Device
 
-Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **IoT Device** em **Infraestrutura**, ou digite `iot` na caixa de pesquisa. Informe um **Nome** - ele é usado nos títulos de incidentes e alertas - e clique em **Próximo**.
+Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Dispositivo IoT** em **Infraestrutura**, ou digite `iot` na caixa de pesquisa. Informe um **Nome** - ele é usado nos títulos de incidentes e alertas - e clique em **Próximo**.
 
 ### Escolher a frota
 
@@ -58,11 +58,11 @@ Escolha uma das três abas:
 
 - **Quick Setup** - clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, a agregação, o intervalo de tempo, um agrupamento por `device.id` e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
 - **Custom Metric** - escolha uma métrica em **IoT Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um dispositivo ou a um tipo de dispositivo. Uma métrica personalizada não é agrupada: ela avalia a frota como um todo.
-- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, inclusive sobre nomes de métricas próprios, por exemplo a memória em uso como porcentagem do tamanho da memória de um dispositivo. Use **Group by** `device.id` para avaliar cada dispositivo separadamente.
+- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, inclusive sobre nomes de métricas próprios, por exemplo a memória em uso como porcentagem do tamanho da memória de um dispositivo. Use **Agrupar por** `device.id` para avaliar cada dispositivo separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Select Metric Variable**, **Agregação**, **Condição** e **Threshold**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Select Metric Variable**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -70,7 +70,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 :::
 
 > [!TIP]
-> Para configurar vários modelos de uma vez, abra a frota em **Produtos → Infraestrutura → IoT** e vá em **Recommendations**. Escolha os modelos que quiser, decida quem é acionado, e o OneUptime cria um monitor por modelo.
+> Para configurar vários modelos de uma vez, abra a frota em **Produtos → Infraestrutura → IoT** e vá em **Recomendações**. Escolha os modelos que quiser, decida quem é acionado, e o OneUptime cria um monitor por modelo.
 
 ## Configurações do monitor
 
@@ -83,7 +83,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | **IoT Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação usual da métrica. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 1 Minute**; os modelos definem a sua. |
-| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Group by**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
+| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 Os filtros atuam juntos: com um **Device ID** e um **Device Type**, um dispositivo de outro tipo não corresponde a nada.
 
@@ -97,7 +97,7 @@ Um critério só dispara quando a condição vale em cada minuto da sua janela -
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilidade | Crítico | `iot_device_up`, Min por `device.id`, últimos 30 minutos | Alguma leitura fica abaixo de 1, ou um dispositivo registrado não envia nada durante a janela inteira | De volta a 1 |
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg por `device.id`, últimos 5 minutos | Abaixo de 20 % | Em 22 % ou mais |
-| Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg por `device.id`, últimos 5 minutos | Abaixo de -100 dBm | Em -90 dBm ou mais |
+| Weak Signal | Conectividade | Warning | `iot_signal_strength_dbm`, Avg por `device.id`, últimos 5 minutos | Abaixo de -100 dBm | Em -90 dBm ou mais |
 | High Temperature | Ambiente | Crítico | `iot_temperature_celsius`, Max por `device.id`, últimos 5 minutos | Acima de 70 °C | Em 63 °C ou menos |
 | High CPU Usage | Sistema | Warning | `iot_cpu_usage_ratio`, Avg por `device.id`, últimos 5 minutos | Acima de 0.9 (90 % da sua CPU) | Em 0.81 ou menos |
 
@@ -120,7 +120,7 @@ O **Device Offline** dispara quando um dispositivo informa `iot_device_up = 0`. 
 Um dispositivo registrado também é mantido como offline no inventário da frota, enquanto um não registrado é removido depois de 15 minutos de silêncio. A detecção de silêncio precisa da política de ausência de dados **Treat As Zero** no critério de `iot_device_up`, que os monitores Device Offline criados a partir do modelo têm. Um monitor Device Offline criado antes de existir o registro de dispositivos precisa que ela seja definida à mão, ou precisa ser criado de novo a partir do modelo.
 
 > [!NOTE]
-> Um dispositivo não registrado que fica em silêncio, sem Last Will nem relatório do gateway, apenas para de enviar dados, e um monitor agrupado por dispositivo não consegue destacá-lo. Registre os seus dispositivos, ou dê a um dispositivo crítico um monitor próprio (**Custom Metric**, com o seu **Device ID**) e defina **Se não houver dados** como **Trigger**. A detecção de silêncio também precisa de pelo menos um outro dispositivo da frota ainda informando: uma frota que se apaga por completo, durante uma queda do gateway, por exemplo, dispara um incidente para o monitor, não um por dispositivo.
+> Um dispositivo não registrado que fica em silêncio, sem Last Will nem relatório do gateway, apenas para de enviar dados, e um monitor agrupado por dispositivo não consegue destacá-lo. Registre os seus dispositivos, ou dê a um dispositivo crítico um monitor próprio (**Custom Metric**, com o seu **Device ID**) e defina **Se não houver dados** como **Gatilho**. A detecção de silêncio também precisa de pelo menos um outro dispositivo da frota ainda informando: uma frota que se apaga por completo, durante uma queda do gateway, por exemplo, dispara um incidente para o monitor, não um por dispositivo.
 
 ## Métricas coletadas
 
@@ -146,10 +146,10 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Select Metric Variable** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder, na janela inteira) ou **Any Value** (basta um). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
-| **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
+| **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
-| **Se não houver dados** | Em **Mais campos**. O que acontece quando uma série não tem amostras na janela: **Ignore** (o padrão) a ignora, **Treat As Zero** a lê como `0`, e **Trigger** faz o critério corresponder. |
+| **Se não houver dados** | Em **Mais campos**. O que acontece quando uma série não tem amostras na janela: **Ignore** (o padrão) a ignora, **Treat As Zero** a lê como `0`, e **Gatilho** faz o critério corresponder. |
 
 As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não disparam nada, até que a janela de linha de base tenha histórico suficiente.
 
@@ -163,7 +163,7 @@ Um monitor que você não monta a partir de um modelo começa com dois critério
 | 2 | Check if _monitor name_ is online | Algum valor está acima de `0` | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
-> O silêncio não corresponde a nenhum dos dois critérios: uma frota que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Trigger** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca conta como ausência de dados: uma verificação cuja janela o contém espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> O silêncio não corresponde a nenhum dos dois critérios: uma frota que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca conta como ausência de dados: uma verificação cuja janela o contém espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Terraform
 
@@ -204,7 +204,7 @@ As frotas se registram sozinhas a partir dos dados dos dispositivos. Verifique s
 :::
 
 :::details Um incidente dispara para a frota inteira em vez de um por dispositivo
-A consulta não está agrupada. Monitores com **Custom Metric** avaliam a frota como um todo; use um modelo, ou **Avançado** com **Group by** `device.id`.
+A consulta não está agrupada. Monitores com **Custom Metric** avaliam a frota como um todo; use um modelo, ou **Avançado** com **Agrupar por** `device.id`.
 :::
 
 :::details Um dispositivo morreu mas o Device Offline não disparou

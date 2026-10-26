@@ -146,7 +146,7 @@ Hvert team, du er medlem af, er et enkelt klik væk under **Ejere**, og oversigt
 Åbn episodens side **Medlemsadvarsler**, klik på **Tilføj advarsler**, og sæt flueben ved de advarsler, der hører til den, så mange du har brug for på én gang. Vil du hellere starte fra advarslerne, så vælg dem på listen **Advarsler**, og vælg **Tilføj til ny episode** under **Massehandlinger** (se [Episoder](/docs/incidents/episodes)).
 :::
 
-En episode, du opretter, har ingen grupperingsregel, så listen viser dens **Grupperingsregel** som **Manual**, og ingen livscyklusindstilling gælder for den. Den løser stadig sig selv, når hver advarsel i den er løst.
+En episode, du opretter, har ingen grupperingsregel, så listen viser dens **Grupperingsregel** som **Manuel**, og ingen livscyklusindstilling gælder for den. Den løser stadig sig selv, når hver advarsel i den er løst.
 
 ## Hvad hver side af en episode viser
 

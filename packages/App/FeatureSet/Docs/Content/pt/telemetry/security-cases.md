@@ -46,11 +46,11 @@ Cada uma dessas ações também pode ser concedida separadamente, de criar um ca
 
 | Origem | Abre um caso quando | Como desativar |
 | --- | --- | --- |
-| Regras de detecção | Uma regra corresponde | **Open a Case on Match**, na etapa **Ao corresponder** da regra |
-| Inteligência de ameaças | Um evento cita um indicador conhecido | **Open a Case on Match**, na etapa **Ao corresponder** do feed |
-| Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Polling** da conexão |
+| Regras de detecção | Uma regra corresponde | **Abrir um caso ao corresponder**, na etapa **Ao corresponder** da regra |
+| Inteligência de ameaças | Um evento cita um indicador conhecido | **Abrir um caso ao corresponder**, na etapa **Ao corresponder** do feed |
+| Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Consulta periódica** da conexão |
 | Risco de entidades | O risco de um usuário, host ou endereço atinge o limite do projeto | **Casos de risco**, em **Configurações → Pontuação de risco** |
-| Pessoas | Alguém abre um em **Casos de segurança**, ou com **Open Case** no painel de um evento | Não há como |
+| Pessoas | Alguém abre um em **Casos de segurança**, ou com **Abrir caso** no painel de um evento | Não há como |
 
 Todas as origens abrem casos por padrão, exceto o risco de entidades em projetos criados antes de ele existir: neles, ative primeiro **Casos de risco** ([Risco de entidades](/docs/telemetry/security-entity-risk)). Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
 
@@ -88,17 +88,17 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | Seção do menu lateral | Páginas |
 | --- | --- |
 | **Visão geral** | **Visão geral**, **Linha do tempo** |
-| **Investigação** | **Detections**, **Entidades**, **Sinais conectados**, **Playbooks** |
+| **Investigação** | **Detecções**, **Entidades**, **Sinais conectados**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
-Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e título, **Atribuir a mim**, **Run Playbook**, **Declarar incidente** e **Close Case** e, no menu ⋯ ao lado, **Definir prioridade**, **Atribuir a outra pessoa**, **Alterar status**, **Editar caso** e **Excluir caso**. Assim o caso pode ser tratado de qualquer uma das suas páginas, e um link para o caso continua abrindo a **Visão geral** dele.
+Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e título, **Atribuir a mim**, **Executar playbook**, **Declarar incidente** e **Fechar caso** e, no menu ⋯ ao lado, **Definir prioridade**, **Atribuir a outra pessoa**, **Alterar status**, **Editar caso** e **Excluir caso**. Assim o caso pode ser tratado de qualquer uma das suas páginas, e um link para o caso continua abrindo a **Visão geral** dele.
 
 - **Visão geral**: a descrição, os rótulos e as etapas de status do caso, quem está com ele e o que o abriu, e os números dele: quantas detecções tem, há quanto tempo está aberto e quanto tempo levou para ser reconhecido e contido.
 - **OneUptime AI**, na **Visão geral**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 - **MITRE ATT&CK**, na **Visão geral**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
 - **Linha do tempo**: tudo o que aconteceu com o caso, com quem fez.
-- **Detections**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
+- **Detecções**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).
 - **Playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Playbooks**.
@@ -111,12 +111,12 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 Você não precisa abrir um caso para tratá-lo. Nas listas da fila, o menu ⋯ na linha de um caso tem **Atribuir a mim**, **Atribuir a outra pessoa**, **Alterar status** e **Alterar prioridade**. Para tratar vários casos de uma vez, selecione-os e use as mesmas ações em **Ações em massa**: elas dizem quais casos foram alterados, quais ficaram como estavam e por quê.
 
 - Para passar um caso a outra pessoa, use **Atribuir a outra pessoa** e escolha uma pessoa ou uma equipe. O caso de uma equipe aguarda em **Não atribuído** até que alguém da equipe o assuma.
-- Um status que fecha um caso pede um veredito e uma nota de fechamento, como **Close Case** faz.
+- Um status que fecha um caso pede um veredito e uma nota de fechamento, como **Fechar caso** faz.
 - Um caso fechado não é atribuído a ninguém. Para tratá-lo de novo, reabra-o com **Alterar status**.
 
 ### Fechar um caso
 
-**Close Case** pede um veredito e uma nota de fechamento opcional:
+**Fechar caso** pede um veredito e uma nota de fechamento opcional:
 
 | Veredito | Significado |
 | --- | --- |
@@ -142,13 +142,13 @@ Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles pod
 | Predefinido | O que o OneUptime faz com ele |
 | --- | --- |
 | O status novo | Casos novos começam nele |
-| O status reconhecido | Chegar a ele registra quando o caso foi reconhecido, e **Reopen** devolve a ele um caso fechado |
+| O status reconhecido | Chegar a ele registra quando o caso foi reconhecido, e **Reabrir** devolve a ele um caso fechado |
 | O status contido | Chegar a ele registra quando o caso foi contido |
-| O status fechado | **Close Case** leva um caso para ele, com um veredito |
+| O status fechado | **Fechar caso** leva um caso para ele, com um veredito |
 | As prioridades Crítico, High, Medium, Low e Informativos | Uma detecção abre seu caso na prioridade da sua gravidade, e um caso que alguém abre começa em Medium |
 
 - A posição de um status decide como conta um caso que está nele, como mostra a coluna **Conta como**: do status reconhecido para baixo, reconhecido; do status contido para baixo, contido; do status fechado para baixo, fechado. Um status que você adiciona fica logo acima do status fechado, e mover um caso para um status que o fecha pede um veredito antes.
-- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **For Cases At Least**, as escolhas de notificação e as regras do Slack e do Microsoft Teams leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Gravidade da detecção** mostra quais detecções abrem seus casos em cada prioridade predefinida.
+- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **Para casos de pelo menos**, as escolhas de notificação e as regras do Slack e do Microsoft Teams leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Gravidade da detecção** mostra quais detecções abrem seus casos em cada prioridade predefinida.
 
 Para parar de usar um status ou uma prioridade seus, use **Arquivar** na linha dele. Ninguém pode escolhê-lo de novo, e a API, o Terraform e o MCP o recusam, mas os casos que o têm o mantêm, e você ainda pode filtrar por ele. Os valores arquivados ficam listados na seção recolhida **Status de caso arquivados** ou **Prioridades de caso arquivadas** abaixo da tabela, onde **Desarquivar** traz um de volta. **Excluir** é recusado enquanto houver casos com o valor ou um playbook que parta da prioridade.
 
@@ -197,7 +197,7 @@ Para publicar em um canal, adicione uma regra em **Produtos → Security Events 
 | Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product, Risco de entidades ou Manual |
 | Rótulos do caso de segurança | Os rótulos do caso |
 
-Cada uma das três notificações é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **High** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
+Cada uma das três notificações é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **Alto** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
 
 ## Playbooks
 
@@ -212,11 +212,11 @@ Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos �
 | Classificado como provavelmente malicioso | Uma vez, quando a classificação do OneUptime AI lê o caso como Provavelmente malicioso |
 | Manual | Só quando alguém o executa a partir de um caso |
 
-Qualquer playbook habilitado também pode ser executado manualmente, com **Run Playbook** em um caso. Um playbook que roda sozinho pode ser restringido:
+Qualquer playbook habilitado também pode ser executado manualmente, com **Executar playbook** em um caso. Um playbook que roda sozinho pode ser restringido:
 
-- **For Cases At Least**: só casos desta prioridade ou maior.
-- **Only For Detections From**: só quando a detecção por trás do caso veio desta origem.
-- **Only For These Detection Rules**: só quando ela veio de uma destas regras.
+- **Para casos de pelo menos**: só casos desta prioridade ou maior.
+- **Somente para detecções de**: só quando a detecção por trás do caso veio desta origem.
+- **Somente para estas regras de detecção**: só quando ela veio de uma destas regras.
 
 Um playbook desabilitado não roda nem sozinho nem manualmente.
 
@@ -248,9 +248,9 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
-- **Needs Approval**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção.
-- **Only If Threat Intel Matched**: pular a etapa, a menos que uma etapa **Check entities against threat intel** anterior da mesma execução tenha encontrado um indicador conhecido.
-- **Carry On If It Fails**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
+- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção.
+- **Somente se houver correspondência de inteligência de ameaças**: pular a etapa, a menos que uma etapa **Verificar as entidades na inteligência de ameaças** anterior da mesma execução tenha encontrado um indicador conhecido.
+- **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
 
 ### Contenção
 
@@ -271,15 +271,15 @@ Um caso agrupado por um endereço, como um ataque de força bruta contra a sua V
 
 #### Entidades protegidas
 
-**Protected Entities**, em **Playbooks** no menu, lista os usuários e hosts aos quais nenhum playbook aplica contenção, como contas de acesso de emergência, controladores de domínio e gateways de VPN. Um valor corresponde sem diferenciar maiúsculas de minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` protege todas as contas de serviço. Uma etapa informa um usuário ou host protegido como protegido e o deixa intacto. Os Security Admins mantêm a lista.
+**Entidades protegidas**, em **Playbooks** no menu, lista os usuários e hosts aos quais nenhum playbook aplica contenção, como contas de acesso de emergência, controladores de domínio e gateways de VPN. Um valor corresponde sem diferenciar maiúsculas de minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` protege todas as contas de serviço. Uma etapa informa um usuário ou host protegido como protegido e o deixa intacto. Os Security Admins mantêm a lista.
 
 #### Aprovação
 
-As quatro etapas que cortam o acesso de alguém aguardam aprovação. Só um Security Admin pode desativar **Needs Approval** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Act On** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
+As quatro etapas que cortam o acesso de alguém aguardam aprovação. Só um Security Admin pode desativar **Requer aprovação** em uma delas, e o OneUptime registra quem fez isso. A aprovação lista em **Agir sobre** os usuários ou hosts em que a etapa agiria, todos marcados: desmarque os que ela deve deixar intactos. Os protegidos não são oferecidos. Quem iniciou uma execução não pode aprovar as etapas dela: outra pessoa faz isso, mas quem a iniciou ainda pode rejeitá-las.
 
 #### Desfazer
 
-As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Unsuspend**, **Lift Containment** ou **Liberar**. Uma sessão do Okta encerrada não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
+As etapas de reversão agem nos usuários ou hosts de que o caso trata, como as etapas que elas revertem. Depois que a execução parar, um usuário ou host contido também tem um botão próprio na etapa dele: **Reativar**, **Suspender a contenção** ou **Liberar**. Uma sessão do Okta encerrada não pode ser desfeita. Cada reversão fica guardada na linha do tempo do caso e no registro de auditoria do projeto.
 
 ### Mensagens
 
@@ -311,7 +311,7 @@ Cada execução aparece no caso dela e em **Produtos → Security Events → Pla
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
 
-Uma etapa aguardando aprovação mostra **Approve** e **Reject** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. A página **Aprovações**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções** lista todas as execuções. Em **Execuções** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
+Uma etapa aguardando aprovação mostra **Aprovar** e **Rejeitar** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. A página **Aprovações**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções** lista todas as execuções. Em **Execuções** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
 
 Uma execução que deixa de receber sinais do worker dela, depois de uma reinicialização, por exemplo, é retomada: uma execução na fila volta para a fila depois de 2 minutos, e uma execução que não dá sinal por 30 minutos é marcada como falha.
 
@@ -329,12 +329,12 @@ Acima, uma faixa mostra como a segurança está configurada: suas origens, detec
 ## Encontrar ameaças
 
 - **Entidades** classifica os usuários, hosts, endereços e hashes que os seus achados mais citam, no último dia, semana ou mês, e procura qualquer valor em 30 dias de eventos. Selecione uma entidade para abri-la em **Correlacionar**.
-- **Rule Library** tem regras de detecção prontas, para ameaças de identidade, endpoint, nuvem, rede, web e Kubernetes. Cada uma é uma regra Sigma escrita para os campos para os quais toda origem conectada é normalizada. A linha de cada uma diz o que ela encontra, as táticas e técnicas do MITRE ATT&CK a que está associada, os eventos que ela lê e se algum chegou nos últimos 7 dias (**Recebidos** ou **Não recebidos**), e a sua gravidade. Filtre a lista por categoria, pelos dados que as regras leem e por já tê-las adicionado ou não, ou pesquise nela por nome, técnica do ATT&CK ou gravidade; o endereço da página guarda os filtros. Selecione uma regra para ver os detalhes: como começar a enviar os eventos que ela lê, como ela é executada e a sua regra Sigma. **Adicionar** a cria como uma regra de detecção sua, ativada e abrindo casos em vez de alertas; altere-a em **Detection Rules** como qualquer outra. As regras marcadas como **Recomendados** encontram ameaças em dados que o OneUptime já tem, e um botão adiciona as que você ainda não tem.
-- **ATT&CK Coverage** lista as táticas do MITRE ATT&CK, cada uma com quantas das suas técnicas as suas regras habilitadas cobrem e para quantas mais a **Rule Library** tem regras. Abra uma tática para ver as técnicas dela, ou mude para **Matriz** para ver a matriz inteira. Selecione uma técnica para ver as regras da biblioteca que a cobrem e abrir a **Rule Library** nelas.
+- **Biblioteca de regras** tem regras de detecção prontas, para ameaças de identidade, endpoint, nuvem, rede, web e Kubernetes. Cada uma é uma regra Sigma escrita para os campos para os quais toda origem conectada é normalizada. A linha de cada uma diz o que ela encontra, as táticas e técnicas do MITRE ATT&CK a que está associada, os eventos que ela lê e se algum chegou nos últimos 7 dias (**Recebidos** ou **Não recebidos**), e a sua gravidade. Filtre a lista por categoria, pelos dados que as regras leem e por já tê-las adicionado ou não, ou pesquise nela por nome, técnica do ATT&CK ou gravidade; o endereço da página guarda os filtros. Selecione uma regra para ver os detalhes: como começar a enviar os eventos que ela lê, como ela é executada e a sua regra Sigma. **Adicionar** a cria como uma regra de detecção sua, ativada e abrindo casos em vez de alertas; altere-a em **Regras de detecção** como qualquer outra. As regras marcadas como **Recomendados** encontram ameaças em dados que o OneUptime já tem, e um botão adiciona as que você ainda não tem.
+- **Cobertura ATT&CK** lista as táticas do MITRE ATT&CK, cada uma com quantas das suas técnicas as suas regras habilitadas cobrem e para quantas mais a **Biblioteca de regras** tem regras. Abra uma tática para ver as técnicas dela, ou mude para **Matriz** para ver a matriz inteira. Selecione uma técnica para ver as regras da biblioteca que a cobrem e abrir a **Biblioteca de regras** nelas.
 
 ## Automatizar
 
-- **Fluxos de trabalho**: criar, atualizar ou excluir um caso ou uma nota pode iniciar um fluxo de trabalho. Uma etapa **Run a workflow** inicia um fluxo de trabalho cujo gatilho é um webhook.
+- **Fluxos de trabalho**: criar, atualizar ou excluir um caso ou uma nota pode iniciar um fluxo de trabalho. Uma etapa **Executar um fluxo de trabalho** inicia um fluxo de trabalho cujo gatilho é um webhook.
 - **API**: casos, notas, detecções, playbooks, execuções, entidades protegidas e as prioridades e status de caso têm a mesma API REST que o resto do OneUptime, em `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` e `/security-case-status`. Veja [Referência da API](/docs/api-reference/api-reference).
 - Agentes de IA: o servidor MCP tem ferramentas para casos, notas, detecções, playbooks e as prioridades e status de caso. Veja [Servidor MCP](/docs/ai/mcp-server).
 - Terraform: os recursos `oneuptime_security_case_priority` e `oneuptime_security_case_status` mantêm como código as prioridades e os status de um projeto.
@@ -342,7 +342,7 @@ Acima, uma faixa mostra como a segurança está configurada: suas origens, detec
 ## Solução de problemas
 
 :::details Uma regra corresponde, mas nenhum caso abre
-Confira **Open a Case on Match** na etapa **Ao corresponder** da regra. Uma detecção sobre uma entidade que já tem um caso aberto entra nesse caso em vez de abrir outro: procure-a em **Detections** no caso aberto.
+Confira **Abrir um caso ao corresponder** na etapa **Ao corresponder** da regra. Uma detecção sobre uma entidade que já tem um caso aberto entra nesse caso em vez de abrir outro: procure-a em **Detecções** no caso aberto.
 :::
 
 :::details Ninguém foi avisado sobre um caso
@@ -350,7 +350,7 @@ Veja a **Linha do tempo** do caso, que diz quem foi notificado. Uma notificaçã
 :::
 
 :::details Um playbook não rodou
-Confira se ele está habilitado, se a configuração **Trigger** dele é a certa (Case Opened roda uma vez, quando um caso abre) e se o caso atende às configurações **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules** dele. Um caso aberto manualmente não tem detecção, então um playbook limitado a uma origem ou a regras não roda nele.
+Confira se ele está habilitado, se a configuração **Gatilho** dele é a certa (Case Opened roda uma vez, quando um caso abre) e se o caso atende às configurações **Para casos de pelo menos**, **Somente para detecções de** e **Somente para estas regras de detecção** dele. Um caso aberto manualmente não tem detecção, então um playbook limitado a uma origem ou a regras não roda nele.
 :::
 
 :::details Uma etapa de contenção falhou

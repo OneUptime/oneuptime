@@ -1,10 +1,10 @@
 # Lagringsarray-övervakning
 
-En lagringsarray-monitor bevakar en lagringsarray och säger till när arrayen själv skickar ut en varning, får slut på utrymme, blir långsam, förlorar hårdvara eller en värdsökväg, eller släpar efter med replikeringen. Den fungerar med Pure Storage FlashArray och Pure Storage FlashBlade och läser mätvärdena som arrayen själv exporterar - Pures serier `purefa_*` och `purefb_*` -, som OneUptime Storage Array Agent samlar in.
+En lagringsarray-monitor bevakar en lagringsarray och säger till när arrayen själv skickar ut ett larm, får slut på utrymme, blir långsam, förlorar hårdvara eller en värdsökväg, eller släpar efter med replikeringen. Den fungerar med Pure Storage FlashArray och Pure Storage FlashBlade och läser mätvärdena som arrayen själv exporterar - Pures serier `purefa_*` och `purefb_*` -, som OneUptime Storage Array Agent samlar in.
 
 :::cards
 - [Skapa monitorn](#skapa-en-lagringsarray-monitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-varningsmallar): Arton färdiga varningar, en incident per volym, värd eller komponent.
+- [Mallar](#färdiga-larmmallar): Arton färdiga larm, en incident per volym, värd eller komponent.
 - [Så fungerar Pures serier](#så-är-pures-serier-uppbyggda): Ett mätvärdesnamn, många värden.
 - [Mätvärden](#insamlade-mätvärden): Varje serie som monitorn kan varna på.
 :::
@@ -25,7 +25,7 @@ flowchart TB
     oneuptime -->|"första data"| registered["Array registrerad"]
     oneuptime --> monitor["Lagringsarray-monitor"]
     monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    criteria -->|"ja"| incident["Incident eller larm"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 
@@ -43,7 +43,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj Lagringsarray
 
-Klicka på **Fler monitortyper** under **Monitortyp** och välj **Lagringsarray** under **Infrastruktur**, eller skriv `storage` i sökfältet. Ange ett **Namn** - det används i titlarna på incidenter och varningar - och klicka på **Nästa**.
+Klicka på **Fler monitortyper** under **Monitortyp** och välj **Lagringsarray** under **Infrastruktur**, eller skriv `storage` i sökfältet. Ange ett **Namn** - det används i titlarna på incidenter och larm - och klicka på **Nästa**.
 
 ### Välj arrayen
 
@@ -53,21 +53,21 @@ Välj arrayen i **Lagringsarray** under **Storage Array Monitor Configuration**.
 
 Välj en av de tre flikarna:
 
-- **Quick Setup** - klicka på en [mall](#färdiga-varningsmallar). Den sätter mätvärdet, etikettfiltren, aggregeringen, tidsintervallet och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Quick Setup** - klicka på en [mall](#färdiga-larmmallar). Den sätter mätvärdet, etikettfiltren, aggregeringen, tidsintervallet och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** - välj ett mätvärde i **Storage Array Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en volym, en värd, en podd, en komponent, ett filsystem eller en bucket.
-- **Avancerad** - bygg frågor och formler själv under **Välj mått**, till exempel använd kapacitet som `purefa_array_space_bytes` filtrerat till `space=capacity` minus samma mätvärde filtrerat till `space=empty`. Använd **Group by** med ett objekts etikett för att bedöma varje objekt för sig.
+- **Avancerad** - bygg frågor och formler själv under **Välj mått**, till exempel använd kapacitet som `purefa_array_space_bytes` filtrerat till `space=capacity` minus samma mätvärde filtrerat till `space=empty`. Använd **Gruppera efter** med ett objekts etikett för att bedöma varje objekt för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Threshold**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
-Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och varningar som den skapar visas också på arrayens sidor **Incidenter** och **Varningar**.
+Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och larm som den skapar visas också på arrayens sidor **Incidenter** och **Larm**.
 :::
 
 > [!TIP]
-> För att sätta upp flera mallar på en gång öppnar du arrayen från **Produkter → Infrastruktur → Storage Arrays** och går till **Recommendations**. Välj de mallar du vill ha, välj vem som ska larmas, och OneUptime skapar en monitor per mall.
+> För att sätta upp flera mallar på en gång öppnar du arrayen från **Produkter → Infrastruktur → Storage Arrays** och går till **Rekommendationer**. Välj de mallar du vill ha, välj vem som ska larmas, och OneUptime skapar en monitor per mall.
 
 ## Monitorinställningar
 
@@ -78,12 +78,12 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Värd** | Custom Metric, Avancerad | Bara FlashArray. En värd så som arrayen känner den, via etiketten `host`, som `esxi-01`. |
 | **Podd** | Custom Metric, Avancerad | Bara FlashArray. En ActiveCluster- eller ActiveDR-podd, via etiketten `name`, eller `local_pod` på serier för replikalänkar. |
 | **Hardware Component** | Custom Metric, Avancerad | En hårdvarukomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på en FlashArray, `name` på en FlashBlade. |
-| **File System** | Custom Metric, Avancerad | Bara FlashBlade. Ett filsystem, via etiketten `name`. |
+| **Filsystem** | Custom Metric, Avancerad | Bara FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avancerad | Bara FlashBlade. En bucket för objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). Formuläret lägger till etikettfiltret som ger det dess betydelse och grupperar det efter objektet det beskriver, så varje volym, värd eller komponent bedöms för sig. |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
-| **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 5 Minutes**; ett anpassat mätvärde för ett filsystem eller en bucket på **Past 15 Minutes**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Senaste 5 minuterna**; ett anpassat mätvärde för ett filsystem eller en bucket på **Senaste 15 minuterna**; mallar sätter sitt eget. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Agenten läser arrayens endpoint var 60:e sekund, och volymer, värdar och poddar var 2:a minut, så ett fönster på 5 minuter alltid innehåller ett stickprov. En FlashBlades filsystem och buckets läser den var 5:e minut, därav 15, och FlashArray-kataloger var 30:e minut: ge en katalogmonitor ett fönster på 60 minuter.
 
@@ -98,7 +98,7 @@ Flera serier bär sitt tillstånd i en **etikett**, med ett värde som alltid ä
 
 | Serie | Tillståndsetikett | En serie per |
 | --- | --- | --- |
-| `purefa_alerts_open` | `severity`, med `summary`, `code` och `component_type` | Öppen varning |
+| `purefa_alerts_open` | `severity`, med `summary`, `code` och `component_type` | Öppen larm |
 | `purefa_hw_component_status` | `component_status` | Hårdvarukomponent |
 | `purefa_host_connectivity_info` | `status`, med `details` | Värd |
 | `purefa_drive_capacity_bytes` | `component_status` (värdet är diskens kapacitet) | Disk |
@@ -107,25 +107,25 @@ En serie som är filtrerad till ett dåligt tillstånd finns bara så länge nå
 
 I monitorfilter och grupperingsnycklar börjar agentens attribut med `resource.` (`resource.storage.array.name`, `resource.storage.system`), medan Pures egna etiketter inte gör det (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
-## Färdiga varningsmallar
+## Färdiga larmmallar
 
 OneUptime levererar 18 mallar — 11 för FlashArray och 7 för FlashBlade — och **Quick Setup** erbjuder dem för arrayens plattform. Var och en bygger en komplett monitor: mätvärdesfrågan, etikettfiltren, en gruppering på objektets egen etikett, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
-Ett kriterium utlöser bara när villkoret gäller för **varje** värde i fönstret. En monitor som utlöstes på ett tröskelvärde för kapacitet, latens, eftersläpning eller kvot återhämtar sig först 10 % förbi det, så ett värde som pendlar kring tröskeln inte växlar fram och tillbaka; mallarna för varningar och hårdvara återhämtar sig så snart tillståndet försvinner.
+Ett kriterium utlöser bara när villkoret gäller för **varje** värde i fönstret. En monitor som utlöstes på ett tröskelvärde för kapacitet, latens, eftersläpning eller kvot återhämtar sig först 10 % förbi det, så ett värde som pendlar kring tröskeln inte växlar fram och tillbaka; mallarna för larm och hårdvara återhämtar sig så snart tillståndet försvinner.
 
 ### FlashArray
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när |
 | --- | --- | --- | --- | --- |
-| Critical Array Alert | Array Health | Kritisk | `purefa_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen kritisk varning (en trasig komponent, en kapacitetskris, ett replikeringsfel). En incident per varning; återhämtar när varningen stängs |
+| Critical Array Alert | Array Health | Kritisk | `purefa_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen kritiskt larm (en trasig komponent, en kapacitetskris, ett replikeringsfel). En incident per larm; återhämtar när larmet stängs |
 | Warning Array Alert | Array Health | Warning | `purefa_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — arrayen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
 | Capacity Above 80% | Kapacitet | Warning | `purefa_array_space_utilization`, Max, senaste 15 minuterna | > 80 — Pures egen första kapacitetströskel; återhämtar vid ≤ 72 |
 | Capacity Above 90% | Kapacitet | Kritisk | `purefa_array_space_utilization`, Max, senaste 5 minuterna | > 90 — arrayen är nära att avvisa skrivningar; återhämtar vid ≤ 81 |
 | High Read Latency | Performance | Warning | `purefa_array_performance_latency_usec` filtrerat till `dimension=usec_per_read_op`, Avg, senaste 10 minuterna | > 5000 µs (5 ms) — läsningar på en FlashArray tar normalt långt under 1 ms; återhämtar vid ≤ 4500 |
 | High Write Latency | Performance | Warning | `purefa_array_performance_latency_usec` filtrerat till `dimension=usec_per_write_op`, Avg, senaste 10 minuterna | > 5000 µs (5 ms); återhämtar vid ≤ 4500 |
-| Hardware Component Failed | Hardware | Kritisk | `purefa_hw_component_status` filtrerat till `component_status=critical`, Max per `component_name`, senaste 5 minuterna | > 0 — en kontroller, ett nätaggregat, en fläkt, ett fack eller en port är kritisk och redundansen är borta. En incident per komponent; återhämtar när den rapporterar ok |
-| Hardware Component Degraded | Hardware | Warning | `purefa_hw_component_status` filtrerat till `component_status=degraded`, Max per `component_name`, senaste 5 minuterna | > 0 — en komponent är degraderad. En incident per komponent; återhämtar när den rapporterar ok |
-| Drive Failed | Hardware | Kritisk | `purefa_drive_capacity_bytes` filtrerat till `component_status=failed`, Max per `component_name`, senaste 5 minuterna | > 0 — en DirectFlash-modul eller en SSD har gått sönder och arrayen bygger om på de andra. En incident per disk; återhämtar när den har bytts |
+| Hardware Component Failed | Hårdvara | Kritisk | `purefa_hw_component_status` filtrerat till `component_status=critical`, Max per `component_name`, senaste 5 minuterna | > 0 — en kontroller, ett nätaggregat, en fläkt, ett fack eller en port är kritisk och redundansen är borta. En incident per komponent; återhämtar när den rapporterar ok |
+| Hardware Component Degraded | Hårdvara | Warning | `purefa_hw_component_status` filtrerat till `component_status=degraded`, Max per `component_name`, senaste 5 minuterna | > 0 — en komponent är degraderad. En incident per komponent; återhämtar när den rapporterar ok |
+| Drive Failed | Hårdvara | Kritisk | `purefa_drive_capacity_bytes` filtrerat till `component_status=failed`, Max per `component_name`, senaste 5 minuterna | > 0 — en DirectFlash-modul eller en SSD har gått sönder och arrayen bygger om på de andra. En incident per disk; återhämtar när den har bytts |
 | Host Lost Redundant Paths | Värdar | Warning | `purefa_host_connectivity_info` filtrerat till `status=critical`, Max per `host`, senaste 5 minuterna | > 0 — värden når arrayen genom en kontroller eller ingen; en failover mellan kontrollerna skulle ta dess lagring offline. En incident per värd; återhämtar när sökvägarna är tillbaka |
 | Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`, Max per `local_pod`, senaste 10 minuterna | > 60000 ms (60 s) — en failover nu skulle förlora fler nya skrivningar än planerat. En incident per podd; återhämtar vid ≤ 54000 |
 
@@ -133,17 +133,17 @@ Ett kriterium utlöser bara när villkoret gäller för **varje** värde i föns
 
 | Mall | Kategori | Allvarlighetsgrad | Bevakar | Utlöser när |
 | --- | --- | --- | --- | --- |
-| Critical Array Alert | Array Health | Kritisk | `purefb_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen kritisk varning. En incident per varning; återhämtar när varningen stängs |
+| Critical Array Alert | Array Health | Kritisk | `purefb_alerts_open` filtrerat till `severity=critical`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen kritiskt larm. En incident per larm; återhämtar när larmet stängs |
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` filtrerat till `severity=warning`, Max per `summary`, senaste 5 minuterna | > 0 — FlashBladen har en öppen varning på nivån warning. En incident per varning; återhämtar när varningen stängs |
 | Capacity Above 80% | Kapacitet | Warning | `purefb_array_space_utilization` filtrerat till `type=array`, Max, senaste 15 minuterna | > 80; återhämtar vid ≤ 72 |
 | Capacity Above 90% | Kapacitet | Kritisk | `purefb_array_space_utilization` filtrerat till `type=array`, Max, senaste 5 minuterna | > 90 — skrivningar misslyckas för varje klient när den blir full; återhämtar vid ≤ 81 |
-| Hardware Component Unhealthy | Hardware | Kritisk | `purefb_hardware_health`, Min per `name`, senaste 5 minuterna | < 1 — ett blad, en fabric-modul, ett nätaggregat eller en fläkt har problem (en tom plats rapporterar 2). En incident per komponent; återhämtar vid ≥ 1 |
+| Hardware Component Unhealthy | Hårdvara | Kritisk | `purefb_hardware_health`, Min per `name`, senaste 5 minuterna | < 1 — ett blad, en fabric-modul, ett nätaggregat eller en fläkt har problem (en tom plats rapporterar 2). En incident per komponent; återhämtar vid ≥ 1 |
 | High Read Latency | Performance | Warning | `purefb_array_performance_latency_usec` filtrerat till `dimension=usec_per_read_op` och `protocol=all`, Avg, senaste 10 minuterna | > 10000 µs (10 ms) över alla protokoll; återhämtar vid ≤ 9000 |
-| File System Near Full | File Systems | Warning | `purefb_file_systems_space_bytes` filtrerat till `space=available_ratio`, Min per `name`, senaste 15 minuterna | < 0.1 — det är mindre än 10 % kvar av ett filsystems tilldelade storlek. En incident per filsystem; återhämtar vid ≥ 0.11 |
+| File System Near Full | Filsystem | Warning | `purefb_file_systems_space_bytes` filtrerat till `space=available_ratio`, Min per `name`, senaste 15 minuterna | < 0.1 — det är mindre än 10 % kvar av ett filsystems tilldelade storlek. En incident per filsystem; återhämtar vid ≥ 0.11 |
 
-**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och varningen som en mall skapar börjar på projektets allvarligaste incident- och varningsnivå; ändra dem i kriteriet.
+**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmnivå; ändra dem i kriteriet.
 
-- **Öppna varningar och hårdvarutillstånd använder Max** av en serie som bara finns så länge varningen är öppen eller komponenten är i det tillståndet, så en enda avläsning som visar den passerar tröskeln.
+- **Öppna larm och hårdvarutillstånd använder Max** av en serie som bara finns så länge larmet är öppet eller komponenten är i det tillståndet, så en enda avläsning som visar den passerar tröskeln.
 - **Varje mall per objekt grupperar på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`), så det utlöses en incident per berört objekt, och incidenten nämner det.
 - **Latensmallar använder Avg** av arrayens eget genomsnitt per operation, och kapacitetsmallar **Max** av dess egen utnyttjandeprocent. Latenser är låsta till mikrosekunder och kapacitet till procent.
 - **Hardware Component Unhealthy använder Min** per komponent: hälsan är 1 när komponenten är frisk och sjunker till 0 när den inte är det.
@@ -165,7 +165,7 @@ Agenten skickar allt som arrayen exporterar; serierna nedan är katalogen som mo
 
 | Mätvärde | Filter | Plattform | Enhet | Beskrivning |
 | --- | --- | --- | --- | --- |
-| `purefa_array_space_utilization` | — | FlashArray | `%` | Andelen av arrayens användbara kapacitet som används. Pure skickar själv ut kapacitetsvarningar vid 80 %, 90 % och 100 % |
+| `purefa_array_space_utilization` | — | FlashArray | `%` | Andelen av arrayens användbara kapacitet som används. Pure skickar själv ut kapacitetslarm vid 80 %, 90 % och 100 % |
 | `purefa_array_space_bytes` | `space=capacity` | FlashArray | `bytes` | Arrayens användbara kapacitet |
 | `purefa_array_space_bytes` | `space=empty` | FlashArray | `bytes` | Oanvänd kapacitet — följ trenden för att förutsäga när arrayen blir full |
 | `purefa_array_space_bytes` | `space=snapshots` | FlashArray | `bytes` | Fysiskt utrymme som bara snapshots upptar; en snabb ökning betyder oftast att en skyddsgrupp behåller fler snapshots än planerat |
@@ -264,7 +264,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
+| **Tröskel** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret inte har några stickprov: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
@@ -328,7 +328,7 @@ monitor_steps = [{
 Arrayer registrerar sig själva utifrån agentens data. Kontrollera att agenten körs och skickar data (se [guiden för Storage Array Agent](/docs/telemetry/storage-arrays)), och att `STORAGE_ARRAY_NAME` är satt.
 :::
 
-:::details En varnings- eller hårdvarumall utlöser aldrig
+:::details En larm- eller hårdvarumall utlöser aldrig
 Det är det friska fallet. `purefa_alerts_open`, `purefa_hw_component_status`, `purefa_drive_capacity_bytes` och `purefa_host_connectivity_info` bär sitt tillstånd i en etikett, och en serie filtrerad till ett dåligt tillstånd (`severity=critical`, `component_status=failed`) finns bara så länge något är i det tillståndet. För att se serien bakom en mall kör du dess fråga utan filtret på sidan **Mätvärden**.
 :::
 

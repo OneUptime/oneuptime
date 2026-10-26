@@ -1,5 +1,6 @@
 import HostElement from "./Host";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_HOSTS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import Host from "Common/Models/DatabaseModels/Host";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const HostsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.hosts}
-      moreText="more hosts"
+      moreTemplate={MORE_HOSTS_TEMPLATE}
       getEachElement={(host: Host) => {
         return (
           <HostElement

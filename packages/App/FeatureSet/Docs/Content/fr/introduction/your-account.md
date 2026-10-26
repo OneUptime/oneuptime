@@ -109,7 +109,7 @@ En haut de la page, cliquez sur **Activer l'authentification à deux facteurs** 
 Vous pouvez appartenir à autant de projets que vous voulez. Le sélecteur de projet en haut à gauche du tableau de bord les liste : choisissez-en un pour y passer.
 
 - **Créer un projet** : ouvrez le sélecteur de projet et cliquez sur **Créer un nouveau projet**. Sur une installation auto-hébergée, l'administrateur peut réserver la création de projets aux administrateurs.
-- **Accepter une invitation** : quand quelqu'un vous invite, la cloche en haut à droite affiche l'invitation en attente et ouvre **Invitations au projet**. Là, vous pouvez l'**Accepter** ou cliquer sur **Reject**.
+- **Accepter une invitation** : quand quelqu'un vous invite, la cloche en haut à droite affiche l'invitation en attente et ouvre **Invitations au projet**. Là, vous pouvez l'**Accepter** ou cliquer sur **Rejeter**.
 - **Quitter un projet** : demandez à une personne qui gère ses utilisateurs de vous retirer, avec **Retirer du projet** sur sa page **Utilisateurs**.
 
 ## Ce que chaque projet garde pour vous

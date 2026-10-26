@@ -28,7 +28,7 @@ Utforskeren har fem faner:
 
 | Fane | Hva den er til |
 | --- | --- |
-| **Viser** | Søk i og filtrer spans, og åpne sporene deres. Den åpner på siste time, nyeste først, 50 spans per side. |
+| **Leser** | Søk i og filtrer spans, og åpne sporene deres. Den åpner på siste time, nyeste først, 50 spans per side. |
 | **Innsikt** | Antall forespørsler, feilrater og latens per tjeneste, og forespørslene som er verdt en titt. |
 | **KI** | De trege og feilende operasjonene og den manglende sporingen OneUptime finner i sporene dine, og hva OneUptime AI gjorde med dem. Se [Finn og rett trege og feilende operasjoner med KI](#finn-og-rett-trege-og-feilende-operasjoner-med-ki). |
 | **Oppsettveiledning** | Hvordan du sender spor med OpenTelemetry med en av [inntaksnøklene](/docs/telemetry/ingestion-keys) dine. |
@@ -44,7 +44,7 @@ Utforskeren har fem faner:
 :::steps
 ### Åpne Viser
 
-Gå til **Produkter → Observerbarhet → Spor**. **Viser** viser spannene fra siste time, nyeste først, hver med status, tjeneste, navn og varighet.
+Gå til **Produkter → Observerbarhet → Spor**. **Leser** viser spannene fra siste time, nyeste først, hver med status, tjeneste, navn og varighet.
 
 ### Velg tidsintervallet
 
@@ -56,7 +56,7 @@ Skriv et søk og trykk Enter, for eksempel `service:checkout status:error durati
 
 ### Snevre inn med filtre
 
-Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span-kategori**, **Har unntak**, **Span-type**, **Span-navn**, **Service Instance** og **Vertens navn**.
+Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span-kategori**, **Har unntak**, **Span-type**, **Span-navn**, **Tjenesteinstans** og **Vertens navn**.
 
 ### Åpne et span
 
@@ -101,8 +101,8 @@ For mer bytter du listen fra **Spans** til **Analytics**. Velg en tidsserie, en 
 
 ## Følg, lagre og del
 
-- Klikk på **Pauset** over listen for å slå på direkteoppdateringer. Knappen viser da **Live**, og listen ser etter nye spans hvert 10. sekund. Klikk igjen for å sette på pause.
-- **Saved Views** tar vare på et søk, filtrene og tidsintervallet under et navn, for alle i prosjektet. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
+- Klikk på **Pauset** over listen for å slå på direkteoppdateringer. Knappen viser da **Direkte**, og listen ser etter nye spans hvert 10. sekund. Klikk igjen for å sette på pause.
+- **Lagrede visninger** tar vare på et søk, filtrene og tidsintervallet under et navn, for alle i prosjektet. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
 - Knappene **Logger** og **Målinger** åpner de utforskerne for det samme tidsvinduet, med så mye av filtreringen din som de kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
 
 ## Innsikt i spor
@@ -149,7 +149,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 
 ### Se hva den gjorde
 
-- **Spor → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Spor**, som åpner spansene det gjelder, fra timen det ble funnet i, i **Viser**. For en feilende operasjon setter **Opprett monitor** opp en spormonitor på de feilede spansene.
+- **Spor → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Spor**, som åpner spansene det gjelder, fra timen det ble funnet i, i **Leser**. For en feilende operasjon setter **Opprett monitor** opp en spormonitor på de feilede spansene.
 - **Spor → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 

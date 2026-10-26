@@ -68,7 +68,7 @@ Når nogen forlader projektet, slettes hver tilsidesættelse, der nævner dem og
 
 ## Hvem der må tilføje tilsidesættelser
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member** må tilføje og slette tilsidesættelser; **Viewer** og **On-Call Viewer** må se dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vagtplaner** ser kun folk, der må læse tilsidesættelser, hvis vagt der dækkes.
+**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må tilføje og slette tilsidesættelser; **Seer** og **Vagtseer** må se dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** og **Read On-Call Duty Policy User Override**. På **Tidslinje for vagtplaner** ser kun folk, der må læse tilsidesættelser, hvis vagt der dækkes.
 
 I OneUptime Cloud kræver brugertilsidesættelser abonnementet **Growth**.
 

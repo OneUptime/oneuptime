@@ -18,7 +18,7 @@ Zum Einrichten von Sicherheit braucht es die Rolle Project Owner, Project Admin 
 :::steps
 ### Einschalten, was die meisten Teams brauchen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse**. Klicken Sie auf **Übersicht** auf **Empfohlenes aktivieren**. Damit werden drei Dinge auf einmal eingeschaltet: **Sicherheitsereignisse in Ihren Protokollen finden**, die empfohlenen Erkennungsregeln und **Enrich New Cases**, ein Playbook, das jeden neuen Fall mit Threat Intelligence abgleicht und eine Checkliste zur Einordnung darin hinterlässt.
+Öffnen Sie **Produkte → Sicherheitsereignisse**. Klicken Sie auf **Übersicht** auf **Empfohlenes aktivieren**. Damit werden drei Dinge auf einmal eingeschaltet: **Sicherheitsereignisse in Ihren Protokollen finden**, die empfohlenen Erkennungsregeln und **Neue Fälle anreichern**, ein Playbook, das jeden neuen Fall mit Threat Intelligence abgleicht und eine Checkliste zur Einordnung darin hinterlässt.
 
 ### Einen Testangriff senden
 
@@ -26,7 +26,7 @@ Klicken Sie auf **Testangriff senden**. Ein Dutzend fehlgeschlagener Anmeldungen
 
 ### Den Fall öffnen
 
-Klicken Sie auf **Fall öffnen**. So sieht ein echter Fund aus: die Ereignisse dahinter, die Adresse, um die es geht, und was **Enrich New Cases** herausgefunden hat. Schließen Sie ihn als Test, wenn Sie fertig sind.
+Klicken Sie auf **Fall öffnen**. So sieht ein echter Fund aus: die Ereignisse dahinter, die Adresse, um die es geht, und was **Neue Fälle anreichern** herausgefunden hat. Schließen Sie ihn als Test, wenn Sie fertig sind.
 :::
 
 Von da an zeigt **Übersicht** zuerst unter **Erfordert Aufmerksamkeit**, was jemanden braucht: Ihre offenen Fälle, die Fälle, die niemand übernommen hat, und die Playbook-Schritte, die auf eine Genehmigung warten. Gibt es nichts davon, steht dort **Alles ruhig**.

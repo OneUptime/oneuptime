@@ -144,10 +144,10 @@ Als een saldo niet kan betalen, wordt het bericht niet verstuurd of stopt OneUpt
 
 | Om | Het vraagt |
 | --- | --- |
-| De factureringspagina's te lezen: het abonnement, facturen, gebruik, saldi en betaalmethoden | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** of **Billing Viewer** |
-| Een factuur te downloaden | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** of **Billing Member** |
-| Het factuuradres en de factuurmail te wijzigen | Project Owner, **Manage Billing**, **Billing Admin** of **Billing Member** |
-| Sms, oproepen, WhatsApp of Telegram aan of uit te zetten | Project Owner, **Manage Billing** of **Billing Admin** |
+| De factureringspagina's te lezen: het abonnement, facturen, gebruik, saldi en betaalmethoden | Project Owner, **Manage Billing**, **Factureringsbeheerder**, **Factureringslid** of **Factureringskijker** |
+| Een factuur te downloaden | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Factureringsbeheerder** of **Factureringslid** |
+| Het factuuradres en de factuurmail te wijzigen | Project Owner, **Manage Billing**, **Factureringsbeheerder** of **Factureringslid** |
+| Sms, oproepen, WhatsApp of Telegram aan of uit te zetten | Project Owner, **Manage Billing** of **Factureringsbeheerder** |
 | Een betaalmethode toe te voegen | Project Owner, **Manage Billing** of **Create Payment Method** |
 | Een factuur te betalen | Project Owner, **Manage Billing** of **Edit Invoices** |
 | Het abonnement te wijzigen, een saldo bij te vullen of automatisch bijvullen te wijzigen | Project Owner of **Manage Billing** |

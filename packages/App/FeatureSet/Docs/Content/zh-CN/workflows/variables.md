@@ -160,11 +160,11 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 | **No expiry reported**     | 提供商没有说明令牌何时过期，所以每次运行都会获取一个新令牌。                                                                         |
 | **Refresh failed**         | 上一次获取令牌的尝试失败了。提供商给出的原因会完整显示，并附上发生时间。下一次成功刷新会清除它。                                     |
 
-状态下方的 **立即刷新** 会立刻获取一个新令牌。用它来检查新设置，而不必运行工作流。**OAuth 2.0 Settings** 卡片上的 **Update Credentials** 会替换客户端密钥或 refresh token，然后用它们获取令牌。更改某个设置（令牌 URL、客户端 ID、范围等）会丢弃缓存的令牌，这样下一次运行会用新设置获取令牌。
+状态下方的 **立即刷新** 会立刻获取一个新令牌。用它来检查新设置，而不必运行工作流。**OAuth 2.0 Settings** 卡片上的 **更新凭据** 会替换客户端密钥或 refresh token，然后用它们获取令牌。更改某个设置（令牌 URL、客户端 ID、范围等）会丢弃缓存的令牌，这样下一次运行会用新设置获取令牌。
 
 ### 当提供商拒绝时
 
-需要令牌的步骤会在运行前失败，运行的日志会写明变量并引用提供商的回复，例如 `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` 同样的原因也会显示在变量的 **访问令牌** 卡片上。Refresh Token 变量上出现 `invalid_grant`，几乎总是意味着 refresh token 本身已过期或被撤销，解决办法是 **Update Credentials**。
+需要令牌的步骤会在运行前失败，运行的日志会写明变量并引用提供商的回复，例如 `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` 同样的原因也会显示在变量的 **访问令牌** 卡片上。Refresh Token 变量上出现 `invalid_grant`，几乎总是意味着 refresh token 本身已过期或被撤销，解决办法是 **更新凭据**。
 
 如果刷新失败时缓存的令牌其实还没过期（只是处在一分钟的余量之内），步骤会继续使用缓存的令牌，日志会说明这一点。
 

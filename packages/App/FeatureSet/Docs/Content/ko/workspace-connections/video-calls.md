@@ -100,7 +100,7 @@ OneUptime 은 로그인의 새로 고침 토큰을 암호화해 보관하고 최
 
 카드의 **제거** 는 인시던트 페이지에서 통화를 뺍니다. 회의 자체는 삭제되지 않으며, 링크가 있는 사람은 여전히 참여할 수 있습니다.
 
-통화를 시작하고 제거하려면 인시던트 (또는 경고) 를 다룰 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident Video Call** 과 **Delete Incident Video Call** 입니다. 인시던트를 읽을 수 있는 모든 사람이 그 통화를 볼 수 있습니다.
+통화를 시작하고 제거하려면 인시던트 (또는 경고) 를 다룰 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **인시던트 관리자**, **인시던트 구성원**, 또는 사용자 지정 역할의 **Create Incident Video Call** 과 **Delete Incident Video Call** 입니다. 인시던트를 읽을 수 있는 모든 사람이 그 통화를 볼 수 있습니다.
 
 ## 통화 녹취록
 
@@ -146,7 +146,7 @@ Microsoft 는 캘린더에 있는 Teams 회의의 녹취록만 앱이 읽을 수
 
 ### 누가 무엇을 할 수 있는지
 
-녹취록을 가져오기, 추가, 바꾸기, 제거, 다시 읽히기와 제안 기각에는 인시던트의 통화를 시작할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident Video Call** 입니다. **근본 원인으로 사용** 에는 인시던트의 근본 원인을 편집할 권한이 필요합니다. 인시던트를 읽을 수 있는 모든 사람이 그 통화의 녹취록과 OneUptime AI 가 그 안에서 읽은 내용을 볼 수 있습니다.
+녹취록을 가져오기, 추가, 바꾸기, 제거, 다시 읽히기와 제안 기각에는 인시던트의 통화를 시작할 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **인시던트 관리자**, **인시던트 구성원**, 또는 사용자 지정 역할의 **Create Incident Video Call** 입니다. **근본 원인으로 사용** 에는 인시던트의 근본 원인을 편집할 권한이 필요합니다. 인시던트를 읽을 수 있는 모든 사람이 그 통화의 녹취록과 OneUptime AI 가 그 안에서 읽은 내용을 볼 수 있습니다.
 
 ### OneUptime AI 가 읽는 것
 
@@ -160,7 +160,7 @@ Microsoft 는 캘린더에 있는 Teams 회의의 녹취록만 앱이 읽을 수
 
 연결 양식의 **Start test meeting** 과 연결 행의 **테스트** 는 연결의 설정으로 실제 회의를 만들고 그 링크를 표시합니다. 자격 증명, 제공자 쪽 권한, 호스트가 함께 작동하는지 증명하는 유일한 확인입니다. 어디에도 아무것도 게시되지 않습니다.
 
-제공자를 연결하려면 **Project Owner**, **Project Admin**, **Settings Admin**, 또는 사용자 지정 역할의 **Create Video Call Connection** 과 **Edit Video Call Connection** 이 필요합니다.
+제공자를 연결하려면 **프로젝트 소유자**, **프로젝트 관리자**, **설정 관리자**, 또는 사용자 지정 역할의 **Create Video Call Connection** 과 **Edit Video Call Connection** 이 필요합니다.
 
 ### Zoom
 
@@ -169,7 +169,7 @@ OneUptime 은 Zoom **Server-to-Server OAuth** 앱을 통해 인시던트마다 Z
 :::steps
 1. [Zoom App Marketplace](https://marketplace.zoom.us/) 에서 **Develop** > **Build App** 을 선택하고 **Server-to-Server OAuth** 앱을 만듭니다. 만들려면 Zoom 계정 관리자나 Server-to-Server OAuth 앱을 허용하는 역할이 필요합니다.
 2. 앱의 **Scopes** 페이지에서 **meeting:write:meeting:admin** (사용자의 회의 만들기) 을 추가합니다. 세분화된 스코프 이전에 만든 앱은 대신 **meeting:write:admin** 을 사용할 수 있습니다. OneUptime 이 [통화 녹취록](#통화-녹취록) 도 읽게 하려면 **cloud_recording:read:list_recording_files:admin** 과 **cloud_recording:read:meeting_transcript:admin** 을 추가합니다 (세분화된 스코프 이전에 만든 앱은 **recording:read:admin** ).
-3. **Activate** 를 클릭해 앱을 활성화한 다음, **App Credentials** 페이지의 **Account ID**, **Client ID**, **Client secret** 을 연결 양식에 복사합니다.
+3. **Activate** 를 클릭해 앱을 활성화한 다음, **App Credentials** 페이지의 **Account ID**, **Client ID**, **클라이언트 시크릿** 을 연결 양식에 복사합니다.
 4. **Meeting host** 를 입력합니다. 라이선스가 있는 Zoom 사용자의 이메일이며, 사람이 퇴사해도 회의가 계속 작동하도록 incidents@example.com 같은 서비스 계정이 이상적입니다. Basic (무료) 사용자가 호스트인 회의는 40분 후 종료됩니다.
 5. 호스트는 절대 참여하지 않는 서비스 계정이므로, 대응자는 호스트를 기다리지 않고 참여합니다. Zoom 계정의 **Waiting room** 설정이 켜진 채로 잠겨 있지 않은지 확인하세요. 잠겨 있으면 아무도 들어갈 수 없습니다.
 :::
@@ -203,7 +203,7 @@ OneUptime 은 라이선스가 있는 Teams 사용자를 대신해 회의를 주�
 :::steps
 1. [Microsoft Entra 관리 센터](https://entra.microsoft.com/) 에서 **App registrations** > **New registration** 을 열고 단일 테넌트 앱을 등록합니다. 그 **Directory (tenant) ID** 와 **Application (client) ID** 를 복사합니다.
 2. **API permissions** 에서 Microsoft Graph **application** 권한 **OnlineMeetings.ReadWrite.All** (그리고 [인시던트 통화 녹화와 녹취](#모든-통화를-녹화하고-녹취하기) 도 하려면 **Calendars.ReadWrite** 와 **OnlineMeetingTranscript.Read.All** ) 을 추가한 다음 **Grant admin consent** 를 클릭합니다.
-3. **Certificates & secrets** 에서 클라이언트 시크릿을 만들고, Secret ID 가 아닌 **Value** 를 연결 양식의 **Client secret** 에 붙여 넣습니다.
+3. **Certificates & secrets** 에서 클라이언트 시크릿을 만들고, Secret ID 가 아닌 **Value** 를 연결 양식의 **클라이언트 시크릿** 에 붙여 넣습니다.
 4. 주최자를 고릅니다. 라이선스가 있는 Teams 사용자이며, 서비스 계정이 이상적입니다. Entra 관리 센터의 **Users** 에서 그 **Object ID** 를 복사해 **Organizer object ID** 에 입력합니다.
 5. 애플리케이션 액세스 정책으로 앱이 주최자의 회의를 만들 수 있게 합니다. Teams PowerShell 에서 `Connect-MicrosoftTeams` 다음에 아래 두 명령을 실행합니다.
 :::

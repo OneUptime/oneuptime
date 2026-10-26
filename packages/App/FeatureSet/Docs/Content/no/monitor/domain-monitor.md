@@ -126,7 +126,7 @@ En ny domenemonitor starter med tre kriterier, så den varsler deg før en regis
 2. **Domenet utløper snart** — registreringen er ikke utløpt, men utløper om 30 dager eller mindre. Det opprettes et **varsel** med navnet "_monitor name_ domain expires soon".
 3. **Domenet er ikke utløpt** — monitoren merkes som **I drift**.
 
-Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktretningslinje på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Low** i et nytt prosjekt. Så snart fornyelsen vises i registreringsposten, løser varselet seg selv. Et register som ikke publiserer noen utløpsdato, gir ikke varselet noe å gå etter, så det holder seg stille.
+Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktretningslinje på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Så snart fornyelsen vises i registreringsposten, løser varselet seg selv. Et register som ikke publiserer noen utløpsdato, gir ikke varselet noe å gå etter, så det holder seg stille.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Derfor står "utløper snart" over "er ikke utløpt": et domene som er i ferd med å utløpe, er ennå ikke utløpt, så det ville samsvare med begge.
 

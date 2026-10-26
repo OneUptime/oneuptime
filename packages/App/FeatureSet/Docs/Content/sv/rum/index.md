@@ -33,16 +33,16 @@ flowchart TB
 
 Öppna **Produkter → Resurser → Övervakning av verkliga användare**. **Alla applikationer** listar dina applikationer med **Klienttyp**, **Status** och **Senast sedd**. Två andra avsnitt i sidomenyn är hopfällda från början:
 
-- **Inställningar**: **Ägarregler**, **Etikettregler** och projektets gemensamma **Session Replay**-reglage.
+- **Inställningar**: **Ägarregler**, **Etikettregler** och projektets gemensamma **Sessionsuppspelning**-reglage.
 - **Avancerad**: **Arkiverad**, de applikationer du har arkiverat.
 
 En applikations egen sidomeny grupperar dess sidor så här; **Inställningar**, **Utvecklare** och **Avancerad** är hopfällda från början:
 
 | Avsnitt | Sidor |
 | --- | --- |
-| **Grundläggande** | **Översikt**, **Recommendations**, **Dokumentation** |
+| **Grundläggande** | **Översikt**, **Rekommendationer**, **Dokumentation** |
 | **Observerbarhet** | **Mätvärden**, **Loggar**, **Spår**, **Klienter** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Dokumentation** |
+| **Sessionsuppspelning** | **Sessionsuppspelning**, **User Flows**, **Replay Users**, **Hälsa**, **Replay Policy**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
 | **Inställningar** | **Inställningar** |
 | **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
 | **Avancerad** | **Radera applikation** |
@@ -81,8 +81,8 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 | **Core Web Vitals** | Ett kort i översikten med LCP, INP, CLS, FCP och TTFB, var och en bedömd mot Googles gränser, och INP för varje route i en ensidesapp. Se [Core Web Vitals](/docs/rum/web-vitals) och [Ensidesappar](/docs/rum/web-vitals#ensidesappar). |
 | **Mätvärden**, **Loggar**, **Spår** | Telemetriutforskarna, begränsade till den här applikationen. |
 | **Klienter** | De webbläsarplattformar och enhetsmodeller som applikationen har använts på: en kort lista per plattform, aldrig en rad per användare. |
-| **Session Replay** | Inspelningar av riktiga sessioner, bredvid deras fel, spår och loggar: se [Sessionsuppspelning](/docs/telemetry/session-replay). |
-| **Recommendations** | Färdiga övervakare för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
+| **Sessionsuppspelning** | Inspelningar av riktiga sessioner, bredvid deras fel, spår och loggar: se [Sessionsuppspelning](/docs/telemetry/session-replay). |
+| **Rekommendationer** | Färdiga övervakare för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
 
 Siffrorna kommer från de spans som din instrumentering skickar. **Page loads** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning.
 
@@ -93,7 +93,7 @@ En applikation visar **Ansluten** så länge telemetri kommer in och **Frånkopp
 :::steps
 ### Skapa en intagningsnyckel
 
-Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**. En webbapp behöver en **Browser**-nyckel, som bara fungerar från de ursprung du anger. En mobilapp behöver en **Server**-nyckel, eftersom ett mobil-SDK inte skickar någon `Origin`-header.
+Öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**. En webbapp behöver en **Webbläsare**-nyckel, som bara fungerar från de ursprung du anger. En mobilapp behöver en **Server**-nyckel, eftersom ett mobil-SDK inte skickar någon `Origin`-header.
 
 ### Instrumentera din app
 

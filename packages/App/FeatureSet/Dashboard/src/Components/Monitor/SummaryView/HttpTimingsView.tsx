@@ -2,6 +2,10 @@ import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TIMING_LABEL_CLASS_NAME,
+  TIMING_VALUE_CLASS_NAME,
+} from "./SummaryFacts";
 
 export interface ComponentProps {
   httpTimings: HttpPhaseTimings;
@@ -78,7 +82,7 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
 
           return (
             <div key={phase.label} className="flex items-center text-sm">
-              <div className="w-36 shrink-0 text-gray-700">
+              <div className={TIMING_LABEL_CLASS_NAME}>
                 {translator.translateText(phase.label)}
               </div>
               <div className="flex-1 mx-2">
@@ -87,7 +91,7 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
                   style={{ width: `${Math.max(percent, 1)}%` }}
                 ></div>
               </div>
-              <div className="w-24 shrink-0 text-right text-gray-700 font-mono">
+              <div className={TIMING_VALUE_CLASS_NAME}>
                 {translator.translateTemplate("{{value}} ms", {
                   value: Math.round(phase.valueInMs * 100) / 100,
                 })}

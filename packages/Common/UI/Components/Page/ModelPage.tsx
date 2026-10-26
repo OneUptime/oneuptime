@@ -48,6 +48,8 @@ interface LoadedModelHeader {
   title: string | undefined;
   // The record's own name, for the crumb that stands for it.
   recordName?: string | undefined;
+  // The record's name as the heading shows it, once read.
+  headingName?: string | undefined;
   labels: Array<Label>;
   error: string;
 }
@@ -202,7 +204,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
         header = {
           ...header,
           labels: loadedLabels,
-          title: `${props.title || ""} - ${recordName as string}`,
+          headingName: `${recordName as string}`,
           recordName: typeof recordName === "string" ? recordName : undefined,
         };
       }
@@ -264,6 +266,30 @@ const ModelPage: <TBaseModel extends BaseModel>(
   const labels: Array<Label> = isCurrentModelLoaded ? loadedHeader!.labels : [];
 
   /*
+   * "Network Device - sw-core-01": the page's title in the reader's
+   * language, then the record's name as typed. The two used to be glued
+   * into one English string that no locale could look up, so every record
+   * page's heading read English in every language ("Network Device" in
+   * German). Put together when drawn, so it follows a change of language.
+   */
+  const getLoadedTitle: (header: LoadedModelHeader) => string | undefined = (
+    header: LoadedModelHeader,
+  ): string | undefined => {
+    if (header.headingName === undefined) {
+      return header.title;
+    }
+
+    if (!props.title) {
+      return header.headingName;
+    }
+
+    return translator.translateTemplate("{{title}} - {{name}}", {
+      title: translatableTerm(props.title),
+      name: header.headingName,
+    });
+  };
+
+  /*
    * "Project > Monitors > Website: acme.com", not "> View Monitor": the crumb
    * that stands for this record, and the browser tab, name it once it is
    * read (RecordNameInTrail).
@@ -284,7 +310,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
       labels={labels.length > 0 ? labels : undefined}
       isLoading={!isCurrentModelLoaded}
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}
-      title={isCurrentModelLoaded ? loadedHeader!.title : props.title}
+      title={isCurrentModelLoaded ? getLoadedTitle(loadedHeader!) : props.title}
     />
   );
 };

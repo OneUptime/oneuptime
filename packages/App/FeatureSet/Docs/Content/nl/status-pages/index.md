@@ -87,7 +87,7 @@ Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in tien secties 
 | --- | --- |
 | **Basis** | **Overzicht**, **Aankondigingen**, **Eigenaren**. |
 | **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts). |
-| **Regels** | **Monitor Rules**: regels die elke overeenkomende monitor aan de pagina toevoegen, nu en later. |
+| **Regels** | **Monitorregels**: regels die elke overeenkomende monitor aan de pagina toevoegen, nu en later. |
 | **Abonnees** | **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees**, **Webhook-abonnees**, **Abonneeinstellingen**. |
 | **Meldingslogboeken** | **Meldingslogboeken**: wat er naar abonnees is verzonden. |
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |
@@ -217,7 +217,7 @@ Onder **Meer instellingen** van **Toegang** beperkt de sectie **IP-toelatingslij
 
 Drie manieren om de status ergens anders te tonen dan op de pagina zelf.
 
-**Ingesloten statusbadge.** Zet onder **Statuspagina's → uw pagina → Geavanceerd → Ingesloten status** de optie **Ingesloten statusbadge inschakelen** aan (`enableEmbeddedOverallStatus`, standaard uit). De eerste keer dat u hem aanzet, krijgt de badge zijn token (`embeddedOverallStatusToken`), en de kaart **De badge insluiten** toont de badge, geserveerd vanaf `/api/status-page/badge/<status-page-id>?token=<token>`, met zijn **HTML** en zijn **Markdown, met een link naar de statuspagina** om te kopiëren, zodat u de huidige algemene status in uw documentatie, de voettekst van uw app of een marketingpagina kunt zetten. Het token staat op de kaart **Beveiligingstoken** onder **Meer instellingen**, met **Token opnieuw genereren** voor als de link te breed is gedeeld.
+**Ingesloten statusbadge.** Zet onder **Statuspagina's → uw pagina → Geavanceerd → Ingesloten status** de optie **Ingesloten statusbadge inschakelen** aan (`enableEmbeddedOverallStatus`, standaard uit). De eerste keer dat u hem aanzet, krijgt de badge zijn token (`embeddedOverallStatusToken`), en de kaart **De badge insluiten** toont de badge, geserveerd vanaf `/api/status-page/badge/<status-page-id>?token=<token>`, met zijn **HTML** en zijn **Markdown, met een link naar de statuspagina** om te kopiëren, zodat u de huidige algemene status in uw documentatie, de voettekst van uw app of een marketingpagina kunt zetten. De Markdown linkt naar het eerste bereikbare aangepaste domein van de pagina, ook een met een certificaat dat u hebt geüpload, of naar haar adres bij OneUptime zolang er geen bereikbaar is. Het token staat op de kaart **Beveiligingstoken** onder **Meer instellingen**, met **Token opnieuw genereren** voor als de link te breed is gedeeld.
 
 **RSS-feed.** Elke statuspagina serveert `/rss`: een feed met de titel "{paginatitel} Updates", met de **Paginatitel** die onder **Huisstijl** is ingesteld, of de naam van de pagina als ze er geen heeft, en waarvan de items beginnen met `Incident: `, `Announcement: ` en `Scheduled Maintenance: `. Elk item is gedateerd zoals de pagina het dateert: een incident op het moment dat het werd gemeld, een aankondiging op het moment dat ze verscheen, en een geplande onderhoudsgebeurtenis op het moment dat ze begint, met haar tijdvenster als begin van de omschrijving. Handig voor wie uw updates liever in een feedlezer of een chatbot binnenhaalt dan zich per e-mail te abonneren.
 

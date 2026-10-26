@@ -207,7 +207,7 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 | Opção | O que acontece | Use para |
 | --- | --- | --- |
 | **Ignore** (padrão) | O critério não corresponde. | Alertas de limite comuns. |
-| **Trigger** | A falta de dados conta como o problema. | Verificações em que o silêncio é em si uma falha. |
+| **Gatilho** | A falta de dados conta como o problema. | Verificações em que o silêncio é em si uma falha. |
 | **Treat As Zero** | A janela é comparada como um único zero. | Contadores em que nenhum evento significa realmente zero. |
 
 ### Exemplos de critérios

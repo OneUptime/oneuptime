@@ -25,7 +25,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 
 A seção **Configurações** contém **Estado do alerta** e **Severidade do alerta**, tratados em [Estados e severidades de alertas](/docs/alerts/states-and-severities), e depois **Modelos de notas**, **Campos personalizados**, **Medições**, **Participação em episódios** e **Numeração**, tratados abaixo.
 
-Outras duas seções atuam sobre os alertas. **Alertas → IA → Configurações** decide o que o OneUptime AI faz por conta própria: **Investigar novos alertas**, ativado em projetos novos, e **Corrigir novos alertas automaticamente**, desativado até você ativá-lo. Veja [AI SRE](/docs/ai/ai-sre). **Alertas → Espaço de trabalho** contém as regras do Slack e do Microsoft Teams que publicam alertas e episódios em canais, e sua aba **Summary**. Veja [Slack](/docs/workspace-connections/slack).
+Outras duas seções atuam sobre os alertas. **Alertas → IA → Configurações** decide o que o OneUptime AI faz por conta própria: **Investigar novos alertas**, ativado em projetos novos, e **Corrigir novos alertas automaticamente**, desativado até você ativá-lo. Veja [AI SRE](/docs/ai/ai-sre). **Alertas → Espaço de trabalho** contém as regras do Slack e do Microsoft Teams que publicam alertas e episódios em canais, e sua aba **Resumo**. Veja [Slack](/docs/workspace-connections/slack).
 
 ## As regras pelas quais um novo alerta passa
 
@@ -59,7 +59,7 @@ As regras diferem na forma como várias correspondências são resolvidas:
 
 **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Alert Rules**, para alertas, e **Episode Rules**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
 
-A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Run Now**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
+A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
 
 ### Condições
 
@@ -157,7 +157,7 @@ Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Cr
 
 ## Quem pode alterar isso
 
-Regras, campos personalizados e medições exigem um Project Owner ou Project Admin, ou uma função personalizada com a permissão própria dessa regra. **Alert Member** trabalha com alertas e episódios, suas notas, proprietários e linhas do tempo de estado, e com os modelos de notas, e **Alert Admin** também gerencia os estados e as gravidades de alertas. Veja [Usuários, equipes e permissões](/docs/permissions/index).
+Regras, campos personalizados e medições exigem um Project Owner ou Project Admin, ou uma função personalizada com a permissão própria dessa regra. **Membro de alertas** trabalha com alertas e episódios, suas notas, proprietários e linhas do tempo de estado, e com os modelos de notas, e **Administrador de alertas** também gerencia os estados e as gravidades de alertas. Veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Próximos passos
 

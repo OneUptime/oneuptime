@@ -51,7 +51,7 @@ So starten Sie einen von Hand:
 @tab Von einem Ereignis aus
 1. Öffnen Sie den Vorfall, die Warnung oder das geplante Wartungsereignis und gehen Sie zu seiner Seite **Runbooks**.
 2. Klicken Sie auf **Runbook ausführen**. Der Dialog **Ein Runbook ausführen** listet die eingeschalteten Runbooks des Projekts.
-3. Klicken Sie neben dem Runbook auf **Ausführen**. Der Lauf erscheint in der Liste des Ereignisses: Klicken Sie auf **Ansehen**, um ihn zu öffnen.
+3. Klicken Sie neben dem Runbook auf **Ausführen**. Der Lauf erscheint in der Liste des Ereignisses: Klicken Sie auf **Anzeigen**, um ihn zu öffnen.
 @tab Vom Runbook aus
 1. Öffnen Sie das Runbook unter **Runbooks**.
 2. Klicken Sie auf seiner **Übersicht** auf **Jetzt ausführen**.

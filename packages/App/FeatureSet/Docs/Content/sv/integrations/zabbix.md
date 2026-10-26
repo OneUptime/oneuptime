@@ -36,14 +36,14 @@ Konfigurera OneUptime först: det ger dig URL:en som Zabbix skickar till.
 
 | Sätt | Använd det när |
 | --- | --- |
-| Arbetsflödesmallarna (rekommenderas) | Du vill ha varje problem som en incident eller en varning med dess Zabbix-allvarlighetsgrad, med jouren larmad för High och Disaster, löst vid återhämtning, med det som görs i Zabbix noterat på den, och Zabbix bekräftat eller stängt från OneUptime. |
+| Arbetsflödesmallarna (rekommenderas) | Du vill ha varje problem som en incident eller ett larm med dess Zabbix-allvarlighetsgrad, med jouren larmad för High och Disaster, löst vid återhämtning, med det som görs i Zabbix noterat på den, och Zabbix bekräftat eller stängt från OneUptime. |
 | En Incoming Request-monitor | Du vill ha incidenter utan ett arbetsflöde, på vilken plan som helst, och en monitor vars status följer Zabbix. Inget går tillbaka till Zabbix. |
 
 Båda får samma JSON från samma medietyp, så du kan börja med det ena och byta senare genom att ändra en enda URL i Zabbix.
 
 ## Börja från mallarna
 
-Dialogen **Skapa ett arbetsflöde** har sex Zabbix-mallar, under **Zabbix** i kategorilistan: tre för incidenter, sedan samma tre för varningar.
+Dialogen **Skapa ett arbetsflöde** har sex Zabbix-mallar, under **Zabbix** i kategorilistan: tre för incidenter, sedan samma tre för larm.
 
 | Mall | Vad den gör | Vad den frågar efter |
 | --- | --- | --- |
@@ -51,12 +51,12 @@ Dialogen **Skapa ett arbetsflöde** har sex Zabbix-mallar, under **Zabbix** i ka
 | Declare an incident for each Zabbix problem | Arbetsflödet som Zabbix skickar varje händelse till. Det deklarerar en incident för varje problem, larmar jouren för High och Disaster, noterar uppdateringar som gjorts i Zabbix och löser incidenten vid återhämtning. | Zabbix URL |
 | Acknowledge or close the Zabbix problem with the incident | När incidenten bekräftas bekräftar den sitt problem. När den löses stänger den problemet, eller bekräftar det där Zabbix inte tillåter att det stängs manuellt. | Zabbix URL, Zabbix API Token |
 | Copy incident private notes to the Zabbix problem | Lägger till varje privat anteckning på incidenten som ett meddelande på dess problem. | Zabbix URL, Zabbix API Token |
-| **Varningar** | | |
-| Create an alert for each Zabbix problem | Samma som för incidenter, med en varning för varje problem. | Zabbix URL |
-| Acknowledge or close the Zabbix problem with the alert | Samma som för incidenter, utifrån varningens tillstånd. | Zabbix URL, Zabbix API Token |
-| Copy alert private notes to the Zabbix problem | Lägger till varje privat anteckning på varningen som ett meddelande på dess problem. | Zabbix URL, Zabbix API Token |
+| **Larm** | | |
+| Create an alert for each Zabbix problem | Samma som för incidenter, med ett larm för varje problem. | Zabbix URL |
+| Acknowledge or close the Zabbix problem with the alert | Samma som för incidenter, utifrån larmets tillstånd. | Zabbix URL, Zabbix API Token |
+| Copy alert private notes to the Zabbix problem | Lägger till varje privat anteckning på larmet som ett meddelande på dess problem. | Zabbix URL, Zabbix API Token |
 
-Börja med **Declare an incident for each Zabbix problem**, eller **Create an alert for each Zabbix problem** för varningar: incidenten eller varningen den skapar behåller problemets händelse-ID i sitt anpassade fält `zabbixEventId`, och de två andra mallarna hittar problemet med det.
+Börja med **Declare an incident for each Zabbix problem**, eller **Create an alert for each Zabbix problem** för larm: incidenten eller larmet den skapar behåller problemets händelse-ID i sitt anpassade fält `zabbixEventId`, och de två andra mallarna hittar problemet med det.
 
 ### Vad mallarna frågar efter
 
@@ -89,9 +89,9 @@ Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört, oc
 
 ### Allvarlighetsgrader
 
-I ett nytt projekt kopplar mallen Zabbix sex allvarlighetsgrader till dessa allvarlighetsgrader för incidenter och varningar:
+I ett nytt projekt kopplar mallen Zabbix sex allvarlighetsgrader till dessa allvarlighetsgrader för incidenter och larm:
 
-| Zabbix-allvarlighetsgrad | Incident | Varning | Jour |
+| Zabbix-allvarlighetsgrad | Incident | Larm | Jour |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Larmad |
 | High | Critical Incident | High | Larmad |
@@ -289,7 +289,7 @@ Zabbix behöver tre saker: en medietyp som skickar till OneUptime, en användare
 5. Klicka på **Add** och kontrollera att åtgärden är aktiverad.
 :::
 
-För att skicka vissa problem till incidentmallen och andra till varningsmallen ger du användaren `OneUptime` två medier av typen `OneUptime`: vart och ett skickar till ett arbetsflödes URL, med de allvarlighetsgrader det ska få.
+För att skicka vissa problem till incidentmallen och andra till larmmallen ger du användaren `OneUptime` två medier av typen `OneUptime`: vart och ett skickar till ett arbetsflödes URL, med de allvarlighetsgrader det ska få.
 
 ## Testa det
 

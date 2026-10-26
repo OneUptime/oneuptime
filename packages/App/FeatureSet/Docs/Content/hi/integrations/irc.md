@@ -46,7 +46,7 @@ Server के हर line ले लेने पर step अपने **सफ�
 ## शुरू करने से पहले
 
 - OneUptime Cloud पर **Growth** plan या उससे ऊँचा: workflows और उनके variables इसी में आते हैं। बिना billing वाले self-hosted installations पर कोई plan limit नहीं है।
-- Workflows बनाने वाला role: **Project Owner**, **Project Admin** या **Workflow Admin**।
+- Workflows बनाने वाला role: **प्रोजेक्ट स्वामी**, **प्रोजेक्ट एडमिन** या **वर्कफ़्लो एडमिन**।
 - IRC network पर एक account, अगर network sign in माँगता हो। Libera.Chat कुछ cloud और VPN addresses से आने वाले connections के लिए यह माँगता है।
 
 ## इंटीग्रेशन सेट अप करें
@@ -87,7 +87,7 @@ Template से शुरू कीजिए, जो पूरा workflow आ�
 Workflow **बिल्डर** में तीन steps के साथ खुलता है: **On Create Incident**; **Send Message to IRC**, जो incident का number, title, severity और state दो lines में पोस्ट करता है; और उसके **त्रुटि** output पर एक **लॉग** step, जो लिखता है कि message क्यों नहीं पहुँचा। Server और channel workflow के variables `ircServer` और `ircChannel` में रखे जाते हैं। अगर पिछले step में आपने passwords रखे थे, तो **Send Message to IRC** पर क्लिक कीजिए, **और फ़ील्ड** खोलिए, और हर variable को उसकी setting के **{ }** बटन से चुनिए।
 @tab शुरू से
 1. **वर्कफ़्लो** खोलिए, **वर्कफ़्लो बनाएं** दबाइए, **शुरू से बनाएं** चुनिए, workflow को नाम दीजिए और **वर्कफ़्लो बनाएं** दबाइए।
-2. **बिल्डर** में **Choose what starts this workflow** पर क्लिक कीजिए और **Popular** के नीचे **On Create Incident** चुनिए। Trigger पर क्लिक कीजिए और **Fields to pass on** में incident के वे fields चुनिए जो आपका message दिखाता है, जैसे उसका title।
+2. **बिल्डर** में **चुनें कि यह वर्कफ़्लो किससे शुरू हो** पर क्लिक कीजिए और **लोकप्रिय** के नीचे **On Create Incident** चुनिए। Trigger पर क्लिक कीजिए और **Fields to pass on** में incident के वे fields चुनिए जो आपका message दिखाता है, जैसे उसका title।
 3. **घटक जोड़ें** दबाइए, `irc` खोजिए और **Send Message to IRC** पर क्लिक कीजिए। Trigger के **सफलता** output को इस step से जोड़िए।
 4. नए step पर क्लिक कीजिए और **IRC Server**, **Channel** और **Message Text** भरिए। **Message Text** का **{ }** बटन incident के fields डालता है, जैसे उसका title।
 5. अगर पिछले step में आपने passwords रखे थे, तो **और फ़ील्ड** खोलिए। **Server Password**, **SASL Password** या **Channel Key** में **{ }** पर क्लिक कीजिए और **Global variables** के नीचे से variable चुनिए। **SASL Username** में अपने account का नाम लिखिए।

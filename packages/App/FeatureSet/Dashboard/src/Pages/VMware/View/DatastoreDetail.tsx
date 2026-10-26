@@ -62,6 +62,10 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  // The charts draw their titles and legends as given: hand them the reader's words.
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   /*
    * Route shape: .../vmware/:modelId/datastores/:subModelId — subModelId
    * is the percent-encoded inventory externalId
@@ -261,12 +265,11 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   const usageQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "datastore_used",
-      title: "Datastore Usage",
+      title: tx("Datastore Usage"),
       description: translator.translateTemplate(
-        "vcenter.datastore.disk.usage{disk_state=used} for {{datastoreName}} — space consumed over time.",
-        { datastoreName: datastoreName },
+        "Space used on this datastore over time.",
       ),
-      legend: "Used",
+      legend: tx("Used"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -286,12 +289,11 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   const availableQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "datastore_available",
-      title: "Datastore Free Space",
+      title: tx("Datastore Free Space"),
       description: translator.translateTemplate(
-        "vcenter.datastore.disk.usage{disk_state=available} for {{datastoreName}}.",
-        { datastoreName: datastoreName },
+        "Free space left on this datastore over time.",
       ),
-      legend: "Free",
+      legend: tx("Free"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -311,16 +313,15 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   const utilizationQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "datastore_utilization",
-      title: "Datastore Utilization",
+      title: tx("Datastore Utilization"),
       description: translator.translateTemplate(
-        "vcenter.datastore.disk.utilization for {{datastoreName}} — already a percentage. The built-in alert templates warn at {{warnPercent}}% and go critical at {{criticalPercent}}%.",
+        "How full this datastore is, as a percentage. The built-in alert templates warn at {{warnPercent}}% and go critical at {{criticalPercent}}%.",
         {
-          datastoreName: datastoreName,
           warnPercent: DATASTORE_WARN_PERCENT,
           criticalPercent: DATASTORE_CRITICAL_PERCENT,
         },
       ),
-      legend: "Used",
+      legend: tx("Used"),
       legendUnit: "%",
     },
     metricQueryData: {

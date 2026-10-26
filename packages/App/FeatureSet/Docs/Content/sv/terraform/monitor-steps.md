@@ -245,7 +245,7 @@ Grupperade metrikmonitorer är det enda undantaget. När en metrikmonitors fråg
 | `alerts` | list | Larmen som ska öppnas. Utelämna det om inte `create_alerts = true`. |
 | `is_enabled` | bool | `true` på servern när det inte är angivet. Ange `false` för att behålla ett kriterium utan att bedöma med det. |
 | `incident_grouping` | string (JSON) | Bara monitorer för inkommande förfrågningar: en incident för varje värde som hittas i förfrågan, till exempel `jsonencode({ groupByJSONPath = "..." })`. |
-| `open_for_every_email` | bool | Bara monitorer för inkommande e-post: `true` öppnar en incident (och en varning) för varje e-postmeddelande som matchar, i stället för en i taget. |
+| `open_for_every_email` | bool | Bara monitorer för inkommande e-post: `true` öppnar en incident (och ett larm) för varje e-postmeddelande som matchar, i stället för en i taget. |
 
 ### Incidenter och larm
 

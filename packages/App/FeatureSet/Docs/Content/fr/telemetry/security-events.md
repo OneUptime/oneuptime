@@ -40,13 +40,13 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
-| **Rule Library** | Détections | Des règles de détection prêtes à ajouter, chacune avec les événements qu'elle lit et s'ils arrivent, les recommandées étant signalées |
-| **Threat Intel** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
-| **ATT&CK Coverage** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
+| **Bibliothèque de règles** | Détections | Des règles de détection prêtes à ajouter, chacune avec les événements qu'elle lit et s'ils arrivent, les recommandées étant signalées |
+| **Renseignement sur les menaces** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
+| **Couverture ATT&CK** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
-| **Protected Entities** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
+| **Entités protégées** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
@@ -193,7 +193,7 @@ La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.
 - La première interrogation remonte 24 heures en arrière, donc une nouvelle connexion montre tout de suite des enregistrements récents.
-- **Tester la connexion**, dans la ligne de la connexion, vérifie l'accès au produit et que les workers de OneUptime tournent, sans rien importer. **Run now** interroge immédiatement.
+- **Tester la connexion**, dans la ligne de la connexion, vérifie l'accès au produit et que les workers de OneUptime tournent, sans rien importer. **Exécuter maintenant** interroge immédiatement.
 
 ## Ce que contient un événement
 
@@ -244,7 +244,7 @@ La barre latérale compte les événements de la fenêtre par **Source**, **Grav
 
 ## Règles de détection
 
-Une règle de détection est une règle [Sigma](https://sigmahq.io/), un format YAML ouvert pour décrire une activité suspecte, que OneUptime exécute selon un calendrier sur vos événements. Quand elle correspond, elle ouvre un [dossier](/docs/telemetry/security-cases) ou s'y ajoute, ouvre une alerte, éventuellement un incident, et écrit un Detection Finding dans les événements. La **Rule Library** propose des règles prêtes à l'emploi pour démarrer.
+Une règle de détection est une règle [Sigma](https://sigmahq.io/), un format YAML ouvert pour décrire une activité suspecte, que OneUptime exécute selon un calendrier sur vos événements. Quand elle correspond, elle ouvre un [dossier](/docs/telemetry/security-cases) ou s'y ajoute, ouvre une alerte, éventuellement un incident, et écrit un Detection Finding dans les événements. La **Bibliothèque de règles** propose des règles prêtes à l'emploi pour démarrer.
 
 ```mermaid title="Comment une règle de détection se déclenche"
 flowchart TB
@@ -259,11 +259,11 @@ flowchart TB
 
 :::steps
 1. Ouvrez **Produits → Événements de sécurité → Détections → Règles de détection** et cliquez sur **Créer : Règle de détection**.
-2. Dans **Sigma Rule**, collez le YAML de la règle dans **Sigma Rule (YAML)**. Il est analysé à l'enregistrement, donc une erreur s'affiche dans le formulaire.
+2. Dans **Règle Sigma**, collez le YAML de la règle dans **Règle Sigma (YAML)**. Il est analysé à l'enregistrement, donc une erreur s'affiche dans le formulaire.
 3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
-4. Dans **En cas de correspondance**, laissez **Open a Case on Match** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
+4. Dans **En cas de correspondance**, laissez **Ouvrir un dossier en cas de correspondance** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
 5. Sous **Alertes et incidents**, choisissez ce qu'une correspondance déclenche d'autre : **Créer une alerte** (par défaut), **Déclarer un incident**, **Les deux** ou **Aucun des deux**, avec une **Gravité de l'alerte** ou une **Gravité de l'incident** optionnelle.
-6. **Plus de champs** contient la **Description**, **Write Detection Finding on Match** (activé) et la façon de compter les correspondances ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
+6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé) et la façon de compter les correspondances ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
 :::
 
 Une première règle, qui correspond aux échecs de connexion venant de l'extérieur de `10.x.x.x` :
@@ -299,7 +299,7 @@ Les agrégations comme `| count() by principalIp > 5` sont refusées à l'enregi
 
 ### Règles de corrélation
 
-Une [corrélation Sigma](https://sigmahq.io/docs/meta/correlations.html) se déclenche sur plusieurs événements ensemble plutôt que sur un seul. Collez-la dans **Sigma Rule (YAML)** avec les règles qu'elle lit, sous forme de documents YAML séparés par `---`, ou nommez des règles que le projet a déjà par leur `name` ou leur `id` Sigma. La **Rule Library** en propose des prêtes à l'emploi, comme des échecs de connexion suivis d'une réussite.
+Une [corrélation Sigma](https://sigmahq.io/docs/meta/correlations.html) se déclenche sur plusieurs événements ensemble plutôt que sur un seul. Collez-la dans **Règle Sigma (YAML)** avec les règles qu'elle lit, sous forme de documents YAML séparés par `---`, ou nommez des règles que le projet a déjà par leur `name` ou leur `id` Sigma. La **Bibliothèque de règles** en propose des prêtes à l'emploi, comme des échecs de connexion suivis d'une réussite.
 
 | Type | Se déclenche quand | Affiché comme |
 | --- | --- | --- |
@@ -438,7 +438,7 @@ L'action **Créer un moniteur** dans la ligne d'une règle ouvre un nouveau moni
 
 ## Renseignement sur les menaces
 
-**Threat Intel** s'abonne à des flux STIX/TAXII d'adresses IP, de domaines, d'URL, d'adresses e-mail et de hachages de fichiers malveillants connus. Les événements qui en mentionnent un sont marqués à l'arrivée par des attributs `threat.*`, sur lesquels les règles et les moniteurs peuvent filtrer, et chaque minute les événements récents sont confrontés aux flux, ouvrant alertes et constats comme une règle. Voir [Renseignement sur les menaces](/docs/telemetry/threat-intelligence).
+**Renseignement sur les menaces** s'abonne à des flux STIX/TAXII d'adresses IP, de domaines, d'URL, d'adresses e-mail et de hachages de fichiers malveillants connus. Les événements qui en mentionnent un sont marqués à l'arrivée par des attributs `threat.*`, sur lesquels les règles et les moniteurs peuvent filtrer, et chaque minute les événements récents sont confrontés aux flux, ouvrant alertes et constats comme une règle. Voir [Renseignement sur les menaces](/docs/telemetry/threat-intelligence).
 
 ## Conservation et facturation
 

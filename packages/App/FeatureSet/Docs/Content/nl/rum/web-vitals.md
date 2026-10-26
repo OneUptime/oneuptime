@@ -292,7 +292,7 @@ De concrete URL vastleggen in plaats van het routepatroon maakt één tijdreeks 
 
 ## Meldingen voor een vital
 
-De pagina **Recommendations** van de applicatie biedt voor elke vital een kant-en-klare monitor. Elke monitor leest het vijfminutengemiddelde van zijn metriek en gaat af wanneer dat de slecht-grens van Google bereikt:
+De pagina **Aanbevelingen** van de applicatie biedt voor elke vital een kant-en-klare monitor. Elke monitor leest het vijfminutengemiddelde van zijn metriek en gaat af wanneer dat de slecht-grens van Google bereikt:
 
 | Aanbeveling | Metriek | Gaat af bij | Ernst |
 | --- | --- | --- | --- |

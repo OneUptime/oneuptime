@@ -13,6 +13,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import React, { FunctionComponent, useEffect, useState } from "react";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  MASTER_PASSWORD_COPY,
+  MASTER_PASSWORD_PROMPT_TEST_ID,
+  MASTER_PASSWORD_TITLE_TEST_ID,
+} from "./MasterPasswordCopy";
 
 export interface ComponentProps {
   dashboardName: string;
@@ -77,7 +82,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
       )?.toString() || "";
 
     if (!submittedPassword.trim()) {
-      setFormError("Password is required.");
+      setFormError(MASTER_PASSWORD_COPY.passwordRequired);
       return;
     }
 
@@ -126,16 +131,27 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * What the visitor is opening - the dashboard's name - then what to do,
+   * once. The prompt used to say it three times over: "Enter <name>
+   * Password", "Please enter the password to view this dashboard." and,
+   * under the field, "Enter the password to unlock this dashboard.", with
+   * "Enter password" in the field as well.
+   */
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
-          {props.dashboardName
-            ? `Enter ${props.dashboardName} Password`
-            : "Enter Password"}
+      <div className="px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
+        <h2
+          className="mt-6 break-words text-center text-2xl tracking-tight text-gray-900"
+          data-testid={MASTER_PASSWORD_TITLE_TEST_ID}
+        >
+          {props.dashboardName || MASTER_PASSWORD_COPY.fallbackTitle}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Please enter the password to view this dashboard.
+        <p
+          className="mt-2 text-center text-sm text-gray-600"
+          data-testid={MASTER_PASSWORD_PROMPT_TEST_ID}
+        >
+          {MASTER_PASSWORD_COPY.prompt}
         </p>
       </div>
 
@@ -152,10 +168,8 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                 field: {
                   password: true,
                 },
-                title: "Password",
-                description: "Enter the password to unlock this dashboard.",
+                title: MASTER_PASSWORD_COPY.passwordLabel,
                 required: true,
-                placeholder: "Enter password",
                 fieldType: FormFieldSchemaType.Password,
                 // What unlocks the dashboard: password managers may fill it.
                 autoComplete: "current-password",
@@ -163,7 +177,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                 disableSpellCheck: true,
               },
             ]}
-            submitButtonText="Unlock Dashboard"
+            submitButtonText={MASTER_PASSWORD_COPY.submit}
             maxPrimaryButtonWidth={true}
             isLoading={isSubmitting}
             error={formError || undefined}

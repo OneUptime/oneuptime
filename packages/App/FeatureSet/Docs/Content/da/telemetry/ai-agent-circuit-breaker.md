@@ -46,7 +46,7 @@ Forbrug er det sikreste tegn på en løbsk agent. Et budget lægger dagens AI-fo
 :::steps
 1. Åbn **Produkter → AI / LLM → Budgetter**, og klik på **Opret LLM Cost Budget**. Angiv et **Dagligt budget (USD)**, og vælg agentens tjeneste i **Tjeneste (valgfrit)**, så budgettet kun overvåger den agent.
 2. Vælg **Vis ID** i rækkemenuen for det nye budget, og kopiér ID'et.
-3. Opret en [Metrik-monitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtreret på attributten `oneuptime.llm.budget.id` med det ID, du kopierede, og sæt dens **Tidsinterval** til **Past 30 Minutes**.
+3. Opret en [Metrik-monitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtreret på attributten `oneuptime.llm.budget.id` med det ID, du kopierede, og sæt dens **Tidsinterval** til **Seneste 30 minutter**.
 4. Tilføj et kriterium **Større end eller lig med** `100`, der opretter en advarsel, og giv det en **Advarselstitel**, der nævner agenten, f.eks. `LLM budget exceeded: support-bot`. Både workflowet og dit endpoint læser den titel.
 :::
 
@@ -125,7 +125,7 @@ Gem først endpointets token et sted, hvor workflowet kan bruge det uden at vise
 
 ### Tilføj udløseren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Alert** i panelet **Tilføj trigger**. Klik på udløseren: **Fields to pass on** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** i panelet **Tilføj udløser**. Klik på udløseren: **Fields to pass on** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
 
 ### Tjek titlen
 
@@ -197,7 +197,7 @@ Headeren `Authorization` matcher ikke det token, dit endpoint forventer. Tjek na
 :::
 
 :::details Budgetadvarslen åbner og lukker igen og igen
-Monitorens **Tidsinterval** er kortere end budgettets 15 minutter mellem to punkter. Sæt det til **Past 30 Minutes**.
+Monitorens **Tidsinterval** er kortere end budgettets 15 minutter mellem to punkter. Sæt det til **Seneste 30 minutter**.
 :::
 
 :::details Anmodningen når aldrig frem til dit endpoint

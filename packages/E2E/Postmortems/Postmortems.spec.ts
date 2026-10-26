@@ -550,7 +550,7 @@ test.describe("Incidents -> Postmortems", () => {
 
     /*
      * The rows fit the card beside the side menu: with the time in Declared,
-     * German ran 57px past it, the dates under the sticky Ansehen.
+     * German ran 57px past it, the dates under the sticky View.
      */
     expect(await tableOverflow(page)).toBeLessThanOrEqual(0);
     await expect(

@@ -155,7 +155,7 @@ end
 ### Palo Alto Networks
 
 1. 在 **Device** > **Server Profiles** > **NetFlow** 下，新增一個包含探測器 IP 位址和連接埠 `2055` 的設定檔，並將 **Active Timeout** 設為 1 分鐘。
-2. 在 **Network** > **Interfaces** 下，開啟每個要查看流量的介面，在 **Advanced** 分頁中將該設定檔選為其 **NetFlow Profile**。
+2. 在 **Network** > **介面** 下，開啟每個要查看流量的介面，在 **Advanced** 分頁中將該設定檔選為其 **NetFlow Profile**。
 3. 提交（commit）。
 
 ### MikroTik RouterOS 7

@@ -58,11 +58,11 @@ O dispositivo e o monitor fazem trabalhos diferentes:
 | **Aguardando a primeira verificação** | Dispositivos foram adicionados e a sonda deles ainda não os verificou. |
 | **Todos os 40 dispositivos estão ativos** | Todos os dispositivos respondem. Os dispositivos que ainda aguardam a primeira verificação são contados em uma linha própria. |
 
-Abaixo dela, uma linha diz se alguma coisa abre um incidente quando um dispositivo cai: quantas [políticas de alertas](#políticas-de-alertas) estão ativas, ou um link **Set up alerts** quando não há nenhuma. Os botões **Add Device** e **Discover Devices** ao lado abrem esses formulários, e os blocos e listas abaixo trazem o detalhe: dispositivos e sites que precisam de atenção, a frota por fabricante e as varreduras recentes.
+Abaixo dela, uma linha diz se alguma coisa abre um incidente quando um dispositivo cai: quantas [políticas de alertas](#políticas-de-alertas) estão ativas, ou um link **Configurar alertas** quando não há nenhuma. Os botões **Adicionar dispositivo** e **Discover Devices** ao lado abrem esses formulários, e os blocos e listas abaixo trazem o detalhe: dispositivos e sites que precisam de atenção, a frota por fabricante e as varreduras recentes.
 
-Antes de qualquer coisa ser adicionada, a visão geral guia você por três etapas. **Coloque uma sonda na sua rede**: uma sonda faz ping e walk nos seus dispositivos de dentro da rede deles, então **Adicionar uma sonda** dá nome a uma, mostra o comando que a executa e acompanha a conexão dela. **Traga seus dispositivos**: **Descobrir dispositivos** varre uma faixa de endereços para você escolher o que adicionar, o melhor para uma rede inteira ou um site novo, e **Adicionar um único dispositivo** adiciona um pelo endereço IP ou nome do host. **Seja avisado quando um dispositivo cair**: **Set up alerts** abre as [políticas de alertas](#políticas-de-alertas), onde a política recomendada está a um clique. No OneUptime Cloud, [adicionar uma sonda](/docs/probe/custom-probe) exige o plano Growth: abaixo dele, a etapa avisa e leva às suas configurações de cobrança, e as sondas da própria OneUptime na internet ainda podem verificar dispositivos com um endereço público.
+Antes de qualquer coisa ser adicionada, a visão geral guia você por três etapas. **Coloque uma sonda na sua rede**: uma sonda faz ping e walk nos seus dispositivos de dentro da rede deles, então **Adicionar uma sonda** dá nome a uma, mostra o comando que a executa e acompanha a conexão dela. **Traga seus dispositivos**: **Descobrir dispositivos** varre uma faixa de endereços para você escolher o que adicionar, o melhor para uma rede inteira ou um site novo, e **Adicionar um único dispositivo** adiciona um pelo endereço IP ou nome do host. **Seja avisado quando um dispositivo cair**: **Configurar alertas** abre as [políticas de alertas](#políticas-de-alertas), onde a política recomendada está a um clique. No OneUptime Cloud, [adicionar uma sonda](/docs/probe/custom-probe) exige o plano Growth: abaixo dele, a etapa avisa e leva às suas configurações de cobrança, e as sondas da própria OneUptime na internet ainda podem verificar dispositivos com um endereço público.
 
-O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Devices**, **Sites**, **Map**, **Traffic**, **Eventos** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
+O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Devices**, **Sites**, **Mapa**, **Traffic**, **Eventos** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
 
 | Seção | Páginas |
 | --- | --- |
@@ -75,7 +75,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 
 :::steps
 ### Abrir a lista de dispositivos
-Acesse **Rede → Devices** e clique em **Add Device**. **Add Device** na **Visão geral** da Rede abre o mesmo formulário.
+Acesse **Rede → Devices** e clique em **Adicionar dispositivo**. **Adicionar dispositivo** na **Visão geral** da Rede abre o mesmo formulário.
 
 ### Digitar o endereço do dispositivo
 Em **Nome do host**, digite o endereço IP ou o nome do host. Deixe **Nome** vazio para que o dispositivo receba o nome do seu host.
@@ -84,7 +84,7 @@ Em **Nome do host**, digite o endereço IP ou o nome do host. Deixe **Nome** vaz
 Escolha o **Site** em que o dispositivo está, se você usa sites. **Sonda** se preenche sozinha com a sonda padrão do site, ou com a única sonda personalizada do projeto; confirme que é uma sonda que consegue alcançar o dispositivo.
 
 ### Adicionar o dispositivo
-Clique em **Add Device**. Em poucos minutos a sonda envia ping ao dispositivo e o status dele passa a **Up** ou **Down**. Com credenciais SNMP, a visão geral dele também se preenche com a identidade, as interfaces e a saúde do dispositivo depois do primeiro walk bem-sucedido.
+Clique em **Adicionar dispositivo**. Em poucos minutos a sonda envia ping ao dispositivo e o status dele passa a **Operacional** ou **Inoperante**. Com credenciais SNMP, a visão geral dele também se preenche com a identidade, as interfaces e a saúde do dispositivo depois do primeiro walk bem-sucedido.
 :::
 
 O formulário é uma única página — o nome do host, um nome, o site e a sonda —, com **SNMP** e **Mais campos** recolhidos embaixo. Ele não pergunta nada sobre como o dispositivo é monitorado: todo dispositivo que você adiciona é consultado pela sua sonda, e a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) fica na página **Configurações** do dispositivo para os poucos dispositivos que precisam dela.
@@ -158,7 +158,7 @@ As demais ações em massa são tratadas onde fazem sentido: **Set OID Collectio
 
 ## O que uma sondagem realmente faz
 
-Toda sondagem de um dispositivo consultado pela sonda é um ping. Quando o dispositivo tem credenciais SNMP utilizáveis, a sonda também executa um walk SNMP completo. Os dois correm lado a lado e o walk nunca espera o ping, então um equipamento SNMP atrás de uma ACL que descarta ICMP continua aparecendo como **Up**.
+Toda sondagem de um dispositivo consultado pela sonda é um ping. Quando o dispositivo tem credenciais SNMP utilizáveis, a sonda também executa um walk SNMP completo. Os dois correm lado a lado e o walk nunca espera o ping, então um equipamento SNMP atrás de uma ACL que descarta ICMP continua aparecendo como **Operacional**.
 
 | Resultado | Dispositivo só com ping | Dispositivo com credenciais SNMP |
 | --- | --- | --- |
@@ -175,12 +175,12 @@ A perda de pacotes reutiliza a série do [monitor Ping](/docs/monitor/ping-monit
 
 ### "SNMP failing" não é "Down"
 
-Um dispositivo que responde ao ping mas cujo walk falha está **Up**, marcado com **SNMP failing**, e as duas metades importam:
+Um dispositivo que responde ao ping mas cujo walk falha está **Operacional**, marcado com **SNMP failing**, e as duas metades importam:
 
 - Ele está ativo porque algo responde naquele endereço. Pintá-lo de vermelho colocaria na sua contagem de incidentes um dispositivo que está funcionando bem.
 - Ele está com SNMP failing porque as interfaces, o inventário e os OIDs de saúde dele pararam de ser atualizados, quase sempre por causa de credenciais, de um agente SNMP desativado ou de uma ACL. Nada mais na página diria a você que os números estão congelados.
 
-Um dispositivo cujo ping e cujo walk falham é simplesmente **Down**, então a marcação só aparece ao lado de um status verde.
+Um dispositivo cujo ping e cujo walk falham é simplesmente **Inoperante**, então a marcação só aparece ao lado de um status verde.
 
 ### Lendo o status de um dispositivo
 
@@ -188,8 +188,8 @@ Todo lugar que mostra um dispositivo — a lista Devices, a página Devices de u
 
 | Veredicto | Significa |
 | --- | --- |
-| **Up** | A última sondagem (ping ou SNMP), ou o monitor vinculado, alcançou o dispositivo. |
-| **Down** | A última sondagem (ping ou SNMP), ou o monitor vinculado, não conseguiu alcançar o dispositivo. |
+| **Operacional** | A última sondagem (ping ou SNMP), ou o monitor vinculado, alcançou o dispositivo. |
+| **Inoperante** | A última sondagem (ping ou SNMP), ou o monitor vinculado, não conseguiu alcançar o dispositivo. |
 | **Pendente** | Ainda sem veredicto: nunca consultado, sem sonda atribuída ou sem monitor vinculado. |
 
 | Qualificador | Aparece quando | O que fazer |
@@ -269,7 +269,7 @@ A maioria dos dispositivos não precisa disso. Todo dispositivo consultado pela 
 
 ## Sondagem e coleta de dados
 
-A sondagem fica na página **Configurações** do dispositivo, no cartão **Polling & Data Collection** (**Editar: Polling**). Os padrões servem para um dispositivo novo, que não precisa de ajustes:
+A sondagem fica na página **Configurações** do dispositivo, no cartão **Polling & Data Collection** (**Editar: Consulta periódica**). Os padrões servem para um dispositivo novo, que não precisa de ajustes:
 
 | Configuração | Descrição | Padrão |
 | --- | --- | --- |
@@ -293,7 +293,7 @@ Silencie uma interface na página **Interfaces** do dispositivo, para uma porta 
 
 ### Modelos de saúde dos fabricantes
 
-No editor **Health OIDs**, **Vendor Health Template** aplica um conjunto pronto de OIDs para o fabricante do dispositivo. Muitos modelos também trazem [tabelas SNMP](#tabelas-snmp), adicionadas com **Add a Vendor's Tables** no editor **SNMP Tables**.
+No editor **Health OIDs**, **Vendor Health Template** aplica um conjunto pronto de OIDs para o fabricante do dispositivo. Muitos modelos também trazem [tabelas SNMP](#tabelas-snmp), adicionadas com **Add a Vendor's Tables** no editor **Tabelas SNMP**.
 
 | Modelo do fabricante | OIDs de saúde | Tabelas SNMP |
 | --- | --- | --- |
@@ -322,7 +322,7 @@ No editor **Health OIDs**, **Vendor Health Template** aplica um conjunto pronto 
 
 Os OIDs do modelo são copiados para a lista própria do dispositivo, onde você pode podá-los ou ampliá-los. Depois que o primeiro walk identifica o fabricante, a visão geral do dispositivo oferece o modelo correspondente enquanto ele acrescentar algo, e **Adicionar verificações de saúde** o adiciona com um clique. A correspondência lê o `sysObjectID` do dispositivo, e o `sysDescr` dele quando um mesmo número enterprise abriga dois sistemas operacionais: o Extreme Fabric Engine em hardware universal informa o mesmo enterprise (1916) que o EXOS, e só a descrição dele (`…-FabricEngine (9.0.4.0)`) os diferencia. Os access points UniFi são diferenciados dos roteadores da Ubiquiti da mesma forma (`U6-Pro 6.6.50.15098`), também quando um firmware mais antigo responde com o ramo do Net-SNMP, e os access points IQ Engine dos switches Aerohive que compartilham o ramo deles (`AP230, HiveOS 8.2r1`).
 
-Os dispositivos com **Auto-Apply Vendor Health Template** ativado recebem os OIDs e as tabelas do modelo na primeira sondagem: os dispositivos que uma regra de importação automática traz, e os importados de **Review Results** com o interruptor do modelo do fabricante ativado, como ele fica a menos que você o desative. Para dar a muitos dispositivos o modelo deles de uma vez, como uma frota descoberta antes de o interruptor existir, selecione-os na lista **Devices** e use **Aplicar modelo do fabricante** (veja [Alterar muitos dispositivos de uma vez](#alterar-muitos-dispositivos-de-uma-vez)).
+Os dispositivos com **Auto-Apply Vendor Health Template** ativado recebem os OIDs e as tabelas do modelo na primeira sondagem: os dispositivos que uma regra de importação automática traz, e os importados de **Revisar resultados** com o interruptor do modelo do fabricante ativado, como ele fica a menos que você o desative. Para dar a muitos dispositivos o modelo deles de uma vez, como uma frota descoberta antes de o interruptor existir, selecione-os na lista **Devices** e use **Aplicar modelo do fabricante** (veja [Alterar muitos dispositivos de uma vez](#alterar-muitos-dispositivos-de-uma-vez)).
 
 Aplicar um modelo do fabricante é uma cópia única, então nada se propaga quando o modelo muda. Para qualquer coisa além de um único dispositivo, use um **OID Collection Template**; os modelos dos fabricantes são oferecidos como ponto de partida quando você cria um.
 
@@ -352,7 +352,7 @@ Um OID em um modelo é coletado como está escrito, então um OID que aponta par
 Há três formas de vincular dispositivos, e em uma frota que a descoberta continua encontrando, a terceira é a que mais importa:
 
 - Um dispositivo de cada vez, no cartão **Polling & Data Collection** do dispositivo.
-- Em massa, selecionando dispositivos na lista **Devices** e usando **Set OID Collection Template**. A coluna **Template** da lista mostra quais dispositivos estão vinculados a quê.
+- Em massa, selecionando dispositivos na lista **Devices** e usando **Set OID Collection Template**. A coluna **Modelo** da lista mostra quais dispositivos estão vinculados a quê.
 - Automaticamente, definindo um OID Collection Template em uma regra de importação automática, para que cada dispositivo importado por uma varredura seja vinculado no momento em que é criado.
 
 Um dispositivo coleta primeiro os OIDs do seu modelo e depois os seus próprios **Device-Specific Health OIDs**. Quando os dois apontam para o mesmo OID, ele é coletado uma vez, prevalecem o nome e a descrição do dispositivo, e as entradas do modelo mantêm o seu lugar, então os acréscimos específicos do dispositivo nunca conseguem empurrá-las para fora.
@@ -378,7 +378,7 @@ Adicione os OIDs que você quiser coletar a cada sondagem, em um modelo ou como 
 | Nome | Um nome amigável para o OID, como sysDescr. | Não |
 | Descrição | O que o OID representa. | Não |
 
-Os valores coletados aparecem em gráficos na página **Métricas** do dispositivo, e os critérios **SNMP OID Value** e **SNMP OID Exists** alertam sobre eles. O seletor de OIDs desses critérios lista os OIDs que o dispositivo escolhido coleta, os do modelo e os dele, então não há nada para digitar.
+Os valores coletados aparecem em gráficos na página **Métricas** do dispositivo, e os critérios **SNMP OID Value**, **SNMP OID Exists** e **SNMP OID Rate (per second)** alertam sobre eles. Um contador (Counter32 ou Counter64) só cresce, então alerte sobre a rapidez com que ele cresceu desde a sondagem anterior. O seletor de OIDs desses critérios lista os OIDs que o dispositivo escolhido coleta, os do modelo e os dele, então não há nada para digitar.
 
 Listas longas de OIDs são divididas em várias requisições SNMP GET para que cada uma caiba em um único datagrama UDP. Se você mantinha suas listas de OIDs curtas porque uma versão anterior informava como offline um dispositivo que respondia `tooBig`, não precisa mais.
 
@@ -386,12 +386,12 @@ Listas longas de OIDs são divididas em várias requisições SNMP GET para que 
 
 A página **Walk SNMP** de um dispositivo, em **Mais** no menu dele, lista cada OID que o dispositivo responde, com tipo, valor e, quando o OneUptime conhece a MIB, nome. É o `snmpwalk` que você executaria a partir da rede da sonda, executado pela própria sonda do dispositivo com as credenciais que o OneUptime guarda para ele, que nunca chegam ao seu navegador.
 
-Digite um OID numérico em **OID inicial** ou escolha um dos **Pontos de partida comuns**: **Tudo**, **Sistema**, **Interfaces**, **Recursos do host** ou **Específico do fabricante**. Depois clique em **Fazer walk**. A sonda pega o walk em até dez segundos e faz uma solicitação por vez, no máximo 1.000 OIDs em no máximo 45 segundos, então um walk nunca sobrecarrega o dispositivo. Quando há mais para ler, **Continuar o walk** lê os próximos 1.000 a partir de onde ele parou. Cada dispositivo tem um walk em andamento por vez, e os walks dele são mantidos por dois dias.
+Digite um OID numérico em **OID inicial** ou clique em um dos pontos de partida logo abaixo: **Tudo**, **Sistema**, **Interfaces**, **Recursos do host** ou **Específico do fabricante**. Depois clique em **Fazer walk**. A sonda pega o walk em até dez segundos e faz uma solicitação por vez, no máximo 1.000 OIDs em no máximo 45 segundos, então um walk nunca sobrecarrega o dispositivo. Quando há mais para ler, **Continuar o walk** lê os próximos 1.000 a partir de onde ele parou. Cada dispositivo tem um walk em andamento por vez, e os walks dele são mantidos por dois dias.
 
 Cada linha diz onde o OID dela é conhecido: um valor que um modelo de saúde de um fabricante coleta, uma coluna da tabela SNMP de um modelo de fabricante, um contador que o walk das interfaces já exibe em gráfico para cada porta, ou um OID sob a MIB do fabricante. A partir de uma linha:
 
 - **Coletar** adiciona o OID aos **Device-Specific Health OIDs** do dispositivo: cada sondagem o coleta a partir da próxima, e a página **Métricas** do dispositivo o exibe em gráfico. Em um dispositivo vinculado a um OID Collection Template, o menu da linha pode adicioná-lo ao modelo em vez disso, para cada dispositivo que o usa.
-- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério **SNMP OID Value** no OID, a partir do valor lido: um contador ou medidor alerta acima dele, um tempo de atividade abaixo (o dispositivo reiniciou), qualquer outro valor quando muda.
+- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério no OID. Um contador começa em **SNMP OID Rate (per second)** e um medidor em **SNMP OID Value**, ambos acima de um limite que você define; um tempo de atividade alerta abaixo de dez minutos (o dispositivo reiniciou), qualquer outro valor quando muda em relação ao lido.
 - **Copiar OID**, no menu da linha, copia o OID.
 
 Um walk que falha diz por quê, e o que verificar: um dispositivo que não responde (SNMP desligado, UDP 161 bloqueada ou, em v1 e v2c, uma community string errada, que um agente ignora sem dizer nada), um usuário, senha ou protocolo SNMPv3 que o dispositivo recusou, ou uma parte da árvore que a visão SNMP das credenciais deixa de fora. Um walk que para no meio do caminho mantém o que leu. Fazer walk exige a permissão **Create Network Device Diagnostic** e uma sonda recente o bastante para fazer walks SNMP: com uma mais antiga, a página pede que você a atualize.
@@ -408,13 +408,13 @@ Parte do que um dispositivo sabe é uma lista: uma linha por túnel IPsec, rádi
 | Nomes das linhas | Colunas opcionais cujos valores dão nome a cada linha, como o nome da conexão de um túnel. Sem elas, as linhas recebem o nome do seu índice. Um nome pode vir de uma tabela irmã que compartilha o índice (o Fabric Engine nomeia as adjacências IS-IS a partir de `rcIsisAdjHostName`), ou de uma tabela mãe cujo índice começa o desta tabela (o Aruba Instant nomeia cada rádio pelo seu access point). Uma tabela indexada por um nome (o ArubaOS indexa os seus SSIDs pelo SSID) recebe o nome do seu índice decodificado. |
 | Limite de linhas | Quantas linhas manter: 100 por padrão, 250 no máximo. |
 
-Números são lidos como números, e um texto que começa com um número é lido como esse número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muitos fabricantes colocam números dentro de strings. Defina o tipo de valor de uma coluna como **Text only** para valores que só parecem numéricos. Os **Value labels** transformam códigos em palavras (`0=inactive, 1=active`): o valor bruto continua sendo o que vai para os gráficos e as comparações, o rótulo é o que é exibido. Os **Healthy values** (`1`) dizem quais valores significam que está tudo bem: eles colorem a linha na página **SNMP Tables** do dispositivo e alimentam o critério **SNMP Table Row Is Unhealthy**.
+Números são lidos como números, e um texto que começa com um número é lido como esse número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muitos fabricantes colocam números dentro de strings. Defina o tipo de valor de uma coluna como **Text only** para valores que só parecem numéricos. Os **Value labels** transformam códigos em palavras (`0=inactive, 1=active`): o valor bruto continua sendo o que vai para os gráficos e as comparações, o rótulo é o que é exibido. Os **Healthy values** (`1`) dizem quais valores significam que está tudo bem: eles colorem a linha na página **Tabelas SNMP** do dispositivo e alimentam o critério **SNMP Table Row Is Unhealthy**.
 
 Algumas colunas dos modelos dos fabricantes também **ajustam** o número que leem, para MIBs que guardam um valor em uma unidade própria: o ArubaOS informa a potência de transmissão dobrada (lida × 0.5), o Aruba Instant o ruído de fundo sem o sinal (× −1), o Aerohive o ruído de fundo mais 256 (− 256), e o controlador da Extreme a largura do canal em passos de 20 MHz (× 20). O número ajustado é o que é exibido, colocado em gráficos e comparado, então **Noise Floor Maior que -80** significa o mesmo em todos os fabricantes, e o editor de tabelas mostra a conta embaixo da coluna.
 
 As tabelas vêm de um [OID Collection Template](#oid-collection-templates), compartilhado por cada dispositivo vinculado (até 10 tabelas), ou do próprio dispositivo em **Device-Specific SNMP Tables** (até mais 10). Elas são mescladas por chave a cada sondagem, o modelo primeiro, e uma tabela do dispositivo com a mesma chave substitui a do modelo. Os dois editores oferecem **Add a Vendor's Tables**.
 
-A sonda faz o walk de cada coluna como uma subárvore, dentro de um orçamento de 30 segundos compartilhado por todas as tabelas do dispositivo. Uma tabela cujo walk não é possível diz por quê e nunca faz a sondagem falhar: a página **SNMP Tables** do dispositivo mantém as últimas linhas válidas e informa que o walk mais recente falhou, enquanto os critérios julgam só o que este walk produziu, então um timeout nunca é lido como uma tabela vazia. Cada célula numérica é registrada como a métrica `oneuptime.monitor.snmp.table.value`, com os atributos `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` e `snmpTableRowIndex`, então um painel pode mostrar o status de cada túnel ou a potência de transmissão de cada rádio, e um monitor de métricas pode agrupar por `snmpTableRow`.
+A sonda faz o walk de cada coluna como uma subárvore, dentro de um orçamento de 30 segundos compartilhado por todas as tabelas do dispositivo. Uma tabela cujo walk não é possível diz por quê e nunca faz a sondagem falhar: a página **Tabelas SNMP** do dispositivo mantém as últimas linhas válidas e informa que o walk mais recente falhou, enquanto os critérios julgam só o que este walk produziu, então um timeout nunca é lido como uma tabela vazia. Cada célula numérica é registrada como a métrica `oneuptime.monitor.snmp.table.value`, com os atributos `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` e `snmpTableRowIndex`, então um painel pode mostrar o status de cada túnel ou a potência de transmissão de cada rádio, e um monitor de métricas pode agrupar por `snmpTableRow`.
 
 ### A aba Wi-Fi
 
@@ -553,7 +553,7 @@ Só uma varredura SNMP pede credenciais: escolher **SNMP** acrescenta a etapa **
 Clique em **Iniciar varredura**. A sonda varre a faixa e informa quantos hosts varreu e quantos responderam: quantos responderam ao SNMP ou, em uma varredura ICMP, quantos responderam ao ping.
 
 ### Importar o que ela encontrou
-Clique em **Review Results** na varredura, escolha os hosts a importar e clique em **Próximo**. Escolha com que frequência eles são verificados e se cada um recebe um monitor, e então importe-os; veja [Importar o que uma varredura encontrou](#importar-o-que-uma-varredura-encontrou).
+Clique em **Revisar resultados** na varredura, escolha os hosts a importar e clique em **Próximo**. Escolha com que frequência eles são verificados e se cada um recebe um monitor, e então importe-os; veja [Importar o que uma varredura encontrou](#importar-o-que-uma-varredura-encontrou).
 :::
 
 | Campo | Descrição | Obrigatório |
@@ -570,7 +570,7 @@ Recolhidos em **Mais campos** na primeira etapa, para as varreduras que precisam
 | Nome | Para que serve a varredura, para você diferenciá-la das outras. A lista mostra o alvo da varredura quando ele está vazio. | Vazio |
 | Consultar nomes do Windows (NetBIOS) | Pergunta a cada host sem nome de sistema SNMP o nome NetBIOS dele, o nome do computador Windows, via UDP 137. Esse nome prevalece sobre o nome de DNS reverso do host. Só endereços privados e sondas personalizadas; veja [Como os dispositivos descobertos recebem nome](#como-os-dispositivos-descobertos-recebem-nome). | Ativado |
 | Name devices by their short hostname | Dá aos dispositivos importados o nome da primeira parte de um nome de host totalmente qualificado: `core-sw-01` em vez de `core-sw-01.corp.example.com`. | Desativado |
-| Repeat this scan | Executa a varredura de novo em um intervalo, o **Rescan Interval (Minutes)**, de pelo menos 15 minutos, para manter a descoberta em andamento; veja [as regras de importação automática](#importar-automaticamente-com-regras-de-importação-automática). Os hosts que uma varredura repetida encontra aguardam a sua revisão, a menos que uma regra de importação automática os encontre. | Desativado |
+| Repeat this scan | Executa a varredura de novo em um intervalo, o **Intervalo de nova varredura (minutos)**, de pelo menos 15 minutos, para manter a descoberta em andamento; veja [as regras de importação automática](#importar-automaticamente-com-regras-de-importação-automática). Os hosts que uma varredura repetida encontra aguardam a sua revisão, a menos que uma regra de importação automática os encontre. | Desativado |
 
 ### Notação do alvo da varredura
 
@@ -615,7 +615,7 @@ Quando os hosts que você importa incluem hosts SNMP, a etapa **Monitoramento** 
 
 ### Importar o que uma varredura encontrou
 
-**Review Results** abre os hosts da varredura, os encontrados até agora se ela ainda estiver em andamento, em uma caixa de diálogo que os importa em três etapas:
+**Revisar resultados** abre os hosts da varredura, os encontrados até agora se ela ainda estiver em andamento, em uma caixa de diálogo que os importa em três etapas:
 
 1. A etapa **Escolher dispositivos** lista cada host com o nome que o dispositivo dele vai receber, o endereço e o fabricante; todos os hosts ainda não adicionados começam selecionados. Pesquise por nome, nome DNS, endereço ou fabricante, ou digite uma sub-rede (`10.48.11.0/24`) ou uma faixa de octetos (`10.48.11-12.0-255`) para listar os hosts nela. **Resposta** (**SNMP** ou **Sem SNMP**) e **Nome** (**Com nome** ou **Somente endereço**) restringem mais a lista. A caixa de seleção acima da lista marca ou desmarca todos os hosts exibidos, em todas as páginas, e só os hosts selecionados que a lista exibe são importados.
 2. A etapa **Monitoramento** pergunta, com **Verificar a cada**, com que frequência a sonda da varredura verifica os dispositivos, o que vira o **Polling Interval (Minutes)** de cada um, e quem fica sabendo quando um cai. **Somente status** os importa com um status e sem monitor. **Um monitor para cada dispositivo** dá a cada um um monitor a partir do modelo que você escolher em **Modelo de monitor**: o monitor de um modelo de dispositivo de rede lê as consultas do dispositivo, e o de um modelo Ping, IP, Porta ou NTP verifica o próprio endereço do dispositivo com a sonda da varredura, conforme a programação do modelo. Modelos de outros tipos não conseguem verificar um dispositivo e não são listados; **Gerenciar modelos** abre seus modelos em uma nova aba, e um modelo que você adicionar lá aparece na lista quando você voltar. Antes da importação, a etapa mostra o que cada verificação do modelo gera: um incidente, um alerta ou só o status do monitor. As verificações de um modelo de dispositivo de rede que leem um walk SNMP aparecem em **Somente dispositivos SNMP**, porque hosts que responderam só ao ping recebem ping, mas não walk, até terem credenciais SNMP; quando todos os hosts responderam só ao ping, essas verificações cabem em uma linha. O modelo **Network device alert pack (recommended)** é oferecido primeiro, e um projeto que ainda não o tem o recebe ao importar. O resumo ao lado das opções diz o que a importação vai criar, inclusive os dispositivos que seu plano não tem mais espaço para monitorar.
@@ -632,11 +632,11 @@ Um host descoberto recebe o primeiro destes nomes que tiver:
 3. O nome de DNS reverso dele, o registro PTR que a sonda consulta depois da varredura.
 4. O endereço IP dele.
 
-Os nomes do próprio dispositivo vêm primeiro porque são os nomes que os responsáveis por ele usam: um host Windows chamado `WB0024KDS03` mantém esse nome mesmo quando a zona reversa o chama de `wb-0024-kds03.wbhq.com`. O nome de DNS reverso também é mantido: **Review Results** o mostra ao lado do endereço, e o dispositivo o guarda como seu **DNS Name**. O NetBIOS corta o nome de um computador em 15 caracteres, então um nome NetBIOS que é o começo de um nome de DNS reverso mais longo (`WB-0024-KITCHEN` para `wb-0024-kitchen-display-03.wbhq.com`) cede lugar ao nome de DNS reverso.
+Os nomes do próprio dispositivo vêm primeiro porque são os nomes que os responsáveis por ele usam: um host Windows chamado `WB0024KDS03` mantém esse nome mesmo quando a zona reversa o chama de `wb-0024-kds03.wbhq.com`. O nome de DNS reverso também é mantido: **Revisar resultados** o mostra ao lado do endereço, e o dispositivo o guarda como seu **DNS Name**. O NetBIOS corta o nome de um computador em 15 caracteres, então um nome NetBIOS que é o começo de um nome de DNS reverso mais longo (`WB-0024-KITCHEN` para `wb-0024-kitchen-display-03.wbhq.com`) cede lugar ao nome de DNS reverso.
 
-**Review Results** mostra o nome que um dispositivo vai receber, e ele recebe o mesmo nome quer você o importe dali, quer uma [regra de importação automática](#importar-automaticamente-com-regras-de-importação-automática) o importe. O nome do host do dispositivo é sempre o endereço IP dele. Enquanto o nome de um dispositivo ainda for o que a descoberta deu a ele, a visão geral mostra de onde o nome veio como **Origem do nome**.
+**Revisar resultados** mostra o nome que um dispositivo vai receber, e ele recebe o mesmo nome quer você o importe dali, quer uma [regra de importação automática](#importar-automaticamente-com-regras-de-importação-automática) o importe. O nome do host do dispositivo é sempre o endereço IP dele. Enquanto o nome de um dispositivo ainda for o que a descoberta deu a ele, a visão geral mostra de onde o nome veio como **Origem do nome**.
 
-**Name devices by their short hostname** corta um nome totalmente qualificado no primeiro rótulo: `core-sw-01.corp.example.com` é importado como `core-sw-01`. Vale para um nome de DNS reverso e para um `sysName` que seja um nome de host totalmente qualificado; todo o resto (`Core Switch`, `ubuntu-22.04`, um endereço IP) fica como está. Muda só como os dispositivos se chamam, então nenhuma nova varredura é necessária: **Review Results** e as regras de importação automática o usam na próxima vez que dão nome a um host, e os dispositivos já importados mantêm os seus nomes.
+**Nomear dispositivos pelo nome curto do host** corta um nome totalmente qualificado no primeiro rótulo: `core-sw-01.corp.example.com` é importado como `core-sw-01`. Vale para um nome de DNS reverso e para um `sysName` que seja um nome de host totalmente qualificado; todo o resto (`Core Switch`, `ubuntu-22.04`, um endereço IP) fica como está. Muda só como os dispositivos se chamam, então nenhuma nova varredura é necessária: **Revisar resultados** e as regras de importação automática o usam na próxima vez que dão nome a um host, e os dispositivos já importados mantêm os seus nomes.
 
 Um dispositivo importado de um host com nome de DNS reverso guarda o nome completo como seu **DNS Name**, use a varredura nomes curtos ou não. Ele aparece na visão geral do dispositivo, a busca da lista **Devices** o encontra, e as regras de atribuição de site comparam padrões de nome de host com ele, então uma regra `*.store-0660.corp.example.com` continua posicionando um dispositivo cujo nome perdeu o domínio. Um nome NetBIOS nunca é guardado como DNS Name: o host o informa sobre si mesmo, e ele não é um registro DNS.
 
@@ -656,7 +656,7 @@ Hosts Windows e Samba muitas vezes não têm agente SNMP, então, sem isto, eles
 :::
 
 :::details Quando um host não tem nome
-Um host listado pelo endereço em **Review Results** mostra **No name found** e um (i) ao lado. Passe o mouse sobre o (i), ou dê foco a ele, para ver o que cada forma de dar nome a ele retornou:
+Um host listado pelo endereço em **Revisar resultados** mostra **No name found** e um (i) ao lado. Passe o mouse sobre o (i), ou dê foco a ele, para ver o que cada forma de dar nome a ele retornou:
 
 - SNMP: a varredura não verificou o SNMP, o host não respondeu, ou respondeu sem nome de sistema ou com um que não pode ser um nome, como `localhost` ou um endereço IP.
 - NetBIOS: a opção está desativada para a varredura, a varredura rodou em uma sonda global, o endereço não foi consultado (um endereço público, ou o limite de hosts ou de tempo foi atingido), ou o host não respondeu em UDP 137.
@@ -666,7 +666,7 @@ A sonda consulta nomes pelos próprios servidores DNS, os de `/etc/resolv.conf` 
 :::
 
 :::details Nomes melhores encontrados depois
-Uma varredura nem sempre encontra o melhor nome de um host na primeira vez. Os resultados parciais que uma varredura em andamento envia não trazem nomes, porque os nomes de DNS reverso e NetBIOS são consultados uma vez, depois da varredura, então um host importado a partir deles — por uma regra de importação automática, ou de **Review Results** enquanto a varredura ainda está em andamento — recebe primeiro o nome do seu endereço IP. Uma resposta NetBIOS pode se perder, e um host pode ganhar um agente SNMP depois de importado.
+Uma varredura nem sempre encontra o melhor nome de um host na primeira vez. Os resultados parciais que uma varredura em andamento envia não trazem nomes, porque os nomes de DNS reverso e NetBIOS são consultados uma vez, depois da varredura, então um host importado a partir deles — por uma regra de importação automática, ou de **Revisar resultados** enquanto a varredura ainda está em andamento — recebe primeiro o nome do seu endereço IP. Uma resposta NetBIOS pode se perder, e um host pode ganhar um agente SNMP depois de importado.
 
 Por isso, um dispositivo que a descoberta nomeou lembra de onde o nome dele veio. Quando uma varredura concluída do endereço dele encontra um nome melhor — o nome de sistema SNMP ou o nome NetBIOS em vez do nome de DNS reverso, qualquer nome em vez do endereço IP —, o dispositivo é renomeado com o nome que uma importação daria a ele agora, e o DNS Name dele é preenchido se não houver um. Se outro dispositivo já tiver esse nome, o dispositivo recebe o nome com o endereço entre parênteses (`FILESRV01 (10.0.0.5)`), e se esse também estiver ocupado, ele mantém o nome.
 
@@ -677,16 +677,16 @@ Um nome só melhora: um dispositivo mantém o nome quando o registro DNS dele mu
 
 Revisar cada varredura à mão não escala além das primeiras sub-redes. **Rede → Regras → Auto Import Rules** é onde você escreve a importação uma vez: uma regra diz quais hosts descobertos reivindicar (uma faixa de IPs, e padrões opcionais de nome de sistema, descrição e `sysObjectID`) e, opcionalmente, qual modelo de monitor e qual [OID Collection Template](#oid-collection-templates) os dispositivos que ela importa recebem. Uma regra marcada como exclusão não reivindica nada e veta as outras: é assim que impressoras e telefones são separados de uma regra de sub-rede ampla.
 
-Em uma regra, **Verificar a cada** define com que frequência a sonda da varredura consulta cada dispositivo que a regra importa, como **Verificar a cada** faz quando você importa de **Review Results**; vazio, é a cada 5 minutos. Uma regra com **Include Ping-Only Hosts** ativado também importa hosts que responderam só ao ping, entre eles todo host que uma [varredura ICMP](#varreduras-icmp) encontra, e também dá a eles o modelo de monitor dela: a sonda envia ping a eles, então as verificações do modelo sobre se um dispositivo está no ar e sobre os traps que ele envia funcionam para eles na hora, e as verificações que leem um walk SNMP, assim que o dispositivo tiver credenciais.
+Em uma regra, **Verificar a cada** define com que frequência a sonda da varredura consulta cada dispositivo que a regra importa, como **Verificar a cada** faz quando você importa de **Revisar resultados**; vazio, é a cada 5 minutos. Uma regra com **Include Ping-Only Hosts** ativado também importa hosts que responderam só ao ping, entre eles todo host que uma [varredura ICMP](#varreduras-icmp) encontra, e também dá a eles o modelo de monitor dela: a sonda envia ping a eles, então as verificações do modelo sobre se um dispositivo está no ar e sobre os traps que ele envia funcionam para eles na hora, e as verificações que leem um walk SNMP, assim que o dispositivo tiver credenciais.
 
-As regras não têm agendamento próprio e não precisam de um. As regras habilitadas rodam sozinhas sobre os resultados de cada varredura conforme eles chegam, incluindo os resultados parciais que uma varredura longa envia enquanto ainda está em andamento, então os hosts são importados até um minuto depois de encontrados, e não no fim da faixa. Ative **Repeat this scan** em uma varredura de descoberta e o par vira um arranjo permanente: a varredura percorre a sua faixa de novo no seu intervalo, e cada host novo que ela encontra é importado sem que ninguém aperte nada.
+As regras não têm agendamento próprio e não precisam de um. As regras habilitadas rodam sozinhas sobre os resultados de cada varredura conforme eles chegam, incluindo os resultados parciais que uma varredura longa envia enquanto ainda está em andamento, então os hosts são importados até um minuto depois de encontrados, e não no fim da faixa. Ative **Repetir esta varredura** em uma varredura de descoberta e o par vira um arranjo permanente: a varredura percorre a sua faixa de novo no seu intervalo, e cada host novo que ela encontra é importado sem que ninguém aperte nada.
 
 Salvar uma regra também a aplica aos resultados que o projeto já tem: uma regra que você escreve ou habilita hoje alcança em cerca de um minuto os hosts descobertos nas últimas 24 horas, então uma regra escrita depois de uma varredura avulsa não fica esperando por uma varredura que nunca mais vai rodar. Os resultados mais antigos não são tocados, porque importar um parque descoberto no mês passado é uma decisão, não um efeito colateral de salvar uma regra. Os dois botões de uma regra são a forma de tomar essa decisão, e alcançam cada varredura do projeto, por mais antiga que seja:
 
 - **Dry Run** avalia cada varredura concluída e informa o que a regra importaria e monitoraria. Nada é gravado, então é a forma segura de ver o que uma regra reivindicaria antes de habilitá-la em um parque em produção. Uma regra desabilitada pode passar por Dry Run; só uma execução real exige que ela esteja habilitada, e é por isso que uma regra criada no painel começa com **Habilitado** desativado: faça o Dry Run e depois a ative.
 - **Run Rule** faz a mesma avaliação e realiza a importação.
 
-**Quem pode executar uma regra.** Uma execução alcança cada varredura do projeto, então apertar **Dry Run** ou **Run Rule** exige permissões que alcancem o projeto inteiro: permissão para editar a regra, para criar dispositivos de rede e - quando a regra tem um modelo de monitor - para criar monitores, cada uma com escopo em todos os recursos do projeto. Uma permissão restrita a rótulos ou a dispositivos próprios não basta, e um bloqueio de equipe com rótulos sobre a criação de dispositivos ou monitores recusa a execução. O **Run Now** de uma regra de atribuição de site ou de rótulos de dispositivos exige permissão para editar a regra e para editar dispositivos de rede, alcançando o projeto inteiro da mesma forma (veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now#antes-de-começar), que nomeia cada permissão).
+**Quem pode executar uma regra.** Uma execução alcança cada varredura do projeto, então apertar **Dry Run** ou **Run Rule** exige permissões que alcancem o projeto inteiro: permissão para editar a regra, para criar dispositivos de rede e - quando a regra tem um modelo de monitor - para criar monitores, cada uma com escopo em todos os recursos do projeto. Uma permissão restrita a rótulos ou a dispositivos próprios não basta, e um bloqueio de equipe com rótulos sobre a criação de dispositivos ou monitores recusa a execução. O **Executar agora** de uma regra de atribuição de site ou de rótulos de dispositivos exige permissão para editar a regra e para editar dispositivos de rede, alcançando o projeto inteiro da mesma forma (veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now#antes-de-começar), que nomeia cada permissão).
 
 Parques grandes são importados em lotes cadenciados. Criar um dispositivo ou um monitor passa por todo o pipeline — atribuição de site, proprietários, rótulos e, nos monitores, o plano, o status e o trabalho das páginas de status —, então uma execução cria algumas centenas de cada vez, e não dezenas de milhares de uma só vez. Um clique em **Run Rule** conduz quantos lotes o parque precisar e informa o total, então uma varredura de 900 roteadores é um clique só. Se uma execução para com trabalho pendente, o relatório diz exatamente quanto ("Stopped at the run cap with 409 active Network Device monitors still to create"), e apertar o botão de novo continua: hosts já importados e monitores já criados são ignorados, então executar de novo nunca adiciona em dobro.
 
@@ -741,7 +741,7 @@ O OneUptime então mantém um monitor de dispositivo de rede por dispositivo cor
 > [!IMPORTANT]
 > Cada monitor que uma política provisiona conta para o seu plano. Uma política sobre um parque grande são muitos monitores a partir de um único salvamento, então a confirmação da política recomendada informa a contagem de dispositivos do projeto antes de criar qualquer coisa.
 
-A coluna **Covered Devices** da tabela mostra **Not counted yet** até a primeira sincronização da política, e **Last Sync** diz quando foi, ou por que falhou.
+A coluna **Covered Devices** da tabela mostra **Ainda não contado** até a primeira sincronização da política, e **Last Sync** diz quando foi, ou por que falhou.
 
 Sem nenhuma política ainda, a página oferece **Create the recommended policy**: um modelo de monitor **Network device alert pack (recommended)**, que carrega o [pacote de alertas recomendado](#pacote-de-alertas-recomendado), e uma política **Alert on every device** que o aplica ao projeto inteiro. O modelo é reencontrado por um marcador na descrição dele, então a ação nunca cria uma segunda cópia, e ele é um modelo de monitor que você também pode usar para os monitores que cria. Estreite depois o escopo da política se o projeto inteiro for demais.
 
@@ -752,7 +752,7 @@ Abra a página do dispositivo e clique em **Criar monitor** no cartão **Monitor
 Para criar um a partir de **Monitores**:
 
 1. Acesse **Monitores** e clique em **Criar monitor**.
-2. Selecione **Network Device** como tipo de monitor.
+2. Selecione **Dispositivo de rede** como tipo de monitor.
 3. Escolha o dispositivo de rede sobre o qual alertar. Tudo o que diz respeito à coleta de dados — nome do host, credenciais, agendamento, walks de interfaces, OIDs de saúde — vem do dispositivo; o monitor só escolhe sobre o que alertar, por meio dos critérios dele.
 
 Um monitor de dispositivo de rede não tem intervalo próprio: ele é avaliado sempre que chegam os resultados de sondagem do dispositivo, e sempre que chega um trap do dispositivo.
@@ -781,6 +781,7 @@ Os critérios verificam cada resultado de sondagem e cada trap, e abrem incident
 | SNMP Response Time (in ms) | O tempo de resposta do walk em milissegundos, nunca o do ping. | Não avaliado |
 | SNMP OID Value | O valor que um OID retornou. | Não avaliado |
 | SNMP OID Exists | Se um OID retorna um valor. | Não avaliado |
+| SNMP OID Rate (per second) | A rapidez com que um OID contador cresceu, por segundo, desde a sondagem anterior: um contador só cresce, então alerte sobre isto e não sobre o valor dele. Sem veredito até ser lido duas vezes. | Não avaliado |
 | SNMP Interface Is Down | Verdadeiro quando uma interface habilitada administrativamente está fora do ar operacionalmente. | Não avaliado |
 | SNMP Interface Utilization (in %) | A utilização do enlace da interface mais carregada. | Não avaliado |
 | SNMP Interface Errors (per second) | A taxa de erros da pior interface. | Não avaliado |
@@ -945,7 +946,7 @@ Clique em um par não gerenciado e **Add to Monitoring** o registra como disposi
 
 ### Exportar o mapa em PDF
 
-**Exportar PDF**, no topo do mapa, baixa o mapa que você está vendo como um PDF que você pode anexar a uma avaliação, a uma solicitação de mudança ou a uma revisão de incidente, ou ler offline. Toda visão do mapa de dispositivos tem essa opção: **Device Topology**, um site no **Map** e a aba **Rede** de **Topologia**.
+**Exportar PDF**, no topo do mapa, baixa o mapa que você está vendo como um PDF que você pode anexar a uma avaliação, a uma solicitação de mudança ou a uma revisão de incidente, ou ler offline. Toda visão do mapa de dispositivos tem essa opção: **Device Topology**, um site no **Mapa** e a aba **Rede** de **Topologia**.
 
 O PDF traz:
 
@@ -958,9 +959,9 @@ Um site pequeno cabe em uma página A4. Uma rede maior ganha uma primeira págin
 
 ### Ping e traceroute a partir do mapa
 
-Clicar em um dispositivo gerenciado no mapa abre o painel dele, e a seção **Connectivity** do painel responde às duas perguntas que costumam vir depois de "está ativo?": como ele tem estado, e se consigo alcançá-lo agora.
+Clicar em um dispositivo gerenciado no mapa abre o painel dele, e a seção **Conectividade** do painel responde às duas perguntas que costumam vir depois de "está ativo?": como ele tem estado, e se consigo alcançá-lo agora.
 
-- **Round-trip time, past hour** é um pequeno gráfico do tempo de ida e volta do ping do dispositivo a partir das próprias sondagens dele, com os valores atual, médio e máximo embaixo e a pior perda de pacotes da hora ao lado. **Open metrics** abre a página **Métricas** do dispositivo. Um dispositivo que não recebeu ping na última hora mostra **No ping data in the last hour.**
+- **Round-trip time, past hour** é um pequeno gráfico do tempo de ida e volta do ping do dispositivo a partir das próprias sondagens dele, com os valores atual, médio e máximo embaixo e a pior perda de pacotes da hora ao lado. **Abrir métricas** abre a página **Métricas** do dispositivo. Um dispositivo que não recebeu ping na última hora mostra **No ping data in the last hour.**
 - **Ping** envia cinco requisições de eco ICMP ao dispositivo e informa se ele respondeu, o tempo de ida e volta mínimo, médio e máximo, o jitter e a perda de pacotes. Um dispositivo que responde a algumas delas é informado como acessível, com perda de pacotes.
 - **Traceroute** informa o caminho da sonda até o dispositivo salto a salto — o número do salto, o host que respondeu e o tempo de ida e volta dele —, com os saltos sem resposta marcados como `* * *` e, quando a rota não chegou ao dispositivo, o salto em que ela se interrompeu.
 
@@ -979,7 +980,7 @@ Para isso, o mapa precisa saber qual MAC aprendido é o do dispositivo. Há duas
 
 O switch do qual o dispositivo depende também precisa de **Collect Connected Endpoints** ativado: é de lá que vem a porta. Os endereços são associados dentro do site do dispositivo, já que toda filial tem um `10.0.0.5`; um MAC corresponde seja qual for o site.
 
-A visão geral do dispositivo tem um cartão **Connected to** que indica o switch, a porta e a VLAN. Um switch, roteador ou firewall que informa seus vizinhos por LLDP ou CDP os lista ali no lugar: a própria porta, o vizinho (um link quando é um dispositivo daqui) e a porta na outra ponta, com **Abrir o mapa** ao lado. No mapa, o painel do dispositivo mostra o mesmo em **Connected to**, e o painel do enlace diz que ele foi aprendido da tabela de encaminhamento do switch. A visão Parent-Child desenha o dispositivo abaixo do switch dele. Um enlace que você desenhou à mão em **Device Links** para o mesmo par se funde com o aprendido em vez de duplicá-lo: a porta aprendida substitui uma digitada errado, e um pai que você definiu no enlace desenhado à mão é mantido.
+A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch, a porta e a VLAN. Um switch, roteador ou firewall que informa seus vizinhos por LLDP ou CDP os lista ali no lugar: a própria porta, o vizinho (um link quando é um dispositivo daqui) e a porta na outra ponta, com **Abrir o mapa** ao lado. No mapa, o painel do dispositivo mostra o mesmo em **Conectado a**, e o painel do enlace diz que ele foi aprendido da tabela de encaminhamento do switch. A visão Parent-Child desenha o dispositivo abaixo do switch dele. Um enlace que você desenhou à mão em **Device Links** para o mesmo par se funde com o aprendido em vez de duplicá-lo: a porta aprendida substitui uma digitada errado, e um pai que você definiu no enlace desenhado à mão é mantido.
 
 ![Visão de topologia Parent-Child desenhando um caixa só com ping abaixo do seu switch por um enlace aprendido](/docs/static/images/NetworkTopologyLearnedLink.png)
 
@@ -1033,7 +1034,7 @@ O dispositivo foi consultado e nenhum walk foi tentado, porque nenhuma credencia
 :::details Um dispositivo só com ping não aparece ligado ao seu switch
 O mapa desenha o cabo de um dispositivo só com ping a partir da tabela de encaminhamento do switch dele, e para isso três coisas precisam bater:
 
-- O switch coleta endpoints: **Collect Connected Endpoints** ativado nas configurações de sondagem dele, com credenciais que deixem o walk funcionar. A visão geral do dispositivo mostra um cartão **Connected to** assim que um switch o aprende.
+- O switch coleta endpoints: **Collect Connected Endpoints** ativado nas configurações de sondagem dele, com credenciais que deixem o walk funcionar. A visão geral do dispositivo mostra um cartão **Conectado a** assim que um switch o aprende.
 - O MAC do dispositivo é conhecido: o **Endereço MAC** dele está definido, ou um roteador do site coleta endpoints e o nome do host do dispositivo é o endereço que a tabela ARP desse roteador associa. Um dispositivo registrado por nome DNS sem MAC não pode ser associado, então digite o MAC.
 - O mesmo site: um endereço só é associado a um dispositivo no mesmo site do switch que o aprendeu. Um dispositivo sem site só é associado pelo endereço quando esse switch também não tem site; se o switch está em um site, coloque o dispositivo no mesmo. Um MAC corresponde seja qual for o site.
 
@@ -1041,7 +1042,7 @@ Se o dispositivo está atrás de um switch não gerenciado ou de um hub, o switc
 :::
 
 :::details Só alguns dispositivos descobertos foram importados
-Uma importação de **Review Results** responde a isso na última etapa: cada host que ela não importou e cada dispositivo que importou sem o monitor dele aparecem sob o motivo, e uma nova tentativa tenta de novo só os hosts que falharam. Para vê-la depois, clique em **Review Results** na varredura e depois em **Ver resultados**.
+Uma importação de **Revisar resultados** responde a isso na última etapa: cada host que ela não importou e cada dispositivo que importou sem o monitor dele aparecem sob o motivo, e uma nova tentativa tenta de novo só os hosts que falharam. Para vê-la depois, clique em **Revisar resultados** na varredura e depois em **Ver resultados**.
 
 Para uma regra de importação automática, o relatório da execução responde a isso, na caixa de diálogo que abre quando uma execução termina, e não em um log. Uma execução que parou no limite de lote diz isso e indica o que falta: aperte **Run Rule** de novo e ela continua de onde parou. Uma execução que terminou, mas reivindicou menos hosts do que você esperava, diz para onde foi o resto: vetado por uma regra de exclusão, já registrado naquele endereço, ou não correspondente aos critérios da regra.
 

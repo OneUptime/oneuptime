@@ -157,7 +157,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till Webhook-utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i webhooken i Datadog.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i webhooken i Datadog.
 
 ### Kontrollera att monitorn är utlöst
 

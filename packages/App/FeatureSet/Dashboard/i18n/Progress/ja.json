@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 1275
+    "keys": 35180,
+    "untranslated": 893
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -112,6 +112,8 @@
     "Largest Contentful Paint",
     "MCP",
     "MD5",
+    "MITRE ATT&CK",
+    "MITRE ATT&CK Enterprise v{{version}}",
     "Markdown",
     "Mbps",
     "Microsoft Entra ID",
@@ -248,6 +250,7 @@
     "production, staging",
     "public-.*",
     "pve-production",
+    "security-alerts",
     "sensor-001",
     "sk-...",
     "storefront-web",

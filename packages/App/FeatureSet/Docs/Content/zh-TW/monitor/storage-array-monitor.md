@@ -55,11 +55,11 @@ flowchart TB
 
 - **Quick Setup**：點選一個 [範本](#預建警示範本)。它會設定指標、標籤篩選器、彙總、時間範圍和臨界值，並用自己的條件取代下面的條件。你仍然可以修改 **時間範圍**。
 - **Custom Metric**：從 **Storage Array Metric** 中選擇一個指標，然後設定 **彙總** 和 **時間範圍**。[篩選器](#監測器設定) 可以把它縮小到一個磁碟區、主機、Pod、元件、檔案系統或儲存貯體。
-- **進階**：在 **選擇指標** 下自行建構查詢和公式，例如用 `purefa_array_space_bytes` 篩選到 `space=capacity`，減去同一指標篩選到 `space=empty`，得到已用容量。以物件的標籤 **Group by**，即可分別判斷每個物件。
+- **進階**：在 **選擇指標** 下自行建構查詢和公式，例如用 `purefa_array_space_bytes` 篩選到 `space=capacity`，減去同一指標篩選到 `space=empty`，得到已用容量。以物件的標籤 **分組依據**，即可分別判斷每個物件。
 
 ### 檢查條件
 
-開啟 **監測器條件** 下的每個條件，檢查其 **指標**、**彙總**、**條件** 和 **Threshold**。範本會填入這些內容。使用 **Custom Metric** 或 **進階** 時，監測器會從 [預設條件](#預設條件) 開始，它只會注意到指標降為零，所以請設定你自己的臨界值。
+開啟 **監測器條件** 下的每個條件，檢查其 **指標**、**彙總**、**條件** 和 **閾值**。範本會填入這些內容。使用 **Custom Metric** 或 **進階** 時，監測器會從 [預設條件](#預設條件) 開始，它只會注意到指標降為零，所以請設定你自己的臨界值。
 
 ### 建立監測器
 
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 若要一次設定多個範本，請從 **產品 → 基礎設施 → Storage Arrays** 開啟陣列，然後前往 **Recommendations**。選擇你需要的範本和要呼叫的人員，OneUptime 會為每個範本建立一個監測器。
+> 若要一次設定多個範本，請從 **產品 → 基礎設施 → Storage Arrays** 開啟陣列，然後前往 **建議**。選擇你需要的範本和要呼叫的人員，OneUptime 會為每個範本建立一個監測器。
 
 ## 監測器設定
 
@@ -78,12 +78,12 @@ flowchart TB
 | **主機** | Custom Metric、進階 | 僅限 FlashArray。陣列所知的一台主機，依 `host` 標籤，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、進階 | 僅限 FlashArray。一個 ActiveCluster 或 ActiveDR Pod，依 `name` 標籤，在複本連結序列上則依 `local_pod`。 |
 | **Hardware Component** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`。 |
-| **File System** | Custom Metric、進階 | 僅限 FlashBlade。一個檔案系統，依 `name` 標籤。 |
+| **檔案系統** | Custom Metric、進階 | 僅限 FlashBlade。一個檔案系統，依 `name` 標籤。 |
 | **儲存貯體** | Custom Metric、進階 | 僅限 FlashBlade。一個物件儲存貯體，依 `name` 標籤。 |
 | **Storage Array Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。表單會加入賦予其意義的標籤篩選器，並依它描述的物件分組，因此每個磁碟區、主機或元件都會單獨判斷。 |
 | **彙總** | Custom Metric | 如何合併樣本：**平均**、**最大值**、**最小值**、**總和** 或 **計數**。從該指標的常用彙總開始。 |
-| **時間範圍** | 全部 | 查詢讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新監測器從 **Past 5 Minutes** 開始；檔案系統或儲存貯體的自訂指標從 **Past 15 Minutes** 開始；範本會設定自己的值。 |
-| **選擇指標** | 進階 | 查詢建構器：**指標**、**Aggregate by**、**Filter by attributes**、**Group by**，以及用於合併查詢的 **新增指標** 和 **新增公式**。 |
+| **時間範圍** | 全部 | 查詢讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新監測器從 **過去 5 分鐘** 開始；檔案系統或儲存貯體的自訂指標從 **過去 15 分鐘** 開始；範本會設定自己的值。 |
+| **選擇指標** | 進階 | 查詢建構器：**指標**、**Aggregate by**、**Filter by attributes**、**分組依據**，以及用於合併查詢的 **新增指標** 和 **新增公式**。 |
 
 代理程式每 60 秒讀取一次陣列端點，每 2 分鐘讀取一次磁碟區、主機和 Pod，因此 5 分鐘的視窗中一定會有樣本。它每 5 分鐘讀取一次 FlashBlade 的檔案系統和儲存貯體(所以用 15 分鐘)，每 30 分鐘讀取一次 FlashArray 目錄：請給目錄監測器設定 60 分鐘的視窗。
 
@@ -123,9 +123,9 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 | Capacity Above 90% | 容量 | 嚴重 | `purefa_array_space_utilization`，Max，過去 5 分鐘 | > 90 — 陣列即將拒絕寫入；≤ 81 時復原 |
 | High Read Latency | Performance | Warning | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms) — FlashArray 的讀取通常遠低於 1 ms；≤ 4500 時復原 |
 | High Write Latency | Performance | Warning | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_write_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms)；≤ 4500 時復原 |
-| Hardware Component Failed | Hardware | 嚴重 | `purefa_hw_component_status` 篩選到 `component_status=critical`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個控制器、電源供應器、風扇、槽位或連接埠處於嚴重狀態，備援已經喪失。每個元件一個事件；它回報 ok 時復原 |
-| Hardware Component Degraded | Hardware | Warning | `purefa_hw_component_status` 篩選到 `component_status=degraded`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個元件已降級。每個元件一個事件；它回報 ok 時復原 |
-| Drive Failed | Hardware | 嚴重 | `purefa_drive_capacity_bytes` 篩選到 `component_status=failed`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個 DirectFlash 模組或 SSD 故障，陣列正在其餘磁碟機上重建。每個磁碟機一個事件；更換後復原 |
+| Hardware Component Failed | 硬體 | 嚴重 | `purefa_hw_component_status` 篩選到 `component_status=critical`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個控制器、電源供應器、風扇、槽位或連接埠處於嚴重狀態，備援已經喪失。每個元件一個事件；它回報 ok 時復原 |
+| Hardware Component Degraded | 硬體 | Warning | `purefa_hw_component_status` 篩選到 `component_status=degraded`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個元件已降級。每個元件一個事件；它回報 ok 時復原 |
+| Drive Failed | 硬體 | 嚴重 | `purefa_drive_capacity_bytes` 篩選到 `component_status=failed`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個 DirectFlash 模組或 SSD 故障，陣列正在其餘磁碟機上重建。每個磁碟機一個事件；更換後復原 |
 | Host Lost Redundant Paths | 主機 | Warning | `purefa_host_connectivity_info` 篩選到 `status=critical`，依 `host` 取 Max，過去 5 分鐘 | > 0 — 主機只能透過一個控制器連線到陣列，或完全無法連線；一次控制器容錯移轉就會讓它的儲存離線。每台主機一個事件；路徑恢復時復原 |
 | Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`，依 `local_pod` 取 Max，過去 10 分鐘 | > 60000 ms (60 s) — 此時容錯移轉會遺失比計畫更多的近期寫入。每個 Pod 一個事件；≤ 54000 時復原 |
 
@@ -137,15 +137,15 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
 | Capacity Above 80% | 容量 | Warning | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 15 分鐘 | > 80；≤ 72 時復原 |
 | Capacity Above 90% | 容量 | 嚴重 | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 5 分鐘 | > 90 — 寫滿時每個用戶端的寫入都會失敗；≤ 81 時復原 |
-| Hardware Component Unhealthy | Hardware | 嚴重 | `purefb_hardware_health`，依 `name` 取 Min，過去 5 分鐘 | < 1 — 某個刀鋒、交換模組、電源供應器或風扇不健康(未使用的插槽回報 2)。每個元件一個事件；≥ 1 時復原 |
+| Hardware Component Unhealthy | 硬體 | 嚴重 | `purefb_hardware_health`，依 `name` 取 Min，過去 5 分鐘 | < 1 — 某個刀鋒、交換模組、電源供應器或風扇不健康(未使用的插槽回報 2)。每個元件一個事件；≥ 1 時復原 |
 | High Read Latency | Performance | Warning | `purefb_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，過去 10 分鐘 | > 10000 µs (10 ms)，跨所有通訊協定；≤ 9000 時復原 |
-| File System Near Full | File Systems | Warning | `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，依 `name` 取 Min，過去 15 分鐘 | < 0.1 — 檔案系統佈建大小的剩餘不足 10%。每個檔案系統一個事件；≥ 0.11 時復原 |
+| File System Near Full | 檔案系統 | Warning | `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，依 `name` 取 Min，過去 15 分鐘 | < 0.1 — 檔案系統佈建大小的剩餘不足 10%。每個檔案系統一個事件；≥ 0.11 時復原 |
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 
 - **未關閉的警示和硬體狀態使用 Max**，因為這類序列只在警示未關閉或元件處於該狀態時才存在，所以只要有一次收集顯示它，就會超過臨界值。
 - **每個依物件的範本都依物件自身的標籤分組**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每個受影響的物件各觸發一個事件，並且事件中會寫出該物件。
-- **延遲範本使用 Avg**，對陣列自身計算的每次作業平均值取平均；容量範本對陣列自身的使用率百分比取 **Max**。延遲固定以微秒為單位，容量固定以百分比為單位。
+- **延遲範本使用 Avg**，對陣列自身計算的每次作業平均值取平均；容量範本對陣列自身的使用率百分比取 **最大**。延遲固定以微秒為單位，容量固定以百分比為單位。
 - **Hardware Component Unhealthy 依元件使用 Min**：元件健康時其健康值為 1，不健康時降到 0。
 
 沒有針對每個磁碟區延遲的範本，因為合適的臨界值取決於工作負載：請從目錄中依 `name` 分組自行建構。容量預測需要的是成長趨勢而不是臨界值，而磁碟機磨損沒有可以發出警示的序列。
@@ -264,7 +264,7 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 | **指標** | 要檢查的查詢或公式，依其變數名稱。 |
 | **彙總** | 視窗中的值如何變成一個答案：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**(整個視窗內每個值都必須相符)或 **Any Value**(一個就夠)。 |
 | **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
-| **Threshold** | 用於比較的值。指標有單位時，旁邊會有一份單位清單。異常條件不會顯示此欄位。 |
+| **閾值** | 用於比較的值。指標有單位時，旁邊會有一份單位清單。異常條件不會顯示此欄位。 |
 | **敏感度** | 僅限異常條件。**低**(4σ)、**中**(3σ，預設)或 **高**(2σ)。 |
 | **基準視窗** | 僅限異常條件。14 天(預設)、28、60 或 90 天的歷史。 |
 | **如果沒有資料** | 位於 **更多欄位** 下。視窗中沒有樣本時會發生什麼：**Ignore**(預設)、**Treat As Zero** 或 **觸發器**。 |

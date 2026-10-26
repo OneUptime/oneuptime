@@ -20,7 +20,7 @@ Chaque graphique de série temporelle de OneUptime sert aussi de sélecteur de p
 
 Les panneaux qui montrent l'état actuel restent sur maintenant, comme lorsque vous choisissez vous-même une plage : décomptes d'inventaire, santé, plus gros consommateurs de ressources, avertissements récents, incidents et alertes ouverts, et listes en direct d'un tableau de bord.
 
-Tant qu'un zoom est actif, un bouton **Reset zoom** apparaît à côté du sélecteur de plage temporelle de la page. Il fait la même chose qu'un double-clic, et c'est le moyen de revenir au clavier et sur écran tactile.
+Tant qu'un zoom est actif, un bouton **Réinitialiser le zoom** apparaît à côté du sélecteur de plage temporelle de la page. Il fait la même chose qu'un double-clic, et c'est le moyen de revenir au clavier et sur écran tactile.
 
 ```mermaid title="Ce que font un glisser, un double-clic et le sélecteur à la plage de la page"
 stateDiagram-v2
@@ -35,9 +35,9 @@ stateDiagram-v2
 
 ## Comment se comporte le zoom
 
-- **Zoomez aussi loin que vous voulez ; une seule réinitialisation remonte tout.** Après être passé de « Past 1 Hour » à dix minutes puis à une, un seul double-clic (ou **Reset zoom**) rend l'heure entière au lieu de remonter un niveau à la fois.
+- **Zoomez aussi loin que vous voulez ; une seule réinitialisation remonte tout.** Après être passé de « Past 1 Hour » à dix minutes puis à une, un seul double-clic (ou **Réinitialiser le zoom**) rend l'heure entière au lieu de remonter un niveau à la fois.
 - **N'importe quel graphique peut réinitialiser n'importe quel zoom.** Glissez sur le graphique CPU, double-cliquez sur celui de la mémoire : c'est la page qui est zoomée, pas le graphique.
-- **Choisir vous-même une plage repart de zéro.** Un préréglage ou une plage personnalisée dans le sélecteur est un nouveau point de départ : le zoom est terminé et **Reset zoom** disparaît.
+- **Choisir vous-même une plage repart de zéro.** Un préréglage ou une plage personnalisée dans le sélecteur est un nouveau point de départ : le zoom est terminé et **Réinitialiser le zoom** disparaît.
 - **Une fenêtre zoomée est fixe.** « Past 30 Minutes » avance avec l'horloge ; un zoom est une fenêtre fixe, il cesse donc d'avancer tant que l'actualisation automatique est active. Réinitialisez le zoom pour qu'elle reprenne.
 - **Un zoom ne dépasse jamais maintenant.** Le compartiment le plus récent d'un graphique est en général encore en train de se remplir ; un glisser qui s'y termine est coupé à l'heure actuelle.
 - **Vous pouvez relâcher la souris hors du graphique** : le glisser compte quand même.
@@ -63,13 +63,13 @@ Le zoom change la plage de toute la page sur :
 - les cartes de métriques, y compris l'onglet Métriques d'une ressource et les métriques d'un moniteur ;
 - l'explorateur de métriques ;
 - les graphiques d'historique des SLO ;
-- les Insights des journaux, y compris la chronologie « Quand c'est arrivé » d'un motif d'erreur, dont le panneau a son propre **Reset zoom** parce qu'il recouvre le sélecteur de la page ;
+- les Insights des journaux, y compris la chronologie « Quand c'est arrivé » d'un motif d'erreur, dont le panneau a son propre **Réinitialiser le zoom** parce qu'il recouvre le sélecteur de la page ;
 - les graphiques de volume des journaux, des traces, des exceptions et des événements de sécurité, ainsi que les graphiques d'analyse des journaux et des traces, qui changent la plage de leur explorateur ;
 - les [tableaux de bord](/docs/dashboards/authoring), où un glisser change la plage de tout le tableau de bord.
 
-Les graphiques qui ont leur propre fenêtre ne zooment que cette fenêtre et ne changent donc jamais rien d'autre sur la page. Cela concerne l'aperçu d'une métrique dans le formulaire d'un moniteur (le moniteur continue d'évaluer sa propre fenêtre glissante), l'Occurrence Trend d'une exception, un graphique ouvert dans une fenêtre contextuelle ou dans le panneau d'investigation, et les graphiques des réponses du chat IA. Un double-clic sur l'un d'eux, ou son bouton **Reset zoom**, rétablit sa propre fenêtre.
+Les graphiques qui ont leur propre fenêtre ne zooment que cette fenêtre et ne changent donc jamais rien d'autre sur la page. Cela concerne l'aperçu d'une métrique dans le formulaire d'un moniteur (le moniteur continue d'évaluer sa propre fenêtre glissante), l'Occurrence Trend d'une exception, un graphique ouvert dans une fenêtre contextuelle ou dans le panneau d'investigation, et les graphiques des réponses du chat IA. Un double-clic sur l'un d'eux, ou son bouton **Réinitialiser le zoom**, rétablit sa propre fenêtre.
 
-L'instantané de télémétrie d'une page d'incident, d'alerte ou d'épisode a lui aussi sa propre fenêtre. Un glisser sur son graphique (le graphique de métrique, ou le graphique de volume des journaux, des traces ou des exceptions quand c'est ce que montre l'instantané) zoome tout l'instantané : ses onglets Métriques, Journaux, Traces et Exceptions montrent tous la tranche tracée. **Reset zoom** à côté du badge de l'instantané, ou un double-clic sur ce graphique, rétablit la fenêtre de l'instantané.
+L'instantané de télémétrie d'une page d'incident, d'alerte ou d'épisode a lui aussi sa propre fenêtre. Un glisser sur son graphique (le graphique de métrique, ou le graphique de volume des journaux, des traces ou des exceptions quand c'est ce que montre l'instantané) zoome tout l'instantané : ses onglets Métriques, Journaux, Traces et Exceptions montrent tous la tranche tracée. **Réinitialiser le zoom** à côté du badge de l'instantané, ou un double-clic sur ce graphique, rétablit la fenêtre de l'instantané.
 
 ## Graphiques sans zoom
 

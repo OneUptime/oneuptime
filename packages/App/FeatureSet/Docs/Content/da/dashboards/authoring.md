@@ -11,7 +11,7 @@ For at oprette et dashboard åbner du **Produkter → Dashboards** og klikker p�
 
 ## Før du begynder
 
-Projektejere og -administratorer kan oprette og redigere alle dashboards. Alle andre skal have en teamtilladelse: `CreateDashboard` for at oprette dashboards og `EditDashboard` for at ændre dem. Projektmedlemmer og seere kan læse dashboards uden nogen af dem. Den, der ikke må redigere et dashboard, kan stadig åbne dets menu **⋯**, hvor **Edit Dashboard** er låst og fortæller, hvilken tilladelse der kræves.
+Projektejere og -administratorer kan oprette og redigere alle dashboards. Alle andre skal have en teamtilladelse: `CreateDashboard` for at oprette dashboards og `EditDashboard` for at ændre dem. Projektmedlemmer og seere kan læse dashboards uden nogen af dem. Den, der ikke må redigere et dashboard, kan stadig åbne dets menu **⋯**, hvor **Rediger dashboard** er låst og fortæller, hvilken tilladelse der kræves.
 
 ## Opret dashboardet
 
@@ -45,7 +45,7 @@ Skabelonerne, efter den kategori, vælgeren viser dem under:
 
 ## Rediger og gem
 
-Et dashboard åbner i visningstilstand, til læsning. For at ændre det åbner du menuen **⋯** i dets værktøjslinje og vælger **Edit Dashboard**. Værktøjslinjen viser **Editing** ved siden af navnet og bytter tidsintervallet og de andre kontroller ud med **Tilføj widget**, **Variabler**, **Annuller** og **Gem ændringer**, med en række nedenunder til dashboardets **Standardtidsrum** og **Standard automatisk opdatering**.
+Et dashboard åbner i visningstilstand, til læsning. For at ændre det åbner du menuen **⋯** i dets værktøjslinje og vælger **Rediger dashboard**. Værktøjslinjen viser **Redigerer** ved siden af navnet og bytter tidsintervallet og de andre kontroller ud med **Tilføj widget**, **Variabler**, **Annuller** og **Gem ændringer**, med en række nedenunder til dashboardets **Standardtidsrum** og **Standard automatisk opdatering**.
 
 ```mermaid title="Fra at læse et dashboard til at ændre det, og tilbage"
 flowchart TB
@@ -122,7 +122,7 @@ Det første valg i hver vælger nævner dashboardets standard, som i Standard (P
 
 Du behøver ikke gribe til tidsintervalvælgeren for at se på en spids. Træk hen over det interessante stykke af et linje- eller arealdiagram, og **hele dashboardet** flytter til det vindue, præcis som hvis du havde valgt det i tidsintervalvælgeren: hver widget, der bruger tidsintervallet, forespørger igen sammen med det, så du læser ét øjeblik på tværs af hele dashboardet i stedet for ét diagram i en anden skala end naboerne. Live-lister bliver ved med at vise, hvad der sker nu, som de altid gør.
 
-**Dobbeltklik på et vilkårligt diagram** for at fortryde: dashboardet går tilbage til det interval, det havde, før du begyndte at zoome, uanset hvor mange gange du har boret dig ned. En knap **Reset zoom** vises ved siden af tidsintervalvælgeren, mens en zoom er aktiv, og et dobbeltklik på et dashboard, der ikke er zoomet, gør ingenting.
+**Dobbeltklik på et vilkårligt diagram** for at fortryde: dashboardet går tilbage til det interval, det havde, før du begyndte at zoome, uanset hvor mange gange du har boret dig ned. En knap **Nulstil zoom** vises ved siden af tidsintervalvælgeren, mens en zoom er aktiv, og et dobbeltklik på et dashboard, der ikke er zoomet, gør ingenting.
 
 Et zoomet vindue ligger fast, så det holder op med at rykke fremad, mens den automatiske opdatering er slået til; det er med vilje, for et vindue, der gled væk under dig midt i en undersøgelse, ville være værre. Nulstil zoomen for at få det til at rykke igen.
 
@@ -130,7 +130,7 @@ Zoom virker kun i visningstilstand; i redigeringstilstand flytter og tilpasser t
 
 ## Fuld skærm
 
-**⋯ → Full Screen** viser dashboardets widgets på hele skærmen, til en vægskærm eller et møde. Tryk på Esc for at forlade den.
+**⋯ → Fuld skærm** viser dashboardets widgets på hele skærmen, til en vægskærm eller et møde. Tryk på Esc for at forlade den.
 
 ## Tips til dashboards, der ældes godt
 

@@ -37,8 +37,10 @@ import React, { ReactElement, ReactNode, useId } from "react";
  * The rows reach the edges of whatever holds them and bring their own
  * padding (px-5 / md:px-6, as a card's body): a card puts them in a
  * full-bleed wrapper, as the status page's display card does with its rows.
- * The radios are the browser's own, so they follow the page's light or dark
- * colour scheme, and arrow keys move between the choices that can be picked.
+ * The radios are native inputs, so arrow keys move between the choices that
+ * can be picked. The light theme shows the browser's own; the dark theme
+ * draws them in its own colours (Theme.css, "Radio buttons and
+ * checkboxes"), where the browser's were flat grey discs.
  */
 
 export interface ChoiceRowOption<TValue extends string> {

@@ -48,15 +48,15 @@ Tilkoblingen logger på med [OAuth 2.0-flyten for klientlegitimasjon](https://le
 
 Gå til **Certificates & secrets → Client secrets → New client secret**, velg når den utløper, og velg **Add**. Kopier hemmelighetens **Value**, ikke **Secret ID**, før du forlater siden: den vises aldri igjen.
 
-Noter når hemmeligheten utløper. Den dagen stopper pollingen med `Microsoft Defender XDR token request failed (HTTP 401)` til du erstatter den med **Update credentials**.
+Noter når hemmeligheten utløper. Den dagen stopper pollingen med `Microsoft Defender XDR token request failed (HTTP 401)` til du erstatter den med **Oppdater påloggingsinformasjon**.
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Defender XDR** under **EDR / XDR**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Client secret**.
+Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Defender XDR** under **EDR / XDR**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**.
 
 ### Test den før du lagrer
 
-Klikk på **Test these settings** under **Test før du lagrer**. Testen logger på og leser varsler med verdiene i skjemaet, og lagrer ingenting, så en feil hemmelighet eller et manglende samtykke viser seg før tilkoblingen finnes. Klikk deretter på **Neste**, gi tilkoblingen et **Navn**, og opprett den.
+Klikk på **Test disse innstillingene** under **Test før du lagrer**. Testen logger på og leser varsler med verdiene i skjemaet, og lagrer ingenting, så en feil hemmelighet eller et manglende samtykke viser seg før tilkoblingen finnes. Klikk deretter på **Neste**, gi tilkoblingen et **Navn**, og opprett den.
 :::
 
 | Innstilling | Hvor du finner den |
@@ -64,9 +64,9 @@ Klikk på **Test these settings** under **Test før du lagrer**. Testen logger p
 | **Katalog-ID (tenant)** | Appens side **Overview**. GUID-en til leieren, eller et verifisert domene som `contoso.onmicrosoft.com`. |
 | **Program-ID (klient)** | Appens side **Overview**. GUID-en til appen som har `SecurityAlert.Read.All`. |
 | **Sky** | **Offentlig Azure-sky**, som også betjener Microsoft 365 GCC, eller **Azure Government (USA)** for GCC High (`login.microsoftonline.us` og `graph.microsoft.us`). Microsoft 365 DoD og 21Vianet-skyen i Kina støttes ikke. |
-| **Client secret** | Hemmelighetens **Value**. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Update credentials** på tilkoblingen. |
+| **Klienthemmelighet** | Hemmelighetens **Value**. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Oppdater påloggingsinformasjon** på tilkoblingen. |
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på.
+Trinnet **Henting** har også en valgfri **Beskrivelse**, **Henteintervall (minutter)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på.
 
 ## Hva som importeres
 
@@ -107,7 +107,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 
 ### Når et vindu inneholder mer enn én poll kan lese
 
-En poll leser høyst 20 sider med 100 varsler: 2 000 varsler. Når den grensen stopper den før slutten av vinduet, er kjøringen **Partial**, med denne advarselen:
+En poll leser høyst 20 sider med 100 varsler: 2 000 varsler. Når den grensen stopper den før slutten av vinduet, er kjøringen **Delvis**, med denne advarselen:
 
 ```text
 Stopped after 20 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.
@@ -117,22 +117,22 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Snevre inn.** Den neste pollen leser et vindu som er halvparten så langt, fra det samme startpunktet, og fortsetter å halvere til et vindu leses helt, ned til ett minutt. Kjøringens advarsel sier det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Varsler som allerede er importert fra det lengre vinduet, hoppes over som duplikater.
 2. **Vokse igjen.** Når et vindu er lest helt, flyttes markøren til slutten av det, og det neste vinduet er igjen dobbelt så langt, opptil 24 timer.
-3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn 2 000 varsler, går pollingen forbi det, slik at nyere varsler fortsetter å komme. Kjøringen forblir **Partial**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
+3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn 2 000 varsler, går pollingen forbi det, slik at nyere varsler fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
 
-En kjøring som er **Partial** av en annen grunn, for eksempel et varsel som ikke kunne leses som en sikkerhetshendelse, prøves på nytt på samme måte, fra det samme startpunktet. Å endre **Poll Interval (Minutes)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
+En kjøring som er **Delvis** av en annen grunn, for eksempel et varsel som ikke kunne leses som en sikkerhetshendelse, prøves på nytt på samme måte, fra det samme startpunktet. Å endre **Henteintervall (minutter)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
 
 ### Kjør, forhåndsvis og importer ved behov
 
-Klikk på **Diagnostics** på en tilkobling for å se de siste kjøringene og arbeide med den manuelt. Alle som kan endre tilkoblingen, kan starte disse handlingene; alle som kan se den, kan lese historikken.
+Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og arbeide med den manuelt. Alle som kan endre tilkoblingen, kan starte disse handlingene; alle som kan se den, kan lese historikken.
 
-- **Run now** starter en poll med en gang, med den vanlige markøren, også når tilkoblingen ikke er **Aktivert**.
+- **Kjør nå** starter en poll med en gang, med den vanlige markøren, også når tilkoblingen ikke er **Aktivert**.
 - **Preview alerts** leser et tidsrom på opptil 7 dager og importerer ingenting.
 - **Import this time range** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Varsler som allerede er importert, hoppes over.
 - **Copy diagnostics** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
 
 ## Test tilkoblingen
 
-**Test tilkoblingen** på raden til en tilkobling og **Test these settings** i skjemaet kjører i API-prosessen, ikke i en bakgrunnsworker, slik at en test også svarer når det er workerne som er problemet. Den kjører disse kontrollene i rekkefølge:
+**Test tilkoblingen** på raden til en tilkobling og **Test disse innstillingene** i skjemaet kjører i API-prosessen, ikke i en bakgrunnsworker, slik at en test også svarer når det er workerne som er problemet. Den kjører disse kontrollene i rekkefølge:
 
 | Kontroll | Hva den kontrollerer |
 | --- | --- |
@@ -151,7 +151,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 
 :::details Last Error starter med `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID nektet å utstede et token, så Graph ble aldri kontaktet. Meldingen slutter med et hint ut fra `error`-koden fra Entra:
-  - `invalid_client` (`AADSTS7000215`): hemmeligheten er feil, utløpt eller tilhører en annen app. Opprett en ny under **Certificates & secrets**, og lagre den med **Update credentials**.
+  - `invalid_client` (`AADSTS7000215`): hemmeligheten er feil, utløpt eller tilhører en annen app. Opprett en ny under **Certificates & secrets**, og lagre den med **Oppdater påloggingsinformasjon**.
   - `unauthorized_client` (`AADSTS700016`): **Program-ID (klient)** finnes ikke i den **Katalog-ID (tenant)**, eller **Sky** er feil.
   - `AADSTS90002`: den leieren finnes ikke.
   - `invalid_scope`: Graph-omfanget finnes ikke i skyen du valgte. Sjekk **Sky**.
@@ -163,7 +163,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 - `Microsoft Defender XDR alerts request failed (HTTP ...)`: Graph nektet å vise varslene. Meldingen navngir feilkoden fra Graph og et hint:
   - `403` (`Authorization_RequestDenied`): `SecurityAlert.Read.All` eller administratorsamtykket for den mangler, eller leieren har ingen lisens for Defender XDR. Samtykke bruker noen minutter på å tre i kraft.
   - `401` (`InvalidAuthenticationToken`) etter at et token er utstedt: **Sky** passer vanligvis ikke til leieren.
-  - `429` (`TooManyRequests`): Graph begrenser appen, og den neste pollen leser det samme vinduet på nytt. Meldingen kan ikke sitere Graphs `Retry-After`, fordi HTTP-klienten i OneUptime ikke beholder svarhoder ved en feil. Hvis det fortsetter, øker du **Poll Interval (Minutes)**.
+  - `429` (`TooManyRequests`): Graph begrenser appen, og den neste pollen leser det samme vinduet på nytt. Meldingen kan ikke sitere Graphs `Retry-After`, fordi HTTP-klienten i OneUptime ikke beholder svarhoder ved en feil. Hvis det fortsetter, øker du **Henteintervall (minutter)**.
   - `5xx`: et problem på Graphs side. Den neste pollen prøver igjen.
   - `400`: Graph ville ikke kjøre spørringen, som OneUptime bygger, ikke innstillingene dine. Kopier meldingen til OneUptimes brukerstøtte.
 - `Microsoft Defender XDR alerts request returned ...`: Graph svarte `200`, men med noe koblingen ikke kunne bruke: et innhold som ikke er JSON, ingen liste `value` eller en `@odata.nextLink` som ikke er en `https://`-lenke på Graph-verten for skyen din. En slik lenke avvises, slik at tokenet aldri sendes noe annet sted. Det rapporteres i stedet for å bli tatt som et tomt vindu, slik at markøren aldri går forbi varsler som ingen har lest.
@@ -175,10 +175,10 @@ Poll-jobben har aldri kjørt. Les kontrollene **Background workers** og **Poll s
 :::
 
 :::details Poller lykkes, men et varsel du kjenner til, mangler
-Sammenlign varselets `createdDateTime` i Defender-portalen med kjøringens vindu i **Diagnostics**: vinduer går etter opprettelsestidspunkt, ikke aktivitetstidspunkt.
+Sammenlign varselets `createdDateTime` i Defender-portalen med kjøringens vindu i **Diagnostikk**: vinduer går etter opprettelsestidspunkt, ikke aktivitetstidspunkt.
 
 - Et varsel som ble opprettet før tilkoblingen fantes, er eldre enn det første tilbakeblikket på 24 timer. Importer det med **Import this time range**.
-- En kjøring som er **Partial**, ble stoppet av grensen på 2 000 varsler. Den neste pollen leser et kortere vindu fra den samme starten, så varselet importeres så snart et vindu som inneholder det, er lest helt.
+- En kjøring som er **Delvis**, ble stoppet av grensen på 2 000 varsler. Den neste pollen leser et kortere vindu fra den samme starten, så varselet importeres så snart et vindu som inneholder det, er lest helt.
 - Hvis **Siste feil** navngir et minutt pollingen gikk forbi, importerer du det minuttet med **Import this time range**.
 :::
 

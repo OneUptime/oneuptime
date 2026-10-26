@@ -8,6 +8,7 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * Workflow steps act as a Project Admin of their project, on its plan
@@ -289,9 +290,10 @@ describe("every language's Configuration page has the section", () => {
       expect(bullets(text)).toBe(
         bullets(section(read("en", CONFIGURATION), HEADING)),
       );
-      expect(text).toContain("**Project Member**");
-      expect(text).toContain("**Project Admin**");
-      expect(text).toContain("**Project Owner**");
+      // The roles, as the language's Dashboard names them.
+      for (const role of ["Project Member", "Project Admin", "Project Owner"]) {
+        expect(text).toContain(`**${writtenPermissionTitle(locale, role)}**`);
+      }
       expect(text).toContain("**Error**");
       expect(text).toContain("OneUptime Cloud");
       expect(text).toContain("CNAME");

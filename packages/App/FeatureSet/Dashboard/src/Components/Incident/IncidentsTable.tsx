@@ -820,9 +820,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
           {
             /*
-             * Unified "Resources Affected" cell — mirrors the form's single
+             * One "Affected Resources" cell — mirrors the form's single
              * picker. Pulls monitors + hosts + k8s + docker in one selection
-             * so the row shows whatever the user actually attached.
+             * so the row shows whatever the user actually attached. Named
+             * as the alerts list, the incident's own card and the list's
+             * filter chip name it: the column said "Resources Affected"
+             * under a chip that said "Affected Resources".
              */
             field: {
               monitors: {
@@ -897,7 +900,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
             },
-            title: "Resources Affected",
+            title: "Affected Resources",
             type: FieldType.EntityArray,
 
             getElement: (item: Incident): ReactElement => {

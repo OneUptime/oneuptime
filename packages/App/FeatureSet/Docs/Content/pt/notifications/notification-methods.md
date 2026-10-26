@@ -169,7 +169,7 @@ Um webhook não precisa de verificação, então adicioná-lo adiciona as regras
 
 **SMS**, **Chamadas telefônicas**, **WhatsApp** e **Telegram** começam desativados em todo projeto novo, porque cada mensagem custa dinheiro: no OneUptime Cloud ela é paga com o saldo do projeto, e SMS e chamadas passam pela conta Twilio do próprio projeto quando a conta padrão os envia. E-mail, push, Slack, Microsoft Teams e webhooks estão sempre ativados.
 
-Enquanto um canal está desativado, ninguém no projeto pode adicionar um método nele: o cartão dele não tem botão de adicionar, e diz quem pode ativá-lo. Um proprietário do projeto, um **Billing Admin** ou alguém com **Manage Billing** o ativa, no cartão **Canais de notificação** em **Configurações do projeto → Notificações → Configurações de notificação**. Um administrador do projeto não pode. Em um OneUptime auto-hospedado, SMS e chamadas também precisam de uma conta Twilio, e o Telegram de um bot que o administrador do servidor conecta; veja [Integração do Twilio](/docs/self-hosted/twilio-integration).
+Enquanto um canal está desativado, ninguém no projeto pode adicionar um método nele: o cartão dele não tem botão de adicionar, e diz quem pode ativá-lo. Um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing** o ativa, no cartão **Canais de notificação** em **Configurações do projeto → Notificações → Configurações de notificação**. Um administrador do projeto não pode. Em um OneUptime auto-hospedado, SMS e chamadas também precisam de uma conta Twilio, e o Telegram de um bot que o administrador do servidor conecta; veja [Integração do Twilio](/docs/self-hosted/twilio-integration).
 
 ## Exclua um método
 

@@ -221,7 +221,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben cumplirse, en toda la ventana) o **Any Value** (basta con uno). |
 | **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Umbral** | El valor con el que se compara. Junto a él aparece una lista de unidades cuando la métrica tiene unidad. No se muestra con las condiciones de anomalía. |
-| **Sensibilidad** | Solo condiciones de anomalía. **Low** (4σ), **Medium** (3σ, la predeterminada) o **Alta** (2σ). |
+| **Sensibilidad** | Solo condiciones de anomalía. **Baja** (4σ), **Media** (3σ, la predeterminada) o **Alta** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |
 | **Si no hay datos** | En **Más campos**. Qué pasa cuando la ventana no tiene muestras: **Ignore** (la predeterminada), **Treat As Zero** o **Disparador**. |
 

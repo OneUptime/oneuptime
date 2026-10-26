@@ -6,6 +6,7 @@ import Columns from "./Types/Columns";
 import {
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_HEADER_CONTENT_CLASS_NAME,
+  TABLE_HEADER_CONTENT_WRAP_CLASS_NAME,
   TABLE_HEADER_SELECT_CELL_CLASS_NAME,
   TABLE_SORT_ARROW_CLASS_NAME,
   TABLE_SORT_BUTTON_CLASS_NAME,
@@ -182,7 +183,12 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             isLast: isLastCell,
           });
 
-          const contentClassName: string = `${TABLE_HEADER_CONTENT_CLASS_NAME} ${paddingClassName} ${
+          /*
+           * One line, unless the table would otherwise run past its card:
+           * then a name breaks between its words
+           * (TABLE_HEADER_CONTENT_WRAP_CLASS_NAME).
+           */
+          const contentClassName: string = `${TABLE_HEADER_CONTENT_CLASS_NAME} ${TABLE_HEADER_CONTENT_WRAP_CLASS_NAME} ${paddingClassName} ${
             isActions ? "justify-end" : "justify-start"
           }`;
 
@@ -274,7 +280,9 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                  * height, so it is as easy to hit as a full-cell one; the
                  * (i) takes the cell's right padding as its margin.
                  */
-                <div className="flex w-full items-center whitespace-nowrap">
+                <div
+                  className={`flex w-full items-center whitespace-nowrap ${TABLE_HEADER_CONTENT_WRAP_CLASS_NAME}`}
+                >
                   <button
                     type="button"
                     onClick={sortColumn}

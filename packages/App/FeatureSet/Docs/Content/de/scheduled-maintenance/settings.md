@@ -119,11 +119,11 @@ Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **On 
 
 | Rolle                             | Was sie darf                                                                                         |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Liest Ereignisse und ändert nichts.                                                                  |
-| **Scheduled Maintenance Member**  | Erstellt, ändert und löscht Ereignisse mit ihren Notizen, Zustands-Zeitachsen und Eigentümern sowie beide Arten von Vorlagen. |
-| **Scheduled Maintenance Admin**   | Alles, was ein Mitglied darf, und erstellt, ändert und löscht zusätzlich Wartungsstatus.             |
+| **Wartungs-Betrachter**  | Liest Ereignisse und ändert nichts.                                                                  |
+| **Wartungs-Mitglied**  | Erstellt, ändert und löscht Ereignisse mit ihren Notizen, Zustands-Zeitachsen und Eigentümern sowie beide Arten von Vorlagen. |
+| **Wartungs-Administrator**   | Alles, was ein Mitglied darf, und erstellt, ändert und löscht zusätzlich Wartungsstatus.             |
 
-Regeln, benutzerdefinierte Felder und Messungen erfordern **Project Owner** oder **Project Admin** oder eine benutzerdefinierte Rolle mit der eigenen Berechtigung dieser Seite, etwa **Create Scheduled Maintenance Owner Rule**. Runbook-Regeln akzeptieren auch **Runbook Admin**. **Project Member** arbeitet mit Ereignissen und Vorlagen, wie **Scheduled Maintenance Member**. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Regeln, benutzerdefinierte Felder und Messungen erfordern **Projektinhaber** oder **Projektadministrator** oder eine benutzerdefinierte Rolle mit der eigenen Berechtigung dieser Seite, etwa **Create Scheduled Maintenance Owner Rule**. Runbook-Regeln akzeptieren auch **Runbook-Administrator**. **Projektmitglied** arbeitet mit Ereignissen und Vorlagen, wie **Wartungs-Mitglied**. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Fehlerbehebung
 

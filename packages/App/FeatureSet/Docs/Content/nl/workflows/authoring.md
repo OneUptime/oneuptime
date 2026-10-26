@@ -15,7 +15,7 @@ Workflows worden uitgeschakeld aangemaakt, zodat hun trigger ze pas start als je
 
 ## Het canvas
 
-Een workflow vanaf nul opent met één gestippeld blok met de tekst **Choose what starts this workflow**. Dat blok is het startpunt: klik erop om een trigger te kiezen. Een workflow die van een sjabloon is gemaakt, opent met zijn blokken al op hun plek.
+Een workflow vanaf nul opent met één gestippeld blok met de tekst **Kies wat deze workflow start**. Dat blok is het startpunt: klik erop om een trigger te kiezen. Een workflow die van een sjabloon is gemaakt, opent met zijn blokken al op hun plek.
 
 Elke workflow heeft precies één **trigger** bovenaan. Al het andere is een **component** dat iets doet. Om de trigger te wisselen verwijder je hem: de gestippelde plaatshouder komt terug op zijn plek, en als je erop klikt kies je een andere. Als je een blok verwijdert, verdwijnen ook de lijnen ervan, dus verbind de nieuwe trigger opnieuw met het eerste blok.
 
@@ -30,7 +30,7 @@ Wijzigingen worden automatisch opgeslagen. Een label in de werkbalk houdt het bi
 
 De knop in de werkbalk heet **Trigger toevoegen** zolang de workflow geen trigger heeft, en **Component toevoegen** zodra hij er een heeft.
 
-Beide panelen openen op de blokken die de meeste workflows gebruiken, onder **Popular**, gevolgd door de andere ingebouwde blokken. Klik onder **OneUptime resources** op een resource zoals **Incident** om te zien wat je ermee kunt doen; **Browse all resources** toont ze allemaal. Of zoek: typ een paar woorden, zoals `create incident`, en de beste overeenkomst staat bovenaan. Druk op `/` om naar het zoekveld te springen, op de pijltjestoetsen om door de resultaten te gaan en op **Enter** om het gemarkeerde blok toe te voegen. Klikken op een blok voegt het toe.
+Beide panelen openen op de blokken die de meeste workflows gebruiken, onder **Populair**, gevolgd door de andere ingebouwde blokken. Klik onder **OneUptime-resources** op een resource zoals **Incident** om te zien wat je ermee kunt doen; **Door alle resources bladeren** toont ze allemaal. Of zoek: typ een paar woorden, zoals `create incident`, en de beste overeenkomst staat bovenaan. Druk op `/` om naar het zoekveld te springen, op de pijltjestoetsen om door de resultaten te gaan en op **Enter** om het gemarkeerde blok toe te voegen. Klikken op een blok voegt het toe.
 
 Een nieuw blok komt onder het onderste blok van het canvas terecht, en een nieuwe trigger neemt bovenaan de plaats van het gestippelde blok in. Het nieuwe blok is geselecteerd, en als het buiten beeld terechtkomt, scrolt het canvas net ver genoeg om het te tonen. De instellingen ervan openen niet vanzelf: klik op het blok als je het wilt instellen. Zolang de verplichte instellingen niet zijn ingevuld, staat erop **Click to set up**.
 
@@ -80,11 +80,11 @@ Elke instelling heeft het invoerveld dat haar waarde nodig heeft:
 | JSON                                             | Een JSON-editor.                                                               |
 | Aan of uit                                       | Een schakelaar met de naam ernaast. Klik op de schakelaar of de naam om hem om te zetten. |
 
-Het dialoogvenster opent op waarvoor je waarschijnlijk kwam. Bij een **Webhook**-trigger is dat de URL ervan, met een knop **URL kopiëren**, de methoden die hij accepteert en een voorbeeldverzoek. Bij een **Manual**-trigger is het hoe de workflow wordt gestart. Elk ander blok opent op zijn instellingen. Een blok zonder instellingen heeft helemaal geen sectie **Instellingen**.
+Het dialoogvenster opent op waarvoor je waarschijnlijk kwam. Bij een **Webhook**-trigger is dat de URL ervan, met een knop **URL kopiëren**, de methoden die hij accepteert en een voorbeeldverzoek. Bij een **Handmatig**-trigger is het hoe de workflow wordt gestart. Elk ander blok opent op zijn instellingen. Een blok zonder instellingen heeft helemaal geen sectie **Instellingen**.
 
 Daaronder, van boven naar beneden:
 
-- **ID**, **Inputs** en **Outputs**, naast elkaar — de identifier van het blok, vanwaar het wordt bereikt en wat erna draait.
+- **ID**, **Invoer** en **Outputs**, naast elkaar — de identifier van het blok, vanwaar het wordt bereikt en wat erna draait.
 - **Returns** — de gegevens die dit blok aan latere stappen doorgeeft. Elke waarde toont de exacte verwijzing die haar leest, met een knop om die te kopiëren.
 - **How to use** — wat het blok doet in één zin, de stappen om het in te stellen, een voorbeeld om te kopiëren en de fouten die vaak worden gemaakt. Het voorbeeld is opgebouwd uit jouw workflow: het gebruikt de ID van dit blok, en de waarden van de trigger waar het gegevens in een bericht zet. **Learn more** opent de langere uitleg, en de links gaan naar de volledige gids. Elk blok heeft er een, en de knop **How to use** bovenaan het dialoogvenster springt er direct naartoe.
 
@@ -129,9 +129,9 @@ Eén ding kan hij niet controleren: of een variabelenaam bestaat. De instellinge
 De snelste manier om het canvas te leren kennen is een workflow van twee blokken die je handmatig start:
 
 :::steps
-1. Klik op het gestippelde plaatshouderblok en daarna op **Manual** in het paneel **Trigger toevoegen**.
-2. Klik op **Component toevoegen** en daarna op **Logboek** onder **Popular**. Het nieuwe blok komt onder de trigger terecht. Verbind het punt **Execute** van de trigger met het invoerpunt van het Log-blok eronder.
-3. Klik op het Log-blok, waarop **Click to set up** staat, en typ `Hello from ` in de **Value** ervan. Klik op **{ }** en daarna op **JSON** onder **Manual**. De instelling toont **Manual › JSON** en slaat `{{local.components.manual-1.returnValues.value}}` op. `manual-1` is de **Identifier** van de trigger, die op het triggerblok staat. Klik op **Opslaan**.
+1. Klik op het gestippelde plaatshouderblok en daarna op **Handmatig** in het paneel **Trigger toevoegen**.
+2. Klik op **Component toevoegen** en daarna op **Logboek** onder **Populair**. Het nieuwe blok komt onder de trigger terecht. Verbind het punt **Execute** van de trigger met het invoerpunt van het Log-blok eronder.
+3. Klik op het Log-blok, waarop **Click to set up** staat, en typ `Hello from ` in de **Value** ervan. Klik op **{ }** en daarna op **JSON** onder **Handmatig**. De instelling toont **Manual › JSON** en slaat `{{local.components.manual-1.returnValues.value}}` op. `manual-1` is de **Identifier** van de trigger, die op het triggerblok staat. Klik op **Opslaan**.
 4. Klik terug in de **Bouwer** op **Workflow uitvoeren**, zet `{ "name": "Ada" }` in het veld **JSON**, klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. De workflow staat nog uit, en hij hoeft niet aan te staan: een uitvoering die je zelf start, is een **Testrun**.
 5. Er opent vanzelf een paneel **Workflow-uitvoering** dat de uitvoering volgt. Bovenaan staat **Testrun**, en het logboek toont `Value:` gevolgd door `Hello from` en de JSON die je typte.
 :::
@@ -139,7 +139,7 @@ De snelste manier om het canvas te leren kennen is een workflow van twee blokken
 Die cyclus — toevoegen, verbinden, instellen, uitvoeren, het logboek lezen — is hoe je elke workflow bouwt.
 
 > [!TIP]
-> JSON die je in **Workflow uitvoeren** typt, bereikt de Manual-trigger als JSON. Om één veld ervan te lezen, zoals `name`, voeg je de naam van het veld aan de verwijzing toe: `{{local.components.manual-1.returnValues.value.name}}`. Zodra de workflow heeft gedraaid, toont de waardekiezer de velden ook: open **JSON** onder **Manual**.
+> JSON die je in **Workflow uitvoeren** typt, bereikt de Manual-trigger als JSON. Om één veld ervan te lezen, zoals `name`, voeg je de naam van het veld aan de verwijzing toe: `{{local.components.manual-1.returnValues.value.name}}`. Zodra de workflow heeft gedraaid, toont de waardekiezer de velden ook: open **JSON** onder **Handmatig**.
 
 ## Inschakelen
 

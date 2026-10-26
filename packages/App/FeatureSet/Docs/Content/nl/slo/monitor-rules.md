@@ -1,6 +1,6 @@
 # Monitoren en monitorregels
 
-Een SLO meet de beschikbaarheid van de monitoren die eraan gekoppeld zijn. Koppel ze met de hand, laat monitorregels elke overeenkomende monitor koppelen, of doe allebei. Deze pagina behandelt de pagina **Monitoren** van een SLO, onder **Configuratie** in zijn zijmenu, en zijn pagina **Monitor Rules**, onder **Regels**.
+Een SLO meet de beschikbaarheid van de monitoren die eraan gekoppeld zijn. Koppel ze met de hand, laat monitorregels elke overeenkomende monitor koppelen, of doe allebei. Deze pagina behandelt de pagina **Monitoren** van een SLO, onder **Configuratie** in zijn zijmenu, en zijn pagina **Monitorregels**, onder **Regels**.
 
 :::cards
 - [Monitoren met de hand kiezen](#monitoren-met-de-hand-koppelen): Het beste voor een kleine, vaste set.
@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI en foutbudget"]
 ```
 
-Een nieuwe SLO heeft geen monitoren, omdat het aanmaakformulier er niet om vraagt. Zolang hij er geen heeft, kan hij niet worden geëvalueerd: zijn pagina's tonen **No monitors attached**, en zijn **Overzicht** biedt beide manieren om monitoren te koppelen.
+Een nieuwe SLO heeft geen monitoren, omdat het aanmaakformulier er niet om vraagt. Zolang hij er geen heeft, kan hij niet worden geëvalueerd: zijn pagina's tonen **Geen monitoren gekoppeld**, en zijn **Overzicht** biedt beide manieren om monitoren te koppelen.
 
 ## Monitoren met de hand koppelen
 
@@ -37,7 +37,7 @@ Klik op **Monitoren toevoegen** en kies monitoren uit het project. Alleen monito
 
 ### De lijst opslaan
 
-Klik op **Monitoren toevoegen**. De monitoren verschijnen in de lijst met de bron **Manual** en tellen vanaf de volgende evaluatie mee voor de SLI.
+Klik op **Monitoren toevoegen**. De monitoren verschijnen in de lijst met de bron **Handmatig** en tellen vanaf de volgende evaluatie mee voor de SLI.
 :::
 
 Om een monitor uit de SLO te halen, klikt u op **Verwijderen** in zijn rij. De monitor zelf verandert niet; hij telt alleen niet meer mee voor de SLI en het foutbudget van de SLO.
@@ -47,7 +47,7 @@ De pagina **Monitoren** toont voor elke monitor:
 | Kolom | Wat hij toont |
 | --- | --- |
 | **Huidige status** | De huidige status van de monitor, of **Gearchiveerd**, **Uitgeschakeld**, **Sondes niet ingeschakeld**, **Sondes losgekoppeld** of **Onbekend** als hij niet wordt gecontroleerd of nog niets heeft gemeld. |
-| **Bron** | **Rule** als een van de monitorregels van de SLO hem heeft gekoppeld, **Manual** als iemand hem met de hand heeft gekoppeld. |
+| **Bron** | **Regel** als een van de monitorregels van de SLO hem heeft gekoppeld, **Handmatig** als iemand hem met de hand heeft gekoppeld. |
 | **Labels** | De labels van de monitor. |
 
 ## Monitoren met een regel koppelen
@@ -57,7 +57,7 @@ Een monitorregel beschrijft de monitoren die een SLO moet meten, zoals "elke mon
 :::steps
 ### Monitor Rules openen
 
-Open de SLO, ga naar **Monitor Rules** en klik op **SLO Monitor Rule aanmaken**.
+Open de SLO, ga naar **Monitorregels** en klik op **SLO-monitorregel aanmaken**.
 
 ### De regel een naam geven
 
@@ -69,10 +69,10 @@ Klik onder **Overeenkomstcriteria** op **Voorwaarde toevoegen**, kies een veld e
 
 ### De regel opslaan
 
-Klik op **SLO Monitor Rule aanmaken**. De regel begint ingeschakeld en de monitoren van de SLO worden meteen opnieuw beoordeeld: elke overeenkomende monitor wordt gekoppeld met de bron **Rule**.
+Klik op **SLO-monitorregel aanmaken**. De regel begint ingeschakeld en de monitoren van de SLO worden meteen opnieuw beoordeeld: elke overeenkomende monitor wordt gekoppeld met de bron **Regel**.
 :::
 
-De regeltabel toont voor elke regel de naam, de overeenkomstcriteria in gewone taal en of hij is ingeschakeld. Om een regel te pauzeren, zet u **Ingeschakeld** uit in zijn bewerkformulier. **View Monitors** opent de pagina **Monitoren** van de SLO.
+De regeltabel toont voor elke regel de naam, de overeenkomstcriteria in gewone taal en of hij is ingeschakeld. Om een regel te pauzeren, zet u **Ingeschakeld** uit in zijn bewerkformulier. **Monitoren bekijken** opent de pagina **Monitoren** van de SLO.
 
 ### Overeenkomstcriteria
 
@@ -102,19 +102,19 @@ Een patroon is een reguliere expressie, zoals `^api-.*`, of een jokerteken `*`, 
 - Als een label wordt verwijderd, worden de SLO's waarvan de regels het gebruikten opnieuw beoordeeld.
 - Regels houden de monitorlijst van een SLO bij, ook terwijl de SLO is uitgeschakeld of gearchiveerd, zodat hij met de juiste monitoren verdergaat.
 
-Regels synchroniseren opnieuw bij elke opslag, dus **Run Now** is er om in te halen wat de SLO heeft gemist. Het staat in elke rij, op de eigen pagina van de regel (**Bekijken**) en in de bulkacties van de tabel. Een regel uitvoeren beoordeelt alle ingeschakelde monitorregels van de SLO samen opnieuw, en daarna zegt het dialoogvenster hoeveel monitoren zijn gekoppeld en ontkoppeld. Voor het uitvoeren van een regel hebt u toestemming nodig om SLO-monitorregels te bewerken. Zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
+Regels synchroniseren opnieuw bij elke opslag, dus **Nu uitvoeren** is er om in te halen wat de SLO heeft gemist. Het staat in elke rij, op de eigen pagina van de regel (**Bekijken**) en in de bulkacties van de tabel. Een regel uitvoeren beoordeelt alle ingeschakelde monitorregels van de SLO samen opnieuw, en daarna zegt het dialoogvenster hoeveel monitoren zijn gekoppeld en ontkoppeld. Voor het uitvoeren van een regel hebt u toestemming nodig om SLO-monitorregels te bewerken. Zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
 
 ### Welke monitoren bij een regel horen
 
 - Een monitor blijft gekoppeld zolang een ingeschakelde regel erop van toepassing is, en wordt ontkoppeld zodra dat voor geen enkele regel meer geldt.
 - Een regel uitzetten of verwijderen ontkoppelt alleen de monitoren waarop geen andere ingeschakelde regel nog van toepassing is.
-- Regels ontkoppelen alleen monitoren die een regel heeft gekoppeld. Een met de hand gekoppelde monitor wordt nooit overgenomen door een regel die er toevallig op van toepassing is, en niet ontkoppeld als dat niet meer zo is. Zijn bron blijft **Manual**.
+- Regels ontkoppelen alleen monitoren die een regel heeft gekoppeld. Een met de hand gekoppelde monitor wordt nooit overgenomen door een regel die er toevallig op van toepassing is, en niet ontkoppeld als dat niet meer zo is. Zijn bron blijft **Handmatig**.
 
 ## Met de hand kiezen terwijl regels aan staan
 
 Zolang minstens één regel is ingeschakeld, beheren de regels de monitoren van de SLO:
 
-- monitoren kunnen niet met de hand worden toegevoegd: **Monitoren toevoegen** is uitgeschakeld, en een banner zegt **This SLO's monitors are managed by its monitor rules**, met een link **Manage Monitor Rules**;
+- monitoren kunnen niet met de hand worden toegevoegd: **Monitoren toevoegen** is uitgeschakeld, en een banner zegt **De monitoren van deze SLO worden beheerd door de monitorregels**, met een link **Monitorregels beheren**;
 - monitoren die een regel heeft gekoppeld, kunnen niet met de hand worden verwijderd, omdat de regel ze opnieuw zou koppelen: hun knop **Verwijderen** is geblokkeerd en de tooltip legt uit waarom;
 - monitoren die met de hand zijn gekoppeld voordat regels werden aangezet, kunnen nog steeds worden verwijderd.
 
@@ -153,7 +153,7 @@ Een monitorregel heeft die monitor gekoppeld en zou hem opnieuw koppelen. Wijzig
 :::
 
 :::details Een monitor waarop een regel van toepassing zou moeten zijn, is niet gekoppeld
-Controleer of de regel is ingeschakeld en of aan elke voorwaarde is voldaan bij **Voldoet aan alle**. Labels die een monitorlabelregel toevoegt, tellen ook mee. Klik op **Run Now** bij de regel om de SLO opnieuw te synchroniseren.
+Controleer of de regel is ingeschakeld en of aan elke voorwaarde is voldaan bij **Voldoet aan alle**. Labels die een monitorlabelregel toevoegt, tellen ook mee. Klik op **Nu uitvoeren** bij de regel om de SLO opnieuw te synchroniseren.
 :::
 
 :::details Een regel opslaan mislukt met een patroonfout

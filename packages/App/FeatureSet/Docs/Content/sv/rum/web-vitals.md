@@ -292,7 +292,7 @@ Att registrera den konkreta URL:en i stället för routemönstret skapar en tids
 
 ## Larma på en vital
 
-Applikationens sida **Recommendations** erbjuder en färdig övervakare för varje vital. Var och en läser femminutersmedelvärdet av sitt mätvärde och utlöses när det når Googles gräns för dåligt:
+Applikationens sida **Rekommendationer** erbjuder en färdig övervakare för varje vital. Var och en läser femminutersmedelvärdet av sitt mätvärde och utlöses när det når Googles gräns för dåligt:
 
 | Rekommendation | Mätvärde | Utlöses vid | Allvarlighetsgrad |
 | --- | --- | --- | --- |

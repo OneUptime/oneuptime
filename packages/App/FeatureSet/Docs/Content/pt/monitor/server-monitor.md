@@ -241,7 +241,7 @@ Os critérios decidem quando o monitor está online, degradado ou offline, e qua
 | Se não houver dados | Comportamento | Use para |
 | --- | --- | --- |
 | **Ignore** (padrão) | O critério não corresponde. | Alertas de limite comuns. |
-| **Trigger** | Os dados ausentes são tratados como o problema. | Verificações do tipo heartbeat, em que o silêncio é a própria falha. |
+| **Gatilho** | Os dados ausentes são tratados como o problema. | Verificações do tipo heartbeat, em que o silêncio é a própria falha. |
 | **Treat As Zero** | A janela é comparada como um único zero. | Contadores, em que "nenhum evento" significa de fato zero. |
 
 > [!TIP]

@@ -66,7 +66,7 @@ Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elk
 
 ## De instellingschecklist
 
-**Gebruikersinstellingen → Instellingschecklist** opent **Your setup checklist**: alles wat OneUptime nodig heeft om je te bereiken, in de volgorde die telt. Een stap linkt naar de pagina waar je hem uitvoert, en **Recheck** leest alles opnieuw in.
+**Gebruikersinstellingen → Instellingschecklist** opent **Your setup checklist**: alles wat OneUptime nodig heeft om je te bereiken, in de volgorde die telt. Een stap linkt naar de pagina waar je hem uitvoert, en **Opnieuw controleren** leest alles opnieuw in.
 
 | Sectie | Wat ze controleert |
 | --- | --- |

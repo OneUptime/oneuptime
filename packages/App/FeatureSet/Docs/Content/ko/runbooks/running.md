@@ -41,7 +41,7 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 
 1. **규칙에 의한 자동 시작**: 일치하는 인시던트, 알림 또는 예정된 유지 관리 이벤트가 만들어지면 [Runbook 규칙](/docs/runbooks/rules)이 실행을 시작합니다. AI 규칙도 실행을 시작할 수 있습니다. [AI SRE](/docs/ai/ai-sre)를 참조하세요.
 2. **이벤트에서 수동 시작**: 인시던트, 알림 또는 예정된 유지 관리 이벤트에서 **런북 실행**을 클릭합니다. 실행은 그 이벤트에 연결됩니다.
-3. **Runbook 페이지에서 수동 시작**: Runbook의 **개요** 페이지에서 **Run Now**를 클릭합니다. 이 실행은 인시던트, 알림, 예정된 유지 관리 이벤트 어디에도 연결되지 않습니다.
+3. **Runbook 페이지에서 수동 시작**: Runbook의 **개요** 페이지에서 **지금 실행**을 클릭합니다. 이 실행은 인시던트, 알림, 예정된 유지 관리 이벤트 어디에도 연결되지 않습니다.
 4. **일정에 따라**: Runbook의 일정이 정해진 시각에 실행을 시작합니다. [일정에 따라 실행](/docs/runbooks/triggers#일정에-따라-실행)을 참고하세요.
 5. **다른 도구에서**: Runbook 웹훅 URL로 보내는 `POST` 가 호출이 보낸 값과 함께 실행을 시작합니다. [웹훅 호출](/docs/runbooks/triggers#웹훅-호출)을 참고하세요.
 
@@ -54,15 +54,15 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 3. Runbook 옆의 **Run**을 클릭합니다. 실행이 이벤트의 목록에 나타나면 **보기**를 클릭해 엽니다.
 @tab Runbook에서
 1. **런북**에서 Runbook을 엽니다.
-2. **개요**에서 **Run Now**를 클릭합니다.
+2. **개요**에서 **지금 실행**을 클릭합니다.
 3. 실행 페이지가 열립니다.
 :::
 
-실행을 시작하려면 Project Owner, Project Admin, Project Member, Runbook Admin, Runbook Member 중 하나 또는 **Create Runbook Execution** 권한이 필요합니다. Runbook Viewer와 Viewer에게는 **Run Now**가 이유와 함께 잠겨 표시됩니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
+실행을 시작하려면 Project Owner, Project Admin, Project Member, Runbook Admin, Runbook Member 중 하나 또는 **Create Runbook Execution** 권한이 필요합니다. Runbook Viewer와 Viewer에게는 **지금 실행**이 이유와 함께 잠겨 표시됩니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
 
 ## 실행 보기
 
-실행을 열면 체크리스트가 보입니다. 페이지 위쪽에 실행의 **상태**, **Progress**(전체 단계 중 끝난 단계), **시작됨**(시작 시각), **트리거한 사용자**(무엇이 시작했는지)가 표시됩니다. 각 단계에는 다음이 표시됩니다.
+실행을 열면 체크리스트가 보입니다. 페이지 위쪽에 실행의 **상태**, **진행 상황**(전체 단계 중 끝난 단계), **시작됨**(시작 시각), **트리거한 사용자**(무엇이 시작했는지)가 표시됩니다. 각 단계에는 다음이 표시됩니다.
 
 - **상태 배지** — 대기 중, 실행 중, 귀하를 기다리는 중, 승인 대기 중, 완료, 건너뜀, 실패, 취소됨.
 - **제목과 설명** — 실행이 시작될 때 Runbook에서 복사됨.
@@ -113,7 +113,7 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 
 ## Runbook 다시 실행
 
-실행은 한 번뿐인, 변경할 수 없는 기록입니다. 다시 실행하려면 끝난 실행에서 **다시 실행**을 클릭하거나 Runbook에서 **Run Now**를 클릭합니다. 둘 다 Runbook의 현재 단계로 새 실행을 만들며, 어떤 이벤트에도 연결하지 않습니다. 인시던트에서 다시 실행하려면 인시던트의 **런북** 페이지에서 **런북 실행**을 사용하세요. 원래 실행은 감사 기록을 위해 그대로 남습니다.
+실행은 한 번뿐인, 변경할 수 없는 기록입니다. 다시 실행하려면 끝난 실행에서 **다시 실행**을 클릭하거나 Runbook에서 **지금 실행**을 클릭합니다. 둘 다 Runbook의 현재 단계로 새 실행을 만들며, 어떤 이벤트에도 연결하지 않습니다. 인시던트에서 다시 실행하려면 인시던트의 **런북** 페이지에서 **런북 실행**을 사용하세요. 원래 실행은 감사 기록을 위해 그대로 남습니다.
 
 ## 지난 실행 찾기
 
@@ -130,11 +130,11 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 :::
 
 :::details 실행 시작이 "Runbook is disabled" 또는 "Runbook has no steps to run"으로 실패함
-Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 있거나, 저장된 단계가 없습니다. 스위치를 켜거나 단계를 추가하고 **Save Steps**를 클릭하세요. Runbook의 **개요**에 원인과 함께 **런북 켜기** 또는 **단계 추가**가 표시됩니다.
+Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 있거나, 저장된 단계가 없습니다. 스위치를 켜거나 단계를 추가하고 **단계 저장**을 클릭하세요. Runbook의 **개요**에 원인과 함께 **런북 켜기** 또는 **단계 추가**가 표시됩니다.
 :::
 
 :::details Runner가 없어서 단계가 실패함
-메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었고, 프로젝트에 [기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)도 없습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 단계의 **추가 필드**에서 Runner를 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
+메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었고, 프로젝트에 [기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)도 없습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 단계의 **추가 필드**에서 Runner를 고르고 **단계 저장**을 클릭한 뒤 Runbook을 다시 실행하세요.
 :::
 
 :::details 사용할 수 없는 변수를 지정해서 단계가 실패함

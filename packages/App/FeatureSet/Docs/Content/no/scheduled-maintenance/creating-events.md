@@ -22,7 +22,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Rollen din.** Å opprette en hendelse krever **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** eller **Scheduled Maintenance Member**, eller en egendefinert rolle med **Create Scheduled Maintenance**.
+- **Rollen din.** Å opprette en hendelse krever **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vedlikeholdsadministrator** eller **Vedlikeholdsmedlem**, eller en egendefinert rolle med **Create Scheduled Maintenance**.
 - **Statussidene dine.** For å informere kundene trenger du en statusside som viser planlagte vedlikeholdshendelser. Se [Statussider – Oversikt](/docs/status-pages/index).
 
 ## Opprett en hendelse

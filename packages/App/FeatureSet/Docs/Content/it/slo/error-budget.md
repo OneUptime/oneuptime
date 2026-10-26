@@ -29,9 +29,9 @@ La pagina **Impostazioni** dello SLO mostra il budget che il suo obiettivo conse
 
 ### Il budget di uno SLO con più monitor
 
-In modalità **Any Monitor Down** il budget è `(100% − target) × window`, qualunque sia il numero di monitor che lo SLO misura: la finestra è una sola cronologia.
+In modalità **Qualsiasi monitor inattivo** il budget è `(100% − target) × window`, qualunque sia il numero di monitor che lo SLO misura: la finestra è una sola cronologia.
 
-In modalità **Monitor Seconds Average** il budget si conta in secondi-monitor, sommati su tutti i monitor, quindi cresce con il numero di monitor: uno SLO con tre monitor al 99,9% su 30 giorni ha circa 129 minuti di budget invece di 43. Le percentuali (SLI, budget rimanente, tasso di consumo) significano la stessa cosa; cambiano solo le durate.
+In modalità **Media dei secondi dei monitor** il budget si conta in secondi-monitor, sommati su tutti i monitor, quindi cresce con il numero di monitor: uno SLO con tre monitor al 99,9% su 30 giorni ha circa 129 minuti di budget invece di 43. Le percentuali (SLI, budget rimanente, tasso di consumo) significano la stessa cosa; cambiano solo le durate.
 
 ### Il budget di un mese di calendario
 
@@ -39,7 +39,7 @@ Uno SLO a mese di calendario ha il budget di tutto il mese fin dal primo giorno:
 
 ## Budget rimanente
 
-Man mano che l'inattività si accumula, la **Panoramica** mostra il budget rimanente nel suo riquadro **Error budget left**:
+Man mano che l'inattività si accumula, la **Panoramica** mostra il budget rimanente nel suo riquadro **Budget di errore rimasto**:
 
 - come percentuale del totale, che decide anche lo stato dello SLO e riempie la barra. La barra ha un segno alla soglia a rischio dello SLO;
 - come durata, per esempio "31m 4s left of 43m 12s".
@@ -48,11 +48,11 @@ Quando il budget è finito, il riquadro mostra **No budget left**. Quando l'inat
 
 Il budget rimanente viene conservato come numero con segno per i calcoli e i grafici della cronologia, quindi lì un budget superato appare come percentuale negativa. Una percentuale molto negativa significa che lo sforamento è grande rispetto al budget; non è la quota di tempo in cui il servizio era fuori servizio.
 
-Quali secondi contano come inattività lo decidono gli stati di inattività dello SLO e, per uno SLO con più monitor, la sua modalità multi-monitor, entrambi in **Impostazioni** → **Downtime Calculation**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
+Quali secondi contano come inattività lo decidono gli stati di inattività dello SLO e, per uno SLO con più monitor, la sua modalità multi-monitor, entrambi in **Impostazioni** → **Calcolo del downtime**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
 
 ## Autonomia del budget
 
-Il riquadro **Budget runway** della **Panoramica** risponde a «se va avanti così, quando finiamo il budget?». Divide il budget rimanente per il tasso di consumo degli ultimi 60 minuti:
+Il riquadro **Autonomia del budget** della **Panoramica** risponde a «se va avanti così, quando finiamo il budget?». Divide il budget rimanente per il tasso di consumo degli ultimi 60 minuti:
 
 ```text
 runway = budget left ÷ (burn rate × (100% − target))
@@ -68,18 +68,18 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 Per gli SLO a mese di calendario, il riquadro dice anche quando il budget si azzera.
 
-L'autonomia è una proiezione in linea retta. Su una finestra mobile, la vecchia inattività che esce dalla finestra restituisce budget, cosa che la proiezione ignora: leggila come il tempo minimo che ti resta. Non viene mostrata prima della prima valutazione, né per gli SLO in modalità **Monitor Seconds Average**, il cui budget si conta in secondi-monitor e non in tempo reale.
+L'autonomia è una proiezione in linea retta. Su una finestra mobile, la vecchia inattività che esce dalla finestra restituisce budget, cosa che la proiezione ignora: leggila come il tempo minimo che ti resta. Non viene mostrata prima della prima valutazione, né per gli SLO in modalità **Media dei secondi dei monitor**, il cui budget si conta in secondi-monitor e non in tempo reale.
 
 ## Consumo del budget di errore
 
-Il grafico **Error budget burn-down** della **Panoramica** traccia il budget rimanente, in percentuale, lungo la finestra di conformità attuale:
+Il grafico **Burn-down del budget di errore** della **Panoramica** traccia il budget rimanente, in percentuale, lungo la finestra di conformità attuale:
 
 - Una linea allo 0% indica dove il budget è esaurito, e una linea tratteggiata indica la soglia a rischio dello SLO.
 - Per gli SLO a mese di calendario, una linea tenue scende in modo regolare da un budget pieno a inizio mese a uno vuoto all'azzeramento. Sotto quella linea, il mese spende il suo budget troppo in fretta.
 - A ogni valutazione, ogni 5 minuti, viene registrato un punto, quindi il grafico di un nuovo SLO resta vuoto fino alla sua prima valutazione.
-- Trascina sul grafico per ingrandire una parte della finestra. Fai doppio clic, o clic su **Reset zoom**, per tornare a vedere tutta la finestra.
+- Trascina sul grafico per ingrandire una parte della finestra. Fai doppio clic, o clic su **Reimposta lo zoom**, per tornare a vedere tutta la finestra.
 
-**Open metrics** apre la pagina **Metriche** dello SLO, la cui scheda **Error Budget History** risale fino a 400 giorni. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics).
+**Apri le metriche** apre la pagina **Metriche** dello SLO, la cui scheda **Error Budget History** risale fino a 400 giorni. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics).
 
 ## Come si recupera il budget
 
@@ -96,7 +96,7 @@ Uno SLO a mese di calendario si azzera a mezzanotte del primo giorno di ogni mes
 
 ### SLO giovani
 
-Uno SLO con finestra mobile più giovane della sua finestra si misura sui dati che esistono finora, e il suo budget totale cresce con essi: uno SLO di 30 giorni creato una settimana fa ha per ora un budget di 7 giorni. Finché la finestra non è piena, la **Panoramica** mostra quanto lo è, con un indicatore **Window 23% full** e la stessa nota nel riquadro **Error budget left**. Aspettati che i numeri si stabilizzino man mano che la finestra si riempie.
+Uno SLO con finestra mobile più giovane della sua finestra si misura sui dati che esistono finora, e il suo budget totale cresce con essi: uno SLO di 30 giorni creato una settimana fa ha per ora un budget di 7 giorni. Finché la finestra non è piena, la **Panoramica** mostra quanto lo è, con un indicatore **Window 23% full** e la stessa nota nel riquadro **Budget di errore rimasto**. Aspettati che i numeri si stabilizzino man mano che la finestra si riempie.
 
 ## Cambi di stato e soglia a rischio
 
@@ -108,7 +108,7 @@ Il budget rimanente decide lo stato dello SLO:
 | **A rischio** | Il budget rimanente è alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget rimanente è a zero o sotto. |
 
-Imposta la soglia a rischio in **Impostazioni** → **Objective**.
+Imposta la soglia a rischio in **Impostazioni** → **Obiettivo**.
 
 Le finestre mobili recuperano un secondo alla volta, quindi uno SLO vicino a un limite potrebbe saltare avanti e indietro tra due stati. Perché ogni cambio di stato abbia un significato, uno SLO lascia uno stato solo quando ha superato chiaramente il limite:
 

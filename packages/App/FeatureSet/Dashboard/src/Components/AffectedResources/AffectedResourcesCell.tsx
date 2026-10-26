@@ -14,6 +14,7 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_RESOURCES_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import React, { FunctionComponent, ReactElement } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
 import StorageArrayElement from "../StorageArray/StorageArrayElement";
@@ -221,7 +222,7 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent<ResourceItem>
       items={items}
-      moreText="more resources"
+      moreTemplate={MORE_RESOURCES_TEMPLATE}
       noItemsMessage={props.noItemsMessage || "No resources."}
       getEachElement={(item: ResourceItem): ReactElement => {
         if (item.type === "Monitor") {

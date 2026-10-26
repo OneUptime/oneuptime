@@ -1,7 +1,12 @@
-import { CustomDomainKind, CustomDomainModel } from "./CustomDomainKinds";
+import {
+  CustomDomainKind,
+  CustomDomainModel,
+  getCustomDomainInstallation,
+} from "./CustomDomainKinds";
 import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
 import {
   CustomDomainCopy,
+  CustomDomainInstallation,
   CustomDomainState,
   getCustomDomainState,
 } from "./CustomDomainCopy";
@@ -140,6 +145,11 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * Whether this installation issues free certificates: without, a
+   * verified domain is live, and no certificate is read to say so.
+   */
+  const installation: CustomDomainInstallation = getCustomDomainInstallation();
   const kind: CustomDomainKind = props.kind;
   const parentIdString: string = props.parentId.toString();
 
@@ -230,7 +240,9 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
         });
 
       const nextCertificates: Map<string, CustomDomainCertificate> =
-        result.data.some(isCertificateNeededFor)
+        result.data.some((domain: CustomDomainModel): boolean => {
+          return isCertificateNeededFor(domain, installation);
+        })
           ? await readCertificates()
           : new Map<string, CustomDomainCertificate>();
 
@@ -298,6 +310,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
       domains: loadState === LoadState.Loaded ? domains : [],
       getCertificate: certificateOf,
       oneUptimeUrl: props.oneUptimeUrl.toString(),
+      installation: installation,
     });
 
   /*
@@ -344,7 +357,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
 
     const domain: CustomDomainModel | undefined = address.domain;
 
-    if (!domain || !isDnsSetupOffered(address)) {
+    if (!domain || !isDnsSetupOffered(address, installation)) {
       return null;
     }
 
@@ -558,6 +571,8 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
             getCustomDomainState(
               dnsSetupDomain,
               certificateOf(dnsSetupDomain),
+              undefined,
+              installation,
             ) === CustomDomainState.CertificateExpired
           }
           checkNowGate={PermissionGate.check(domainModel, ModelAction.Update)}

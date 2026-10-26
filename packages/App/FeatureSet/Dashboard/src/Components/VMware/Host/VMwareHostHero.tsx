@@ -224,8 +224,8 @@ const VMwareHostHero: FunctionComponent<ComponentProps> = (
              * A host no longer in the inventory has no report time left to
              * show: the notice under the hero says what happened instead.
              * "Last reported", in the status's own words, and its own
-             * sentence: the shared "Last seen {{time}}" is English in most
-             * languages, since other pages fill it with an English time.
+             * sentence rather than the shared "Last seen {{time}}": vCenter
+             * reports a host, it is not seen.
              * The exact time is the line's title. A host vCenter stopped
              * reporting has the notice under the hero open with the same
              * time, so the line is left out rather than said twice.

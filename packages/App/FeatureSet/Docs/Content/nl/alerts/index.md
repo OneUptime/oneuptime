@@ -34,8 +34,8 @@ Beide leggen een probleem vast, en beide kunnen wie dienst heeft oproepen. Het v
 | **Wat het is**               | Een probleem dat je team moet bekijken voordat gebruikers er last van hebben | Een probleem dat je gebruikers treft, zoals een storing |
 | **Op statuspagina's**        | Nooit                                                  | Kan verschijnen en informeert abonnees            |
 | **Notities**                 | Privénotities, alleen voor je team                     | Openbare notities voor klanten, en privénotities  |
-| **Beginstatussen**           | **Identified**, **Bevestigd**, **Opgelost**            | **Identified**, **Bevestigd**, **Opgelost**       |
-| **Beginernstniveaus**        | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Beginstatussen**           | **Geïdentificeerd**, **Bevestigd**, **Opgelost**            | **Geïdentificeerd**, **Bevestigd**, **Opgelost**       |
+| **Beginernstniveaus**        | **Hoog**, **Laag**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummers in een nieuw project** | `ALT-42`, en `AE-42` voor episodes                 | `INC-42`, en `IE-42` voor episodes                |
 
 Maak een waarschuwing aan wanneer je team moet kijken voordat iemand buiten het team iets merkt, en meld een incident wanneer gebruikers worden getroffen. Blijkt een waarschuwing deel van een storing te zijn, meld dan een incident vanuit de waarschuwing, of koppel haar aan het incident dat haar verklaart: zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).
@@ -64,9 +64,9 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 
 **Waarschuwingen** en **Episoden** zijn open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. De configuratie van waarschuwingen staat hier, niet in **Projectinstellingen**.
 
-De lijst toont **Waarschuwingsnummer**, **Titel**, **Status**, **Ernst**, **Getroffen resources** (eerst de monitor van de waarschuwing), **Aangemaakt**, **Duur**, **Labels** en **Eigenaren**. Selecteer waarschuwingen om er meerdere tegelijk te bewerken: **Bevestigen**, **Oplossen**, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Koppelen aan incident**, **Incident melden** of verwijderen.
+De lijst toont **Waarschuwingsnummer**, **Titel**, **Status**, **Ernst**, **Getroffen resources** (eerst de monitor van de waarschuwing), **Aangemaakt**, **Duur**, **Labels** en **Eigenaren**. Selecteer waarschuwingen om er meerdere tegelijk te bewerken: **Bevestigen**, **Oplossen**, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Labels toevoegen**, **Labels verwijderen**, **Koppelen aan incident**, **Incident melden** of verwijderen.
 
-Het menu **⋯** aan het eind van de rij van elke waarschuwing doet hetzelfde voor alleen die waarschuwing: **Bevestigen** en **Oplossen** zolang de waarschuwing die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Add Owner** om haar aan iemand anders over te dragen.
+Het menu **⋯** aan het eind van de rij van elke waarschuwing doet hetzelfde voor alleen die waarschuwing: **Bevestigen** en **Oplossen** zolang de waarschuwing die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen** om haar aan iemand anders over te dragen.
 
 ## Een waarschuwing met de hand aanmaken
 
@@ -88,7 +88,7 @@ Klik op **Volgende** om naar **Middelen en bereikbaarheid** te gaan. Kies de **M
 Klik op **Volgende** om de samenvatting te controleren en daarna op **Waarschuwing maken**. De eigen pagina van de waarschuwing opent, en de regels beginnen te draaien. In de samenvatting noemt de rij **Eigenaren** elke eigenaarsregel die iemand zal toevoegen, en wie: zie [Wie de eigenaar wordt](/docs/incidents/declaring-incidents#wie-de-eigenaar-wordt).
 :::
 
-Laat je **Initiële status** leeg, dan begint de waarschuwing waar elke nieuwe waarschuwing begint: in je aanmaakstatus, **Identified** in een nieuw project. Kies je een latere status, dan leg je een waarschuwing vast die al wordt afgehandeld, of die al voorbij is; zie [Al bevestigd of opgelost aangemaakt](#al-bevestigd-of-opgelost-aangemaakt).
+Laat je **Initiële status** leeg, dan begint de waarschuwing waar elke nieuwe waarschuwing begint: in je aanmaakstatus, **Geïdentificeerd** in een nieuw project. Kies je een latere status, dan leg je een waarschuwing vast die al wordt afgehandeld, of die al voorbij is; zie [Al bevestigd of opgelost aangemaakt](#al-bevestigd-of-opgelost-aangemaakt).
 
 ## Wat er gebeurt wanneer een waarschuwing wordt aangemaakt
 

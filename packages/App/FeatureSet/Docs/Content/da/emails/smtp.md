@@ -51,7 +51,7 @@ I trinnet **Afsender** angiver du **E-mail fra** og **Fra-navn**, som dine e-mai
 
 ### Gem og send en test-e-mail
 
-Gem konfigurationen. Når en projektkonfiguration er gemt, tjekker **Send test-e-mail** i dens række, at den virker. Det kræver tilladelse til at tilføje SMTP-konfigurationer: **Project Owner**, **Project Admin** eller **Create SMTP Config** og **Read SMTP Config** i en brugerdefineret rolle. På OneUptime Cloud kræver det også planen **Growth**, ligesom det at tilføje en konfiguration. For alle andre er knappen låst, og dens værktøjstip siger, hvad der skal til.
+Gem konfigurationen. Når en projektkonfiguration er gemt, tjekker **Send test-e-mail** i dens række, at den virker. Det kræver tilladelse til at tilføje SMTP-konfigurationer: **Projektejer**, **Projektadministrator** eller **Create SMTP Config** og **Read SMTP Config** i en brugerdefineret rolle. På OneUptime Cloud kræver det også planen **Growth**, ligesom det at tilføje en konfiguration. For alle andre er knappen låst, og dens værktøjstip siger, hvad der skal til.
 
 Testen beder om en **E-mail**-adresse at sende til, til at begynde med din egen. Tjek, at beskeden kommer frem.
 :::

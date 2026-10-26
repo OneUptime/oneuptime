@@ -1,7 +1,9 @@
 import {
   SNMP_WALK_START_POINTS,
+  SNMP_WALK_UPTIME_RESTART_THRESHOLD,
+  SnmpWalkAlertThreshold,
   SnmpWalkStartPoint,
-  getSnmpWalkAlertCondition,
+  getSnmpWalkAlertCriteria,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkViewModel";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { readPage } from "./DocsContentSupport";
@@ -98,8 +100,39 @@ describe("the English section on the SNMP Walk page", () => {
 
     expect(labels.length).toBe(5);
     expect(SECTION).toContain(
-      `**Common starting points**: ${labels.slice(0, -1).join(", ")} or ${labels[labels.length - 1]}.`,
+      `or press one of the starting points below it: ${labels.slice(0, -1).join(", ")} or ${labels[labels.length - 1]}.`,
     );
+  });
+
+  /*
+   * "Common starting points" names the buttons' group for a screen reader
+   * only: nobody sees it, so the page does not write it as a label to look
+   * for (issue #5215).
+   */
+  it("does not send a reader looking for a name only a screen reader hears", () => {
+    const card: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkCard.tsx",
+    );
+
+    expect(card).toContain(
+      'aria-label={translator.translateText("Common starting points")}',
+    );
+    expect(card.split('"Common starting points"').length - 1).toBe(1);
+
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const section: string = sectionInLanguage(
+        language,
+        NETWORK_DEVICE_PAGE,
+        HEADING,
+      );
+
+      expect({
+        language,
+        named: section.includes(
+          `**${drawnNetworkLabel(language, "Common starting points")}**`,
+        ),
+      }).toEqual({ language, named: false });
+    }
   });
 
   it("finds the page under More in the device's menu", () => {
@@ -126,7 +159,6 @@ describe("the English section on the SNMP Walk page", () => {
 
     for (const label of [
       "Start at OID",
-      "Common starting points",
       "Walk",
       "Continue walking",
       "Collect",
@@ -157,31 +189,58 @@ describe("the English section on the SNMP Walk page", () => {
     );
   });
 
+  /*
+   * Issue #5215: a counter only grows, so it starts on its rate; a gauge on
+   * its value; both above a threshold the person sets (none is prefilled).
+   * An uptime alerts below ten minutes, and anything else when it changes
+   * from the walked value.
+   */
   it("describes the criteria Alert on it starts with, for each kind of value", () => {
-    expect(CheckOn.SnmpOidValue).toBe("SNMP OID Value");
+    for (const type of [SnmpDataType.Counter32, SnmpDataType.Counter64]) {
+      expect(getSnmpWalkAlertCriteria(type)).toEqual({
+        checkOn: CheckOn.SnmpOidRatePerSecond,
+        filterType: FilterType.GreaterThan,
+        threshold: SnmpWalkAlertThreshold.None,
+      });
+    }
+
+    expect(getSnmpWalkAlertCriteria(SnmpDataType.Gauge32)).toEqual({
+      checkOn: CheckOn.SnmpOidValue,
+      filterType: FilterType.GreaterThan,
+      threshold: SnmpWalkAlertThreshold.None,
+    });
+    expect(getSnmpWalkAlertCriteria(SnmpDataType.TimeTicks)).toEqual({
+      checkOn: CheckOn.SnmpOidValue,
+      filterType: FilterType.LessThan,
+      threshold: SnmpWalkAlertThreshold.RecentRestart,
+    });
+    // Hundredths of a second: ten minutes.
+    expect(SNMP_WALK_UPTIME_RESTART_THRESHOLD).toBe(10 * 60 * 100);
+    expect(getSnmpWalkAlertCriteria(SnmpDataType.OctetString)).toEqual({
+      checkOn: CheckOn.SnmpOidValue,
+      filterType: FilterType.NotEqualTo,
+      threshold: SnmpWalkAlertThreshold.WalkedValue,
+    });
+
     expect(SECTION).toContain(
-      `one **${CheckOn.SnmpOidValue}** criteria on the OID`,
+      `with one criteria on the OID. A counter starts on **${CheckOn.SnmpOidRatePerSecond}** and a gauge on **${CheckOn.SnmpOidValue}**, each above a threshold you set; an uptime alerts below ${NUMBER_WORDS[10]} minutes (the device restarted), and anything else when it changes from the walked value.`,
+    );
+  });
+
+  it("lists the counter rate among the criteria, with no verdict on a poll that walked nothing", () => {
+    expect(ENGLISH).toContain(
+      `| ${CheckOn.SnmpOidRatePerSecond} | How fast a counter OID grew, per second, since the previous poll: a counter only grows, so alert on this, not on its value. No verdict until it has been read twice. | Not evaluated |`,
+    );
+    expect(ENGLISH).toContain(
+      `the **${CheckOn.SnmpOidValue}**, **${CheckOn.SnmpOidExists}** and **${CheckOn.SnmpOidRatePerSecond}** criteria alert on them.`,
     );
 
-    // A counter or gauge alerts above the walked value.
-    for (const type of [
-      SnmpDataType.Counter32,
-      SnmpDataType.Counter64,
-      SnmpDataType.Gauge32,
-    ]) {
-      expect(getSnmpWalkAlertCondition(type)).toBe(FilterType.GreaterThan);
-    }
-    // An uptime alerts below it: the device restarted.
-    expect(getSnmpWalkAlertCondition(SnmpDataType.TimeTicks)).toBe(
-      FilterType.LessThan,
-    );
-    // Anything else, when it changes.
-    expect(getSnmpWalkAlertCondition(SnmpDataType.OctetString)).toBe(
-      FilterType.NotEqualTo,
-    );
-    expect(SECTION).toContain(
-      "a counter or gauge alerts above it, an uptime below it (the device restarted), and anything else when it changes.",
-    );
+    const rows: Array<string> = ENGLISH.split("\n");
+    const exists: number = rows.findIndex((row: string): boolean => {
+      return row.startsWith(`| ${CheckOn.SnmpOidExists} |`);
+    });
+
+    expect(rows[exists + 1]).toContain(`| ${CheckOn.SnmpOidRatePerSecond} |`);
   });
 
   it("names the permission walking needs as the role editor does", () => {

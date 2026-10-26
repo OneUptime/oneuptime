@@ -39,22 +39,22 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Entiteiten** | Gebeurtenissen | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
-| **Detection Rules** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
-| **Rule Library** | Detections | Kant-en-klare detectieregels om toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen, met de aanbevolen regels gemarkeerd |
-| **Threat Intel** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
-| **ATT&CK Coverage** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
+| **Detectieregels** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
+| **Regelbibliotheek** | Detections | Kant-en-klare detectieregels om toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen, met de aanbevolen regels gemarkeerd |
+| **Dreigingsinformatie** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
+| **ATT&CK-dekking** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
-| **Protected Entities** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
+| **Beschermde entiteiten** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
-| **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
+| **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 | **Zaakprioriteiten** | Instellingen | Hoe dringend een zaak is: de eigen prioriteiten van het project, de dringendste eerst |
 | **Zaakstatussen** | Instellingen | De stappen die een zaak doorloopt, en hoe een zaak in elke stap telt |
 | **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
 
-**Detections**, **AI**, **Connections** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
+**Detecties**, **AI**, **Verbindingen** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
 ## Voordat je begint
 
@@ -169,15 +169,15 @@ Om beveiligingslogs te sturen die je al verzamelt, zoals auditd, syslog of Falco
     Retry_Limit      5
 ```
 
-De pagina **Installatiegids**, onder **Connections**, bevat deze snippets, met je eigen host en sleutel ingevuld.
+De pagina **Installatiegids**, onder **Verbindingen**, bevat deze snippets, met je eigen host en sleutel ingevuld.
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Connections**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH-aanmelding, sudo-opdracht, Kubernetes-auditregel, AWS CloudTrail-wijziging en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH-aanmelding, sudo-opdracht, Kubernetes-auditregel, AWS CloudTrail-wijziging en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 ### Een beveiligingsproduct koppelen
 
-**Connections** bevraagt een beveiligingsproduct voor je en importeert zijn nieuwe records als beveiligingsgebeurtenissen. Een verbinding bevat de instellingen van het product en een versleutelde referentie; een worker bevraagt haar met het interval dat je instelt en slaat records over die hij al importeerde.
+**Verbindingen** bevraagt een beveiligingsproduct voor je en importeert zijn nieuwe records als beveiligingsgebeurtenissen. Een verbinding bevat de instellingen van het product en een versleutelde referentie; een worker bevraagt haar met het interval dat je instelt en slaat records over die hij al importeerde.
 
 | Product | Importeert | Installatiegids |
 | --- | --- | --- |
@@ -193,7 +193,7 @@ De kaart **Uw logboeken**, boven aan **Connections**, maakt van de logs die u al
 - De eigen waarschuwingen van het product vanaf het niveau dat in **Open Cases From** is ingesteld (**Hoog en hoger**, tenzij je een ander niveau kiest, of **Nooit**), openen [zaken](/docs/telemetry/security-cases), gegroepeerd op de gebruiker, de host of het adres waar ze over gaan.
 - Een verbinding leest records op het tijdstip waarop het product ze aanmaakte, niet op het tijdstip van de activiteit die ze beschrijven. Een SIEM-regel die elk uur draait, maakt detecties lang na de gebeurtenissen waarop hij matchte, en die worden toch geïmporteerd.
 - De eerste bevraging kijkt 24 uur terug, zodat een nieuwe verbinding meteen recente records toont.
-- **Verbinding testen**, in de rij van de verbinding, controleert de toegang tot het product en of de eigen workers van OneUptime draaien, en importeert niets. **Run now** bevraagt meteen.
+- **Verbinding testen**, in de rij van de verbinding, controleert de toegang tot het product en of de eigen workers van OneUptime draaien, en importeert niets. **Nu uitvoeren** bevraagt meteen.
 
 ## Wat een gebeurtenis bevat
 
@@ -236,7 +236,7 @@ Een veld is ofwel een korte naam (`severity`, `class`, `category`, `activity`, `
 
 ### Facetten
 
-De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebeurtenisklasse**, **Category**, **Activiteit**, **Status**, **Leverancier**, **Product**, **Detection Rule**, **Brongebruiker**, **Bronhost**, **Proces** en **Bovenliggend proces**. Klik op een waarde om alleen haar gebeurtenissen te houden, of op het minteken ernaast om ze weg te laten. Klik nog eens om dat ongedaan te maken. De grafiek en elke telling beschrijven precies de gebeurtenissen in de lijst.
+De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebeurtenisklasse**, **Categorie**, **Activiteit**, **Status**, **Leverancier**, **Product**, **Detectieregel**, **Brongebruiker**, **Bronhost**, **Proces** en **Bovenliggend proces**. Klik op een waarde om alleen haar gebeurtenissen te houden, of op het minteken ernaast om ze weg te laten. Klik nog eens om dat ongedaan te maken. De grafiek en elke telling beschrijven precies de gebeurtenissen in de lijst.
 
 ### Correleren
 
@@ -244,7 +244,7 @@ De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebe
 
 ## Detectieregels
 
-Een detectieregel is een [Sigma](https://sigmahq.io/)-regel, een open YAML-formaat om verdachte activiteit te beschrijven, die OneUptime volgens een schema op je gebeurtenissen loslaat. Als hij matcht, opent hij een [zaak](/docs/telemetry/security-cases) of vult hij een open zaak aan, opent hij een waarschuwing, eventueel een incident, en schrijft hij een Detection Finding terug in de gebeurtenissen. De **Rule Library** heeft kant-en-klare regels om mee te beginnen.
+Een detectieregel is een [Sigma](https://sigmahq.io/)-regel, een open YAML-formaat om verdachte activiteit te beschrijven, die OneUptime volgens een schema op je gebeurtenissen loslaat. Als hij matcht, opent hij een [zaak](/docs/telemetry/security-cases) of vult hij een open zaak aan, opent hij een waarschuwing, eventueel een incident, en schrijft hij een Detection Finding terug in de gebeurtenissen. De **Regelbibliotheek** heeft kant-en-klare regels om mee te beginnen.
 
 ```mermaid title="Hoe een detectieregel afgaat"
 flowchart TB
@@ -258,12 +258,12 @@ flowchart TB
 ### Een regel aanmaken
 
 :::steps
-1. Open **Producten → Security Events → Detections → Detection Rules** en klik op **Detection Rule aanmaken**.
-2. Plak in **Sigma Rule** de YAML van de regel in **Sigma Rule (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
+1. Open **Producten → Security Events → Detecties → Detectieregels** en klik op **Detectieregel aanmaken**.
+2. Plak in **Sigma-regel** de YAML van de regel in **Sigma-regel (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
 3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
-4. Laat in **Bij overeenkomst** de optie **Open a Case on Match** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
+4. Laat in **Bij overeenkomst** de optie **Zaak openen bij overeenkomst** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
 5. Kies onder **Waarschuwingen en incidenten** wat een match verder oplevert: **Een waarschuwing maken** (standaard), **Een incident melden**, **Beide** of **Geen van beide**, met een optionele **Ernst van waarschuwing** of **Ernst van incident**.
-6. **Meer velden** bevat de **Beschrijving**, **Write Detection Finding on Match** (aan) en hoe matches worden geteld; zie [Evaluatie-instellingen](#evaluatie-instellingen).
+6. **Meer velden** bevat de **Beschrijving**, **Detection Finding schrijven bij overeenkomst** (aan) en hoe matches worden geteld; zie [Evaluatie-instellingen](#evaluatie-instellingen).
 :::
 
 Een eerste regel, die matcht op mislukte aanmeldingen van buiten `10.x.x.x`:
@@ -295,11 +295,11 @@ OneUptime voert de booleaanse kern van Sigma uit:
 - `Image` en `CommandLine` lezen het proces waar de gebeurtenis over gaat, bij het starten van een proces het proces dat startte (`processPath`, `processCommandLine`), en `ParentImage` en `ParentCommandLine` het proces dat het startte (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` is het proces dat handelde, bij het starten dus het bovenliggende proces.
 - `level` bepaalt de ernst: `informational`, `low`, `medium`, `high` of `critical`, en `medium` als het ontbreekt. ATT&CK-ID's in `tags` (`attack.t1110`, `attack.ta0006`) vullen de MITRE-velden van de bevinding.
 
-Aggregaties zoals `| count() by principalIp > 5` worden bij het opslaan geweigerd: gebruik in plaats daarvan een [correlatieregel](#correlatieregels), of **Group By Field** en **Match Count Threshold**. `logsource` is alleen informatief en beperkt niets: zet dat filter in een selectie, zoals `className: Authentication`. Een `timeframe` wordt genegeerd, omdat het interval van de regel zijn venster bepaalt.
+Aggregaties zoals `| count() by principalIp > 5` worden bij het opslaan geweigerd: gebruik in plaats daarvan een [correlatieregel](#correlatieregels), of **Groeperingsveld** en **Drempel voor aantal treffers**. `logsource` is alleen informatief en beperkt niets: zet dat filter in een selectie, zoals `className: Authentication`. Een `timeframe` wordt genegeerd, omdat het interval van de regel zijn venster bepaalt.
 
 ### Correlatieregels
 
-Een [Sigma-correlatie](https://sigmahq.io/docs/meta/correlations.html) slaat aan op meerdere gebeurtenissen samen in plaats van op één. Plak haar in **Sigma Rule (YAML)** met de regels die ze leest, als YAML-documenten gescheiden door `---`, of noem regels die het project al heeft bij hun Sigma-`name` of -`id`. De **Rule Library** heeft kant-en-klare, zoals mislukte aanmeldingen gevolgd door een geslaagde.
+Een [Sigma-correlatie](https://sigmahq.io/docs/meta/correlations.html) slaat aan op meerdere gebeurtenissen samen in plaats van op één. Plak haar in **Sigma-regel (YAML)** met de regels die ze leest, als YAML-documenten gescheiden door `---`, of noem regels die het project al heeft bij hun Sigma-`name` of -`id`. De **Regelbibliotheek** heeft kant-en-klare, zoals mislukte aanmeldingen gevolgd door een geslaagde.
 
 | Type | Slaat aan wanneer | Getoond als |
 | --- | --- | --- |
@@ -352,16 +352,16 @@ detection:
 
 - Een groep is de waarde van de velden in `group-by`, zoals één adres. Tellingen zijn rollend: een uitbarsting die twee runs verdelen, telt binnen haar `timespan` toch volledig mee, en die is hooguit 24 uur.
 - `new_value` is een eigen type van OneUptime, omdat Sigma geen correlatie "voor het eerst gezien" kent: het vergelijkt met maximaal 30 dagen geschiedenis. `value_sum`, `value_avg`, `value_percentile` en `value_median` worden bij het opslaan geweigerd.
-- De kolom **Type** van **Detection Rules** noemt het soort van elke regel, en het formulier zegt in één zin waar de regel naar zoekt.
+- De kolom **Type** van **Detectieregels** noemt het soort van elke regel, en het formulier zegt in één zin waar de regel naar zoekt.
 
 ### Evaluatie-instellingen
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Evaluation Interval (Minutes)** | Hoe vaak de regel draait: hele minuten, 1 tot 1440. Het formulier van een nieuwe regel begint op 5. |
-| **Group By Field** | Optioneel. Matches die de waarde van dit veld delen, zoals `principalHost`, worden samen geteld, gemeld en ontdubbeld: één waarschuwing per host in plaats van honderden. |
-| **Distinct Count Field** | Optioneel. Tel de verschillende waarden van dit veld in plaats van de matchende gebeurtenissen. Lege waarden tellen niet mee. |
-| **Match Count Threshold** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt: 1 tot 1000000, en 1 gaat af bij elke match. |
+| **Evaluatie-interval (minuten)** | Hoe vaak de regel draait: hele minuten, 1 tot 1440. Het formulier van een nieuwe regel begint op 5. |
+| **Groeperingsveld** | Optioneel. Matches die de waarde van dit veld delen, zoals `principalHost`, worden samen geteld, gemeld en ontdubbeld: één waarschuwing per host in plaats van honderden. |
+| **Veld voor unieke telling** | Optioneel. Tel de verschillende waarden van dit veld in plaats van de matchende gebeurtenissen. Lege waarden tellen niet mee. |
+| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt: 1 tot 1000000, en 1 gaat af bij elke match. |
 
 Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt de drempel "zoveel, van hetzelfde ding, in één uitvoering", zonder monitor erbovenop:
 
@@ -412,7 +412,7 @@ Bevindingen zijn gewone gebeurtenissen: doorzoek ze in **Gebeurtenissen** en dra
 
 ## Monitoren voor beveiligingsgebeurtenissen
 
-Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Security Events** als type; daar staat hij tussen uw andere monitoren.
+Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Beveiligingsgebeurtenissen** als type; daar staat hij tussen uw andere monitoren.
 
 Het formulier toont **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** en **Gebeurtenisklasse**. **Filteren op telemetrieservice** en **Filteren op attributen** wachten onder **Meer velden**, waarvan de kop toont welke een monitor gebruikt. De criteria controleren **Security Event Count**.
 
@@ -420,7 +420,7 @@ Het formulier toont **Monitor events that include this text**, **Monitor Securit
 | --- | --- | --- |
 | Matcht | Een Sigma-regel | Filters op ernst, klasse, bericht, service en attributen |
 | Venster | Aansluitend, één per uitvoering | Glijdend: de laatste 5 seconden tot 24 uur |
-| Telt per groep | Ja, met **Group By Field** | Nee: één telling voor alles wat matcht |
+| Telt per groep | Ja, met **Groeperingsveld** | Nee: één telling voor alles wat matcht |
 | Opent | Waarschuwingen, incidenten en bevindingen | Een status, waarschuwingen en incidenten |
 | Herstelt | Nee: waarschuwingen blijven open tot ze zijn opgelost | Ja: de status keert terug als de telling dat doet |
 
@@ -434,11 +434,11 @@ Bevindingen zijn gebeurtenissen, dus een monitor kan de regels zelf bewaken:
 - Veranderingen in tempo: filter op de `oneuptime.detection.rule_id` van één regel. Een regel die wekelijks afgaat en ineens vijftig keer per uur afgaat, vraagt om een andere reactie.
 - Stilte: bevindingen die naar nul zakken, terwijl je er normaal een paar ziet, betekenen meestal dat een bron is gestopt met sturen. Gebruik een criterium dat controleert op een telling onder een getal.
 
-De actie **Monitor maken** in de rij van een regel opent een nieuwe monitor die al zo is ingesteld: de klasse `Detection Finding`, de ID van de regel (nooit zijn naam, die bij een hernoeming zou veranderen), en het laatste uur. Zo'n monitor telt bevindingen, één per groep per uitvoering, niet de gebeurtenissen erachter. Om een aantal gebeurtenissen te vereisen voordat er iets afgaat, gebruik je de **Match Count Threshold** van de regel.
+De actie **Monitor maken** in de rij van een regel opent een nieuwe monitor die al zo is ingesteld: de klasse `Detection Finding`, de ID van de regel (nooit zijn naam, die bij een hernoeming zou veranderen), en het laatste uur. Zo'n monitor telt bevindingen, één per groep per uitvoering, niet de gebeurtenissen erachter. Om een aantal gebeurtenissen te vereisen voordat er iets afgaat, gebruik je de **Drempel voor aantal treffers** van de regel.
 
 ## Dreigingsinformatie
 
-**Threat Intel** neemt abonnementen op STIX/TAXII-feeds van bekende kwaadaardige IP-adressen, domeinen, URL's, e-mailadressen en bestandshashes. Gebeurtenissen die er een noemen, krijgen bij binnenkomst `threat.*`-attributen, waarop regels en monitoren kunnen filteren, en elke minuut worden recente gebeurtenissen met de feeds vergeleken, wat waarschuwingen en bevindingen opent zoals een regel dat doet. Zie [Dreigingsinformatie](/docs/telemetry/threat-intelligence).
+**Dreigingsinformatie** neemt abonnementen op STIX/TAXII-feeds van bekende kwaadaardige IP-adressen, domeinen, URL's, e-mailadressen en bestandshashes. Gebeurtenissen die er een noemen, krijgen bij binnenkomst `threat.*`-attributen, waarop regels en monitoren kunnen filteren, en elke minuut worden recente gebeurtenissen met de feeds vergeleken, wat waarschuwingen en bevindingen opent zoals een regel dat doet. Zie [Dreigingsinformatie](/docs/telemetry/threat-intelligence).
 
 ## Bewaring en facturering
 
@@ -459,7 +459,7 @@ Controleer de **Status**: bij **Uitgeschakeld** wordt de regel niet uitgevoerd, 
 :::
 
 :::details Een regel opent te veel waarschuwingen
-Elke waarde van het **Group By Field** krijgt een eigen waarschuwing: groepeer op iets grovers, verhoog de drempel, of voeg een Distinct Count Field toe. Gaat het je om het tempo in plaats van om elke match, zet dan **Waarschuwingen en incidenten** op **Geen van beide** en zet een monitor op de bevindingen van de regel.
+Elke waarde van het **Groeperingsveld** krijgt een eigen waarschuwing: groepeer op iets grovers, verhoog de drempel, of voeg een Distinct Count Field toe. Gaat het je om het tempo in plaats van om elke match, zet dan **Waarschuwingen en incidenten** op **Geen van beide** en zet een monitor op de bevindingen van de regel.
 :::
 
 ## Volgende stappen

@@ -57,7 +57,7 @@ De workflow opent in de **Bouwer** met drie stappen: **On Create Alert**; **Send
 @tab Vanaf nul
 1. Sla het token op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflow Variabele aanmaken**, noem hem `TELEGRAM_BOT_TOKEN` en klik op **Volgende**. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
-3. Klik in de **Bouwer** op **Choose what starts this workflow** en kies **On Create Alert** onder **Popular**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Alert Number With Prefix**.
+3. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **On Create Alert** onder **Populair**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je bericht toont, zoals **Alert Number With Prefix**.
 4. Klik op **Component toevoegen**, zoek naar `telegram` en klik op **Send Message to Telegram**. Verbind de uitgang **Success** van de trigger met deze stap.
 5. Klik op de nieuwe stap. Klik in **Telegram Bot Token** op **{ }** en kies `TELEGRAM_BOT_TOKEN` onder **Global variables**. Vul de ID van de chat in bij **Chat ID**, schrijf het bericht in **Message Text** en voeg de velden van de waarschuwing in met **{ }**.
 :::

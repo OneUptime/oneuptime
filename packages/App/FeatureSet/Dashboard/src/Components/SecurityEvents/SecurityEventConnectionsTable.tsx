@@ -181,6 +181,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           buttons: [
             {
               title: "Add connection",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               disabled: !createGate.isAllowed,

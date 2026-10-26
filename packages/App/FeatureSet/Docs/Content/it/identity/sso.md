@@ -54,7 +54,7 @@ Su OneUptime Cloud, chi entra nel progetto tramite SSO occupa un posto, proprio 
 
 ## Configurare l'SSO
 
-Ti serve l'autorizzazione ad aggiungere provider SSO — **Project Owner**, **Project Admin** o **Create Project SSO** — e, su OneUptime Cloud, il piano **Scale**. Per la parte del tuo provider di identità, vedi le [guide dei provider di identità](#guide-dei-provider-di-identità).
+Ti serve l'autorizzazione ad aggiungere provider SSO — **Proprietario del progetto**, **Amministratore del progetto** o **Create Project SSO** — e, su OneUptime Cloud, il piano **Scale**. Per la parte del tuo provider di identità, vedi le [guide dei provider di identità](#guide-dei-provider-di-identità).
 
 :::steps
 1. **Aprire le impostazioni del progetto**
@@ -248,7 +248,7 @@ L'SSO di OneUptime usa SAML 2.0 e funziona con qualsiasi provider di identità c
 
 ## OpenID Connect (OIDC)
 
-Un progetto può anche accedere tramite un provider OpenID Connect, come Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak. Ti serve l'autorizzazione ad aggiungere provider OIDC (**Project Owner**, **Project Admin** o **Create Project OIDC**) e, su OneUptime Cloud, il piano **Scale**.
+Un progetto può anche accedere tramite un provider OpenID Connect, come Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak. Ti serve l'autorizzazione ad aggiungere provider OIDC (**Proprietario del progetto**, **Amministratore del progetto** o **Create Project OIDC**) e, su OneUptime Cloud, il piano **Scale**.
 
 :::steps
 1. Registra presso il tuo provider di identità un'app (un client OIDC) che possa usare il flusso authorization code con PKCE, e copia il suo **URL dell'emittente**, il **Client ID** e il **Client Secret**.

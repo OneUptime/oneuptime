@@ -36,6 +36,7 @@ import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 10: the Logs, Metrics, Traces, Exceptions and Profiles
@@ -651,14 +652,6 @@ function drawnMessage(language: string, entry: MessageLabel): string {
   return flatLabel(language, entry.key).trim().replace(FULL_STOP, "");
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(PACKAGES_DIR, relativePath), "utf8");
 }
@@ -896,7 +889,7 @@ describe("the lists this test keeps", () => {
           page,
           name,
           bold: labels.includes(name),
-          why: PLANS.includes(name) || isPermissionOrRole(name),
+          why: PLANS.includes(name) || isPermissionTitleKeptInEnglish(name),
         });
       }
     }

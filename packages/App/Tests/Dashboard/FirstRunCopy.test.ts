@@ -796,9 +796,12 @@ describe("Getting Started", () => {
     expect(block).toContain("pageMap: PageMap.USERS");
     expect(block).not.toContain("PageMap.TEAMS");
 
-    // …and the Users page does offer the button the step promises.
+    /*
+     * …and the Users page does offer the button the step promises (on a
+     * phone it says Invite, CardButtonSchema.phoneTitle).
+     */
     expect(readCode("Pages/Users/Index.tsx")).toMatch(
-      /title: "Invite User",\s*buttonStyle: ButtonStyleType\.NORMAL/,
+      /title: "Invite User",\s*(?:phoneTitle: "Invite",\s*)?buttonStyle: ButtonStyleType\.NORMAL/,
     );
   });
 

@@ -118,6 +118,8 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
           required: false,
           placeholder: "Select Monitor Labels (optional)",
+          // Its section's description says what it matches.
+          hideColumnDescription: true,
         },
         {
           field: { monitorNamePattern: true },
@@ -129,6 +131,7 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "prod-.*",
+          hideColumnDescription: true,
         },
         {
           field: { monitorDescriptionPattern: true },
@@ -137,6 +140,7 @@ const MonitorOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
+          hideColumnDescription: true,
         },
         ...getOwnerRuleActionFields<MonitorOwnerRule>(),
       ]}

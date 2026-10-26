@@ -18,7 +18,7 @@ Mettre en place la sécurité demande le rôle Project Owner, Project Admin ou S
 :::steps
 ### Activer ce dont la plupart des équipes ont besoin
 
-Ouvrez **Produits → Événements de sécurité**. Sur **Vue d'ensemble**, cliquez sur **Activer les recommandations**. Trois choses s'activent d'un coup : **Trouver des événements de sécurité dans vos journaux**, les règles de détection recommandées et **Enrich New Cases**, un playbook qui confronte chaque nouveau dossier au renseignement sur les menaces et y laisse une liste de contrôle pour le tri.
+Ouvrez **Produits → Événements de sécurité**. Sur **Vue d'ensemble**, cliquez sur **Activer les recommandations**. Trois choses s'activent d'un coup : **Trouver des événements de sécurité dans vos journaux**, les règles de détection recommandées et **Enrichir les nouveaux dossiers**, un playbook qui confronte chaque nouveau dossier au renseignement sur les menaces et y laisse une liste de contrôle pour le tri.
 
 ### Envoyer une attaque de test
 
@@ -26,7 +26,7 @@ Cliquez sur **Envoyer une attaque de test**. Une douzaine de connexions échoué
 
 ### Ouvrir le dossier
 
-Cliquez sur **Ouvrir le dossier**. Voici à quoi ressemble une vraie découverte : les événements qui la justifient, l'adresse concernée et ce qu'a trouvé **Enrich New Cases**. Fermez-le comme test une fois terminé.
+Cliquez sur **Ouvrir le dossier**. Voici à quoi ressemble une vraie découverte : les événements qui la justifient, l'adresse concernée et ce qu'a trouvé **Enrichir les nouveaux dossiers**. Fermez-le comme test une fois terminé.
 :::
 
 Dès lors, **Vue d'ensemble** s'ouvre sur ce qui attend quelqu'un, sous **Attention requise** : vos dossiers ouverts, ceux que personne n'a pris en charge et les étapes de playbook en attente d'approbation. S'il n'y en a aucun, elle affiche **Tout est calme**.

@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### 新增您的 Twilio 帳戶
 
-前往 **專案設定** > **通知** > **通知設定** 。在 **Twilio 設定** 卡片中點選 **建立Twilio 設定** ，然後填寫表單：
+前往 **專案設定** > **通知** > **通知設定** 。在 **Twilio 設定** 卡片中點選 **建立 Twilio 設定** ，然後填寫表單：
 
 - **名稱** 和 **描述** ：帳戶的用途，例如「客服專線」。
 - **Twilio 帳戶 SID** ：來自 Twilio Console。以 `AC` 開頭。
@@ -56,7 +56,7 @@ flowchart TB
 
 ### 新增電話號碼
 
-在第二個步驟中點選 **Add Phone Number** 。選擇 **Use Existing Phone Number** 以使用 Twilio 帳戶中已有的號碼，或選擇 **Reserve New Phone Number** 取得新號碼。OneUptime 會讓號碼指向自己，因此不需要在 Twilio 中做任何設定。請參閱 [電話號碼](#電話號碼) 。
+在第二個步驟中點選 **新增電話號碼** 。選擇 **使用現有電話號碼** 以使用 Twilio 帳戶中已有的號碼，或選擇 **保留新電話號碼** 取得新號碼。OneUptime 會讓號碼指向自己，因此不需要在 Twilio 中做任何設定。請參閱 [電話號碼](#電話號碼) 。
 
 ### 新增上報規則
 
@@ -68,7 +68,7 @@ flowchart TB
 
 ### 撥打號碼
 
-三個步驟都完成後，卡片會變為 **Phone Numbers & Twilio Configuration** 。用任何電話撥打該號碼，然後開啟策略的 **通話日誌** ，查看呼叫了誰。
+三個步驟都完成後，卡片會變為 **電話號碼和 Twilio 設定** 。用任何電話撥打該號碼，然後開啟策略的 **通話日誌** ，查看呼叫了誰。
 :::
 
 ## 來電如何路由
@@ -127,16 +127,16 @@ OneUptime 會使用 Twilio 設定的 Auth Token 驗證每個請求上的 Twilio 
 
 ## 電話號碼
 
-一個策略可以有多個號碼，每個號碼都呼叫同一組規則。每個號碼只屬於一個策略。在策略的 **概覽** 中透過 **Add Phone Number** 新增：
+一個策略可以有多個號碼，每個號碼都呼叫同一組規則。每個號碼只屬於一個策略。在策略的 **概覽** 中透過 **新增電話號碼** 新增：
 
 :::tabs
 @tab 使用已有的號碼
-1. 點選 **Add Phone Number** ，然後點選 **Use Existing Phone Number** 。OneUptime 會列出策略 Twilio 帳戶中的號碼。
+1. 點選 **新增電話號碼** ，然後點選 **使用現有電話號碼** 。OneUptime 會列出策略 Twilio 帳戶中的號碼。
 2. 點選號碼旁邊的 **選擇** ，然後點選 **指派號碼** 。
 
 已把來電轉往別處的號碼會顯示 "Currently has a webhook configured"。指派後，其來電會改為傳送到 OneUptime。
 @tab 預訂新號碼
-1. 點選 **Add Phone Number** ，然後點選 **Reserve New Phone Number** 和 **搜尋號碼** 。
+1. 點選 **新增電話號碼** ，然後點選 **保留新電話號碼** 和 **搜尋號碼** 。
 2. 選擇 **國家** 。可選填 **區碼（選填）** ，例如 415，或在 **包含（選填）** 中填寫號碼應包含的數字。點選 **搜尋** ：最多列出 10 個本地號碼。
 3. 點選號碼旁邊的 **預訂** ，並以 **預訂** 確認。Twilio 會把號碼費用記入您的 Twilio 帳戶。
 :::
@@ -146,7 +146,7 @@ OneUptime 會把號碼的語音 webhook 設為 `https://<your host>/notification
 若要釋出號碼，請點選其旁邊的 **釋出** ，並以 **釋出號碼** 確認。
 
 > [!CAUTION]
-> 釋出號碼會把它歸還給 Twilio，即使是透過 **Use Existing Phone Number** 帶來的號碼，而且您可能無法再次取得它。刪除策略或其使用的 Twilio 設定也會釋出其號碼。
+> 釋出號碼會把它歸還給 Twilio，即使是透過 **使用現有電話號碼** 帶來的號碼，而且您可能無法再次取得它。刪除策略或其使用的 Twilio 設定也會釋出其號碼。
 
 ## 工程師的電話號碼
 
@@ -160,7 +160,7 @@ OneUptime 會把號碼的語音 webhook 設為 `https://<your host>/notification
 
 每個人在每個專案中只能有一個已驗證的號碼。若要更換號碼，請先刪除舊號碼。這些號碼與待命呼叫使用的 **通知方式** 中的電話號碼分開。請參閱 [通知方式](/docs/notifications/notification-methods)。
 
-來電號碼透過簡訊驗證，因此必須先為專案開啟 **SMS** 。專案擁有者、 **Billing Admin** 或擁有 **Manage Billing** 的人可以在 **專案設定 > 通知 > 通知設定** 上的 **通知管道** 卡片中開啟它。
+來電號碼透過簡訊驗證，因此必須先為專案開啟 **SMS** 。專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 的人可以在 **專案設定 > 通知 > 通知設定** 上的 **通知管道** 卡片中開啟它。
 
 ## 語音訊息和策略設定
 
@@ -182,19 +182,19 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 
 ## 通話日誌
 
-每通來電都列在策略側邊選單 **日誌** 下的 **通話日誌** 頁面中：包括 **來電者** 、 **Number Called** 、其 **狀態** 、接聽者（ **接聽者** ）、 **持續時間** ，以及開始時間（ **開始於** ）。在某通來電上點選 **View Timeline** 可查看其 **通話時間軸** ：呼叫過的每個人、使用的號碼，以及每次嘗試的結果。
+每通來電都列在策略側邊選單 **日誌** 下的 **通話日誌** 頁面中：包括 **來電者** 、 **被撥打號碼** 、其 **狀態** 、接聽者（ **接聽者** ）、 **持續時間** ，以及開始時間（ **開始於** ）。在某通來電上點選 **檢視時間軸** 可查看其 **通話時間軸** ：呼叫過的每個人、使用的號碼，以及每次嘗試的結果。
 
 | 狀態 | 發生了什麼事 |
 | --- | --- |
-| **Initiated** 、 **已升級** | 通話仍在進行：來電已到達、電話正在響鈴，或已轉到後面的規則。 |
+| **已發起** 、 **已升級** | 通話仍在進行：來電已到達、電話正在響鈴，或已轉到後面的規則。 |
 | **已完成** | 有人接聽，來電者已接通。 |
 | **無人接聽** | 所有上報規則都已嘗試，無人接聽。來電者聽到了您的 **無人接聽訊息** 。 |
-| **Caller Hung Up** | 工程師的電話正在響鈴時來電者掛斷了。 |
+| **來電者已掛斷** | 工程師的電話正在響鈴時來電者掛斷了。 |
 | **失敗** | 無人可呼叫：沒有任何上報規則有擁有已驗證來電號碼的待命使用者（來電者聽到了您的 **無人可用訊息** ），或策略的 **接聽來電** 已關閉。 |
 
 ## 未接來電
 
-通話在未接通任何人的情況下結束即為未接來電：其狀態為 **無人接聽** 、 **Caller Hung Up** 或 **失敗** 。
+通話在未接通任何人的情況下結束即為未接來電：其狀態為 **無人接聽** 、 **來電者已掛斷** 或 **失敗** 。
 
 ### 通知誰
 
@@ -225,10 +225,10 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 
 策略的電話號碼遵循與策略本身相同的角色：
 
-- **查詢號碼** - 在 Twilio 中搜尋要預訂的號碼，或列出您的 Twilio 帳戶已有的號碼 - 需要讀取來電策略的權限，以及讀取通話與簡訊設定的權限，因為它會透過其中之一讀取您的 Twilio 帳戶。 **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Viewer** 、 **Settings Admin** 、 **Settings Member** 和 **Settings Viewer** 都擁有這兩項。在自訂角色中，就是 **Read Incoming Call Policy** 和 **Read Call and SMS** 。
-- **預訂號碼、使用已有號碼和釋出號碼** 需要編輯來電策略的權限： **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Settings Admin** 和 **Settings Member** ，或自訂角色中的 **Edit Incoming Call Policy** 。它們會變更您可以編輯的策略的號碼：若角色僅限某些標籤，則是帶有這些標籤的策略。
+- **查詢號碼** - 在 Twilio 中搜尋要預訂的號碼，或列出您的 Twilio 帳戶已有的號碼 - 需要讀取來電策略的權限，以及讀取通話與簡訊設定的權限，因為它會透過其中之一讀取您的 Twilio 帳戶。 **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **檢視者** 、 **設定管理員** 、 **設定成員** 和 **設定檢視者** 都擁有這兩項。在自訂角色中，就是 **Read Incoming Call Policy** 和 **Read Call and SMS** 。
+- **預訂號碼、使用已有號碼和釋出號碼** 需要編輯來電策略的權限： **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **設定管理員** 和 **設定成員** ，或自訂角色中的 **Edit Incoming Call Policy** 。它們會變更您可以編輯的策略的號碼：若角色僅限某些標籤，則是帶有這些標籤的策略。
 
-團隊在這些權限之一上不帶標籤的封鎖會取消該權限。對其他人來說， **Add Phone Number** 和 **釋出** 仍留在頁面上但處於鎖定狀態，其提示會說明需要什麼。API 會用一句說明所需權限的話拒絕其請求："Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 或 "Adding or releasing a phone number needs permission to edit incoming call policies." 預訂號碼的費用記入您自己的 Twilio 帳戶，而不是您的 OneUptime 餘額，因此不需要帳務權限。
+團隊在這些權限之一上不帶標籤的封鎖會取消該權限。對其他人來說， **新增電話號碼** 和 **釋出** 仍留在頁面上但處於鎖定狀態，其提示會說明需要什麼。API 會用一句說明所需權限的話拒絕其請求："Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." 或 "Adding or releasing a phone number needs permission to edit incoming call policies." 預訂號碼的費用記入您自己的 Twilio 帳戶，而不是您的 OneUptime 餘額，因此不需要帳務權限。
 
 ## 使用 API 或 Terraform 建立策略
 
@@ -267,7 +267,7 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 :::
 
 :::details 無法預訂新號碼
-在許多國家，Twilio 在販售本地號碼之前需要已核准的 regulatory bundle，有些號碼還要求 Twilio 餘額為正。請在 Twilio Console 中完成這些設定，或在那裡取得號碼後透過 **Use Existing Phone Number** 新增。
+在許多國家，Twilio 在販售本地號碼之前需要已核准的 regulatory bundle，有些號碼還要求 Twilio 餘額為正。請在 Twilio Console 中完成這些設定，或在那裡取得號碼後透過 **使用現有電話號碼** 新增。
 :::
 
 :::details 無法變更策略的 Twilio 帳戶

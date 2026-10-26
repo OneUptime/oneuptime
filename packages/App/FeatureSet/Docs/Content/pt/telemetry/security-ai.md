@@ -62,7 +62,7 @@ Ela também pode ler o resto do OneUptime como a investigação de um incidente 
 | Provável falso positivo | A detecção parece ter interpretado mal uma atividade normal | False Positive |
 | Inconclusivo | Não havia evidências suficientes para decidir, e uma pessoa precisa olhar | Nada |
 
-A leitura é do OneUptime AI, nunca o veredito do caso: **Close Case** começa no veredito que ela sugere, e uma pessoa escolhe. Abaixo da leitura, o cartão mostra:
+A leitura é do OneUptime AI, nunca o veredito do caso: **Fechar caso** começa no veredito que ela sugere, e uma pessoa escolhe. Abaixo da leitura, o cartão mostra:
 
 - **Prioridade sugerida**, com **Definir prioridade** quando o caso está em outra prioridade.
 - **Playbook sugerido**, com **Executar playbook**, que o executa em seu nome, com cada aprovação de que ele precisar. Enquanto esse playbook já está em execução no caso, o status da execução, como **Aguardando aprovação**, toma o lugar de **Executar playbook**: a execução está em **Playbooks** do caso, e uma segunda pediria a mesma aprovação de novo.
@@ -88,7 +88,7 @@ Os projetos novos começam com a opção ligada; um projeto criado antes a mant�
 
 ## Executar um playbook após uma classificação
 
-Um playbook cujo **Trigger** é **Classificado como provavelmente malicioso** é executado uma vez em um caso, quando uma classificação o lê como Provavelmente malicioso. **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules** o restringem como em qualquer gatilho, e as etapas de contenção dele aguardam aprovação como sempre. Ele não é executado:
+Um playbook cujo **Gatilho** é **Classificado como provavelmente malicioso** é executado uma vez em um caso, quando uma classificação o lê como Provavelmente malicioso. **Para casos de pelo menos**, **Somente para detecções de** e **Somente para estas regras de detecção** o restringem como em qualquer gatilho, e as etapas de contenção dele aguardam aprovação como sempre. Ele não é executado:
 
 - depois de uma classificação que encontrou texto escrito para manipular uma IA;
 - uma segunda vez no mesmo caso, não importa quantas vezes o caso seja classificado;
@@ -98,7 +98,7 @@ Esse gatilho só é oferecido a um playbook novo enquanto a IA do projeto está 
 
 ## Escrever o rascunho de uma regra de detecção
 
-Em **Detection Rules**, abaixo do campo **Sigma Rule (YAML)**, clique em **Draft with AI** e diga o que a regra deve detectar, por exemplo dez falhas de login a partir de um mesmo endereço IP em cinco minutos. **Escrever regra** coloca uma regra Sigma no campo, verificada como uma regra salva. Leia a regra, altere o que precisar e salve como de costume: nada é salvo até que você salve. Com uma regra já no campo, o botão passa a dizer **Reescrever com IA**, e o rascunho substitui essa regra.
+Em **Regras de detecção**, abaixo do campo **Regra Sigma (YAML)**, clique em **Rascunho com IA** e diga o que a regra deve detectar, por exemplo dez falhas de login a partir de um mesmo endereço IP em cinco minutos. **Escrever regra** coloca uma regra Sigma no campo, verificada como uma regra salva. Leia a regra, altere o que precisar e salve como de costume: nada é salvo até que você salve. Com uma regra já no campo, o botão passa a dizer **Reescrever com IA**, e o rascunho substitui essa regra.
 
 Para escrever um rascunho, é preciso uma função que possa criar regras de detecção.
 
@@ -131,7 +131,7 @@ Parte dos dados do caso, como a mensagem de um evento ou um nome de usuário, fo
 :::
 
 :::details Um playbook com o gatilho de IA não foi executado
-Verifique se o playbook está habilitado, se a classificação leu o caso como Provavelmente malicioso, e se as configurações **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules** dele combinam com o caso. Ele é executado uma vez por caso, e não depois de uma classificação que encontrou texto escrito para manipular uma IA.
+Verifique se o playbook está habilitado, se a classificação leu o caso como Provavelmente malicioso, e se as configurações **Para casos de pelo menos**, **Somente para detecções de** e **Somente para estas regras de detecção** dele combinam com o caso. Ele é executado uma vez por caso, e não depois de uma classificação que encontrou texto escrito para manipular uma IA.
 :::
 
 ## Próximos passos

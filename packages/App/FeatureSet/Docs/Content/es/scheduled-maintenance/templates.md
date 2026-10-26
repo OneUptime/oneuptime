@@ -24,7 +24,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Tu plan.** En OneUptime Cloud, las plantillas requieren el plan **Growth** o superior.
-- **Tu rol.** Crear una plantilla requiere **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** o **Scheduled Maintenance Member**, o un rol personalizado que pueda crear plantillas de mantenimiento programado.
+- **Tu rol.** Crear una plantilla requiere **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de mantenimiento programado** o **Miembro de mantenimiento programado**, o un rol personalizado que pueda crear plantillas de mantenimiento programado.
 
 ## Crear una plantilla
 

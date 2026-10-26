@@ -70,7 +70,7 @@ Recolhido, o cabeçalho de **Mais campos** cita os dois e mostra os que a regra 
 
 ### Crie a regra
 
-Clique em **Create Rule**. A regra é adicionada abaixo das outras, como o próximo nível da política.
+Clique em **Criar regra**. A regra é adicionada abaixo das outras, como o próximo nível da política.
 :::
 
 ## Como os níveis acionam as pessoas
@@ -161,7 +161,7 @@ No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pag
 - Os acionamentos continuam saindo com o saldo restante enquanto a recarga automática não consegue cobrar o cartão.
 
 > [!IMPORTANT]
-> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Billing Admin** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
+> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
 
 ## Escalonar para a próxima pessoa da rotação
 
@@ -175,7 +175,7 @@ Um nível pode acionar a próxima pessoa da rotação de um agendamento de plant
 
 :::steps
 1. Confirme que o primeiro nível da política, **Level 1**, notifica o agendamento de plantão.
-2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Escalonar após (em minutos)** e clique em **Create Rule**.
+2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Escalonar após (em minutos)** e clique em **Criar regra**.
 3. Adicione mais um nível para a equipe ou o gerente que deve saber em seguida.
 :::
 
@@ -232,11 +232,11 @@ Cada escalonamento fica registrado. A **Linha do tempo de execução** da execu�
 
 ## Editar, reordenar e excluir regras
 
-O cartão de cada regra tem **Edit rule** e um menu **⋯** com as outras ações:
+O cartão de cada regra tem **Editar regra** e um menu **⋯** com as outras ações:
 
-- **Edit rule** abre a mesma caixa de diálogo de uma página, preenchida com a regra como está: os destinatários, a espera, e o nome e a descrição em **Mais campos**. Adicione ou remova destinatários e clique em **Salvar alterações**. Apagar o nome devolve à regra o nome do nível dela.
+- **Editar regra** abre a mesma caixa de diálogo de uma página, preenchida com a regra como está: os destinatários, a espera, e o nome e a descrição em **Mais campos**. Adicione ou remova destinatários e clique em **Salvar alterações**. Apagar o nome devolve à regra o nome do nível dela.
 - **Mover para cima** e **Mover para baixo**, no menu **⋯** de uma regra, mudam o nível dela. Uma regra com o nome do nível mantém um nome que corresponde ao lugar dela: quando **Level 3** sobe acima de **Level 2**, as duas trocam de nome. Um nome que você escolheu, como **Gestores**, continua igual aonde quer que a regra vá.
-- **Delete rule** pergunta antes e diz quem o nível aciona. Excluir um nível sobe os níveis abaixo dele, e as regras com o nome do nível são renomeadas para corresponder.
+- **Excluir regra** pergunta antes e diz quem o nível aciona. Excluir um nível sobe os níveis abaixo dele, e as regras com o nome do nível são renomeadas para corresponder.
 
 ## Criar regras com a API ou o Terraform
 

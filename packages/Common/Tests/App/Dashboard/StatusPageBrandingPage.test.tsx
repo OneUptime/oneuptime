@@ -115,6 +115,7 @@ import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "../../../Types/StatusPage/Statu
 import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "../../../UI/Components/Types/FieldType";
+import { DetailImageBackdrop } from "../../../UI/Components/Detail/DetailImageBackdrop";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
@@ -217,6 +218,8 @@ type FieldShape = {
   placeholder?: string;
   stepId?: string;
   description?: string;
+  hideColumnDescription?: boolean;
+  imageBackdrop?: DetailImageBackdrop;
   dropdownOptions?: Array<{ value: unknown; label: string }>;
   getElement?: (item: StatusPage) => ReactElement;
 };
@@ -424,11 +427,107 @@ describe("the cards people set", () => {
       }),
     ).toEqual([
       "logoFile@logo",
+      "darkThemeLogoFile@logo",
       "logoAltText@logo",
       "coverImageFile@cover-image",
       "coverImageAltText@cover-image",
     ]);
     expect(columnsOf(formFieldsOf(name))).not.toContain("faviconFile");
+  });
+
+  /*
+   * The logo for the dark theme sits beside the logo, in the same step: an
+   * image, never required, saying where it is shown and what happens
+   * without one. The card shows it under the logo, and says the same while
+   * there is none, instead of a bare No logo uploaded.
+   */
+  test("Logo and Cover Image: a dark theme logo beside the logo, optional, saying what it is for", async () => {
+    await renderPage();
+
+    const name: string = "Status Page > Branding > Header Style";
+    const darkLogo: FieldShape | undefined = formFieldsOf(name).find(
+      (field: FieldShape): boolean => {
+        return columnsOf([field])[0] === "darkThemeLogoFile";
+      },
+    );
+
+    expect(darkLogo).toBeDefined();
+    expect(darkLogo!.title).toBe("Dark Theme Logo");
+    expect(darkLogo!.stepId).toBe("logo");
+    expect(darkLogo!.fieldType).toBe(FormFieldSchemaType.ImageFile);
+    expect(darkLogo!.required).toBe(false);
+    expect(darkLogo!.placeholder).toBe("Upload logo for the dark theme");
+    expect(darkLogo!.description).toBe(
+      StatusPageBrandingCopy.darkThemeLogoDescription,
+    );
+    expect(StatusPageBrandingCopy.darkThemeLogoDescription).toBe(
+      "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.",
+    );
+
+    const details: Array<FieldShape> = detailFieldsOf(name);
+
+    expect(columnsOf(details).slice(0, 2)).toEqual([
+      "logoFile",
+      "darkThemeLogoFile",
+    ]);
+
+    const shown: FieldShape = details[1]!;
+
+    expect(shown.title).toBe("Dark Theme Logo");
+    expect(shown.fieldType).toBe(FieldType.ImageFile);
+    // The card reads the image itself, as it reads the logo's.
+    expect(shown.field).toEqual({
+      darkThemeLogoFile: { file: true, fileType: true },
+    });
+    expect(shown.placeholder).toBe(StatusPageBrandingCopy.noDarkThemeLogo);
+    expect(StatusPageBrandingCopy.noDarkThemeLogo).toBe(
+      "None. The logo is shown on a light backdrop.",
+    );
+  });
+
+  /*
+   * Each logo on the page it is made for, in the dashboard's light theme
+   * and its dark one alike: a dark theme logo - light lettering - vanished
+   * on the card's white frame, and the logo on the dark theme's slate one.
+   */
+  test("Logo and Cover Image: each logo is shown on the page it is made for; the cover image on the card", async () => {
+    await renderPage();
+
+    const details: Array<FieldShape> = detailFieldsOf(
+      "Status Page > Branding > Header Style",
+    );
+    const backdropOf: (column: string) => DetailImageBackdrop | undefined = (
+      column: string,
+    ): DetailImageBackdrop | undefined => {
+      return details.find((field: FieldShape): boolean => {
+        return columnsOf([field])[0] === column;
+      })?.imageBackdrop;
+    };
+
+    expect(backdropOf("logoFile")).toBe(DetailImageBackdrop.Light);
+    expect(backdropOf("darkThemeLogoFile")).toBe(DetailImageBackdrop.Dark);
+    expect(backdropOf("coverImageFile")).toBeUndefined();
+  });
+
+  /*
+   * The two logos in Edit Images each say where they are shown. The logo
+   * said only its column's "Status Page Logo", right above a logo for the
+   * dark theme that said where it goes.
+   */
+  test("Logo and Cover Image: the logo says where it is shown, as the dark theme logo does", async () => {
+    await renderPage();
+
+    const logo: FieldShape | undefined = formFieldsOf(
+      "Status Page > Branding > Header Style",
+    ).find((field: FieldShape): boolean => {
+      return columnsOf([field])[0] === "logoFile";
+    });
+
+    expect(logo!.description).toBe(StatusPageBrandingCopy.logoDescription);
+    expect(logo!.hideColumnDescription).toBe(true);
+    expect(StatusPageBrandingCopy.logoDescription).toBe(
+      "Shown on your status page and in the emails it sends.",
+    );
   });
 
   test("Title and Description, then Favicon, each with its own fields", async () => {

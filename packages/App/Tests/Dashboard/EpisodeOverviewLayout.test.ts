@@ -240,10 +240,10 @@ describe("episode overview layout", () => {
         4,
       );
       expect(source).toContain(
-        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.acknowledgedStateName, })}',
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(timing.acknowledgedStateName), })}',
       );
       expect(source).toContain(
-        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.resolvedStateName, })}',
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(timing.resolvedStateName), })}',
       );
       expect(source).toContain(`label="${page.countLabel}"`);
 
@@ -256,7 +256,7 @@ describe("episode overview layout", () => {
           indexOfOrFail(source, "<EventStatTile"),
           indexOfOrFail(
             source,
-            'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.acknowledgedStateName',
+            'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(timing.acknowledgedStateName',
           ),
         ),
       );

@@ -6,7 +6,7 @@ Installera **OneUptime On-Call** på en Android-telefon eller -surfplatta, anslu
 - [Installera appen](#installera-appen): Från Google Play, eller APK-filen på en telefon utan Google Play.
 - [Logga in](#logga-in): Adressen till ditt OneUptime, sedan ditt konto.
 - [Kontrollera att larmen når telefonen](#kontrollera-att-larmen-når-telefonen): Hitta telefonen i instrumentpanelen och testa den.
-- [Ring igenom tyst läge](#ring-igenom-tyst-läge): Kritiska varningar och larmljudet.
+- [Ring igenom tyst läge](#ring-igenom-tyst-läge): Kritiska larm och larmljudet.
 - [Felsökning](#felsökning): Problem med inloggning, aviseringar och installation.
 :::
 
@@ -82,12 +82,12 @@ Dina jourregler avgör vilka larm som går till telefonen, och hur snabbt: se **
 
 ## Ring igenom tyst läge
 
-Som standard följer ett jourlarm telefonens ljudinställningar: en ljudlös telefon förblir tyst, och Stör ej håller tillbaka larmet. Kritiska varningar låter jourlarm ringa igenom båda. De är avstängda tills du slår på dem, telefon för telefon.
+Som standard följer ett jourlarm telefonens ljudinställningar: en ljudlös telefon förblir tyst, och Stör ej håller tillbaka larmet. Kritiska larm låter jourlarm ringa igenom båda. De är avstängda tills du slår på dem, telefon för telefon.
 
 ```mermaid title="Om ett jourlarm ringer igenom på Android"
 flowchart TB
     Page["Ett jourlarm<br/>till den här telefonen"]
-    Rule{"Regel satt till<br/>Kritisk varning?"}
+    Rule{"Regel satt till<br/>Kritiskt larm?"}
     Device{"Critical On-Call<br/>Alerts på?"}
     Quiet["Följer telefonens<br/>ljud och Stör ej"]
     Loud["Spelar ditt larm<br/>genom tyst läge<br/>och Stör ej"]
@@ -109,7 +109,7 @@ Android öppnar sin lista **Åtkomst till Stör ej**. Slå på åtkomsten för O
 Tryck på **Alarm sound** under reglaget. Förutom telefonens eget ljud erbjuder appen Klaxon, Siren, Digital alarm, Smoke alarm och Rising alarm, som börjar mjukt och blir starkare. Tryck på spela upp bredvid ett ljud för att höra det. Ett kritiskt larm spelas med telefonens larmvolym, så håll den uppskruvad.
 :::
 
-Bara jourlarm ringer igenom, och bara från jourregler satta till **Kritisk varning**, standardvärdet. En regel satt till **Normal** följer telefonens inställningar oavsett vad reglaget säger, så att du kan väckas av en kritisk incident och larmas tyst för en mindre. Skicka en **Testavisering** med telefonen ljudlös för att höra vad ett larm kommer att göra.
+Bara jourlarm ringer igenom, och bara från jourregler satta till **Kritiskt larm**, standardvärdet. En regel satt till **Normal** följer telefonens inställningar oavsett vad reglaget säger, så att du kan väckas av en kritisk incident och larmas tyst för en mindre. Skicka en **Testavisering** med telefonen ljudlös för att höra vad ett larm kommer att göra.
 
 ## Undvik att larm kommer fram för sent
 
@@ -136,14 +136,14 @@ Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, i
 :::
 
 :::details Inga aviseringar kommer fram
-- Kontrollera i Androids inställningar att aviseringar är på för appen, och att Stör ej är av eller kritiska varningar på.
+- Kontrollera i Androids inställningar att aviseringar är på för appen, och att Stör ej är av eller kritiska larm på.
 - Kontrollera att telefonen står under **Push Notifications** i **Användarinställningar → Aviseringsmetoder**, och skicka en **Testavisering** till den.
 - Är telefonen markerad som **Tar inte emot aviseringar**, öppnar du appen medan du är inloggad. Den registrerar telefonen igen; se [När en telefon måste registreras igen](/docs/mobile-desktop-apps/faq-troubleshooting#när-en-telefon-måste-registreras-igen).
 - Kontrollera dina jourregler under **Användarinställningar → Jourregler**.
 - På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).
 :::
 
-:::details Kritiska varningar är tysta i Stör ej
+:::details Kritiska larm är tysta i Stör ej
 Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas. Oftast tilläts inte åtkomst till Stör ej: tillåt den under **Inställningar → Aviseringar → Åtkomst till Stör ej** och gå tillbaka till appen. Har du valt ett larmljud måste även det ljudets aviseringskanal få åsidosätta Stör ej.
 :::
 

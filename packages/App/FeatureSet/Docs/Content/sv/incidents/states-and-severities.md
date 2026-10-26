@@ -54,12 +54,12 @@ Tre tillstånd skapas med projektet, i den här ordningen. Skapandet är idempot
 
 | Tillstånd        | `order` | Flagga                | Färg      | Vad det betyder                                    |
 | ---------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya incidenter hamnar i.           |
+| **Identifierad**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya incidenter hamnar i.           |
 | **Bekräftad**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Någon har tagit incidenten.                        |
 | **Löst**         | `3`     | `isResolvedState`     | `#2ab57d` | Incidenten är över och slutar räknas som aktiv.    |
 
 > [!NOTE]
-> Det första tillståndet heter **Identified**, även om flera beskrivningar i produkten fortfarande kallar det "created"-tillståndet. När ett dokument eller en verktygstips säger "skapandetillstånd" menas tillståndet som har `isCreatedState` — i ett nytt projekt är det **Identified**.
+> Det första tillståndet heter **Identifierad**, även om flera beskrivningar i produkten fortfarande kallar det "created"-tillståndet. När ett dokument eller en verktygstips säger "skapandetillstånd" menas tillståndet som har `isCreatedState` — i ett nytt projekt är det **Identifierad**.
 
 ## Vad varje tillståndsflagga faktiskt gör
 
@@ -74,7 +74,7 @@ Bara ett tillstånd per projekt förväntas ha varje flagga — uppslagen hämta
 - **De behåller sin ordning.** Skapandetillståndet kommer före det bekräftade, och det bekräftade före det lösta. En dragning som skulle bryta det — **Löst** ovanför **Bekräftad** till exempel — avvisas, raderna går tillbaka, och sidan säger varför.
 - **De kan inte tas bort.** Deras **Ta bort** finns kvar i radens meny, låst, med orsaken. En massborttagning hoppar över dem och nämner dem som inte borttagna. API:t vägrar också att ta bort ett projekts sista skapande-, bekräftade eller lösta tillstånd.
 
-Eftersom gränssnittet läser tillståndsnamn dynamiskt ändrar ett namnbyte det du ser överallt — nyckeltalsrutorna (**Acknowledged in** och **Resolved in** med de förskapade namnen), bekräftelsen **Markera incident som …** för ett eget tillstånd och märket i listan över incidenter följer alla namnet som du gav raden.
+Eftersom gränssnittet läser tillståndsnamn dynamiskt ändrar ett namnbyte det du ser överallt — nyckeltalsrutorna (**Bekräftad efter** och **Löst efter** med de förskapade namnen), bekräftelsen **Markera incident som …** för ett eget tillstånd och märket i listan över incidenter följer alla namnet som du gav raden.
 
 ## Lägg till egna tillstånd
 
@@ -136,7 +136,7 @@ Tre allvarlighetsgrader skapas med projektet, i den här ordningen, den allvarli
 | **Major Incident**    | `2`     | `#fd625e` | Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing. |
 | **Minor Incident**    | `3`     | `#ffbf53` | Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance. |
 
-Allvarlighetsgraden är obligatorisk när du deklarerar en incident, och den är obligatorisk i varje incidentspecifikation i en monitors kriterier, så varje incident — manuell eller automatisk — kommer med en. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för deklarationsflödet och [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för vägen via monitorer.
+Allvarlighetsgraden är obligatorisk när du deklarerar en incident, och den är obligatorisk i varje incidentspecifikation i en monitors kriterier, så varje incident — manuell eller automatisk — kommer med en. Se [Deklarera en incident](/docs/incidents/declaring-incidents) för deklarationsflödet och [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för vägen via monitorer.
 
 ## Redigera allvarlighetsgrader
 
@@ -188,7 +188,7 @@ En incident är bekräftad från det ögonblick den går in i ditt bekräftade t
 - **Bekräfta erbjuds inte längre.** Inte i incidentens rubrik, inte i mobilappen (dess knapp och dess svepning), inte i Slack eller Microsoft Teams och inte via `acknowledge_incident` på OneUptime MCP-servern. Att bekräfta den ändå — från en larmsida, Slack eller Teams — avvisas med "Incident is already acknowledged." (eller "Incident is already resolved."), i stället för att flytta den uppåt i listan igen.
 - **Jouren slutar larma för den.** En jourhavande som bekräftar sitt larm efter att en kollega har bekräftat incidenten, eller flyttat den vidare, får sitt larm bekräftat, och incidenten stannar där den är.
 - **SLA:n markeras som besvarad** vid den första sådana flytten; att gå vidare genom senare tillstånd behåller den tidpunkten.
-- **Tiden till bekräftelse löper till den första flytten** — nyckeltalsrutan på incidentens **Översikt**, måttet **Time to Acknowledge**, en mätning som slutar när **Incidenten bekräftas**, och MTTA i sammanfattningarna i Slack och Microsoft Teams. En incident som gick direkt från **Identified** till **Investigating** bekräftades då; en som löstes direkt bekräftades när den löstes.
+- **Tiden till bekräftelse löper till den första flytten** — nyckeltalsrutan på incidentens **Översikt**, måttet **Time to Acknowledge**, en mätning som slutar när **Incidenten bekräftas**, och MTTA i sammanfattningarna i Slack och Microsoft Teams. En incident som gick direkt från **Identifierad** till **Investigating** bekräftades då; en som löstes direkt bekräftades när den löstes.
 - **Ett filter Bekräftad** — på en instrumentpanels widget med en incidentlista till exempel — visar incidenterna i ditt bekräftade tillstånd och i varje senare tillstånd, fram till löst.
 
 Larm och episoder följer samma regel, med dina larmtillstånd.
@@ -206,7 +206,7 @@ Att gå vidare från **Löst** till ett senare tillstånd — **Closed** till ex
 
 Incidentens sida **Tillståndstidslinje** i incidentens sidomeny är granskningsspåret för varje tillstånd som incidenten har varit i. Kortet på den sidan heter **Statustidslinje**, och det ritar incidentens hela förlopp som en tidslinje:
 
-- **Bandet** visar varje tillstånd som ett stycke i sin färg, lika långt som incidenten var i det, så att förloppet går att läsa av med en blick. Så länge incidenten är öppen går bandet fram till **Nu**; när den är löst slutar bandet strax efter den senaste ändringen. Peka på ett stycke för att se när det började och hur länge det varade, och klicka på det för att hitta ändringen i listan. Ändringar som ligger för tätt för att skiljas åt ritas som ett randigt stycke: klicka på det, eller dra över bandet, för att zooma in, och **Reset zoom** går tillbaka.
+- **Bandet** visar varje tillstånd som ett stycke i sin färg, lika långt som incidenten var i det, så att förloppet går att läsa av med en blick. Så länge incidenten är öppen går bandet fram till **Nu**; när den är löst slutar bandet strax efter den senaste ändringen. Peka på ett stycke för att se när det började och hur länge det varade, och klicka på det för att hitta ändringen i listan. Ändringar som ligger för tätt för att skiljas åt ritas som ett randigt stycke: klicka på det, eller dra över bandet, för att zooma in, och **Återställ zoom** går tillbaka.
 - **Ovanför bandet** står varje tillstånd med den tid incidenten var i det.
 - **Under bandet** står varje ändring, senaste först, grupperad per dag och i din tidszon: när den började och slutade, hur länge den varade, vem som gjorde den och under den **Statussidans prenumeranter:** om statussidans avisering för ändringen skickades, hoppades över eller fortfarande väntar, med en länk **mer information** och — när utskicket misslyckades — en åtgärd **Försök igen**. **Försök igen** skickar tillståndsändringen igen till varje statussida som incidenten når nu, även till de prenumeranter som redan har fått den.
 

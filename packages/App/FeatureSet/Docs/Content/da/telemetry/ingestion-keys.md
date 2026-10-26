@@ -60,7 +60,7 @@ Klik på **Opret ingestion-nøgle**. Dialogen starter med navnet **Servernøgle*
 
 ### Tilføj en browsernøgles origins
 
-En **Browser**-nøgle beder om sine **Allowed Origins** i det næste trin, **Browserindstillinger**, med sit **Pinned Service Name** under **Avanceret**. Se [Lås en browsernøgle ned](#lås-en-browsernøgle-ned).
+En **Browser**-nøgle beder om sine **Tilladte oprindelser** i det næste trin, **Browserindstillinger**, med sit **Fastgjort tjenestenavn** under **Avanceret**. Se [Lås en browsernøgle ned](#lås-en-browsernøgle-ned).
 
 ### Opret nøglen, og kopiér dens hemmelighed
 
@@ -88,8 +88,8 @@ En browsernøgle ligger i din side, hvor alle kan kopiere den. Disse indstilling
 
 | Indstilling | Hvad den gør |
 | --- | --- |
-| **Allowed Origins** | De eneste origins, nøglen accepteres fra. En anmodning fra enhver anden origin, eller helt uden `Origin`-header, afvises. En browsernøgle skal beholde mindst én. |
-| **Pinned Service Name** | Lægger alt, hvad nøglen sender over OTLP/HTTP, under denne ene tjeneste, uanset hvilket `service.name` afsenderen har sat. En kopi af nøglen kan så kun skrive til den tjeneste. |
+| **Tilladte oprindelser** | De eneste origins, nøglen accepteres fra. En anmodning fra enhver anden origin, eller helt uden `Origin`-header, afvises. En browsernøgle skal beholde mindst én. |
+| **Fastgjort tjenestenavn** | Lægger alt, hvad nøglen sender over OTLP/HTTP, under denne ene tjeneste, uanset hvilket `service.name` afsenderen har sat. En kopi af nøglen kan så kun skrive til den tjeneste. |
 | **Requests Per Minute Limit** | Det største antal anmodninger, nøglen accepteres for hvert minut, delt af alle besøgende. En browsernøgle får 6.000, når du lader feltet stå tomt. |
 | **Udløber den** | Datoen, hvorefter nøglen afvises, så en offentliggjort kopi holder op med at virke. |
 
@@ -130,8 +130,8 @@ En afvist anmodning får en status og en sætning, der siger hvorfor.
 | `422` med `This telemetry ingestion key has been disabled.` | Nogen har slået **Aktiveret** fra. |
 | `422` med `A browser ingestion key cannot be used for` | En browsernøgle nåede et endpoint, der kun tager servernøgler. |
 | `422` med `did not send an Origin header` | En browsernøgle blev sendt uden for en browser. Brug en servernøgle der. |
-| `422` med `is not allowed for this browser ingestion key` | Sidens origin er ikke i **Allowed Origins**. |
-| `422` med `is pinned to a single service` | En nøgle med et **Pinned Service Name** blev brugt til at registrere en agent. Brug en servernøgle uden fastlåst navn. |
+| `422` med `is not allowed for this browser ingestion key` | Sidens origin er ikke i **Tilladte oprindelser**. |
+| `422` med `is pinned to a single service` | En nøgle med et **Fastgjort tjenestenavn** blev brugt til at registrere en agent. Brug en servernøgle uden fastlåst navn. |
 | `429` med `Too many telemetry requests for this ingestion key` | Nøglen nåede sin **Requests Per Minute Limit**. Eksportører prøver igen efter `Retry-After`-tiden. |
 
 For de andre svar, en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).

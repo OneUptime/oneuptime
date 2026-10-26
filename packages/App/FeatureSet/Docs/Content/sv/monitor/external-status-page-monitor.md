@@ -189,7 +189,7 @@ En sida som alla kan öppna läses som dess besökare ser den. En privat sida, s
 
 ## Mallvariabler
 
-När du skapar incidenter eller larm från monitorer för externa statussidor kan du använda de här variablerna i titlar, beskrivningar och åtgärdsanteckningar (se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating)):
+När du skapar incidenter eller larm från monitorer för externa statussidor kan du använda de här variablerna i titlar, beskrivningar och åtgärdsanteckningar (se [Incident- och larmmallar](/docs/monitor/incident-alert-templating)):
 
 | Variabel | Beskrivning |
 | ------------------------- | ------------------------------------------------------------------------------- |
@@ -264,7 +264,7 @@ En sond avvisar adresser i privata nätverk om den inte får nå dem. Ange `PROB
 ## Nästa steg
 
 :::cards
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Lägg in leverantörens status i dina incidenttitlar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in leverantörens status i dina incidenttitlar.
 - [API-övervakning](/docs/monitor/api-monitor): Kontrollera dina egna slutpunkter bredvid leverantörens status.
 - [Skapa en monitor](/docs/monitor/create-monitor): Stegen som alla monitortyper har gemensamt.
 :::

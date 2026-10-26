@@ -584,7 +584,7 @@ flowchart TB
 
 **온콜 규칙**, **소유자 규칙**, **레이블 규칙**, **개인정보 보호 규칙** 페이지는 탭으로 나뉩니다. **Incident Rules** 탭과 **Episode Rules** 탭이며, 각자의 표가 있습니다. 특별히 에피소드를 뜻하는 것이 아니라면 **Incident Rules** 탭을 설정하세요. **그룹화 규칙**, **Runbook 규칙**, **AI 규칙**, **SLA 규칙**, **Reminder Rules**는 단일 표입니다.
 
-소유자, 레이블, 개인정보 보호 규칙은 규칙이 생긴 뒤에 만들어진 인시던트와 에피소드에만 작용합니다. 이미 있는 인시던트에 그중 하나를 적용하려면 규칙의 행, 규칙 자체의 페이지, 또는 표의 일괄 작업에서 **Run Now**를 쓰세요. [기존 리소스에 규칙 실행](/docs/configuration/run-rules-now)을 참고하세요. 온콜, Runbook, AI, 그룹화, SLA, 리마인더 규칙은 기존 인시던트에 대해 실행할 수 없습니다.
+소유자, 레이블, 개인정보 보호 규칙은 규칙이 생긴 뒤에 만들어진 인시던트와 에피소드에만 작용합니다. 이미 있는 인시던트에 그중 하나를 적용하려면 규칙의 행, 규칙 자체의 페이지, 또는 표의 일괄 작업에서 **지금 실행**을 쓰세요. [기존 리소스에 규칙 실행](/docs/configuration/run-rules-now)을 참고하세요. 온콜, Runbook, AI, 그룹화, SLA, 리마인더 규칙은 기존 인시던트에 대해 실행할 수 없습니다.
 
 **새 규칙은 켜진 채로 시작합니다.** 규칙을 만들 때 활성화할지 묻지 않습니다. API나 Terraform으로 만든 규칙과 똑같이 활성화된 채로 시작하며, 양식의 다른 모든 스위치도 API가 저장하는 대로 시작합니다. 예를 들어 소유자 규칙의 **소유자에게 알림**은 켜져 있습니다. 규칙을 삭제하지 않고 잠시 멈추려면 편집 양식에서 **활성화됨**을 끄세요. 목록에는 규칙마다 초록 **활성화됨** 또는 빨강 **비활성화** 배지가 표시됩니다. 예외는 그룹화 규칙으로, 만들기 양식에 **활성화됨** 스위치가 이미 켜진 채로 표시됩니다.
 
@@ -662,7 +662,7 @@ flowchart TB
 
 ## 워크플로우로 인시던트 움직이기
 
-인시던트용 워크플로우 트리거는 손으로 쓰지 않습니다. OneUptime이 데이터 모델에서 생성하므로, 인시던트 계열의 모든 모델이 모델의 단수형 이름을 딴 **On Create X**, **On Update X**, **On Create or Update X**, **On Delete X** 구성 요소를 받습니다. 핵심은 **On Create Incident**, **On Update Incident**, **On Create or Update Incident**, **On Delete Incident**입니다. `/dashboard/{projectId}/workflows`의 **Add Trigger** 패널에서 **OneUptime resources** → **Incident** 아래에 있으며, 처음 두 개는 **Popular** 아래에도 있습니다.
+인시던트용 워크플로우 트리거는 손으로 쓰지 않습니다. OneUptime이 데이터 모델에서 생성하므로, 인시던트 계열의 모든 모델이 모델의 단수형 이름을 딴 **On Create X**, **On Update X**, **On Create or Update X**, **On Delete X** 구성 요소를 받습니다. 핵심은 **On Create Incident**, **On Update Incident**, **On Create or Update Incident**, **On Delete Incident**입니다. `/dashboard/{projectId}/workflows`의 **Add Trigger** 패널에서 **OneUptime 리소스** → **Incident** 아래에 있으며, 처음 두 개는 **인기** 아래에도 있습니다.
 
 같은 생성 방식이 설정 자체의 트리거도 줍니다. **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** 등입니다. 각 모델은 대응하는 작업 구성 요소(**Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident**와 그 여러 행 버전)도 받으므로, 이름이 비슷한 트리거와 작업이 같은 범주에 나란히 놓입니다. **On Create Incident**는 워크플로우를 시작하고, **Create One Incident**는 인시던트를 엽니다.
 

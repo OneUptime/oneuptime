@@ -36,11 +36,11 @@ L'integrazione è pensata per OneUptime Cloud (`oneuptime.com`). Un OneUptime se
 :::steps
 ### Aprire OneUptime sul Vercel Marketplace
 
-Nella dashboard di Vercel, apri **Integrations**, poi **Browse Marketplace**, e trova OneUptime in **Observability**. Fai clic su **Install** e accetta i termini di OneUptime.
+Nella dashboard di Vercel, apri **Integrations**, poi **Browse Marketplace**, e trova OneUptime in **Observability**. Fai clic su **Installazione** e accetta i termini di OneUptime.
 
 ### Scegliere un piano
 
-Scegli **Free**, **Growth** o **Scale**. Sono i piani di OneUptime stesso, ai prezzi indicati su [oneuptime.com/pricing](https://oneuptime.com/pricing).
+Scegli **Gratis**, **Growth** o **Scale**. Sono i piani di OneUptime stesso, ai prezzi indicati su [oneuptime.com/pricing](https://oneuptime.com/pricing).
 
 ### Dare un nome alla risorsa e sceglierne le impostazioni
 
@@ -148,7 +148,7 @@ Se esiste già un account OneUptime con quell'indirizzo email, accedi a quello. 
 
 | | Come funziona |
 | --- | --- |
-| Piani | **Free**, **Growth** e **Scale**, ai prezzi di oneuptime.com: il prezzo del piano per utente, i monitor attivi a $1 per monitor al mese e la telemetria per GB. |
+| Piani | **Gratis**, **Growth** e **Scale**, ai prezzi di oneuptime.com: il prezzo del piano per utente, i monitor attivi a $1 per monitor al mese e la telemetria per GB. |
 | Dove paghi | Sulla tua fattura Vercel, una volta al mese, per ogni risorsa. Vercel mostra sulla risorsa l'utilizzo del mese fino a quel momento, aggiornato ogni ora. |
 | Prove | Nessun addebito finché dura la prova del piano: né per i suoi utenti, né per i suoi monitor, né per la sua telemetria. |
 | Cambiare piano | In Vercel, sulla risorsa, oppure in OneUptime in **Impostazioni del progetto → Fatturazione e fatture → Fatturazione**. Una modifica in uno dei due posti vale per entrambi. |

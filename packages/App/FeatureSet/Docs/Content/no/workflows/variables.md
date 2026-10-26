@@ -160,11 +160,11 @@ Kortet **Tilgangstoken** på siden til en OAuth 2.0-variabel viser en av disse s
 | **No expiry reported**     | Leverandøren sa ikke når tokenet utløper, så hver kjøring henter et nytt.                                                            |
 | **Refresh failed**         | Det siste forsøket på å hente et token mislyktes. Årsaken fra leverandøren vises i sin helhet, med når det skjedde. Den neste vellykkede fornyelsen fjerner den. |
 
-**Oppdater nå**, under statusen, henter et nytt token med en gang. Bruk den til å sjekke nye innstillinger uten å kjøre en arbeidsflyt. **Update Credentials**, på kortet **OAuth 2.0 Settings**, erstatter klienthemmeligheten eller refresh-tokenet og henter deretter et token med dem. Endrer du en innstilling (token-URL, klient-ID, omfang og så videre), forkastes det hurtigbufrede tokenet, slik at den neste kjøringen henter et med de nye innstillingene.
+**Oppdater nå**, under statusen, henter et nytt token med en gang. Bruk den til å sjekke nye innstillinger uten å kjøre en arbeidsflyt. **Oppdater påloggingsinformasjon**, på kortet **OAuth 2.0 Settings**, erstatter klienthemmeligheten eller refresh-tokenet og henter deretter et token med dem. Endrer du en innstilling (token-URL, klient-ID, omfang og så videre), forkastes det hurtigbufrede tokenet, slik at den neste kjøringen henter et med de nye innstillingene.
 
 ### Når leverandøren sier nei
 
-Trinnet som trengte tokenet, mislykkes før det kjører, og kjøringens logg nevner variabelen og siterer svaret fra leverandøren, for eksempel `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` Den samme årsaken vises på kortet **Tilgangstoken** til variabelen. `invalid_grant` på en Refresh Token-variabel betyr nesten alltid at selve refresh-tokenet er utløpt eller tilbakekalt, og **Update Credentials** er løsningen.
+Trinnet som trengte tokenet, mislykkes før det kjører, og kjøringens logg nevner variabelen og siterer svaret fra leverandøren, for eksempel `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` Den samme årsaken vises på kortet **Tilgangstoken** til variabelen. `invalid_grant` på en Refresh Token-variabel betyr nesten alltid at selve refresh-tokenet er utløpt eller tilbakekalt, og **Oppdater påloggingsinformasjon** er løsningen.
 
 Mislykkes fornyelsen mens det hurtigbufrede tokenet faktisk ennå ikke er utløpt (det var bare innenfor marginen på ett minutt), fortsetter trinnet med det hurtigbufrede tokenet, og loggen sier det.
 

@@ -39,7 +39,7 @@ Nell'Admin Dashboard, apri **Impostazioni**, poi **Notifiche > E-mail** nel menu
 
 ### Compilare il passaggio Server
 
-Nel passaggio **Server**, inserisci il **Nome** (solo configurazioni di progetto), l'**Hostname**, la **Porta** (una nuova configurazione di progetto parte da `587`), il **Nome utente** e la **Password**.
+Nel passaggio **Server**, inserisci il **Nome** (solo configurazioni di progetto), l'**Nome host**, la **Porta** (una nuova configurazione di progetto parte da `587`), il **Nome utente** e la **Password**.
 
 ### Controllare Altri campi
 
@@ -51,7 +51,7 @@ Nel passaggio **Mittente**, inserisci l'**Email mittente** e il **Nome mittente*
 
 ### Salvare e inviare un'e-mail di prova
 
-Salva la configurazione. Una volta salvata una configurazione di progetto, **Invia e-mail di prova** sulla sua riga verifica che funzioni. Serve l'autorizzazione ad aggiungere configurazioni SMTP: **Project Owner**, **Project Admin**, oppure **Create SMTP Config** e **Read SMTP Config** in un ruolo personalizzato. Su OneUptime Cloud serve anche il piano **Growth**, come per aggiungere una configurazione. Per chiunque altro il pulsante è bloccato, e il suo tooltip dice cosa serve.
+Salva la configurazione. Una volta salvata una configurazione di progetto, **Invia e-mail di prova** sulla sua riga verifica che funzioni. Serve l'autorizzazione ad aggiungere configurazioni SMTP: **Proprietario del progetto**, **Amministratore del progetto**, oppure **Create SMTP Config** e **Read SMTP Config** in un ruolo personalizzato. Su OneUptime Cloud serve anche il piano **Growth**, come per aggiungere una configurazione. Per chiunque altro il pulsante è bloccato, e il suo tooltip dice cosa serve.
 
 La prova chiede un indirizzo **E-mail** a cui inviare, inizialmente il tuo. Controlla che il messaggio arrivi.
 :::
@@ -94,7 +94,7 @@ sequenceDiagram
 
 | Campo | Descrizione |
 | --- | --- |
-| **Hostname** | Indirizzo del server SMTP |
+| **Nome host** | Indirizzo del server SMTP |
 | **Porta** | Porta SMTP (di solito 587 per STARTTLS o 465 per TLS implicito) |
 | **Nome utente** | L'indirizzo e-mail della casella che invia |
 | **Tipo di autenticazione** | `OAuth` |
@@ -271,7 +271,7 @@ Poi usa **Invia e-mail di prova** per verificarla.
 ### Altri problemi
 
 :::details "Cannot send email. Please check your SMTP config."
-**Invia e-mail di prova** mostra questo messaggio quando un server a cui si accede con nome utente e password, o senza accesso, non accetta la posta. Controlla **Hostname**, **Porta**, **Nome utente** e **Password**. Se il tuo server non offre TLS, o il suo certificato non è valido per il suo hostname, disattiva **Richiedi TLS** sotto **Altri campi** e riprova. La risposta del server viene conservata con la prova: apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Registri di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
+**Invia e-mail di prova** mostra questo messaggio quando un server a cui si accede con nome utente e password, o senza accesso, non accetta la posta. Controlla **Nome host**, **Porta**, **Nome utente** e **Password**. Se il tuo server non offre TLS, o il suo certificato non è valido per il suo hostname, disattiva **Richiedi TLS** sotto **Altri campi** e riprova. La risposta del server viene conservata con la prova: apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Registri di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
 :::
 
 :::details "Cannot send email with OAuth authentication"

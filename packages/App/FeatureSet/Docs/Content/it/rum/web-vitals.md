@@ -292,7 +292,7 @@ Registrare l'URL concreto invece del modello di route crea una serie temporale p
 
 ## Avvisi su un vital
 
-La pagina **Recommendations** dell'applicazione offre un monitor pronto all'uso per ogni vital. Ognuno legge la media su cinque minuti della sua metrica e scatta quando raggiunge la soglia di scadente di Google:
+La pagina **Raccomandazioni** dell'applicazione offre un monitor pronto all'uso per ogni vital. Ognuno legge la media su cinque minuti della sua metrica e scatta quando raggiunge la soglia di scadente di Google:
 
 | Raccomandazione | Metrica | Scatta a | Gravità |
 | --- | --- | --- | --- |

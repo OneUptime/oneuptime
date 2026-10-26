@@ -5,7 +5,7 @@ Labelregels en eigenaarsregels ordenen uw resources voor u. Een **labelregel** v
 :::cards
 - [Een regel maken](#een-regel-maken): Twee stappen: waarop de regel van toepassing is, en daarna wat hij toevoegt.
 - [Labels en eigenaren overnemen](#labels-en-eigenaren-overnemen): Doorgeven wat de monitoren, hosts en services van een gebeurtenis dragen.
-- [Wanneer regels worden uitgevoerd](#wanneer-regels-worden-uitgevoerd): Nieuwe resources, en **Run Now** voor de resources die u al hebt.
+- [Wanneer regels worden uitgevoerd](#wanneer-regels-worden-uitgevoerd): Nieuwe resources, en **Nu uitvoeren** voor de resources die u al hebt.
 :::
 
 ## Zo werkt het
@@ -115,7 +115,7 @@ Elke ingeschakelde regel wordt uitgevoerd wanneer een resource wordt aangemaakt,
 - Een regel verwijdert nooit iets: geen labels of eigenaren die iemand met de hand heeft toegevoegd, en ook niet de labels en eigenaren die hij zelf heeft toegevoegd.
 - Een uitgeschakelde regel doet niets.
 
-Een regel die u vandaag schrijft, geldt voor de resources die daarna worden aangemaakt. Om hem toe te passen op de resources die u al hebt, gebruikt u **Run Now**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Labelregels kunnen ook tussen projecten worden gekopieerd: zie [Labelregels importeren en exporteren](/docs/configuration/label-rule-import-export).
+Een regel die u vandaag schrijft, geldt voor de resources die daarna worden aangemaakt. Om hem toe te passen op de resources die u al hebt, gebruikt u **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Labelregels kunnen ook tussen projecten worden gekopieerd: zie [Labelregels importeren en exporteren](/docs/configuration/label-rule-import-export).
 
 ## Patronen
 

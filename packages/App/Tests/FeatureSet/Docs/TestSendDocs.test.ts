@@ -5,6 +5,7 @@ import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNot
 import WorkspaceNotificationSummary from "Common/Models/DatabaseModels/WorkspaceNotificationSummary";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -46,12 +47,21 @@ function titlesOf(permissions: Array<Permission>): Array<string> {
   return PermissionHelper.getPermissionTitles(permissions).sort();
 }
 
-// Every language says the titles the English guide quotes, in bold.
+/*
+ * Every language says the titles the English guide quotes, in bold: a
+ * permission's as it is, a built-in role's as that language's Dashboard
+ * names it.
+ */
 function expectEveryLanguageNames(page: string, phrases: Array<string>): void {
   for (const language of ALL_LANGUAGES) {
     const guide: string = readGuide(language, page);
 
-    for (const phrase of phrases) {
+    for (const quoted of phrases) {
+      const bold: RegExpMatchArray | null = quoted.match(/^\*\*(.+)\*\*$/);
+      const phrase: string = bold
+        ? `**${writtenPermissionTitle(language, bold[1] as string)}**`
+        : quoted;
+
       expect([language, page, phrase, guide.includes(phrase)]).toEqual([
         language,
         page,

@@ -87,7 +87,7 @@ Chaque exécution enregistre mot pour mot les notes qu'elle a lues. Son activit�
 
 ## Qui peut le modifier
 
-- **Project Owner** et **Project Admin** peuvent modifier le contexte IA du projet. **Project Member**, **Viewer** et **Read Project** peuvent le lire.
+- **Propriétaire du projet** et **Administrateur du projet** peuvent modifier le contexte IA du projet. **Membre du projet**, **Lecteur** et **Read Project** peuvent le lire.
 - Les notes d'une règle IA font partie de la règle : quiconque peut modifier la règle peut les modifier.
 - Les notes ne sont jamais lues que pour leur propre projet : aucune exécution ne lit le contexte IA d'un autre projet.
 

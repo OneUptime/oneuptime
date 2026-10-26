@@ -167,7 +167,7 @@ Ovanför listan räknar en ruta per status efteranalyserna i den. Klicka på en 
 
 Filtrera listan med chippen ovanför: **Ägare**, en person eller ett team; **Allvarlighetsgrad**; **Efteranalysstatus**; **Incidentstatus**; **Etiketter**; och **Berörda resurser**. För att se vilka efteranalyser ett team fortfarande är skyldigt för dina allvarligaste incidenter väljer du teamet under **Ägare**, allvarlighetsgraden under **Allvarlighetsgrad**, och **Inte påbörjad** och **Utkast** under **Efteranalysstatus**. Filtren står i sidans adress, så du kan spara listan som bokmärke eller dela den.
 
-För att ändra många samtidigt markerar du dem och öppnar **Massåtgärder**: **Ändra efteranalysstatus** flyttar alla till en status, till exempel **Behövs inte** för incidenter som inte behöver någon, och **Add Owner** och **Remove Owner** ändrar vem som äger dem.
+För att ändra många samtidigt markerar du dem och öppnar **Massåtgärder**: **Ändra efteranalysstatus** flyttar alla till en status, till exempel **Behövs inte** för incidenter som inte behöver någon, och **Lägg till ägare** och **Ta bort ägare** ändrar vem som äger dem.
 
 ## Efteranalyser för episoder
 
@@ -175,7 +175,7 @@ En incidentepisod har också en sida **Efteranalys**, under **Utredning**: en ge
 
 En episods efteranalys är bara anteckningen: den har inga bilagor, och ingen statussida visar den. OneUptime AI skriver inget utkast av sig själv när en episod löses. Att generera en kräver rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident Episode. Den har inte heller någon status, och listan över efteranalyser utelämnar den.
 
-Varningar och schemalagda underhållshändelser har ingen efteranalys.
+Larm och schemalagda underhållshändelser har ingen efteranalys.
 
 ## Via API:et
 
