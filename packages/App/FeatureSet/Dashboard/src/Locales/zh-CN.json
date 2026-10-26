@@ -14014,7 +14014,6 @@
   "OneUptime AI agent": "OneUptime AI 代理",
   "OneUptime AI is investigating": "OneUptime AI is investigating",
   "OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically.": "OneUptime AI 已为此洞察排队一个智能体任务。修复拉取请求会以待审阅状态打开，并且始终由人工审阅——不会自动合并任何内容。",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.": "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.",
   "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.": "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.",
   "OneUptime Mail Server": "OneUptime Mail Server",
   "OneUptime Project, and everything happens inside it": "OneUptime Project, and everything happens inside it",
@@ -35707,5 +35706,6 @@
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} 个{{itemsName}}未开始：您已停止此操作",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} 个{{itemName}}未开始：您已停止此操作",
   "Created an alert": "已创建警报",
-  "Creating alert": "正在创建警报"
+  "Creating alert": "正在创建警报",
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval."
 }

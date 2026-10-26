@@ -14,6 +14,7 @@ import path from "path";
 import * as React from "react";
 import { initReactI18next } from "react-i18next";
 import ChatActivityFeed from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
+import ChatHomeView from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatHomeView";
 import ToolApprovalCard from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ToolApprovalCard";
 import WidgetRenderer from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/WidgetRenderer";
 import { describeEvidenceTool } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
@@ -51,7 +52,9 @@ import ObjectID from "../../../Types/ObjectID";
  *     language ("Creating alert"), never the tool's own name;
  *   - the card under the answer once it ran: the alert by the number the
  *     person knows it by, its severity and what it is linked to;
- *   - and the line an evidence list gives a run that raised one.
+ *   - the line an evidence list gives a run that raised one;
+ *   - and Ask AI's home, which says what it can do: create incidents and
+ *     alerts, in the language the rest of the home reads in.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -372,5 +375,66 @@ describe("an evidence list's line for a run that raised an alert", () => {
 
     expect(translated).toBeDefined();
     expect(translated).not.toBe("Created an alert");
+  });
+});
+
+describe("Ask AI's home says it can create alerts too", () => {
+  const HOME_SENTENCE: string =
+    "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.";
+  const HOME_HEADING: string = "Ask AI about your data — or tell it to act";
+
+  function renderHome(): void {
+    render(
+      <ChatHomeView
+        conversations={[]}
+        isSending={false}
+        onOpenConversation={() => {}}
+        onDeleteConversation={() => {}}
+        onAsk={() => {}}
+      />,
+    );
+  }
+
+  test("in English", () => {
+    renderHome();
+
+    expect(screen.getByText(HOME_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(HOME_SENTENCE)).toBeInTheDocument();
+  });
+
+  test("the sentence it replaces, which named incidents alone, is gone from every Dashboard language", () => {
+    for (const language of LANGUAGES) {
+      expect(
+        Object.keys(LOCALES[language]!).filter((key: string): boolean => {
+          return key.includes("can create incidents or acknowledge alerts");
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  /*
+   * Where the home reads in the reader's language, the sentence does too;
+   * where its heading is still English, so is the sentence - never one
+   * translated line among English ones.
+   */
+  test.each(
+    LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )("in %s, in the language its heading reads in", async (language: string) => {
+    const locale: Record<string, string> = LOCALES[language]!;
+    const headingIsTranslated: boolean = locale[HOME_HEADING] !== HOME_HEADING;
+    const sentence: string | undefined = locale[HOME_SENTENCE];
+
+    expect(sentence).toBeDefined();
+    expect(sentence !== HOME_SENTENCE).toBe(headingIsTranslated);
+
+    await act(async () => {
+      await i18next.changeLanguage(language);
+    });
+    renderHome();
+
+    expect(screen.getByText(locale[HOME_HEADING]!)).toBeInTheDocument();
+    expect(screen.getByText(sentence!)).toBeInTheDocument();
   });
 });

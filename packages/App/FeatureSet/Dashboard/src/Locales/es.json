@@ -14014,7 +14014,6 @@
   "OneUptime AI agent": "Agente de IA de OneUptime",
   "OneUptime AI is investigating": "La IA de OneUptime está investigando",
   "OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically.": "La IA de OneUptime puso en cola una tarea del agente para este hallazgo. Las pull requests de corrección se abren listas para revisión y siempre las revisa una persona: nada se fusiona automáticamente.",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.": "La IA de OneUptime ejecuta consultas reales sobre tus registros, trazas, métricas, incidentes, monitores y el monitoreo de usuarios reales (mostrando gráficos y tablas en línea) y puede crear incidentes o reconocer alertas, siempre con tu aprobación.",
   "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.": "La vigilancia proactiva de la telemetría de la IA de OneUptime: sensores estadísticos deterministas registran hallazgos silenciosos que nunca avisan ni abren incidentes. Solo requiere un proveedor de LLM para el análisis opcional de triaje con IA, no para la detección.",
   "OneUptime Mail Server": "Servidor de correo de OneUptime",
   "OneUptime Project, and everything happens inside it": "Proyecto de OneUptime, y todo ocurre dentro de él",
@@ -35707,5 +35706,6 @@
   "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} sin iniciar: {{count}} (detuviste la acción)",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} sin iniciar: {{count}} (detuviste la acción)",
   "Created an alert": "Creó una alerta",
-  "Creating alert": "Creando alerta"
+  "Creating alert": "Creando alerta",
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "La IA de OneUptime ejecuta consultas reales sobre tus registros, trazas, métricas, incidentes, monitores y el monitoreo de usuarios reales (mostrando gráficos y tablas en línea) y puede crear incidentes y alertas o reconocerlos, siempre con tu aprobación."
 }

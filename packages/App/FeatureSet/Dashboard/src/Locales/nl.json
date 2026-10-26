@@ -14014,7 +14014,6 @@
   "OneUptime AI agent": "OneUptime AI-agent",
   "OneUptime AI is investigating": "OneUptime AI is investigating",
   "OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically.": "OneUptime AI heeft een agenttaak voor dit inzicht in de wachtrij gezet. Fix-pull-requests openen klaar voor review en worden altijd door mensen beoordeeld — er wordt niets automatisch samengevoegd.",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.": "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.",
   "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.": "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.",
   "OneUptime Mail Server": "OneUptime Mail Server",
   "OneUptime Project, and everything happens inside it": "OneUptime Project, and everything happens inside it",
@@ -35707,5 +35706,6 @@
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} niet gestart: u hebt de actie gestopt",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} niet gestart: u hebt de actie gestopt",
   "Created an alert": "Waarschuwing gemaakt",
-  "Creating alert": "Waarschuwing maken"
+  "Creating alert": "Waarschuwing maken",
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval."
 }

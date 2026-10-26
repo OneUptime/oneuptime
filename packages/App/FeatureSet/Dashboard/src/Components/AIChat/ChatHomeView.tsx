@@ -149,7 +149,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
             </h3>
             <p className="mt-1.5 max-w-md text-sm leading-relaxed text-gray-500">
               {translator.translateText(
-                "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.",
+                "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.",
               )}
             </p>
           </>
