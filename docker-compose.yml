@@ -48,14 +48,6 @@ services:
     depends_on:
       <<: *common-depends-on
 
-  runner:
-    image: oneuptime/runner:${APP_TAG}
-    extends:
-      file: ./docker-compose.base.yml
-      service: runner
-    depends_on:
-      <<: *common-depends-on
-
   global-runner:
     image: oneuptime/runner:${APP_TAG}
     extends:

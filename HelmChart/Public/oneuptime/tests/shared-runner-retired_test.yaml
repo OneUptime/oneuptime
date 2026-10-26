@@ -1,0 +1,161 @@
+# The shared Runner (the `runner:` values, templates/runner.yaml) is gone: the
+# bundled global Runner (templates/global-runner.yaml) does the AI code fixes
+# it did, for every project that uses global Runners. So:
+#
+#   - no values an old file still sets bring back a `<release>-runner`
+#     Deployment, or its Service, autoscaler or PodDisruptionBudget;
+#   - the app is given no ONEUPTIME_RUNNER_KEY, which only let the shared
+#     Runner register;
+#   - the release Secret keeps no runner-key, not even one the live Secret
+#     still holds from an earlier release (the lookup below fakes it);
+#   - values.schema.json still accepts any `runner:` block, so an old values
+#     file keeps passing `helm upgrade`, and NOTES.txt says it is ignored.
+suite: retired shared runner
+release:
+  name: oneuptime
+  namespace: oneuptime
+  upgrade: true
+templates:
+  - templates/*.yaml
+  - templates/NOTES.txt
+# The release Secret as an earlier release left it: the shared Runner's key
+# beside the global Runner's.
+kubernetesProvider:
+  scheme:
+    "v1/Secret":
+      gvr:
+        version: "v1"
+        resource: "secrets"
+      namespaced: true
+  objects:
+    - kind: Secret
+      apiVersion: v1
+      metadata:
+        name: oneuptime-secrets
+        namespace: oneuptime
+      data:
+        # "an-old-shared-runner-key"
+        runner-key: YW4tb2xkLXNoYXJlZC1ydW5uZXIta2V5
+        # "a-kept-global-runner-key"
+        global-runner-key: YS1rZXB0LWdsb2JhbC1ydW5uZXIta2V5
+tests:
+  # Everything the shared Runner was configured with, as a values file written
+  # for an earlier release sets it. The schema has to take it all.
+  - it: renders no shared Runner, whatever runner values an old values file sets
+    set: &oldRunnerValues
+      runner:
+        enabled: true
+        replicaCount: 2
+        key: an-old-shared-runner-key
+        disableAutoscaler: false
+        autoscaling:
+          enabled: true
+        podDisruptionBudget:
+          enabled: true
+        existingSecret:
+          name: runner-identity
+          passwordKey: runner-key
+        ports:
+          http: 3875
+        keda:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 100
+    asserts:
+      - containsDocument:
+          kind: Deployment
+          apiVersion: apps/v1
+          name: oneuptime-runner
+          any: true
+        not: true
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: oneuptime-runner
+          any: true
+        not: true
+      - containsDocument:
+          kind: HorizontalPodAutoscaler
+          apiVersion: autoscaling/v2
+          name: oneuptime-runner
+          any: true
+        not: true
+      - containsDocument:
+          kind: PodDisruptionBudget
+          apiVersion: policy/v1
+          name: oneuptime-runner
+          any: true
+        not: true
+
+  - it: still runs the global Runner, which does the AI code fixes now
+    templates:
+      - templates/global-runner.yaml
+    set: *oldRunnerValues
+    asserts:
+      - containsDocument:
+          kind: Deployment
+          apiVersion: apps/v1
+          name: oneuptime-global-runner
+          any: true
+
+  - it: gives the app no ONEUPTIME_RUNNER_KEY, which only let the shared Runner register
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *oldRunnerValues
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_SHARED
+
+  - it: keeps no runner-key in the release Secret, not even the one the live Secret holds
+    templates:
+      - templates/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-secrets
+    set: *oldRunnerValues
+    asserts:
+      - notExists:
+          path: stringData.runner-key
+      # The global Runner's key is carried over as before.
+      - equal:
+          path: stringData.global-runner-key
+          value: a-kept-global-runner-key
+
+  - it: says in NOTES.txt that nothing under runner is read
+    templates:
+      - templates/NOTES.txt
+    set: *oldRunnerValues
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - matchRegexRaw:
+          pattern: "`globalRunner\\.keda`"
+
+  # `runner:` with everything under it commented out is null: still accepted,
+  # and nothing to say about it.
+  - it: takes an empty runner block, and says nothing about it
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner: null
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "IGNORED VALUES: runner"
+
+  - it: says nothing about runner in NOTES.txt when no values file sets it
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "IGNORED VALUES: runner"

@@ -49,6 +49,22 @@ this chart does not run. The same applies to any per-service `<service>.extraEnv
 and to a docker-compose.override.yml that sets REDIS_* by hand.
 {{- end }}
 {{- /*
+  The shared Runner (`runner:`) is gone: the bundled global Runner does its AI
+  code fixes. values.schema.json still accepts the block, so an old values
+  file keeps upgrading, and this says that nothing in it is read
+  (tests/shared-runner-retired_test.yaml).
+*/}}
+{{- if .Values.runner }}
+
+IGNORED VALUES: runner
+
+The chart no longer runs the shared Runner (<release>-runner): the bundled
+global Runner (`globalRunner:`) does the AI code fixes of every project that
+uses global Runners. Nothing under `runner:` is read; remove it from your
+values when convenient. Its KEDA settings (`runner.keda`) now go under
+`globalRunner.keda`.
+{{- end }}
+{{- /*
   Chart probes register with REGISTER_PROBE_KEY, so each one is a global probe
   shared by every project on the instance (issue #3879). Only probes that
   actually render a Deployment count, and only a value the probe will read as
