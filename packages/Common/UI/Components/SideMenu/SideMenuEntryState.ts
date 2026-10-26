@@ -60,7 +60,7 @@ export function getDrawnLanguage(data: {
 export const SIDE_MENU_HYPHENATED_WORD_LENGTH: number = 14;
 
 // Where a title's words end: spaces, and the hyphens inside a compound.
-const WORD_SEPARATOR: RegExp = /[\s\-‐]+/u;
+const WORD_SEPARATOR: RegExp = /[\s\-\u{2010}]+/u;
 
 // A word longer than the line breaks at the line's edge rather than spill.
 export const SIDE_MENU_WORDS_CLASS_NAME: string = "break-words";
