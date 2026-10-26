@@ -1,19 +1,29 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 16424
+    "keys": 35401,
+    "untranslated": 16299
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "412 GB",
+    "Apache Kafka · kafka-1:9092",
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "ICMP (ping)",
+    "INP 120 ms",
+    "INP 168 ms",
+    "INP 190 ms",
+    "INP 540 ms",
+    "LXC 201 · pve3",
     "Null",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Runner",
+    "Session Replay",
     "VMware vCenter",
+    "aws_lambda · us-east-1 · nodejs 20",
     "kubectl set image deployment/web * -n web",
     "syslog"
   ]
