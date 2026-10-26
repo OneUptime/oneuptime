@@ -331,6 +331,27 @@ describe("MonitorType keywords", () => {
       expect(searchCatalog("mainframe")).toEqual([]);
     });
 
+    /*
+     * A Traces monitor counts matching spans: it cannot alert on how long
+     * a span took. Someone searching for latency is sent to the monitors
+     * that measure it - Metrics (a request duration metric), Ping's round
+     * trip - and never to Traces, whose card used to promise "span latency".
+     */
+    test("latency finds the monitors that measure it, never Traces", () => {
+      const results: Array<MonitorType> = searchCatalog("latency");
+
+      expect(results).toContain(MonitorType.Metrics);
+      expect(results).toContain(MonitorType.Ping);
+      expect(results).not.toContain(MonitorType.Traces);
+      expect(searchCatalog("request duration")[0]).toBe(MonitorType.Metrics);
+    });
+
+    test("what a Traces monitor counts finds it first", () => {
+      expect(searchCatalog("failed requests")[0]).toBe(MonitorType.Traces);
+      expect(searchCatalog("error spans")[0]).toBe(MonitorType.Traces);
+      expect(searchCatalog("span count")[0]).toBe(MonitorType.Traces);
+    });
+
     test("an empty search returns the whole catalog", () => {
       const categories: Array<MonitorTypeCategory> =
         MonitorTypeHelper.getMonitorTypeCategories();

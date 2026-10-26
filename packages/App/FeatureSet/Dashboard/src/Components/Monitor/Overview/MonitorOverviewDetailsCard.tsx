@@ -63,6 +63,7 @@ const MonitorOverviewDetailsCard: FunctionComponent<ComponentProps> = (
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "Monitor Name",
+          hideColumnDescription: true,
           validation: {
             minLength: 2,
           },
@@ -75,6 +76,7 @@ const MonitorOverviewDetailsCard: FunctionComponent<ComponentProps> = (
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Description",
+          hideColumnDescription: true,
         },
         getLabelsFormField<Monitor>(),
       ]}

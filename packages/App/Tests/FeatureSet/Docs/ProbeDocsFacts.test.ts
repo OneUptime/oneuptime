@@ -32,6 +32,10 @@ import {
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { PROBE_ON_NEW_MONITORS_COPY } from "../../../FeatureSet/Dashboard/src/Components/Probe/ProbeOnNewMonitorsCopy";
+import {
+  getProbeDockerRunCommand,
+  getProbeDockerRunCommandsThroughProxy,
+} from "../../../FeatureSet/Dashboard/src/Components/Probe/ProbeRunCommand";
 import { prose } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -894,28 +898,26 @@ describe("the Custom Probes page: creating and installing a probe", () => {
     expect(page).toContain("**Reset Probe Key**, on the probe's page");
   });
 
+  /*
+   * The card prints the command the Add a probe dialog prints
+   * (ProbeRunCommand), line for line as the page writes it: one option a
+   * line, so the whole command reads without scrolling sideways.
+   */
   it("runs the probe with the command the setup card gives", () => {
     const card: string = readSource(PROBE_SETUP_CARD);
-    const cardCommand: string = (
-      card.match(/\n(docker run --name oneuptime-probe [^\n]+)\n/)?.[1] || ""
-    )
-      .replace("${props.probeKey.toString()}", "<probe-key>")
-      .replace("${props.probeId.toString()}", "<probe-id>")
-      .replace("${host.toString()}", "https://oneuptime.com");
     const docker: string =
       scanMarkdown(install).fences.find((fence: DocsFence): boolean => {
         return fence.lang === "bash";
       })?.code || "";
-    const pageCommand: string = docker
-      .split("\n")
-      .map((line: string): string => {
-        return line.replace(/\\$/, "").trim();
-      })
-      .join(" ")
-      .trim();
 
-    expect(cardCommand).not.toBe("");
-    expect(pageCommand).toBe(cardCommand);
+    expect(card).toContain("code={getProbeDockerRunCommand(command)}");
+    expect(docker.trim()).toBe(
+      getProbeDockerRunCommand({
+        probeKey: "<probe-key>",
+        probeId: "<probe-id>",
+        oneUptimeUrl: "https://oneuptime.com",
+      }),
+    );
   });
 
   it("links to the IPv6 heading the setup card links to", () => {
@@ -950,6 +952,28 @@ describe("the Custom Probes page: proxies", () => {
     );
     expect(proxy).toContain(
       "The lowercase names `http_proxy`, `https_proxy` and `no_proxy`, and `HTTP_PROXY` and `HTTPS_PROXY`, work too.",
+    );
+  });
+
+  // The card's folded proxy command is the page's, line for line.
+  it("runs the probe through a proxy with the command the setup card gives", () => {
+    const card: string = readSource(PROBE_SETUP_CARD);
+    const docker: string =
+      scanMarkdown(proxy).fences.find((fence: DocsFence): boolean => {
+        return fence.lang === "bash";
+      })?.code || "";
+    const cardCommands: string = getProbeDockerRunCommandsThroughProxy({
+      probeKey: "<probe-key>",
+      probeId: "<probe-id>",
+      oneUptimeUrl: "https://oneuptime.com",
+    });
+
+    expect(card).toContain(
+      "code={getProbeDockerRunCommandsThroughProxy(command)}",
+    );
+    expect(docker.trim()).not.toBe("");
+    expect(cardCommands).toContain(
+      `# With HTTP/HTTPS proxy\n${docker.trim()}\n`,
     );
   });
 

@@ -25711,7 +25711,7 @@
   "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.": "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
   "SNMP Table": "SNMP Table",
   "SNMP Table Snapshot": "SNMP Table Snapshot",
-  "SNMP Tables": "SNMP Tables",
+  "SNMP Tables": "SNMP-tabellen",
   "SSID": "SSID",
   "SSIDs": "SSIDs",
   "Severities": "Severities",
@@ -35082,5 +35082,9 @@
   "Approvals": "Goedkeuringen",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Dit playbook loopt al voor deze zaak. De uitvoering staat onder Playbooks van de zaak.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Een playbook draait hier wanneer de zaak wordt geopend of groeit, of wanneer iemand het op de zaak uitvoert.",
-  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak."
+  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak.",
+  "Connecting through a proxy": "Verbinden via een proxy",
+  "Run this command where the probe should run. Its ID and key are already in it.": "Voer deze opdracht uit waar de sonde moet draaien. De ID en sleutel staan er al in.",
+  "Not validated": "Niet gevalideerd",
+  "Validated": "Gevalideerd"
 }

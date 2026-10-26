@@ -4,10 +4,10 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ExternalStatusPageComponentStatusDisplayUtil, {
@@ -20,32 +20,16 @@ export interface ComponentProps {
 }
 
 /*
- * A fact's card. Its title, in capitals spaced wide, may break inside a
- * word - hyphenated in the reader's language, which the facts' grid names
- * (lang) - rather than run past the card: two cards to a row on a phone
- * leave "GELTUNGSBEREICH" (Scope, in German) no room on one line.
+ * The facts are SummaryFacts, which every monitor type's summary shares:
+ * two to a row, four once the view itself is 64rem wide. The view is drawn
+ * in places of very different widths at one screen width - the overview's
+ * Summary card (two thirds of the page), Test Monitor's result and
+ * Monitoring Logs' View Summary (wide dialogs) - so its own width decides,
+ * not the screen's: four to a row in the Summary card left a value such as
+ * degraded_performance no room. A fact's title may break inside a word,
+ * hyphenated in the reader's language: two cards to a row on a phone leave
+ * "GELTUNGSBEREICH" (Scope, in German) no room on one line.
  */
-const CARD_CLASS_NAME: string =
-  "w-full shadow-none border-2 border-gray-100 [&_label]:hyphens-auto [&_label]:[overflow-wrap:anywhere]";
-
-/*
- * Two facts to a row, four once the view itself is 64rem wide. The view is
- * drawn in places of very different widths at one screen width - the
- * overview's Summary card (two thirds of the page), Test Monitor's result
- * and Monitoring Logs' View Summary (wide dialogs) - so its own width
- * decides, not the screen's: four to a row in the Summary card left a
- * value such as degraded_performance no room.
- */
-const FACTS_CLASS_NAME: string =
-  "grid grid-cols-2 gap-3 [@container(min-width:64rem)]:grid-cols-4";
-
-/*
- * A fact's value: a size smaller while the view is narrower than 32rem (a
- * phone), where two cards to a row leave each about 100px for its value,
- * and a long word, such as a URL, breaks rather than overflows.
- */
-const FACT_VALUE_CLASS_NAME: string =
-  "text-sm text-gray-900 break-words [@container(min-width:32rem)]:text-base";
 
 // Runs of underscores in a status value ("degraded_performance").
 const UNDERSCORES: RegExp = /(_+)/;
@@ -154,38 +138,20 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div
-      className="space-y-5 [container-type:inline-size]"
-      data-testid="external-status-page-summary"
-    >
-      <div
-        className={FACTS_CLASS_NAME}
-        lang={translator.language}
-        data-testid="external-status-page-check-facts"
-      >
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
+    <SummaryView dataTestId="external-status-page-summary">
+      <SummaryFacts dataTestId="external-status-page-check-facts">
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
           value={translator.translateTemplate(
             props.probeMonitorResponse.isOnline ? "Online" : "Offline",
           )}
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
+        <SummaryFact
           title="Response Time"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -195,31 +161,24 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
+      </SummaryFacts>
 
       {props.probeMonitorResponse.failureCause && (
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
-          title="Error"
-          value={props.probeMonitorResponse.failureCause?.toString() || "-"}
-        />
+        <SummaryFacts dataTestId="external-status-page-error">
+          <SummaryFact
+            isWide={true}
+            title="Error"
+            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+          />
+        </SummaryFacts>
       )}
 
-      <div
-        className={FACTS_CLASS_NAME}
-        lang={translator.language}
-        data-testid="external-status-page-page-facts"
-      >
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
+      <SummaryFacts dataTestId="external-status-page-page-facts">
+        <SummaryFact
           title="Provider"
           value={externalStatusPageResponse?.provider || "-"}
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
+        <SummaryFact
           title="Overall Status"
           value={
             externalStatusPageResponse?.overallStatus
@@ -229,21 +188,14 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
+        <SummaryFact
           title="Active Incidents"
           value={
             externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
           }
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          textClassName={FACT_VALUE_CLASS_NAME}
-          title="Scope"
-          value={scopeText}
-        />
-      </div>
+        <SummaryFact title="Scope" value={scopeText} />
+      </SummaryFacts>
 
       {components.length > 0 && (
         <div className="space-y-3">
@@ -318,7 +270,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

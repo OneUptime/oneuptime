@@ -39,7 +39,7 @@ Ga naar **Monitoren → Instellingen → Sjablonen** en klik op **Monitor Sjablo
 
 ### Het sjabloon een naam geven
 
-Vul onder **Sjablooninformatie** een **Sjabloonnaam** in, zoals `Production API Health`, en een **Sjabloonbeschrijving**, en klik dan op **Volgende**.
+Vul onder **Sjablooninformatie** een **Sjabloonnaam** in, zoals `Production API Health`. Een **Sjabloonbeschrijving** is optioneel. Klik dan op **Volgende**.
 
 ### De standaardwaarden van de monitor instellen
 

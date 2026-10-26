@@ -35082,5 +35082,9 @@
   "Approvals": "Approvals",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "This playbook is already running on this case. Its run is under the case's Playbooks.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "A playbook runs here when the case opens or grows, or when someone runs it on the case.",
-  "No playbook has run on this case yet.": "No playbook has run on this case yet."
+  "No playbook has run on this case yet.": "No playbook has run on this case yet.",
+  "Connecting through a proxy": "Connecting through a proxy",
+  "Run this command where the probe should run. Its ID and key are already in it.": "Run this command where the probe should run. Its ID and key are already in it.",
+  "Not validated": "Not validated",
+  "Validated": "Validated"
 }

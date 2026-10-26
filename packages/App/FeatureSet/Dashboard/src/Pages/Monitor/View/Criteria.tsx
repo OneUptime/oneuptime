@@ -152,6 +152,7 @@ const MonitorCriteria: FunctionComponent<
             title: "Monitor Details",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
+            hideColumnDescription: true,
             customValidation: (values: FormValues<Monitor>) => {
               const error: string | null = MonitorStepsType.getValidationError(
                 values.monitorSteps as MonitorStepsType,
