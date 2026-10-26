@@ -1212,16 +1212,17 @@ const IncidentView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName:
-              acknowledgeState?.name || translatableTerm("Acknowledged"),
+            stateName: translatableTerm(
+              acknowledgeState?.name || "Acknowledged",
+            ),
           })}
           icon={IconProp.Check}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
             reachedAt: responseTimes.acknowledgedAt,
             stateName: acknowledgeState?.name,
-            fallbackStateName: "acknowledged",
-          })}
+            fallbackStateName: "Acknowledged",
+          }, translator)}
           note={getAcknowledgedAfterPagingText(
             {
               firstPagedAt: incidentFirstPagedAt,
@@ -1234,15 +1235,15 @@ const IncidentView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: resolvedState?.name || translatableTerm("Resolved"),
+            stateName: translatableTerm(resolvedState?.name || "Resolved"),
           })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
             reachedAt: responseTimes.resolvedAt,
             stateName: resolvedState?.name,
-            fallbackStateName: "resolved",
-          })}
+            fallbackStateName: "Resolved",
+          }, translator)}
           description={formatDate(responseTimes.resolvedAt)}
         />
       </EventStatBar>

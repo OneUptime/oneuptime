@@ -72,7 +72,10 @@ import {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
@@ -486,7 +489,7 @@ const AlertEpisodeView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: timing.acknowledgedStateName,
+            stateName: translatableTerm(timing.acknowledgedStateName),
           })}
           icon={IconProp.Check}
           value={timing.timeToAcknowledge}
@@ -494,7 +497,7 @@ const AlertEpisodeView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: timing.resolvedStateName,
+            stateName: translatableTerm(timing.resolvedStateName),
           })}
           icon={IconProp.CheckCircle}
           value={timing.timeToResolve}

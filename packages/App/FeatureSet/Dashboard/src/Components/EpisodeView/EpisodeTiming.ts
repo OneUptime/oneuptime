@@ -7,6 +7,7 @@ import ResolvedStateUtil, {
   ResolvedStateList,
 } from "Common/Utils/ResolvedState";
 import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { getNotYetInStateText } from "../../Utils/EventOverview";
 
 export interface EpisodeTimingState {
   id: string;
@@ -155,7 +156,7 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
   let timeToAcknowledge: string = "-";
 
   if (!firstAcknowledgedAt) {
-    timeToAcknowledge = "Not yet " + acknowledgedStateName.toLowerCase();
+    timeToAcknowledge = getNotYetInStateText(acknowledgedStateName);
   } else if (startedAt) {
     timeToAcknowledge = getEventDurationText(startedAt, firstAcknowledgedAt);
   }
@@ -163,7 +164,7 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
   let timeToResolve: string = "-";
 
   if (!firstResolvedAt) {
-    timeToResolve = "Not yet " + resolvedStateName.toLowerCase();
+    timeToResolve = getNotYetInStateText(resolvedStateName);
   } else if (startedAt) {
     timeToResolve = getEventDurationText(startedAt, firstResolvedAt);
   }

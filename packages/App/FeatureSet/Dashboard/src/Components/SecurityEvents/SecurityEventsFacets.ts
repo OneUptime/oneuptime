@@ -229,21 +229,17 @@ const FACET_TITLES: Readonly<Record<string, string>> = Object.fromEntries(
 /*
  * What a chip's key reads. An attribute chip drops the prefix so it reads as
  * `device.hostname: web-01`; a known facet gets its title; anything else
- * keeps its raw key rather than guessing at a label for it.
+ * keeps its raw key rather than guessing at a label for it. An excluded
+ * chip's key is the same name: the chip row says it excludes ("Severity is
+ * not", in the reader's language - TelemetryActiveFilterChips), as it does
+ * in every explorer.
  */
 export function getSecurityEventFacetChipDisplayKey(facetKey: string): string {
   const baseKey: string = getSecurityEventBaseFacetKey(facetKey);
 
-  const label: string = isSecurityEventAttributeFacetKey(baseKey)
+  return isSecurityEventAttributeFacetKey(baseKey)
     ? getSecurityEventAttributeKey(baseKey)
     : FACET_TITLES[baseKey] || baseKey;
-
-  /*
-   * An excluded chip has to SAY it excludes. Without the marker
-   * "Severity: Informational" reads as the opposite of the filter it
-   * applies, which is the one mistake a filter chip must never make.
-   */
-  return isSecurityEventExcludeFacetKey(facetKey) ? `${label} is not` : label;
 }
 
 /*
