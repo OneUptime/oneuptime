@@ -107,9 +107,7 @@ function load<T>(env: Record<string, string>, modulePath: string): T {
     process.env[name] = value;
   }
 
-  jest.spyOn(process, "exit").mockImplementation(((
-    code?: number,
-  ): never => {
+  jest.spyOn(process, "exit").mockImplementation(((code?: number): never => {
     throw new ExitCalled(code);
   }) as never);
 

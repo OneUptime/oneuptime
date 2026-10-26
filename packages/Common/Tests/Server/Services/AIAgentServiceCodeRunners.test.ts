@@ -73,8 +73,8 @@ describe("the Runners of repositories that pick none", () => {
       RUNNER_ALIVE_WINDOW_IN_MINUTES,
     ).getTime();
 
-    const call: { query: Record<string, unknown>; props: unknown } = count
-      .mock.calls[0]![0] as { query: Record<string, unknown>; props: unknown };
+    const call: { query: Record<string, unknown>; props: unknown } = count.mock
+      .calls[0]![0] as { query: Record<string, unknown>; props: unknown };
 
     expect(call.query).toEqual({
       isGlobalRunner: true,
@@ -91,10 +91,8 @@ describe("the Runners of repositories that pick none", () => {
   });
 
   test("a global AI agent is no Runner for code any more: the agent service offers none of those lookups", () => {
-    const service: Record<string, unknown> = AIAgentService as unknown as Record<
-      string,
-      unknown
-    >;
+    const service: Record<string, unknown> =
+      AIAgentService as unknown as Record<string, unknown>;
 
     for (const removed of [
       "findGlobalCodeRunners",
