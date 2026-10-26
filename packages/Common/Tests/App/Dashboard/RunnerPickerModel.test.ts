@@ -1,5 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+  CODE_OWN_RUNNER_HELPER_TEXT,
+  CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+  CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+  CodeRepositoryRunnerWords,
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
   GLOBAL_RUNNER_PICK_VALUE,
@@ -17,6 +27,7 @@ import {
   RuleRunnerLine,
   buildRunnerPickerModel,
   canGlobalRunnersRunWork,
+  getCodeRepositoryRunnerWords,
   getGlobalRunnersLiveStatus,
   getNewRuleRunnerId,
   getProjectDefaultRunner,
@@ -29,6 +40,7 @@ import {
   offersGlobalRunner,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import {
   ChosenRunnerKind,
   GLOBAL_RUNNER_CHOICE_ID,
@@ -536,25 +548,33 @@ describe("a project with a default Runner", () => {
   });
 
   /*
-   * The project default reaches runbook steps and auto remediation rules: a
-   * code repository picks its Runner by its own rule, and is not told about
-   * it. A rule lists it first, tagged, by its own id (a rule stores its
-   * pick); a new rule's form starts on it.
+   * The project default reaches runbook steps and code repositories that
+   * pick none - they follow it - and auto remediation rules, which list it
+   * first, tagged, by its own id (a rule stores its pick); a new rule's form
+   * starts on it.
    */
-  test("a code repository's picker does not follow it; a rule's lists it first, by its id", () => {
+  test("a code repository's picker follows it, first and tagged; a rule's lists it first, by its id", () => {
     const repository: RunnerPickerModel = buildRunnerPickerModel(
       withDefault({ work: RunnerPickerWork.CodeRepository, stepType: "" }),
     );
 
-    expect(repository.options[0]!.kind).toBe(RunnerPickerOptionKind.Global);
-    expect(repository.outcome).toBe(RunnerPickerOutcome.GlobalRunner);
-    expect(values(repository)).toContain(PROD_DEFAULT.id);
+    expect(repository.options[0]).toEqual({
+      value: "",
+      kind: RunnerPickerOptionKind.ProjectDefault,
+      name: PROD_DEFAULT.name,
+      liveStatus: PROD_DEFAULT.liveStatus,
+      runnerId: PROD_DEFAULT.id,
+    });
+    expect(repository.outcome).toBe(RunnerPickerOutcome.ProjectDefaultRunner);
+    expect(repository.runnerId).toBe(PROD_DEFAULT.id);
+    // Listed once: as the first choice, never again among the others.
+    expect(values(repository)).not.toContain(PROD_DEFAULT.id);
     expect(
       getProjectDefaultRunner({
         work: RunnerPickerWork.CodeRepository,
         projectRunners: [PROD_DEFAULT],
-      }),
-    ).toBeUndefined();
+      })?.id,
+    ).toBe(PROD_DEFAULT.id);
 
     const rule: RunnerPickerModel = buildRunnerPickerModel(
       withDefault({ work: RunnerPickerWork.AutoRemediation, stepType: "" }),
@@ -585,6 +605,173 @@ describe("a project with a default Runner", () => {
     expect(
       getProjectDefaultRunner({ projectRunners: [PROD_DEFAULT] })?.id,
     ).toBe(PROD_DEFAULT.id);
+  });
+});
+
+/*
+ * A code repository's picker, by the default order a step's follows
+ * (Common/Types/Runner/CodeRepositoryRunner): what it picked, then - for one
+ * that picks none - the project's default Runner, then the Global Runner.
+ * Its choice is one value (CodeRepositoryRunnerChoice): a Runner's id,
+ * GLOBAL_RUNNER_PICK_VALUE for the Global Runner itself, or "" for none.
+ */
+describe("a code repository's picker follows the project's default Runner", () => {
+  function repository(
+    overrides: Partial<RunnerPickerFacts> = {},
+  ): RunnerPickerModel {
+    return buildRunnerPickerModel(
+      withDefault({
+        work: RunnerPickerWork.CodeRepository,
+        stepType: "",
+        ...overrides,
+      }),
+    );
+  }
+
+  test("the default first, then the Global Runner as a pick of its own, then the project's other Runners", () => {
+    const model: RunnerPickerModel = repository();
+
+    expect(kinds(model)).toEqual([
+      RunnerPickerOptionKind.ProjectDefault,
+      RunnerPickerOptionKind.Global,
+      RunnerPickerOptionKind.Project,
+      RunnerPickerOptionKind.Project,
+    ]);
+    expect(values(model)).toEqual([
+      "",
+      GLOBAL_RUNNER_PICK_VALUE,
+      BASTION.id,
+      STAGING.id,
+    ]);
+  });
+
+  test("picked none: on the default, which it follows", () => {
+    const model: RunnerPickerModel = repository({ currentRunnerId: "" });
+
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.ProjectDefault);
+    expect(model.selected?.value).toBe("");
+    expect(model.outcome).toBe(RunnerPickerOutcome.ProjectDefaultRunner);
+    expect(model.willRun).toBe(true);
+    expect(model.pickedGlobalRunner).toBe(false);
+    expect(model.runnerId).toBe(PROD_DEFAULT.id);
+  });
+
+  test("picked the Global Runner itself: on the Global Runner, never the default", () => {
+    const model: RunnerPickerModel = repository({
+      currentRunnerId: GLOBAL_RUNNER_PICK_VALUE,
+    });
+
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.Global);
+    expect(model.selected?.value).toBe(GLOBAL_RUNNER_PICK_VALUE);
+    expect(model.outcome).toBe(RunnerPickerOutcome.GlobalRunner);
+    expect(model.pickedGlobalRunner).toBe(true);
+    expect(model.runnerId).toBe("");
+  });
+
+  test("picked one of the project's other Runners: that Runner", () => {
+    const model: RunnerPickerModel = repository({
+      currentRunnerId: BASTION.id,
+    });
+
+    expect(model.selected?.value).toBe(BASTION.id);
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.Project);
+    expect(model.outcome).toBe(RunnerPickerOutcome.ProjectRunner);
+    expect(model.runnerId).toBe(BASTION.id);
+  });
+
+  /*
+   * A repository imported before it followed the default kept a copy of it
+   * as its pick: it reads as the first choice, which is that Runner, as a
+   * step's pick of the default does - saving it makes it follow.
+   */
+  test("picked the default Runner itself: it reads as the first choice", () => {
+    const model: RunnerPickerModel = repository({
+      currentRunnerId: PROD_DEFAULT.id.toUpperCase(),
+    });
+
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.ProjectDefault);
+    expect(model.selected?.value).toBe("");
+    expect(model.outcome).toBe(RunnerPickerOutcome.ProjectRunner);
+    expect(model.runnerId).toBe(PROD_DEFAULT.id);
+    // Not listed a second time as a pick of its own.
+    expect(values(model)).not.toContain(PROD_DEFAULT.id);
+  });
+
+  test("a pick the reader may not see: said so, after the default and the Global Runner", () => {
+    const model: RunnerPickerModel = repository({ currentRunnerId: GONE_ID });
+
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.Unknown);
+    expect(model.outcome).toBe(RunnerPickerOutcome.UnknownRunner);
+    expect(kinds(model).slice(0, 3)).toEqual([
+      RunnerPickerOptionKind.ProjectDefault,
+      RunnerPickerOptionKind.Global,
+      RunnerPickerOptionKind.Unknown,
+    ]);
+  });
+
+  test("no default: the Global Runner is the first choice, stored as none, and no second Global Runner", () => {
+    const model: RunnerPickerModel = buildRunnerPickerModel(
+      facts({ work: RunnerPickerWork.CodeRepository, stepType: "" }),
+    );
+
+    expect(kinds(model)).toEqual([
+      RunnerPickerOptionKind.Global,
+      RunnerPickerOptionKind.Project,
+      RunnerPickerOptionKind.Project,
+    ]);
+    expect(model.selected?.value).toBe("");
+    expect(model.outcome).toBe(RunnerPickerOutcome.GlobalRunner);
+    expect(model.pickedGlobalRunner).toBe(false);
+  });
+
+  test("no default, picked the Global Runner itself: the Global Runner, the first choice", () => {
+    const model: RunnerPickerModel = buildRunnerPickerModel(
+      facts({
+        work: RunnerPickerWork.CodeRepository,
+        stepType: "",
+        currentRunnerId: GLOBAL_RUNNER_PICK_VALUE,
+      }),
+    );
+
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.Global);
+    expect(model.outcome).toBe(RunnerPickerOutcome.GlobalRunner);
+    // With no default to follow, it is the first choice that is shown.
+    expect(model.selected?.value).toBe("");
+  });
+
+  test("a default, in a project that turned global Runners off: the default first, and no Global Runner", () => {
+    const model: RunnerPickerModel = repository({
+      projectUsesGlobalRunners: false,
+    });
+
+    expect(kinds(model)).toEqual([
+      RunnerPickerOptionKind.ProjectDefault,
+      RunnerPickerOptionKind.Project,
+      RunnerPickerOptionKind.Project,
+    ]);
+    expect(model.outcome).toBe(RunnerPickerOutcome.ProjectDefaultRunner);
+  });
+
+  test("picked the Global Runner in a project that turned them off: nothing it can run on, said so", () => {
+    const model: RunnerPickerModel = repository({
+      projectUsesGlobalRunners: false,
+      currentRunnerId: GLOBAL_RUNNER_PICK_VALUE,
+    });
+
+    expect(model.selected).toBeUndefined();
+    expect(model.outcome).toBe(RunnerPickerOutcome.GlobalRunnersOff);
+    expect(model.willRun).toBe(false);
+  });
+
+  test("a default on a server with no global Runner: the default first, and no Global Runner", () => {
+    const model: RunnerPickerModel = repository({ globalRunners: [] });
+
+    expect(kinds(model)).toEqual([
+      RunnerPickerOptionKind.ProjectDefault,
+      RunnerPickerOptionKind.Project,
+      RunnerPickerOptionKind.Project,
+    ]);
+    expect(model.outcome).toBe(RunnerPickerOutcome.ProjectDefaultRunner);
   });
 });
 
@@ -1455,10 +1642,13 @@ describe("where a record picked no Runner, every picker's default", () => {
         shows: "global",
         outcome: RunnerPickerOutcome.GlobalRunner,
       },
-      // A repository picks by its own rule: a default never moves it.
+      /*
+       * A repository that picks none follows the project's default Runner,
+       * as a step does (Common/Types/Runner/CodeRepositoryRunner).
+       */
       "with a default Runner": {
-        shows: "global",
-        outcome: RunnerPickerOutcome.GlobalRunner,
+        shows: "default",
+        outcome: RunnerPickerOutcome.ProjectDefaultRunner,
       },
       "that turned global Runners off": {
         shows: "none",
@@ -1585,5 +1775,98 @@ describe("where a record picked no Runner, every picker's default", () => {
         }).sort(),
       );
     }
+  });
+});
+
+/*
+ * A code repository's Runner lines say what AI's work becomes where the
+ * repository is hosted: a pull request on GitHub and Forgejo, a merge
+ * request on GitLab - as its Merge Requests card says - and, on a Git
+ * server, where AI opens no pull request at all, the branch it pushes.
+ */
+describe("a code repository's Runner lines, in its host's words", () => {
+  const PULL_REQUEST_WORDS: CodeRepositoryRunnerWords = {
+    globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT,
+    ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT,
+  };
+
+  test.each([
+    [CodeRepositoryType.GitHub, PULL_REQUEST_WORDS],
+    [CodeRepositoryType.Forgejo, PULL_REQUEST_WORDS],
+    [
+      CodeRepositoryType.GitLab,
+      {
+        globalRunnerDescription:
+          CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+        globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+        ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+      },
+    ],
+    [
+      CodeRepositoryType.Git,
+      {
+        globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+        globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+        ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+      },
+    ],
+  ] as Array<[CodeRepositoryType, CodeRepositoryRunnerWords]>)(
+    "on %s",
+    (provider: CodeRepositoryType, words: CodeRepositoryRunnerWords) => {
+      expect(getCodeRepositoryRunnerWords(provider)).toEqual(words);
+    },
+  );
+
+  test("a repository whose host is not read yet, or unknown, reads as GitHub's", () => {
+    for (const provider of [undefined, null, "", "Bitbucket"]) {
+      expect(getCodeRepositoryRunnerWords(provider)).toEqual(
+        PULL_REQUEST_WORDS,
+      );
+    }
+  });
+
+  test("each host's lines say its own word, and no other host's", () => {
+    const wordsOf: (provider: CodeRepositoryType) => Array<string> = (
+      provider: CodeRepositoryType,
+    ): Array<string> => {
+      return Object.values(getCodeRepositoryRunnerWords(provider));
+    };
+
+    for (const line of wordsOf(CodeRepositoryType.GitHub)) {
+      expect(line).toContain("pull request");
+      expect(line).not.toContain("merge request");
+    }
+
+    for (const line of wordsOf(CodeRepositoryType.GitLab)) {
+      expect(line).toContain("merge request");
+      expect(line).not.toContain("pull request");
+    }
+
+    // A Git server's: the branch AI pushes, never a request it opens.
+    for (const line of wordsOf(CodeRepositoryType.Git)) {
+      expect(line).toContain("branch");
+      expect(line).not.toContain("pull request");
+      expect(line).not.toContain("merge request");
+    }
+  });
+
+  test("the three hosts' lines are the same sentences, but for that word", () => {
+    const github: CodeRepositoryRunnerWords = getCodeRepositoryRunnerWords(
+      CodeRepositoryType.GitHub,
+    );
+    const gitlab: CodeRepositoryRunnerWords = getCodeRepositoryRunnerWords(
+      CodeRepositoryType.GitLab,
+    );
+
+    expect(gitlab.globalRunnerDescription).toBe(
+      github.globalRunnerDescription.replace("pull request", "merge request"),
+    );
+    expect(gitlab.globalRunnerHelperText).toBe(
+      github.globalRunnerHelperText.replace("pull request", "merge request"),
+    );
+    expect(gitlab.ownRunnerHelperText).toBe(
+      github.ownRunnerHelperText.replace("pull request", "merge request"),
+    );
   });
 });

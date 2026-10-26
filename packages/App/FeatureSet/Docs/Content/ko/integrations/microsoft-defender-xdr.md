@@ -83,6 +83,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | ATT&CK 전술인 경우의 `categories` 또는 `category`. `CredentialAccess`는 `TA0006`이 됩니다. 다른 카테고리는 `attributes`에 남습니다. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | `source`, `attacker`, `compromised` 역할을 가진 `evidence`. 없으면 종류별로 첫 번째 항목 |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | `principalProcess`를 가져온 프로세스 증거의 `imageFile`, `processCommandLine`, `parentProcessImageFile`. Graph는 부모 프로세스의 명령줄을 주지 않습니다. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | `destination`이나 `attacked`처럼 대상 역할을 가진 `evidence`. URL, 메일함, 클라우드 리소스는 `targetResource`를 채웁니다. |
 | `observables` | `evidence`에 있는 모든 호스트 이름, IP, 사용자, 파일 이름, SHA-1과 SHA-256, URL, 도메인, 메일함, 리소스 ID |
 | `attributes` | `evidence.0.hostName`, `serviceSource`, `incidentId` 같은 점 구분 키로 펼친 알림 전체 |

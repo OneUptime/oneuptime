@@ -584,7 +584,7 @@ const STUB_TABS = [
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, "Threat Intel"],
   [PageMap.SECURITY_EVENTS_MONITORS, "Monitors"],
   [PageMap.SECURITY_PLAYBOOKS, "Playbooks"],
-  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL, "Waiting for Approval"],
+  [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL, "Approvals"],
   [PageMap.SECURITY_PLAYBOOK_RUNS, "Playbook Runs"],
   [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
 ];

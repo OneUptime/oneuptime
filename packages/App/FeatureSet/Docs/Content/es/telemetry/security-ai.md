@@ -40,6 +40,8 @@ Abre un caso: la tarjeta **OneUptime AI** está en la parte superior de su pági
 | Una lectura, como **Probablemente malicioso** | La clasificación terminó. **Volver a clasificar** vuelve a leer el caso desde cero. |
 | **La clasificación no terminó** | La ejecución se detuvo. **Volver a intentar** inicia otra. |
 
+Un Security Viewer ve la misma tarjeta: **Clasificar con IA** y **Volver a intentar** quedan en gris junto a una línea que dice quién puede iniciar una clasificación, y no se ofrecen **Volver a clasificar** ni **Establecer prioridad**.
+
 Una clasificación lee:
 
 - el caso: su título, prioridad, estado, entidades y correspondencia con ATT&CK;
@@ -63,7 +65,7 @@ También puede leer el resto de OneUptime como lo hace la investigación de un i
 La lectura es de OneUptime AI, nunca el veredicto del caso: **Close Case** empieza con el veredicto que sugiere, y una persona elige. Bajo la lectura, la tarjeta muestra:
 
 - **Prioridad sugerida**, con **Establecer prioridad** cuando el caso tiene otra prioridad.
-- **Playbook sugerido**, con **Ejecutar playbook**, que lo ejecuta en tu nombre, con cada aprobación que necesite.
+- **Playbook sugerido**, con **Ejecutar playbook**, que lo ejecuta en tu nombre, con cada aprobación que necesite. Mientras ese playbook ya se ejecuta en el caso, el estado de su ejecución, como **Esperando aprobación**, ocupa el lugar de **Ejecutar playbook**: la ejecución está en **Playbooks** del caso, y una segunda volvería a pedir la misma aprobación.
 - El informe: qué pasó, qué tan segura es la lectura y qué hacer después, cada afirmación seguida de una cita como C1.
 - **Evidencias comprobadas**: cada consulta que ejecutó la clasificación. Una cita abre su consulta, y al desplegar una se vuelve a ejecutar con tus permisos, sobre el periodo que leyó la clasificación.
 - **Preguntar sobre este caso**, que abre Preguntar a la IA sobre el caso.

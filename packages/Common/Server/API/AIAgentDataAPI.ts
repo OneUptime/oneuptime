@@ -77,7 +77,9 @@ import CodeHostRunnerToken, {
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
-import CodeRepositoryRunnerChoice from "../Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
+import CodeRepositoryRunnerChoice, {
+  getCodeRepositoryRunnerFactsRow,
+} from "../Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import {
   getFirstMonitorName,
   getPerformanceStackTrace,
@@ -1285,6 +1287,7 @@ export default class AIAgentDataAPI {
                 codeRepositoryConnectionId: true,
                 maxOpenFixPullRequests: true,
                 runnerId: true,
+                isGlobalRunnerPicked: true,
               },
               props: {
                 isRoot: true,
@@ -1313,14 +1316,15 @@ export default class AIAgentDataAPI {
           /*
            * Only the worker the repository picks works in it (its Runner
            * setting in Code, Types/Runner/CodeRepositoryRunner): the Runner
-           * it picked, or - for one that picks none - a global Runner while
-           * its project uses them. The token is the only way into the
-           * repository, so this holds whatever handed the worker its run.
+           * it picked, or - for one that picks none - the project's default
+           * Runner, else a global Runner while its project uses them. The
+           * token is the only way into the repository, so this holds
+           * whatever handed the worker its run.
            */
           if (
             !(await CodeRepositoryRunnerChoice.mayWorkInRepository({
               worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
-              repository: codeRepository,
+              repository: getCodeRepositoryRunnerFactsRow(codeRepository),
             }))
           ) {
             return Response.sendErrorResponse(

@@ -51,6 +51,14 @@ import {
   ProductionReviewUtil,
 } from "Common/Types/CodeRepository/ProductionReview";
 import LlmType from "Common/Types/LLM/LlmType";
+import {
+  CodeRepositoryRunnerChoiceKind,
+  decideCodeRepositoryRunner,
+} from "Common/Types/Runner/CodeRepositoryRunner";
+import {
+  CodeRepositorySetting,
+  getCodeRepositorySettingsPath,
+} from "Common/Types/CodeRepository/CodeRepositorySetting";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -529,6 +537,23 @@ describe("Code", () => {
     expect(page).not.toContain("**AI** > **Tasks**");
   });
 
+  it("says a task's Log page picks between its turns, once it has more than one", () => {
+    const log: string = flat(dashboardSource("Pages/Code/Task/Log.tsx"));
+    const turns: string = flat(
+      dashboardSource("Components/Code/CodeTaskLogTurns.ts"),
+    );
+
+    // The picker lists the task's turns, and shows only with more than one.
+    expect(turns).toContain('label: translationKey("Turn"),');
+    expect(log).toContain("<CodeTaskLogTurnPicker");
+    expect(log).toContain("turns.length > 1");
+    expect(
+      flat(englishSection(CODE_PAGE, "## A task's conversation")),
+    ).toContain(
+      `On a task with more than one turn, a picker at the top of the ${bold("Log")} page moves between its turns.`,
+    );
+  });
+
   it("asks AI with the words Code's pages draw: the question, the pickers, the examples", () => {
     const home: string = dashboardSource("Pages/Code/Code.tsx");
     const askBox: string = dashboardSource("Components/Code/CodeAskBox.tsx");
@@ -961,14 +986,21 @@ describe("Code", () => {
     );
   });
 
-  it("has a Runner of the project's own build and test the change, 2 minutes a command and without its credentials, and Global Runner run no command", () => {
+  it("has a Runner of the project's own build and test the change, 2 minutes a command or up to 10 when asked, without its credentials, and Global Runner run no command", () => {
     const agent: string = readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts");
+    const limits: string = readRepoFile("Runner/Utils/AgentCommandLimits.ts");
     const checks: Array<Array<string>> = tableWithHeader(
       englishSection(CODE_PAGE, "## Verification before the pull request"),
       "Where AI works",
     );
     const minutes: number =
-      numberConstant(agent, "RUN_COMMAND_TIMEOUT_MS") / 60000;
+      numberConstant(limits, "DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS") / 60;
+    const mostMinutes: number =
+      numberConstant(limits, "MAX_AGENT_COMMAND_TIMEOUT_SECONDS") / 60;
+
+    // The agent's commands take their time from the limits, and may ask for more.
+    expect(agent).toContain("getAgentCommandTimeoutMs(");
+    expect(agent).toContain("[AGENT_COMMAND_TIMEOUT_ARGUMENT]");
 
     // Told to check its change only where it can run commands at all.
     expect(flat(agent)).toContain(
@@ -981,7 +1013,7 @@ describe("Code", () => {
     );
 
     expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
-      `Each command it runs gets up to ${minutes} minutes, without the Runner's own credentials in its environment.`,
+      `Each command it runs gets ${minutes} minutes, or up to ${mostMinutes} for a slow install, build or test suite, without the Runner's own credentials in its environment.`,
     );
     expect(rowStartingWith(checks, bold("Global Runner"))[1]).toBe(
       "Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it.",
@@ -1037,10 +1069,34 @@ describe("Code", () => {
       "A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own",
     );
     expect(fails).toContain(
-      "A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, or a global Runner for a repository that picks none - fails, with a message that says which",
+      "A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which",
     );
     // The sweeper says which: the repository's Runner, or a global one.
     expect(queue).toContain("describeRepositoryRunnerStatus(");
+  });
+
+  it("keeps a run's heartbeat going while a command of the code agent runs, well inside the 12 minutes", () => {
+    const stuck: string = readRepoFile(
+      "App/FeatureSet/Workers/Jobs/AIChat/TimeoutStuckRuns.ts",
+    );
+    const limits: string = readRepoFile("Runner/Utils/AgentCommandLimits.ts");
+    const agent: string = flat(
+      readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts"),
+    );
+
+    // A beat at least every interval, and a long command never outlives it.
+    expect(
+      numberConstant(limits, "AGENT_COMMAND_KEEP_ALIVE_INTERVAL_MS"),
+    ).toBeLessThan(
+      numberConstant(stuck, "RUN_HEARTBEAT_TIMEOUT_MINUTES") * 60 * 1000,
+    );
+    expect(agent).toContain("startAgentCommandKeepAlive({");
+    expect(agent).toContain(
+      "await this.backendAPI.updateTaskStatus( this.config.taskId, AIAgentTaskStatus.InProgress, );",
+    );
+    expect(flat(englishSection(CODE_PAGE, "## When a fix fails"))).toContain(
+      "A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.",
+    );
   });
 
   it("never hands a request from Code to a Runner older than Code", () => {
@@ -1141,25 +1197,72 @@ describe("Code", () => {
     );
   });
 
-  it("says a repository that picks no Runner works on Global Runner, which does not build or test, as the picker offers it", () => {
+  it("says a repository that picks no Runner follows the project's default Runner, else works on Global Runner, which does not build or test, as the picker offers it", () => {
     const picker: string = flat(
       dashboardSource("Components/Runner/RunnerPickerModel.ts"),
     );
     const section: string = flat(
       englishSection(CODE_PAGE, "### Pick the repository's Runner"),
     );
+    const defaultRunnerId: string = "6c4a9f3e-2b1d-4e8a-9f7c-1d2e3f4a5b6c";
+    const pickedRunnerId: string = "0b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e";
+
+    // The rule every reader of a repository's Runner goes by.
+    expect(
+      decideCodeRepositoryRunner({
+        repositoryRunnerId: null,
+        projectDefaultRunnerId: defaultRunnerId,
+        projectUsesGlobalRunners: true,
+      }),
+    ).toEqual({
+      kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+      runnerId: defaultRunnerId,
+    });
+    // Picking Global Runner keeps a repository on it beside a default.
+    expect(
+      decideCodeRepositoryRunner({
+        repositoryRunnerId: null,
+        picksGlobalRunner: true,
+        projectDefaultRunnerId: defaultRunnerId,
+        projectUsesGlobalRunners: true,
+      }),
+    ).toEqual({ kind: CodeRepositoryRunnerChoiceKind.Global });
+    // With no default, a repository that picks none is on Global Runner.
+    expect(
+      decideCodeRepositoryRunner({
+        repositoryRunnerId: null,
+        projectUsesGlobalRunners: true,
+      }),
+    ).toEqual({ kind: CodeRepositoryRunnerChoiceKind.Global });
+    // A pick always wins.
+    expect(
+      decideCodeRepositoryRunner({
+        repositoryRunnerId: pickedRunnerId,
+        projectDefaultRunnerId: defaultRunnerId,
+        projectUsesGlobalRunners: true,
+      }),
+    ).toEqual({
+      kind: CodeRepositoryRunnerChoiceKind.Custom,
+      runnerId: pickedRunnerId,
+    });
 
     expect(picker).toContain(
       'GLOBAL_RUNNER_CHOICE_LABEL: string = translationKey("Global Runner");',
     );
     expect(picker).toContain(
+      'PROJECT_DEFAULT_TAG: string = translationKey("Project default");',
+    );
+    expect(picker).toContain(
       `"Run by OneUptime for every project. It does not build or test AI's change before the pull request opens."`,
     );
     expect(section).toContain(
-      `A repository that picks none works on ${bold("Global Runner")}, which OneUptime runs for every project.`,
+      `A repository that picks none works on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), the first choice, marked ${bold("Project default")}, and moves with it when another Runner becomes the default. In a project with no default Runner, it works on ${bold("Global Runner")}, which OneUptime runs for every project. To keep a repository on ${bold("Global Runner")} while the project has a default Runner, pick it.`,
     );
     expect(section).toContain(
-      "Only the Runner a repository picks is handed its tasks and a token for it.",
+      "Only the Runner a repository works on is handed its tasks and a token for it.",
+    );
+    expect(section).toContain(
+      "every repository needs one of the project's own Runners: the one it picks, or the project's default Runner.",
     );
     // The bundled Runner never runs a repository's commands.
     expect(
@@ -1178,16 +1281,18 @@ describe("Code", () => {
     ).toContain("without building or testing it");
   });
 
-  it("says a repository the GitHub App imports starts on the project's default Runner", () => {
+  it("copies no Runner into a repository the GitHub App imports: it follows the project's default Runner like any other", () => {
     const service: string = flat(
       readRepoFile("Common/Server/Services/CodeRepositoryService.ts"),
     );
 
+    // The import writes the switches' defaults, and no Runner.
+    expect(service).not.toContain("findProjectDefaultRunnerId(");
     expect(service).toContain(
-      "await GlobalRunnerChoice.findProjectDefaultRunnerId(",
+      "public static getNewRepositoryDefaults(): NewRepositoryDefaults { return { isGitHubCommandsEnabled: true, isProductionReviewEnabled: true, }; }",
     );
-    expect(flat(englishPage(CODE_PAGE))).toContain(
-      "A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one.",
+    expect(flat(englishPage(CODE_PAGE))).not.toContain(
+      "A repository the GitHub App imports starts on",
     );
   });
 
@@ -1386,7 +1491,13 @@ describe("GitHub App", () => {
     expect(copy).toContain(
       'triggerLabelCardTitle: translationKey("GitHub Trigger Label"),',
     );
-    expect(settings).toContain('title: "Max Open Fix Pull Requests",');
+    // The limit's number, under its GitHub words (FixPullRequestLimit).
+    expect(
+      flat(dashboardSource("Components/CodeRepository/FixPullRequestLimit.ts")),
+    ).toContain(
+      'MAX_OPEN_FIX_PULL_REQUESTS_TITLE: string = translationKey( "Max Open Fix Pull Requests", );',
+    );
+    expect(settings).toContain("title: limitCopy.maxFieldTitle,");
 
     for (const title of [
       "Respond to GitHub Commands",
@@ -1418,6 +1529,31 @@ describe("GitHub App", () => {
       ),
     ).toContain(
       "A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
+    );
+    // ... with a link that opens More settings at the switch itself.
+    expect(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/GitHub/GitHubReplyComposer.ts",
+      ),
+    ).toContain("[Respond to GitHub Commands](${data.settingsUrl})");
+    expect(
+      flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/GitHub/GitHubWebhookHandler.ts",
+        ),
+      ),
+    ).toContain("setting: CodeRepositorySetting.GitHubCommands,");
+    expect(
+      getCodeRepositorySettingsPath({
+        projectId: "project",
+        codeRepositoryId: "repository",
+        setting: CodeRepositorySetting.GitHubCommands,
+      }),
+    ).toBe("/project/code/repositories/repository/settings#github-commands");
+    // ... where the switch's card takes that place on the page.
+    expect(settings).toContain("cardId={CodeRepositorySetting.GitHubCommands}");
+    expect(page).toContain(
+      "With it off, the app ignores mentions, assignments and the trigger label in that repository, and answers anyone who asks with a link to the switch.",
     );
 
     // What most never change is folded under More settings.

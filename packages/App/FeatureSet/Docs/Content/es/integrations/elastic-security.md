@@ -74,6 +74,7 @@ Cada alerta de detección se convierte en un evento Detection Finding (clase OCS
 | `kibana.alert.workflow_status`: `open`, `acknowledged` o `closed` | Estado |
 | `kibana.alert.rule.threat`, subtécnicas incluidas | Tácticas y técnicas de MITRE ATT&CK |
 | `user.name`, `host.name`, `source.ip` o `host.ip`, `process.name` o `process.executable` | Usuario, host, IP y proceso del actor |
+| `process.name`, `process.executable` y `process.command_line`; `process.parent.name`, `process.parent.executable` y `process.parent.command_line` | Nombre, ruta y línea de comandos del proceso; nombre, ruta y línea de comandos del proceso padre |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Usuario, host, IP, puerto y recurso del destino |
 | Esos, y `related.*`, `dns.question.name`, `url.domain` y los hashes de archivos | Observables |
 | La alerta entera, aplanada en claves con puntos, con `_index` y `_id` | `attributes` |

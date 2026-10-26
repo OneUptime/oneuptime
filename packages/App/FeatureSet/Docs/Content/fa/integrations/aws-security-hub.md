@@ -93,6 +93,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 | `Workflow.Status`: `NEW`، `NOTIFIED`، `RESOLVED` یا `SUPPRESSED`، وگرنه `WorkflowState` قدیمی‌تر | وضعیت |
 | `Types` زیر `TTPs/`: `TTPs/Initial Access/...` به `TA0001` تبدیل می‌شود | تاکتیک‌ها و تکنیک‌های MITRE ATT&CK |
 | کاربر IAM یک منبع کلید دسترسی یا کاربر، `Network.SourceIpV4` یا `SourceIpV6`، `Process.Name` یا `Process.Path` | کاربر، IP و فرایند اصلی |
+| `Process.Name` و `Process.Path` | نام و مسیر فرایند. یک یافته نه خط فرمانی دارد و نه فرایند والدی. |
 | شناسهٔ نمونهٔ یک منبع `AwsEc2Instance`، `Network.DestinationIpV4` یا `DestinationIpV6`، `Network.DestinationPort`، نخستین `Resources[].Id` | میزبان، IP، پورت و منبع هدف |
 | همان‌ها، هر `Resources[].Id`، `AwsAccountId`، دامنه‌های شبکه، نام‌های بدافزار و مقدارهای اطلاعات تهدید | Observableها |
 | کل یافته، تخت‌شده به کلیدهای نقطه‌دار، مانند `Compliance.Status` و `Remediation.Recommendation.Url` | `attributes` |

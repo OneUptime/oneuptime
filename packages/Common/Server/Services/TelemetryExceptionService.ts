@@ -475,6 +475,7 @@ export class Service extends ProjectReferencesService<Model> {
             select: {
               _id: true,
               runnerId: true,
+              isGlobalRunnerPicked: true,
             },
             props: {
               isRoot: true,
@@ -505,13 +506,18 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * 3. A Runner must be alive to pick the task up: the one the resolved
-     * repository picks, or a global Runner for one that picks none.
+     * repository picks, or - for one that picks none - the project's default
+     * Runner, else a global Runner.
      */
     const agentCheck: AIFixReadinessCheck =
       await CodeFixReadiness.getAgentCheck({
         projectId,
         repository: resolvedRepository
-          ? { projectId, runnerId: resolvedRepository.runnerId }
+          ? {
+              projectId,
+              runnerId: resolvedRepository.runnerId,
+              isGlobalRunnerPicked: resolvedRepository.isGlobalRunnerPicked,
+            }
           : undefined,
       });
 

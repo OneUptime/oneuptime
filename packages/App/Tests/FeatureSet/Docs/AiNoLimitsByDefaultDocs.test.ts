@@ -441,7 +441,15 @@ const UPGRADE_TABLE: ReadonlyArray<{
  * The settings the upgrade note names, each with the dashboard page that
  * shows it under that title.
  */
-const NAMED_SETTINGS: ReadonlyArray<{ title: string; page: string }> = [
+const NAMED_SETTINGS: ReadonlyArray<{
+  title: string;
+  page: string;
+  /*
+   * What in the page's source draws the title, where it is not a field's
+   * own `title: "..."`: a title the page reads from shared copy.
+   */
+  drawnBy?: string | undefined;
+}> = [
   {
     title: "Minimum Severity To Investigate",
     page: "Pages/Alerts/Settings/AlertAISettings.tsx",
@@ -476,7 +484,13 @@ const NAMED_SETTINGS: ReadonlyArray<{ title: string; page: string }> = [
   },
   {
     title: "Max Open Fix Pull Requests",
-    page: "Pages/Code/Repository/Settings.tsx",
+    /*
+     * The repository's Settings page reads it from the limit's copy, under
+     * a GitHub repository's words (a GitLab one says merge requests).
+     */
+    page: "Components/CodeRepository/FixPullRequestLimit.ts",
+    drawnBy:
+      'MAX_OPEN_FIX_PULL_REQUESTS_TITLE: string = translationKey( "Max Open Fix Pull Requests", );',
   },
 ];
 
@@ -1267,11 +1281,16 @@ describe("AI has no limits by default", () => {
         expect({
           setting: setting.title,
           inNote: text.includes(`**${setting.title}**`),
-          onPage: read(path.join(DASHBOARD_SRC, setting.page)).includes(
-            `title: "${setting.title}"`,
+          onPage: flat(read(path.join(DASHBOARD_SRC, setting.page))).includes(
+            setting.drawnBy || `title: "${setting.title}"`,
           ),
         }).toEqual({ setting: setting.title, inNote: true, onPage: true });
       }
+
+      // The repository's Settings page draws the limit's number by that copy.
+      expect(
+        read(path.join(DASHBOARD_SRC, "Pages/Code/Repository/Settings.tsx")),
+      ).toContain("title: limitCopy.maxFieldTitle,");
     });
 
     it("keeps set values, says what 0 does and how to get the old limits back", () => {

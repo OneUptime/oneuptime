@@ -228,7 +228,7 @@ beforeEach(() => {
     .spyOn(RunnerService, "findOneBy")
     .mockImplementation(standInFor("Runner") as never);
   jest
-    .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+    .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
     .mockImplementation(
       async (runner: { id?: ObjectID | null | undefined }) => {
         const row: RegistryRow | undefined = registry.get(

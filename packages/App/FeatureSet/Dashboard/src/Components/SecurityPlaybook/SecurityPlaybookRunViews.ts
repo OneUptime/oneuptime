@@ -13,7 +13,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * They were three views along the top of one card (Waiting for Approval,
  * Running and All Runs). A run takes seconds unless a step holds it for an
  * approval, so "Running" listed the runs waiting for one; the two pages
- * left say what each list is for.
+ * left say what each list is for. The first is Approvals, the name that
+ * fits beside its count in the side menu at every width and in every
+ * language; a run held there still reads Waiting for Approval, its status.
  *
  * React-free so each page's query is pinned in a plain test.
  */
@@ -48,7 +50,7 @@ export const SECURITY_PLAYBOOK_RUN_VIEWS: ReadonlyArray<SecurityPlaybookRunView>
     {
       key: "waiting",
       page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-      title: translationKey("Waiting for Approval"),
+      title: translationKey("Approvals"),
       description: translationKey(
         "Runs held before a step that needs approval. Approving carries the run on from that step; rejecting ends it.",
       ),

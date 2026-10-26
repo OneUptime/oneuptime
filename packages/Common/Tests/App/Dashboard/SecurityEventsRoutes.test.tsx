@@ -21,7 +21,7 @@ import {
  * What it pins: every tab of before is a page at the address it had; the
  * case queue's old address opens Open Cases and its other pages sit one
  * level down, beside a case's own page, which still opens for a case id;
- * the runs page's old address opens Waiting for Approval and every run is
+ * the runs page's old address opens Approvals and every run is
  * one level down; Monitors still opens Monitors.
  *
  * A case's pages: its address still opens the case - its Overview, now

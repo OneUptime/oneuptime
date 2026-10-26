@@ -5470,6 +5470,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               title={getCardHeaderTitle(
                 getCardTitle(props.cardProps.title || ""),
               )}
+              /*
+               * The title above is drawn with its plan's badge: its words,
+               * for its place in a page's More settings.
+               */
+              titleText={
+                props.cardProps.titleText ||
+                (typeof props.cardProps.title === "string"
+                  ? props.cardProps.title
+                  : undefined)
+              }
             >
               {/*
                * A viewer's layout can never empty this out — applyColumnPreference

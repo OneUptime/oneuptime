@@ -12,6 +12,10 @@ import {
   decideRunnerByDefaultOrder,
 } from "Common/Types/Runner/RunnerChoice";
 import { canGlobalRunnersRunStepType } from "Common/Types/Runner/GlobalRunnerWork";
+import {
+  CodeRepositoryRunnerChoiceKind,
+  decideCodeRepositoryRunner,
+} from "Common/Types/Runner/CodeRepositoryRunner";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { ProjectDefaultRunnerCopy } from "../../../FeatureSet/Dashboard/src/Components/Runner/ProjectDefaultRunnerCopy";
 import {
@@ -126,7 +130,7 @@ describe("the project's default Runner on runbooks/agents", () => {
   it("has a section of its own, on the page's cards, that the other runbook pages link to", () => {
     expect(anchorsOf("en", "runbooks/agents").has(ANCHOR)).toBe(true);
     expect(AGENTS).toContain(
-      `- [${HEADING}](#${ANCHOR}): The Runner a step runs on when it picks none.`,
+      `- [${HEADING}](#${ANCHOR}): The Runner a step or a code repository works on when it picks none.`,
     );
 
     for (const [page, markdown] of [
@@ -259,10 +263,39 @@ describe("the project's default Runner on runbooks/agents", () => {
     expect(RUNNER_MODEL).toContain('title: "Runs Runbooks"');
   });
 
-  it("says only runbook steps use the default", () => {
+  /*
+   * A code repository that picks no Runner follows the default, as a step
+   * does (Common/Types/Runner/CodeRepositoryRunner), and moves with it: its
+   * Runner is read from the project each time, never copied in. An AI rule
+   * keeps the Runner it was created on.
+   */
+  it("says runbook steps and code repositories that pick no Runner use the default and move with it, and an AI rule picks its own", () => {
+    const defaultRunnerId: string = "6c4a9f3e-2b1d-4e8a-9f7c-1d2e3f4a5b6c";
+    const nextDefaultRunnerId: string = "0b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e";
+
+    for (const projectDefaultRunnerId of [
+      defaultRunnerId,
+      nextDefaultRunnerId,
+    ]) {
+      expect(
+        decideCodeRepositoryRunner({
+          repositoryRunnerId: null,
+          projectDefaultRunnerId: projectDefaultRunnerId,
+          projectUsesGlobalRunners: true,
+        }),
+      ).toEqual({
+        kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+        runnerId: projectDefaultRunnerId,
+      });
+    }
+
     expect(SECTION).toContain(
-      "Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an AI rule picks its own.",
+      "Every runbook step that picks no Runner then runs on it: Bash, SSH and kubectl steps, and JavaScript steps, which would otherwise run on a global Runner. So does AI in every code repository that picks no Runner in its settings in Code.",
     );
+    expect(SECTION).toContain(
+      "Runbook steps and code repositories that pick no Runner use the default, and move with it when another Runner becomes the default. An AI rule picks its own Runner, and a new rule starts on the default.",
+    );
+    expect(SECTION).not.toContain("Only runbook steps use the default.");
   });
 });
 

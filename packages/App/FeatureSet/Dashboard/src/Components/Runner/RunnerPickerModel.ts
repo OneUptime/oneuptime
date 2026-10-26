@@ -1,3 +1,7 @@
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "Common/Types/CodeRepository/CodeHost";
 import RunnerLiveStatus from "Common/Types/Runner/RunnerLiveStatus";
 import { canGlobalRunnersRunStepType } from "Common/Types/Runner/GlobalRunnerWork";
 import {
@@ -211,6 +215,80 @@ export const CODE_OWN_RUNNER_HELPER_TEXT: string = translationKey(
   "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
 );
 
+/*
+ * The same three lines on a GitLab repository, in GitLab's word - a merge
+ * request (CodeHost's pullRequestTerm), as its Merge Requests card says -
+ * and on a Git server, where AI pushes a branch and opens no pull request
+ * (no CodeHostCapability.PullRequests), as its Branches card says.
+ */
+export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST: string =
+  translationKey(
+    "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.",
+  );
+
+export const CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST: string =
+  translationKey(
+    "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the merge request opens.",
+  );
+
+export const CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST: string = translationKey(
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the merge request.",
+);
+
+export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH: string =
+  translationKey(
+    "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.",
+  );
+
+export const CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH: string = translationKey(
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the branch is pushed.",
+);
+
+export const CODE_OWN_RUNNER_HELPER_TEXT_BRANCH: string = translationKey(
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and pushes its branch.",
+);
+
+/*
+ * A code repository's Runner lines in its host's words: what AI's work
+ * becomes there - a pull request, a merge request on GitLab, or a branch
+ * pushed to a Git server.
+ */
+export interface CodeRepositoryRunnerWords {
+  // Under "Global Runner" in the picker's menu and on the Runner card.
+  globalRunnerDescription: string;
+  // Under the picker while the repository works on the Global Runner.
+  globalRunnerHelperText: string;
+  // Under the picker on one of the project's own Runners.
+  ownRunnerHelperText: string;
+}
+
+export function getCodeRepositoryRunnerWords(
+  provider: string | null | undefined,
+): CodeRepositoryRunnerWords {
+  if (!CodeHost.can(provider, CodeHostCapability.PullRequests)) {
+    return {
+      globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+      globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+      ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+    };
+  }
+
+  if (CodeHost.getFacts(provider).pullRequestTerm === "merge request") {
+    return {
+      globalRunnerDescription:
+        CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+      globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+      ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+    };
+  }
+
+  return {
+    globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT,
+    ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT,
+  };
+}
+
 // Under a code repository's picker in a project that turned global Runners off.
 export const CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(
   "This project does not use global Runners: pick one of your Runners for this repository.",
@@ -239,6 +317,15 @@ export const CODE_HIDDEN_RUNNER_HELPER_TEXT: string = translationKey(
 // Under a code repository's picker that picked none, on a server with no global Runner.
 export const CODE_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
   "This server runs no global Runner: pick one of your Runners for this repository.",
+);
+
+/*
+ * Under a code repository's picker on the project's default Runner, which
+ * a repository that picks none follows: where AI works, and that it moves
+ * with the default (Common/Types/Runner/CodeRepositoryRunner).
+ */
+export const CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT: string = translationKey(
+  "AI works on the project's default Runner, and moves with it when another Runner becomes the default. It builds and tests its change there the way the repository's AGENTS.md says.",
 );
 
 /*
@@ -498,18 +585,14 @@ export function offersGlobalRunner(
 }
 
 /*
- * The project's default Runner, for a runbook step and an auto remediation
- * rule: the project Runner the loader marked as the default. A step that
- * picks none runs on it; a new rule starts on it, and keeps it as its own
- * pick. Never for a code repository, which picks by its own rule.
+ * The project's default Runner: the project Runner the loader marked as
+ * the default. A step and a code repository that pick none run on it
+ * (Common/Types/Runner/RunnerChoice, CodeRepositoryRunner); a new rule
+ * starts on it, and keeps it as its own pick.
  */
 export function getProjectDefaultRunner(
   facts: Pick<RunnerPickerFacts, "work" | "projectRunners">,
 ): RunnerPickerRunner | undefined {
-  if (facts.work === RunnerPickerWork.CodeRepository) {
-    return undefined;
-  }
-
   return facts.projectRunners.find((runner: RunnerPickerRunner): boolean => {
     return runner.isProjectDefault === true;
   });
@@ -645,51 +728,126 @@ function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
   };
 }
 
-// The picker of a code repository.
+/*
+ * The picker of a code repository, in the order a step's lists its choices
+ * (Common/Types/Runner/CodeRepositoryRunner, the default order):
+ *
+ *   - the first choice - what a repository that picks none runs on - the
+ *     project's default Runner, tagged, or the Global Runner while the
+ *     project has no default; stored as none (PROJECT_DEFAULT_CHOICE_VALUE),
+ *     so the repository follows the default when it changes;
+ *   - the Global Runner as a choice of its own beside a default
+ *     (GLOBAL_RUNNER_PICK_VALUE: CodeRepository.isGlobalRunnerPicked), which
+ *     never follows the default;
+ *   - a pick the reader may not see, then the project's other Runners.
+ *
+ * `currentRunnerId` is what the repository stores, read as one value
+ * (getCodeRepositoryRunnerChoice): a Runner's id, GLOBAL_RUNNER_PICK_VALUE,
+ * or "" for none. A pick of the default Runner itself reads as the first
+ * choice, which is that Runner, as a step's does.
+ */
 function buildRepositoryModel(facts: RunnerPickerFacts): RunnerPickerModel {
   const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
+  const picksGlobalRunner: boolean = isGlobalRunnerChoice(currentRunnerId);
+  const defaultRunner: RunnerPickerRunner | undefined =
+    getProjectDefaultRunner(facts);
   const isGlobalOffered: boolean = offersGlobalRunner(facts);
+  const globalLiveStatus: RunnerLiveStatus = getGlobalRunnersLiveStatus(
+    facts.globalRunners,
+  );
 
-  // The first choice: the global Runners where they run the work.
-  const globalOption: RunnerPickerOption | undefined = isGlobalOffered
+  // The first choice: the project's default, or the global Runners.
+  const defaultOption: RunnerPickerOption | undefined = defaultRunner
     ? {
-        value: GLOBAL_RUNNER_CHOICE_VALUE,
-        kind: RunnerPickerOptionKind.Global,
-        name: GLOBAL_RUNNER_CHOICE_LABEL,
-        liveStatus: getGlobalRunnersLiveStatus(facts.globalRunners),
+        value: PROJECT_DEFAULT_CHOICE_VALUE,
+        kind: RunnerPickerOptionKind.ProjectDefault,
+        name: defaultRunner.name,
+        liveStatus: defaultRunner.liveStatus,
+        runnerId: defaultRunner.id,
       }
-    : undefined;
+    : isGlobalOffered
+      ? {
+          value: PROJECT_DEFAULT_CHOICE_VALUE,
+          kind: RunnerPickerOptionKind.Global,
+          name: GLOBAL_RUNNER_CHOICE_LABEL,
+          liveStatus: globalLiveStatus,
+        }
+      : undefined;
 
-  const projectOptions: Array<RunnerPickerOption> =
-    facts.projectRunners.map(toProjectOption);
+  // The Global Runner beside the project's default: a choice of its own.
+  const globalOption: RunnerPickerOption | undefined =
+    defaultRunner && isGlobalOffered
+      ? {
+          value: GLOBAL_RUNNER_PICK_VALUE,
+          kind: RunnerPickerOptionKind.Global,
+          name: GLOBAL_RUNNER_CHOICE_LABEL,
+          liveStatus: globalLiveStatus,
+        }
+      : undefined;
 
-  const currentProjectOption: RunnerPickerOption | undefined = currentRunnerId
-    ? projectOptions.find((option: RunnerPickerOption): boolean => {
-        return sameId(option.value, currentRunnerId);
-      })
-    : undefined;
+  // The option that stands for the Global Runner, whichever it is.
+  const globalChoice: RunnerPickerOption | undefined =
+    defaultOption?.kind === RunnerPickerOptionKind.Global
+      ? defaultOption
+      : globalOption;
+
+  // The project's own Runners; the default is the first choice already.
+  const projectOptions: Array<RunnerPickerOption> = facts.projectRunners
+    .filter((runner: RunnerPickerRunner): boolean => {
+      return runner !== defaultRunner;
+    })
+    .map(toProjectOption);
+
+  const pickedRunnerId: string = picksGlobalRunner ? "" : currentRunnerId;
+
+  const picksTheDefault: boolean = Boolean(
+    pickedRunnerId && defaultRunner && sameId(defaultRunner.id, pickedRunnerId),
+  );
+
+  const currentProjectOption: RunnerPickerOption | undefined =
+    pickedRunnerId && !picksTheDefault
+      ? projectOptions.find((option: RunnerPickerOption): boolean => {
+          return sameId(option.value, pickedRunnerId);
+        })
+      : undefined;
 
   // A pick that names one global Runner is on the global Runners.
   const namesGlobalRunner: boolean =
-    Boolean(currentRunnerId) &&
+    Boolean(pickedRunnerId) &&
     facts.globalRunners.some((runner: { id?: string | undefined }): boolean => {
-      return sameId(runner.id, currentRunnerId);
+      return sameId(runner.id, pickedRunnerId);
     });
 
   const unknownOption: RunnerPickerOption | undefined =
-    currentRunnerId && !currentProjectOption && !namesGlobalRunner
+    pickedRunnerId &&
+    !picksTheDefault &&
+    !currentProjectOption &&
+    !namesGlobalRunner
       ? {
-          value: currentRunnerId,
+          value: pickedRunnerId,
           kind: RunnerPickerOptionKind.Unknown,
-          name: currentRunnerId,
+          name: pickedRunnerId,
         }
       : undefined;
 
   const options: Array<RunnerPickerOption> = [
+    ...(defaultOption ? [defaultOption] : []),
     ...(globalOption ? [globalOption] : []),
     ...(unknownOption ? [unknownOption] : []),
     ...projectOptions,
   ];
+
+  // A pick of the default Runner itself reads as the first choice.
+  if (picksTheDefault && defaultOption && defaultRunner) {
+    return {
+      options,
+      selected: defaultOption,
+      outcome: RunnerPickerOutcome.ProjectRunner,
+      willRun: true,
+      pickedGlobalRunner: false,
+      runnerId: defaultRunner.id,
+    };
+  }
 
   if (currentProjectOption) {
     return {
@@ -713,13 +871,31 @@ function buildRepositoryModel(facts: RunnerPickerFacts): RunnerPickerModel {
     };
   }
 
-  if (globalOption) {
+  // Picked none: the project's default Runner, while it has one.
+  if (
+    !picksGlobalRunner &&
+    !namesGlobalRunner &&
+    defaultOption &&
+    defaultRunner
+  ) {
     return {
       options,
-      selected: globalOption,
-      outcome: RunnerPickerOutcome.GlobalRunner,
+      selected: defaultOption,
+      outcome: RunnerPickerOutcome.ProjectDefaultRunner,
       willRun: true,
       pickedGlobalRunner: false,
+      runnerId: defaultRunner.id,
+    };
+  }
+
+  // On the global Runners: picked them, or the project has no default.
+  if (globalChoice) {
+    return {
+      options,
+      selected: globalChoice,
+      outcome: RunnerPickerOutcome.GlobalRunner,
+      willRun: true,
+      pickedGlobalRunner: picksGlobalRunner && Boolean(defaultRunner),
       runnerId: "",
     };
   }
@@ -733,7 +909,7 @@ function buildRepositoryModel(facts: RunnerPickerFacts): RunnerPickerModel {
         ? RunnerPickerOutcome.GlobalRunnersOff
         : RunnerPickerOutcome.NoGlobalRunner,
     willRun: false,
-    pickedGlobalRunner: false,
+    pickedGlobalRunner: picksGlobalRunner,
     runnerId: "",
   };
 }

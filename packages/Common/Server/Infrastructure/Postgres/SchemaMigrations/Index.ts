@@ -197,6 +197,8 @@ import { AddLogAiSwitch1807350000000 } from "./1807350000000-AddLogAiSwitch";
 import { AddMetricAiSwitch1807400000000 } from "./1807400000000-AddMetricAiSwitch";
 import { AddBackups1807450000000 } from "./1807450000000-AddBackups";
 import { AddSecurityEntityRisk1807600000000 } from "./1807600000000-AddSecurityEntityRisk";
+import { AddCodeRepositoryGlobalRunnerPick1807700000000 } from "./1807700000000-AddCodeRepositoryGlobalRunnerPick";
+import { KeepCodeRepositoriesOnGlobalRunners1807710000000 } from "./1807710000000-KeepCodeRepositoriesOnGlobalRunners";
 import { MakeMonitorTemplateDescriptionOptional1807730000000 } from "./1807730000000-MakeMonitorTemplateDescriptionOptional";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1597,5 +1599,7 @@ export default [
   AddMetricAiSwitch1807400000000,
   AddBackups1807450000000,
   AddSecurityEntityRisk1807600000000,
+  AddCodeRepositoryGlobalRunnerPick1807700000000,
+  KeepCodeRepositoriesOnGlobalRunners1807710000000,
   MakeMonitorTemplateDescriptionOptional1807730000000,
 ];

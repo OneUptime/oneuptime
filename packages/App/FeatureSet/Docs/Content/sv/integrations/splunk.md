@@ -78,6 +78,7 @@ Varje rad som sökningen returnerar blir en Detection Finding-händelse (OCSF-kl
 | `status_label`, annars `status_description`, annars namnet på den granskningsstatus som `status` innehåller | Status |
 | `annotations.mitre_attack`, och fält som `mitre_technique_id` och `mitre_tactic` | MITRE ATT&CK-taktiker och -tekniker |
 | `user` eller `src_user`; `src`, `src_ip` eller `src_host`; `process`, `process_name` eller `parent_process` | Aktörens användare, IP, värd och process |
+| `process_name` eller `process_exec`, `process_path` och `process`; `parent_process_name` eller `parent_process_exec`, `parent_process_path` och `parent_process` | Processens namn, sökväg och kommandorad; den överordnade processens namn, sökväg och kommandorad |
 | `dest_user`; `dest`, `dest_ip` eller `dest_host`; `dest_port` | Målets användare, IP, värd och port |
 | `file_path`, `url` eller `risk_object` | Målresurs |
 | Varje användare, värd och IP, plus `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` och `risk_object` | Observables |

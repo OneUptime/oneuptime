@@ -64,10 +64,12 @@ export interface CodeFixCredentialCheck {
  *     them on the code-fix protocol too — so the protocol must accept them.
  *
  * The Runner path is also where a Runner's code-fix capability is
- * enforced: a project's Runner takes code-fix work exactly while a code
- * repository of its project picks it (its Runner setting in Code;
- * CodeRepositoryRunnerChoice.isRunnerPickedByARepository). One no
- * repository picks authenticates like any other invalid credential — it
+ * enforced: a project's Runner takes code-fix work exactly while AI works
+ * in a code repository of its project on it - a repository picks it (its
+ * Runner setting in Code), or it is the project's default Runner and a
+ * repository that picks none follows it
+ * (CodeRepositoryRunnerChoice.doesRunnerWorkInARepository). One no
+ * repository works on authenticates like any other invalid credential — it
  * cannot claim work, fetch task data, or mint repository tokens, no matter
  * what its container env vars say.
  *
@@ -252,7 +254,7 @@ export default class CodeFixAgentAuth {
       runner &&
       runner.id &&
       !RunnerServiceClass.isKubernetesAgentRunnerRow(runner) &&
-      (await CodeRepositoryRunnerChoice.isRunnerPickedByARepository(runner))
+      (await CodeRepositoryRunnerChoice.doesRunnerWorkInARepository(runner))
     ) {
       return {
         identity: {

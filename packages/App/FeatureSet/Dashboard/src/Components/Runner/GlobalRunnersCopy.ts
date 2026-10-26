@@ -120,13 +120,13 @@ export const GlobalRunnersCopy: {
     "JavaScript steps and code repositories that pick no Runner stop running until they pick one of yours. Work queued for a global Runner will not run.",
   ),
   switchOnDescriptionWithDefault: translationKey(
-    "JavaScript steps that pick Global Runner, and code repositories that pick no Runner, run on a global Runner.",
+    "JavaScript steps and code repositories that pick Global Runner run on a global Runner.",
   ),
   switchOffDescriptionWithDefault: translationKey(
-    "Every step and code repository runs on one of your Runners: steps that pick none run on the project default.",
+    "Every step and code repository runs on one of your Runners: those that pick none run on the project default.",
   ),
   turnOffDescriptionWithDefault: translationKey(
-    "JavaScript steps that pick Global Runner, and code repositories that pick no Runner, stop running until they pick one of yours.",
+    "JavaScript steps and code repositories that pick Global Runner stop running until they pick one of yours.",
   ),
   turnOffButton: translationKey("Stop Using Global Runners"),
 };

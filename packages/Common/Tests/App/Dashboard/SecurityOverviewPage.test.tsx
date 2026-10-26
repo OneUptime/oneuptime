@@ -1461,7 +1461,7 @@ describe("a project with Security set up", () => {
     /*
      * The queue's views and the runs' views are pages of their own: the
      * cases assigned to you open Assigned to Me, the ones nobody has
-     * picked up open Unassigned, the held steps open Waiting for Approval.
+     * picked up open Unassigned, the held steps open Approvals.
      */
     answerStatus(status({ ...SET_UP, openCases: 3 }));
     answerOverview(

@@ -43,7 +43,7 @@ export interface ComponentProps extends PageComponentProps {
 
 /*
  * The playbook runs of the project, newest first, as two pages under
- * Playbooks: Waiting for Approval, the runs a step holds until a person
+ * Playbooks: Approvals, the runs a step holds until a person
  * decides - they do nothing until somebody does - and Playbook Runs, every
  * run, to read back what each playbook did.
  */

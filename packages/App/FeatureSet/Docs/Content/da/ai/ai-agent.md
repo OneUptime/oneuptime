@@ -68,7 +68,7 @@ En opgaves side er en samtale: hvad der blev spurgt om, og den tilføjede kontek
 | **Mislykkedes** | Turen kunne ikke gøres færdig og siger hvorfor. **Prøv igen** beder om det samme igen. |
 | **Stoppet** | Nogen stoppede den. **Prøv igen** beder om det samme igen. |
 
-For at følge op skriver du i feltet nederst, som bliver synligt, mens samtalen ruller: svar AI, tilføj kontekst, eller bed om ændringer. Hvert svar er den næste tur i samme opgave: den arbejder på samme branch og pusher til samme pull request, så længe den er åben. En opgave tager én tur ad gangen, så feltet venter, mens AI arbejder. Hver turs **Log** er den ordrette optegnelse af, hvad den gjorde.
+For at følge op skriver du i feltet nederst, som bliver synligt, mens samtalen ruller: svar AI, tilføj kontekst, eller bed om ændringer. Hvert svar er den næste tur i samme opgave: den arbejder på samme branch og pusher til samme pull request, så længe den er åben. En opgave tager én tur ad gangen, så feltet venter, mens AI arbejder. Hver turs **Log** er den ordrette optegnelse af, hvad den gjorde. På en opgave med mere end én tur skifter en vælger øverst på siden **Log** mellem dens ture.
 
 Den, der kan læse et repositorie, læser dets opgaver. At bede AI om noget, svare og stoppe en opgave kræver tilladelse til at redigere repositoriet, og det samme gør det at se en ændrings diff: alle andre ser, hvilke filer der er ændret. Opgaverne, OneUptime selv starter (nedenfor), står også i deres repositorie, som samtaler, du kan svare i.
 
@@ -77,17 +77,18 @@ Den, der kan læse et repositorie, læser dets opgaver. At bede AI om noget, sva
 ```mermaid title="Fra et klik til en pull request"
 flowchart TB
     S["En anmodning, en<br/>knap eller en udløser"] --> Q["En rettelsesopgave<br/>sættes i kø"]
-    Q --> R["En Runner, der kører<br/>AI-koderettelser,<br/>tager den"]
+    Q --> R["Repositoriets<br/>Runner tager den"]
     R --> C["Den kloner repositoriet<br/>og laver en branch"]
     C --> A["Kodeagenten<br/>skriver ændringen"]
-    A --> V["Setup-, build- og<br/>testkommandoer<br/>kontrollerer den"]
+    A -->|"på din egen Runner"| V["Den bygger og tester<br/>ændringen, som<br/>AGENTS.md siger"]
     V -->|"en fejl"| A
     V --> P["Commit, push og<br/>åbn en pull request"]
+    A -->|"på Global Runner"| P
     P --> H["En person gennemgår<br/>og merger den"]
 ```
 
 1. Du klikker på **Start opgave** i Kode, eller på **Ret med AI** på en uløst undtagelse, eller en anden knap eller udløser starter en opgave (se [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter)).
-2. Opgaven sættes i kø på sit repositorie, og den Runner, som repositoriet vælger, tager den: en af dine Runnere, eller en global Runner, når det ikke vælger nogen (se [Vælg repositoriets Runner](#vælg-repositoriets-runner)).
+2. Opgaven sættes i kø på sit repositorie, og den Runner, som repositoriet arbejder på, tager den: den, det vælger, ellers projektets standard-Runner, ellers en global Runner (se [Vælg repositoriets Runner](#vælg-repositoriets-runner)).
 3. Runneren henter opgavens kontekst. For en anmodning er det dens ord, den tilføjede kontekst og samtalen indtil nu; for en undtagelse dens type, dens meddelelse og dens stack trace.
 4. Den kloner repositoriet til sit eget arbejdsområde og laver en branch. En rettelse af en undtagelse hedder `oneuptime-fix-exception-` efterfulgt af de første tegn i kørslens id. En anmodning starter fra den branch, der blev valgt, da den blev stillet, og dens pull request åbnes mod den. Et svar arbejder i stedet på branchen for opgavens åbne pull request.
 5. En kodeagent, drevet af dit projekts LLM-udbyder, læser koden og skriver ændringen. OneUptime-serveren foretager LLM-kaldene, så Runneren aldrig har din udbyders API-nøgle, og hvert kald måles og vises i AI-loggene. En rettelse af en undtagelse, et langsomt spor eller en hændelse læser også fra produktionen, mens den arbejder: undtagelser, spor, logs og metrikker fra repositoriets tjenester (se [Produktionstelemetri i en rettelse](#produktionstelemetri-i-en-rettelse)).
@@ -175,7 +176,7 @@ Et repositorie beskriver, hvordan det bygges og testes, i en `AGENTS.md` i roden
 
 | Hvor AI arbejder | Hvad den gør med repositoriets build og tests |
 | --- | --- |
-| En af dine Runnere | Bygger og tester sin ændring, før pull requesten åbnes, retter det, der fejler, tjekker igen og skriver i sin opsummering, hvilke tjek den kørte. Hver kommando, den kører, får op til 2 minutter, uden Runnerens egne loginoplysninger i sit miljø. |
+| En af dine Runnere | Bygger og tester sin ændring, før pull requesten åbnes, retter det, der fejler, tjekker igen og skriver i sin opsummering, hvilke tjek den kørte. Hver kommando, den kører, får 2 minutter, eller op til 10 til en langsom installation, build eller testsuite, uden Runnerens egne loginoplysninger i sit miljø. |
 | **Global Runner** | Kører ingen kommando: den skriver ændringen og åbner pull requesten, og dit repositoriums egen CI tjekker den. |
 
 Intet fra en pull request, der kommer fra en fork, læses nogensinde som repositoriets instruktioner: en revision afviser sådan en pull request, og en gennemgang læser basisbranchen.
@@ -218,7 +219,7 @@ Indtil en udrulning leverer den, står der **Merget, venter på et deploy** ved 
 
 Kommandoer fra kommentarer og produktionsgennemgange kræver GitHub App, så indtil videre virker de kun i GitHub-repositorier, og repositoriets **Indstillinger** siger det.
 
-For GitLab, Forgejo eller Gitea angiver du serverens adresse (GitLab.com og Codeberg er udfyldt på forhånd) og tokenet og vælger så de repositorier, der skal forbindes: listen viser kun dem, tokenet kan pushe til, og når du forbinder flere senere, kan tokenet bruges igen. OneUptime tjekker hvert token hos dets server, før det gemmer det, gemmer det krypteret og viser det aldrig igen. Repositoriets **Indstillinger** viser dets server, kontoen og tokenets sidste tegn, med **Erstat adgangstoken**. Når serveren afviser et udløbet eller tilbagekaldt token, viser dets repositorier **Token afvist**, og AI holder op med at arbejde i dem, indtil en erstatning af tokenet forbinder hvert repositorie, der bruger det, igen.
+For GitLab, Forgejo eller Gitea angiver du serverens adresse (GitLab.com og Codeberg er udfyldt på forhånd) og tokenet og vælger så de repositorier, der skal forbindes: listen viser kun dem, tokenet kan pushe til, og når du forbinder flere senere, kan tokenet bruges igen. OneUptime tjekker hvert token hos dets server, før det gemmer det, gemmer det krypteret og viser det aldrig igen. Repositoriets **Indstillinger** viser dets server, kontoen og tokenets sidste tegn, med **Erstat adgangstoken**. Når serveren afviser et udløbet eller tilbagekaldt token, viser dets repositorier **Token afvist**, og AI holder op med at arbejde i dem, indtil en erstatning af tokenet forbinder hvert repositorie, der bruger det, igen. På et GitLab-repositorie siger indstillingerne merge requests, som GitLab gør: **Merge requests**, **AI-rettelses-merge requests** og **Maks. åbne rettelses-merge requests**.
 
 ### En Git-server på et privat netværk
 
@@ -233,7 +234,7 @@ En opgave kræver tre ting. Kodes anmodningsfelt og undtagelsens side **AI Assis
 | En LLM-udbyder | Intet at sætte op: et projekt uden egen udbyder bruger den globale udbyder, betalt af projektets AI-kreditter. En udbyder af din egen under **Projektindstillinger → AI → LLM-udbydere** går forud. | Sæt miljøvariablerne `GLOBAL_LLM_PROVIDER_*` én gang på serveren, eller føj en udbyder til projektet. |
 | Et repositorie forbundet via GitHub App | **Produkter → Kode**, derefter **Forbind GitHub**. Hvis appen allerede er installeret på GitHub-kontoen, så klik i stedet på **Forbind en eksisterende installation**: den bliver ikke forbundet af at installere den igen. Kræver Growth-planen. | Det samme, når din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
 | Eller et repositorie på GitLab, Forgejo eller Gitea eller enhver Git-server | **Repositorier** i Kode, derefter **Forbind repositorier** (se [Forbind et repositorie](#forbind-et-repositorie)). Kræver Growth-planen. | Det samme, uden en GitHub App at sætte op. |
-| En Runner, der kører AI-koderettelser | Intet at drive: et repositorie, der ikke vælger nogen, arbejder på OneUptimes globale Runnere. | Docker Compose-tjenesten `runner` eller Helm-chartets Runner (`runner.enabled`, slået til som standard) registrerer sig selv og kører AI-koderettelser i hvert repositorie, der ikke vælger nogen Runner. |
+| En Runner, der kører AI-koderettelser | Intet at drive: et repositorie, der ikke vælger nogen, arbejder på projektets standard-Runner eller, uden en, på OneUptimes globale Runnere. | Docker Compose-tjenesten `runner` eller Helm-chartets Runner (`runner.enabled`, slået til som standard) registrerer sig selv og kører AI-koderettelser i hvert repositorie, der arbejder på en global Runner. |
 
 På en selvhostet instans er den globale udbyder én blok i `config.env` (Docker Compose) eller i dine Helm-værdier. Til en selvhostet Ollama:
 
@@ -251,14 +252,14 @@ Du tilknytter ikke repositorier til tjenester. Når en opgave starter, finder On
 
 ### Vælg repositoriets Runner
 
-Hvert repositorie vælger den Runner, AI arbejder i det på: på dets side **Indstillinger** i Kode skal du åbne **Yderligere indstillinger**, klikke på **Rediger** på kortet **Runner** og vælge en. Et repositorie, som GitHub App importerer, starter på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), når projektet har en. Et repositorie, der ikke vælger nogen, arbejder på **Global Runner**, som OneUptime kører for alle projekter.
+Hvert repositorie vælger den Runner, AI arbejder i det på: på dets side **Indstillinger** i Kode skal du åbne **Yderligere indstillinger**, klikke på **Rediger** på kortet **Runner** og vælge en. Et repositorie, der ikke vælger nogen, arbejder på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), det første valg, markeret **Projektstandard**, og flytter med, når en anden Runner bliver standard. I et projekt uden standard-Runner arbejder det på **Global Runner**, som OneUptime kører for alle projekter. Vælg **Global Runner** for at holde et repositorie på den, mens projektet har en standard-Runner.
 
 | Runner | Hvad den gør med en opgave |
 | --- | --- |
 | **Global Runner** | Skriver ændringen og åbner pull requesten uden at bygge eller teste den: dit repositoriums egen CI tjekker ændringen. |
 | En af dine Runnere | Bygger og tester også ændringen, sådan som repositoriets `AGENTS.md` siger, på en vært, du styrer. |
 
-Kun den Runner, et repositorie vælger, får dets opgaver og et token til det. I et projekt, der slår **Brug globale Runnere** fra under **Runbooks → Runbook-agenter**, skal hvert repositorie bruge en af projektets egne Runnere. En Runners side viser de repositorier, der vælger den.
+Kun den Runner, et repositorie arbejder på, får dets opgaver og et token til det. I et projekt, der slår **Brug globale Runnere** fra under **Runbooks → Runbook-agenter**, skal hvert repositorie bruge en af projektets egne Runnere: den, det vælger, eller projektets standard-Runner. En Runners side viser de repositorier, der arbejder på den.
 
 ### Kør din egen Runner
 
@@ -317,11 +318,11 @@ Rettelsen kunne ikke anvendes, repositoriet eller den branch, en anmodning start
 :::
 
 :::details Runneren stopper midt i en kørsel
-En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, afsluttes med en fejl. Den sættes aldrig i kø igen af sig selv, fordi Runneren allerede kan have pushet en del af en rettelsesbranch; start den igen dér, hvor du startede den.
+En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, afsluttes med en fejl. Den sættes aldrig i kø igen af sig selv, fordi Runneren allerede kan have pushet en del af en rettelsesbranch; start den igen dér, hvor du startede den. En kommando, kodeagenten kører, holder heartbeatet i gang, mens den kører, så et langt build eller en lang testsuite ikke tages for en stoppet Runner.
 :::
 
 :::details Ingen Runner tager opgaven
-En opgave, der venter mere end 30 minutter, mens den Runner, der skal tage den, ikke er forbundet - den, dens repositorie vælger, eller en global Runner for et repositorie, der ikke vælger nogen - mislykkes med en besked, der siger hvilken, så den aldrig vises som i gang for evigt. Når en Runner er online, men optaget, venter opgaver i kø på deres tur. En Runner, der er ældre end Kode, får aldrig en anmodning fra Kode: opdater en Runner, du selv kører, sammen med serveren.
+En opgave, der venter mere end 30 minutter, mens den Runner, der skal tage den, ikke er forbundet - den, dens repositorie vælger, projektets standard-Runner for et repositorie, der ikke vælger nogen, eller en global Runner - mislykkes med en besked, der siger hvilken, så den aldrig vises som i gang for evigt. Når en Runner er online, men optaget, venter opgaver i kø på deres tur. En Runner, der er ældre end Kode, får aldrig en anmodning fra Kode: opdater en Runner, du selv kører, sammen med serveren.
 :::
 
 ## Privatliv

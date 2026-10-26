@@ -13,12 +13,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   FIX_PULL_REQUEST_LIMIT_ANSWERS,
-  FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
-  FIX_PULL_REQUEST_LIMIT_COPY,
   FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
-  FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
-  FIX_PULL_REQUEST_LIMIT_SHOWN,
   FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT,
+  FixPullRequestLimitCopy,
+  getFixPullRequestLimitCopy,
   FixPullRequestLimit,
   getFixPullRequestLimit,
   getPickedFixPullRequestLimit,
@@ -38,12 +36,19 @@ import {
   useCodeRepositoryRunnerChoices,
 } from "../../../Components/Code/CodeRepositoryRunner";
 import { RunnerChoices } from "../../../Components/Runner/RunnerChoices";
+import {
+  CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY,
+  CodeRepositoryRunnerColumns,
+  getCodeRepositoryRunnerChoice,
+  getCodeRepositoryRunnerColumns,
+} from "../../../Components/Code/CodeRepositoryRunnerChoice";
 import CodeRepositoryCommandsCard from "../../../Components/Code/CodeRepositoryCommandsCard";
 import {
   CODE_REPOSITORY_SETTINGS_COPY,
   CodeRepositorySetting,
   CodeRepositorySettingsValues,
   DEFAULT_GITHUB_TRIGGER_LABEL,
+  getPullRequestsCardCopy,
   getRepositoryMoreSettingsDescription,
   getRepositoryMoreSettingsItems,
   getRepositorySettingsFor,
@@ -209,6 +214,15 @@ const CodeRepositorySettings: FunctionComponent<
   const opensPullRequestsHere: boolean = !repositorySettings.includes(
     CodeRepositorySetting.Branches,
   );
+
+  /*
+   * The Pull Requests card in the host's word: Merge Requests on GitLab, as
+   * its tasks, their rows and the request box say merge request.
+   */
+  const pullRequestsCard: { title: string; description: string } =
+    getPullRequestsCardCopy(provider);
+  const limitCopy: FixPullRequestLimitCopy =
+    getFixPullRequestLimitCopy(provider);
 
   const rememberSettings: (item: CodeRepository) => void = (
     item: CodeRepository,
@@ -403,9 +417,14 @@ const CodeRepositorySettings: FunctionComponent<
         )}
 
         {/*
-         * Where AI works in the repository: the one Runner picker, with
-         * Global Runner first (empty), then the project's own Runners. Empty
-         * is Global Runner, an answer of its own, so it is not "(Optional)".
+         * Where AI works in the repository: the one Runner picker, with the
+         * project's default Runner first - the Global Runner while there is
+         * none - stored as no pick (empty), so the repository follows the
+         * default; then the Global Runner as a pick of its own beside a
+         * default, then the project's own Runners. Empty is an answer of its
+         * own, so it is not "(Optional)". One choice
+         * (CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY) writes the two columns
+         * it is stored in (CodeRepositoryRunnerChoice).
          */}
         <CardModelDetail<CodeRepository>
           name="Repository > Runner"
@@ -419,36 +438,99 @@ const CodeRepositorySettings: FunctionComponent<
           editModalTitle={CodeRepositoryRunnerCopy.fieldTitle}
           formFields={[
             {
-              field: {
+              overrideField: {
                 runnerId: true,
               },
+              overrideFieldKey: CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY,
+              formOnly: true,
               title: CodeRepositoryRunnerCopy.fieldTitle,
               description: CodeRepositoryRunnerCopy.fieldDescription,
               fieldType: FormFieldSchemaType.CustomComponent,
               required: false,
               hideOptionalLabel: true,
+              hideColumnDescription: true,
               dataTestId: "code-repository-runner",
+              getDefaultValue: (values: FormValues<CodeRepository>): string => {
+                return getCodeRepositoryRunnerChoice(values);
+              },
+              onChange: (
+                value: unknown,
+                currentValues: FormValues<CodeRepository>,
+                setNewFormValues: (values: FormValues<CodeRepository>) => void,
+              ): void => {
+                const columns: CodeRepositoryRunnerColumns =
+                  getCodeRepositoryRunnerColumns(value);
+
+                setNewFormValues({
+                  ...currentValues,
+                  runnerId: columns.runnerId,
+                  isGlobalRunnerPicked: columns.isGlobalRunnerPicked,
+                } as FormValues<CodeRepository>);
+              },
               getCustomElement: (
                 values: FormValues<CodeRepository>,
                 elementProps: CustomElementProps,
               ): ReactElement => {
+                const choice: unknown = (values as Record<string, unknown>)[
+                  CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY
+                ];
+
                 return (
                   <CodeRepositoryRunnerPicker
-                    value={values.runnerId}
+                    value={
+                      typeof choice === "string"
+                        ? choice
+                        : getCodeRepositoryRunnerChoice(values)
+                    }
                     ariaLabelledby={elementProps.ariaLabelledby}
-                    onChange={(runnerId: string | null): void => {
-                      elementProps.onChange?.(runnerId);
+                    provider={provider}
+                    onChange={(picked: string): void => {
+                      elementProps.onChange?.(picked);
                     }}
                   />
                 );
+              },
+            } as ModelField<CodeRepository>,
+            /*
+             * The two columns the choice writes: never drawn, here so that
+             * the form reads them and sends what was picked.
+             */
+            {
+              field: {
+                runnerId: true,
+              },
+              title: CodeRepositoryRunnerCopy.fieldTitle,
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              hideColumnDescription: true,
+              showIf: (): boolean => {
+                return false;
+              },
+            },
+            {
+              field: {
+                isGlobalRunnerPicked: true,
+              },
+              title: CodeRepositoryRunnerCopy.fieldTitle,
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              hideColumnDescription: true,
+              showIf: (): boolean => {
+                return false;
               },
             },
           ]}
           modelDetailProps={{
             modelType: CodeRepository,
             id: "model-detail-code-repository-runner",
+            selectMoreFields: {
+              isGlobalRunnerPicked: true,
+            },
             onItemLoaded: (item: CodeRepository): void => {
-              remember({ runnerId: getRepositoryRunnerId(item.runnerId) });
+              remember({
+                runnerId: getRepositoryRunnerId(item.runnerId),
+                isGlobalRunnerPicked: item.isGlobalRunnerPicked === true,
+              });
             },
             fields: [
               /*
@@ -464,6 +546,8 @@ const CodeRepositorySettings: FunctionComponent<
                   return (
                     <CodeRepositoryRunnerValueView
                       runnerId={item.runnerId}
+                      isGlobalRunnerPicked={item.isGlobalRunnerPicked}
+                      provider={provider}
                       choices={runnerChoices}
                     />
                   );
@@ -489,10 +573,10 @@ const CodeRepositorySettings: FunctionComponent<
           }
           cardProps={{
             title: opensPullRequestsHere
-              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle
+              ? pullRequestsCard.title
               : CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle,
             description: opensPullRequestsHere
-              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription
+              ? pullRequestsCard.description
               : CODE_REPOSITORY_SETTINGS_COPY.branchesCardDescription,
             id: opensPullRequestsHere
               ? CodeRepositorySetting.PullRequests
@@ -502,7 +586,7 @@ const CodeRepositorySettings: FunctionComponent<
           editButtonText="Edit"
           editModalTitle={
             opensPullRequestsHere
-              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle
+              ? pullRequestsCard.title
               : CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle
           }
           formFields={[
@@ -532,15 +616,14 @@ const CodeRepositorySettings: FunctionComponent<
                     },
                     overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
                     formOnly: true,
-                    title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+                    title: limitCopy.fieldTitle,
                     fieldType: FormFieldSchemaType.RadioButton,
                     radioButtonOptions: FIX_PULL_REQUEST_LIMIT_ANSWERS.map(
                       (limit: FixPullRequestLimit) => {
                         return {
                           value: limit,
-                          title: FIX_PULL_REQUEST_LIMIT_COPY[limit].title,
-                          description:
-                            FIX_PULL_REQUEST_LIMIT_COPY[limit].description,
+                          title: limitCopy.answers[limit].title,
+                          description: limitCopy.answers[limit].description,
                         };
                       },
                     ),
@@ -579,7 +662,7 @@ const CodeRepositorySettings: FunctionComponent<
                     field: {
                       maxOpenFixPullRequests: true,
                     },
-                    title: "Max Open Fix Pull Requests",
+                    title: limitCopy.maxFieldTitle,
                     description: "How many may be open at once.",
                     fieldType: FormFieldSchemaType.Number,
                     showIf: (values: FormValues<CodeRepository>): boolean => {
@@ -634,8 +717,8 @@ const CodeRepositorySettings: FunctionComponent<
                        * Named as the Edit form's choice is, and shown as its
                        * answer: No limit, Up to 3 open at once, or None.
                        */
-                      title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
-                      description: FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
+                      title: limitCopy.fieldTitle,
+                      description: limitCopy.cardDescription,
                       fieldType: FieldType.Element,
                       getElement: (item: CodeRepository): ReactElement => {
                         const limit: FixPullRequestLimit =
@@ -653,7 +736,7 @@ const CodeRepositorySettings: FunctionComponent<
                                   },
                                 )
                               : translator.translateText(
-                                  FIX_PULL_REQUEST_LIMIT_SHOWN[limit],
+                                  limitCopy.shown[limit],
                                 )}
                           </span>
                         );
