@@ -226,10 +226,14 @@ test.describe("Profiler → AI → Settings", () => {
 
     await expect(advanced).toBeVisible({ timeout: 60000 });
     await advanced.getByRole("button", { name: /More settings/ }).click();
-    // The card's own button (with no rule, the empty table offers it too).
+    /*
+     * The card's own button (with no rule, the empty table offers it too),
+     * by its name: on a phone it says only Create and keeps its whole
+     * title as its name.
+     */
     await page
       .getByTestId("card-button")
-      .filter({ hasText: "Create AI Rule" })
+      .and(page.getByRole("button", { name: "Create AI Rule" }))
       .click();
 
     const dialog: Locator = page.getByRole("dialog");
