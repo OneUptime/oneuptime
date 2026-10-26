@@ -73,6 +73,23 @@ a Runner of your own for those repositories in Code, or set
 {{- end }}
 {{- end }}
 {{- /*
+  The bundled global Runner is off. Global Runners also do the AI code fixes
+  of the code repositories on the Global Runner, which the shared Runner did
+  until the chart stopped running it, so an install that turned the global
+  Runner off gets none of those fixes now: this says so, and what to do
+  (tests/shared-runner-retired_test.yaml). replicaCount 0 turns it off as
+  enabled false does (the server removes its row).
+*/}}
+{{- if or (not .Values.globalRunner.enabled) (eq (int .Values.globalRunner.replicaCount) 0) }}
+
+The bundled global Runner is off ({{ if not .Values.globalRunner.enabled }}`globalRunner.enabled: false`{{ else }}`globalRunner.replicaCount: 0`{{ end }}).
+Global Runners also do the AI code fixes of the code repositories on the
+Global Runner, which the shared Runner did before the chart stopped running
+it, so those repositories get no AI code fixes from this chart now. Turn it
+back on, add a global Runner in the Admin Dashboard (Settings > Global
+Runners), or pick a Runner of your own for those repositories in Code.
+{{- end }}
+{{- /*
   Chart probes register with REGISTER_PROBE_KEY, so each one is a global probe
   shared by every project on the instance (issue #3879). Only probes that
   actually render a Deployment count, and only a value the probe will read as

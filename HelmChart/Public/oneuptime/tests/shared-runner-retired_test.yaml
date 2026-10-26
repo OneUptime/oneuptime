@@ -191,3 +191,69 @@ tests:
     asserts:
       - notMatchRegexRaw:
           pattern: "IGNORED VALUES: runner"
+
+  # An install that turned the global Runner off had its code fixes from the
+  # shared Runner (on by default) until now. With the shared Runner gone, the
+  # repositories on the Global Runner get none, so NOTES.txt says so, and what
+  # to do - whatever the values file says, or no longer says, about runner.
+  - it: tells an install that turned the global Runner off that the repositories on the Global Runner get no code fixes now
+    templates:
+      - templates/NOTES.txt
+    set:
+      globalRunner:
+        enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe bundled global Runner is off \\(`globalRunner\\.enabled: false`\\)\\.\\nGlobal Runners also do the AI code fixes of the code repositories on the\\nGlobal Runner, which the shared Runner did before the chart stopped running\\nit, so those repositories get no AI code fixes from this chart now\\."
+      - matchRegexRaw:
+          pattern: "Turn it\\nback on, add a global Runner in the Admin Dashboard \\(Settings > Global\\nRunners\\), or pick a Runner of your own for those repositories in Code\\."
+      # Nothing under runner: is in this values file.
+      - notMatchRegexRaw:
+          pattern: "IGNORED VALUES: runner"
+
+  - it: says the same of a global Runner turned off with replicaCount 0, and names that setting
+    templates:
+      - templates/NOTES.txt
+    set:
+      globalRunner:
+        replicaCount: 0
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe bundled global Runner is off \\(`globalRunner\\.replicaCount: 0`\\)\\.\\n"
+      - notMatchRegexRaw:
+          pattern: "`globalRunner\\.enabled: false`\\)\\.\\nGlobal Runners also do"
+
+  - it: says it beside the ignored runner block of an old values file that kept the shared Runner on
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner:
+        enabled: true
+      globalRunner:
+        enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - matchRegexRaw:
+          pattern: "\\nThe bundled global Runner is off \\(`globalRunner\\.enabled: false`\\)\\."
+
+  - it: says nothing of a global Runner turned off while it runs, as it does by default
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "The bundled global Runner is off"
+
+  - it: says nothing of it while KEDA scales a running global Runner
+    templates:
+      - templates/NOTES.txt
+    set:
+      keda:
+        enabled: true
+      globalRunner:
+        replicaCount: 2
+        keda:
+          enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "The bundled global Runner is off"

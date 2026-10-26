@@ -39,7 +39,6 @@ and several agents are collector configuration plus shell installers.
 | `app` | `packages/App`, `packages/Common`, `ee/` | The API (`/api`), sign-in and SSO (`/identity`), MCP (`/mcp`), workflows, notifications, telemetry ingestion (OTLP over HTTP and gRPC, Fluent, syslog, MQTT, Pyroscope, session replay), background workers, the docs, and every UI: Dashboard, Accounts, Admin Dashboard, Status Page, Public Dashboard. In Kubernetes the same image also runs as the `worker` and `telemetry-writer` roles. | Internet, through `ingress` |
 | `ingress` | `packages/Nginx` | nginx in front of everything: TLS, routing, custom domains for status pages and dashboards, and the ACME certificates for them. | Internet |
 | `probe-1` | `packages/Probe` | A global probe: runs monitors (HTTP, ping, port, DNS, SSL, SNMP, SQL, custom JavaScript, synthetic browser checks, ...) and reports results to `app` with a probe key. | Outbound to monitored targets |
-| `runner` | `packages/Runner` | Runs runbook steps (Bash, JavaScript, SSH, kubectl) and AI code fixes (clones a project's repository and opens pull requests), claimed from `app` with a runner key. Customers run their own Runner inside their network. | Outbound only |
 | `global-runner` | `packages/Runner` | The bundled global Runner: the Runner image started with a fixed id and its own key (`GLOBAL_RUNNER_KEY`), and nothing else (no cluster key, none of the server's settings). It runs the runbook JavaScript steps of every project that uses global Runners, each in its own isolated-vm sandbox that reaches public addresses only, and the AI code fixes of every repository on the Global Runner, each in its own workspace, written with the code agent's file tools alone: no repository command and no model-composed command ever runs on it. Never Bash, SSH or Kubernetes steps, a credential or an AI command. Any global Runner a master admin adds is held to the same. | Outbound only; Git servers on public addresses unless the installation is self-hosted |
 | `postgres` | schema in `packages/Common/Server/Infrastructure/Postgres` | Projects, users, configuration, incidents: everything but telemetry. | Internal only |
 | `clickhouse` | `Clickhouse/`, `packages/Common/Server/Utils/AnalyticsDatabase` | Telemetry: logs, traces, metrics, profiles, monitor results. | Internal only |
@@ -54,6 +53,12 @@ fixtures; `fluentd` and `fluent-bit` are example log shippers
 
 ### Outside the compose stack
 
+- **Runners** (`packages/Runner`) a project installs in its own network:
+  they run that project's runbook steps (Bash, JavaScript, SSH, kubectl) and
+  the AI code fixes of the repositories that pick them (clone the repository
+  and open pull requests), claimed from `app` with the Runner's own id and
+  key, outbound only. The `global-runner` service above is the same image,
+  which the server tells it is global.
 - **Agents** (`agents/`), installed in customers' infrastructure, each sending
   telemetry with a project's ingestion key: the Kubernetes agent (the
   `HelmChart/Public/kubernetes-agent` chart with `KubernetesLogTailer`,

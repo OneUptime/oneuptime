@@ -150,7 +150,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Runs JavaScript steps for every project.",
+            placeholder:
+              "Runs JavaScript steps and AI code fixes for every project.",
             // The column only said "Optional description for this agent".
             hideColumnDescription: true,
           },
