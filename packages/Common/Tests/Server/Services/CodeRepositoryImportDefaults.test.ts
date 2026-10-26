@@ -21,9 +21,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   - "Review Pull Requests Against Production" on - a pull request from
  *     someone with write access is reviewed against what production shows
  *     of the code it changes (on a public repository, as a link only);
- *   - the project's default Runner when it has one - a Runner of its own
- *     builds and tests a change before the pull request opens - and none
- *     otherwise, so a global Runner takes the work;
+ *   - no Runner of its own: it follows the project's default Runner - a
+ *     Runner of the project's own builds and tests a change before the pull
+ *     request opens - and a global Runner while the project has none
+ *     (Types/Runner/CodeRepositoryRunner). It used to start on a COPY of the
+ *     default, so a later default never moved it: the import writes no
+ *     Runner now, and reads no default at all;
  *   - nothing else: no limit on AI's fix pull requests, the "oneuptime"
  *     trigger label, no build or test command (the agent reads the
  *     repository's AGENTS.md).
@@ -118,8 +121,13 @@ describe("a repository the GitHub App imports starts with what most teams want",
       expect(repository.projectId?.toString()).toBe(projectId.toString());
       expect(repository.repositoryHostedAt).toBe(CodeRepositoryType.GitHub);
       expect(repository.gitHubAppInstallationId).toBe(INSTALLATION_ID);
-      // No Runner of the project's own picked: a global Runner works in it.
+      /*
+       * No Runner of its own, and not the Global Runner either: it follows
+       * the project's default Runner, and a global Runner while there is
+       * none.
+       */
       expect(repository.runnerId).toBeUndefined();
+      expect(repository.isGlobalRunnerPicked).toBeUndefined();
       // No limit on AI's pull requests, the default trigger label.
       expect(repository.maxOpenFixPullRequests).toBeUndefined();
       expect(repository.gitHubTriggerLabel).toBeUndefined();
@@ -134,9 +142,13 @@ describe("a repository the GitHub App imports starts with what most teams want",
     expect(checkout!.description).toBe("The checkout service.");
   });
 
-  test("a project with a default Runner: new repositories start on it", async () => {
-    const defaultRunnerId: ObjectID = ObjectID.generate();
-    defaultRunnerSpy.mockResolvedValue(defaultRunnerId.toString());
+  /*
+   * The default Runner is followed, not copied: a repository imported into
+   * a project with a default picks no Runner, so making another Runner the
+   * default later moves it too. The import never reads the default.
+   */
+  test("a project with a default Runner: new repositories follow it - no copy of it is written, and it is not read", async () => {
+    defaultRunnerSpy.mockResolvedValue(ObjectID.generate().toString());
 
     given({
       installation: [githubRepository("checkout"), githubRepository("web")],
@@ -148,36 +160,17 @@ describe("a repository the GitHub App imports starts with what most teams want",
     });
 
     expect(
-      created().map((repository: CodeRepository): string => {
-        return repository.runnerId?.toString() || "";
+      created().map((repository: CodeRepository): unknown => {
+        return [repository.runnerId, repository.isGlobalRunnerPicked];
       }),
-    ).toEqual([defaultRunnerId.toString(), defaultRunnerId.toString()]);
-
-    // Read once for the whole import, for the project being imported into.
-    expect(defaultRunnerSpy).toHaveBeenCalledTimes(1);
-    expect(defaultRunnerSpy.mock.calls[0]![0]!.toString()).toBe(
-      projectId.toString(),
-    );
+    ).toEqual([
+      [undefined, undefined],
+      [undefined, undefined],
+    ]);
+    expect(defaultRunnerSpy).not.toHaveBeenCalled();
   });
 
-  test("a default Runner that cannot be read leaves the repository on a global Runner - the import goes on", async () => {
-    defaultRunnerSpy.mockRejectedValue(new Error("database unavailable"));
-
-    given({ installation: [githubRepository("checkout")] });
-
-    await expect(
-      CodeRepositoryService.importReposFromInstallation({
-        projectId,
-        installationId: INSTALLATION_ID,
-      }),
-    ).resolves.toEqual({ imported: 1, reconnected: 0, skipped: 0 });
-
-    expect(created()[0]!.runnerId).toBeUndefined();
-    expect(created()[0]!.isGitHubCommandsEnabled).toBe(true);
-    expect(created()[0]!.isProductionReviewEnabled).toBe(true);
-  });
-
-  test("nothing to import: the project's default Runner is not even read", async () => {
+  test("nothing to import: nothing is created", async () => {
     given({
       installation: [githubRepository("checkout")],
       rows: [
@@ -232,43 +225,19 @@ describe("getNewRepositoryDefaults", () => {
     jest.restoreAllMocks();
   });
 
-  test("commands on, and the project's default Runner as an id", async () => {
-    const runnerId: string = ObjectID.generate().toString();
-    jest
-      .spyOn(GlobalRunnerChoice, "findProjectDefaultRunnerId")
-      .mockResolvedValue(runnerId);
+  test("commands on, production reviews on, and no Runner: where AI works is left to the project", () => {
+    const spy: jest.SpyInstance = jest.spyOn(
+      GlobalRunnerChoice,
+      "findProjectDefaultRunnerId",
+    );
 
     const defaults: NewRepositoryDefaults =
-      await CodeRepositoryServiceClass.getNewRepositoryDefaults(
-        ObjectID.generate(),
-      );
+      CodeRepositoryServiceClass.getNewRepositoryDefaults();
 
-    expect(defaults.isGitHubCommandsEnabled).toBe(true);
-    expect(defaults.isProductionReviewEnabled).toBe(true);
-    expect(defaults.runnerId?.toString()).toBe(runnerId);
-  });
-
-  test("no default Runner, or an id that is not one: no Runner", async () => {
-    const spy: jest.SpyInstance = jest
-      .spyOn(GlobalRunnerChoice, "findProjectDefaultRunnerId")
-      .mockResolvedValue("");
-
-    expect(
-      (
-        await CodeRepositoryServiceClass.getNewRepositoryDefaults(
-          ObjectID.generate(),
-        )
-      ).runnerId,
-    ).toBeNull();
-
-    spy.mockResolvedValue("not-a-runner-id");
-
-    expect(
-      (
-        await CodeRepositoryServiceClass.getNewRepositoryDefaults(
-          ObjectID.generate(),
-        )
-      ).runnerId,
-    ).toBeNull();
+    expect(defaults).toEqual({
+      isGitHubCommandsEnabled: true,
+      isProductionReviewEnabled: true,
+    });
+    expect(spy).not.toHaveBeenCalled();
   });
 });

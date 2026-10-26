@@ -80,34 +80,16 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
     getKubernetesAgentRunnerFormNote(formRestrictions);
 
   /*
-   * The code repositories that pick this Runner (AI works in them on it),
-   * read once: undefined while on their way, null when they cannot be read
-   * - by someone who may not read code repositories, or on a plan without
-   * Code - and then Runner Details has no row for them.
+   * The code repositories AI works in on this Runner - the ones that pick
+   * it, and the ones that follow it while it is the project's default -
+   * read once, and again when it becomes or stops being the default:
+   * undefined while on their way, null when they cannot be read - by
+   * someone who may not read code repositories, or on a plan without Code -
+   * and then Runner Details has no row for them.
    */
   const [codeRepositories, setCodeRepositories] = useState<
     Array<RunnerCodeRepositoryRow> | null | undefined
   >(undefined);
-
-  useEffect(() => {
-    let isMounted: boolean = true;
-
-    loadRunnerCodeRepositories(modelId)
-      .then((rows: Array<RunnerCodeRepositoryRow> | null) => {
-        if (isMounted) {
-          setCodeRepositories(rows);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setCodeRepositories(null);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [modelId.toString()]);
 
   const translator: Translator = useTranslator();
 
@@ -127,6 +109,26 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
    */
   const [defaultCandidate, setDefaultCandidate] = useState<Runner | null>(null);
   const [isProjectDefault, setIsProjectDefault] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    loadRunnerCodeRepositories(modelId, { isProjectDefault })
+      .then((rows: Array<RunnerCodeRepositoryRow> | null) => {
+        if (isMounted) {
+          setCodeRepositories(rows);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCodeRepositories(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [modelId.toString(), isProjectDefault]);
 
   const readProjectDefaultRunner: () => void = (): void => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();

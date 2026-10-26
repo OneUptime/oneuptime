@@ -5,7 +5,7 @@ En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten sj�
 :::cards
 - [Installera en Runner](#installera-en-runner): Från instrumentpanelen till en ansluten container i fem steg.
 - [Peka ett steg mot en Runner](#peka-ett-steg-mot-en-runner): Bind ett steg till den Runner som ska köra det.
-- [Projektets standard-Runner](#projektets-standard-runner): Den Runner som ett steg körs på när det inte väljer någon.
+- [Projektets standard-Runner](#projektets-standard-runner): Den Runner som ett steg eller ett kodrepository körs på när det inte väljer någon.
 - [Globala Runners](#globala-runners): De Runners som OneUptime kör för alla projekt, och vad de kör.
 - [Tidsgränser](#tidsgränser): Claim- och körningstidsgränser och hur de samverkar.
 - [Miljövariabler](#miljövariabler): Vad containern läser vid start.
@@ -70,7 +70,7 @@ En global Runner kör stegen från många projekt, så varje steg hålls åtskil
 - Den får en hemlig variabel bara när variabelns brytare **Globala Runners får använda den** är påslagen, och bara för ett steg i variabelns eget projekt.
 - Ett projekt kör högst tre steg åt gången på globala Runners, så inget projekt håller dem för sig själv.
 
-Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner körs då på projektets standard-Runner eller misslyckas, om ingen är angiven, och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
+Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner körs då på projektets standard-Runner eller misslyckas, om ingen är angiven, och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på projektets standard-Runner eller, om ingen är angiven, på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
 
 ### Var globala Runners kommer ifrån
 
@@ -156,7 +156,7 @@ Behöver du mer än en Runner? Skapa dem och peka varje steg mot rätt Runner. F
 
 ## Projektets standard-Runner
 
-Ett projekt kan göra en av sina egna Runners till sin standard, på samma sätt som det gör en Twilio-konfiguration till sin standard. Varje runbook-steg som inte väljer någon Runner körs då på den: Bash-, SSH- och kubectl-steg, och JavaScript-steg, som annars skulle köras på en global Runner.
+Ett projekt kan göra en av sina egna Runners till sin standard, på samma sätt som det gör en Twilio-konfiguration till sin standard. Varje runbook-steg som inte väljer någon Runner körs då på den: Bash-, SSH- och kubectl-steg, och JavaScript-steg, som annars skulle köras på en global Runner. Detsamma gäller AI i varje kodrepository som inte väljer någon Runner i sina inställningar i Kod.
 
 För att göra en Runner till standard går du till **Runbooks → Runbook-agenter**, öppnar menyn **⋯** på Runnerns rad, klickar på **Ange som projektstandard** och bekräftar med **Gör till projektstandard**. Eller öppna Runnern och slå på **Använd som projektstandard** på dess kort **Projektstandard**. Listan markerar standarden med **Projektstandard**, bredvid dess namn, och det gör även ett stegs rullgardinsmeny **Runner**, på dess första val. Ett projekt har en standard-Runner: att göra en annan Runner till standard ersätter den. **Sluta använda som projektstandard**, i samma meny, eller reglaget på Runnerns sida, slutar använda den.
 
@@ -172,7 +172,7 @@ Ett steg som har valt en Runner behåller den, vad standarden än är, och ett J
 
 Standarden är en av projektets egna Runners som kör runbook-steg: inte en global Runner, inte den Runner i klustret som Kubernetes-agenten installerade, och inte en med **Kör Runbooks** avstängt. Så länge en Runner är standarden förblir dess **Kör Runbooks** påslaget. När standarden inte är ansluten säger ett stegs rullgardinsmeny det, och ett steg på den väntar på den, som på vilken Runner som helst, tills dess claim timeout har gått.
 
-Bara runbook-steg använder standarden. Ett kodrepository väljer sin Runner i sina inställningar i Kod, och en AI-regel väljer sin egen.
+Runbook-steg och kodrepositorier som inte väljer någon Runner använder standarden och flyttar med när en annan Runner blir standard. En AI-regel väljer sin egen Runner, och en ny regel startar på standarden.
 
 ## Driftanteckningar
 

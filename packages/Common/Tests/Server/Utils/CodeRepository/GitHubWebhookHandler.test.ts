@@ -32,6 +32,7 @@ import GitHubCommandType, {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { DashboardClientUrl } from "../../../../Server/EnvironmentConfig";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -2343,6 +2344,60 @@ describe("GitHubWebhookHandler", () => {
       expect(createIssueCommentSpy).toHaveBeenCalledTimes(1);
       expect(commentArguments(1).body).toContain("switched off");
       expect(commentArguments(1).issueNumber).toBe(ISSUE_NUMBER);
+    });
+
+    /*
+     * The answer links straight to the switch: the repository's Settings
+     * page in Code, at #github-commands, where More settings opens by itself
+     * on the GitHub Commands switch. Built from the repository the command
+     * resolved to - its own project and id - never from the comment.
+     */
+    test("commands disabled links straight to the repository's switch", async () => {
+      authorizeSpy.mockResolvedValue({
+        outcome: GitHubAuthorizationOutcome.CommandsDisabled,
+        codeRepository: connectedRepository(),
+        reason: "GitHub commands are switched off for this repository.",
+      });
+
+      await handle({
+        event: "issue_comment",
+        payload: issueCommentPayload({ body: `@${APP_SLUG} implement this` }),
+      });
+
+      const settingsUrl: string = `${DashboardClientUrl.toString()}/${projectId.toString()}/code/repositories/${codeRepositoryId.toString()}/settings#github-commands`;
+
+      expect(commentArguments(1).body).toContain(
+        `A project admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${settingsUrl}) switch.`,
+      );
+      expect(commentArguments(1).body).toContain(
+        "> GitHub commands are switched off for this repository.",
+      );
+      // The link is the app's own, on a host of this installation.
+      expect(new URL(settingsUrl).origin).toBe(
+        new URL(DashboardClientUrl.toString()).origin,
+      );
+    });
+
+    test("commands disabled on a repository it cannot name points the way in words", async () => {
+      // A repository whose project the answer cannot say: no link to build.
+      const unnamed: CodeRepository = connectedRepository();
+      delete (unnamed as unknown as { projectId?: ObjectID }).projectId;
+
+      authorizeSpy.mockResolvedValue({
+        outcome: GitHubAuthorizationOutcome.CommandsDisabled,
+        codeRepository: unnamed,
+        reason: "GitHub commands are switched off for this repository.",
+      });
+
+      await handle({
+        event: "issue_comment",
+        payload: issueCommentPayload({ body: `@${APP_SLUG} implement this` }),
+      });
+
+      expect(commentArguments(1).body).toContain(
+        "A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
+      );
+      expect(commentArguments(1).body).not.toContain("/settings#");
     });
 
     /*

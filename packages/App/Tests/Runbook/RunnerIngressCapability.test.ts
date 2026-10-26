@@ -242,7 +242,7 @@ describe("Runner capability enforcement on the agent ingress", () => {
       .mockResolvedValue(null);
     // No code repository picks the Runner unless a test says one does.
     pickedSpy = jest
-      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
       .mockResolvedValue(false);
   });
 

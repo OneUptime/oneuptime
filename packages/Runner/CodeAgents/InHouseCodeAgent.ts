@@ -15,6 +15,14 @@ import BackendAPI, {
   TelemetryToolService,
 } from "../Utils/BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
+import {
+  AGENT_COMMAND_TIMEOUT_ARGUMENT,
+  DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS,
+  MAX_AGENT_COMMAND_TIMEOUT_SECONDS,
+  describeAgentCommandTimedOut,
+  getAgentCommandTimeoutMs,
+  startAgentCommandKeepAlive,
+} from "../Utils/AgentCommandLimits";
 import RepositoryInstructions, {
   RepositoryInstructionsFile,
 } from "../Utils/RepositoryInstructions";
@@ -35,6 +43,7 @@ import Execute from "Common/Server/Utils/Execute";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import { JSONObject } from "Common/Types/JSON";
+import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import path from "path";
 import { ChildProcess, spawn } from "child_process";
 
@@ -98,7 +107,9 @@ interface ProductionTelemetry {
  *
  * Tool surface: read_file / write_file / list_directory / search_files
  * (all path-guarded to the workspace) and run_command (workspace cwd,
- * 120s timeout, output truncated) - and, for a task that asks
+ * 2 minutes unless the model asks for up to 10, the run kept alive while
+ * it runs, output truncated: Utils/AgentCommandLimits) - and, for a task
+ * that asks
  * (CodeAgentTask.productionTelemetry), the server's read-only production
  * telemetry tools, which run on the server, held to the run's repository
  * and the services it serves (CodeAgentTelemetry). Every tool call is
@@ -122,6 +133,12 @@ export default class InHouseCodeAgent implements CodeAgent {
   private allowQuestions: boolean = false;
   private currentProcess: ChildProcess | null = null;
   private aborted: boolean = false;
+
+  /*
+   * When THIS task's wall clock runs out (Date.now() milliseconds): a
+   * command is never given time past it.
+   */
+  private deadlineAtMs: number = 0;
 
   /*
    * Paths the model wrote with write_file during THIS task. These are the
@@ -163,9 +180,6 @@ export default class InHouseCodeAgent implements CodeAgent {
    * attempts of the run); this local cap only bounds a single loop.
    */
   private static readonly MAX_COMPLETION_CALLS: number = 40;
-
-  // run_command hard timeout.
-  private static readonly RUN_COMMAND_TIMEOUT_MS: number = 120 * 1000;
 
   /*
    * When the server-reported remaining output-token budget drops below
@@ -221,6 +235,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     const timeoutMs: number =
       task.timeoutMs || InHouseCodeAgent.DEFAULT_TIMEOUT_MS;
     const startedAtMs: number = Date.now();
+    this.deadlineAtMs = startedAtMs + timeoutMs;
     const logs: Array<string> = [];
 
     /*
@@ -597,9 +612,11 @@ export default class InHouseCodeAgent implements CodeAgent {
       "  write_file cannot change the .git directory.",
       ...(RUNS_PROJECT_AUTHORED_COMMANDS
         ? [
-            "- run_command runs a shell command in the repository root (120 second",
-            "  timeout). Use it to set up, build and run the tests the way the",
-            "  repository says to.",
+            "- run_command runs a shell command in the repository root. Use it to",
+            "  set up, build and run the tests the way the repository says to. A",
+            `  command stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds; for a slow install, build or test`,
+            `  suite, set ${AGENT_COMMAND_TIMEOUT_ARGUMENT} (at most ${MAX_AGENT_COMMAND_TIMEOUT_SECONDS}). Never start a command that`,
+            "  waits forever (a dev server, a watch mode).",
           ]
         : [
             "- There is no command-running tool on this Runner: make your change",
@@ -650,14 +667,17 @@ export default class InHouseCodeAgent implements CodeAgent {
      */
     const runCommandTool: LLMToolDefinition = {
       name: "run_command",
-      description:
-        "Run a shell command in the repository root (120 second timeout). Returns the exit code and combined output (truncated).",
+      description: `Run a shell command in the repository root. It stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds unless ${AGENT_COMMAND_TIMEOUT_ARGUMENT} gives it longer. Returns the exit code and combined output (truncated).`,
       inputSchema: {
         type: "object",
         properties: {
           command: {
             type: "string",
             description: "The shell command to run",
+          },
+          [AGENT_COMMAND_TIMEOUT_ARGUMENT]: {
+            type: "integer",
+            description: `How long the command may run, in seconds: ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} when left out, at most ${MAX_AGENT_COMMAND_TIMEOUT_SECONDS}. Give more only to a slow install, build or test suite.`,
           },
         },
         required: ["command"],
@@ -1146,11 +1166,22 @@ export default class InHouseCodeAgent implements CodeAgent {
       await this.listDirtyPaths(workspaceRoot),
     );
 
+    /*
+     * What the model asked for (two minutes when it asked for nothing, ten
+     * at most), never past the time this task has left.
+     */
+    const timeoutMs: number = getAgentCommandTimeoutMs({
+      requested: args[AGENT_COMMAND_TIMEOUT_ARGUMENT],
+      remainingMs: this.deadlineAtMs
+        ? this.deadlineAtMs - Date.now()
+        : undefined,
+    });
+
     const result: {
       exitCode: number | null;
       output: string;
       timedOut: boolean;
-    } = await this.runShellCommand(workspaceRoot, command);
+    } = await this.runShellCommand(workspaceRoot, command, timeoutMs);
 
     for (const dirtyPath of await this.listDirtyPaths(workspaceRoot)) {
       if (!dirtyBefore.has(dirtyPath) && !this.writtenPaths.has(dirtyPath)) {
@@ -1159,7 +1190,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     const header: string = result.timedOut
-      ? `Command timed out after ${InHouseCodeAgent.RUN_COMMAND_TIMEOUT_MS / 1000} seconds.`
+      ? describeAgentCommandTimedOut(timeoutMs)
       : `Exit code: ${result.exitCode ?? "unknown"}`;
 
     return {
@@ -1190,10 +1221,15 @@ export default class InHouseCodeAgent implements CodeAgent {
    *   - stdin is /dev/null and CI=true, so a command that wants input fails
    *     fast instead of burning the whole timeout on a prompt nobody will
    *     ever answer.
+   *
+   * While it runs, the run is kept alive (keepRunAlive): a command makes no
+   * LLM call and posts no log, and one given up to ten minutes would
+   * otherwise let the stale-run sweeper fail the run underneath it.
    */
   private runShellCommand(
     workspaceRoot: string,
     command: string,
+    timeoutMs: number,
   ): Promise<{ exitCode: number | null; output: string; timedOut: boolean }> {
     return new Promise(
       (
@@ -1236,7 +1272,13 @@ export default class InHouseCodeAgent implements CodeAgent {
         const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
           timedOut = true;
           killProcessGroup();
-        }, InHouseCodeAgent.RUN_COMMAND_TIMEOUT_MS);
+        }, timeoutMs);
+
+        const stopKeepingAlive: () => void = startAgentCommandKeepAlive({
+          beat: (): Promise<void> => {
+            return this.keepRunAlive();
+          },
+        });
 
         const appendOutput: (data: Buffer) => void = (data: Buffer): void => {
           // Cap in-memory growth well above the tool-output truncation.
@@ -1256,6 +1298,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           }
           settled = true;
           clearTimeout(timeout);
+          stopKeepingAlive();
           this.currentProcess = null;
           resolve({ exitCode, output, timedOut });
         };
@@ -1275,6 +1318,31 @@ export default class InHouseCodeAgent implements CodeAgent {
         });
       },
     );
+  }
+
+  /*
+   * Tell the server this task's run is still working while a command runs:
+   * an InProgress report refreshes the run's heartbeat and adds nothing to
+   * its trail (AIAgentTaskAPI's update-task-status). Without a task or a
+   * server to tell, there is nothing to keep alive.
+   */
+  private async keepRunAlive(): Promise<void> {
+    if (!this.backendAPI || !this.config?.taskId) {
+      return;
+    }
+
+    try {
+      await this.backendAPI.updateTaskStatus(
+        this.config.taskId,
+        AIAgentTaskStatus.InProgress,
+      );
+    } catch (error) {
+      logger.debug(
+        `[${this.name}] Could not tell the server the run is still working; the next keep-alive tries again: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /*

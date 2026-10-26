@@ -436,21 +436,34 @@ describe("POST /ai-agent-data/get-repository-token", () => {
 
       const asked: {
         worker: { kind: CodeWorkerKind; id: ObjectID };
-        repository: CodeRepository;
+        repository: Record<string, unknown>;
       } = mayWorkSpy.mock.calls[0]![0] as {
         worker: { kind: CodeWorkerKind; id: ObjectID };
-        repository: CodeRepository;
+        repository: Record<string, unknown>;
       };
 
       // An AI agent of the project's own, from before Runners.
       expect(asked.worker.kind).toBe(CodeWorkerKind.ProjectAgent);
       expect(asked.worker.id.toString()).toBe(agentId.toString());
-      expect(asked.repository.id?.toString()).toBe(codeRepositoryId.toString());
+      /*
+       * The repository's own facts: its project, the Runner it picks and
+       * whether it picked the Global Runner - which decides whether it
+       * follows the project's default Runner.
+       */
+      expect(Object.keys(asked.repository).sort()).toEqual([
+        "isGlobalRunnerPicked",
+        "projectId",
+        "runnerId",
+      ]);
+      expect(asked.repository["projectId"]?.toString()).toBe(
+        attackerProjectId.toString(),
+      );
 
       // The repository is read with its Runner setting.
       const read: { select: Record<string, unknown> } = findRepositorySpy.mock
         .calls[0]![0] as { select: Record<string, unknown> };
       expect(read.select["runnerId"]).toBe(true);
+      expect(read.select["isGlobalRunnerPicked"]).toBe(true);
 
       expect(mintTokenSpy).toHaveBeenCalledTimes(1);
     });

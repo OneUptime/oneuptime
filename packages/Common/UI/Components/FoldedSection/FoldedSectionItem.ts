@@ -1,3 +1,4 @@
+import { getPageAnchorNameForTitle } from "../../Utils/PageAnchor";
 import { translationKey } from "../../Utils/TranslateTemplate";
 
 /*
@@ -123,7 +124,14 @@ export type FoldedSectionItemFromTitleFunction = (
   },
 ) => FoldedSectionItem;
 
-// A page's way of naming a card in its folded section.
+/*
+ * A page's way of naming a card in its folded section. Its key is the one
+ * the page gives, or else the card's place after its title
+ * (getPageAnchorNameForTitle: "Default Bar Color" is "default-bar-color") -
+ * the place a card in a page's More settings takes after its title too, so
+ * a link can land on it - or the title itself, for a title that makes no
+ * place.
+ */
 export const foldedSectionItem: FoldedSectionItemFromTitleFunction = (
   title: string,
   options?: {
@@ -134,7 +142,7 @@ export const foldedSectionItem: FoldedSectionItemFromTitleFunction = (
   },
 ): FoldedSectionItem => {
   const item: FoldedSectionItem = {
-    key: options?.key || title,
+    key: options?.key || getPageAnchorNameForTitle(title) || title,
     title: title,
     isSet: Boolean(options?.isSet),
   };

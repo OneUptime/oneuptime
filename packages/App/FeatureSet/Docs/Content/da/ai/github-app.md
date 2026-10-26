@@ -134,7 +134,7 @@ Hvis en kørsel ikke kan starte, siger appen hvorfor i tråden: den fejler aldri
 
 ## Slå den fra
 
-Hvert repositorie har en kontakt: **Respond to GitHub Commands** under **Yderligere indstillinger** på repositoriets side **Indstillinger**. Den er slået til for alle repositorier og gemmes, i det øjeblik du slår den om. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og fortæller alle, der spørger, hvor kontakten er.
+Hvert repositorie har en kontakt: **Respond to GitHub Commands** under **Yderligere indstillinger** på repositoriets side **Indstillinger**. Den er slået til for alle repositorier og gemmes, i det øjeblik du slår den om. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og svarer alle, der spørger, med et link til kontakten.
 
 Den samme side har **GitHub Trigger Label** under **Yderligere indstillinger**, hvis du vil have en anden etiket end `oneuptime`.
 

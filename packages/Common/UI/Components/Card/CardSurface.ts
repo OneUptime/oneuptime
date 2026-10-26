@@ -37,6 +37,21 @@ export const useIsCardSection: () => boolean = (): boolean => {
 };
 
 /*
+ * Whether a card drawn here takes a place on the page after its title when
+ * its page names it by nothing else (Utils/PageAnchor's
+ * getPageAnchorNameForTitle): the cards of a page's More settings
+ * (AdvancedPageSection) do, so a link can land on any one of them - their
+ * fold lists each by the same name (foldedSectionItem). Nowhere else: a
+ * card of its own takes the place its page gives it, or none.
+ */
+export const CardPlaceFromTitleContext: React.Context<boolean> =
+  React.createContext<boolean>(false);
+
+export const useCardPlaceFromTitle: () => boolean = (): boolean => {
+  return useContext(CardPlaceFromTitleContext);
+};
+
+/*
  * A card's body drawn from edge to edge under a rule across the card - a
  * switch row, a list of choices, a table of mappings - with its own rows
  * padded as the card is.

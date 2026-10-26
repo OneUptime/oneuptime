@@ -41,7 +41,7 @@ function mockRunnerLookup(result: Runner | null): RunnerFindSpy {
 // Whether a code repository of the Runner's project picks it.
 function mockPicked(isPicked: boolean): jest.SpyInstance {
   return jest
-    .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+    .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
     .mockResolvedValue(isPicked);
 }
 

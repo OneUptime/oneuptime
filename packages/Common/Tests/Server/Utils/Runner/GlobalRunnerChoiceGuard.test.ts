@@ -235,35 +235,60 @@ describe("where work that picked no Runner runs is decided by one default order"
   });
 
   /*
-   * A repository the GitHub App imports starts on the project's default
-   * Runner when the project has one: a pick written once, when it is
-   * imported, through GlobalRunnerChoice - never a second reading of the
-   * default. Once imported, the repository's own pick decides where its AI
-   * work runs (Types/Runner/CodeRepositoryRunner), as every pick does.
+   * A repository the GitHub App imports, or a connection to another host
+   * connects, picks no Runner of its own: it follows the project's default
+   * Runner (Types/Runner/CodeRepositoryRunner), read where the work is
+   * decided, never copied onto the repository. A copy written at import
+   * would keep the repository on the old default once the project made
+   * another Runner its default.
    */
-  test("a repository the GitHub App imports starts on the project's default Runner, read through GlobalRunnerChoice", () => {
+  test("a repository the GitHub App imports or a connection connects picks no Runner: it follows the default, which is never copied onto it", () => {
     const service: string = read(
       "Common/Server/Services/CodeRepositoryService.ts",
     );
     const defaults: string = service.slice(
-      service.indexOf("public static async getNewRepositoryDefaults("),
+      service.indexOf("public static getNewRepositoryDefaults("),
     );
     const body: string = defaults.slice(0, defaults.indexOf("\n  }\n"));
 
-    expect(body).toContain("GlobalRunnerChoice.findProjectDefaultRunnerId(");
+    expect(body).toContain("isGitHubCommandsEnabled: true,");
+    expect(body).not.toContain("runnerId");
+    expect(service).not.toContain("findProjectDefaultRunnerId(");
     expect(READS_THE_PROJECT_DEFAULT.test(service)).toBe(false);
     // Never a query of its own for the default (a comment may name it).
     expect(QUERIES_THE_PROJECT_DEFAULT.test(service)).toBe(false);
 
-    // Only new repositories: an import reads it where it creates one.
+    // Neither writes a Runner onto a repository it creates.
     const importer: string = service.slice(
       service.indexOf("public async importReposFromInstallation("),
     );
-    expect(
-      importer.indexOf("Service.getNewRepositoryDefaults("),
-    ).toBeGreaterThan(
-      importer.indexOf("const codeRepository: Model = new Model();") - 400,
+    expect(importer.slice(0, importer.indexOf("\n  }\n"))).not.toMatch(
+      /codeRepository\.runnerId\s*=/,
     );
+
+    const connector: string = read(
+      "Common/Server/Utils/CodeRepository/CodeHost/CodeRepositoryConnector.ts",
+    );
+    expect(connector).not.toMatch(/row\.runnerId\s*=/);
+    expect(connector).not.toContain("findProjectDefaultRunnerId(");
+  });
+
+  /*
+   * For a repository, the default is read by CodeRepositoryRunnerChoice
+   * alone, through GlobalRunnerChoice: the token, Code's gate, the queue
+   * sweeper and the code-fix identity all ask it.
+   */
+  test("only GlobalRunnerChoice and the repository's server reader read the project's default Runner's id", () => {
+    const reading: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return read(file).includes(".findProjectDefaultRunnerId(");
+      },
+    ).sort();
+
+    expect(reading).toEqual([
+      "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice.ts",
+      "Common/Server/Utils/Runner/GlobalRunnerChoice.ts",
+    ]);
   });
 });
 
@@ -303,6 +328,86 @@ describe("where a repository's AI work runs is decided by one rule", () => {
       "Common/Server/Infrastructure/Postgres/SchemaMigrations/1804300000000-AddCodeRepositoryRunner.ts",
       "Common/Server/Utils/AI/CodeFix/CodeFixClaimQuery.ts",
     ]);
+  });
+
+  /*
+   * The claim reads the project's default Runner in SQL, as the rule of
+   * Types/Runner/ProjectDefaultRunner reads it - and so does the migration
+   * that kept repositories already on a global Runner there. Nothing else
+   * reads the default by its column in SQL.
+   */
+  test("only the claim's condition, and the migration that kept repositories on global Runners, read the project's default Runner in SQL", () => {
+    const reading: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return read(file).includes('"defaultRunner"."isProjectDefault"');
+      },
+    ).sort();
+
+    expect(reading).toEqual([
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1807710000000-KeepCodeRepositoriesOnGlobalRunners.ts",
+      "Common/Server/Utils/AI/CodeFix/CodeFixClaimQuery.ts",
+    ]);
+
+    // Both by the same rule a default must meet.
+    for (const file of reading) {
+      const source: string = read(file);
+
+      for (const part of [
+        '"defaultRunner"."isProjectDefault" = true',
+        '"defaultRunner"."deletedAt" IS NULL',
+        '"defaultRunner"."isGlobalRunner" IS NOT TRUE',
+        '"defaultRunner"."canRunRunbooks" IS NOT FALSE',
+        `COALESCE(lower(btrim("defaultRunner"."name")), '') NOT LIKE`,
+      ]) {
+        expect({ file, part, found: source.includes(part) }).toEqual({
+          file,
+          part,
+          found: true,
+        });
+      }
+    }
+  });
+
+  /*
+   * A repository that picked the Global Runner never follows the default -
+   * so every place that asks the repository's rule hands it over. A read
+   * that left isGlobalRunnerPicked out would send such a repository's work,
+   * and its token, to the project's default Runner.
+   */
+  test("every server file that asks the repository's rule reads whether it picked the Global Runner", () => {
+    const ASKS_THE_RULE: RegExp =
+      /CodeRepositoryRunnerChoice\.(getStatusForRepository|mayWorkInRepository|decideForRepository)\(/;
+
+    const asking: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return (
+          file !==
+            "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice.ts" &&
+          ASKS_THE_RULE.test(read(file))
+        );
+      },
+    ).sort();
+
+    expect(asking).toEqual([
+      "Common/Server/API/AIAgentDataAPI.ts",
+      "Common/Server/Utils/AI/CodeFix/CodeFixReadiness.ts",
+      "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue.ts",
+      "Common/Server/Utils/AI/CodeTask/CodeTaskGate.ts",
+    ]);
+
+    for (const file of asking) {
+      expect({
+        file,
+        reads: read(file).includes("isGlobalRunnerPicked"),
+      }).toEqual({ file, reads: true });
+    }
+
+    // The exception page's readiness hands the repository's facts on.
+    expect(
+      read("Common/Server/Services/TelemetryExceptionService.ts"),
+    ).toContain(
+      "isGlobalRunnerPicked: resolvedRepository.isGlobalRunnerPicked",
+    );
   });
 });
 

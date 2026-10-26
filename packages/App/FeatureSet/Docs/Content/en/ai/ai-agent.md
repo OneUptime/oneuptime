@@ -68,7 +68,7 @@ A task's page is a conversation: what was asked and the context added, then AI's
 | **Failed** | The turn could not finish, and says why. **Try again** asks the same again. |
 | **Stopped** | Someone stopped it. **Try again** asks the same again. |
 
-To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did.
+To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did. On a task with more than one turn, a picker at the top of the **Log** page moves between its turns.
 
 Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed. The tasks OneUptime starts on its own (below) are in their repository too, as conversations you can reply in.
 
@@ -77,17 +77,18 @@ Anyone who can read a repository reads its tasks. Asking AI, replying and stoppi
 ```mermaid title="From a click to a pull request"
 flowchart TB
     S["A request, a button<br/>or a trigger"] --> Q["A fix task<br/>is queued"]
-    Q --> R["A Runner that runs<br/>AI code fixes<br/>picks it up"]
+    Q --> R["The repository's<br/>Runner picks it up"]
     R --> C["It clones the repository<br/>and makes a branch"]
     C --> A["The code agent<br/>writes the change"]
-    A --> V["Setup, build and test<br/>commands check it"]
+    A -->|"on your own Runner"| V["It builds and tests<br/>the change the way<br/>AGENTS.md says"]
     V -->|"a failure"| A
     V --> P["Commit, push and<br/>open a pull request"]
+    A -->|"on Global Runner"| P
     P --> H["A person reviews<br/>and merges it"]
 ```
 
 1. You click **Start task** in Code, or **Fix with AI** on an unresolved exception, or another button or trigger starts a task (see [Where fix tasks start](#where-fix-tasks-start)).
-2. The task is queued on its repository, and the Runner the repository picks takes it: one of your Runners, or a global Runner when it picks none (see [Pick the repository's Runner](#pick-the-repositorys-runner)).
+2. The task is queued on its repository, and the Runner the repository works on takes it: the one it picks, else the project's default Runner, else a global Runner (see [Pick the repository's Runner](#pick-the-repositorys-runner)).
 3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
 4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A request starts from the branch picked when it was asked, and its pull request opens into it. A reply works on the branch of the task's open pull request instead.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs. A fix of an exception, a slow trace or an incident also reads production while it works: the exceptions, traces, logs and metrics of the repository's services (see [Production telemetry in a fix](#production-telemetry-in-a-fix)).
@@ -175,7 +176,7 @@ A repository says how it is built and tested in an `AGENTS.md` at its root, the 
 
 | Where AI works | What it does with the repository's build and tests |
 | --- | --- |
-| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets up to 2 minutes, without the Runner's own credentials in its environment. |
+| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets 2 minutes, or up to 10 for a slow install, build or test suite, without the Runner's own credentials in its environment. |
 | **Global Runner** | Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it. |
 
 Nothing from a pull request that comes from a fork is ever read as the repository's instructions: a revision refuses such a pull request, and a review reads the base branch.
@@ -218,7 +219,7 @@ Open **Repositories** in Code's side menu and click **Connect repositories**: Co
 
 Commands from comments and production reviews need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so.
 
-For GitLab, Forgejo or Gitea, enter the server's address (GitLab.com and Codeberg are filled in) and the token, then pick the repositories to connect: the list offers only those the token can push to, and connecting more later can reuse the token. OneUptime checks every token with its server before it keeps it, keeps it encrypted and never shows it again. The repository's **Settings** show its server, the account and the token's last characters, with **Replace access token**. When the server refuses a token that expired or was revoked, its repositories show **Token refused** and AI stops working in them, until replacing the token connects every repository that uses it again.
+For GitLab, Forgejo or Gitea, enter the server's address (GitLab.com and Codeberg are filled in) and the token, then pick the repositories to connect: the list offers only those the token can push to, and connecting more later can reuse the token. OneUptime checks every token with its server before it keeps it, keeps it encrypted and never shows it again. The repository's **Settings** show its server, the account and the token's last characters, with **Replace access token**. When the server refuses a token that expired or was revoked, its repositories show **Token refused** and AI stops working in them, until replacing the token connects every repository that uses it again. On a GitLab repository the settings say merge requests, as GitLab does: **Merge Requests**, **AI Fix Merge Requests** and **Max Open Fix Merge Requests**.
 
 ### A Git server on a private network
 
@@ -233,7 +234,7 @@ A task needs three things. Code's request box and the exception's **AI Assistanc
 | An LLM provider | Nothing to set up: a project with no provider of its own uses the global provider, paid from the project's AI credits. A provider of your own, under **Project Settings → AI → LLM Providers**, comes first. | Set the `GLOBAL_LLM_PROVIDER_*` environment variables once on the server, or add a provider to the project. |
 | A repository connected through the GitHub App | **Products → Code**, then **Connect GitHub**. If the app is already installed on the GitHub account, click **Connect an existing installation** instead: installing it again does not connect it. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
 | Or a repository on GitLab, Forgejo or Gitea, or any Git server | **Repositories** in Code, then **Connect repositories** (see [Connect a repository](#connect-a-repository)). Needs the Growth plan. | The same, with no GitHub App to set up. |
-| A Runner that runs AI code fixes | Nothing to run: a repository that picks none works on OneUptime's global Runners. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes in every repository that picks no Runner. |
+| A Runner that runs AI code fixes | Nothing to run: a repository that picks none works on the project's default Runner or, without one, on OneUptime's global Runners. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes in every repository that works on a global Runner. |
 
 On a self-hosted instance, the global provider is one block of `config.env` (Docker Compose) or of your Helm values. For a self-hosted Ollama:
 
@@ -251,14 +252,14 @@ You do not map repositories to services. When a task starts, OneUptime finds the
 
 ### Pick the repository's Runner
 
-Each repository picks the Runner AI works in it on: on its **Settings** page in Code, open **More settings**, click **Edit** on the **Runner** card and pick one. A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
+Each repository picks the Runner AI works in it on: on its **Settings** page in Code, open **More settings**, click **Edit** on the **Runner** card and pick one. A repository that picks none works on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), the first choice, marked **Project default**, and moves with it when another Runner becomes the default. In a project with no default Runner, it works on **Global Runner**, which OneUptime runs for every project. To keep a repository on **Global Runner** while the project has a default Runner, pick it.
 
 | Runner | What it does with a task |
 | --- | --- |
 | **Global Runner** | Writes the change and opens the pull request without building or testing it: your repository's own CI checks the change. |
 | One of your Runners | Also builds and tests the change the way the repository's `AGENTS.md` says, on a host you control. |
 
-Only the Runner a repository picks is handed its tasks and a token for it. In a project that turns **Use global Runners** off under **Runbooks → Runners**, every repository needs one of the project's own Runners. A Runner's page lists the repositories that pick it.
+Only the Runner a repository works on is handed its tasks and a token for it. In a project that turns **Use global Runners** off under **Runbooks → Runners**, every repository needs one of the project's own Runners: the one it picks, or the project's default Runner. A Runner's page lists the repositories that work on it.
 
 ### Run a Runner of your own
 
@@ -317,11 +318,11 @@ The fix could not be applied, the repository or the branch a request started fro
 :::
 
 :::details The Runner stops in the middle of a run
-A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own, because the Runner may already have pushed part of a fix branch; start it again from where you started it.
+A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own, because the Runner may already have pushed part of a fix branch; start it again from where you started it. A command the code agent runs keeps the heartbeat going while it runs, so a long build or test suite is not taken for a stopped Runner.
 :::
 
 :::details No Runner picks the task up
-A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, or a global Runner for a repository that picks none - fails, with a message that says which, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
+A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
 :::
 
 ## Privacy

@@ -320,7 +320,7 @@ describe("the Runner ingress, for a global Runner", () => {
     jest.spyOn(RunnerService, "heartbeat").mockResolvedValue(undefined);
     // Whether a code repository picks the Runner: none does here.
     pickedSpy = jest
-      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
       .mockResolvedValue(false);
     claimGlobalSpy = jest
       .spyOn(RunnerJobService, "claimNextGlobalJob")
