@@ -250,6 +250,8 @@ describe("EmailPlainText.fromHtml", () => {
       "&amp".repeat(100000) + "&".repeat(100000),
       // Words and spaces.
       "word ".repeat(200000),
+      // A line of tabs that does not end in one, kept as written in a <pre>.
+      "<pre>" + "\t".repeat(100000) + "x\t</pre>",
     ];
 
     for (const shape of shapes) {

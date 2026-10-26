@@ -63,10 +63,11 @@ interface StoredSetting {
   isRoot: boolean;
 }
 
+// A setting's place in the store: whose, in which project, for which event.
 function key(data: {
-  userId: unknown;
-  projectId: unknown;
-  eventType: unknown;
+  userId?: unknown;
+  projectId?: unknown;
+  eventType?: unknown;
 }): string {
   return `${String(data.userId)}|${String(data.projectId)}|${String(
     data.eventType,

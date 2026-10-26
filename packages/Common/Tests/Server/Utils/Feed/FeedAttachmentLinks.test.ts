@@ -32,7 +32,14 @@ const newAddress: (route: string, file?: string) => string = (
   file?: string,
 ): string => {
   return (
-    "/api/" + route + "/attachment/" + PROJECT + "/" + NOTE + "/" + (file || FILE)
+    "/api/" +
+    route +
+    "/attachment/" +
+    PROJECT +
+    "/" +
+    NOTE +
+    "/" +
+    (file || FILE)
   );
 };
 
@@ -56,7 +63,11 @@ const rewrite: (markdown: string) => FeedAttachmentLinksRewrite = (
 };
 
 describe("FeedAttachmentLinks.rewriteOldLinks", () => {
-  test.each(FEED_ATTACHMENT_ROUTES_SERVED.map((route: string) => [route]))(
+  test.each(
+    FEED_ATTACHMENT_ROUTES_SERVED.map((route: string) => {
+      return [route];
+    }),
+  )(
     "an old %s link gets the project id, and leads to the route that serves it",
     (route: string) => {
       const before: string = entry(
@@ -70,7 +81,11 @@ describe("FeedAttachmentLinks.rewriteOldLinks", () => {
     },
   );
 
-  test.each(FEED_ATTACHMENT_ROUTES_NOT_SERVED.map((route: string) => [route]))(
+  test.each(
+    FEED_ATTACHMENT_ROUTES_NOT_SERVED.map((route: string) => {
+      return [route];
+    }),
+  )(
     "an old %s link, whose route never existed, becomes the file's name",
     (route: string) => {
       expect(
@@ -223,9 +238,11 @@ describe("FeedAttachmentLinks.rewriteOldLinks", () => {
       // Episode links with no "[" before them, all on one line.
       ("x](" + oldAddress("alert-episode-internal-note") + ")").repeat(10000),
       // Escaped brackets before every episode link.
-      ("\\[\\\\\\[](" + oldAddress("incident-episode-internal-note") + ")").repeat(
-        3000,
-      ),
+      (
+        "\\[\\\\\\[](" +
+        oldAddress("incident-episode-internal-note") +
+        ")"
+      ).repeat(3000),
     ];
 
     for (const shape of shapes) {

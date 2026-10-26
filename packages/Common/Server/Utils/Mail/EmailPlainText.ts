@@ -591,7 +591,23 @@ const writeCollapsed: (writer: TextWriter, text: string) => void = (
   }
 };
 
-const TRAILING_SPACES: RegExp = /[ \t]+$/;
+/*
+ * A line without the spaces and tabs at its end, read back from the end a
+ * character at a time: a pattern for them retries from every space of a
+ * long run that does not end the line, which a <pre> of tabs makes
+ * quadratic.
+ */
+const withoutTrailingSpaces: (line: string) => string = (
+  line: string,
+): string => {
+  let end: number = line.length;
+
+  while (end > 0 && (line[end - 1] === " " || line[end - 1] === "\t")) {
+    end--;
+  }
+
+  return line.slice(0, end);
+};
 
 /*
  * The finished text: no spaces at the end of a line, at most one blank line
@@ -602,7 +618,7 @@ const tidy: (text: string) => string = (text: string): string => {
   let blankLines: number = 0;
 
   for (const line of text.split("\n")) {
-    const trimmed: string = line.replace(TRAILING_SPACES, "");
+    const trimmed: string = withoutTrailingSpaces(line);
 
     if (trimmed === "") {
       blankLines++;
