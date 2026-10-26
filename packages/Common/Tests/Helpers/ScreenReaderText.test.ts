@@ -8,7 +8,9 @@ import {
 /*
  * The test helper that reads markup as a screen reader says it: the email
  * header tests (App EmailBrandingTemplates) hold the product's name to being
- * said once with it, so it must hide what aria-hidden hides, and only that.
+ * said once with it, so it must hide what aria-hidden hides, and only that
+ * besides what is never displayed; App EmailPlainTextParts holds each
+ * email's text part to saying every value it says.
  */
 describe("ScreenReaderText", () => {
   test("says the text and the images' alt text, in order", () => {
@@ -25,6 +27,14 @@ describe("ScreenReaderText", () => {
 
     expect(screenReaderPieces(html)).toEqual(["OneUptime", "Next"]);
     expect(timesSaid(html, "OneUptime")).toBe(1);
+  });
+
+  test("what is never displayed is never said: display:none and hidden", () => {
+    expect(
+      screenReaderPieces(
+        '<div style="display: none; mso-hide: all;">Preview <b>line</b><img alt="x"></div><p hidden>Hidden</p><p style="DISPLAY : NONE">Gone</p><p style="mso-hide: all; display: block;">Outlook hides only this</p><p>Body</p>',
+      ),
+    ).toEqual(["Outlook hides only this", "Body"]);
   });
 
   test('aria-hidden="false", or any other value, hides nothing', () => {

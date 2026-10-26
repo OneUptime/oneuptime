@@ -9,7 +9,9 @@ import { StartTag, TagAttribute, readStartTag } from "./MarkupReferences";
  * that must name something once: the text a reader hears, and the alt
  * text of each image, leaving out
  *
- *   - whatever an element marked aria-hidden="true" holds, all of it;
+ *   - whatever an element marked aria-hidden="true" holds, all of it, and
+ *     what one that is never displayed holds (styled display:none, as an
+ *     email's inbox preview line is, or marked hidden);
  *   - an image whose alt is empty, which a screen reader passes over as
  *     decoration, and one marked role="presentation" or "none";
  *   - what is never shown: comments (Outlook's conditional ones too: other
@@ -65,6 +67,16 @@ const READ_WHOLE: ReadonlySet<string> = new Set<string>([
 const TAG_MARK: string = "\u{0000}";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
+
+// Whether an element's style keeps it from being displayed at all.
+const isStyledNotDisplayed: (style: string | undefined) => boolean = (
+  style: string | undefined,
+): boolean => {
+  return (style || "")
+    .toLowerCase()
+    .replace(WHITESPACE_RUN, "")
+    .includes("display:none");
+};
 
 interface OpenElement {
   name: string;
@@ -167,7 +179,9 @@ export const screenReaderPieces: (html: string) => Array<string> = (
     const isHidden: boolean =
       isHiddenNow() ||
       NEVER_READ.has(tag.name) ||
-      (attributeOf(tag, "aria-hidden") || "").trim().toLowerCase() === "true";
+      (attributeOf(tag, "aria-hidden") || "").trim().toLowerCase() === "true" ||
+      attributeOf(tag, "hidden") !== undefined ||
+      isStyledNotDisplayed(attributeOf(tag, "style"));
 
     if (tag.name === "img") {
       if (!isHidden && role !== "presentation" && role !== "none") {
