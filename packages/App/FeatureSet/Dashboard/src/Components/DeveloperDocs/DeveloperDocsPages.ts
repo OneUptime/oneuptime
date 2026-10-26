@@ -397,6 +397,11 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       scope: DeveloperDocsScope.View,
       tableName: "CloudResource",
     },
+    {
+      pageKey: PageMap.CLOUD_ACCOUNT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "CloudAccount",
+    },
     // Network
     {
       pageKey: PageMap.NETWORK_DEVICES,

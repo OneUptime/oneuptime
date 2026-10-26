@@ -1,9 +1,9 @@
 # Deploys en wijzigingen
 
-OneUptime houdt bij wat er in je project is veranderd: deploys, Kubernetes-rollouts, configuratiewijzigingen en de fixes die het zelf heeft uitgevoerd. Elke wijziging wordt als markering getekend op de grafieken van de bijbehorende service, en OneUptime AI leest ze wanneer het een incident onderzoekt, zodat "het begon vlak na de deploy van 10:02" het eerste is wat je te weten komt, niet het laatste.
+OneUptime houdt bij wat er in je project is veranderd: deploys, Kubernetes-rollouts, configuratiewijzigingen, de wijzigingen in je gekoppelde cloudaccounts en de fixes die het zelf heeft uitgevoerd. Elke wijziging wordt als markering getekend op de grafieken van de bijbehorende service of cloudresource, en OneUptime AI leest ze wanneer het een incident onderzoekt, zodat "het begon vlak na de deploy van 10:02" het eerste is wat je te weten komt, niet het laatste.
 
 :::cards
-- [Wat OneUptime zelf vastlegt](#wat-oneuptime-zelf-vastlegt): Deploys en rollouts uit telemetrie, en de eigen fixes van OneUptime.
+- [Wat OneUptime zelf vastlegt](#wat-oneuptime-zelf-vastlegt): Deploys en rollouts uit telemetrie, de wijzigingen van je cloudaccounts, en de eigen fixes van OneUptime.
 - [Een deploy vastleggen vanuit een pipeline](#een-deploy-vastleggen-vanuit-een-pipeline): De CLI, GitHub Actions en de API.
 - [Hoe OneUptime AI wijzigingen gebruikt](#hoe-oneuptime-ai-wijzigingen-gebruikt): De verdachte wijzigingen in elk onderzoek.
 - [Referentie](#referentie): Velden, attributen en limieten.
@@ -17,6 +17,7 @@ flowchart LR
     K["Een nieuwe ReplicaSet<br/>van Kubernetes"] --> E
     P["Een pipeline:<br/>de CLI of de API"] --> E
     A["Een fix van<br/>OneUptime AI, een<br/>runbook van OneUptime"] --> E
+    D["Het activiteiten-<br/>logboek van een<br/>cloudaccount"] --> E
     E --> C["Markeringen op<br/>de grafieken<br/>van de service"]
     E --> I["Onderzoeken van<br/>OneUptime AI"]
 ```
@@ -31,6 +32,8 @@ Hiervoor hoef je niets te sturen. OneUptime legt ze vast op basis van de telemet
 | Een rollout | De pods van een Kubernetes-Deployment beginnen een ReplicaSet te draaien die ze nog niet eerder hebben gedraaid: een nieuw image, een gewijzigde omgevingsvariabele of configuratieverwijzing, of een herstart | `kubernetes` |
 | Een fix die OneUptime AI uitvoerde | Een AI-agent meldt het resultaat van een opdracht die iets wijzigt, zoals `kubectl rollout restart` | `oneuptime-ai` |
 | Een runbook | Een runbook dat OneUptime uitvoerde, wordt voltooid, mislukt of wordt geannuleerd nadat het is gestart | `runbook` |
+| Een cloudwijziging | Het activiteitenlogboek van een gekoppeld cloudaccount legt een wijziging vast: AWS CloudTrail, het Azure-activiteitenlogboek of het auditlogboek Admin Activity van Google Cloud | `cloud` |
+| Een gebeurtenis van de provider | De cloudprovider publiceert een statusgebeurtenis over het account: AWS Health, Azure Service Health of Resource Health, of Google Cloud Service Health | `cloud-health` |
 
 - **De eerste versie die een service rapporteert, is zijn uitgangspunt, geen deploy.** Een service die al maanden draait, wordt niet gedeployd op het moment dat OneUptime zijn telemetrie begint te ontvangen.
 - **Een rollback naar een versie die in de afgelopen 30 dagen is gezien, wordt niet vastgelegd,** omdat die versie niet nieuw is. Een rollback die OneUptime AI uitvoert, wordt als fix vastgelegd.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Een rollout heeft de [Kubernetes-agent](/docs/telemetry/kubernetes-agent) nodig, die de telemetrie van elke pod voorziet van zijn Deployment en ReplicaSet.
+
+Een cloudwijziging of een gebeurtenis van de provider heeft een [gekoppeld cloudaccount](/docs/telemetry/cloud-accounts) nodig. Elk ervan wordt gekoppeld aan de cloudresource die het noemt, als OneUptime die resource vermeldt, en getekend op de grafieken van de resource. Het type volgt uit de bewerking: `deployment`, `scaling` of `rollback` als de naam van de bewerking dat zegt, anders `config-change`, en `provider-event` voor een statusgebeurtenis. Grafieken die op geen enkele resource zijn gefilterd, laten het activiteitenlogboek van een cloudaccount weg, zodat een druk account je deploys niet verdringt; de statusgebeurtenissen van de provider blijven erop staan.
 
 ## Een deploy vastleggen vanuit een pipeline
 
@@ -94,7 +99,7 @@ Zie [`oneuptime deploy`](/docs/cli/command-reference#oneuptime-deploy) voor elke
 
 ## Hoe OneUptime AI wijzigingen gebruikt
 
-Elk [AI-onderzoek](/docs/ai/ai-sre) van een incident of een waarschuwing begint bij de wijzigingen die zijn vastgelegd in de 2 uur ervoor, en in de 10 minuten erna, voor een pipeline die zijn deploy pas vastlegt als de rollout klaar is. De wijzigingen op de services, clusters en hosts waaraan het incident is gekoppeld, komen eerst.
+Elk [AI-onderzoek](/docs/ai/ai-sre) van een incident of een waarschuwing begint bij de wijzigingen die zijn vastgelegd in de 2 uur ervoor, en in de 10 minuten erna, voor een pipeline die zijn deploy pas vastlegt als de rollout klaar is. De wijzigingen op de services, clusters, hosts en cloudresources waaraan het incident is gekoppeld, komen eerst.
 
 Voor maximaal 4 daarvan die een service noemen, leest OneUptime de telemetrie van de service in de 30 minuten voor en na de wijziging, en markeert het de wijziging als **verdacht** wanneer de service direct daarna meetbaar slechter werd:
 
@@ -139,6 +144,8 @@ De velden op het hoogste niveau worden opgeslagen als attributen onder de namen 
 
 Attributen waarvan de naam begint met `oneuptime.` zijn van OneUptime zelf en worden weggelaten uit wat een pipeline stuurt. Elke wijziging die een pipeline vastlegt, vermeldt dat in `oneuptime.change.source`, met de waarde `api`.
 
+Een wijziging die uit een cloudaccount is gelezen, noemt het account en de resource onder de namen van OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` en `cloud.resource_id`, en bewaart de bewerking in `oneuptime.cloud.operation`, wie hem uitvoerde in `oneuptime.cloud.actor`, of hij mislukte in `oneuptime.change.status` en het cloudaccount in `oneuptime.cloud_account.id`.
+
 ### Limieten
 
 | Limiet | Waarde |
@@ -155,4 +162,5 @@ Attributen waarvan de naam begint met `oneuptime.` zijn van OneUptime zelf en wo
 - [AI SRE](/docs/ai/ai-sre): Wat een onderzoek leest, en hoe het herstelt wat het vindt.
 - [Opdrachtreferentie](/docs/cli/command-reference): Elke opdracht van de CLI.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Stuur de telemetrie van je services, met hun versies.
+- [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts): De wijzigingen en statusgebeurtenissen van je AWS-, Azure- en Google Cloud-accounts.
 :::

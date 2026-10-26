@@ -10,6 +10,7 @@ import CloudConnectionService from "../../../../Server/Services/CloudConnectionS
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
+import CloudConnectionLanes from "../../../../Server/Utils/CloudConnection/CloudConnectionLanes";
 import CloudConnectorRegistry from "../../../../Server/Utils/CloudConnection/CloudConnectorRegistry";
 import {
   CloudConnectionSettings,
@@ -166,6 +167,8 @@ beforeEach(() => {
       cloudAccountId: "123456789012",
       cloudResourceGroup: "",
       isArchived: false,
+      cloudTags: {},
+      cloudInventoryFingerprint: "",
     },
   ]);
   jest.spyOn(CloudConnectionResourceSync, "sync").mockImplementation((async (
@@ -296,6 +299,103 @@ describe("a read that works", () => {
     ).toContain(
       "More resources were found than one read adds: the next read adds the rest.",
     );
+  });
+});
+
+describe("the read's clock", () => {
+  test("every request is signed with the time it is sent: the connector and the lanes get the clock, the read keeps its start", async () => {
+    let minutes: number = 0;
+    const clock: () => Date = (): Date => {
+      return new Date(NOW.getTime() + minutes * MINUTE);
+    };
+    const inventory: jest.SpyInstance = jest
+      .spyOn(CloudConnectionLanes, "runInventory")
+      .mockResolvedValue({
+        ran: false,
+        warnings: [],
+        accounts: [],
+        listedInFull: [],
+      });
+    const changes: jest.SpyInstance = jest
+      .spyOn(CloudConnectionLanes, "runChanges")
+      .mockResolvedValue({ ran: false, warnings: [], recorded: 0 });
+
+    await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: clock,
+    });
+
+    // The connector's clock moves: a request seven minutes on is signed seven minutes on.
+    minutes = 7;
+    expect(readCalls[0]!.now!()).toEqual(new Date(NOW.getTime() + 7 * MINUTE));
+
+    for (const lane of [inventory, changes]) {
+      const given: { now: Date; clock: () => Date } = lane.mock
+        .calls[0]![0] as { now: Date; clock: () => Date };
+
+      // Its windows and cursors keep the read's start...
+      expect(given.now).toEqual(NOW);
+      // ...and its requests the time they are sent.
+      expect(given.clock()).toEqual(new Date(NOW.getTime() + 7 * MINUTE));
+    }
+
+    // What the read records is its start.
+    expect(lastRecord()["lastPulledAt"]).toEqual(NOW);
+  });
+});
+
+describe("the inventory's part of a read", () => {
+  test("a listing with resources left to add makes the read partial: the next read, a minute later, adds the rest", async () => {
+    jest.spyOn(CloudConnectionLanes, "runInventory").mockResolvedValue({
+      ran: true,
+      warnings: [
+        "The accounts have more resources than one read adds: the next read adds the rest.",
+      ],
+      accounts: [],
+      listedInFull: [],
+      synced: { ...SYNCED, hasMore: true },
+    });
+    jest
+      .spyOn(CloudConnectionLanes, "runChanges")
+      .mockResolvedValue({ ran: false, warnings: [], recorded: 0 });
+
+    const outcome: CloudConnectionPullOutcome = await run();
+
+    expect(outcome.status).toBe("partial");
+    expect(lastRecord()["nextPullAt"]).toEqual(
+      new Date(NOW.getTime() + MINUTE),
+    );
+  });
+
+  test("the accounts are marked listed in full as the inventory says, at the read's time", async () => {
+    jest.spyOn(CloudConnectionLanes, "runInventory").mockResolvedValue({
+      ran: true,
+      warnings: [],
+      accounts: [{ accountId: "123456789012", name: "production" }],
+      listedInFull: ["123456789012"],
+      synced: SYNCED,
+    });
+    jest
+      .spyOn(CloudConnectionLanes, "runChanges")
+      .mockResolvedValue({ ran: true, warnings: [], recorded: 4 });
+    const keep: jest.SpyInstance = jest
+      .spyOn(CloudConnectionLanes, "keepAccounts")
+      .mockResolvedValue(undefined);
+
+    await run();
+
+    expect(keep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountIds: ["123456789012"],
+        named: [{ accountId: "123456789012", name: "production" }],
+        listedInFull: ["123456789012"],
+        listedAt: NOW,
+        recount: true,
+      }),
+    );
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["changesRecorded"],
+    ).toBe(4);
   });
 });
 

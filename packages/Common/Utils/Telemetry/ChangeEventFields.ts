@@ -7,7 +7,9 @@ import Dictionary from "../../Types/Dictionary";
  * places: CI/CD pipelines and the CLI post them to the ingest API, and
  * OneUptime records others itself - a service that starts reporting a new
  * service.version, a Kubernetes Deployment that starts a new ReplicaSet, a
- * fix command OneUptime AI ran, a runbook that ran. They all keep what
+ * fix command OneUptime AI ran, a runbook that ran, a change a cloud
+ * account's activity log recorded, a health event its provider published.
+ * They all keep what
  * they know in the row's attributes map, under OpenTelemetry's semantic
  * convention names where one exists (service.version,
  * deployment.environment.name, vcs.*, k8s.*) and under oneuptime.* where
@@ -27,6 +29,13 @@ export enum ChangeEventType {
   Remediation = "remediation",
   // A runbook OneUptime ran.
   Runbook = "runbook",
+  /*
+   * The cloud provider's own event about the account: an AWS Health event,
+   * an Azure Service Health or Resource Health event, a Google Cloud
+   * Service Health event - an outage, degradation or scheduled change on
+   * the provider's side.
+   */
+  ProviderEvent = "provider-event",
   Custom = "custom",
 }
 
@@ -42,6 +51,13 @@ export enum ChangeEventSource {
   OneUptimeAi = "oneuptime-ai",
   // A runbook OneUptime ran.
   Runbook = "runbook",
+  /*
+   * A change a cloud account's activity log recorded: AWS CloudTrail, the
+   * Azure Activity Log, Google Cloud's Admin Activity audit log.
+   */
+  Cloud = "cloud",
+  // A health event the cloud provider published about the account.
+  CloudHealth = "cloud-health",
 }
 
 // The attribute keys OneUptime writes on the change events it records.
@@ -69,6 +85,14 @@ export const ChangeEventAttribute: {
   readonly AlertId: string;
   readonly RunbookId: string;
   readonly RunbookExecutionId: string;
+  readonly CloudProvider: string;
+  readonly CloudAccountId: string;
+  readonly CloudRegion: string;
+  readonly CloudResourceId: string;
+  readonly CloudOperation: string;
+  readonly CloudActor: string;
+  readonly CloudEventId: string;
+  readonly CloudAccountRecordId: string;
 } = {
   Source: "oneuptime.change.source",
   Status: "oneuptime.change.status",
@@ -93,6 +117,17 @@ export const ChangeEventAttribute: {
   AlertId: "oneuptime.alert.id",
   RunbookId: "oneuptime.runbook.id",
   RunbookExecutionId: "oneuptime.runbook_execution.id",
+  // OpenTelemetry's cloud.* names, for the account and the resource.
+  CloudProvider: "cloud.provider",
+  CloudAccountId: "cloud.account.id",
+  CloudRegion: "cloud.region",
+  CloudResourceId: "cloud.resource_id",
+  // What the activity log recorded, and who did it.
+  CloudOperation: "oneuptime.cloud.operation",
+  CloudActor: "oneuptime.cloud.actor",
+  CloudEventId: "oneuptime.cloud.event_id",
+  // The CloudAccount row the change belongs to.
+  CloudAccountRecordId: "oneuptime.cloud_account.id",
 };
 
 /*
@@ -191,6 +226,13 @@ export interface ChangeEventFields {
   alertId?: string | undefined;
   runbookId?: string | undefined;
   runbookExecutionId?: string | undefined;
+  cloudProvider?: string | undefined;
+  cloudAccountId?: string | undefined;
+  cloudRegion?: string | undefined;
+  cloudResourceId?: string | undefined;
+  cloudOperation?: string | undefined;
+  cloudActor?: string | undefined;
+  cloudAccountRecordId?: string | undefined;
 }
 
 function firstValue(
@@ -253,6 +295,13 @@ export function readChangeEventFields(
     alertId: read(ChangeEventAttribute.AlertId),
     runbookId: read(ChangeEventAttribute.RunbookId),
     runbookExecutionId: read(ChangeEventAttribute.RunbookExecutionId),
+    cloudProvider: read(ChangeEventAttribute.CloudProvider),
+    cloudAccountId: read(ChangeEventAttribute.CloudAccountId),
+    cloudRegion: read(ChangeEventAttribute.CloudRegion),
+    cloudResourceId: read(ChangeEventAttribute.CloudResourceId),
+    cloudOperation: read(ChangeEventAttribute.CloudOperation),
+    cloudActor: read(ChangeEventAttribute.CloudActor),
+    cloudAccountRecordId: read(ChangeEventAttribute.CloudAccountRecordId),
   };
 
   for (const key of Object.keys(fields) as Array<keyof ChangeEventFields>) {
@@ -326,6 +375,26 @@ export function describeChangeEventFields(fields: ChangeEventFields): string {
     parts.push(`command: ${fields.command}`);
   }
 
+  if (fields.cloudOperation) {
+    parts.push(
+      fields.cloudActor
+        ? `${fields.cloudOperation} by ${fields.cloudActor}`
+        : fields.cloudOperation,
+    );
+  }
+
+  if (fields.cloudResourceId) {
+    parts.push(`on ${fields.cloudResourceId}`);
+  }
+
+  if (fields.cloudAccountId) {
+    parts.push(
+      fields.cloudRegion
+        ? `account ${fields.cloudAccountId}, ${fields.cloudRegion}`
+        : `account ${fields.cloudAccountId}`,
+    );
+  }
+
   if (fields.status) {
     parts.push(fields.status);
   }
@@ -350,6 +419,10 @@ export function describeChangeEventSource(source: string): string {
       return "a fix OneUptime AI ran";
     case ChangeEventSource.Runbook:
       return "a runbook OneUptime ran";
+    case ChangeEventSource.Cloud:
+      return "the cloud account's activity log";
+    case ChangeEventSource.CloudHealth:
+      return "the cloud provider's health events";
     default:
       return source;
   }

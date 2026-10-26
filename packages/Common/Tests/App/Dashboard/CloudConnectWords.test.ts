@@ -129,7 +129,11 @@ describe("a test's answer", () => {
     expect(words.headline).toBe(
       "It works, but OneUptime found no resources to monitor yet.",
     );
-    expect(words.advice).toContain("once they report metrics");
+    // The inventory lists them all: metrics are not how a resource arrives.
+    expect(words.advice).toContain(
+      "The first read lists every resource of the account, whether it reports metrics or not.",
+    );
+    expect(words.advice).not.toContain("once they report metrics");
   });
 
   test.each([

@@ -106,6 +106,14 @@ const CloudResourceMetrics: FunctionComponent<
       : getCloudResourceAttributeDisplayKeys(cloudResource);
   }, [isResource, attributeFilters]);
 
+  /*
+   * The row a chart opened from here is about: its markers are this row's
+   * incidents, alerts and changes, whatever its metric filter says.
+   */
+  const eventScope: Record<string, string> = useMemo(() => {
+    return { cloudResourceId: modelId.toString() };
+  }, [modelId.toString()]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -146,6 +154,7 @@ const CloudResourceMetrics: FunctionComponent<
       <MetricsViewer
         attributeFilters={attributeFilters}
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
+        eventScope={eventScope}
       />
     </Fragment>
   );

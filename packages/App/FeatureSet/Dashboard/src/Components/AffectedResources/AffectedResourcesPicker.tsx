@@ -1,5 +1,6 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -57,6 +58,7 @@ export type AffectedResourceType =
   | "DockerSwarmCluster"
   | "IoTFleet"
   | "DatabaseServer"
+  | "CloudResource"
   | "NetworkSite"
   | "Service";
 
@@ -95,6 +97,7 @@ export interface AffectedResourcesPayload {
   dockerSwarmClusters: Array<string> | undefined;
   iotFleets: Array<string> | undefined;
   databaseServers: Array<string> | undefined;
+  cloudResources: Array<string> | undefined;
   networkSites: Array<string> | undefined;
   services: Array<string> | undefined;
 }
@@ -117,6 +120,7 @@ export interface ComponentProps {
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
+  cloudResources?: Array<CloudResource> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   resourceTypes?: Array<AffectedResourceType> | undefined;
@@ -253,6 +257,14 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     key: "databaseServers",
     supportsLabels: true,
   },
+  CloudResource: {
+    label: "Cloud Resource",
+    pluralLabel: "Cloud Resources",
+    icon: IconProp.Cloud,
+    modelType: CloudResource,
+    key: "cloudResources",
+    supportsLabels: true,
+  },
   NetworkSite: {
     label: "Network Site",
     pluralLabel: "Network Sites",
@@ -277,10 +289,10 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
 
 /*
  * The default set. Proxmox / VMware / Ceph / Storage Array / Docker Swarm /
- * IoT / Database are deliberately NOT here: a page only gets them by naming
- * them in `resourceTypes`, because offering a type the page's onChange
- * handler does not write back would silently drop the user's selection on
- * save.
+ * IoT / Database / Cloud Resource are deliberately NOT here: a page only
+ * gets them by naming them in `resourceTypes`, because offering a type the
+ * page's onChange handler does not write back would silently drop the
+ * user's selection on save.
  */
 const ALL_TYPES: Array<AffectedResourceType> = [
   "Monitor",
@@ -741,6 +753,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         ...toItems(props.databaseServers, "DatabaseServer", cache, failed),
       );
     }
+    if (resourceTypes.includes("CloudResource")) {
+      items.push(
+        ...toItems(props.cloudResources, "CloudResource", cache, failed),
+      );
+    }
     if (resourceTypes.includes("NetworkSite")) {
       items.push(...toItems(props.networkSites, "NetworkSite", cache, failed));
     }
@@ -761,6 +778,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.dockerSwarmClusters,
     props.iotFleets,
     props.databaseServers,
+    props.cloudResources,
     props.networkSites,
     props.services,
     resourceTypes,
@@ -1219,6 +1237,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       dockerSwarmClusters: idsFor("DockerSwarmCluster"),
       iotFleets: idsFor("IoTFleet"),
       databaseServers: idsFor("DatabaseServer"),
+      cloudResources: idsFor("CloudResource"),
       networkSites: idsFor("NetworkSite"),
       services: idsFor("Service"),
     });

@@ -416,7 +416,7 @@ describe("the menu paths", () => {
     expect(menuSections(CLOUD_SIDE_MENU)).toEqual([
       {
         title: "Cloud",
-        items: ["Connect", "All Environments", "All Resources"],
+        items: ["Connect", "Accounts", "All Environments", "All Resources"],
       },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },

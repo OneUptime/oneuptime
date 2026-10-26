@@ -28,6 +28,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Link,
         },
+        /*
+         * The AWS accounts, Azure subscriptions and Google Cloud projects
+         * the connections read, each with its resources, changes and map.
+         */
+        {
+          link: {
+            title: "Accounts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNTS] as Route,
+            ),
+          },
+          icon: IconProp.Cloud,
+        },
         {
           link: {
             title: "All Environments",

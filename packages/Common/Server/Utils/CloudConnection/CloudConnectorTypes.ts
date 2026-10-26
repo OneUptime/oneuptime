@@ -1,3 +1,4 @@
+import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
@@ -43,7 +44,12 @@ export type CloudConnectorTransport = (
 
 export interface CloudConnectorCallOptions {
   transport: CloudConnectorTransport;
-  // Test seam for "now"; Date.now() when absent.
+  /*
+   * The clock: a read takes the time it starts from it once, and every
+   * request is signed with the time it is sent at - AWS refuses a
+   * signature more than five minutes old. A test passes a clock of its
+   * own; the system clock when absent.
+   */
   now?: (() => Date) | undefined;
   requestTimeoutInMs?: number | undefined;
   // Test seam for waiting before a retry; setTimeout when absent.
@@ -76,6 +82,117 @@ export interface CloudConnectionPullState {
   azureMetricDefinitions?: JSONObject | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
+  // When the inventory last listed every resource (CloudInventory).
+  inventoryListedAt?: string | undefined;
+  /*
+   * Per account and place ("123456789012|us-east-1"), the newest change
+   * the last read of the cloud's activity log brought in, as an ISO time.
+   */
+  changeCursors?: Record<string, string> | undefined;
+  /*
+   * Per place, where the next read of a busy log listed oldest first
+   * carries on: the newest change the last read got to (CloudChangeWindow).
+   */
+  changeResume?: Record<string, string> | undefined;
+  // When the provider's health events were last read: they are due again 15 minutes later.
+  healthReadAt?: string | undefined;
+  // Per account, when its health events were last read: the next read starts there.
+  accountHealthReadAt?: Record<string, string> | undefined;
+  /*
+   * Per account, until when its health events are not asked for again: its
+   * support plan or its permissions do not allow them.
+   */
+  healthPausedAccounts?: Record<string, string> | undefined;
+  /*
+   * A connection that reads a whole organization: its accounts as last
+   * listed (id and name, the first CLOUD_MAX_ORGANIZATION_ACCOUNTS), how
+   * many it had in all, when they were listed, and each account's own read
+   * state - its Regions, its cursors - by account id.
+   */
+  organizationAccounts?: Array<{ id: string; name: string }> | undefined;
+  organizationAccountCount?: number | undefined;
+  organizationListedAt?: string | undefined;
+  accountStates?: Record<string, CloudConnectionPullState> | undefined;
+  /*
+   * In an account's own state (accountStates): when its metrics, its
+   * inventory and its changes were last read. An organization's accounts
+   * are read least recently read first, so a read that stops at its limit
+   * reaches the others next time instead of starting over.
+   */
+  metricsReadAt?: string | undefined;
+  inventoryReadAt?: string | undefined;
+  changesReadAt?: string | undefined;
+  /*
+   * Per place, the changes the next read may bring in again, each id with
+   * its time (epoch ms): the activity logs deliver late, so each read looks
+   * back over what the last one saw, and these keep a change from being
+   * written twice.
+   */
+  recentChanges?: Record<string, Record<string, number>> | undefined;
+}
+
+/*
+ * The most accounts of an organization - AWS accounts, Google Cloud
+ * projects, Azure subscriptions - one connection reads. An organization
+ * with more is read for its first ones, and its reads say so.
+ */
+export const CLOUD_MAX_ORGANIZATION_ACCOUNTS: number = 50;
+
+/*
+ * An organization's accounts in the order a read takes them: the one read
+ * least recently first, and one never read before any other - so that a
+ * read that stops at its limit reaches the rest the next time rather than
+ * starting over at the first. Accounts read at the same time keep the
+ * order they were listed in.
+ */
+export function orderLeastRecentlyRead<T>(data: {
+  accounts: Array<T>;
+  readAt: (account: T) => string | undefined;
+}): Array<T> {
+  const time: (account: T) => number = (account: T): number => {
+    const parsed: number = Date.parse(data.readAt(account) || "");
+    return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+  };
+
+  return data.accounts
+    .map(
+      (
+        account: T,
+        index: number,
+      ): { account: T; index: number; time: number } => {
+        return { account, index, time: time(account) };
+      },
+    )
+    .sort(
+      (
+        a: { account: T; index: number; time: number },
+        b: { account: T; index: number; time: number },
+      ): number => {
+        if (a.time !== b.time) {
+          return a.time < b.time ? -1 : 1;
+        }
+
+        return a.index - b.index;
+      },
+    )
+    .map((entry: { account: T; index: number; time: number }): T => {
+      return entry.account;
+    });
+}
+
+/*
+ * The warning an organization with more accounts than one connection
+ * reads gets: how many it has, how many are read, and what to do.
+ */
+export function getOrganizationLimitWarning(data: {
+  total: number;
+  noun: string;
+}): string | null {
+  if (data.total <= CLOUD_MAX_ORGANIZATION_ACCOUNTS) {
+    return null;
+  }
+
+  return `The organization has ${data.total} ${data.noun}: this connection reads the first ${CLOUD_MAX_ORGANIZATION_ACCOUNTS}. Connect the others with a connection of their own.`;
 }
 
 /*
@@ -141,8 +258,139 @@ export interface CloudReadResult {
   nextState: CloudConnectionPullState;
 }
 
+/*
+ * One resource an inventory listed (CloudInventory): who it is - the same
+ * identity its metrics give it, so both are one row - and what the cloud's
+ * own index says of it.
+ */
+export interface CloudInventoryItem {
+  resource: CloudMonitoredResource;
+  // Its name in the cloud when that is not its identity: a Name tag.
+  displayName?: string | undefined;
+  tags: Record<string, string>;
+  properties: JSONObject;
+  relationships: Array<CloudResourceRelationship>;
+  endpoints: Array<string>;
+}
+
+// An account an inventory reached, with the name its cloud gives it.
+export interface CloudInventoryAccount {
+  accountId: string;
+  // An AWS account alias, an Azure subscription's or a project's name.
+  name?: string | undefined;
+}
+
+// What one listing read to its last page (CloudInventoryResult.completelyListed).
+export interface CloudCompleteListing {
+  accountId: string;
+  resourceTypes: Array<string>;
+  // The Regions they were listed in; every Region when absent.
+  regions?: Array<string> | undefined;
+}
+
+export interface CloudInventoryOptions extends CloudConnectorCallOptions {
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+}
+
+export interface CloudInventoryResult {
+  accounts: Array<CloudInventoryAccount>;
+  items: Array<CloudInventoryItem>;
+  /*
+   * Per account, the types listed to their last page: in the Regions an
+   * entry names, or - naming none - wherever the account has them (an
+   * Azure subscription, a Google Cloud project, listed whole). A resource
+   * of one of them the connection holds, in one of those Regions, that the
+   * listing does not have is gone from the cloud. A Region the listing did
+   * not read says nothing about what is missing from it.
+   */
+  completelyListed: Array<CloudCompleteListing>;
+  warnings: Array<string>;
+  // False when the budget stopped the listing part way.
+  complete: boolean;
+}
+
+/*
+ * One change a cloud account's activity log recorded - AWS CloudTrail, the
+ * Azure Activity Log, Google Cloud's Admin Activity audit log - or one
+ * health event its provider published (CloudChangeRecorder).
+ */
+export interface CloudChange {
+  kind: "change" | "health";
+  provider: CloudProvider;
+  accountId: string;
+  // The Region it happened in; "" for a global service.
+  region: string;
+  time: Date;
+  /*
+   * The provider's id for the event: CloudTrail's EventId, Azure's
+   * eventDataId, Google Cloud's insertId, a health event's id with its
+   * status. A change event is written once per id.
+   */
+  eventId: string;
+  /*
+   * What was done, as the cloud names it: "ec2:AuthorizeSecurityGroupIngress",
+   * "Microsoft.Network/networkSecurityGroups/write",
+   * "v1.compute.instances.stop" - or a health event's type.
+   */
+  operation: string;
+  // Who did it: an IAM user or role, an Azure caller, a Google principal.
+  actor: string;
+  /*
+   * What it changed, as the cloud names it: an ARN, an ARM id, a full
+   * resource name, or a plain id with its type ("sg-0abc", AWS::EC2::SecurityGroup).
+   */
+  resources: Array<{ id: string; type?: string | undefined }>;
+  failed: boolean;
+  // A health event's own title and description, as the provider wrote them.
+  title?: string | undefined;
+  description?: string | undefined;
+}
+
+export interface CloudChangesOptions extends CloudConnectorCallOptions {
+  /*
+   * Moved on as the connector reads: changeCursors, recentChanges and
+   * healthReadAt.
+   */
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+  /*
+   * Read from this time, not from the cursors, and move no cursor: an
+   * investigation's look back over the accounts it names in `only`.
+   */
+  since?: Date | undefined;
+  only?:
+    | Array<{ accountId: string; regions?: Array<string> | undefined }>
+    | undefined;
+}
+
+export interface CloudChangesResult {
+  changes: Array<CloudChange>;
+  warnings: Array<string>;
+  complete: boolean;
+}
+
 export interface CloudConnector {
   provider: CloudProvider;
+  /*
+   * What changed in the connection's accounts since the last read, and the
+   * provider's health events about them. Optional, like the inventory.
+   */
+  readChanges?(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult>;
+  /*
+   * Lists every resource of the connection's accounts from the cloud's own
+   * index, with tags, properties, relationships and endpoints. Optional: a
+   * connector without it is read from its metrics alone.
+   */
+  readInventory?(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult>;
   /*
    * Shape checks the catalog's required flags cannot express (a GUID, a
    * Region, a role ARN, a service account key). Throws a

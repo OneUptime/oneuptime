@@ -60,6 +60,7 @@ import {
   doesNameSayCloud,
   drawCloudTemplate,
   getAccountsNotInName,
+  getChangesRecordedWords,
   getCloudConnectionHealth,
   getCloudReadFailureWords,
   getCloudReadIntervalWords,
@@ -768,6 +769,19 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                         {regions.more > 0
                           ? ` ${translator.translatePlural(MORE_COUNT, regions.more)}`
                           : ""}
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                    {summary.changesRecorded > 0 ? (
+                      <div
+                        className="text-xs text-gray-500"
+                        data-testid="cloud-connection-changes"
+                      >
+                        {drawCloudTemplate(
+                          translator,
+                          getChangesRecordedWords(summary.changesRecorded),
+                        )}
                       </div>
                     ) : (
                       <></>

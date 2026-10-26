@@ -6,12 +6,14 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionAwsRoleSetup,
+  CloudConnectionSetupScope,
   getCloudConnectionSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import IconProp from "Common/Types/Icon/IconProp";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { cloudConnectionDocsUrl } from "./CloudConnectApi";
@@ -24,9 +26,31 @@ import { cloudConnectionDocsUrl } from "./CloudConnectApi";
  * rather click through the cloud's console.
  */
 
+/*
+ * Where a whole organization's command is run, and what it creates: it has
+ * to reach every account, so it is run where that is allowed - an AWS
+ * Organization's management account, by someone who may assign roles on
+ * the Azure tenant's root management group or on the Google Cloud
+ * organization. Run anywhere else, it fails part way.
+ */
+export const ORGANIZATION_SETUP_HINTS: Readonly<Record<CloudProvider, string>> =
+  {
+    [CloudProvider.AWS]: translationKey(
+      "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.",
+    ),
+    [CloudProvider.Azure]: translationKey(
+      "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.",
+    ),
+    [CloudProvider.GCP]: translationKey(
+      "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.",
+    ),
+  };
+
 export interface ComponentProps {
   definition: CloudConnectionDefinition;
   method: CloudConnectionAuthMethod;
+  // The account the command is run in, or its whole organization.
+  scope?: CloudConnectionSetupScope | undefined;
   /*
    * AWS role only: what the role trusts. Undefined while it loads; the
    * command is shown once it is known.
@@ -46,14 +70,20 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
     {
       trustedPrincipalArn: props.roleSetup?.trustedPrincipalArn,
       externalId: props.roleSetup?.externalId,
+      scope: props.scope,
     },
   );
 
+  const hint: string | undefined =
+    props.scope === CloudConnectionSetupScope.Organization
+      ? ORGANIZATION_SETUP_HINTS[props.definition.provider]
+      : method?.hint;
+
   return (
     <div className="space-y-3" data-testid="cloud-setup-command">
-      {method ? (
-        <p className="text-sm text-gray-700">
-          {translator.translateText(method.hint)}
+      {hint ? (
+        <p className="text-sm text-gray-700" data-testid="cloud-setup-hint">
+          {translator.translateText(hint)}
         </p>
       ) : (
         <></>

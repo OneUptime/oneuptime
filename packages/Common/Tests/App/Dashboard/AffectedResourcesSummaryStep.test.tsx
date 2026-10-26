@@ -104,6 +104,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -156,6 +157,7 @@ const RESOURCE_PROPS: Record<ResourceProp, ResourceModelType> = {
   dockerSwarmClusters: DockerSwarmCluster,
   iotFleets: IoTFleet,
   databaseServers: DatabaseServer,
+  cloudResources: CloudResource,
   networkSites: NetworkSite,
   services: Service,
 };

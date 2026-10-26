@@ -567,6 +567,16 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
   [PageMap.CLOUD_CONNECT]: `connect`,
+  [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
+  [PageMap.CLOUD_ACCOUNTS]: `accounts`,
+  [PageMap.CLOUD_ACCOUNT_VIEW]: `accounts/${RouteParams.ModelID}`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES]: `accounts/${RouteParams.ModelID}/resources`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_CHANGES]: `accounts/${RouteParams.ModelID}/changes`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY]: `accounts/${RouteParams.ModelID}/topology`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]: `accounts/${RouteParams.ModelID}/settings`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_DELETE]: `accounts/${RouteParams.ModelID}/delete`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -5620,6 +5630,66 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_CHANGES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_CHANGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_CHANGES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_DELETE]
     }`,
   ),
 

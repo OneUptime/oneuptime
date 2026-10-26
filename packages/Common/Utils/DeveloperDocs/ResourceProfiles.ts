@@ -1924,6 +1924,29 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     ],
   },
 
+  /*
+   * Its provider (aws, azure or gcp) is named like Terraform's own
+   * provider meta-argument, so Terraform cannot set it: an account is
+   * added by its connection, or with the API, and Terraform manages the
+   * ones there are.
+   */
+  CloudAccount: {
+    createNote:
+      "Cloud accounts are added when a cloud connection first reads them. Create one only to name and label it before it is connected: its provider is aws, azure or gcp.",
+    terraformCannotCreate:
+      "A cloud connection adds an account the first time it reads it, and Terraform cannot set an account's provider, a name Terraform keeps for itself. Terraform can still manage the accounts you have: bring them in below.",
+    fields: [
+      field("name", literal("Production")),
+      field(
+        "accountId",
+        literal("123456789012"),
+        "Its id in that cloud: an AWS account, an Azure subscription or a Google Cloud project.",
+      ),
+      field("description", literal("The checkout stack's production account.")),
+      "labels",
+    ],
+  },
+
   NetworkDevice: {
     fields: [
       field("name", literal("core-switch-1")),

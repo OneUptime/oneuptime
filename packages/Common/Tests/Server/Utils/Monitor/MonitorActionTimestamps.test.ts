@@ -293,6 +293,7 @@ describe.each(ENTITY_KINDS)(
           iotFleetIds: [],
           databaseServerIds: [],
           storageArrayIds: [],
+          cloudResourceIds: [],
         });
 
       // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

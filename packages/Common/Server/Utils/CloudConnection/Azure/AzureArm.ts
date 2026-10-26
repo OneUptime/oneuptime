@@ -15,6 +15,7 @@ import {
   CloudReadBudget,
   CloudReadBudgetSpent,
 } from "../CloudConnectorTypes";
+import { withCloudRetries } from "../CloudRetry";
 
 /*
  * Azure Resource Manager and Azure Monitor, the calls an Azure cloud
@@ -34,6 +35,14 @@ import {
  *       &interval=PT1M&aggregation=Average,Total
  *       -> per metric, its series' points
  *
+ *   POST {arm}/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01
+ *       { subscriptions, query, options: { $top, $skipToken } }
+ *       -> the rows of a Resource Graph query over the subscriptions
+ *          (data[], $skipToken): the inventory's one listing of every
+ *          resource with its tags and properties
+ *   GET/POST anything else the inventory, the changes and the billing read,
+ *       through get() and post() - always on the management host.
+ *
  * Listing and metric definitions are free; Azure Monitor gives each
  * subscription its first million metric reads a month free.
  */
@@ -42,6 +51,14 @@ export const AZURE_SUBSCRIPTIONS_API_VERSION: string = "2022-12-01";
 export const AZURE_RESOURCES_API_VERSION: string = "2021-04-01";
 export const AZURE_METRIC_DEFINITIONS_API_VERSION: string = "2018-01-01";
 export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
+export const AZURE_RESOURCE_GRAPH_API_VERSION: string = "2022-10-01";
+export const AZURE_ACTIVITY_LOG_API_VERSION: string = "2015-04-01";
+// The fields of an Activity Log event read: never its claims or request.
+const ACTIVITY_LOG_FIELDS: string =
+  "eventDataId,eventTimestamp,operationName,status,caller,resourceId,category,level,properties,resourceType";
+// Rows of a Resource Graph page, and pages of one query at most.
+const RESOURCE_GRAPH_PAGE_SIZE: number = 1000;
+const RESOURCE_GRAPH_MAX_PAGES: number = 20;
 
 const PROVIDER_TITLE: string = "Azure";
 const MAX_LIST_PAGES: number = 50;
@@ -87,6 +104,8 @@ export interface AzureArmOptions {
   transport: CloudConnectorTransport;
   requestTimeoutInMs?: number | undefined;
   budget?: CloudReadBudget | undefined;
+  // Waits before asking a throttled request again (CloudRetry); setTimeout when absent.
+  sleep?: ((milliseconds: number) => Promise<void>) | undefined;
 }
 
 export default class AzureArm {
@@ -110,27 +129,154 @@ export default class AzureArm {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
   }
 
-  private async get(url: string, step: string): Promise<JSONObject> {
-    if (this.options.budget && !this.options.budget.take()) {
-      throw new CloudReadBudgetSpent();
+  // A GET on the management host, signed in as the app.
+  public async getJson(url: string, step: string): Promise<JSONObject> {
+    return await this.get(url, step);
+  }
+
+  // A POST of a JSON body on the management host, signed in as the app.
+  public async post(
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
+    // Resource Graph answers a burst with 429: each try is a request of the budget.
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<JSONObject> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          this.getManagementBaseUrl(),
+        );
+
+        return await LlmProviderHttp.requestJson({
+          transport: this.options.transport,
+          method: "POST",
+          url,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          timeoutInMs: this.options.requestTimeoutInMs,
+          step,
+          providerTitle: PROVIDER_TITLE,
+          secretValues: [this.options.clientSecret, token],
+        });
+      },
+    });
+  }
+
+  /*
+   * Every row of a Resource Graph query over the subscriptions, page by
+   * page. `complete` is false when it stopped at RESOURCE_GRAPH_MAX_PAGES.
+   */
+  public async queryResourceGraph(data: {
+    subscriptionIds: Array<string>;
+    query: string;
+  }): Promise<{ rows: Array<JSONObject>; complete: boolean }> {
+    const url: string = `${this.getManagementBaseUrl()}/providers/Microsoft.ResourceGraph/resources?${buildQueryString(
+      [["api-version", AZURE_RESOURCE_GRAPH_API_VERSION]],
+    )}`;
+    const rows: Array<JSONObject> = [];
+    let skipToken: string = "";
+
+    for (let page: number = 0; page < RESOURCE_GRAPH_MAX_PAGES; page++) {
+      const options: JSONObject = {
+        $top: RESOURCE_GRAPH_PAGE_SIZE,
+        resultFormat: "objectArray",
+      };
+
+      if (skipToken) {
+        options["$skipToken"] = skipToken;
+      }
+
+      const response: JSONObject = await this.post(
+        url,
+        {
+          subscriptions: data.subscriptionIds,
+          query: data.query,
+          options,
+        },
+        "resource graph query",
+      );
+
+      for (const row of readArray(response["data"])) {
+        rows.push(readObject(row));
+      }
+
+      const next: string = readText(response["$skipToken"]);
+
+      if (!next || next === skipToken) {
+        return { rows, complete: true };
+      }
+
+      skipToken = next;
     }
 
-    const token: string = await this.tokens.getAccessToken(
-      this.getManagementBaseUrl(),
-    );
+    return { rows, complete: false };
+  }
 
-    return await LlmProviderHttp.requestJson({
-      transport: this.options.transport,
-      method: "GET",
-      url,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
+  /*
+   * A subscription's Activity Log events in [start, end): its
+   * administrative operations and its service and resource health events,
+   * page by page (nextLink), newest first as Azure lists them. `complete`
+   * is false when it stopped at MAX_LIST_PAGES.
+   */
+  public async listActivityLog(data: {
+    subscriptionId: string;
+    start: Date;
+    end: Date;
+  }): Promise<{ events: Array<JSONObject>; complete: boolean }> {
+    EntraTokenClient.validateGuid(data.subscriptionId, "Subscription ID");
+
+    const filter: string = `eventTimestamp ge '${data.start.toISOString()}' and eventTimestamp le '${data.end.toISOString()}'`;
+    const url: string = `${this.getManagementBaseUrl()}/subscriptions/${encodeURIComponent(
+      data.subscriptionId.trim(),
+    )}/providers/Microsoft.Insights/eventtypes/management/values?${buildQueryString(
+      [
+        ["api-version", AZURE_ACTIVITY_LOG_API_VERSION],
+        ["$filter", filter],
+        ["$select", ACTIVITY_LOG_FIELDS],
+      ],
+    )}`;
+
+    const listed: { items: Array<JSONObject>; complete: boolean } =
+      await this.listPagedWithEnd(url, "activity log request");
+
+    return { events: listed.items, complete: listed.complete };
+  }
+
+  private async get(url: string, step: string): Promise<JSONObject> {
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<JSONObject> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          this.getManagementBaseUrl(),
+        );
+
+        return await LlmProviderHttp.requestJson({
+          transport: this.options.transport,
+          method: "GET",
+          url,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          timeoutInMs: this.options.requestTimeoutInMs,
+          step,
+          providerTitle: PROVIDER_TITLE,
+          secretValues: [this.options.clientSecret, token],
+        });
       },
-      timeoutInMs: this.options.requestTimeoutInMs,
-      step,
-      providerTitle: PROVIDER_TITLE,
-      secretValues: [this.options.clientSecret, token],
     });
   }
 
@@ -142,6 +288,14 @@ export default class AzureArm {
     firstUrl: string,
     step: string,
   ): Promise<Array<JSONObject>> {
+    return (await this.listPagedWithEnd(firstUrl, step)).items;
+  }
+
+  // The pages and whether they ended: false when MAX_LIST_PAGES stopped them.
+  private async listPagedWithEnd(
+    firstUrl: string,
+    step: string,
+  ): Promise<{ items: Array<JSONObject>; complete: boolean }> {
     const items: Array<JSONObject> = [];
     let url: string = firstUrl;
     const managementHost: string = new URL(this.getManagementBaseUrl()).host;
@@ -156,7 +310,7 @@ export default class AzureArm {
       const next: string = readText(response["nextLink"]);
 
       if (!next || next === url) {
-        break;
+        return { items, complete: true };
       }
 
       let nextHost: string = "";
@@ -164,17 +318,17 @@ export default class AzureArm {
       try {
         nextHost = new URL(next).host;
       } catch {
-        break;
+        return { items, complete: true };
       }
 
       if (nextHost !== managementHost) {
-        break;
+        return { items, complete: true };
       }
 
       url = next;
     }
 
-    return items;
+    return { items, complete: false };
   }
 
   public async listSubscriptions(): Promise<Array<AzureSubscription>> {
