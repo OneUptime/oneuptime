@@ -411,13 +411,19 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                * whole height, a screen of blank space under
                                * the form.
                                */}
+                              {/*
+                               * Open, nothing caps its height: a criteria
+                               * with many filters on a phone is taller than
+                               * the 5,000 pixels it was capped at, and its
+                               * end was cut off with nothing to scroll to.
+                               */}
                               <div
                                 data-testid="monitor-criteria-body"
                                 aria-hidden={isCollapsed}
-                                className={`transition-all duration-200 ease-in-out overflow-hidden ${
+                                className={`transition-all duration-200 ease-in-out overflow-hidden${
                                   isCollapsed
-                                    ? "relative max-h-0 invisible"
-                                    : "max-h-[5000px]"
+                                    ? " relative max-h-0 invisible"
+                                    : ""
                                 }`}
                               >
                                 <div className="px-4 pb-4 bg-white">

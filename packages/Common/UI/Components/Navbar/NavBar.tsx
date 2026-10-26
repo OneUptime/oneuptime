@@ -348,13 +348,20 @@ const Navbar: FunctionComponent<ComponentProps> = (
               isRenderedOnMobile={true}
             />
 
+            {/*
+             * A square outline button round its icon (Button), named for a
+             * screen reader - it has no words - and saying whether the menu
+             * it opens is open.
+             */}
             <Button
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {
                 return setIsMobileMenuOpen(!isMobileMenuVisible);
               }}
-              className="ml-2 p-2"
+              className="ml-2"
               icon={isMobileMenuOpen ? IconProp.Close : IconProp.Bars3}
+              ariaLabel="Navigation"
+              ariaExpanded={isMobileMenuOpen}
               dataTestId="mobile-nav-toggle"
             />
           </div>

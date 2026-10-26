@@ -315,6 +315,43 @@ describe("EntityDropdown", () => {
       });
     });
 
+    /*
+     * A chip shows the whole name, wrapping inside it: cut at 14rem, two
+     * picks that differ only at their end ("checkout-api-eu-west-1" and
+     * "...-eu-west-2") read the same.
+     */
+    test("a chip of a multi-select shows its whole name, never cut short", () => {
+      const longName: string =
+        "Kubernetes Cluster: production-checkout-api-eu-west-1";
+
+      render(
+        <EntityDropdown
+          ariaLabel="Team"
+          isMultiSelect={true}
+          onChange={getJestMockFunction()}
+          options={[...options, { value: "long", label: longName }]}
+          value={["members", "long"]}
+        />,
+      );
+
+      const name: HTMLElement = screen.getByText(longName);
+      const chip: HTMLElement = name.parentElement as HTMLElement;
+
+      // Named for tests that read a chip: its name is the whole label.
+      expect(chip).toHaveAttribute("data-testid", "entity-dropdown-chip");
+      expect(name).toHaveAttribute("data-testid", "entity-dropdown-chip-label");
+
+      expect(name).not.toHaveClass("truncate");
+      expect(name.className).not.toContain("max-w-[14rem]");
+      expect(name).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
+      // The chip is never wider than the row of chips.
+      expect(chip).toHaveClass("inline-flex", "max-w-full");
+      // And it still has its Remove.
+      expect(
+        screen.getByRole("button", { name: `Remove ${longName}` }),
+      ).toBeInTheDocument();
+    });
+
     test("a removed chip of a multi-select: the rest, and all of them before", () => {
       const onChange: MockFunction = getJestMockFunction();
       render(

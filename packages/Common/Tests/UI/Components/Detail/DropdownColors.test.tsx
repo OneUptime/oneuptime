@@ -3,6 +3,7 @@ import Field from "../../../../UI/Components/Detail/Field";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import Color from "../../../../Types/Color";
+import { getPillColors } from "../../../../UI/Components/Pill/PillColors";
 import { cleanup, render } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -114,9 +115,13 @@ describe("Detail dropdown colors", () => {
     );
 
     expect(requireElement(badges[1]).textContent).toContain("Legacy");
-    expect(requireElement(badges[1]).classList.contains("bg-indigo-50")).toBe(
-      true,
-    );
+    // Uncoloured: the product's indigo, painted as a Pill paints a colour.
+    expect(requireElement(badges[1])).toHaveStyle({
+      color: getPillColors("#6366f1").light.textColor,
+    });
+    expect(
+      requireElement(badges[1]).getAttribute("data-dropdown-value-color"),
+    ).toBeNull();
   });
 
   /*
@@ -132,7 +137,9 @@ describe("Detail dropdown colors", () => {
     );
 
     expect(requireElement(badge).textContent).toContain("Legacy");
-    expect(requireElement(badge).classList.contains("bg-indigo-50")).toBe(true);
+    expect(requireElement(badge)).toHaveStyle({
+      color: getPillColors("#6366f1").light.textColor,
+    });
     expect(container.textContent).not.toContain("No selection");
   });
 

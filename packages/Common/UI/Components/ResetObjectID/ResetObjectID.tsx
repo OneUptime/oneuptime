@@ -15,6 +15,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   translatableTerm,
   translateNamedAction,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -48,6 +49,15 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   resultTitle?: string | undefined;
   resultDescription?: string | undefined;
 }
+
+/*
+ * What the confirmation says when its caller does not word it: what a reset
+ * does to whoever relies on the old value. "Are you sure you want to reset
+ * API Key?" asked to confirm the click and said nothing of what breaks.
+ */
+export const RESET_CONFIRM_DESCRIPTION_TEMPLATE: string = translationKey(
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.",
+);
 
 const ResetObjectID: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -129,10 +139,9 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={
             props.confirmDescription ||
-            translator.translateTemplate(
-              "Are you sure you want to reset {{columnName}}?",
-              { columnName: translatableTerm(tableColumnName) },
-            )
+            translator.translateTemplate(RESET_CONFIRM_DESCRIPTION_TEMPLATE, {
+              columnName: translatableTerm(tableColumnName),
+            })
           }
           title={
             props.confirmTitle ||

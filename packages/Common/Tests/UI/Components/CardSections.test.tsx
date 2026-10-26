@@ -317,7 +317,9 @@ describe("a card in CardSections is a section of the card that holds it", () => 
 
   test("it keeps its description, hidden on a phone as a card's is", () => {
     renderSections(
-      <Card title="Daily limits" description="How much AI may run each day." />,
+      <Card title="Daily limits" description="How much AI may run each day.">
+        <div>The limits</div>
+      </Card>,
     );
 
     const description: HTMLElement = screen.getByTestId("card-description");

@@ -99,6 +99,7 @@ import {
   translateTemplate,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
@@ -413,7 +414,8 @@ export const describeEscalationRuleDeletion: (
 
   sentences.push(translateTemplate("This action cannot be undone."));
 
-  return sentences.join(" ");
+  // No space after a full-width stop (Japanese, Chinese).
+  return joinSentences(sentences);
 };
 
 /*

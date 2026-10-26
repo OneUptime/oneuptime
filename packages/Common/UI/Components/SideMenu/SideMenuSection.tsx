@@ -139,13 +139,17 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
        * invisible once the fold has finished. Opening leaves visibility out,
        * so the rows are focusable and announced at once rather than a frame
        * later.
+       *
+       * Open, nothing caps its height (FoldedSection does the same): a cap
+       * of 2,000 pixels cut the last rows of a long section off, with
+       * nothing to scroll to - the menu scrolls, a section does not.
        */}
       <div
         id={bodyId}
         className={`overflow-hidden duration-200 ease-in-out ${
           isCollapsed
             ? "max-h-0 opacity-0 invisible transition-all"
-            : "max-h-[2000px] opacity-100 transition-[max-height,opacity]"
+            : "opacity-100 transition-opacity"
         }`}
       >
         <div className="mt-0.5 space-y-0.5">{props.children}</div>

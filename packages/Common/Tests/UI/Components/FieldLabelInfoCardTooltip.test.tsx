@@ -76,8 +76,9 @@ describe("FieldLabel tooltip", () => {
 
     expect(info).toBeInTheDocument();
     expect(info.closest("label")).toHaveTextContent("Ready");
-    // The label is uppercase and tracked; the (i) resets both.
-    expect(info).toHaveClass("normal-case", "tracking-normal");
+    // The name is in sentence case: nothing to reset for the (i).
+    expect(info.closest("label")).not.toHaveClass("uppercase");
+    expect(info.closest("label")).not.toHaveClass("tracking-widest");
   });
 
   test("the text is not in the page until someone reaches for it", () => {
