@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 Het **Overzicht** van een omgeving toont:
 
-- **Aanvragen**, **Foutpercentage** en **p95 latency**, uit je traces, met grafieken van aanvragen, fouten en geheugen over het tijdsbereik dat je kiest.
+- **Aanvragen**, **Foutpercentage** en **p95-latentie**, uit je traces, met grafieken van aanvragen, fouten en geheugen over het tijdsbereik dat je kiest.
 - **CPU** en **Geheugen** over de live instanties, en een lijst **Topinstanties op CPU**. Die komen uit de metrieken `container.cpu.utilization` en `container.memory.usage` die de instantie-identiteit meedragen; op ECS uit `ecs.task.cpu.utilized` en `ecs.task.memory.utilized` van de receiver `awsecscontainermetrics`.
 - **Instanties**: hoeveel er in de laatste 15 minuten hebben gerapporteerd. Het tabblad **Instanties** heeft één rij per instantie.
 - De tabbladen **Logboeken**, **Traces** en **Metrieken**, gefilterd op de omgeving.

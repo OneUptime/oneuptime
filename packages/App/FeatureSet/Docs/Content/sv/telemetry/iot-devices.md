@@ -290,7 +290,7 @@ OneUptime känner igen dessa `iot_*`-mätvärdesnamn. Skicka bara de som är men
 
 1. Kontrollera att enheten, gatewayens collector eller MQTT-klienten skickar utan fel: leta efter exportfel och HTTP-svar `401` eller `422` i dess loggar, eller en anslutning som nekas med returkod 4.
 2. Öppna **Produkter → Infrastruktur → IoT → All Fleets**. Flottan visas som `iot/<fleet>` inom en minut eller så efter de första avläsningarna.
-3. Öppna flottans sida **Devices**. Varje enhet du skickade från ska finnas med sitt senaste batteri, signal, temperatur, CPU, minne och status uppe eller nere.
+3. Öppna flottans sida **Enheter**. Varje enhet du skickade från ska finnas med sitt senaste batteri, signal, temperatur, CPU, minne och status uppe eller nere.
 4. Öppna flottans sida **Mätvärden** för att visa någon av `iot_*`-serierna i ett diagram.
 
 ## Självhostad OneUptime

@@ -30,6 +30,9 @@ import Dictionary from "Common/Types/Dictionary";
  * other variables are absent, and keep that markup as it is.
  */
 
+// The variable that holds OneUptime's own logo (oneUptimeLogoUrl, above).
+export const ONEUPTIME_LOGO_VARIABLE_NAME: string = "oneUptimeLogoUrl";
+
 export const BRAND_VARIABLE_NAMES: ReadonlyArray<string> = [
   "brandProductName",
   "isBrandRenamed",

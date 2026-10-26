@@ -77,14 +77,14 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 
 | Waar | Wat het toont |
 | --- | --- |
-| **Overzicht** | Tegels voor **Page loads**, **Page load time (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Event duration (p95)**, **Uitzonderingen**, **Clients** en **Sessions recorded**, en trendgrafieken over het tijdsbereik dat je kiest. |
+| **Overzicht** | Tegels voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Event duration (p95)**, **Uitzonderingen**, **Clients** en **Sessions recorded**, en trendgrafieken over het tijdsbereik dat je kiest. |
 | **Core Web Vitals** | Een kaart in het overzicht met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrieken**, **Logboeken**, **Traces** | De telemetrieverkenners, beperkt tot deze applicatie. |
 | **Clients** | De browserplatforms en apparaatmodellen waarop de applicatie is gebruikt: een korte lijst per platform, nooit een rij per gebruiker. |
 | **Sessieherhaling** | Opnames van echte sessies, naast hun fouten, traces en logs: zie [Sessieherhaling](/docs/telemetry/session-replay). |
 | **Aanbevelingen** | Kant-en-klare monitors voor de applicatie: slechte Core Web Vitals, mislukte verzoeken, browseruitzonderingen en, zodra ze opneemt, budgetten voor Session Replay. |
 
-De tellingen komen uit de spans die je instrumentatie verstuurt. **Page loads** telt de span `documentLoad` die de instrumentatie voor paginaladingen bij elke volledige lading vastlegt, dus een routewissel binnen een single-page-app is geen paginalading.
+De tellingen komen uit de spans die je instrumentatie verstuurt. **Paginaladingen** telt de span `documentLoad` die de instrumentatie voor paginaladingen bij elke volledige lading vastlegt, dus een routewissel binnen een single-page-app is geen paginalading.
 
 Een applicatie toont **Verbonden** zolang er telemetrie binnenkomt en **Verbinding verbroken** na 15 minuten zonder. Tijd waarin OneUptime zelf plat lag of zijn innamewachtrij inhaalde, telt niet mee voor die 15 minuten.
 

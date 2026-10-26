@@ -322,7 +322,7 @@ aws ecs update-service \
 ## Hvad du får
 
 - **Oversigt**: anmodninger, fejlrate og p95-latens fra dine spor, felterne **CPU** og **Hukommelse** og **Øverste instanser efter CPU**. Felterne fyldes fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`, eller fra enhver metrik `container.cpu.utilization` og `container.memory.usage`, der bærer opgavens identitet. SDK direct sender ingen af dem.
-- **Instanser**: én række pr. kørende opgave, navngivet efter opgave-ID'et (slutningen af `aws.ecs.task.arn`), med seneste CPU, hukommelse og tidspunkt for sidst set. En opgave, der holder op med at rapportere, bliver **Stale**.
+- **Instanser**: én række pr. kørende opgave, navngivet efter opgave-ID'et (slutningen af `aws.ecs.task.arn`), med seneste CPU, hukommelse og tidspunkt for sidst set. En opgave, der holder op med at rapportere, bliver **Forældet**.
 - **Protokoller**, **Spor** og **Metrikker**: alt, der bar `cloud.platform=aws_ecs` for denne konto og region.
 - **Tjenester**: de samme opgaver, opdelt efter `service.name`.
 

@@ -62,7 +62,7 @@ Daaronder zegt één regel of er iets een incident opent als een apparaat uitval
 
 Zolang er nog niets is toegevoegd, leidt het overzicht je in plaats daarvan door drie stappen. **Zet een sonde in je netwerk**: een sonde pingt en leest je apparaten uit vanuit hun eigen netwerk, dus **Een sonde toevoegen** geeft er een een naam, toont de opdracht die hem start en kijkt toe hoe hij verbinding maakt. **Voeg je apparaten toe**: **Apparaten ontdekken** scant een adresbereik zodat je kunt kiezen wat je toevoegt, het beste voor een heel netwerk of een nieuwe locatie, en **Eén apparaat toevoegen** voegt er één toe op IP-adres of hostnaam. **Krijg een melding als een apparaat uitvalt**: **Waarschuwingen instellen** opent de [waarschuwingsbeleidsregels](#waarschuwingsbeleid), waar het aanbevolen beleid één klik is. Op OneUptime Cloud vraagt [een sonde toevoegen](/docs/probe/custom-probe) het Growth-abonnement: daaronder zegt de stap dat en verwijst hij in plaats daarvan naar je factureringsinstellingen, en de eigen sondes van OneUptime op internet kunnen nog steeds apparaten met een openbaar adres controleren.
 
-Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices**, **Locaties**, **Kaart**, **Traffic**, **Gebeurtenissen** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
+Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Apparaten**, **Locaties**, **Kaart**, **Traffic**, **Gebeurtenissen** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
 
 | Sectie | Pagina's |
 | --- | --- |
@@ -75,7 +75,7 @@ Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices*
 
 :::steps
 ### De lijst met apparaten openen
-Ga naar **Netwerk → Devices** en klik op **Apparaat toevoegen**. **Apparaat toevoegen** op het Netwerk-**Overzicht** opent hetzelfde formulier.
+Ga naar **Netwerk → Apparaten** en klik op **Apparaat toevoegen**. **Apparaat toevoegen** op het Netwerk-**Overzicht** opent hetzelfde formulier.
 
 ### Het adres van het apparaat typen
 Typ bij **Hostnaam** het IP-adres of de hostnaam. Laat **Naam** leeg om het apparaat naar zijn hostnaam te noemen.
@@ -140,7 +140,7 @@ Inloggegevens die op het apparaat zijn getypt, gaan voor een inloggegevensprofie
 
 ## Veel apparaten tegelijk wijzigen
 
-Een discovery-scan van het netwerk van een klant brengt tientallen apparaten binnen die bij één locatie horen, één rol delen en van één leverancier komen. Je opent ze niet een voor een: selecteer ze in de lijst **Devices**, door rijen aan te vinken of alle apparaten te selecteren die aan de filters voldoen, en open **Bulkacties**.
+Een discovery-scan van het netwerk van een klant brengt tientallen apparaten binnen die bij één locatie horen, één rol delen en van één leverancier komen. Je opent ze niet een voor een: selecteer ze in de lijst **Apparaten**, door rijen aan te vinken of alle apparaten te selecteren die aan de filters voldoen, en open **Bulkacties**.
 
 | Actie | Wat ze doet |
 | --- | --- |
@@ -184,7 +184,7 @@ Een apparaat waarvan zowel de ping als de walk mislukt, is gewoon **Offline**, d
 
 ### De status van een apparaat lezen
 
-Elke plek die een apparaat toont — de lijst Devices, de Devices-pagina van een locatie, het overzicht, de kaart — gebruikt dezelfde drie oordelen en dezelfde toevoegingen ernaast.
+Elke plek die een apparaat toont — de lijst Apparaten, de Apparaten-pagina van een locatie, het overzicht, de kaart — gebruikt dezelfde drie oordelen en dezelfde toevoegingen ernaast.
 
 | Oordeel | Betekent |
 | --- | --- |
@@ -194,12 +194,12 @@ Elke plek die een apparaat toont — de lijst Devices, de Devices-pagina van een
 
 | Toevoeging | Verschijnt wanneer | Wat te doen |
 | --- | --- | --- |
-| **Stale** | Er is al ruim langer dan het interval van het apparaat geen poll geprobeerd. | Controleer of de sonde van het apparaat online is en haar vloot bijhoudt. |
+| **Verouderd** | Er is al ruim langer dan het interval van het apparaat geen poll geprobeerd. | Controleer of de sonde van het apparaat online is en haar vloot bijhoudt. |
 | **No probe** | Het apparaat wordt door een sonde gepolld maar heeft er geen, of het pollen staat uit. | Wijs een sonde toe die het kan bereiken; tot dan pollt niets het. |
 | **Geen monitor** | Het apparaat gebruikt de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) en er is niets gekoppeld. | Koppel een monitor, of zet het terug op pollen door de sonde. |
 | **SNMP failing** | Bereikbaar via ping, maar de laatste SNMP-walk is mislukt. | Controleer de inloggegevens, de SNMP-agent of een ACL. |
 
-De lijst **Devices** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Mislukt** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **Geen SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
+De lijst **Apparaten** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Mislukt** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **Geen SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
 
 ## SNMP-inloggegevens en inloggegevensprofielen
 
@@ -240,13 +240,13 @@ Het wissen van de eigen inloggegevens van het apparaat wist geen profiel. Als he
 
 ### In bulk
 
-Selecteer apparaten in de lijst **Devices** en gebruik:
+Selecteer apparaten in de lijst **Apparaten** en gebruik:
 
 - **Set SNMP Credential Profile** / **Clear SNMP Credential Profile**: een profiel aan een selectie koppelen, of het eraf halen.
 - **Switch to Probe Polling**: voor apparaten met de override met gekoppelde monitor. Kies een sonde, en elk geselecteerd apparaat wordt vanaf dan volgens zijn schema gepingd, en gewalkt zodra het inloggegevens heeft. Een al gekoppelde monitor blijft gekoppeld; de status van het apparaat komt nu van de sonde.
 - **Create Ping Monitors**: voor apparaten met de override met gekoppelde monitor; maakt een Ping-monitor op de hostnaam van elk apparaat en koppelt die, zodat het apparaat Up of Down toont.
 
-De pagina **Devices** toont een banner als het project apparaten bevat met de override met gekoppelde monitor waaraan niets is gekoppeld — apparaten die niets pollt en waarover niets rapporteert — en linkt naar de selectie die ze oplost.
+De pagina **Apparaten** toont een banner als het project apparaten bevat met de override met gekoppelde monitor waaraan niets is gekoppeld — apparaten die niets pollt en waarover niets rapporteert — en linkt naar de selectie die ze oplost.
 
 ## Standaardinstellingen voor monitoring van een locatie
 
@@ -322,7 +322,7 @@ In de editor **Health OIDs** past **Vendor Health Template** een kant-en-klare s
 
 De OID's van het sjabloon worden naar de eigen lijst van het apparaat gekopieerd, waar je ze kunt inkorten of uitbreiden. Nadat de eerste walk de leverancier heeft herkend, biedt het overzicht van het apparaat het bijbehorende sjabloon aan zolang het iets toevoegt, en **Gezondheidscontroles toevoegen** voegt het met één klik toe. Het herkennen leest de `sysObjectID` van het apparaat, en zijn `sysDescr` waar één enterprisenummer twee besturingssystemen huisvest: Extreme Fabric Engine op universele hardware meldt hetzelfde enterprisenummer (1916) als EXOS, en alleen zijn beschrijving (`…-FabricEngine (9.0.4.0)`) onderscheidt ze. UniFi-access points worden op dezelfde manier van de routers van Ubiquiti onderscheiden (`U6-Pro 6.6.50.15098`), ook als oudere firmware antwoordt met de tak van Net-SNMP, en IQ Engine-access points van de Aerohive-switches die hun tak delen (`AP230, HiveOS 8.2r1`).
 
-Apparaten met **Auto-Apply Vendor Health Template** aan krijgen de OID's en tabellen van het sjabloon bij hun eerste poll: apparaten die een auto-importregel binnenbrengt, en apparaten die zijn geïmporteerd vanuit **Resultaten bekijken** met de schakelaar voor het leverancierssjabloon aan, wat zo is tenzij je hem uitzet. Om veel apparaten tegelijk hun sjabloon te geven, zoals een ontdekte vloot van voor de schakelaar bestond, selecteer je ze in de lijst **Devices** en gebruik je **Leverancierssjabloon toepassen** (zie [Veel apparaten tegelijk wijzigen](#veel-apparaten-tegelijk-wijzigen)).
+Apparaten met **Auto-Apply Vendor Health Template** aan krijgen de OID's en tabellen van het sjabloon bij hun eerste poll: apparaten die een auto-importregel binnenbrengt, en apparaten die zijn geïmporteerd vanuit **Resultaten bekijken** met de schakelaar voor het leverancierssjabloon aan, wat zo is tenzij je hem uitzet. Om veel apparaten tegelijk hun sjabloon te geven, zoals een ontdekte vloot van voor de schakelaar bestond, selecteer je ze in de lijst **Apparaten** en gebruik je **Leverancierssjabloon toepassen** (zie [Veel apparaten tegelijk wijzigen](#veel-apparaten-tegelijk-wijzigen)).
 
 Een leverancierssjabloon toepassen is een eenmalige kopie, dus niets verspreidt zich als het sjabloon verandert. Gebruik voor alles voorbij één apparaat liever een **OID Collection Template**; de leverancierssjablonen worden als startpunt aangeboden als je er een maakt.
 
@@ -352,7 +352,7 @@ Een OID op een sjabloon wordt verzameld zoals het geschreven staat, dus een OID 
 Er zijn drie manieren om apparaten te koppelen, en bij een vloot die discovery blijft vinden is de derde het belangrijkst:
 
 - Eén apparaat tegelijk, op de kaart **Polling & Data Collection** van het apparaat.
-- In bulk, door apparaten in de lijst **Devices** te selecteren en **Set OID Collection Template** te gebruiken. De kolom **Sjabloon** van de lijst toont welke apparaten waaraan gekoppeld zijn.
+- In bulk, door apparaten in de lijst **Apparaten** te selecteren en **Set OID Collection Template** te gebruiken. De kolom **Sjabloon** van de lijst toont welke apparaten waaraan gekoppeld zijn.
 - Automatisch, door een OID Collection Template in te stellen op een auto-importregel, zodat elk apparaat dat een scan importeert, gekoppeld wordt op het moment dat het wordt aangemaakt.
 
 Een apparaat verzamelt eerst de OID's van zijn sjabloon en daarna zijn eigen **Device-Specific Health OIDs**. Als beide dezelfde OID noemen, wordt die één keer verzameld, met de naam en beschrijving van het apparaat als winnaar, en de sjabloonregels houden hun plek, zodat apparaatspecifieke toevoegingen ze nooit kunnen wegdrukken.
@@ -638,12 +638,12 @@ De eigen namen van het apparaat komen eerst omdat het de namen zijn die zijn eig
 
 **Apparaten een naam geven op basis van de korte hostnaam** kort een volledig gekwalificeerde naam in tot zijn eerste label: `core-sw-01.corp.example.com` wordt geïmporteerd als `core-sw-01`. Het geldt voor een reverse-DNS-naam en voor een `sysName` die een volledig gekwalificeerde hostnaam is; al het andere (`Core Switch`, `ubuntu-22.04`, een IP-adres) blijft zoals het is. Het verandert alleen hoe apparaten heten, dus er is geen nieuwe scan nodig: **Resultaten bekijken** en auto-importregels gebruiken het de volgende keer dat ze een host een naam geven, en al geïmporteerde apparaten houden hun naam.
 
-Een apparaat dat is geïmporteerd van een host met een reverse-DNS-naam, bewaart de volledige naam als zijn **DNS Name**, of de scan nu korte namen gebruikt of niet. Die wordt getoond op het overzicht van het apparaat, de zoekfunctie van de lijst **Devices** vindt hem, en locatietoewijzingsregels toetsen hostnaampatronen eraan, zodat een regel `*.store-0660.corp.example.com` een apparaat waarvan de naam zijn domein kwijt is, blijft plaatsen. Een NetBIOS-naam wordt nooit als DNS Name opgeslagen: de host meldt hem over zichzelf, en het is geen DNS-record.
+Een apparaat dat is geïmporteerd van een host met een reverse-DNS-naam, bewaart de volledige naam als zijn **DNS Name**, of de scan nu korte namen gebruikt of niet. Die wordt getoond op het overzicht van het apparaat, de zoekfunctie van de lijst **Apparaten** vindt hem, en locatietoewijzingsregels toetsen hostnaampatronen eraan, zodat een regel `*.store-0660.corp.example.com` een apparaat waarvan de naam zijn domein kwijt is, blijft plaatsen. Een NetBIOS-naam wordt nooit als DNS Name opgeslagen: de host meldt hem over zichzelf, en het is geen DNS-record.
 
 > [!WARNING]
 > Label- en eigenaarsregels toetsen aan de naam van het apparaat. Een patroon dat voor DNS-namen (`*.wbhq.com`) of volledige namen (`*.corp.example.com`) is geschreven, past niet op een apparaat dat naar zijn eigen naam of zijn korte naam heet. Locatietoewijzingsregels proberen ook de DNS Name, dus die blijven passen.
 
-Om apparaten die je al hebt geïmporteerd in te korten, selecteer je ze in de lijst **Devices** en gebruik je **Shorten Names to Hostname**. De bevestiging toont hoeveel apparaten worden hernoemd, met voorbeelden. Een apparaat zonder DNS Name bewaart zijn volledige naam als DNS Name, tenzij die naam ook zijn SNMP-systeemnaam is of lang genoeg is om bij het importeren te zijn ingekort. Een apparaat wordt overgeslagen als een ander apparaat zijn korte naam al heeft, als twee geselecteerde apparaten dezelfde korte naam zouden krijgen, of als zijn naam is veranderd nadat je het selecteerde. Locatietoewijzingsregels worden opnieuw uitgevoerd voor elk hernoemd apparaat; label- en eigenaarsregels niet, dus gebruik [Run Now](/docs/configuration/run-rules-now) op een regel die apparaatnamen toetst. Bestaande Ping-monitors houden hun naam, en metriekreeksen die met de apparaatnaam zijn gelabeld, beginnen een nieuwe reeks onder de nieuwe naam.
+Om apparaten die je al hebt geïmporteerd in te korten, selecteer je ze in de lijst **Apparaten** en gebruik je **Shorten Names to Hostname**. De bevestiging toont hoeveel apparaten worden hernoemd, met voorbeelden. Een apparaat zonder DNS Name bewaart zijn volledige naam als DNS Name, tenzij die naam ook zijn SNMP-systeemnaam is of lang genoeg is om bij het importeren te zijn ingekort. Een apparaat wordt overgeslagen als een ander apparaat zijn korte naam al heeft, als twee geselecteerde apparaten dezelfde korte naam zouden krijgen, of als zijn naam is veranderd nadat je het selecteerde. Locatietoewijzingsregels worden opnieuw uitgevoerd voor elk hernoemd apparaat; label- en eigenaarsregels niet, dus gebruik [Run Now](/docs/configuration/run-rules-now) op een regel die apparaatnamen toetst. Bestaande Ping-monitors houden hun naam, en metriekreeksen die met de apparaatnaam zijn gelabeld, beginnen een nieuwe reeks onder de nieuwe naam.
 
 :::details NetBIOS-namen: hoe het opzoeken werkt
 Windows- en Samba-hosts hebben vaak geen SNMP-agent, dus zonder dit worden ze getoond met een reverse-DNS-naam die hun eigenaren misschien niet gebruiken, of met hun adres. Met **Windows-namen opzoeken (NetBIOS)** aan vraagt de sonde na de scan elke host zonder SNMP-systeemnaam om zijn NetBIOS-naam, met een NBSTAT-query naar UDP 137, hosts zonder reverse-DNS-naam eerst. De optie staat aan voor nieuwe scans en uit voor scans die zijn gemaakt voordat ze bestond; haar aan- of uitzetten behoudt de resultaten van de scan en werkt vanaf de volgende keer dat de scan draait. Het is naar beste vermogen:

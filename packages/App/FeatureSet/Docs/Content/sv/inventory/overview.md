@@ -38,7 +38,7 @@ Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för de
 | --- | --- |
 | **Live** | Sett under de senaste 30 minuterna. |
 | **Recent** | Sett under det senaste dygnet. |
-| **Stale** | Inte sett på mer än ett dygn. Sidan **Gone Quiet** listar dem. |
+| **Inaktuell** | Inte sett på mer än ett dygn. Sidan **Gone Quiet** listar dem. |
 
 Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta längre än fönstret för sin typ, även de arkiverade, och deras värden i anpassade fält försvinner med dem. Speglade objekt och de du har lagt till tas aldrig bort på det här sättet.
 

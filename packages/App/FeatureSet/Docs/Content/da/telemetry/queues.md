@@ -16,7 +16,7 @@ Det fungerer på samme måde for alle brokere (Apache Kafka, RabbitMQ, Apache Ac
 | Kilde | Hvad den kræver af dig | Hvad den tilføjer til køens side |
 | --- | --- | --- |
 | **Applikationstraces** | Instrumenterede applikationer (OpenTelemetry); se [Instrumentering af applikationer](#instrumentering-af-applikationer) | Publicerede og forbrugte beskeder, fejl og behandlingstid, tjenesterne på hver side og selve traces |
-| **Brokermetrikker** (en OpenTelemetry Collector) | Collector-receiveren eller scrapingen til din broker; se [Brokerens sundhedsmetrikker](#brokerens-sundhedsmetrikker) | **Broker health**: efterslæb, consumer-lag, dead letters, alder på den ældste besked, begrænsning og brokerens egne beskedrater |
+| **Brokermetrikker** (en OpenTelemetry Collector) | Collector-receiveren eller scrapingen til din broker; se [Brokerens sundhedsmetrikker](#brokerens-sundhedsmetrikker) | **Brokersundhed**: efterslæb, consumer-lag, dead letters, alder på den ældste besked, begrænsning og brokerens egne beskedrater |
 
 ```mermaid title="To kilder, én køside"
 flowchart TB
@@ -212,7 +212,7 @@ builder.Services.AddOpenTelemetry()
 
 En broker ved, hvad ingen applikation kan se: hvor mange beskeder der venter, hvor langt hver consumergruppe er bagud, hvad der endte i en dead-letter-kø. Hver sektion nedenfor har collector-konfigurationen til ét system: en komplet OpenTelemetry Collector-konfiguration, der slutter med den OTLP-exporter, der sender til OneUptime. Sæt en telemetri-indtagelsesnøgle (**Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**) i `x-oneuptime-token`, erstat `https://oneuptime.com` med din egen vært, hvis du selvhoster, og kør den med `otel/opentelemetry-collector-contrib` 0.161.0 eller senere (hver konfiguration her er valideret mod 0.161.0). Nyere collectorer logger, at `otlphttp` er forældet til fordel for `otlp_http`; begge navne er den samme exporter. Flet deres receivere sammen i én collector for at indsamle flere systemer.
 
-Hver køs sektion **Broker health** viser de metrikker, der er angivet for dens system (en gauge som dens værdi, et antal pr. periode summeret pr. interval, en tæller som rate pr. sekund), og kombinerer en køs serier, som hver metrik kræver (en RabbitMQ-køs klare og ubekræftede beskeder lægges sammen; den consumergruppe, der er længst bagud, er lag'et). Alt, hvad collectoren sender, findes også i stifinderen **Metrikker**. Så længe ingen angivet metrik er ankommet for en kø, viser sektionen, hvor det systems metrikker kommer fra, med et link til dets sektion her.
+Hver køs sektion **Brokersundhed** viser de metrikker, der er angivet for dens system (en gauge som dens værdi, et antal pr. periode summeret pr. interval, en tæller som rate pr. sekund), og kombinerer en køs serier, som hver metrik kræver (en RabbitMQ-køs klare og ubekræftede beskeder lægges sammen; den consumergruppe, der er længst bagud, er lag'et). Alt, hvad collectoren sender, findes også i stifinderen **Metrikker**. Så længe ingen angivet metrik er ankommet for en kø, viser sektionen, hvor det systems metrikker kommer fra, med et link til dets sektion her.
 
 ### Amazon SNS
 
@@ -791,7 +791,7 @@ metrics
   });
 ```
 
-Den vises på køens fane **Metrikker**. OneUptime har ingen egne BullMQ-metrikker at vise under **Broker health**.
+Den vises på køens fane **Metrikker**. OneUptime har ingen egne BullMQ-metrikker at vise under **Brokersundhed**.
 
 ### Google Cloud Pub/Sub
 
@@ -945,9 +945,9 @@ service:
 
 Køer overvåges med **Metrikker**-monitorer over deres brokermetrikker (se [Metrik-monitor](/docs/monitor/metrics-monitor)).
 
-**Fra køens side.** Hver gauge og hvert antal pr. periode under **Broker health** har **Create monitor**: den åbner en ny metrik-monitor over den metrik, filtreret på præcis de attributværdier, der nævner denne kø i den, med en starttærskel, hvor metrikken måler noget med en åbenlys dårlig retning: efterslæb, dead letters, consumer-lag, alder på den ældste besked, begrænsning eller fejl. Fire af dem starter uden tærskel, fordi en fast tærskel på dem vildleder: Kafkas partitions-lag (`kafka.consumer_group.lag`), som dens consumergruppes lag allerede dækker; ActiveMQs gennemsnitlige tid i køen (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), et gennemsnit siden brokerens start, der forbliver højt længe efter et stop; og Pulsars efterslæbsalder (`pulsar_storage_backlog_age_seconds`), som viser `-1`, så længe brokeren ikke kan afgøre det. Tællere får ingen monitor: deres diagram viser en rate, og en monitor har ingen ratefunktion.
+**Fra køens side.** Hver gauge og hvert antal pr. periode under **Brokersundhed** har **Create monitor**: den åbner en ny metrik-monitor over den metrik, filtreret på præcis de attributværdier, der nævner denne kø i den, med en starttærskel, hvor metrikken måler noget med en åbenlys dårlig retning: efterslæb, dead letters, consumer-lag, alder på den ældste besked, begrænsning eller fejl. Fire af dem starter uden tærskel, fordi en fast tærskel på dem vildleder: Kafkas partitions-lag (`kafka.consumer_group.lag`), som dens consumergruppes lag allerede dækker; ActiveMQs gennemsnitlige tid i køen (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), et gennemsnit siden brokerens start, der forbliver højt længe efter et stop; og Pulsars efterslæbsalder (`pulsar_storage_backlog_age_seconds`), som viser `-1`, så længe brokeren ikke kan afgøre det. Tællere får ingen monitor: deres diagram viser en rate, og en monitor har ingen ratefunktion.
 
-**Tællere.** RabbitMQs, Apache ActiveMQs og Apache RocketMQs tællere når collectoren som kumulative summer, som en `cumulative_to_delta`-processor (`cumulativetodelta` i ældre collectorer) omdanner til deltaer, som en monitor kan advare på. Konvertér en kopi under sit eget navn, aldrig selve tælleren: køsiden læser hver af disse tællere som en løbende total og viser, hvor hurtigt den vokser, så en tæller, der er omdannet til deltaer, viser nonsens under **Broker health** og på fanen **Metrikker**: jævn trafik vises som 0 beskeder pr. sekund. Apache Kafkas offsets (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) og Apache Pulsars `pulsar_in_messages_total` og `pulsar_out_messages_total` ankommer som gauges, som `cumulative_to_delta` lader være: advar i stedet på de systemers gauges for lag og efterslæb.
+**Tællere.** RabbitMQs, Apache ActiveMQs og Apache RocketMQs tællere når collectoren som kumulative summer, som en `cumulative_to_delta`-processor (`cumulativetodelta` i ældre collectorer) omdanner til deltaer, som en monitor kan advare på. Konvertér en kopi under sit eget navn, aldrig selve tælleren: køsiden læser hver af disse tællere som en løbende total og viser, hvor hurtigt den vokser, så en tæller, der er omdannet til deltaer, viser nonsens under **Brokersundhed** og på fanen **Metrikker**: jævn trafik vises som 0 beskeder pr. sekund. Apache Kafkas offsets (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) og Apache Pulsars `pulsar_in_messages_total` og `pulsar_out_messages_total` ankommer som gauges, som `cumulative_to_delta` lader være: advar i stedet på de systemers gauges for lag og efterslæb.
 
 Konfigurationen for [RabbitMQ](#rabbitmq) med en kopi af `rabbitmq.message.published`, som der kan advares på:
 

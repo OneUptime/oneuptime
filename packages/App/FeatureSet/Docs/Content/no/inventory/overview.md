@@ -38,7 +38,7 @@ Et oppdaget element har et hjerteslag. Hver gang det kommer telemetri for det, f
 | --- | --- |
 | **Direkte** | Sett i løpet av de siste 30 minuttene. |
 | **Recent** | Sett i løpet av det siste døgnet. |
-| **Stale** | Ikke sett på mer enn et døgn. Siden **Gone Quiet** viser dem. |
+| **Foreldet** | Ikke sett på mer enn et døgn. Siden **Gone Quiet** viser dem. |
 
 Hver tredje time fjerner OneUptime de oppdagede elementene som har vært stille lenger enn vinduet for typen sin, også de arkiverte, og verdiene deres i egendefinerte felt forsvinner med dem. Speilede elementer og de du har lagt til, fjernes aldri på denne måten.
 
