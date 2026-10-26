@@ -35042,5 +35042,9 @@
   "Answer it": "Answer it",
   "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.": "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.",
   "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.": "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.",
-  "OneUptime AI has a question about fixing this.": "OneUptime AI has a question about fixing this."
+  "OneUptime AI has a question about fixing this.": "OneUptime AI has a question about fixing this.",
+  "Connecting through a proxy": "Connecting through a proxy",
+  "Run this command where the probe should run. Its ID and key are already in it.": "Run this command where the probe should run. Its ID and key are already in it.",
+  "Not validated": "Not validated",
+  "Validated": "Validated"
 }

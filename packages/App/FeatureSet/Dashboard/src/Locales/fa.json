@@ -25711,7 +25711,7 @@
   "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.": "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
   "SNMP Table": "SNMP Table",
   "SNMP Table Snapshot": "SNMP Table Snapshot",
-  "SNMP Tables": "SNMP Tables",
+  "SNMP Tables": "جدول‌های SNMP",
   "SSID": "SSID",
   "SSIDs": "SSIDs",
   "Severities": "Severities",
@@ -35042,5 +35042,9 @@
   "Answer it": "پاسخ دادن",
   "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.": "همه قواعد فعال هوش مصنوعی روی «اصلاح نکن» تنظیم شده‌اند، پس OneUptime AI خودش هیچ Pull Requestی باز نمی‌کند.",
   "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.": "همه قواعد فعال هوش مصنوعی روی «اصلاح نکن» تنظیم شده‌اند، پس هیچ چیز اصلاح نمی‌شود.",
-  "OneUptime AI has a question about fixing this.": "OneUptime AI درباره رفع این مورد یک پرسش دارد."
+  "OneUptime AI has a question about fixing this.": "OneUptime AI درباره رفع این مورد یک پرسش دارد.",
+  "Connecting through a proxy": "اتصال از طریق پراکسی",
+  "Run this command where the probe should run. Its ID and key are already in it.": "این دستور را جایی اجرا کنید که پراب باید آنجا اجرا شود. شناسه و کلید آن از قبل در آن هست.",
+  "Not validated": "تأییدنشده",
+  "Validated": "تأییدشده"
 }

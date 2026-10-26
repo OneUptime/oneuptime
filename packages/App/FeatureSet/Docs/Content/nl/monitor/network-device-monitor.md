@@ -293,7 +293,7 @@ Demp een interface op de pagina **Interfaces** van het apparaat, voor een labpoo
 
 ### Gezondheidssjablonen van leveranciers
 
-In de editor **Health OIDs** past **Vendor Health Template** een kant-en-klare set OID's toe voor de leverancier van het apparaat. Veel sjablonen leveren ook [SNMP-tabellen](#snmp-tabellen) mee, toegevoegd met **Add a Vendor's Tables** in de editor **SNMP Tables**.
+In de editor **Health OIDs** past **Vendor Health Template** een kant-en-klare set OID's toe voor de leverancier van het apparaat. Veel sjablonen leveren ook [SNMP-tabellen](#snmp-tabellen) mee, toegevoegd met **Add a Vendor's Tables** in de editor **SNMP-tabellen**.
 
 | Leverancierssjabloon | Gezondheids-OID's | SNMP-tabellen |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ Voeg alle OID's toe die je bij elke poll wilt verzamelen, op een sjabloon of als
 | Naam | Een herkenbare naam voor de OID, zoals sysDescr. | Nee |
 | Beschrijving | Wat de OID voorstelt. | Nee |
 
-Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van het apparaat, en de criteria **SNMP OID Value** en **SNMP OID Exists** waarschuwen erop. De OID-kiezer van die criteria toont de OID's die het gekozen apparaat verzamelt, die van zijn sjabloon en zijn eigen, dus er valt niets te typen.
+Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van het apparaat, en de criteria **SNMP OID Value**, **SNMP OID Exists** en **SNMP OID Rate (per second)** waarschuwen erop. Een teller (Counter32 of Counter64) groeit alleen maar, dus waarschuw op hoe snel hij sinds de vorige poll is gegroeid. De OID-kiezer van die criteria toont de OID's die het gekozen apparaat verzamelt, die van zijn sjabloon en zijn eigen, dus er valt niets te typen.
 
 Lange OID-lijsten worden over meerdere SNMP GET-verzoeken verdeeld, zodat elk in één UDP-datagram past. Als je je OID-lijsten kort hield omdat een oudere versie een apparaat dat `tooBig` antwoordde als offline meldde, hoeft dat niet meer.
 
@@ -386,12 +386,12 @@ Lange OID-lijsten worden over meerdere SNMP GET-verzoeken verdeeld, zodat elk in
 
 De pagina **SNMP-walk** van een apparaat, onder **Meer** in zijn menu, toont elke OID waarop het apparaat antwoordt, met type, waarde en, waar OneUptime de MIB kent, naam. Het is de `snmpwalk` die je anders vanuit het netwerk van de sonde zou uitvoeren, uitgevoerd door de eigen sonde van het apparaat met de inloggegevens die OneUptime ervoor bewaart, die nooit je browser bereiken.
 
-Typ een numerieke OID bij **Start-OID** of kies er een uit **Veelgebruikte startpunten**: **Alles**, **Systeem**, **Interfaces**, **Hostbronnen** of **Leverancierspecifiek**. Klik daarna op **Walk starten**. De sonde pakt de walk binnen tien seconden op en stuurt één verzoek tegelijk, hoogstens 1.000 OID's in hoogstens 45 seconden, zodat een walk het apparaat nooit overspoelt. Is er meer te lezen, dan leest **Walk voortzetten** de volgende 1.000 vanaf waar hij stopte. Op een apparaat loopt steeds één walk tegelijk, en zijn walks worden twee dagen bewaard.
+Typ een numerieke OID bij **Start-OID** of klik op een van de startpunten eronder: **Alles**, **Systeem**, **Interfaces**, **Hostbronnen** of **Leverancierspecifiek**. Klik daarna op **Walk starten**. De sonde pakt de walk binnen tien seconden op en stuurt één verzoek tegelijk, hoogstens 1.000 OID's in hoogstens 45 seconden, zodat een walk het apparaat nooit overspoelt. Is er meer te lezen, dan leest **Walk voortzetten** de volgende 1.000 vanaf waar hij stopte. Op een apparaat loopt steeds één walk tegelijk, en zijn walks worden twee dagen bewaard.
 
 Elke rij zegt waar zijn OID bekend is: een waarde die een gezondheidssjabloon van een leverancier verzamelt, een kolom van de SNMP-tabel van een leverancierssjabloon, een teller die de interface-walk al voor elke poort in een grafiek toont, of een OID onder de MIB van zijn leverancier. Vanuit een rij:
 
 - **Verzamelen** voegt de OID toe aan de **Device-Specific Health OIDs** van het apparaat: elke poll verzamelt hem vanaf de volgende, en de pagina **Metrieken** van het apparaat toont hem in een grafiek. Op een apparaat dat aan een OID Collection Template is gekoppeld, kan het menu van de rij hem in plaats daarvan aan het sjabloon toevoegen, voor elk apparaat dat het gebruikt.
-- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium **SNMP OID Value** op de OID, uitgaand van de gelezen waarde: een teller of meter waarschuwt erboven, een uptime eronder (het apparaat is herstart), al het andere wanneer het verandert.
+- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium op de OID. Een teller begint op **SNMP OID Rate (per second)** en een meter op **SNMP OID Value**, elk boven een zelf gekozen drempel; een uptime waarschuwt onder tien minuten (het apparaat is herstart), al het andere wanneer het afwijkt van de gelezen waarde.
 - **OID kopiëren**, in het menu van de rij, kopieert de OID.
 
 Een mislukte walk zegt waarom, en wat je moet controleren: een apparaat dat niet antwoordt (SNMP uit, UDP 161 geblokkeerd of, bij v1 en v2c, een verkeerde communitystring, die een agent zonder melding negeert), een SNMPv3-gebruiker, -wachtwoord of -protocol dat het apparaat weigerde, of een deel van de boom dat de SNMP-view van de inloggegevens weglaat. Een walk die halverwege stopt, houdt wat hij las. Een walk vraagt de machtiging **Create Network Device Diagnostic** en een sonde die recent genoeg is voor SNMP-walks: bij een oudere vraagt de pagina je die bij te werken.
@@ -408,13 +408,13 @@ Een deel van wat een apparaat weet, is een lijst: één rij per IPsec-tunnel, wi
 | Rijnamen | Optionele kolommen waarvan de waarden elke rij een naam geven, zoals de verbindingsnaam van een tunnel. Zonder die kolommen worden rijen naar hun index genoemd. Een naam kan komen uit een zustertabel die de index deelt (Fabric Engine noemt IS-IS-adjacencies naar `rcIsisAdjHostName`), of uit een oudertabel waarvan de index het begin is van die van deze tabel (Aruba Instant noemt elke radio naar zijn access point). Een tabel die op een naam is geïndexeerd (ArubaOS indexeert zijn SSID's op de SSID) wordt genoemd naar haar gedecodeerde index. |
 | Rijlimiet | Hoeveel rijen er bewaard blijven: standaard 100, maximaal 250. |
 
-Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP Tables** van het apparaat en sturen het criterium **SNMP Table Row Is Unhealthy** aan.
+Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP-tabellen** van het apparaat en sturen het criterium **SNMP Table Row Is Unhealthy** aan.
 
 Sommige kolommen van leverancierssjablonen **passen** ook het getal aan dat ze lezen, voor MIB's die een waarde in een eigen eenheid bewaren: ArubaOS meldt het zendvermogen verdubbeld (gelezen × 0.5), Aruba Instant de ruisvloer zonder teken (× −1), Aerohive de ruisvloer plus 256 (− 256), en de controller van Extreme de kanaalbreedte in stappen van 20 MHz (× 20). Het aangepaste getal is wat wordt getoond, in grafieken gezet en vergeleken, dus **Noise Floor Groter dan -80** betekent bij elke leverancier hetzelfde, en de tabeleditor toont de berekening onder de kolom.
 
 Tabellen komen van een [OID Collection Template](#oid-collection-templates), gedeeld door elk gekoppeld apparaat (tot 10 tabellen), of van het apparaat zelf onder **Device-Specific SNMP Tables** (tot 10 extra). Ze worden bij elke poll op sleutel samengevoegd, sjabloon eerst, en een apparaattabel met dezelfde sleutel vervangt die van het sjabloon. Beide editors bieden **Add a Vendor's Tables**.
 
-De sonde walkt elke kolom als subboom, binnen een budget van 30 seconden dat alle tabellen op het apparaat delen. Een tabel die niet gewalkt kan worden, zegt waarom en laat de poll nooit mislukken: de pagina **SNMP Tables** van het apparaat houdt haar laatste goede rijen en meldt dat de laatste walk mislukte, terwijl criteria alleen beoordelen wat deze walk opleverde, dus een time-out wordt nooit gelezen als een lege tabel. Elke numerieke cel wordt vastgelegd als de metriek `oneuptime.monitor.snmp.table.value`, met de attributen `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` en `snmpTableRowIndex`, zodat een dashboard de status van elke tunnel of het zendvermogen van elke radio kan tonen, en een metriekenmonitor kan groeperen op `snmpTableRow`.
+De sonde walkt elke kolom als subboom, binnen een budget van 30 seconden dat alle tabellen op het apparaat delen. Een tabel die niet gewalkt kan worden, zegt waarom en laat de poll nooit mislukken: de pagina **SNMP-tabellen** van het apparaat houdt haar laatste goede rijen en meldt dat de laatste walk mislukte, terwijl criteria alleen beoordelen wat deze walk opleverde, dus een time-out wordt nooit gelezen als een lege tabel. Elke numerieke cel wordt vastgelegd als de metriek `oneuptime.monitor.snmp.table.value`, met de attributen `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` en `snmpTableRowIndex`, zodat een dashboard de status van elke tunnel of het zendvermogen van elke radio kan tonen, en een metriekenmonitor kan groeperen op `snmpTableRow`.
 
 ### Het tabblad Wi-Fi
 
@@ -781,6 +781,7 @@ Criteria controleren elk pollresultaat en elke trap, en openen incidenten of waa
 | SNMP Response Time (in ms) | De responstijd van de walk in milliseconden, nooit die van de ping. | Niet beoordeeld |
 | SNMP OID Value | De waarde die één OID teruggaf. | Niet beoordeeld |
 | SNMP OID Exists | Of een OID een waarde teruggeeft. | Niet beoordeeld |
+| SNMP OID Rate (per second) | Hoe snel een teller-OID sinds de vorige poll per seconde is gegroeid: een teller groeit alleen maar, dus waarschuw hierop en niet op zijn waarde. Geen oordeel tot hij twee keer is gelezen. | Niet beoordeeld |
 | SNMP Interface Is Down | Waar als een administratief ingeschakelde interface operationeel uitgevallen is. | Niet beoordeeld |
 | SNMP Interface Utilization (in %) | De linkbenutting van de drukste interface. | Niet beoordeeld |
 | SNMP Interface Errors (per second) | Het foutpercentage van de slechtste interface. | Niet beoordeeld |

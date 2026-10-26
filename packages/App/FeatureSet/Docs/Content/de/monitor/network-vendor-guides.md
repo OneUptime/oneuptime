@@ -54,7 +54,7 @@ Sophos meldet die Integrität von Gateways und SD-WAN nicht per SNMP, in keiner 
 3. Wenden Sie auf der **Einstellungen**-Seite des Geräts unter **Abfrage & Datenerfassung** die Vorlage **Sophos Firewall (SFOS / XGS)** aus **Integritätsvorlage des Herstellers** an und fügen Sie ihre Tabellen über **Add a Vendor's Tables** hinzu. Oder schalten Sie **Integritätsvorlage des Herstellers automatisch anwenden** ein, und die erste Abfrage erledigt beides.
 :::
 
-Nach der nächsten Abfrage listet die Seite **SNMP Tables** des Geräts jede IPsec-Verbindung mit ihrem Status (active, inactive, partially active) sowie die CPU-Kerne. SFOS nummeriert seine Kerne ab 196608, weshalb die CPU aus einer Tabelle kommt statt aus einem einzelnen `hrProcessorLoad.1`.
+Nach der nächsten Abfrage listet die Seite **SNMP-Tabellen** des Geräts jede IPsec-Verbindung mit ihrem Status (active, inactive, partially active) sowie die CPU-Kerne. SFOS nummeriert seine Kerne ab 196608, weshalb die CPU aus einer Tabelle kommt statt aus einem einzelnen `hrProcessorLoad.1`.
 
 ### Für jeden IPsec-Tunnel warnen
 

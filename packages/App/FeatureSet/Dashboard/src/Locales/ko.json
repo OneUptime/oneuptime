@@ -25711,7 +25711,7 @@
   "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.": "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
   "SNMP Table": "SNMP Table",
   "SNMP Table Snapshot": "SNMP Table Snapshot",
-  "SNMP Tables": "SNMP Tables",
+  "SNMP Tables": "SNMP 테이블",
   "SSID": "SSID",
   "SSIDs": "SSIDs",
   "Severities": "Severities",
@@ -35042,5 +35042,9 @@
   "Answer it": "답변하기",
   "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.": "활성화된 모든 AI 규칙이 '수정하지 않음'으로 설정되어 있어 OneUptime AI가 스스로 풀 리퀘스트를 열지 않습니다.",
   "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.": "활성화된 모든 AI 규칙이 '수정하지 않음'으로 설정되어 있어 아무것도 수정되지 않습니다.",
-  "OneUptime AI has a question about fixing this.": "OneUptime AI가 이 수정에 대해 질문이 있습니다."
+  "OneUptime AI has a question about fixing this.": "OneUptime AI가 이 수정에 대해 질문이 있습니다.",
+  "Connecting through a proxy": "프록시를 통해 연결",
+  "Run this command where the probe should run. Its ID and key are already in it.": "프로브를 실행할 곳에서 이 명령을 실행하세요. ID와 키는 이미 들어 있습니다.",
+  "Not validated": "검증되지 않음",
+  "Validated": "검증됨"
 }

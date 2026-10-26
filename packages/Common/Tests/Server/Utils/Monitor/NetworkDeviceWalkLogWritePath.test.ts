@@ -9,7 +9,10 @@ import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointS
 import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../../Models/DatabaseModels/NetworkInterface";
-import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpMonitorResponse, {
+  SnmpOidResponse,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpDataType from "../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
@@ -93,13 +96,18 @@ function buildSnmpResponse(
   };
 }
 
-// The walk pipeline with every collaborator but the device writes mocked.
-function mockWalkPipeline(): void {
+/*
+ * The walk pipeline with every collaborator but the device writes mocked.
+ * null: a device that has never been walked.
+ */
+function mockWalkPipeline(
+  previousWalkLog: JSONObject | null = PREVIOUS_WALK_LOG,
+): void {
   const device: NetworkDevice = new NetworkDevice();
   device.id = new ObjectID(DEVICE_ID);
   device.projectId = PROJECT_ID;
   device.name = "core-sw-01";
-  device.lastWalkLog = PREVIOUS_WALK_LOG;
+  device.lastWalkLog = previousWalkLog ?? undefined;
 
   deviceFindSpy = jest
     .spyOn(NetworkDeviceService, "findOneBy")
@@ -205,7 +213,9 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
    * product's hottest table, for data nothing ever reads.
    *
    * If a future reader needs another field, add it here deliberately — do
-   * not go back to storing the whole response.
+   * not go back to storing the whole response. SnmpOidRateUtil is the one
+   * other reader: it keeps the counter OIDs' readings, a few numbers, under
+   * oidCounters (pinned below) - never oidResponses.
    */
   test("stores only the interfaces, not the rest of the walk", async () => {
     mockWalkPipeline();
@@ -429,5 +439,208 @@ describe("NetworkInventoryUtil — the device enrichment write", () => {
     expect(payload["lastPolledAt"]).toBeDefined();
     expect(payload["lastSeenAt"]).toBeDefined();
     expect(spies.hookFreeUpdate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The counters SNMP OID Rate (per second) is computed against. A counter
+ * only grows, so what an alert on one compares is how fast it grows: the
+ * poll's counter OIDs (Counter32, Counter64) are kept - the counters only,
+ * by OID, with the poll's receipt time - beside the interfaces, and the next
+ * poll's rate is each one's growth since.
+ */
+describe("NetworkDeviceWalkUtil — the counters an OID rate is computed against", () => {
+  const IF_IN_ERRORS: string = "1.3.6.1.2.1.2.2.1.14.3";
+  const CPU: string = "1.3.6.1.4.1.9.9.109.1.1.1.1.8.1";
+
+  const PREVIOUS_COUNTERS: JSONObject = {
+    values: { [IF_IN_ERRORS]: "1200" },
+    readAt: "2026-07-16T11:55:00.000Z",
+  };
+
+  function oidReads(errors: number): Array<SnmpOidResponse> {
+    return [
+      {
+        oid: IF_IN_ERRORS,
+        name: "ifInErrors.3",
+        value: errors,
+        type: SnmpDataType.Counter32,
+      },
+      {
+        oid: CPU,
+        name: "cpmCPUTotal5minRev.1",
+        value: 7,
+        type: SnmpDataType.Gauge32,
+      },
+    ];
+  }
+
+  function storedWalkLog(): JSONObject {
+    return (hookFreeCallArgs()["data"] as JSONObject)[
+      "lastWalkLog"
+    ] as JSONObject;
+  }
+
+  test("keeps the counters the poll read - the counters only - with the poll's receipt time", async () => {
+    mockWalkPipeline();
+
+    await runWalk(buildSnmpResponse({ oidResponses: oidReads(1500) }));
+
+    const walkLog: JSONObject = storedWalkLog();
+
+    expect(Object.keys(walkLog)).toEqual([
+      "snmpResponse",
+      "monitoredAt",
+      "oidCounters",
+    ]);
+    expect(walkLog["oidCounters"]).toEqual({
+      values: { [IF_IN_ERRORS]: "1500" },
+      readAt: NOW.toISOString(),
+    });
+    // Plain JSON: what goes into jsonb is what comes back out.
+    expect(JSON.parse(JSON.stringify(walkLog["oidCounters"]))).toEqual(
+      walkLog["oidCounters"],
+    );
+  });
+
+  test("gives each counter its growth per second since the previous poll, before the inventory, metrics and monitors read the poll", async () => {
+    mockWalkPipeline({ ...PREVIOUS_WALK_LOG, oidCounters: PREVIOUS_COUNTERS });
+
+    let rateTheInventorySaw: number | undefined = undefined;
+
+    jest
+      .spyOn(NetworkInventoryUtil, "updateFromWalk")
+      .mockImplementation(
+        async (args: { snmpResponse?: SnmpMonitorResponse | undefined }) => {
+          rateTheInventorySaw =
+            args.snmpResponse?.oidResponses[0]?.ratePerSecond;
+        },
+      );
+
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      oidResponses: oidReads(1500),
+    });
+
+    await runWalk(snmpResponse);
+
+    // 300 more errors in the 300 seconds between the two polls.
+    expect(snmpResponse.oidResponses[0]!.ratePerSecond).toBe(1);
+    expect(rateTheInventorySaw).toBe(1);
+    // A gauge is never given a rate.
+    expect(snmpResponse.oidResponses[1]!.ratePerSecond).toBeUndefined();
+  });
+
+  test("a device's first counters have no rate yet", async () => {
+    mockWalkPipeline();
+
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      oidResponses: oidReads(1500),
+    });
+
+    await runWalk(snmpResponse);
+
+    expect(snmpResponse.oidResponses[0]!.ratePerSecond).toBeUndefined();
+  });
+
+  test("a counter that went back since the previous poll gets no rate, and is the next poll's baseline", async () => {
+    mockWalkPipeline({ ...PREVIOUS_WALK_LOG, oidCounters: PREVIOUS_COUNTERS });
+
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse({
+      oidResponses: oidReads(3),
+    });
+
+    await runWalk(snmpResponse);
+
+    expect(snmpResponse.oidResponses[0]!.ratePerSecond).toBeUndefined();
+    expect(storedWalkLog()["oidCounters"]).toEqual({
+      values: { [IF_IN_ERRORS]: "3" },
+      readAt: NOW.toISOString(),
+    });
+  });
+
+  /*
+   * A device whose poll reads counters but walks no interface table still
+   * needs its counters kept, or no rate would ever exist. The interfaces'
+   * baseline is left as it was - with ITS time - so their next rate has a
+   * correct (longer) window rather than none.
+   */
+  test("a poll that read counters but walked no interfaces keeps them, and leaves the interfaces' baseline and its time as they were", async () => {
+    mockWalkPipeline({ ...PREVIOUS_WALK_LOG, oidCounters: PREVIOUS_COUNTERS });
+
+    await runWalk(
+      buildSnmpResponse({
+        interfaces: undefined,
+        oidResponses: oidReads(1500),
+      }),
+    );
+
+    const walkLog: JSONObject = storedWalkLog();
+
+    expect(walkLog["snmpResponse"]).toEqual(PREVIOUS_WALK_LOG["snmpResponse"]);
+    expect(walkLog["monitoredAt"]).toBe(PREVIOUS_WALK_LOG["monitoredAt"]);
+    expect(walkLog["oidCounters"]).toEqual({
+      values: { [IF_IN_ERRORS]: "1500" },
+      readAt: NOW.toISOString(),
+    });
+    expect(Object.keys(hookFreeCallArgs()["data"] as JSONObject)).toEqual([
+      "lastWalkLog",
+    ]);
+  });
+
+  test("a poll that walked interfaces but read no counter keeps the counters it had, and their time", async () => {
+    mockWalkPipeline({ ...PREVIOUS_WALK_LOG, oidCounters: PREVIOUS_COUNTERS });
+
+    await runWalk(buildSnmpResponse({ oidResponses: [] }));
+
+    const walkLog: JSONObject = storedWalkLog();
+
+    expect(walkLog["oidCounters"]).toEqual(PREVIOUS_COUNTERS);
+    expect(walkLog["monitoredAt"]).toEqual(NOW);
+    expect((walkLog["snmpResponse"] as JSONObject)["interfaces"]).toHaveLength(
+      1,
+    );
+  });
+
+  test("a device that never walked interfaces keeps its counters on their own", async () => {
+    mockWalkPipeline(null);
+
+    await runWalk(
+      buildSnmpResponse({ interfaces: undefined, oidResponses: oidReads(10) }),
+    );
+
+    expect(storedWalkLog()).toEqual({
+      oidCounters: {
+        values: { [IF_IN_ERRORS]: "10" },
+        readAt: NOW.toISOString(),
+      },
+    });
+  });
+
+  test("a poll that read only gauges and walked no interfaces writes nothing", async () => {
+    mockWalkPipeline({ ...PREVIOUS_WALK_LOG, oidCounters: PREVIOUS_COUNTERS });
+
+    await runWalk(
+      buildSnmpResponse({
+        interfaces: undefined,
+        oidResponses: [oidReads(1)[1] as SnmpOidResponse],
+      }),
+    );
+
+    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a ping-only poll writes nothing and keeps every baseline", async () => {
+    mockWalkPipeline({ ...PREVIOUS_WALK_LOG, oidCounters: PREVIOUS_COUNTERS });
+
+    await NetworkDeviceWalkUtil.processWalkResult({
+      probeId: PROBE_ID,
+      networkDeviceId: new ObjectID(DEVICE_ID),
+      isOnline: true,
+      pollMode: "ping",
+      snmpResponse: undefined,
+      monitoredAt: MONITORED_AT,
+    });
+
+    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
   });
 });

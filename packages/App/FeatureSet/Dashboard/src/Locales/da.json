@@ -25711,7 +25711,7 @@
   "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.": "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
   "SNMP Table": "SNMP Table",
   "SNMP Table Snapshot": "SNMP Table Snapshot",
-  "SNMP Tables": "SNMP Tables",
+  "SNMP Tables": "SNMP-tabeller",
   "SSID": "SSID",
   "SSIDs": "SSIDs",
   "Severities": "Severities",
@@ -35042,5 +35042,9 @@
   "Answer it": "Svar",
   "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.": "Alle aktiverede AI-regler er sat til »Ret ikke«, så OneUptime AI åbner ingen pull request på egen hånd.",
   "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.": "Alle aktiverede AI-regler er sat til »Ret ikke«, så intet bliver rettet.",
-  "OneUptime AI has a question about fixing this.": "OneUptime AI har et spørgsmål om at rette dette."
+  "OneUptime AI has a question about fixing this.": "OneUptime AI har et spørgsmål om at rette dette.",
+  "Connecting through a proxy": "Forbindelse via en proxy",
+  "Run this command where the probe should run. Its ID and key are already in it.": "Kør denne kommando der, hvor sonden skal køre. Dens ID og nøgle er allerede med i den.",
+  "Not validated": "Ikke valideret",
+  "Validated": "Valideret"
 }
