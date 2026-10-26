@@ -29,8 +29,6 @@ set:
     enabled: true
   telemetryWriter:
     enabled: true
-  runner:
-    enabled: true
 tests:
   # --- enterprise-edition: every workload gets the enterprise- prefix. ------
   - it: runs the Enterprise app image
@@ -128,9 +126,9 @@ tests:
           path: spec.template.spec.containers[0].image
           value: docker.io/oneuptime/probe:enterprise-release
 
-  - it: runs the Enterprise runner image
+  - it: runs the Enterprise runner image for the global Runner
     templates:
-      - templates/runner.yaml
+      - templates/global-runner.yaml
     documentSelector:
       path: kind
       value: Deployment

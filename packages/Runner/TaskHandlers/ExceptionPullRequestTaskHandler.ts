@@ -154,7 +154,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
        */
       await this.log(context, "Resolving the repository for this exception...");
       const repositories: Array<CodeRepositoryInfo> =
-        await context.backendAPI.getCodeRepositories(exceptionId);
+        await context.backendAPI.getCodeRepositories(
+          exceptionId,
+          context.taskId.toString(),
+        );
 
       if (repositories.length === 0) {
         await this.log(

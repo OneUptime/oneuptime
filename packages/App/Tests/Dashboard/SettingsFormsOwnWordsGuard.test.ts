@@ -41,14 +41,9 @@ const EXCEPTIONS: ReadonlyArray<Exception> = [
   /*
    * The LLM provider forms left this list with #4990: they are one shared
    * form now (Common/UI/Components/AI/LlmProviderFormFields), in its own
-   * words.
+   * words. The global AI agents' form left it with its page: global Runners
+   * took their work.
    */
-  {
-    where:
-      /^packages\/App\/FeatureSet\/AdminDashboard\/src\/Pages\/Settings\/AIAgents\/Index\.tsx:/,
-    reason:
-      "Global AI agents belong to the automation and AI audit, which reworks their forms.",
-  },
 ];
 
 const FALLBACKS: Array<FoundDescription> = scanProductDescriptions().filter(

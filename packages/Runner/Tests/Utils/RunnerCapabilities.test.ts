@@ -10,8 +10,9 @@
  * capabilities the dashboard withheld.
  *
  * Config.ts reads the env at import time and RunnerCapabilities holds
- * module-level state (the server grant), so every scenario re-requires both
- * modules through jest.resetModules() after arranging process.env.
+ * module-level state (the server grant, and GlobalRunnerMode what the server
+ * said the Runner is), so every scenario re-requires the modules through
+ * jest.resetModules() after arranging process.env.
  * ---------------------------------------------------------------------------
  */
 
@@ -192,73 +193,82 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
   });
 });
 
-describe("cluster-scoped Runner: no dashboard row, env vars are the whole answer", () => {
+describe("a global Runner: the server grants code fixes, and AI commands never", () => {
   /*
-   * ONEUPTIME_SECRET set before Config is required makes
-   * Common/Server/EnvironmentConfig.HasClusterKey — and with it
-   * Config.IS_CLUSTER_SCOPED — true at import time.
+   * Only the server says a Runner is global (GlobalRunnerMode), on the same
+   * copy of the modules the capabilities were loaded with.
    */
-  test("canRunRunbooks is always false, even when a grant and env var say otherwise", () => {
-    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
-      ONEUPTIME_SECRET: "test-cluster-secret",
-      ONEUPTIME_RUNNER_ENABLE_RUNBOOKS: "true",
-    });
+  function markGlobal(): void {
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    (
+      require("../../Utils/GlobalRunnerMode") as {
+        default: { setFromServer: (isGlobalRunner: boolean) => void };
+      }
+    ).default.setFromServer(true);
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+  }
 
-    // Even a (buggy or malicious) server grant must not enable runbooks.
-    RunnerCapabilities.setGrantedByServer(BOTH_GRANTED);
+  test("takes the code fixes the server grants it, and never AI commands, even when granted", () => {
+    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities(
+      {},
+    );
+    markGlobal();
 
-    expect(RunnerCapabilities.resolve().canRunRunbooks).toBe(false);
-  });
-
-  test("canRunCodeFixTasks follows ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true", () => {
-    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
-      ONEUPTIME_SECRET: "test-cluster-secret",
-      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "true",
-    });
-
-    expect(RunnerCapabilities.resolve()).toEqual({
-      canRunRunbooks: false,
+    RunnerCapabilities.setGrantedByServer({
+      canRunRunbooks: true,
       canRunCodeFixTasks: true,
-      canRunAiCommands: false,
-    });
-  });
-
-  /*
-   * Code fixes are the only work a cluster Runner can do, and the Helm chart
-   * sets no capability env vars — defaulting this off left the in-cluster
-   * Runner of a default self-hosted install with no capability at all.
-   */
-  test("canRunCodeFixTasks is ON when the env var is unset — the default Helm install", () => {
-    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
-      ONEUPTIME_SECRET: "test-cluster-secret",
+      canRunAiCommands: true,
     });
 
     expect(RunnerCapabilities.resolve()).toEqual({
-      canRunRunbooks: false,
+      canRunRunbooks: true,
       canRunCodeFixTasks: true,
       canRunAiCommands: false,
     });
   });
 
   test.each(["false", "0", "no", "off", "FALSE", " false "])(
-    "canRunCodeFixTasks is off when the env var says %p",
+    "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=%p on its host refuses the code fixes the server granted",
     (value: string) => {
       const RunnerCapabilities: typeof RunnerCapabilitiesType =
-        loadCapabilities({
-          ONEUPTIME_SECRET: "test-cluster-secret",
-          ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: value,
-        });
+        loadCapabilities({ ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: value });
+      markGlobal();
+
+      RunnerCapabilities.setGrantedByServer(BOTH_GRANTED);
 
       expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
+      expect(RunnerCapabilities.wasGrantedCodeFixesByServer()).toBe(true);
     },
   );
 
-  test("canRunCodeFixTasks stays off when the env var says false", () => {
+  test("takes no code fixes a server did not grant, whatever its host says", () => {
+    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
+      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "true",
+    });
+    markGlobal();
+
+    RunnerCapabilities.setGrantedByServer(NEITHER_GRANTED);
+
+    expect(RunnerCapabilities.resolve()).toEqual(NEITHER_GRANTED);
+  });
+});
+
+describe("a cluster key in the Runner's environment", () => {
+  /*
+   * Earlier releases made a Runner given ONEUPTIME_SECRET the shared Runner,
+   * whose env vars were its whole answer. There is no shared Runner any
+   * more: such a Runner resolves what the server granted, like any other.
+   */
+  test("changes nothing: the server's grant decides, env vars only narrow", () => {
     const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
       ONEUPTIME_SECRET: "test-cluster-secret",
-      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "false",
+      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "true",
     });
 
-    expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
+    RunnerCapabilities.setGrantedByServer(BOTH_GRANTED);
+    expect(RunnerCapabilities.resolve()).toEqual(BOTH_GRANTED);
+
+    RunnerCapabilities.setGrantedByServer(NEITHER_GRANTED);
+    expect(RunnerCapabilities.resolve()).toEqual(NEITHER_GRANTED);
   });
 });

@@ -9,7 +9,9 @@ import logger from "../Utils/Logger";
 import AIRunService from "../Services/AIRunService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import CodeFixAgentAuth, {
+  CODE_FIX_RUN_HOLD_SELECT,
   CodeFixAgentIdentity,
+  CodeFixRunAccess,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeTaskAgentBrief from "../Utils/AI/CodeTask/CodeTaskAgentBrief";
 import { getRepositoryNotReachableMessage } from "../Utils/AI/CodeTask/CodeTaskGate";
@@ -88,8 +90,7 @@ export default class AIAgentCodeTaskAPI {
           const run: AIRun | null = await AIRunService.findOneById({
             id: taskId,
             select: {
-              _id: true,
-              projectId: true,
+              ...CODE_FIX_RUN_HOLD_SELECT,
               runType: true,
               codeFixTaskType: true,
               codeRepositoryId: true,
@@ -102,13 +103,18 @@ export default class AIAgentCodeTaskAPI {
 
           /*
            * A denial answers exactly like a missing run, so a probing key
-           * cannot tell another tenant's run from no run.
+           * cannot tell another tenant's run from no run - nor a global
+           * Runner the run another worker holds (deniesAccessToRun).
            */
           if (
             !run ||
             !run.projectId ||
             run.runType !== AIRunType.CodeFix ||
-            CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
+            CodeFixAgentAuth.deniesAccessToRun(
+              aiAgent,
+              run,
+              CodeFixRunAccess.Work,
+            )
           ) {
             return Response.sendErrorResponse(
               req,
@@ -190,10 +196,28 @@ export default class AIAgentCodeTaskAPI {
             );
           }
 
-          const details: CodeTaskAgentDetails = await CodeTaskAgentBrief.build({
+          const brief: CodeTaskAgentDetails = await CodeTaskAgentBrief.build({
             run,
             repository,
           });
+
+          /*
+           * The repository's own commands go with it to a project's Runner,
+           * never to a global Runner, which runs none of them
+           * (CodeFixAgentAuth.getRepositoryCommands).
+           */
+          const details: CodeTaskAgentDetails = brief.repository
+            ? {
+                ...brief,
+                repository: {
+                  ...brief.repository,
+                  ...CodeFixAgentAuth.getRepositoryCommands(
+                    aiAgent,
+                    brief.repository,
+                  ),
+                },
+              }
+            : brief;
 
           return Response.sendJsonObjectResponse(
             req,

@@ -2039,14 +2039,13 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorTestProbeResponsePostgres.test.ts --forceExit
 
-      # An installation that ran its bundled probes and in-cluster Runner on
-      # the keys the repository ships, upgraded: a row holding a shipped key
-      # is refused though the database matches it, and a probe or the Runner
-      # coming back under its new key takes over the row it ran as (the
-      # global probe of its name, the global agent) - never one whose key is
-      # the installation's own. Clones the migrated Probe, AIAgent and Runner
-      # tables into an isolated schema.
-      - name: Test the upgrade from shipped probe and Runner keys on migrated Postgres
+      # An installation that ran its bundled probes on the keys the repository
+      # ships, upgraded: a probe row holding a shipped key is refused though
+      # the database matches it, and a probe coming back under its new key
+      # takes over the row it ran as (the global probe of its name) - never
+      # one whose key is the installation's own. Clones the migrated Probe
+      # table into an isolated schema.
+      - name: Test the upgrade from shipped probe keys on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
         env:

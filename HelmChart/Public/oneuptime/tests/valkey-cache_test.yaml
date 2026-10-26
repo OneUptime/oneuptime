@@ -161,7 +161,7 @@ tests:
         template: templates/valkey-configmap.yaml
 
   # Renaming the Service is the one part of this change that could cause real
-  # downtime: app/worker/probe/runner pods carry the OLD hostname in their env
+  # downtime: app/worker/probe pods carry the OLD hostname in their env
   # until they roll, and the old Service is deleted the instant the new manifest
   # is applied. The alias is what makes the upgrade seamless instead.
   - it: keeps serving the pre-rename service name so pods survive the rollout

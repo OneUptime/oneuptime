@@ -332,7 +332,7 @@ describe("the other runbook pages", () => {
 describe("the install and upgrade guides", () => {
   it("the Docker Compose guide names the global Runner's key among the secrets it fills in", () => {
     expect(COMPOSE).toContain(
-      "| `GLOBAL_RUNNER_KEY` | The bundled global Runner, which runs every project's JavaScript steps. |",
+      "| `GLOBAL_RUNNER_KEY` | The bundled global Runner, which runs every project's JavaScript steps and AI code fixes. |",
     );
   });
 

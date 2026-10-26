@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx، TLS)"]
         App["برنامه<br/>داشبوردها،<br/>صفحه‌های<br/>وضعیت،<br/>API، دریافت<br/>داده، کارهای<br/>پس‌زمینه"]
-        Runner["Runner"]
+        Runner["Runner سراسری"]
         Probe["پراب‌ها"]
         subgraph Data["مخزن‌های داده"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | بخشی از `app` | `worker` (به‌طور پیش‌فرض خاموش) | کارهای پس‌زمینه در پادهای جداگانهٔ خودشان، تا پردازش سنگین صف هرگز با درخواست‌های API رقابت نکند. |
 | Telemetry writer | بخشی از `app` | `telemetryWriter` (به‌طور پیش‌فرض خاموش) | لایه‌ای با اندازهٔ ثابت که هر درج در ClickHouse را انجام می‌دهد، تا درج‌ها هر قدر هم workerها مقیاس بگیرند محدود بمانند. |
 | پراب | `probe-1` | `probes` | بررسی‌های مانیتور را اجرا می‌کند و نتایج را برمی‌گرداند. هر پراب همراه، یک پراب سراسری است که همهٔ پروژه‌ها می‌توانند از آن استفاده کنند. |
-| Runner | `runner` | `runner` | Runner خودِ نمونه، که می‌تواند اصلاح کد با هوش مصنوعی را برای هر پروژه اجرا کند. گام‌های رانبوک روی [Runnerهایی](/docs/runbooks/agents) اجرا می‌شوند که خودتان همان جایی نصب می‌کنید که باید اجرا شوند. |
-| Runner سراسری | `global-runner` | `globalRunner` | یک [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری): گام‌های JavaScript هر پروژه‌ای را که Runner خودش را انتخاب نکند اجرا می‌کند، هر کدام در سندباکسی که فقط به اینترنت می‌رسد. کلید خودش را دارد و هیچ چیز دیگری از سرور ندارد. |
+| Runner سراسری | `global-runner` | `globalRunner` | یک [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری): گام‌های JavaScript هر پروژه‌ای را که Runner خودش را انتخاب نکند اجرا می‌کند، هر کدام در سندباکسی که فقط به اینترنت می‌رسد، و اصلاح‌های کد OneUptime AI را در هر مخزن کدی که Runnerی انتخاب نکند. کلید خودش را دارد و هیچ چیز دیگری از سرور ندارد. گام‌های Bash، SSH و kubectl روی [Runnerهایی](/docs/runbooks/agents) اجرا می‌شوند که خودتان همان جایی نصب می‌کنید که باید اجرا شوند. |
 | PostgreSQL | `postgres` | `postgresql`، یا `postgresOperator.cnpg` | پروژه‌ها، مانیتورها، حادثه‌ها، کاربران و هر تنظیم و وضعیت دیگر. |
 | ClickHouse | `clickhouse` | `clickhouse`، یا `clickhouseOperator.altinity` | لاگ‌ها، متریک‌ها، ردها، استثناها، پروفایل‌ها و لاگ‌های مانیتور. |
 | Valkey | `valkey` | `valkey` | کش، صف‌های کار و وضعیت کوتاه‌مدت، مانند رسیدهای پوش در انتظار. |

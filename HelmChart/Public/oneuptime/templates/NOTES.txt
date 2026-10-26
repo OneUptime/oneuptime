@@ -49,6 +49,47 @@ this chart does not run. The same applies to any per-service `<service>.extraEnv
 and to a docker-compose.override.yml that sets REDIS_* by hand.
 {{- end }}
 {{- /*
+  The shared Runner (`runner:`) is gone: the bundled global Runner does its AI
+  code fixes. values.schema.json still accepts the block, so an old values
+  file keeps upgrading, and this says that nothing in it is read
+  (tests/shared-runner-retired_test.yaml).
+*/}}
+{{- if .Values.runner }}
+
+IGNORED VALUES: runner
+
+The chart no longer runs the shared Runner (<release>-runner): the bundled
+global Runner (`globalRunner:`) does the AI code fixes of every project that
+uses global Runners. Nothing under `runner:` is read; remove it from your
+values when convenient. Its KEDA settings (`runner.keda`) now go under
+`globalRunner.keda`.
+{{- if eq (toString .Values.runner.enabled) "false" }}
+
+You had turned the shared Runner off (`runner.enabled: false`). The code
+repositories on the Global Runner now get their AI code fixes from the global
+Runner, which runs none of a repository's commands. To keep them off it, pick
+a Runner of your own for those repositories in Code, or set
+`globalRunner.enabled: false` (that also stops its JavaScript steps).
+{{- end }}
+{{- end }}
+{{- /*
+  The bundled global Runner is off. Global Runners also do the AI code fixes
+  of the code repositories on the Global Runner, which the shared Runner did
+  until the chart stopped running it, so an install that turned the global
+  Runner off gets none of those fixes now: this says so, and what to do
+  (tests/shared-runner-retired_test.yaml). replicaCount 0 turns it off as
+  enabled false does (the server removes its row).
+*/}}
+{{- if or (not .Values.globalRunner.enabled) (eq (int .Values.globalRunner.replicaCount) 0) }}
+
+The bundled global Runner is off ({{ if not .Values.globalRunner.enabled }}`globalRunner.enabled: false`{{ else }}`globalRunner.replicaCount: 0`{{ end }}).
+Global Runners also do the AI code fixes of the code repositories on the
+Global Runner, which the shared Runner did before the chart stopped running
+it, so those repositories get no AI code fixes from this chart now. Turn it
+back on, add a global Runner in the Admin Dashboard (Settings > Global
+Runners), or pick a Runner of your own for those repositories in Code.
+{{- end }}
+{{- /*
   Chart probes register with REGISTER_PROBE_KEY, so each one is a global probe
   shared by every project on the instance (issue #3879). Only probes that
   actually render a Deployment count, and only a value the probe will read as

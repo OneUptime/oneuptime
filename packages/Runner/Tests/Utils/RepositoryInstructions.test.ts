@@ -358,7 +358,7 @@ describe("what the agent is told", () => {
     expect(section).not.toContain("run_command");
   });
 
-  test("a shared Runner runs no command: the conventions, never an instruction to run one", () => {
+  test("a global Runner runs no command: the conventions, never an instruction to run one", () => {
     const section: string = RepositoryInstructions.buildPromptSection({
       instructions,
       checksChange: true,

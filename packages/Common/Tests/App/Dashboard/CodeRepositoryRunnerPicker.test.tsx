@@ -30,9 +30,8 @@ jest.mock("react-i18next", () => {
 
 import RunnerPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPicker";
 import RunnerChoicesLoader, {
-  GLOBAL_CODE_RUNNERS_ROUTE,
+  GLOBAL_RUNNERS_ROUTE,
   RunnerChoices,
-  readGlobalCodeRunnerLiveStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
 import {
   CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT,
@@ -73,15 +72,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import { PillSize } from "../../../UI/Components/Pill/Pill";
-import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import Project from "../../../Models/DatabaseModels/Project";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import RunnerLiveStatus from "../../../Types/Runner/RunnerLiveStatus";
-import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -442,32 +439,80 @@ describe("what a repository's picker loads", () => {
   interface ListCall {
     query: Record<string, unknown>;
     select: Record<string, unknown>;
+    requestOptions?: { overrideRequestUrl?: unknown } | undefined;
   }
 
   let listCalls: Array<ListCall> = [];
+  let globalListCalls: Array<ListCall> = [];
 
   function runnerRow(data: {
     id: string;
     name: string;
     hostInfo?: JSONObject;
+    lastAlive?: Date | undefined;
+    canRunRunbooks?: boolean;
   }): Runner {
     return Object.assign(new Runner(), {
       _id: data.id,
       name: data.name,
-      lastAlive: new Date(),
+      lastAlive: "lastAlive" in data ? data.lastAlive : new Date(),
       ...(data.hostInfo ? { hostInfo: data.hostInfo } : {}),
+      ...(data.canRunRunbooks === undefined
+        ? {}
+        : { canRunRunbooks: data.canRunRunbooks }),
     });
   }
 
-  function stubReads(globalAnswer: HTTPResponse<JSONObject> | Error): void {
+  function asList(data: Array<Runner>): ListResult<never> {
+    return {
+      data: data as Array<never>,
+      count: data.length,
+      skip: 0,
+      limit: 10,
+    } as ListResult<never>;
+  }
+
+  // Whether a list read is the global Runners' own endpoint (RunnerAPI).
+  function readsGlobalRunners(call: ListCall): boolean {
+    return String(call.requestOptions?.overrideRequestUrl || "").endsWith(
+      GLOBAL_RUNNERS_ROUTE,
+    );
+  }
+
+  /*
+   * The project's Runners - one of its own, and two the Kubernetes agent
+   * chart installed - and the global Runners from their own endpoint, or
+   * the failure that read ends in.
+   */
+  function stubReads(
+    globalAnswer: Array<Runner> | Error,
+    options: { isProjectReadRefused?: boolean } = {},
+  ): void {
     listCalls = [];
+    globalListCalls = [];
 
     jest
       .spyOn(ModelAPI, "getList")
       .mockImplementation(async (args: unknown): Promise<ListResult<never>> => {
-        listCalls.push(args as ListCall);
+        const call: ListCall = args as ListCall;
 
-        const data: Array<Runner> = [
+        if (readsGlobalRunners(call)) {
+          globalListCalls.push(call);
+
+          if (globalAnswer instanceof Error) {
+            throw globalAnswer;
+          }
+
+          return asList(globalAnswer);
+        }
+
+        listCalls.push(call);
+
+        if (options.isProjectReadRefused) {
+          throw new Error("You do not have permission to read");
+        }
+
+        return asList([
           runnerRow({ id: BASTION_ID, name: "prod-bastion" }),
           runnerRow({
             id: "aaaaaaaa-0000-4000-8000-000000000013",
@@ -480,40 +525,28 @@ describe("what a repository's picker loads", () => {
               kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
             },
           }),
-        ];
-
-        return {
-          data: data as Array<never>,
-          count: data.length,
-          skip: 0,
-          limit: 10,
-        };
+        ]);
       });
-
-    jest.spyOn(API, "post").mockImplementation((async () => {
-      if (globalAnswer instanceof Error) {
-        throw globalAnswer;
-      }
-
-      return globalAnswer;
-    }) as never);
 
     jest.spyOn(ModelAPI, "getItem").mockResolvedValue(new Project() as never);
   }
 
-  test("the project's own Runners but the Kubernetes agent's, the global Runners for code by how each is doing, and the switch", async () => {
-    stubReads(
-      new HTTPResponse<JSONObject>(
-        200,
-        {
-          globalRunners: [
-            { liveStatus: RunnerLiveStatus.Disconnected },
-            { liveStatus: RunnerLiveStatus.Connected },
-          ],
-        },
-        {},
-      ),
-    );
+  const GLOBAL_RUNNERS: Array<Runner> = [
+    runnerRow({
+      id: "00000000-0000-0000-0000-000000000002",
+      name: "Global Runner",
+      lastAlive: OneUptimeDate.getSomeMinutesAgo(180),
+    }),
+    // Paused for runbook steps by a master admin: it still takes code fixes.
+    runnerRow({
+      id: "aaaaaaaa-0000-4000-8000-000000000021",
+      name: "Global Runner (Frankfurt)",
+      canRunRunbooks: false,
+    }),
+  ];
+
+  test("the project's own Runners but the Kubernetes agent's, every global Runner by how each is doing - one that runs no runbook steps too - and the switch", async () => {
+    stubReads(GLOBAL_RUNNERS);
 
     const loaded: RunnerChoices =
       await RunnerChoicesLoader.loadForCodeRepository(new ObjectID(PROJECT_ID));
@@ -528,40 +561,43 @@ describe("what a repository's picker loads", () => {
         return runner.liveStatus;
       }),
     ).toEqual([RunnerLiveStatus.Disconnected, RunnerLiveStatus.Connected]);
+    expect(
+      loaded.globalRunners.map((runner: { name: string }) => {
+        return runner.name;
+      }),
+    ).toEqual(["Global Runner", "Global Runner (Frankfurt)"]);
     expect(loaded.projectUsesGlobalRunners).toBe(true);
 
     // The posture is read, to leave the agent's Runners out.
     expect(listCalls[0]!.select["hostInfo"]).toBe(true);
     expect(String(listCalls[0]!.query["projectId"])).toBe(PROJECT_ID);
 
-    const post: { mock: { calls: Array<Array<unknown>> } } =
-      API.post as unknown as { mock: { calls: Array<Array<unknown>> } };
-    const url: string = String(
-      (post.mock.calls[0]![0] as { url: unknown }).url,
-    );
+    // The global Runners come from their own endpoint, the one every picker reads.
+    expect(GLOBAL_RUNNERS_ROUTE).toBe("/runner/global-runners");
+    expect(globalListCalls).toHaveLength(1);
+  });
 
-    expect(GLOBAL_CODE_RUNNERS_ROUTE).toBe("/runner/global-code-runners");
-    expect(url.endsWith(GLOBAL_CODE_RUNNERS_ROUTE)).toBe(true);
+  test("a step's picker keeps only the global Runners that run runbook steps, a repository's every one", async () => {
+    stubReads(GLOBAL_RUNNERS);
+
+    const forStep: RunnerChoices = await RunnerChoicesLoader.load(
+      new ObjectID(PROJECT_ID),
+    );
+    const forRepository: RunnerChoices =
+      await RunnerChoicesLoader.loadForCodeRepository(new ObjectID(PROJECT_ID));
+
+    expect(forStep.globalRunners).toHaveLength(1);
+    expect(forRepository.globalRunners).toHaveLength(2);
   });
 
   test("a server that cannot say leaves the project's own Runners to pick from", async () => {
-    for (const answer of [
-      new Error("offline"),
-      new HTTPErrorResponse(404, { message: "Not found" }, {}),
-      new HTTPResponse<JSONObject>(200, { globalRunners: "none" }, {}),
-    ]) {
-      stubReads(answer as HTTPResponse<JSONObject> | Error);
+    stubReads(new Error("offline"));
 
-      const loaded: RunnerChoices =
-        await RunnerChoicesLoader.loadForCodeRepository(
-          new ObjectID(PROJECT_ID),
-        );
+    const loaded: RunnerChoices =
+      await RunnerChoicesLoader.loadForCodeRepository(new ObjectID(PROJECT_ID));
 
-      expect(loaded.globalRunners).toEqual([]);
-      expect(loaded.projectRunners).toHaveLength(1);
-
-      jest.restoreAllMocks();
-    }
+    expect(loaded.globalRunners).toEqual([]);
+    expect(loaded.projectRunners).toHaveLength(1);
   });
 
   /*
@@ -571,16 +607,7 @@ describe("what a repository's picker loads", () => {
    * not on a server that runs none.
    */
   test("a project Runner read that is refused still loads the global Runners and the switch", async () => {
-    stubReads(
-      new HTTPResponse<JSONObject>(
-        200,
-        { globalRunners: [{ liveStatus: RunnerLiveStatus.Connected }] },
-        {},
-      ),
-    );
-    jest.spyOn(ModelAPI, "getList").mockImplementation((async () => {
-      throw new Error("You do not have permission to read");
-    }) as never);
+    stubReads([GLOBAL_RUNNERS[1]!], { isProjectReadRefused: true });
 
     const loaded: RunnerChoices =
       await RunnerChoicesLoader.loadForCodeRepository(new ObjectID(PROJECT_ID));
@@ -593,20 +620,25 @@ describe("what a repository's picker loads", () => {
     expect(loaded.projectUsesGlobalRunners).toBe(true);
   });
 
-  test("a status the server does not name reads as never connected", () => {
-    expect(readGlobalCodeRunnerLiveStatus("connected")).toBe(
-      RunnerLiveStatus.Connected,
-    );
-    expect(readGlobalCodeRunnerLiveStatus("online!")).toBe(
-      RunnerLiveStatus.NeverConnected,
-    );
-    expect(readGlobalCodeRunnerLiveStatus(undefined)).toBe(
+  test("a global Runner never heard from reads as never connected", async () => {
+    stubReads([
+      runnerRow({
+        id: "aaaaaaaa-0000-4000-8000-000000000022",
+        name: "Global Runner",
+        lastAlive: undefined,
+      }),
+    ]);
+
+    const loaded: RunnerChoices =
+      await RunnerChoicesLoader.loadForCodeRepository(new ObjectID(PROJECT_ID));
+
+    expect(loaded.globalRunners[0]!.liveStatus).toBe(
       RunnerLiveStatus.NeverConnected,
     );
   });
 
   test("negative control: a runbook step's picker still lists every Runner of the project", async () => {
-    stubReads(new HTTPResponse<JSONObject>(200, { globalRunners: [] }, {}));
+    stubReads([]);
 
     const runners: Array<{ name: string }> =
       await RunnerChoicesLoader.loadProjectRunners(new ObjectID(PROJECT_ID));

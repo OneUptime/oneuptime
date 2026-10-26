@@ -2680,8 +2680,6 @@
   "Getting Started with Serverless Functions": "서버리스 함수 시작하기",
   "Give this device a name to identify it in your notification settings.": "알림 설정에서 이 기기를 식별할 수 있도록 이름을 지정하세요.",
   "Give your security key a name (e.g., YubiKey, Titan Key)": "보안 키에 이름을 지정하세요(예: YubiKey, Titan Key)",
-  "Global AI Agents": "글로벌 AI 에이전트",
-  "Global AI Agents help you automate incident management with AI-powered responses from OneUptime's infrastructure.": "글로벌 AI 에이전트는 OneUptime 인프라의 AI 기반 응답으로 인시던트 관리를 자동화하는 데 도움을 줍니다.",
   "Global LLM Providers": "글로벌 LLM 공급자",
   "Global LLM Providers are pre-configured. These will be used automatically for AI features when you haven't set up your own custom LLM provider below.": "글로벌 LLM 제공자는 미리 구성되어 있습니다. 아래에서 사용자 지정 LLM 제공자를 설정하지 않은 경우 AI 기능에 자동으로 사용됩니다.",
   "Global Probe Settings": "글로벌 프로브 설정",

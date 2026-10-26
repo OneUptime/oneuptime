@@ -100,7 +100,7 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 | 輸入閘道 | `nginx` | 要求量 |
 | 遙測寫入器（開啟時） | `telemetryWriter` | 不隨負載成長：它把每次遙測插入批次寫入 ClickHouse，因此依 ClickHouse 能承受的量決定規模 |
 
-Chart 內建 **KEDA**，因此應用程式、worker、探測器和 Runner 可以依佇列積壓自動調整規模。請同時開啟 `keda.enabled` 和每個服務自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安裝 KEDA 的叢集上，第一次安裝需要額外執行一輪：請參閱 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)。KEDA 不管理的服務可以改用以 CPU 或記憶體為依據的自動調整器（`autoscaling`）。
+Chart 內建 **KEDA**，因此應用程式、worker、探測器和全域 Runner 可以依佇列積壓自動調整規模。請同時開啟 `keda.enabled` 和每個服務自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安裝 KEDA 的叢集上，第一次安裝需要額外執行一輪：請參閱 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)。KEDA 不管理的服務可以改用以 CPU 或記憶體為依據的自動調整器（`autoscaling`）。
 
 ## 起步級別
 

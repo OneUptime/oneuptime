@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["ऐप<br/>डैशबोर्ड, स्टेटस पेज,<br/>API, इनजेस्ट,<br/>बैकग्राउंड जॉब"]
-        Runner["Runner"]
+        Runner["ग्लोबल Runner"]
         Probe["प्रोब"]
         subgraph Data["डेटा स्टोर"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | `app` का हिस्सा | `worker` (डिफ़ॉल्ट रूप से बंद) | बैकग्राउंड जॉब, अपने अलग पॉड में, ताकि भारी कतार प्रोसेसिंग कभी API अनुरोधों से होड़ न करे। |
 | Telemetry writer | `app` का हिस्सा | `telemetryWriter` (डिफ़ॉल्ट रूप से बंद) | एक निश्चित आकार की परत जो ClickHouse में हर इन्सर्ट करती है, ताकि worker चाहे जितने स्केल हों, इन्सर्ट सीमा में रहें। |
 | प्रोब | `probe-1` | `probes` | मॉनिटर जाँचें चलाता है और नतीजे वापस भेजता है। हर साथ आने वाला प्रोब एक वैश्विक प्रोब है जिसे सभी प्रोजेक्ट उपयोग कर सकते हैं। |
-| Runner | `runner` | `runner` | इंस्टेंस का अपना Runner, जो हर प्रोजेक्ट के लिए AI कोड सुधार चला सकता है। Runbook के चरण उन [Runners](/docs/runbooks/agents) पर चलते हैं जिन्हें आप वहाँ इंस्टॉल करते हैं जहाँ उन्हें चलना चाहिए। |
-| ग्लोबल Runner | `global-runner` | `globalRunner` | एक [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner): यह हर उस प्रोजेक्ट के JavaScript चरण चलाता है जो अपना कोई Runner नहीं चुनता, हर एक ऐसे सैंडबॉक्स में जो केवल इंटरनेट तक पहुँचता है। इसके पास अपनी कुंजी होती है और सर्वर का और कुछ नहीं। |
+| ग्लोबल Runner | `global-runner` | `globalRunner` | एक [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner): यह हर उस प्रोजेक्ट के JavaScript चरण चलाता है जो अपना कोई Runner नहीं चुनता, हर एक ऐसे सैंडबॉक्स में जो केवल इंटरनेट तक पहुँचता है, और हर उस कोड रिपॉजिटरी में OneUptime AI के कोड सुधार जो कोई Runner नहीं चुनती। इसके पास अपनी कुंजी होती है और सर्वर का और कुछ नहीं। Bash, SSH और kubectl चरण उन [Runners](/docs/runbooks/agents) पर चलते हैं जिन्हें आप वहाँ इंस्टॉल करते हैं जहाँ उन्हें चलना चाहिए। |
 | PostgreSQL | `postgres` | `postgresql`, या `postgresOperator.cnpg` | प्रोजेक्ट, मॉनिटर, घटनाएँ, उपयोगकर्ता और बाकी हर सेटिंग और स्थिति। |
 | ClickHouse | `clickhouse` | `clickhouse`, या `clickhouseOperator.altinity` | लॉग, मेट्रिक्स, ट्रेस, अपवाद, प्रोफ़ाइल और मॉनिटर लॉग। |
 | Valkey | `valkey` | `valkey` | कैश, जॉब कतारें और अल्पकालिक स्थिति, जैसे लंबित पुश रसीदें। |

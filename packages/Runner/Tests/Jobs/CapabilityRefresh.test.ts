@@ -167,21 +167,35 @@ describe("a capability granted while the Runner is running", () => {
   });
 
   /*
-   * Cluster scope has no dashboard row and therefore no capability channel;
-   * a grant arriving from anywhere must never turn runbooks on there, because
-   * runbook steps target a Runner a human picked in a project.
+   * A global Runner learns its code fixes the same way: a heartbeat that
+   * grants them turns them on, and one that revokes them turns them off,
+   * with no restart.
    */
-  test("cluster scope ignores a runbook grant entirely", () => {
-    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
-      ONEUPTIME_SECRET: "test-cluster-secret",
-    });
+  test("a global Runner's code fixes follow the heartbeat too", () => {
+    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities(
+      {},
+    );
+
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    (
+      require("../../Utils/GlobalRunnerMode") as {
+        default: { setFromServer: (isGlobalRunner: boolean) => void };
+      }
+    ).default.setFromServer(true);
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
       canRunAiCommands: false,
     });
+    expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(true);
 
-    expect(RunnerCapabilities.resolve().canRunRunbooks).toBe(false);
+    RunnerCapabilities.setGrantedByServer({
+      canRunRunbooks: true,
+      canRunCodeFixTasks: false,
+      canRunAiCommands: false,
+    });
+    expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
   });
 });
