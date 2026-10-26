@@ -847,6 +847,22 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new FillSyntheticMonitorBrowsersAndScreenSizes(),
   /*
+   * "Incident SLA breached" gets a notification setting of its own: every
+   * existing member gets it, on email and the channels they have on for
+   * "Incident created", which SLA breaches were sent through before.
+   * Idempotent; no ordering requirement of its own, so above the runbook
+   * moves, which keep their places right before the last slot.
+   */
+  new AddIncidentSlaBreachedNotificationSettingsForUsers(),
+  /*
+   * The attachment links of feed entries written before the download routes
+   * took the project id are 404s: each gets its entry's project id (an
+   * episode's private note, which has no route, the file's name). Only the
+   * entries that mention "/attachment/" are read; idempotent; no ordering
+   * requirement of its own, so above the runbook moves.
+   */
+  new RewriteFeedAttachmentLinks(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -880,21 +896,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * "Incident SLA breached" gets a notification setting of its own: every
-   * existing member gets it, on email and the channels they have on for
-   * "Incident created", which SLA breaches were sent through before.
-   * Idempotent; no ordering requirement of its own.
-   */
-  new AddIncidentSlaBreachedNotificationSettingsForUsers(),
-  /*
-   * The attachment links of feed entries written before the download routes
-   * took the project id are 404s: each gets its entry's project id (an
-   * episode's private note, which has no route, the file's name). Only the
-   * entries that mention "/attachment/" are read; idempotent; no ordering
-   * requirement of its own.
-   */
-  new RewriteFeedAttachmentLinks(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -209,6 +209,13 @@ describe("RewriteFeedAttachmentLinks", () => {
     expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
       registered.length - 1,
     );
+    /*
+     * Above the runbook moves, which keep their places right before the
+     * last slot (their own suites assert each neighbour).
+     */
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.indexOf("MoveRunbookApprovalsBeforeTheirSteps"),
+    );
   });
 
   test("reads the five feeds a note's entry is written to", () => {

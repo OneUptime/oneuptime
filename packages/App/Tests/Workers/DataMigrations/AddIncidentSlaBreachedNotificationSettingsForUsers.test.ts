@@ -167,12 +167,17 @@ describe("AddIncidentSlaBreachedNotificationSettingsForUsers", () => {
       "AddAuditLogMcpClientColumns",
     );
     /*
-     * Anywhere before that last slot: it has no ordering requirement of its
-     * own, and migrations added after it go in front of the last one too.
+     * Before that last slot: it has no ordering requirement of its own, and
+     * migrations added after it go in front of the last one too. Above the
+     * runbook moves, which keep their places right before the last slot
+     * (their own suites assert each neighbour).
      */
     expect(registered.indexOf(MIGRATION_NAME)).toBeGreaterThanOrEqual(0);
     expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
       registered.length - 1,
+    );
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.indexOf("MoveRunbookApprovalsBeforeTheirSteps"),
     );
   });
 
