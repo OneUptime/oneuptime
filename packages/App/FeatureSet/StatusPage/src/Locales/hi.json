@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "मुख्य सामग्री पर जाएं",
-    "loading": "लोड हो रहा है..."
+    "loading": "लोड हो रहा है...",
+    "moreLinks": "और लिंक",
+    "navigation": "नेविगेशन"
   },
   "common": {
     "save": "सहेजें",
@@ -303,7 +305,8 @@
       "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
       "noProviders": "कोई SSO प्रदाता कॉन्फ़िगर या सक्षम नहीं है",
       "notAvailable": "इस स्थिति पृष्ठ के लिए सिंगल साइन-ऑन (SSO) उपलब्ध नहीं है। इसके बजाय अपने ईमेल और पासवर्ड से लॉग इन करें।",
-      "backToLogin": "लॉग इन पर वापस जाएं"
+      "backToLogin": "लॉग इन पर वापस जाएं",
+      "logInWithPassword": "पासवर्ड से लॉग इन करें"
     },
     "forgotPassword": {
       "title": "पासवर्ड भूल गए",
@@ -320,13 +323,9 @@
       "knowPassword": "अपना पासवर्ड जानते हैं?"
     },
     "masterPassword": {
-      "enterWithName": "{{statusPageName}} पासवर्ड दर्ज करें",
-      "enterGeneric": "पासवर्ड दर्ज करें",
-      "prompt": "जारी रखने के लिए कृपया पासवर्ड दर्ज करें।",
+      "prompt": "इस स्थिति पृष्ठ को देखने के लिए पासवर्ड दर्ज करें।",
       "passwordRequired": "पासवर्ड आवश्यक है।",
       "passwordLabel": "पासवर्ड",
-      "passwordDescription": "इस पृष्ठ को अनलॉक करने के लिए पासवर्ड दर्ज करें।",
-      "passwordPlaceholder": "पासवर्ड दर्ज करें",
       "submit": "स्थिति पृष्ठ अनलॉक करें"
     },
     "signingOut": "आपको साइन आउट किया जा रहा है..."

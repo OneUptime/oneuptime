@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Passer au contenu principal",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "moreLinks": "Plus de liens",
+    "navigation": "Navigation"
   },
   "common": {
     "save": "Enregistrer",
@@ -303,7 +305,8 @@
       "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
       "noProviders": "Aucun fournisseur SSO configuré ou activé",
       "notAvailable": "L'authentification unique (SSO) n'est pas disponible pour cette page de statut. Connectez-vous plutôt avec votre adresse e-mail et votre mot de passe.",
-      "backToLogin": "Retour à la connexion"
+      "backToLogin": "Retour à la connexion",
+      "logInWithPassword": "Se connecter avec un mot de passe"
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",
@@ -320,13 +323,9 @@
       "knowPassword": "Vous connaissez votre mot de passe ?"
     },
     "masterPassword": {
-      "enterWithName": "Saisir le mot de passe {{statusPageName}}",
-      "enterGeneric": "Saisir le mot de passe",
-      "prompt": "Veuillez saisir le mot de passe pour continuer.",
+      "prompt": "Saisissez le mot de passe pour voir cette page de statut.",
       "passwordRequired": "Le mot de passe est requis.",
       "passwordLabel": "Mot de passe",
-      "passwordDescription": "Saisissez le mot de passe pour déverrouiller cette page.",
-      "passwordPlaceholder": "Saisir le mot de passe",
       "submit": "Déverrouiller la page de statut"
     },
     "signingOut": "Déconnexion en cours..."

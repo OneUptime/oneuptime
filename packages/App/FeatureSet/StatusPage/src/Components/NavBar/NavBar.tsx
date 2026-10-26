@@ -253,6 +253,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               className="ml-2 p-2"
               icon={isMobileMenuOpen ? IconProp.Close : IconProp.Bars3}
               dataTestId="mobile-nav-toggle"
+              // An icon alone: named for what it opens, as Common's NavBar's is.
+              ariaLabel={t("a11y.navigation")}
               ariaExpanded={isMobileMenuOpen}
             />
           </div>

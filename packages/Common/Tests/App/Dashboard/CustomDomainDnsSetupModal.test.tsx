@@ -45,6 +45,8 @@ import * as React from "react";
  */
 
 let mockCnameRecord: string = "statuspage.oneuptime.com";
+// Whether the installation issues free certificates: yes unless a test says.
+let mockIssuesFreeCertificates: boolean = true;
 
 /*
  * Getters defined on the copy, not in an object literal: the compiled
@@ -64,6 +66,11 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
+    get: (): boolean => {
+      return mockIssuesFreeCertificates;
+    },
+  });
 
   return mocked;
 });
@@ -93,7 +100,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
 
 import CustomDomainDnsSetupModal from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainDnsSetupModal";
 import {
+  CUSTOM_DOMAIN_STATUS,
   CustomDomainCopy,
+  CustomDomainState,
   DNS_SETUP_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 import {
@@ -227,6 +236,7 @@ describe.each(KINDS)(
 
     beforeEach(() => {
       mockCnameRecord = kindCase.cnameRecord;
+      mockIssuesFreeCertificates = true;
       mockApiGetCalls.length = 0;
       mockApiGet = async (): Promise<unknown> => {
         return found({
@@ -611,6 +621,87 @@ describe.each(KINDS)(
       expect(mockApiGetCalls[0]!.url.toString()).toContain(
         `/verify-cname/${row._id}`,
       );
+    });
+
+    /*
+     * An installation without a Let's Encrypt account key issues no free
+     * certificate. The dialog promised one ("once it is live we issue a
+     * free SSL certificate"), and once the record was found reported the
+     * order that could never be placed as a failure, with the server's
+     * "No lets encrypt account key found" under it.
+     */
+    describe("on an installation that issues no free certificates", () => {
+      beforeEach(() => {
+        mockIssuesFreeCertificates = false;
+      });
+
+      afterEach(() => {
+        mockIssuesFreeCertificates = true;
+      });
+
+      test("asks for the record, and promises no certificate", () => {
+        renderDialog();
+
+        expect(dialog()).toHaveTextContent(
+          CustomDomainCopy.dnsSetupWhatHappensNextWithoutFreeCertificate,
+        );
+        expect(dialog()).not.toHaveTextContent("free SSL certificate");
+      });
+
+      test("a found record: verified, and where its HTTPS comes from - not a failed order", async () => {
+        mockApiGet = async (): Promise<unknown> => {
+          return found({
+            certificateStatus: CustomDomainCertificateStatus.Failed,
+            certificateError:
+              "No lets encrypt account key found in environment variables. Please add one.",
+          });
+        };
+
+        const rendered: Rendered = renderDialog();
+        await clickCheckNow();
+
+        expect(dialog()).toHaveTextContent("Your CNAME record is verified.");
+        /*
+         * Why, and what to do instead - under the alert that already says
+         * the record is verified, so not the Status cell's "Verified. ...".
+         */
+        expect(dialog()).toHaveTextContent(
+          CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+        );
+        expect(dialog()).not.toHaveTextContent(
+          CUSTOM_DOMAIN_STATUS[
+            CustomDomainState.VerifiedWithoutFreeCertificate
+          ],
+        );
+        const verifiedWord: RegExp = /verified/gi;
+
+        expect(dialog().textContent?.match(verifiedWord)).toHaveLength(1);
+        expect(dialog()).not.toHaveTextContent("We could not issue");
+        expect(
+          screen.queryByTestId(DNS_SETUP_TEST_IDS.certificateError),
+        ).toBeNull();
+        expect(rendered.onVerified).toHaveBeenCalledTimes(1);
+      });
+
+      test("a domain on an uploaded certificate is still told that one is served", async () => {
+        mockApiGet = async (): Promise<unknown> => {
+          return found({
+            certificateStatus: CustomDomainCertificateStatus.Uploaded,
+          });
+        };
+
+        renderDialog(domain({ isCustomCertificate: true }));
+
+        expect(dialog()).toHaveTextContent(
+          CustomDomainCopy.dnsSetupWhatHappensNextUploaded,
+        );
+
+        await clickCheckNow();
+
+        expect(dialog()).toHaveTextContent(
+          "status.acme.com is served with the certificate you uploaded.",
+        );
+      });
     });
   },
 );

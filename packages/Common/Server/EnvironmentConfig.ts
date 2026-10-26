@@ -94,6 +94,23 @@ const FRONTEND_ENV_ALLOW_PREFIXES: Array<string> = [
   "PUBLIC_",
 ];
 
+/*
+ * Whether this installation issues free (Let's Encrypt) certificates for its
+ * custom domains: only with a Let's Encrypt account key. Self-hosted
+ * installations that end TLS at their own proxy often have none, and there
+ * a custom domain's HTTPS is the proxy's (or a certificate its owner
+ * uploads) - so the Dashboard must not say "Issuing a free certificate"
+ * about a verified domain for ever. The browser is told only whether there
+ * is a key, as "true" or "false"; the key itself never leaves the server.
+ */
+export const CUSTOM_DOMAIN_FREE_CERTIFICATES_VARIABLE: string =
+  "CUSTOM_DOMAIN_FREE_CERTIFICATES";
+
+export const issuesFreeCustomDomainCertificates: () => boolean =
+  (): boolean => {
+    return Boolean((process.env["LETS_ENCRYPT_ACCOUNT_KEY"] || "").trim());
+  };
+
 export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
   const frontendEnv: JSONObject = {};
 
@@ -121,6 +138,10 @@ export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
       frontendEnv[key] = value;
     }
   }
+
+  // Derived, never copied: whether there is a key, not the key.
+  frontendEnv[CUSTOM_DOMAIN_FREE_CERTIFICATES_VARIABLE] =
+    issuesFreeCustomDomainCertificates() ? "true" : "false";
 
   return frontendEnv;
 };

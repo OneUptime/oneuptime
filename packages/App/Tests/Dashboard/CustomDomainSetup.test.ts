@@ -3,17 +3,20 @@ import {
   CUSTOM_DOMAIN_STATUS,
   CUSTOM_DOMAIN_VERIFIED_NEXT,
   CustomDomainCopy,
+  CustomDomainInstallation,
   CustomDomainKindCopy,
   CustomDomainState,
   CustomDomainStateInput,
   DASHBOARD_CUSTOM_DOMAIN_COPY,
   DNS_SETUP_TEST_IDS,
+  FREE_CERTIFICATE_INSTALLATION,
   getCustomDomainCertificateError,
   getCustomDomainState,
   isCustomDomainDnsSetupAvailable,
   STATUS_PAGE_CUSTOM_DOMAIN_COPY,
   STATUS_TEST_IDS,
 } from "../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
+import Protocol from "Common/Types/API/Protocol";
 import { CustomDomainCertificateStatus } from "Common/Types/CustomDomain/CustomDomainVerification";
 import { CustomDomainCertificate } from "Common/Types/CustomDomain/CustomDomainCertificates";
 import { describe, expect, test } from "@jest/globals";
@@ -207,7 +210,21 @@ describe("where a custom domain is on its way to HTTPS", () => {
         "Certificate issued, renews automatically.",
       [CustomDomainState.RenewalFailed]:
         "Certificate issued, but renewing it failed. We keep trying.",
+      [CustomDomainState.VerifiedWithoutFreeCertificate]:
+        "Verified. Uses your own proxy's HTTPS.",
     });
+  });
+
+  /*
+   * One short sentence, as a status cell holds: the longest is about the
+   * length of "Certificate issued, but renewing it failed. We keep trying."
+   * The verified-without-free-certificates one was a 127-character
+   * paragraph that ran out of the column mid-word.
+   */
+  test("every state is a sentence short enough for its column", () => {
+    for (const sentence of Object.values(CUSTOM_DOMAIN_STATUS)) {
+      expect([sentence, sentence.length <= 60]).toEqual([sentence, true]);
+    }
   });
 
   test("Check now has a sentence for every certificate status the server answers", () => {
@@ -461,10 +478,13 @@ describe("the copy", () => {
    * 24 came with the status page flow; custom-domain-ssl-hardening added
    * the three Status sentences about a failure, the expired-certificate
    * intro of DNS Setup, and the failed order's sentence without a timing;
-   * dashboards brought their card description and DNS Setup intro.
+   * dashboards brought their card description and DNS Setup intro; an
+   * installation without free certificates brought its Status sentence,
+   * its folded header, its two DNS Setup sentences (before and after Check
+   * now verifies the record) and both kinds' card descriptions.
    */
-  test("brings 30 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(30);
+  test("brings 36 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(36);
   });
 
   test.each(OTHER_LOCALES)(
@@ -505,6 +525,9 @@ describe("each kind's own words", () => {
     "the %s's sentences keep the placeholders the pages fill in",
     (_kind: string, copy: CustomDomainKindCopy) => {
       expect(copy.cardDescription).toContain("{{cnameRecord}}");
+      expect(copy.cardDescriptionWithoutFreeCertificates).toContain(
+        "{{cnameRecord}}",
+      );
       expect(copy.dnsSetupIntro).toContain("{{domain}}");
       expect(copy.dnsSetupNotEnabled).toContain("{{variable}}");
     },
@@ -658,5 +681,182 @@ describe("the Custom Domains pages", () => {
     expect(kinds).toMatch(
       /DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = \{ modelType: DashboardDomain, parentColumn: "dashboardId", tableId: "dashboard-domains-table", tableName: "Dashboard > Domains", userPreferencesKey: "dashboard-domains-table", saveFilterTableId: "dashboard-domains-table", getCnameRecord: \(\): string => \{ return DashboardCNameRecord; \}, cnameRecordVariable: "DASHBOARD_CNAME_RECORD", copy: DASHBOARD_CUSTOM_DOMAIN_COPY, \}/,
     );
+  });
+});
+
+/*
+ * An installation without a Let's Encrypt account key - a self-hosted one
+ * that ends TLS at its own proxy - issues no free certificate. A verified
+ * domain there used to read "Issuing a free certificate, usually within 15
+ * minutes." for ever, and offer DNS Setup for an order that could never be
+ * placed; the server meanwhile links to it already (getUsableCustomDomain,
+ * rule 3). It is verified, served with the installation's own HTTPS or a
+ * certificate its owner uploads, and nothing promises a free one.
+ */
+describe("an installation that issues no free certificates", () => {
+  const WITHOUT: CustomDomainInstallation = {
+    issuesFreeCertificates: false,
+    protocol: Protocol.HTTPS,
+  };
+
+  test("is not what an installation is taken to be until it says so", () => {
+    expect(FREE_CERTIFICATE_INSTALLATION).toEqual({
+      issuesFreeCertificates: true,
+      protocol: Protocol.HTTPS,
+    });
+    expect(getCustomDomainState({ isCnameVerified: true })).toBe(
+      CustomDomainState.IssuingCertificate,
+    );
+  });
+
+  test.each([
+    [
+      "not verified yet: still waiting for DNS",
+      { isCnameVerified: false },
+      CustomDomainState.WaitingForDns,
+    ],
+    [
+      "verified, on an uploaded certificate: as anywhere",
+      { isCnameVerified: true, isCustomCertificate: true },
+      CustomDomainState.UsesUploadedCertificate,
+    ],
+    [
+      "verified: no certificate to wait for",
+      { isCnameVerified: true },
+      CustomDomainState.VerifiedWithoutFreeCertificate,
+    ],
+    [
+      "verified, marked ordered and served long ago: the same",
+      { isCnameVerified: true, isSslOrdered: true, isSslProvisioned: true },
+      CustomDomainState.VerifiedWithoutFreeCertificate,
+    ],
+  ])("%s", (_name: string, domain: CustomDomainStateInput, state: string) => {
+    expect(getCustomDomainState(domain, undefined, undefined, WITHOUT)).toBe(
+      state,
+    );
+  });
+
+  test("a failed order the server recorded is not shown as a failure there", () => {
+    expect(
+      getCustomDomainState(
+        { isCnameVerified: true },
+        {
+          domainId: "domain-id",
+          lastOrderError:
+            "No lets encrypt account key found in environment variables. Please add one.",
+        },
+        undefined,
+        WITHOUT,
+      ),
+    ).toBe(CustomDomainState.VerifiedWithoutFreeCertificate);
+  });
+
+  test.each([
+    ["not verified: the record to add", { isCnameVerified: false }, true],
+    ["verified: nothing left to set up", { isCnameVerified: true }, false],
+    [
+      "verified, on an uploaded certificate",
+      { isCnameVerified: true, isCustomCertificate: true },
+      false,
+    ],
+  ])(
+    "DNS Setup when %s",
+    (_name: string, domain: CustomDomainStateInput, offered: boolean) => {
+      expect(
+        isCustomDomainDnsSetupAvailable(domain, undefined, undefined, WITHOUT),
+      ).toBe(offered);
+    },
+  );
+
+  test("its sentences promise no free certificate", () => {
+    const sentences: Array<string> = [
+      CUSTOM_DOMAIN_STATUS[CustomDomainState.VerifiedWithoutFreeCertificate],
+      CustomDomainCopy.advancedSummaryWithoutFreeCertificate,
+      CustomDomainCopy.dnsSetupWhatHappensNextWithoutFreeCertificate,
+      STATUS_PAGE_CUSTOM_DOMAIN_COPY.cardDescriptionWithoutFreeCertificates,
+      DASHBOARD_CUSTOM_DOMAIN_COPY.cardDescriptionWithoutFreeCertificates,
+    ];
+
+    for (const sentence of [
+      ...sentences,
+      CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+    ]) {
+      expect([sentence, sentence.includes("we issue")]).toEqual([
+        sentence,
+        false,
+      ]);
+      expect([sentence, sentence.includes("renew")]).toEqual([sentence, false]);
+    }
+
+    /*
+     * The Status cell says where the domain is, beside "Uses your uploaded
+     * certificate."; DNS Setup, once Check now has verified it, says why
+     * and what to do instead - under "Your CNAME record is verified.", so
+     * without a second "Verified.".
+     */
+    expect(
+      CUSTOM_DOMAIN_STATUS[CustomDomainState.VerifiedWithoutFreeCertificate],
+    ).toBe("Verified. Uses your own proxy's HTTPS.");
+    expect(CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate).toBe(
+      "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.",
+    );
+    expect(CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate).toContain(
+      "upload a certificate",
+    );
+    expect(
+      CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+    ).not.toContain("Verified");
+  });
+
+  test("each kind's card says where its domains point, and no more", () => {
+    expect(
+      STATUS_PAGE_CUSTOM_DOMAIN_COPY.cardDescriptionWithoutFreeCertificates,
+    ).toBe(
+      "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
+    );
+    expect(
+      DASHBOARD_CUSTOM_DOMAIN_COPY.cardDescriptionWithoutFreeCertificates,
+    ).toBe(
+      "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
+    );
+  });
+});
+
+describe("the pages ask the installation", () => {
+  test.each([
+    ["the table", TABLE],
+    ["DNS Setup", DIALOG],
+    ["the Status cell", path.join(COMPONENT_DIR, "CustomDomainStatus.tsx")],
+    ["the Domain cell", path.join(COMPONENT_DIR, "CustomDomainName.tsx")],
+    ["the list of addresses", path.join(COMPONENT_DIR, "PublicAddresses.tsx")],
+  ])("%s reads getCustomDomainInstallation", (_name: string, file: string) => {
+    expect(readSource(file)).toContain("getCustomDomainInstallation()");
+  });
+
+  test("which reads the installation's flag and protocol from its config", () => {
+    const kinds: string = readSource(KINDS);
+
+    expect(kinds).toContain(
+      "issuesFreeCertificates: CUSTOM_DOMAIN_FREE_CERTIFICATES",
+    );
+    expect(kinds).toContain("protocol: HTTP_PROTOCOL");
+  });
+
+  test("the table's card and folded header change their words with it", () => {
+    const table: string = readSource(TABLE);
+
+    expect(table).toContain("kind.copy.cardDescriptionWithoutFreeCertificates");
+    expect(table).toContain(
+      "CustomDomainCopy.advancedSummaryWithoutFreeCertificate",
+    );
+  });
+
+  test("DNS Setup's verified sentence is its own, not the Status cell's", () => {
+    const dialog: string = readSource(DIALOG);
+
+    expect(dialog).toContain(
+      "CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate",
+    );
+    expect(dialog).not.toContain("CUSTOM_DOMAIN_STATUS");
   });
 });

@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Saltar para o conteúdo principal",
-    "loading": "A carregar..."
+    "loading": "A carregar...",
+    "moreLinks": "Mais links",
+    "navigation": "Navegação"
   },
   "common": {
     "save": "Salvar",
@@ -303,7 +305,8 @@
       "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
       "noProviders": "Nenhum provedor SSO configurado ou habilitado",
       "notAvailable": "O login único (SSO) não está disponível para esta página de status. Em vez disso, faça login com seu e-mail e senha.",
-      "backToLogin": "Voltar para o login"
+      "backToLogin": "Voltar para o login",
+      "logInWithPassword": "Entrar com senha"
     },
     "forgotPassword": {
       "title": "Esqueceu a senha",
@@ -320,13 +323,9 @@
       "knowPassword": "Sabe sua senha?"
     },
     "masterPassword": {
-      "enterWithName": "Digitar senha de {{statusPageName}}",
-      "enterGeneric": "Digitar senha",
-      "prompt": "Digite a senha para continuar.",
+      "prompt": "Digite a senha para ver esta página de status.",
       "passwordRequired": "a senha é obrigatória.",
       "passwordLabel": "Senha",
-      "passwordDescription": "Digite a senha para desbloquear esta página.",
-      "passwordPlaceholder": "Digitar senha",
       "submit": "Desbloquear página de status"
     },
     "signingOut": "A terminar sessão..."

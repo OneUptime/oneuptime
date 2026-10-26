@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Vai al contenuto principale",
-    "loading": "Caricamento..."
+    "loading": "Caricamento...",
+    "moreLinks": "Altri link",
+    "navigation": "Navigazione"
   },
   "common": {
     "save": "Salva",
@@ -303,7 +305,8 @@
       "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
       "noProviders": "Nessun provider SSO configurato o abilitato",
       "notAvailable": "Il Single Sign-On (SSO) non è disponibile per questa pagina di stato. Accedi invece con la tua e-mail e la tua password.",
-      "backToLogin": "Torna all'accesso"
+      "backToLogin": "Torna all'accesso",
+      "logInWithPassword": "Accedi con la password"
     },
     "forgotPassword": {
       "title": "Password dimenticata",
@@ -320,13 +323,9 @@
       "knowPassword": "Conosci la tua password?"
     },
     "masterPassword": {
-      "enterWithName": "Inserisci password di {{statusPageName}}",
-      "enterGeneric": "Inserisci password",
-      "prompt": "Inserisci la password per continuare.",
+      "prompt": "Inserisci la password per vedere questa pagina di stato.",
       "passwordRequired": "la password è obbligatoria.",
       "passwordLabel": "Password",
-      "passwordDescription": "Inserisci la password per sbloccare questa pagina.",
-      "passwordPlaceholder": "Inserisci password",
       "submit": "Sblocca pagina di stato"
     },
     "signingOut": "Disconnessione in corso..."

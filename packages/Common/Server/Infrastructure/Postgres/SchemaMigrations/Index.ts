@@ -202,6 +202,8 @@ import { KeepCodeRepositoriesOnGlobalRunners1807710000000 } from "./180771000000
 import { AddEpisodeMemberFirstMembership1807800000000 } from "./1807800000000-AddEpisodeMemberFirstMembership";
 import { AddEpisodeMemberFirstMembershipIndexes1807810000000 } from "./1807810000000-AddEpisodeMemberFirstMembershipIndexes";
 import { MakeMonitorTemplateDescriptionOptional1807820000000 } from "./1807820000000-MakeMonitorTemplateDescriptionOptional";
+import { AddStatusPageDarkThemeLogo1807830000000 } from "./1807830000000-AddStatusPageDarkThemeLogo";
+import { AddStatusPageDarkThemeLogoKey1807840000000 } from "./1807840000000-AddStatusPageDarkThemeLogoKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1606,4 +1608,6 @@ export default [
   AddEpisodeMemberFirstMembership1807800000000,
   AddEpisodeMemberFirstMembershipIndexes1807810000000,
   MakeMonitorTemplateDescriptionOptional1807820000000,
+  AddStatusPageDarkThemeLogo1807830000000,
+  AddStatusPageDarkThemeLogoKey1807840000000,
 ];

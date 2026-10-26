@@ -2,19 +2,19 @@ import StatusPageThemeUtil, {
   useStatusPageTheme,
 } from "../../Utils/StatusPageTheme";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  doesStatusPageThemeFollowDevice,
-  STATUS_PAGE_DARK_SCHEME,
-} from "Common/Types/StatusPage/StatusPageTheme";
+import { STATUS_PAGE_DARK_SCHEME } from "Common/Types/StatusPage/StatusPageTheme";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
  * The visitor's own light / dark switch, in the footer beside the language
- * switcher - only on a page whose owner set it to follow each visitor's
- * device (StatusPageTheme.System). A page set to Light or Dark looks the way
- * its owner chose for everyone, and offers no switch.
+ * switcher - on a page whose owner set it to follow each visitor's device
+ * (StatusPageTheme.System). A page set to Light or Dark looks the way its
+ * owner chose for everyone, and offers no switch - except on the
+ * Dashboard's preview of it (its address on OneUptime), where its owner
+ * sees it in the other theme too, for that visit only
+ * (StatusPageThemeUtil.switchColorScheme).
  *
  * One small icon button, as calm as the footer's other links: a moon on the
  * light page (switch to dark), a sun on the dark one (switch to light), with
@@ -37,7 +37,7 @@ const ThemeSwitch: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const { theme, colorScheme } = useStatusPageTheme();
 
-  if (!doesStatusPageThemeFollowDevice(theme)) {
+  if (!StatusPageThemeUtil.canVisitorSwitch(theme)) {
     return <></>;
   }
 
