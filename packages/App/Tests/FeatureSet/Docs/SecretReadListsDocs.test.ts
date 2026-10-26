@@ -91,7 +91,8 @@ describe("the 14 upgrade notes", () => {
       "Reading a project's probes or AI agents takes a role that may read them, such as **Viewer**, **Settings Viewer**, **Read Probe** or **Read AI Agent** (and the monitor roles, for probes), and a request without a signed-in user or an API key is answered with a `401`.",
       "Whoever may read, create or edit monitors, a monitor's probes, network devices, their discovery scans or network sites reads what a probe picker shows of the project's probes - name, description, icon, status and whether new monitors start with it - but not a probe's key, version, labels or packet capture report.",
       "A probe's key stays with project owners and admins.",
-      "The lists of global probes and global AI agents answer signed-in users only.",
+      // The global AI agents' list went with the shared Runner.
+      "The list of global probes answers signed-in users only.",
     ]) {
       expect([sentence, otherChanges.includes(sentence)]).toEqual([
         sentence,

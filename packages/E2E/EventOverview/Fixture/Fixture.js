@@ -71,13 +71,15 @@
  *            Kubernetes cluster and an SLO: five categories, one of them
  *            behind a Show more. "none" leaves Incident #1042 and Scheduled
  *            Maintenance #58 with nothing attached, for the empty state.
- *   ?thread= empty (default) | answered | working | approval | error
- *            | crowded
+ *   ?thread= empty (default) | answered | working | approval | linking
+ *            | error | crowded
  *            What the conversation that closes the AI Investigation card of
  *            Incident #1042 and Alert #311 holds: nobody has asked,
  *            two answered questions (one of them the viewer's, with a table,
  *            an executed action and a source), an answer being written with
- *            its live steps, an action waiting for approval, a failed and a
+ *            its live steps, an action waiting for approval, an action
+ *            linking the record to host checkout-api-7f9c waiting for
+ *            approval (its card names the host, #5293), a failed and a
  *            stopped answer, or twelve messages from six people (long enough
  *            to open folded). Sending, approving and stopping are modelled:
  *            see "The investigation card's conversation" below.
@@ -206,8 +208,12 @@
  *            matched. Or off | ai-off | no-rule | rules-investigate (the one
  *            rule that matched, "Checkout investigations", only
  *            investigates) | acted (OneUptime AI started a fix on
- *            prod-eu-west-1: the cards stay whole) | none (nothing
- *            recorded, as for a record from before decisions were).
+ *            prod-eu-west-1: the cards stay whole) | nothing-linked
+ *            (linked to no cluster and no resource with an AI agent, and
+ *            no monitor either - an incident Ask AI declared, #5293) |
+ *            nothing-linked-monitor (the same, with its monitor named so
+ *            the card links it) | none (nothing recorded, as for a record
+ *            from before decisions were).
  *   ?switches= on: the project's "Investigate new ..." and "Fix new ...
  *            automatically" switches are on now (and Enable AI). By
  *            default they are off - and with ?ai=off-project so is Enable
@@ -466,6 +472,8 @@ const FIXING_MODES = [
   "no-rule",
   "rules-investigate",
   "acted",
+  "nothing-linked",
+  "nothing-linked-monitor",
   "none",
 ];
 const DEFAULT_FIXING_MODES = {
@@ -500,10 +508,18 @@ const clustersMode = ["reachable", "unreachable", "mixed"].includes(
  * What the investigation card's shared conversation holds for incident #1042
  * and alert #311 (see "The investigation card's conversation" below): nobody
  * has asked anything (the default), two answered questions, an answer being
- * written, an action waiting for approval, a failed and a stopped answer, or
- * a long thread six people asked in.
+ * written, an action waiting for approval, an action linking the record to
+ * the host it is about waiting for approval, a failed and a stopped answer,
+ * or a long thread six people asked in.
  */
-const THREAD_MODES = ["answered", "working", "approval", "error", "crowded"];
+const THREAD_MODES = [
+  "answered",
+  "working",
+  "approval",
+  "linking",
+  "error",
+  "crowded",
+];
 const threadMode = THREAD_MODES.includes(params.get("thread"))
   ? params.get("thread")
   : "empty";
@@ -3873,6 +3889,33 @@ function remediationDecisionEntries() {
       { lane: "Resource", reason: "ResourceSkippedForClusterRound" },
     ];
   }
+  /*
+   * Linked to nothing a fix acts on (#5293): no cluster, no resource with
+   * an AI agent. The engine names the signal's monitors on both entries,
+   * so the card can link them; one Ask AI declared has none.
+   */
+  if (
+    fixingMode === "nothing-linked" ||
+    fixingMode === "nothing-linked-monitor"
+  ) {
+    const named =
+      fixingMode === "nothing-linked-monitor"
+        ? [
+            {
+              id: monitors.checkoutLatency.id.toString(),
+              name: monitors.checkoutLatency.name,
+            },
+          ]
+        : [];
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterNoneLinked",
+        monitors: named,
+      },
+      { lane: "Resource", reason: "ResourceNoneLinked", monitors: named },
+    ];
+  }
   return [];
 }
 
@@ -5243,6 +5286,8 @@ function seedThread(kind, number) {
   const subject = `${kind} #${number}`;
   const messages = [];
   let activeRun = null;
+  // What the answer says once its action ran: acknowledging, unless set.
+  let approvalDoneText = null;
 
   const affectedCitations = [
     {
@@ -5457,6 +5502,56 @@ function seedThread(kind, number) {
     };
   }
 
+  /*
+   * Issue #5293: asked to link the record to the host it is about,
+   * OneUptime AI waits for approval of add_<kind>_affected_resources. The
+   * server prepared the action (prepareMutation): the record's id and the
+   * host are written into its arguments, its title names the record by
+   * its number - never by that id - and its description names the host,
+   * so the card shows the names and leaves the list's IDs out.
+   */
+  if (threadMode === "linking") {
+    const runId = threadRunId();
+    const answer = threadAnswer(people.maya, ago(40 * 1000), {
+      status: AIChatMessageStatus.WaitingForApproval,
+      aiRunId: runId,
+      toolActions: [
+        {
+          id: "call_link",
+          toolName: `add_${kind}_affected_resources`,
+          title: `Link ${kind} #${number} to affected resources`,
+          description: 'Adds host "checkout-api-7f9c".',
+          arguments: {
+            [`${kind}Id`]:
+              kind === "incident" ? ID.incident(number) : ID.alert(number),
+            affectedResources: [
+              { resourceType: "Host", resourceId: ID.host(1) },
+            ],
+          },
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Pending,
+        },
+      ],
+    });
+    messages.push(
+      threadQuestion(
+        people.maya,
+        ago(45 * 1000),
+        `This ${kind} is about checkout-api-7f9c. Link it to that host.`,
+      ),
+      answer,
+    );
+    activeRun = {
+      aiRunId: runId,
+      assistantMessageId: answer._id,
+      status: AIRunStatus.WaitingForApproval,
+      startedAt: iso(ago(40 * 1000)),
+      events: threadRunEvents(runId, ago(40 * 1000), { toolCount: 0 }),
+    };
+    approvalDoneText = `Done — ${subject} is linked to host checkout-api-7f9c.`;
+  }
+
   if (threadMode === "error") {
     messages.push(
       threadQuestion(
@@ -5483,7 +5578,7 @@ function seedThread(kind, number) {
     );
   }
 
-  return { kind, number, messages, activeRun, turn: null };
+  return { kind, number, messages, activeRun, turn: null, approvalDoneText };
 }
 
 const threads = {
@@ -5632,7 +5727,8 @@ function respondToThreadApproval(body) {
   answer.status = AIChatMessageStatus.Completed;
   answer.contentInMarkdown =
     approvedCount > 0
-      ? `Done — ${thread.kind} #${thread.number} is acknowledged.`
+      ? thread.approvalDoneText ||
+        `Done — ${thread.kind} #${thread.number} is acknowledged.`
       : `Okay — I left ${thread.kind} #${thread.number} as it is.`;
   thread.activeRun = null;
 

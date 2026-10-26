@@ -34,10 +34,12 @@ import {
  *
  * Two entries are folded into one line: a signal linked to no Kubernetes
  * cluster and to no infrastructure resource reads as one sentence - the one
- * that answers "why did it not fix itself?" most often - with a link to each
- * of its monitors, where they can be linked to what they watch. A lane that
- * did not run because another lane took the signal says nothing: the line
- * of the lane that did act says it all.
+ * that answers "why did it not fix itself?" most often - with what to do:
+ * add what it is about under Affected Resources, which makes OneUptime AI
+ * try again, and, for a signal with monitors, a link to each of them, where
+ * they can be linked to what they watch. A lane that did not run because
+ * another lane took the signal says nothing: the line of the lane that did
+ * act says it all.
  *
  * The lines also give the card its status pill (getRemediationDecisionStatus):
  * the decision in a few words, by the tone that matters most.
@@ -57,6 +59,18 @@ export interface RemediationDecisionLink {
   route: Route;
 }
 
+/*
+ * A place on the record's own page a line sends the reader to: the
+ * Affected Resources card, where what the record is about is added. On a
+ * phone that card is far below the Remediation card.
+ */
+export interface RemediationDecisionPlace {
+  // Translated.
+  text: string;
+  // The id of the element the place is (a card's id).
+  placeId: string;
+}
+
 export interface RemediationDecisionLine {
   key: string;
   tone: RemediationDecisionTone;
@@ -65,8 +79,17 @@ export interface RemediationDecisionLine {
   // A cluster's or resource's readiness gap, as its AI agent page words it.
   why?: string | undefined;
   whatToDo?: string | undefined;
+  // A place on the same page the line sends the reader to, first.
+  place?: RemediationDecisionPlace | undefined;
   links: Array<RemediationDecisionLink>;
 }
+
+/*
+ * The incident's and the alert's Affected Resources card, by its id: the
+ * place the linked-to-nothing line sends the reader to (#5293). The two
+ * pages give their card this id.
+ */
+export const AFFECTED_RESOURCES_PLACE_ID: string = "affected-resources";
 
 export interface RemediationDecision {
   stage: AutoRemediationDecisionStage;
@@ -208,6 +231,9 @@ const LINK_INCIDENT_AI_SETTINGS: string = translationKey(
 const LINK_ALERT_AI_SETTINGS: string = translationKey("Alert AI settings");
 const LINK_LLM_PROVIDERS: string = translationKey("LLM providers");
 const LINK_MONITOR: string = translationKey("Link {{monitorName}}");
+const GO_TO_AFFECTED_RESOURCES: string = translationKey(
+  "Go to Affected Resources",
+);
 const UNNAMED_MONITOR: string = translationKey("the monitor");
 
 // The AI agent page of each kind of infrastructure resource.
@@ -626,19 +652,36 @@ export function getRemediationDecisionLines(input: {
               ? clusterNoneLinked.monitors
               : resourceNoneLinked?.monitors || [];
 
+          /*
+           * Issue #5293: the line said only that nothing was linked, in the
+           * engine's words ("an infrastructure resource"), and nothing about
+           * what to do when the incident had no monitor - an incident Ask
+           * AI declared, say. It says what OneUptime AI fixes, and the one
+           * thing that lets it fix this one: adding what it is about under
+           * the page's Affected Resources, which makes it try again
+           * (AutoRemediationRuleEngineService.onSubjectLinksChanged). With
+           * monitors, linking them is how the next ones are linked.
+           */
           lines.push({
             key: "linked-to-nothing",
             tone: "attention",
-            text:
+            text: translator.translateTemplate(
+              "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+              { signal: signalTerm },
+            ),
+            whatToDo:
               monitors.length > 0
                 ? translator.translateTemplate(
-                    "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
+                    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
                     { signal: signalTerm },
                   )
                 : translator.translateTemplate(
-                    "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
-                    { signal: signalTerm },
+                    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
                   ),
+            place: {
+              text: translateText(translator, GO_TO_AFFECTED_RESOURCES),
+              placeId: AFFECTED_RESOURCES_PLACE_ID,
+            },
             links: monitorLinks(translator, monitors),
           });
           return;

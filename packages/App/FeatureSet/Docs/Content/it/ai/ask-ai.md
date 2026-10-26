@@ -79,6 +79,7 @@ Ogni conversazione ha una modalità di autorizzazione, che scegli nell'area di s
 Cosa può fare Chiedi all'IA quando una modalità lo consente:
 
 - Creare un incidente, confermare o risolvere incidenti e avvisi, e cambiare la gravità di un incidente.
+- Collegare un incidente o un avviso all'infrastruttura e ai servizi a cui si riferisce. Un incidente che crea nella pagina di una risorsa, come quella di un host, viene collegato a quella risorsa, e la scheda di approvazione indica cosa collega ogni azione. OneUptime AI indaga e corregge ciò a cui un incidente o un avviso è collegato.
 - Pubblicare una nota interna su un incidente o un avviso. Le note interne non compaiono mai su una pagina di stato.
 - Pubblicare un aggiornamento di stato pubblico su un incidente. È un'azione a parte, perché avvisa gli iscritti alla pagina di stato.
 - Chiamare una policy di reperibilità, eseguire un runbook o avviare un'indagine IA su un incidente o un avviso.

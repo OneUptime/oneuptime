@@ -647,10 +647,8 @@ export function isShippedSecretValue(
  * another to send an email, an SMS, a call, a WhatsApp or Telegram message
  * or a webhook, to run a workflow or to write telemetry
  * (ClusterKeyAuthorization). The routes that take it are reachable through
- * the ingress like any other. The shared Runner holds no cluster key: it
- * registers with its own key (SharedRunnerKey, below), and only a Runner of
- * an earlier release, or one whose deployment still gives it
- * ONEUPTIME_SECRET, registers with this one.
+ * the ingress like any other. No Runner holds it: every Runner proves who
+ * it is with its own id and key.
  *
  * ClusterKey is the value exactly as the operator set it, read only by
  * ClusterKeyAuthorization, and only when it is not one this repository ships
@@ -662,12 +660,6 @@ export const ClusterKey: ObjectID = new ObjectID(
   process.env["ONEUPTIME_SECRET"] || "",
 );
 
-/*
- * Whether ONEUPTIME_SECRET is set at all: on a Runner, that its deployment
- * (from an earlier release) marks it as the shared Runner by giving it one.
- */
-export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
-
 export const IsClusterKeyShipped: boolean = isShippedSecretValue(
   process.env["ONEUPTIME_SECRET"],
 );
@@ -677,31 +669,8 @@ export const IsClusterKeyShipped: boolean = isShippedSecretValue(
  * or a shipped value, or null. The Runner says its own.
  */
 export const ClusterKeyWarning: string | null = IsClusterKeyShipped
-  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, and the shared Runner registers with its own ONEUPTIME_RUNNER_KEY, so nothing needs changing for them. Anything else that calls OneUptime with ONEUPTIME_SECRET needs a long random value: npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them. Anything else that calls OneUptime with ONEUPTIME_SECRET needs a long random value: npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
   : null;
-
-/*
- * THE SHARED RUNNER'S KEY (ONEUPTIME_RUNNER_KEY), AS THE APP HOLDS IT
- *
- * The shared Runner - the runner service of Docker Compose and the Helm
- * chart - serves AI code fixes for every project with no Runner of its own,
- * as the installation's global AI agent. It proves it is that Runner with
- * its own key, ONEUPTIME_RUNNER_KEY, which its deployment gives the app as
- * well (SharedRunnerKeyAuthorization): so the Runner needs no cluster key,
- * which opens far more than its registration.
- *
- * The value exactly as the operator set it, read only by
- * SharedRunnerKeyAuthorization, and never accepted when it is a value this
- * repository ships (IsSharedRunnerKeyShipped): then the shared Runner
- * registers only as a Runner of an earlier release does, with the cluster
- * key.
- */
-export const SharedRunnerKey: string =
-  process.env["ONEUPTIME_RUNNER_KEY"] || "";
-
-export const IsSharedRunnerKeyShipped: boolean = isShippedSecretValue(
-  process.env["ONEUPTIME_RUNNER_KEY"],
-);
 
 export const EnableQueueDashboard: boolean =
   process.env["ENABLE_QUEUE_DASHBOARD"] === "true";

@@ -29,7 +29,6 @@ import EventItem, {
   TimelineItemType,
 } from "Common/UI/Components/EventItem/EventItem";
 import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -379,7 +378,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       }
       setIsLoading(true);
 
-      const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+      const id: ObjectID | null = StatusPageUtil.getStatusPageId();
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }

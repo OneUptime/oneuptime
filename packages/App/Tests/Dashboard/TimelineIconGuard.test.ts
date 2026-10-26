@@ -265,17 +265,33 @@ describe("a timeline is shown with the timeline's icon", () => {
     expect(uses).toBe(TIMELINE_ENTRIES.length);
   });
 
-  test("the schedules list's Timeline View button draws IconProp.Timeline", () => {
+  /*
+   * The schedules list's action is named as the page it opens, Schedule
+   * Timeline, where it said "Timeline View", and draws its icon.
+   */
+  test("the schedules list's Schedule Timeline action draws IconProp.Timeline", () => {
+    const schedulesList: string = path.join(
+      "Pages",
+      "OnCallDuty",
+      "OnCallDutySchedules.tsx",
+    );
     const buttons: Array<TitledEntry> = DASHBOARD_FILES.flatMap(
       titledEntries,
     ).filter((entry: TitledEntry): boolean => {
-      return entry.title === "Timeline View";
+      return entry.file === schedulesList && opensATimeline(entry);
     });
 
     expect(buttons.map(describeEntry)).toEqual([
-      `${path.join("Pages", "OnCallDuty", "OnCallDutySchedules.tsx")}: Timeline View`,
+      `${schedulesList}: Schedule Timeline`,
     ]);
     expect(buttons[0]?.icon).toBe(TIMELINE_ICON);
+    expect(
+      DASHBOARD_FILES.flatMap(titledEntries).filter(
+        (entry: TitledEntry): boolean => {
+          return entry.title === "Timeline View";
+        },
+      ),
+    ).toEqual([]);
   });
 });
 

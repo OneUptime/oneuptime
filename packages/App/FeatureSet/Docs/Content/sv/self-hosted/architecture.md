@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>instrumentpaneler,<br/>statussidor,<br/>API, inmatning,<br/>bakgrundsjobb"]
-        Runner["Runner"]
+        Runner["Global Runner"]
         Probe["Prober"]
         subgraph Data["Datalager"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | En del av `app` | `worker` (av som standard) | Bakgrundsjobben i egna poddar, så att tung köbearbetning aldrig konkurrerar med API-begäranden. |
 | Telemetry writer | En del av `app` | `telemetryWriter` (av som standard) | En nivå med fast storlek som gör varje ClickHouse-insättning, så att insättningarna håller sig begränsade hur långt workers än skalar. |
 | Prob | `probe-1` | `probes` | Kör övervakarkontroller och skickar tillbaka resultaten. Varje medföljande prob är en global prob som alla projekt kan använda. |
-| Runner | `runner` | `runner` | Instansens egen Runner, som kan köra AI-kodkorrigeringar för alla projekt. Runbook-steg körs på [Runners](/docs/runbooks/agents) som du installerar där de ska köras. |
-| Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globala-runners): den kör JavaScript-stegen i alla projekt som inte väljer en egen Runner, vart och ett i en sandlåda som bara når internet. Den har sin egen nyckel och inget annat från servern. |
+| Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globala-runners): den kör JavaScript-stegen i alla projekt som inte väljer en egen Runner, vart och ett i en sandlåda som bara når internet, och OneUptime AI:s kodkorrigeringar i varje kodrepository som inte väljer någon. Den har sin egen nyckel och inget annat från servern. Bash-, SSH- och kubectl-steg körs på [Runners](/docs/runbooks/agents) som du installerar där de ska köras. |
 | PostgreSQL | `postgres` | `postgresql`, eller `postgresOperator.cnpg` | Projekt, övervakare, incidenter, användare och alla andra inställningar och tillstånd. |
 | ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Loggar, mätvärden, spår, undantag, profiler och övervakarloggar. |
 | Valkey | `valkey` | `valkey` | Cachen, jobbköerna och kortlivat tillstånd som väntande push-kvitton. |

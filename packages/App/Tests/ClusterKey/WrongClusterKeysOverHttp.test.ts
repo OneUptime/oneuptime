@@ -1,6 +1,5 @@
 import {
   ClusterKeyRoute,
-  RUNNER_REGISTRATION_MIDDLEWARE,
   SERVICE_MIDDLEWARE,
   findClusterKeyRoutes,
 } from "Common/Tests/Server/TestingUtils/ClusterKeyRoutes";
@@ -117,18 +116,13 @@ interface RouteUnderTest {
   url: string;
 }
 
-function route(
-  file: string,
-  sourcePath: string,
-  url: string,
-  middleware: string = SERVICE_MIDDLEWARE,
-): RouteUnderTest {
+function route(file: string, sourcePath: string, url: string): RouteUnderTest {
   return {
     source: {
       file: file,
       method: "POST",
       path: sourcePath,
-      middleware: middleware,
+      middleware: SERVICE_MIDDLEWARE,
     },
     url: url,
   };
@@ -183,12 +177,6 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       `/workflow/update/${WORKFLOW_ID}`,
     ),
     route(
-      "packages/Common/Server/API/AIAgentAPI.ts",
-      "`${new this.entityType().getCrudApiPath()?.toString()}/register`",
-      "/api/ai-agent/register",
-      RUNNER_REGISTRATION_MIDDLEWARE,
-    ),
-    route(
       "packages/Common/Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel.ts",
       "`/model/:projectId/${this.modelId}/${this.type}`",
       modelTriggerPath,
@@ -233,28 +221,23 @@ async function startInstallation(): Promise<RunningInstallation> {
       ).default;
 
       /*
-       * Before any router is loaded, so every route captures them: the real
-       * checks, and the request answered as soon as one lets it through.
+       * Before any router is loaded, so every route captures it: the real
+       * check, and the request answered as soon as it lets it through.
        */
-      for (const check of [
-        SERVICE_MIDDLEWARE,
-        RUNNER_REGISTRATION_MIDDLEWARE,
-      ]) {
-        const realCheck: (
-          req: ExpressRequest,
-          res: ExpressResponse,
-          next: NextFunction,
-        ) => Promise<void> = ClusterKeyAuthorization[check];
+      const realCheck: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void> = ClusterKeyAuthorization[SERVICE_MIDDLEWARE];
 
-        ClusterKeyAuthorization[check] = async (
-          req: ExpressRequest,
-          res: ExpressResponse,
-        ): Promise<void> => {
-          await realCheck(req, res, () => {
-            res.status(200).json(CHECK_PASSED);
-          });
-        };
-      }
+      ClusterKeyAuthorization[SERVICE_MIDDLEWARE] = async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+      ): Promise<void> => {
+        await realCheck(req, res, () => {
+          res.status(200).json(CHECK_PASSED);
+        });
+      };
 
       const app: ExpressApplication = createExpressApp();
       app.use(ExpressJson());
@@ -311,11 +294,6 @@ async function startInstallation(): Promise<RunningInstallation> {
       }
 
       app.use("/workflow", componentRouter);
-
-      const AIAgentAPI: AnyModule = require_(
-        "Common/Server/API/AIAgentAPI",
-      ).default;
-      app.use("/api", new AIAgentAPI().getRouter());
 
       app.use(require_("Common/Server/Utils/StartServer").expressErrorHandler);
 
@@ -499,7 +477,6 @@ describe("on each route, one client's different wrong keys", () => {
     "/api/notification/whatsapp/send",
     "/telemetry-writer/insert",
     `/workflow/update/${WORKFLOW_ID}`,
-    "/api/ai-agent/register",
     "model trigger",
     "/workflow/incoming-email/deliver",
   ])(
@@ -579,34 +556,6 @@ describe("one client, every route", () => {
         WRONG_CLUSTER_KEY_WINDOW_SECONDS / 60
       } minutes, so its requests are refused until the window ends (wrong cluster key limit)`,
     ]);
-  });
-
-  test("an older Runner's body key counts with the header's", async () => {
-    const from: string = "203.0.113.91";
-
-    for (
-      let guess: number = 1;
-      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
-      guess++
-    ) {
-      const response: globalThis.Response = await fetch(
-        `${installation.origin}/api/ai-agent/register`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-forwarded-for": from,
-          },
-          body: JSON.stringify({ clusterKey: `guess-${guess}` }),
-        },
-      );
-
-      expect(response.status).toBe(400);
-    }
-
-    expect(
-      (await post("/api/ai-agent/register", from, "one-too-many")).status,
-    ).toBe(429);
   });
 });
 
@@ -711,53 +660,6 @@ describe("OneUptime's own traffic is never refused", () => {
       }).toEqual({ url: routeUnderTest.url, passed: true });
     }
 
-    expect(redis.sent).toEqual([]);
-  });
-
-  test("an older Runner registering from the server itself keeps registering, header or body, whatever was sent from there before it", async () => {
-    const from: string = "172.18.0.1";
-
-    for (
-      let guess: number = 1;
-      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS * 2;
-      guess++
-    ) {
-      const response: globalThis.Response = await fetch(
-        `${installation.origin}/api/ai-agent/register`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-forwarded-for": from,
-          },
-          body: JSON.stringify({ clusterKey: `guess-${guess}` }),
-        },
-      );
-
-      expect(response.status).toBe(400);
-      expect(
-        (await post("/api/ai-agent/register", from, `header-guess-${guess}`))
-          .status,
-      ).toBe(400);
-    }
-
-    const bodyResponse: globalThis.Response = await fetch(
-      `${installation.origin}/api/ai-agent/register`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-forwarded-for": from,
-        },
-        body: JSON.stringify({ clusterKey: installation.rightKey }),
-      },
-    );
-
-    expect(bodyResponse.status).toBe(200);
-    expect(
-      (await post("/api/ai-agent/register", from, installation.rightKey))
-        .passed,
-    ).toBe(true);
     expect(redis.sent).toEqual([]);
   });
 

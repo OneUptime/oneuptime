@@ -129,7 +129,8 @@ function entryAnchor(section: string, title: string): HTMLAnchorElement {
   ).find((candidate: HTMLAnchorElement): boolean => {
     return (
       (
-        candidate.querySelector("span.truncate")?.textContent ||
+        candidate.querySelector('[data-testid="side-menu-item-title"]')
+          ?.textContent ||
         candidate.textContent ||
         ""
       ).trim() === title

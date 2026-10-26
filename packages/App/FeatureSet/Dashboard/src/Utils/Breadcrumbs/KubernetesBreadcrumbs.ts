@@ -12,10 +12,46 @@ export function getKubernetesBreadcrumbs(
       "Kubernetes",
       "Clusters",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_COSTS, [
+      "Project",
+      "Kubernetes",
+      "Costs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_ARCHIVED, [
+      "Project",
+      "Kubernetes",
+      "Archived",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Kubernetes",
+      "Settings",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW,
+      ["Project", "Kubernetes", "Settings", "Owner Rules", "View Rule"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Kubernetes",
+      "Settings",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW,
+      ["Project", "Kubernetes", "Settings", "Label Rules", "View Rule"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW, [
       "Project",
       "Kubernetes",
       "View Cluster",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_COSTS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Costs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY, [
       "Project",
@@ -171,6 +207,31 @@ export function getKubernetesBreadcrumbs(
       ["Project", "Kubernetes", "View Cluster", "Nodes", "Node Detail"],
     ),
 
+    // Storage
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_PVCS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "PVCs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL,
+      ["Project", "Kubernetes", "View Cluster", "PVCs", "PVC Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_PVS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "PVs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "PVs",
+      "PV Detail",
+    ]),
+
     // Containers
     ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINERS,
@@ -208,6 +269,32 @@ export function getKubernetesBreadcrumbs(
       PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
       ["Project", "Kubernetes", "View Cluster", "VPAs", "VPA Detail"],
     ),
+
+    // Telemetry
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_METRICS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Metrics",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_TRACES, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Traces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_LOGS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Performance Profiles",
+    ]),
 
     // Observability
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS, [
@@ -248,6 +335,22 @@ export function getKubernetesBreadcrumbs(
     ),
 
     // Advanced
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_FEED, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS,
+      ["Project", "Kubernetes", "View Cluster", "Audit Logs"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_DELETE, [
       "Project",
       "Kubernetes",

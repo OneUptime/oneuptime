@@ -297,11 +297,16 @@ describe("the alive window is shared with the server", () => {
     ).length;
 
     /*
-     * getOnlineAiCommandRunnersForProject. (Whether a repository's Runner is
-     * online for code work is read with getRunnerLiveStatus, on the same
-     * window: CodeRepositoryRunnerChoice.)
+     * getOnlineAiCommandRunnersForProject, and hasOnlineGlobalRunner - what
+     * a repository on the Global Runner waits for, now that global Runners
+     * take its AI work. (Whether a repository's own Runner is online for
+     * code work is read with getRunnerLiveStatus, on the same window:
+     * CodeRepositoryRunnerChoice.)
      */
-    expect(usages).toBe(1);
+    expect(usages).toBe(2);
+    expect(source).toMatch(
+      /public async hasOnlineGlobalRunner\(\): Promise<boolean> \{\s*const count: PositiveNumber = await this\.countBy\(\{\s*query: \{\s*isGlobalRunner: true,\s*lastAlive: QueryHelper\.greaterThan\(\s*OneUptimeDate\.getSomeMinutesAgo\(RUNNER_ALIVE_WINDOW_IN_MINUTES\),/,
+    );
   });
 
   /*

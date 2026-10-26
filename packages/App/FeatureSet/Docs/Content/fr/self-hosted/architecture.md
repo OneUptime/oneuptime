@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["Application<br/>tableaux de bord,<br/>pages de statut,<br/>API, ingestion,<br/>tâches de fond"]
-        Runner["Runner"]
+        Runner["Agent Runbook global"]
         Probe["Sondes"]
         subgraph Data["Magasins de données"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Fait partie de `app` | `worker` (désactivé par défaut) | Les tâches de fond, dans leurs propres pods, pour que le traitement lourd des files d'attente ne concurrence jamais les requêtes d'API. |
 | Telemetry writer | Fait partie de `app` | `telemetryWriter` (désactivé par défaut) | Un niveau de taille fixe qui effectue chaque insertion ClickHouse, pour que les insertions restent bornées quel que soit le nombre de workers. |
 | Sonde | `probe-1` | `probes` | Exécute les vérifications des moniteurs et renvoie les résultats. Chaque sonde fournie est une sonde globale que tous les projets peuvent utiliser. |
-| Runner | `runner` | `runner` | Le Runner propre à l'instance, qui peut exécuter les corrections de code par IA pour chaque projet. Les étapes des runbooks s'exécutent sur les [Runners](/docs/runbooks/agents) que vous installez là où elles doivent s'exécuter. |
-| Agent Runbook global | `global-runner` | `globalRunner` | Un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) : il exécute les étapes JavaScript de chaque projet qui ne choisit pas de Runner à lui, chacune dans un bac à sable qui n'atteint qu'internet. Il détient sa propre clé et rien d'autre du serveur. |
+| Agent Runbook global | `global-runner` | `globalRunner` | Un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) : il exécute les étapes JavaScript de chaque projet qui ne choisit pas de Runner à lui, chacune dans un bac à sable qui n'atteint qu'internet, et les corrections de code de OneUptime AI dans chaque dépôt de code qui n'en choisit aucun. Il détient sa propre clé et rien d'autre du serveur. Les étapes Bash, SSH et kubectl s'exécutent sur les [Runners](/docs/runbooks/agents) que vous installez là où elles doivent s'exécuter. |
 | PostgreSQL | `postgres` | `postgresql`, ou `postgresOperator.cnpg` | Les projets, moniteurs, incidents, utilisateurs et tous les autres paramètres et états. |
 | ClickHouse | `clickhouse` | `clickhouse`, ou `clickhouseOperator.altinity` | Les logs, métriques, traces, exceptions, profils et logs de moniteurs. |
 | Valkey | `valkey` | `valkey` | Le cache, les files de tâches et l'état de courte durée, comme les accusés de push en attente. |

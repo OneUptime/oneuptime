@@ -3,9 +3,10 @@ import ObjectID from "Common/Types/ObjectID";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 /*
- * The Runner's own id. In project-scoped mode it comes from the
- * ONEUPTIME_RUNNER_ID the dashboard issued; in cluster-scoped mode the
- * server assigns it during registration and RegisterRunner caches it here.
+ * The Runner's own id. It comes from the ONEUPTIME_RUNNER_ID the dashboard
+ * issued (or, for the bundled global Runner, the fixed id its deployment
+ * gives it); in kubernetes-agent mode the server issues it during
+ * registration and RegisterRunner caches it here.
  */
 export default class RunnerIdentity {
   public static getRunnerId(): ObjectID {

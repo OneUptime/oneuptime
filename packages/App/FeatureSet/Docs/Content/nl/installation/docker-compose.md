@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["Gegevensopslag"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|resultaten| Ingress
-    Runner -->|taken| Ingress
+    Runner -->|taken| App
     Probe -->|controles| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | Ontvangt al het verkeer op poort 80 en 443 en stuurt het door naar de app. Levert HTTPS als OneUptime het certificaat beheert. |
 | `app` | `oneuptime/app` | Het dashboard, de API, statuspagina's, de opname van telemetrie en de achtergrondworkers. |
 | `probe-1` | `oneuptime/probe` | Een globale probe die de controles van uw monitors uitvoert. Hij gebruikt het netwerk van de host. |
-| `runner` | `oneuptime/runner` | De Runner van de instantie, die AI-codecorrecties uitvoert. Hij gebruikt het netwerk van de host. |
+| `global-runner` | `oneuptime/runner` | De meegeleverde globale Runner, die de JavaScript-stappen van runbooks en de codecorrecties van OneUptime AI voor elk project uitvoert. |
 | `postgres` | `postgres:15` | Configuratie en status: monitors, incidenten, gebruikers. Opgeslagen in het volume `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetrie: logs, metrics, traces en exceptions. Opgeslagen in het volume `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache en wachtrijen. Hij bewaart niets op schijf. |
@@ -86,7 +86,6 @@ U hebt ook nodig:
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS voor uw instantie als OneUptime het certificaat beheert, en voor statuspagina's en dashboards op eigen domeinen. |
 | 5400 | `postgres` | Ingesteld in `docker-compose.yml` | Laat `npm run backup` en `restore.sh` PostgreSQL bereiken vanaf de server zelf. Hij is alleen op `127.0.0.1` gepubliceerd. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | De eigen server van de probe. Niets buiten de server heeft hem nodig. |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | De eigen server van de Runner. Niets buiten de server heeft hem nodig. |
 
 Er is ook een [video-uitleg](https://youtu.be/j1SWmMW2oL4) van de installatie.
 
@@ -158,8 +157,7 @@ Iedereen die de pagina kan bereiken, kan zich na u registreren. Om dat te voorko
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | De drie gegevensopslagen. |
 | `REGISTER_PROBE_KEY` | Het registreren van probes bij uw instantie. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale probes die Docker Compose kan draaien (`probe-1` draait standaard). |
-| `ONEUPTIME_RUNNER_KEY` | De meegeleverde Runner. |
-| `GLOBAL_RUNNER_KEY` | De meegeleverde globale Runner, die de JavaScript-stappen van alle projecten uitvoert. |
+| `GLOBAL_RUNNER_KEY` | De meegeleverde globale Runner, die de JavaScript-stappen en AI-codefixes van alle projecten uitvoert. |
 
 > [!IMPORTANT]
 > Houd de geheimen aan zodra OneUptime is gestart. PostgreSQL neemt zijn wachtwoord alleen over bij het aanmaken van zijn database, en `ENCRYPTION_SECRET` later wijzigen maakt elke waarde die met de oude is versleuteld onleesbaar. Daarom stelt `npm start` `DATABASE_PASSWORD` en `ENCRYPTION_SECRET` alleen in bij een nieuwe installatie, voordat PostgreSQL zijn database aanmaakt.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-De probe en de Runner gebruiken het netwerk van de host en bereiken OneUptime via `http://localhost`. `npm start` verplaatst ze naar de nieuwe poort van de ingress, `http://localhost:8080`, en meldt dat.
+De probe gebruikt het netwerk van de host en bereikt OneUptime via `http://localhost`. `npm start` verplaatst hem naar de nieuwe poort van de ingress, `http://localhost:8080`, en meldt dat.
 
 #### Vertel OneUptime dat het achter een proxy staat
 
@@ -541,7 +539,7 @@ Als een bestelling mislukt, logt de app een fout die begint met `CoreSSL:EnsureP
 :::
 
 :::details De meegeleverde probe toont Verbinding verbroken nadat u de poort van de ingress hebt verplaatst
-Het Admin Dashboard toont de probe onder **Instellingen > Bewaking > Globale probes**. Hij bereikt OneUptime op `GLOBAL_PROBE_1_ONEUPTIME_URL`, standaard `http://localhost` (poort 80). `npm start` verplaatst die en `ONEUPTIME_RUNNER_ONEUPTIME_URL` naar de poort van de ingress zolang ze naar `localhost` wijzen. Hebt u ze op een ander adres ingesteld, of OneUptime met de Docker CLI gestart, stel ze dan allebei in op de nieuwe poort van de ingress, bijvoorbeeld `http://localhost:8080`, en herstart OneUptime.
+Het Admin Dashboard toont de probe onder **Instellingen > Bewaking > Globale probes**. Hij bereikt OneUptime op `GLOBAL_PROBE_1_ONEUPTIME_URL`, standaard `http://localhost` (poort 80). `npm start` verplaatst die naar de poort van de ingress zolang hij naar `localhost` wijst. Hebt u hem op een ander adres ingesteld, of OneUptime met de Docker CLI gestart, stel hem dan in op de nieuwe poort van de ingress, bijvoorbeeld `http://localhost:8080`, en herstart OneUptime.
 :::
 
 ## Volgende stappen

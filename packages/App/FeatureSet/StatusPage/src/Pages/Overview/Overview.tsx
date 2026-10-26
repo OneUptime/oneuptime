@@ -32,7 +32,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import EventItem from "Common/UI/Components/EventItem/EventItem";
 import { OverviewSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -127,16 +126,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
-  if (LocalStorage.getItem("redirectUrl")) {
-    const redirectUrl: string = LocalStorage.getItem("redirectUrl") as string;
-    LocalStorage.removeItem("redirectUrl");
+  /*
+   * Back from single sign-on: on to where the visitor was going on this
+   * page, which the SSO page kept for this tab and this page alone.
+   */
+  const signInRedirectPath: string | null = StatusPageUtil.takeSignInRedirect();
 
-    const safeRedirectPath: string | null =
-      StatusPageUtil.getSafeRedirectPath(redirectUrl);
-
-    if (safeRedirectPath) {
-      Navigation.navigate(new Route(safeRedirectPath));
-    }
+  if (signInRedirectPath) {
+    Navigation.navigate(new Route(signInRedirectPath));
   }
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -343,7 +340,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         setIsLoading(true);
       }
 
-      const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+      const id: ObjectID | null = StatusPageUtil.getStatusPageId();
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }

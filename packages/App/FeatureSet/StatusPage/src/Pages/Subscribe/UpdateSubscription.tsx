@@ -31,7 +31,6 @@ import ModelForm, {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
@@ -92,9 +91,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-  const statusPageId: ObjectID = LocalStorage.getItem(
-    "statusPageId",
-  ) as ObjectID;
+  // The status page this tab shows (checked below, before anything is drawn).
+  const statusPageId: ObjectID = StatusPageUtil.getStatusPageId() as ObjectID;
 
   // ".../{statusPageId}/{subscriberId}/{token}" for the page's three routes.
   const credentialRoute: string =

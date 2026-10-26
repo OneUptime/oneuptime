@@ -21,7 +21,6 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -86,6 +85,10 @@ jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      // The page this tab shows, from where RouteMap reads it too.
+      getStatusPageId: (): ObjectID | null => {
+        return StatusPageInTab.get();
+      },
       checkIfUserHasLoggedIn: (): void => {
         checkIfUserHasLoggedIn();
       },
@@ -123,6 +126,7 @@ import ConfirmSubscription from "../../../../App/FeatureSet/StatusPage/src/Pages
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
 import PageMap from "../../../../App/FeatureSet/StatusPage/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/StatusPage/src/Utils/RouteMap";
+import StatusPageInTab from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageInTab";
 
 const STATUS_PAGE_ID: string = "11111111-1111-4111-8111-111111111111";
 const SUBSCRIBER_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -173,7 +177,7 @@ function subscribeAgain(): HTMLElement | null {
 }
 
 beforeEach(() => {
-  LocalStorage.setItem("statusPageId", STATUS_PAGE_ID);
+  StatusPageInTab.set(STATUS_PAGE_ID);
   isPreviewPage = false;
   code = CODE;
   subscriberId = SUBSCRIBER_ID;
@@ -209,7 +213,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  LocalStorage.removeItem("statusPageId");
+  StatusPageInTab.set(null);
   jest.restoreAllMocks();
 });
 

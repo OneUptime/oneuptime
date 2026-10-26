@@ -1,6 +1,5 @@
 import {
   ENABLE_CODE_FIXES_OVERRIDE,
-  IS_CLUSTER_SCOPED,
   IS_KUBERNETES_AGENT_MODE,
   KUBERNETES_AGENT_CLUSTER_NAME,
   ONEUPTIME_BASE_URL,
@@ -11,7 +10,6 @@ import {
 import startHeartbeat, { HeartbeatHandle, signOff } from "./Jobs/Heartbeat";
 import startRunbookPolling from "./Jobs/PollRunbookWork";
 import startCodeFixPolling from "./Jobs/PollCodeFixWork";
-import startCodeFixAlive from "./Jobs/CodeFixAlive";
 import Register from "./Services/RegisterRunner";
 import KubectlExecutor from "./Services/KubectlExecutor";
 import RunnerIdentity from "./Utils/RunnerIdentity";
@@ -20,6 +18,7 @@ import GitCredentials from "./Utils/GitCredentials";
 import RunnerCapabilities, {
   RunnerCapabilitySet,
 } from "./Utils/RunnerCapabilities";
+import GlobalRunnerMode from "./Utils/GlobalRunnerMode";
 import MetricsAPI from "./API/Metrics";
 import {
   getTaskHandlerRegistry,
@@ -59,6 +58,9 @@ const APP_NAME: string = "runner";
  * Code-fix capability: claims AI code-fix runs, works in the project's code
  * repositories that pick this Runner (their Runner setting in Code) and
  * opens pull requests for review. A Runner no repository picks takes none.
+ * A global Runner - one OneUptime runs for every project - takes those of
+ * every repository on the Global Runner, and runs none of a repository's
+ * own commands.
  *
  * Both loops share one registration, one credential and one heartbeat.
  */
@@ -69,11 +71,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     logger.info(
       `OneUptime Runner ${RUNNER_VERSION} starting | server=${ONEUPTIME_BASE_URL.toString()} | scope=${
-        IS_CLUSTER_SCOPED
-          ? "cluster"
-          : IS_KUBERNETES_AGENT_MODE
-            ? `kubernetes-agent (cluster "${KUBERNETES_AGENT_CLUSTER_NAME}")`
-            : "project"
+        IS_KUBERNETES_AGENT_MODE
+          ? `kubernetes-agent (cluster "${KUBERNETES_AGENT_CLUSTER_NAME}")`
+          : "project or global, as the server says"
       } | poll=${POLL_INTERVAL_MS}ms`,
       { serviceName: APP_NAME } as LogAttributes,
     );
@@ -83,9 +83,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       port: PORT,
       isFrontendApp: false,
       /*
-       * The Runner never holds ENCRYPTION_SECRET (the shared Runner's
-       * deployment environment leaves it out), so the boot warning about it
-       * is not this process's to say.
+       * The Runner never holds ENCRYPTION_SECRET (no Runner's deployment
+       * gives it one), so the boot warning about it is not this process's to
+       * say.
        */
       usesEncryptionSecret: false,
       statusOptions: {
@@ -122,10 +122,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     }
 
     /*
-     * Registration resolves this Runner's identity: in project mode it
-     * validates the dashboard-issued id + key; in cluster mode the server
-     * assigns an id. Retries forever — a temporarily unreachable server
-     * must never kill the container.
+     * Registration resolves this Runner's identity: it validates the id and
+     * key it was started with (in kubernetes-agent mode the server issues
+     * them), and learns whether it is global. Retries forever — a
+     * temporarily unreachable server must never kill the container.
      */
     await Register.registerRunner();
 
@@ -157,67 +157,61 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       !capabilities.canRunAiCommands
     ) {
       logger.error(
-        IS_CLUSTER_SCOPED
-          ? "No capability is enabled — this cluster-scoped Runner has nothing to do. Set ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true, or install a project-scoped Runner to execute runbooks."
-          : "No capability is enabled — this Runner has nothing to do. Turn on 'Runs Runbooks' on this Runner in your OneUptime dashboard, or pick it as a code repository's Runner in the repository's settings in Code — it is picked up on the next heartbeat, no restart needed.",
+        "No capability is enabled — this Runner has nothing to do. Turn on 'Runs Runbooks' on this Runner in your OneUptime dashboard, or pick it as a code repository's Runner in the repository's settings in Code — it is picked up on the next heartbeat, no restart needed.",
         { serviceName: APP_NAME } as LogAttributes,
       );
     }
 
     /*
-     * A local override that contradicts what the project granted is worth
+     * A local override that contradicts what the server granted is worth
      * saying out loud: the server counts this Runner as able to take code-fix
      * work, so runs will be queued for it and nothing here will claim them.
      */
     if (
-      !IS_CLUSTER_SCOPED &&
       ENABLE_CODE_FIXES_OVERRIDE === false &&
       RunnerCapabilities.wasGrantedCodeFixesByServer()
     ) {
       logger.warn(
-        "A code repository of this project picks this Runner, so it is to take AI code-fix work, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued. Remove the override, or pick another Runner in the repository's settings in Code.",
+        GlobalRunnerMode.isActive()
+          ? "This is a global Runner, so it is to take the AI code-fix work of every repository on the Global Runner, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued while no other global Runner takes them. Remove the override."
+          : "A code repository of this project picks this Runner, so it is to take AI code-fix work, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued. Remove the override, or pick another Runner in the repository's settings in Code.",
         { serviceName: APP_NAME } as LogAttributes,
       );
     }
 
     /*
-     * The heartbeat keeps the dashboard's Runner row Connected, and that row's
-     * lastAlive is also how the server knows a project has an agent able to
-     * take code-fix work. It authenticates against that row, so it only
-     * applies to a project-scoped Runner; the cluster-scoped one reports its
-     * liveness on the code-fix identity instead (startCodeFixAlive below).
+     * The heartbeat keeps the Runner's row Connected, and that row's
+     * lastAlive is also how the server knows a Runner is there to take
+     * code-fix work - a project's for its repositories, a global one for
+     * every repository on the Global Runner.
      */
-    if (!IS_CLUSTER_SCOPED) {
-      const heartbeat: HeartbeatHandle = startHeartbeat();
-
-      /*
-       * Sign off on SIGTERM/SIGINT so the dashboard shows this Runner
-       * offline at once — and, for the kubernetes-agent Runner, so the
-       * replacement pod can register immediately after a rolling restart
-       * instead of waiting for this instance's last heartbeat to age out.
-       * The heartbeat stops first (see signOff): one sent after the
-       * sign-off would mark this Runner online again. GracefulShutdown
-       * bounds the call and exits afterwards.
-       */
-      GracefulShutdown.registerHandler(
-        "Runner.disconnect",
-        ShutdownPriority.Workers,
-        async (): Promise<void> => {
-          await signOff(heartbeat);
-        },
-      );
-    }
+    const heartbeat: HeartbeatHandle = startHeartbeat();
 
     /*
-     * Both loops start whenever they are possible AT ALL for this scope, and
-     * each one checks the live capability on every tick. That is what lets a
-     * dashboard toggle take effect within a heartbeat: there is no loop to
-     * start or stop, only a flag to read. A loop whose capability is off does
-     * not contact the server.
+     * Sign off on SIGTERM/SIGINT so the dashboard shows this Runner offline
+     * at once — and, for the kubernetes-agent Runner, so the replacement pod
+     * can register immediately after a rolling restart instead of waiting
+     * for this instance's last heartbeat to age out. The heartbeat stops
+     * first (see signOff): one sent after the sign-off would mark this
+     * Runner online again. GracefulShutdown bounds the call and exits
+     * afterwards.
      */
-    if (!IS_CLUSTER_SCOPED) {
-      startRunbookPolling();
-    }
+    GracefulShutdown.registerHandler(
+      "Runner.disconnect",
+      ShutdownPriority.Workers,
+      async (): Promise<void> => {
+        await signOff(heartbeat);
+      },
+    );
+
+    /*
+     * Both loops start whenever they are possible AT ALL for this Runner,
+     * and each one checks the live capability on every tick. That is what
+     * lets a dashboard toggle take effect within a heartbeat: there is no
+     * loop to start or stop, only a flag to read. A loop whose capability is
+     * off does not contact the server.
+     */
+    startRunbookPolling();
 
     if (capabilities.canRunRunbooks) {
       logger.info("Runbook capability enabled — polling for runbook steps.", {
@@ -226,24 +220,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     }
 
     /*
-     * Cluster scope has no dashboard row and so no live capability channel —
-     * its env decision at boot is final. Project scope always starts the loop
-     * and lets it self-gate.
+     * The code-fix loop always starts and self-gates - except on the
+     * Kubernetes agent's Runner, which exists to run kubectl for OneUptime
+     * AI. It never clones repositories (its root filesystem is read-only),
+     * so the code-fix loop is not started at all.
      */
-    const startCodeFixLoop: boolean = IS_CLUSTER_SCOPED
-      ? capabilities.canRunCodeFixTasks
-      : /*
-         * The Kubernetes agent's Runner exists to run kubectl for OneUptime
-         * AI. It never clones repositories (its root filesystem is
-         * read-only), so the code-fix loop is not started at all.
-         */
-        !IS_KUBERNETES_AGENT_MODE;
+    const startCodeFixLoop: boolean = !IS_KUBERNETES_AGENT_MODE;
 
     if (startCodeFixLoop) {
-      if (IS_CLUSTER_SCOPED) {
-        startCodeFixAlive();
-      }
-
       /*
        * Reap what a previous life of this container left on disk. A fix run
        * clones whole repositories into its workspace and deletes them in a

@@ -157,7 +157,7 @@ Doorgaan van **Opgelost** naar een status daarna, "Gesloten" bijvoorbeeld, veran
 
 ## De statustijdlijn
 
-De pagina **Statustijdlijn** van een waarschuwing is het verslag van elke status waarin ze heeft gestaan. De kaart, **Statustijdlijn**, tekent ze als tijdlijn: een balk met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Waarschuwingsstatus**, **Begint op**, **Eindigt op** en **Duur**.
+De pagina **Statustijdlijn** van een waarschuwing is het verslag van elke status waarin ze heeft gestaan. De kaart tekent ze als tijdlijn: een balk met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Waarschuwingsstatus**, **Begint op**, **Eindigt op** en **Duur**.
 
 - **Oorzaak bekijken** toont de hoofdoorzaak die bij die wijziging is vastgelegd.
 - **Logboeken bekijken** toont wat OneUptime vastlegde toen de waarschuwing veranderde, zoals de monitorcontrole die de wijziging veroorzaakte.

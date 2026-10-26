@@ -300,6 +300,17 @@ jobs:
           # Model Tables), so Model Tables and Runbook Variables moved to
           # group 5, Security Events Empty States to group 8 and Global
           # Runners to group 6: about 9.5 minutes, 20.5 left for the eight.
+          # Rules Menu Section gained SideMenuNavigation.spec.ts on 2026-10-26
+          # (14 tests, about 50 seconds locally: the shared side menu's
+          # current entry, long French, German and Persian titles, and the lit
+          # entry kept in sight in a menu taller than the window), when this
+          # group took 18.2 to 18.9 minutes on master's runs of 2026-10-24:
+          # about 19.5 to 20. Its UI review added SideMenuWordBreaks.spec.ts
+          # the same day (6 tests in Chromium and the same 6 in Firefox,
+          # which this group installs: where the menu's words break, since
+          # Firefox hyphenates words Chrome moves whole) and 3 tests of the
+          # list's fades and fitted card: 45 tests in 2.4 minutes locally,
+          # about 50 seconds more, about 20.5 to 21.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -359,7 +370,11 @@ jobs:
           # card and its dialog, and the line a run's activity draws for what
           # it read with the dialog its View opens, at 1280 and 390 pixels,
           # light and dark, German and Persian) joined it on 2026-10-24, the
-          # lightest group: about 20.5.
+          # lightest group: about 20.5. Kubernetes Events gained 3 tests on
+          # 2026-10-26 (about 10 seconds locally: a node's and an HPA's page
+          # light their entry in the cluster's side menu, and a phone's menu
+          # button names the section and the page, in German): still about
+          # 20.5.
           - group: 5
             browsers: chromium
             suites: >-
@@ -537,16 +552,21 @@ jobs:
           # and agent version sign, dark and German) joined them on
           # 2026-10-26, when this group's run step took 15.1 minutes on
           # master's run of 03:08 that day, the lightest that holds several
-          # suites: about 17. #5298's UI review grew Docker Swarm Pages by
-          # eight tests (where names break, sparklines that line up and stay
-          # under the pointer, the hero's description, right to left: 1.5
-          # minutes locally for its 27 with the bundle) and added Resource
-          # Overviews (1.1 minutes locally with its bundle, Chromium only: a
-          # service's, a database's and a queue's Overview - the Details
-          # card's ID line, the labels card on a phone only, long values,
-          # the description under the name and the hero's controls - at
-          # 1280, 768 and 390 pixels, dark, German and right to left) the
-          # same day: about 19.
+          # suites: about 17. Side by Side Pages (about a minute locally
+          # with its two bundles, Chromium only: two status pages and two
+          # public dashboards open in two tabs of one browser - each tab's
+          # refresh, links, Subscribe form and password its own, and another
+          # page's address opened in full) joined them the same day, still
+          # the lightest: about 18. #5298's UI review grew Docker Swarm Pages
+          # by nine tests (where names break, sparklines that line up and
+          # stay under the pointer, the hero's description and its Show more,
+          # right to left: 1.5 minutes locally for its 28 with the bundle) and
+          # added Resource Overviews (1.2 minutes locally with its bundle,
+          # Chromium only: a service's, a database's and a queue's Overview -
+          # the Details card's ID line, the labels card on a phone only, long
+          # values, the description under the name and the hero's controls -
+          # at 1280, 1024, 768 and 390 pixels, dark, German and right to
+          # left) the same day: about 20.
           - group: 8
             browsers: chromium
             suites: >-
@@ -562,6 +582,7 @@ jobs:
               test-new-version-ui
               test-shared-ui-ui
               test-docker-swarm-pages-ui
+              test-side-by-side-pages-ui
               test-resource-overviews-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
@@ -874,6 +895,8 @@ jobs:
             output/playwright/asset-details-ui/test-results
             output/playwright/docker-swarm-pages-ui/*.png
             output/playwright/docker-swarm-pages-ui/test-results
+            output/playwright/side-by-side-pages-ui/*.png
+            output/playwright/side-by-side-pages-ui/test-results
             output/playwright/resource-overviews-ui/*.png
             output/playwright/resource-overviews-ui/test-results
           retention-days: 7

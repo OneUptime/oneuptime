@@ -26,6 +26,7 @@ import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import AIRunType from "../../../Types/AI/AIRunType";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import { CodeTaskAgentDetails } from "../../../Types/AI/CodeTask";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -77,6 +78,26 @@ const REPOSITORY_ID: ObjectID = new ObjectID(
   "3c9d2f1e-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
 );
 const RUN_ID: ObjectID = new ObjectID("5e1f4b3a-7c8d-4e9f-8a0b-2c3d4e5f6a7b");
+// The worker the pair proves: a project's Runner, or a global Runner.
+const AGENT_ID: ObjectID = new ObjectID("7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d");
+const OTHER_AGENT_ID: ObjectID = new ObjectID(
+  "8b9c0d1e-2f3a-4b4c-9d5e-6f7a8b9c0d1e",
+);
+
+// The brief the builder answers, with the repository's own commands.
+const BRIEF_WITH_COMMANDS: CodeTaskAgentDetails = {
+  taskId: RUN_ID.toString(),
+  repository: {
+    id: REPOSITORY_ID.toString(),
+    name: "users-api",
+    organizationName: "acme",
+    repositoryName: "users-api",
+    mainBranchName: "main",
+    setupCommand: "npm ci",
+    buildCommand: "npm run build",
+    testCommand: "npm test",
+  },
+} as unknown as CodeTaskAgentDetails;
 
 let agentProjectId: ObjectID | undefined;
 let storedRun: AIRun | null;
@@ -176,9 +197,11 @@ beforeEach(() => {
         return credentialCheckProving(null);
       }
       return credentialCheckProving({
-        id: ObjectID.generate(),
+        id: AGENT_ID,
         projectId: agentProjectId,
-        source: CodeFixAgentSource.AIAgent,
+        source: agentProjectId
+          ? CodeFixAgentSource.AIAgent
+          : CodeFixAgentSource.Runner,
       });
     });
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
@@ -226,10 +249,86 @@ describe("POST /ai-agent-data/get-code-task-details", () => {
     expect(built.repository.id?.toString()).toBe(REPOSITORY_ID.toString());
   });
 
-  test("a shared Runner (no project of its own) gets it too", async () => {
+  test("a global Runner (no project of its own) gets it for the run it claimed and still holds", async () => {
+    agentProjectId = undefined;
+    storedRun!.aiAgentId = AGENT_ID;
+    storedRun!.status = AIRunStatus.Running;
+
+    expect((await ask(BODY)).details).toEqual({ taskId: RUN_ID.toString() });
+  });
+
+  test("a global Runner is refused, exactly as no run, the run another worker holds, a run nobody claimed and one that ended", async () => {
     agentProjectId = undefined;
 
-    expect((await ask(BODY)).details).toBeDefined();
+    const cases: Array<{
+      aiAgentId: ObjectID | undefined;
+      status: AIRunStatus;
+    }> = [
+      { aiAgentId: OTHER_AGENT_ID, status: AIRunStatus.Running },
+      { aiAgentId: undefined, status: AIRunStatus.Queued },
+      { aiAgentId: AGENT_ID, status: AIRunStatus.Completed },
+      { aiAgentId: AGENT_ID, status: AIRunStatus.Queued },
+    ];
+
+    for (const shape of cases) {
+      jest.clearAllMocks();
+      storedRun = run();
+      if (shape.aiAgentId) {
+        storedRun.aiAgentId = shape.aiAgentId;
+      }
+      storedRun.status = shape.status;
+
+      const { error, details } = await ask(BODY);
+
+      expect(details).toBeUndefined();
+      expect(error?.message).toBe("Task not found");
+      expect(CodeTaskAgentBrief.build).not.toHaveBeenCalled();
+    }
+  });
+
+  test("a global Runner is handed the brief without the repository's commands; a project's Runner with them", async () => {
+    (CodeTaskAgentBrief.build as unknown as jest.Mock).mockResolvedValue(
+      BRIEF_WITH_COMMANDS as never,
+    );
+
+    agentProjectId = undefined;
+    storedRun!.aiAgentId = AGENT_ID;
+    storedRun!.status = AIRunStatus.Running;
+
+    const global: JSONObject = (await ask(BODY)).details!;
+    const globalRepository: JSONObject = global["repository"] as JSONObject;
+
+    expect(globalRepository["setupCommand"]).toBeNull();
+    expect(globalRepository["buildCommand"]).toBeNull();
+    expect(globalRepository["testCommand"]).toBeNull();
+    // Everything else of the repository is handed over as built.
+    expect(globalRepository["repositoryName"]).toBe("users-api");
+    expect(globalRepository["mainBranchName"]).toBe("main");
+
+    jest.clearAllMocks();
+    (CodeTaskAgentBrief.build as unknown as jest.Mock).mockResolvedValue(
+      BRIEF_WITH_COMMANDS as never,
+    );
+    agentProjectId = PROJECT_ID;
+
+    const own: JSONObject = (await ask(BODY)).details!;
+    const ownRepository: JSONObject = own["repository"] as JSONObject;
+
+    expect(ownRepository["setupCommand"]).toBe("npm ci");
+    expect(ownRepository["buildCommand"]).toBe("npm run build");
+    expect(ownRepository["testCommand"]).toBe("npm test");
+  });
+
+  test("the run is read with who claimed it and its state, for the global Runner rule", async () => {
+    await ask(BODY);
+
+    const read: { select: JSONObject } = (
+      AIRunService.findOneById as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+
+    expect(read.select["aiAgentId"]).toBe(true);
+    expect(read.select["status"]).toBe(true);
+    expect(read.select["projectId"]).toBe(true);
   });
 
   test("a bad key is refused", async () => {

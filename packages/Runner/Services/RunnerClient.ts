@@ -75,10 +75,9 @@ const http: AxiosInstance = axios.create({
 });
 
 /*
- * Identity comes from RunnerIdentity, not the raw config: in cluster scope
- * the id is assigned by the server during registration, and in
- * kubernetes-agent mode both the id and the key are — so neither is known
- * at module-load time.
+ * Identity comes from RunnerIdentity, not the raw config: in
+ * kubernetes-agent mode both the id and the key are issued by the server
+ * during registration — so neither is known at module-load time.
  */
 function authBody(extra: JSONObject = {}): JSONObject {
   return {

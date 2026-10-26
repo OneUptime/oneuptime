@@ -894,7 +894,7 @@ describe("the Runner the runbook pages describe", () => {
 
   it("says a capability variable can only turn a capability off", () => {
     expect(RUNNER_CONFIG).toContain(
-      "these env vars are a local\n * override that can only ever turn a capability OFF.",
+      "these env vars are a local override\n * that can only ever turn a capability OFF.",
     );
 
     for (const variable of [

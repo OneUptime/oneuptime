@@ -1,11 +1,26 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  RefObject,
   useContext,
+  useId,
+  useRef,
   useState,
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
+import {
+  fitSideMenuCard,
+  getSideMenuFadeClassName,
+  revealCurrentSideMenuEntry,
+  SIDE_MENU_SCROLL_PADDING_CLASS_NAME,
+  SideMenuHiddenEdges,
+} from "./SideMenuScroll";
+import {
+  getDrawnLanguage,
+  getMenuWordsBreakClassName,
+} from "./SideMenuEntryState";
+import useSideMenuHiddenEdges from "./UseSideMenuHiddenEdges";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -155,12 +170,20 @@ function withActiveSections(
 }
 
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   // The Page's last breadcrumb, for a page none of the entries read here is for.
   const pageTrailEnd: Link | null = useContext(PageTrailEndContext);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
+  // The lists that scroll: the desktop menu's, and the phone menu's when open.
+  const desktopListRef: RefObject<HTMLElement> = useRef<HTMLElement>(null);
+  // The desktop menu's card, fitted to end above the window's bottom edge.
+  const desktopCardRef: RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const mobileListRef: RefObject<HTMLElement> = useRef<HTMLElement>(null);
+  const mobileMenuId: string = `side-menu-${useId()}`;
+  const currentPath: string = Navigation.getCurrentPath().toString();
 
   // Use the existing outside click hook for mobile menu
   const {
@@ -173,6 +196,19 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   useEffect(() => {
     setIsMobileMenuVisible(isMobileMenuOpen);
   }, [isMobileMenuOpen]);
+
+  /*
+   * The edges of each list with entries behind them, which fade out
+   * (SideMenuScroll): the desktop menu's, and the phone menu's while open.
+   */
+  const desktopList: {
+    hiddenEdges: SideMenuHiddenEdges;
+    onScroll: () => void;
+  } = useSideMenuHiddenEdges(desktopListRef, !isMobile);
+  const mobileList: {
+    hiddenEdges: SideMenuHiddenEdges;
+    onScroll: () => void;
+  } = useSideMenuHiddenEdges(mobileListRef, isMobile && isMobileMenuVisible);
 
   // Check if we're on mobile
   useEffect(() => {
@@ -400,21 +436,115 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         ? pageTrailEnd.title
         : translateString(pageTrailEnd.title))
     : undefined;
-  const displayText: string =
+  // The section named before the page, when the summary names one.
+  const summarySection: string | undefined =
     translatedSectionTitle && translatedItemTitle && !isPageNamedLikeSection
-      ? `${translatedSectionTitle} / ${translatedItemTitle}`
-      : translatedItemTitle ||
-        pageTrailEndTitle ||
-        translateString("Navigation") ||
-        "Navigation";
+      ? translatedSectionTitle
+      : undefined;
+  const summaryPage: string =
+    translatedItemTitle ||
+    pageTrailEndTitle ||
+    translateString("Navigation") ||
+    "Navigation";
+  // The English the page's name was drawn from, to tell its language by.
+  const summaryPageEnglish: string | undefined = translatedItemTitle
+    ? activeItem.itemTitle
+    : pageTrailEnd
+      ? pageTrailEnd.recordName || pageTrailEnd.title
+      : "Navigation";
+  const summarySectionLanguage: string | undefined = getDrawnLanguage({
+    english: activeItem.sectionTitle,
+    drawn: summarySection,
+    language: language,
+  });
+  const summaryPageLanguage: string | undefined = getDrawnLanguage({
+    english: summaryPageEnglish,
+    drawn: summaryPage,
+    language: language,
+  });
 
-  // Re-run active item detection when location changes
+  // Measuring the lists' hidden edges again, when the menu moves them.
+  const measureDesktopEdges: () => void = desktopList.onScroll;
+  const measureMobileEdges: () => void = mobileList.onScroll;
+
+  /*
+   * The lit entry, in sight inside the menu when a page opens (SideMenuScroll):
+   * after the next frame, once a section that holds the page has opened. The
+   * list's fades follow at once, not on the scroll event a frame later.
+   */
   useEffect(() => {
-    /*
-     * This will trigger a re-render when navigation changes
-     * The activeItem will be recalculated
-     */
-  }, [Navigation.getCurrentPath().toString()]);
+    if (isMobile) {
+      return;
+    }
+
+    let frame: number = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        // The page above the menu may have changed: fit, then reveal.
+        fitSideMenuCard(desktopCardRef.current);
+        revealCurrentSideMenuEntry(desktopListRef.current);
+        measureDesktopEdges();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [currentPath, isMobile, measureDesktopEdges]);
+
+  /*
+   * The desktop menu's card ends above the window's bottom edge wherever it
+   * is (SideMenuScroll.fitSideMenuCard): under the page's title on a page not
+   * yet scrolled, below the app's header once it sticks there. As the page
+   * scrolls, the card grows into the room it is given; nothing re-renders.
+   * A banner or a title that arrives above it later moves the card down:
+   * the page grows then, and the card is fitted again.
+   */
+  useEffect(() => {
+    if (isMobile) {
+      return;
+    }
+
+    let frame: number = 0;
+
+    const refit: () => void = (): void => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        fitSideMenuCard(desktopCardRef.current);
+      });
+    };
+
+    fitSideMenuCard(desktopCardRef.current);
+    window.addEventListener("scroll", refit, { passive: true });
+    window.addEventListener("resize", refit);
+
+    // Missing in jsdom and older browsers: scroll and resize still refit.
+    const pageSize: ResizeObserver | null =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(refit);
+    pageSize?.observe(document.body);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", refit);
+      window.removeEventListener("resize", refit);
+      pageSize?.disconnect();
+    };
+  }, [isMobile]);
+
+  // ...and in the phone's menu, each time it opens.
+  useEffect(() => {
+    if (!isMobile || !isMobileMenuVisible) {
+      return;
+    }
+
+    const frame: number = window.requestAnimationFrame(() => {
+      revealCurrentSideMenuEntry(mobileListRef.current);
+      measureMobileEdges();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [isMobile, isMobileMenuVisible, measureMobileEdges]);
 
   // Render function for the menu content
   const renderMenuContent: () => ReactElement[] = (): ReactElement[] => {
@@ -581,12 +711,15 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             transition-all duration-200
             ${isMobileMenuVisible ? "ring-2 ring-indigo-100 border-indigo-200" : "hover:border-gray-300"}
           `}
+          /*
+           * Named by what it shows, "Navigate to Settings / Roles", and
+           * aria-expanded says whether its menu is open. A name of its own
+           * ("Open navigation menu") hid where the reader is from a screen
+           * reader, and a person speaking the words on the button could
+           * not press it.
+           */
           aria-expanded={isMobileMenuVisible}
-          aria-label={
-            isMobileMenuVisible
-              ? translateString("Close navigation menu")
-              : translateString("Open navigation menu")
-          }
+          aria-controls={isMobileMenuVisible ? mobileMenuId : undefined}
           data-testid="mobile-sidemenu-toggle"
         >
           <div className="flex items-center gap-2 min-w-0">
@@ -601,12 +734,57 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * at different edges. Both start at the icon's side, in a
              * right-to-left page too.
              */}
+            {/*
+             * Where the reader is, whole: cut to one line, "Notifications /
+             * Notification Settings" lost its last word, and a long name in
+             * German or French more. A second line takes the page's name
+             * whole when the two do not fit together - the section and the
+             * page each keep together while they fit a line - and a word
+             * longer than the line is hyphenated in its language
+             * (getDrawnLanguage, getMenuWordsBreakClassName), or else breaks
+             * at its edge.
+             */}
             <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
-              <h3 className="text-sm font-semibold text-gray-900 truncate">
-                {displayText}
+              <h3 className="text-sm font-semibold text-gray-900 break-words">
+                {summarySection ? (
+                  <>
+                    <span
+                      className={`inline-block max-w-full ${getMenuWordsBreakClassName(
+                        {
+                          text: summarySection,
+                          lang: summarySectionLanguage,
+                        },
+                      )}`}
+                      lang={summarySectionLanguage}
+                    >
+                      {`${summarySection} /`}
+                    </span>{" "}
+                    <span
+                      className={`inline-block max-w-full ${getMenuWordsBreakClassName(
+                        {
+                          text: summaryPage,
+                          lang: summaryPageLanguage,
+                        },
+                      )}`}
+                      lang={summaryPageLanguage}
+                    >
+                      {summaryPage}
+                    </span>
+                  </>
+                ) : (
+                  <span
+                    className={getMenuWordsBreakClassName({
+                      text: summaryPage,
+                      lang: summaryPageLanguage,
+                    })}
+                    lang={summaryPageLanguage}
+                  >
+                    {summaryPage}
+                  </span>
+                )}
               </h3>
             </div>
           </div>
@@ -639,6 +817,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             {/* Menu Panel */}
             <div
               ref={mobileMenuRef}
+              id={mobileMenuId}
               className={`
                 relative z-50
                 mt-2
@@ -658,9 +837,21 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 </div>
               )}
 
-              {/* Menu Items */}
+              {/*
+               * Menu Items. An edge with entries behind it fades out, and
+               * the lit entry is brought into sight with the next one
+               * peeking past it (SideMenuScroll).
+               */}
               <nav
-                className="p-2 max-h-[60vh] overflow-y-auto"
+                ref={mobileListRef}
+                className={`p-2 max-h-[60vh] overflow-y-auto ${SIDE_MENU_SCROLL_PADDING_CLASS_NAME} ${getSideMenuFadeClassName(
+                  mobileList.hiddenEdges,
+                )}`}
+                data-hidden-top={mobileList.hiddenEdges.top ? "true" : "false"}
+                data-hidden-bottom={
+                  mobileList.hiddenEdges.bottom ? "true" : "false"
+                }
+                onScroll={mobileList.onScroll}
                 onClick={handleMenuItemClick}
               >
                 <div className="space-y-0.5">{renderMenuContent()}</div>
@@ -726,8 +917,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
            * Menus longer than the viewport (the Kubernetes cluster menu, for
            * one) would otherwise get pushed back up behind the header near the
            * bottom of a long page. Cap the card to the space left under the
-           * header and let the item list scroll inside it instead.
+           * header and let the item list scroll inside it instead. That is
+           * its height once it sticks below the header; until then it is
+           * fitted to end above the window's bottom edge (fitSideMenuCard).
            */
+          ref={desktopCardRef}
           style={{
             maxHeight: "calc(100vh - var(--app-header-height, 0px) - 3rem)",
           }}
@@ -739,8 +933,23 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             </div>
           )}
 
-          {/* Menu Content */}
-          <nav className="p-2 min-h-0 overflow-y-auto">
+          {/*
+           * Menu Content. Scrolled, or with entries below its fold, the list
+           * fades out at that edge, so the reader sees it goes on - its
+           * scrollbar shows only while it scrolls on many screens - and the
+           * keyboard's focus stays clear of the fades (SideMenuScroll).
+           */}
+          <nav
+            ref={desktopListRef}
+            className={`p-2 min-h-0 overflow-y-auto ${SIDE_MENU_SCROLL_PADDING_CLASS_NAME} ${getSideMenuFadeClassName(
+              desktopList.hiddenEdges,
+            )}`}
+            data-hidden-top={desktopList.hiddenEdges.top ? "true" : "false"}
+            data-hidden-bottom={
+              desktopList.hiddenEdges.bottom ? "true" : "false"
+            }
+            onScroll={desktopList.onScroll}
+          >
             <div className="space-y-1">{renderMenuContent()}</div>
           </nav>
 

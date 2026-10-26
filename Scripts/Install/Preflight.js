@@ -118,12 +118,6 @@ const PUBLISHED_PORTS = [
     example: "3885",
     purpose: "the second bundled probe listens on it",
   },
-  {
-    service: "runner",
-    setting: "ONEUPTIME_RUNNER_PORT",
-    example: "3886",
-    purpose: "the bundled Runner listens on it",
-  },
 ];
 
 // Addresses that mean "every address of this server" or "this computer".

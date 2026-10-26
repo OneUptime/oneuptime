@@ -157,7 +157,7 @@ Passare da **Risolto** a uno stato successivo, ad esempio «Chiuso», non cambia
 
 ## La cronologia degli stati
 
-La pagina **Cronologia stato** dell'avviso è il registro di ogni stato in cui è stato. La sua scheda, **Cronologia di stato**, li disegna come una cronologia: una banda con ogni stato lungo quanto è durato e, sotto, ogni cambio, dal più recente. **Tabella**, nell'intestazione della scheda, li elenca invece in righe, con **Stato dell'avviso**, **Inizia il**, **Termina il** e **Durata**.
+La pagina **Cronologia stato** dell'avviso è il registro di ogni stato in cui è stato. La sua scheda li disegna come una cronologia: una banda con ogni stato lungo quanto è durato e, sotto, ogni cambio, dal più recente. **Tabella**, nell'intestazione della scheda, li elenca invece in righe, con **Stato dell'avviso**, **Inizia il**, **Termina il** e **Durata**.
 
 - **Visualizza causa** mostra la causa principale registrata con quel cambio.
 - **Visualizza log** mostra che cosa ha registrato OneUptime quando l'avviso è cambiato, come il controllo del monitor che lo ha provocato.

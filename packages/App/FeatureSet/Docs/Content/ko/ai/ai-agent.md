@@ -234,7 +234,7 @@ OneUptime Cloud는 인터넷의 Git 서버에만 접근하며, 사설, 루프백
 | LLM 공급자 | 설정할 것이 없습니다. 자체 공급자가 없는 프로젝트는 전역 공급자를 사용하며, 비용은 프로젝트의 AI 크레딧에서 지불됩니다. **프로젝트 설정 → AI → LLM 공급자** 에 추가한 자체 공급자가 우선합니다. | 서버에 `GLOBAL_LLM_PROVIDER_*` 환경 변수를 한 번 설정하거나, 프로젝트에 공급자를 추가합니다. |
 | GitHub App으로 연결된 저장소 | **제품 → 코드**, 그다음 **GitHub 연결**. GitHub 계정에 앱이 이미 설치되어 있다면, 대신 **기존 설치 연결** 을 클릭합니다. 다시 설치해도 연결되지 않습니다. Growth 플랜이 필요합니다. | 인스턴스에 GitHub App이 있으면 동일합니다([GitHub 연동](/docs/self-hosted/github-integration) 참조). |
 | 또는 GitLab, Forgejo, Gitea, 모든 Git 서버의 저장소 | 코드의 **저장소**, 그다음 **저장소 연결**([저장소 연결하기](#저장소-연결하기) 참조). Growth 플랜이 필요합니다. | 동일하며, 설정할 GitHub App이 없습니다. |
-| AI 코드 수정을 실행하는 Runner | 운영할 것이 없습니다. 아무것도 선택하지 않은 저장소는 프로젝트의 기본 Runner에서 작업하고, 기본 Runner가 없으면 OneUptime의 글로벌 Runner에서 작업합니다. | Docker Compose의 `runner` 서비스나 Helm 차트의 Runner(`runner.enabled`, 기본값 켜짐)가 스스로 등록하고, 글로벌 Runner에서 작업하는 모든 저장소에서 AI 코드 수정을 실행합니다. |
+| AI 코드 수정을 실행하는 Runner | 운영할 것이 없습니다. 아무것도 선택하지 않은 저장소는 프로젝트의 기본 Runner에서 작업하고, 기본 Runner가 없으면 OneUptime의 글로벌 Runner에서 작업합니다. | 운영할 것이 없습니다. 함께 제공되는 글로벌 Runner(Docker Compose의 `global-runner`, Helm 차트의 `globalRunner`, 기본값 켜짐)와 마스터 관리자가 추가한 모든 글로벌 Runner가, 글로벌 Runner에서 작업하는 모든 저장소에서 AI 코드 수정을 실행합니다. |
 
 자체 호스팅 인스턴스에서 전역 공급자는 `config.env`(Docker Compose) 또는 Helm 값의 블록 하나입니다. 자체 호스팅 Ollama의 경우:
 
