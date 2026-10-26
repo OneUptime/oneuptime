@@ -36,6 +36,10 @@ import {
 } from "../Utils/DockerSwarmResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
+import {
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_CONTAINER_CLASS_NAME,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -530,60 +534,70 @@ const DockerSwarmClusterOverview: FunctionComponent<
           />
         </div>
         <div className="relative px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4 min-w-0">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
-                <Icon
-                  icon={IconProp.ServerStack}
-                  className="h-6 w-6 text-sky-600"
-                />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-semibold text-gray-900 truncate">
-                    {displayName}
-                  </h1>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
-                  >
+          {/*
+           * The name and the refresh control: side by side in a wide hero,
+           * the refresh control under the name in a narrow one
+           * (ResourceHeroLayout).
+           */}
+          <div className={RESOURCE_HERO_TOP_ROW_CONTAINER_CLASS_NAME}>
+            <div
+              data-testid="resource-hero-top-row"
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
+                  <Icon
+                    icon={IconProp.ServerStack}
+                    className="h-6 w-6 text-sky-600"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl font-semibold text-gray-900 truncate">
+                      {displayName}
+                    </h1>
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
-                    />
-                    {connectionLabel}
-                  </span>
-                  {!isInventoryLoading && !inventoryError && (
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                        className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
                       />
-                      {healthLabel}
+                      {connectionLabel}
                     </span>
-                  )}
-                </div>
-                {cluster.description && (
-                  <div className="mt-1 truncate text-sm text-gray-500">
-                    {String(cluster.description)}
+                    {!isInventoryLoading && !inventoryError && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                        />
+                        {healthLabel}
+                      </span>
+                    )}
                   </div>
-                )}
-                <div className="mt-1 text-xs text-gray-400">
-                  {translator.translateTemplate("Last seen {{time}}", {
-                    time: lastSeenText,
-                  })}
+                  {cluster.description && (
+                    <div className="mt-1 truncate text-sm text-gray-500">
+                      {String(cluster.description)}
+                    </div>
+                  )}
+                  <div className="mt-1 text-xs text-gray-400">
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex-shrink-0">
-              <AutoRefreshControl
-                autoRefreshInterval={autoRefreshInterval}
-                onAutoRefreshIntervalChange={setAutoRefreshInterval}
-                onManualRefresh={(): void => {
-                  fetchCluster(false).catch(() => {});
-                }}
-                isRefreshing={isRefreshing}
-                lastRefreshedAt={lastRefreshedAt}
-              />
+              <div className="flex-shrink-0">
+                <AutoRefreshControl
+                  autoRefreshInterval={autoRefreshInterval}
+                  onAutoRefreshIntervalChange={setAutoRefreshInterval}
+                  onManualRefresh={(): void => {
+                    fetchCluster(false).catch(() => {});
+                  }}
+                  isRefreshing={isRefreshing}
+                  lastRefreshedAt={lastRefreshedAt}
+                />
+              </div>
             </div>
           </div>
 
