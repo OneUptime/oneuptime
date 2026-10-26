@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import fs from "fs";
 import path from "path";
 import {
@@ -27,7 +28,10 @@ import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
  *     language's same-as-English list for a reason written here (OK is the
  *     health word every language's monitoring screens show);
  *   - the cloud Instances description quotes the Stale pill as its language
- *     draws it;
+ *     draws it, and every other Dashboard sentence that names one of the
+ *     labels - the empty Broker health section's link among them - calls it
+ *     what that language's Dashboard draws; a link named after a docs
+ *     heading says that heading;
  *   - every English line that quotes one of the labels in bold has the drawn
  *     words in bold on the same line of each translation, and no translation
  *     still quotes in English a label its language translates;
@@ -62,6 +66,122 @@ const LABELS: ReadonlyArray<string> = [
 // The cloud Instances tab's description, which names the Stale pill.
 const INSTANCES_DESCRIPTION: string =
   "Running tasks and instances of this environment, as last reported. Those not seen in the last {{minutes}} minutes are Stale.";
+
+interface SentenceNamingALabel {
+  sentence: string;
+  label: string;
+}
+
+/*
+ * The Dashboard's own sentences that name one of the labels: the link under
+ * an empty Broker health section to the docs entry named after it, the queue
+ * guide's summaries, the descriptions beside a Stale pill. A language that
+ * words such a sentence calls the label in it what its Dashboard draws: the
+ * German section "Broker-Zustand" used to send its reader on with
+ * "Broker-Integrität bleibt leer", the Spanish "Salud del broker" with "El
+ * estado del broker sigue vacío", and the Japanese "ブローカーの正常性" with
+ * "ブローカーのヘルス".
+ */
+const SENTENCES_NAMING_A_LABEL: ReadonlyArray<SentenceNamingALabel> = [
+  { sentence: INSTANCES_DESCRIPTION, label: "Stale" },
+  {
+    sentence:
+      "Monitors show In Quorum when they agree with the majority on the cluster map, and Out of Quorum when they do not. Other daemons show Reporting if seen in the last 15 minutes; any daemon silent for longer shows Stale.",
+    label: "Stale",
+  },
+  { sentence: "Broker health stays empty →", label: "Broker health" },
+  {
+    sentence: "Broker health metrics in the Queues guide →",
+    label: "Broker health",
+  },
+  {
+    sentence:
+      "No broker metrics chart under Broker health for this system; where its metrics show instead.",
+    label: "Broker health",
+  },
+  {
+    sentence:
+      "The broker metrics Broker health charts, and which of them offer Create monitor.",
+    label: "Broker health",
+  },
+];
+
+/*
+ * The labels a sentence can only name: inside an English sentence, past its
+ * first word, they are the label (a lowercase "p95 latency" or a "Network
+ * Devices" is not). Every such sentence is listed above.
+ */
+const LABELS_NAMED_IN_SENTENCES: ReadonlyArray<string> = [
+  "Stale",
+  "Broker health",
+  "Queries from applications",
+  "Page loads",
+  "Page load time (p95)",
+];
+
+interface LinkToDocsHeading {
+  link: string;
+  page: string;
+  heading: string;
+  // The source file that gives the link its address, the heading's anchor.
+  source: string;
+  // The link says the heading and nothing else (and its arrow).
+  isTheHeading: boolean;
+}
+
+/*
+ * The Dashboard links named after the docs heading they open. In a language
+ * that words the link, it says that heading as the language's guide words
+ * it, so the reader finds the entry the link promised.
+ */
+const LINKS_TO_DOCS_HEADINGS: ReadonlyArray<LinkToDocsHeading> = [
+  {
+    link: "Broker health stays empty →",
+    page: "telemetry/queues",
+    heading: "### Broker health stays empty",
+    source: "src/Components/MessageQueue/MessageQueueOverviewPresentation.ts",
+    isTheHeading: true,
+  },
+  {
+    link: "Broker health metrics in the Queues guide →",
+    page: "telemetry/queues",
+    heading: "## Broker health metrics",
+    source: "src/Components/MessageQueue/MessageQueueOverviewPresentation.ts",
+    isTheHeading: false,
+  },
+];
+
+const HEADING_MARKS: RegExp = /^#+\s+/;
+const WORD_CHARACTER_AT_END: RegExp = /[\p{L}\p{N}]$/u;
+const WORD_CHARACTER_AT_START: RegExp = /^[\p{L}\p{N}]/u;
+const SENTENCE_END: RegExp = /[.!?:;]\s*$/;
+
+// Whether an English sentence names the label inside it, past its first word.
+function namesInside(sentence: string, label: string): boolean {
+  let from: number = 0;
+
+  for (;;) {
+    const index: number = sentence.indexOf(label, from);
+
+    if (index < 0) {
+      return false;
+    }
+
+    const before: string = sentence.slice(0, index);
+    const after: string = sentence.slice(index + label.length);
+    const isWholeWords: boolean =
+      !WORD_CHARACTER_AT_END.test(before) &&
+      !WORD_CHARACTER_AT_START.test(after);
+    const startsASentence: boolean =
+      before.trim() === "" || SENTENCE_END.test(before);
+
+    if (isWholeWords && !startsASentence) {
+      return true;
+    }
+
+    from = index + 1;
+  }
+}
 
 interface KeptAsWritten {
   languages: ReadonlyArray<string>;
@@ -395,6 +515,129 @@ describe("the cloud Instances description", () => {
   );
 });
 
+describe("the Dashboard's own sentences that name a label", () => {
+  test("are English Dashboard keys, and every sentence that names one of these labels inside it is listed", () => {
+    const english: Record<string, unknown> = dashboardLocale("en");
+    const listed: Array<string> = SENTENCES_NAMING_A_LABEL.map(
+      (entry: SentenceNamingALabel): string => {
+        return entry.sentence;
+      },
+    );
+
+    for (const entry of SENTENCES_NAMING_A_LABEL) {
+      expect({
+        ...entry,
+        isAKey: english[entry.sentence] === entry.sentence,
+      }).toEqual({ ...entry, isAKey: true });
+      expect(LABELS).toContain(entry.label);
+      expect(entry.sentence).toContain(entry.label);
+    }
+
+    const unlisted: Array<string> = Object.keys(english).filter(
+      (key: string): boolean => {
+        return (
+          !listed.includes(key) &&
+          LABELS_NAMED_IN_SENTENCES.some((label: string): boolean => {
+            return key !== label && namesInside(key, label);
+          })
+        );
+      },
+    );
+
+    expect(unlisted).toEqual([]);
+  });
+
+  test.each(TRANSLATED_LANGUAGES)(
+    "%s: a sentence it words calls the label what its Dashboard draws",
+    (language: string) => {
+      const misnamed: Array<string> = [];
+
+      for (const entry of SENTENCES_NAMING_A_LABEL) {
+        const worded: string = valueOf(language, entry.sentence);
+        const drawn: string = valueOf(language, entry.label);
+
+        // An English sentence names the label in English, as written.
+        if (worded === entry.sentence) {
+          continue;
+        }
+
+        if (
+          !worded
+            .toLocaleLowerCase(language)
+            .includes(drawn.toLocaleLowerCase(language))
+        ) {
+          misnamed.push(`${entry.sentence} -> ${worded} (not ${drawn})`);
+        }
+
+        if (drawn !== entry.label && worded.includes(entry.label)) {
+          misnamed.push(`${entry.sentence} -> ${worded} (English label)`);
+        }
+      }
+
+      expect({ language, misnamed }).toEqual({ language, misnamed: [] });
+    },
+  );
+
+  test("lead, as links, to the docs heading they are named after", () => {
+    for (const entry of LINKS_TO_DOCS_HEADINGS) {
+      const anchor: string = slugifyMarkdownHeading(
+        entry.heading.replace(HEADING_MARKS, ""),
+      );
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD, entry.source),
+        "utf8",
+      );
+
+      expect(readPage("en", entry.page).split("\n")).toContain(entry.heading);
+      expect({
+        ...entry,
+        linksTheAnchor: source.includes(`"${anchor}"`),
+      }).toEqual({ ...entry, linksTheAnchor: true });
+      expect(valueOf("en", entry.link)).toBe(entry.link);
+    }
+  });
+
+  test.each(
+    TRANSLATED_LANGUAGES.flatMap(
+      (language: string): Array<[string, string]> => {
+        return LINKS_TO_DOCS_HEADINGS.map(
+          (entry: LinkToDocsHeading): [string, string] => {
+            return [language, entry.link];
+          },
+        );
+      },
+    ),
+  )("%s: '%s' says the heading it opens", (language: string, link: string) => {
+    const entry: LinkToDocsHeading = LINKS_TO_DOCS_HEADINGS.find(
+      (candidate: LinkToDocsHeading): boolean => {
+        return candidate.link === link;
+      },
+    ) as LinkToDocsHeading;
+    const worded: string = valueOf(language, entry.link);
+    const index: number = readPage("en", entry.page)
+      .split("\n")
+      .indexOf(entry.heading);
+    const heading: string =
+      readPage(language, entry.page).split("\n")[index] || "";
+    const marks: string = (entry.heading.match(HEADING_MARKS) || [""])[0];
+
+    // The guide's entry, on the English entry's line, at its level.
+    expect(heading.startsWith(marks)).toBe(true);
+
+    const words: string = heading.slice(marks.length).trim();
+
+    // An English link names the English heading.
+    if (worded === entry.link) {
+      return;
+    }
+
+    expect({ language, link: worded }).toEqual({
+      language,
+      link: entry.isTheHeading ? `${words} →` : expect.stringContaining(words),
+    });
+  });
+});
+
 describe("the docs pages that quote them", () => {
   test("are found where the translation pass found them", () => {
     for (const [label, pages] of Object.entries(KNOWN_QUOTES)) {
@@ -596,6 +839,29 @@ describe("the checks above", () => {
       "شبکه",
       "دستگاه‌ها",
     ]);
+  });
+
+  test("tell a label a sentence names from the same word that starts a sentence", () => {
+    expect(
+      namesInside(
+        "No broker metrics chart under Broker health for this system.",
+        "Broker health",
+      ),
+    ).toBe(true);
+    expect(
+      namesInside("Those not seen in the last 15 minutes are Stale.", "Stale"),
+    ).toBe(true);
+    expect(namesInside("Stale values indicate issues.", "Stale")).toBe(false);
+    expect(
+      namesInside(
+        "Timestamp of the last sync. Stale values indicate issues.",
+        "Stale",
+      ),
+    ).toBe(false);
+    expect(namesInside("Broker health stays empty →", "Broker health")).toBe(
+      false,
+    );
+    expect(namesInside("Rows go Stalest first.", "Stale")).toBe(false);
   });
 
   test("leave code alone: a code span, and a fenced block's lines", () => {
