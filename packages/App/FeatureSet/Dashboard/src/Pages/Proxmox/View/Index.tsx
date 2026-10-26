@@ -71,6 +71,7 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
@@ -1584,11 +1585,9 @@ const ProxmoxClusterOverview: FunctionComponent<
                       </span>
                     )}
                   </div>
-                  {cluster.description && (
-                    <div className="mt-1 truncate text-sm text-gray-500">
-                      {String(cluster.description)}
-                    </div>
-                  )}
+                  <ResourceHeroDescription
+                    text={cluster.description as string | undefined}
+                  />
                   <div className="mt-1 text-xs text-gray-400">
                     {lastSeenText}
                   </div>

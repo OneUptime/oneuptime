@@ -4,6 +4,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
+import DetailRecordLine from "Common/UI/Components/Detail/DetailRecordLine";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
@@ -12,6 +14,7 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
+import ResourceHeroDescription from "./ResourceHeroDescription";
 import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
 
 export interface ResourceOverviewChip {
@@ -22,15 +25,17 @@ export interface ResourceOverviewChip {
 /*
  * One fact in the Details card. A row whose value is empty is not drawn
  * (ResourceOverviewDetails), so a page lists every fact it can show and
- * the card says only the ones the resource reported.
+ * the card says only the ones the resource reported. The label is the
+ * English the locale files hold: the card draws it in the reader's
+ * language.
  */
 export interface ResourceOverviewDetailRow {
   label: string;
   value: string | undefined;
   /*
    * How the value is drawn when it is more than text - an agent version with
-   * its upgrade sign (AgentVersion). Drawn only while `value` is set, so an
-   * empty row still reads "—".
+   * its upgrade sign (AgentVersion). Drawn only while `value` is set: a row
+   * without a value is left out, element and all.
    */
   element?: ReactElement | undefined;
   mono?: boolean | undefined;
@@ -91,6 +96,12 @@ export interface ResourceOverviewProps {
    * nothing once the resource is connected.
    */
   connectionGuide?: ReactElement | undefined;
+  /*
+   * What the resource is, in its owner's words (its Settings): drawn under
+   * its name in the hero, where it is read with the name at every width. It
+   * used to be the Details card's own line, at the foot of the page, which
+   * a card hides on a phone.
+   */
   description?: string | undefined;
   chips: Array<ResourceOverviewChip>;
   // Domain-relevant golden metric tiles, computed by the page.
@@ -107,6 +118,17 @@ export interface ResourceOverviewProps {
    * Overview).
    */
   detailRows: Array<ResourceOverviewDetailRow>;
+  /*
+   * The resource's own record id: the small ID line every details card ends
+   * with (DetailRecordLine - "ID", its first characters, a copy button), in
+   * place of a row that spelled all 36 characters out first.
+   */
+  recordId?: string | undefined;
+  /*
+   * Its labels, for a phone: from 640px up the page's header lists them
+   * beside the page's title (ModelPage), and the card under the Details
+   * would only say them a second time.
+   */
   labels?: Array<Label> | undefined;
   /*
    * The resource's Settings page, where its name, description and labels
@@ -142,6 +164,28 @@ const tileColorClasses: Record<
  * icon plus 20rem of text. Any narrower and the controls wrap under it.
  */
 export const RESOURCE_OVERVIEW_TITLE_BASIS_CLASS: string = "basis-96";
+
+/*
+ * The controls beside the title, or under it when they do not fit. Under
+ * it from md up - beside the side menu, at 768 to about 1100px - they keep
+ * to the right edge, their own wrapped row too, as every other resource
+ * hero's controls do (ResourceHeroLayout) and as a card's header keeps its
+ * buttons; on a phone they start at the left, under the name, as there.
+ * They used to wrap to the left at every width, so a service's Overview
+ * put its time range picker on the left and a host's on the right.
+ */
+export const RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME: string =
+  "max-w-full md:ms-auto md:[&>div]:justify-end";
+
+/*
+ * A Details value: a long one wraps inside its row - a name after its own
+ * dots and slashes first (BreakableName: "com.acme.inventory." /
+ * "reservations"), anywhere only where a part is still too long for the
+ * line, and a sentence between its words. It used to break at whatever
+ * letter filled the line (break-all): "switched off for th" / "is project".
+ */
+export const RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME: string =
+  "mt-1 min-w-0 text-sm text-gray-900 [overflow-wrap:anywhere] sm:col-span-2 sm:mt-0";
 
 const STATUS_TONE_CLASSES: Record<
   ResourceOverviewStatusTone,
@@ -371,6 +415,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     {statusLabel}
                   </span>
                 </div>
+                <ResourceHeroDescription text={props.description} />
                 {props.identifier ? (
                   <div className="mt-1 truncate font-mono text-sm text-gray-500">
                     {props.identifierLabel}: {props.identifier}
@@ -384,7 +429,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             {props.controls ? (
               <div
                 data-testid="resource-overview-controls"
-                className="max-w-full"
+                className={RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME}
               >
                 {props.controls}
               </div>
@@ -458,10 +503,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       {/* Details */}
       <Card
         title="Details"
-        description={
-          props.description ||
-          "Metadata captured from OpenTelemetry resource attributes."
-        }
+        description="Metadata captured from OpenTelemetry resource attributes."
         buttons={
           props.settingsRoute
             ? [
@@ -473,34 +515,61 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             : undefined
         }
       >
-        {reportedDetailRows.length > 0 ? (
-          <dl
-            data-testid="resource-overview-details"
+        {reportedDetailRows.length > 0 || props.recordId ? (
+          <div
+            data-testid="resource-overview-details-body"
             className={ruledListClassName}
           >
-            {reportedDetailRows.map(
-              (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
-                return (
-                  <div
-                    key={`row-${idx}`}
-                    data-testid="resource-overview-detail-row"
-                    className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
-                  >
-                    <dt className="text-sm font-medium text-gray-500">
-                      {row.label}
-                    </dt>
-                    <dd
-                      className={`mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0 break-all ${
-                        row.mono === false ? "" : "font-mono"
-                      }`}
-                    >
-                      {row.element || row.value}
-                    </dd>
-                  </div>
-                );
-              },
+            {reportedDetailRows.length > 0 ? (
+              <dl
+                data-testid="resource-overview-details"
+                className="divide-y divide-gray-200"
+              >
+                {reportedDetailRows.map(
+                  (
+                    row: ResourceOverviewDetailRow,
+                    idx: number,
+                  ): ReactElement => {
+                    return (
+                      <div
+                        key={`row-${idx}`}
+                        data-testid="resource-overview-detail-row"
+                        className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
+                      >
+                        <dt className="text-sm font-medium text-gray-500">
+                          {translator.translateText(row.label) || row.label}
+                        </dt>
+                        <dd
+                          data-testid="resource-overview-detail-value"
+                          className={`${RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME} ${
+                            row.mono === false ? "" : "font-mono"
+                          }`}
+                        >
+                          {row.element || (
+                            <BreakableName text={row.value || ""} />
+                          )}
+                        </dd>
+                      </div>
+                    );
+                  },
+                )}
+              </dl>
+            ) : (
+              <p
+                data-testid="resource-overview-no-details"
+                className="px-5 py-3 text-sm text-gray-500 md:px-6"
+              >
+                {translator.translateText("No details reported yet.")}
+              </p>
             )}
-          </dl>
+            {props.recordId ? (
+              <div className="px-5 py-3 md:px-6">
+                <DetailRecordLine recordId={props.recordId} />
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <p
             data-testid="resource-overview-no-details"
@@ -511,9 +580,14 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
         )}
       </Card>
 
-      {/* Labels */}
+      {/*
+       * Labels: on a phone only. From sm up the page's header shows them
+       * beside the page's title (ModelPage, Page's labels), so a card of
+       * them here repeated them, as the Explore telemetry card repeated the
+       * side menu (#4980).
+       */}
       {props.labels && props.labels.length > 0 ? (
-        <div className="mt-6">
+        <div data-testid="resource-overview-labels" className="mt-6 sm:hidden">
           <Card
             title="Labels"
             description="Labels attached to this resource (manual or via label rules)."

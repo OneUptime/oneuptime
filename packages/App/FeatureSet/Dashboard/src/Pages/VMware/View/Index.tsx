@@ -69,6 +69,7 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
@@ -1502,11 +1503,9 @@ const VMwareVCenterOverview: FunctionComponent<
                       </span>
                     )}
                   </div>
-                  {vcenter.description && (
-                    <div className="mt-1 truncate text-sm text-gray-500">
-                      {String(vcenter.description)}
-                    </div>
-                  )}
+                  <ResourceHeroDescription
+                    text={vcenter.description as string | undefined}
+                  />
                   <div className="mt-1 text-xs text-gray-400">
                     {lastSeenText}
                   </div>

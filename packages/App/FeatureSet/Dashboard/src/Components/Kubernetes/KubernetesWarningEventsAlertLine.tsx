@@ -44,6 +44,9 @@ import {
 export const KUBERNETES_WARNING_ALERTS_TEST_ID: string =
   "kubernetes-warning-alerts";
 
+export const KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME: string =
+  "mt-5 flex items-start gap-2 border-t border-gray-100 pt-4 text-sm text-gray-500";
+
 export interface ComponentProps {
   // The cluster's record id, for its Recommendations page.
   clusterId: ObjectID;
@@ -117,12 +120,16 @@ const KubernetesWarningEventsAlertLine: FunctionComponent<ComponentProps> = (
 
   const firstMonitor: Monitor | undefined = alertingMonitors[0];
 
+  /*
+   * A line of its own under a rule: right under the list's "Showing 1-11 of
+   * 11 events" it read as part of the pager.
+   */
   const renderLine: (content: ReactElement) => ReactElement = (
     content: ReactElement,
   ): ReactElement => {
     return (
       <div
-        className="mt-4 flex items-start gap-2 text-sm text-gray-500"
+        className={KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME}
         data-testid={KUBERNETES_WARNING_ALERTS_TEST_ID}
       >
         <Icon

@@ -96,7 +96,7 @@ import MarkdownLink from "./MarkdownLink";
 import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
 import { remarkMarkdownCallouts } from "./MarkdownCallouts";
 import OneUptimeDate from "../../../Types/Date";
-import { splitAtNameBreaks } from "../../../Utils/NameBreaks";
+import BreakableName from "../BreakableName/BreakableName";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
   translateTemplate,
@@ -1089,29 +1089,22 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
          * Inline code. A name in code is often one long word
          * ("com.example.checkout.http.server.request.count"), and on a
          * phone it ran out past the text's edge, cut off. It breaks after
-         * its own dots and slashes first (Utils/NameBreaks: a <wbr>, no
-         * character added, so a copy reads as written), and anywhere
-         * ([overflow-wrap:anywhere]) only when a part is still too long for
-         * its line, as a long link does (MarkdownLink).
+         * its own dots and slashes first (BreakableName, over
+         * Utils/NameBreaks: a <wbr>, no character added, so a copy reads as
+         * written), and anywhere ([overflow-wrap:anywhere]) only when a part
+         * is still too long for its line, as a long link does
+         * (MarkdownLink).
          */
-        const nameParts: Array<string> | null =
-          typeof children === "string" ? splitAtNameBreaks(children) : null;
-
         return (
           <code
             className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono [overflow-wrap:anywhere]"
             {...rest}
           >
-            {nameParts && nameParts.length > 1
-              ? nameParts.map((part: string, index: number): ReactElement => {
-                  return (
-                    <React.Fragment key={index}>
-                      {part}
-                      {index < nameParts.length - 1 ? <wbr /> : <></>}
-                    </React.Fragment>
-                  );
-                })
-              : children}
+            {typeof children === "string" ? (
+              <BreakableName text={children} />
+            ) : (
+              children
+            )}
           </code>
         );
       },

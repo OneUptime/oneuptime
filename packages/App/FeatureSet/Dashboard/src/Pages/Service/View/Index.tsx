@@ -25,7 +25,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import TechStackView from "../../../Components/TechStack/TechStackView";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
@@ -535,28 +534,24 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   /*
-   * One Details card (follow-up of #4980): the service's ID and tech stack,
-   * which a second "Service Details" card used to show beside its name, are
-   * rows here, its labels the Labels card under it, and its description
-   * the card's own line. A row the service never reported is left out
-   * (ResourceOverviewDetails), so a service without a cloud detector shows
-   * no four empty cloud rows.
+   * One Details card (follow-up of #4980): the service's tech stack, which a
+   * second "Service Details" card used to show beside its name, is a row
+   * here, its ID the card's ID line (recordId), its labels the page's
+   * header, and its description the line under its name. A row the service
+   * never reported is left out (ResourceOverviewDetails), so a service
+   * without a cloud detector shows no four empty cloud rows.
    */
   const techStack: Array<TechStack> = r.techStack || [];
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Service ID", value: modelId.toString() },
     {
       /*
        * The tech stack set in Settings, else the language detected from
        * the service's telemetry (telemetry.sdk.language, then the runtime):
-       * the answer the Technology tile and chip give too.
+       * the answer the Technology tile and chip give too. One line, as the
+       * card's other values: "Java, Kotlin".
        */
       label: "Technology",
       value: techStack.length > 0 ? techStack.join(", ") : languageDisplay,
-      element:
-        techStack.length > 0 ? (
-          <TechStackView techStack={techStack} />
-        ) : undefined,
       mono: false,
     },
     {
@@ -615,6 +610,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         }
         detailRows={detailRows}
+        recordId={modelId.toString()}
         labels={r.labels}
         settingsRoute={populate(PageMap.SERVICE_VIEW_SETTINGS)}
       />

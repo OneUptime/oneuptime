@@ -35,6 +35,7 @@ import {
   displayNameForResource,
 } from "../Utils/DockerSwarmResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
@@ -587,11 +588,9 @@ const DockerSwarmClusterOverview: FunctionComponent<
                     </span>
                   )}
                 </div>
-                {cluster.description && (
-                  <div className="mt-1 truncate text-sm text-gray-500">
-                    {String(cluster.description)}
-                  </div>
-                )}
+                <ResourceHeroDescription
+                  text={cluster.description as string | undefined}
+                />
                 <div className="mt-1 text-xs text-gray-400">{lastSeenText}</div>
               </div>
             </div>
