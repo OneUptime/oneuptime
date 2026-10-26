@@ -157,8 +157,12 @@ const CloudAccounts: FunctionComponent<
                   >
                     {name || accountId || "—"}
                   </AppLink>
+                  {/*
+                   * Cut at 16rem with the whole line on hover: an Azure
+                   * subscription's id would otherwise set the column's width.
+                   */}
                   <div
-                    className="text-xs text-gray-500 truncate"
+                    className="max-w-[16rem] truncate text-xs text-gray-500"
                     title={where}
                     data-testid="cloud-account-where"
                   >
@@ -175,6 +179,10 @@ const CloudAccounts: FunctionComponent<
             title: "Resources",
             type: FieldType.Number,
           },
+          /*
+           * On an account's Overview with its resources by Region; here only
+           * when asked for, so Last Read and Labels fit beside the side menu.
+           */
           {
             field: {
               regionCount: true,
@@ -182,6 +190,7 @@ const CloudAccounts: FunctionComponent<
             title: "Regions",
             type: FieldType.Number,
             hideOnMobile: true,
+            isHiddenByDefault: true,
           },
           {
             field: {

@@ -1068,6 +1068,38 @@ test.describe("cloud accounts", () => {
       await expect(
         sideMenu(page).getByRole("link", { name: "Accounts", exact: true }),
       ).toHaveAttribute("aria-current", "page");
+    }
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "accounts-list");
+
+    await page.getByRole("link", { name: "Production", exact: true }).click();
+    await expect(page).toHaveURL(`${ACCOUNTS_PATH}/${AWS_ACCOUNT}`);
+    await expect(page.getByTestId("resource-overview-status")).toHaveText(
+      "Reading",
+    );
+  });
+
+  /*
+   * An Azure subscription's id is 36 characters: under its name, with the
+   * Regions column left for those who ask for it, Last Read and Labels stay
+   * clear of the row's actions.
+   */
+  test("beside the side menu, the list fits a 1280 window in English and German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(
+      test.info().project.name !== "desktop",
+      "Widths beside the side menu: a desktop's.",
+    );
+
+    for (const language of ["", "&lang=de"]) {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await openAccounts(page, `${ACCOUNTS_PATH}?state=connected${language}`);
+      await expect(page.getByTestId("cloud-account-where").first()).toHaveText(
+        "AWS · 123456789012",
+      );
 
       // Nothing runs under the sticky actions: the table does not scroll sideways.
       const table: { scroll: number; client: number } = await page.evaluate(
@@ -1081,15 +1113,10 @@ test.describe("cloud accounts", () => {
         },
       );
       expect(table.scroll).toBeLessThanOrEqual(table.client + 1);
+      await expectNoSidewaysScroll(page);
     }
-    await expectNoSidewaysScroll(page);
-    await shoot(page, "accounts-list");
 
-    await page.getByRole("link", { name: "Production", exact: true }).click();
-    await expect(page).toHaveURL(`${ACCOUNTS_PATH}/${AWS_ACCOUNT}`);
-    await expect(page.getByTestId("resource-overview-status")).toHaveText(
-      "Reading",
-    );
+    await shoot(page, "accounts-list-de");
   });
 
   test("nothing connected: the list says why in one line, and the way in is under it", async ({

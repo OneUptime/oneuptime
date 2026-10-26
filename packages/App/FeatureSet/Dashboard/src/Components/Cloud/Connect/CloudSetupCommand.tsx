@@ -13,10 +13,7 @@ import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import IconProp from "Common/Types/Icon/IconProp";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { cloudConnectionDocsUrl } from "./CloudConnectApi";
