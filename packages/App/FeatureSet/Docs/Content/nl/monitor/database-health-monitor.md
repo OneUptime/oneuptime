@@ -364,6 +364,8 @@ De vertraging in seconden staat op een inactieve primaire server op nul, ook als
 
 Tellers die op `total` eindigen zijn cumulatief sinds de server is gestart. Vergelijk twee momenten om een snelheid te krijgen; één losse waarde zegt alleen iets ten opzichte van de eigen geschiedenis, en hij valt terug naar nul als de server herstart (wat **Uptime** je laat zien).
 
+**Cache Hit Ratio** en **Rollback Ratio** worden bij elke controle berekend uit wat hun tellers zijn opgeschoven sinds de vorige controle van de monitor, niet sinds de server is gestart, dus een cache die begint te missen zie je meteen. De eerste controle nadat de probe start, en de eerste nadat de server herstart, hebben geen van beide.
+
 ## Criteria instellen
 
 | Filtertype | Wat het controleert |

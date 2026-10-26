@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## Upgrading the agent
 
-The agent reports the collector version it runs. When that is older than the version this OneUptime release pins, a warning sign appears beside the agent's version on the cluster's **Overview**. Select it to see these commands.
+The agent reports the version of its files: the collector release they run, with its last number raised whenever OneUptime changes the files and not the collector. When that is older than the version this OneUptime release ships, a warning sign appears beside the agent's version on the cluster's **Overview**. Select it to see these commands.
 
 Run the install script again on the manager node, and answer its questions with the same URL, key and cluster name. It downloads the latest files, pulls the images and restarts the agent:
 
@@ -239,7 +239,7 @@ The cluster's name comes from `DOCKER_SWARM_CLUSTER_NAME`. Change it in `.env` a
 :::
 
 :::details Task CPU is a flat line
-An older `otel-collector-config.yaml` sends the `docker_stats` receiver's own CPU figure. Since collector 0.150.0 the receiver works it out from a single stats reading: all the CPU a container used since it started, divided by all the CPU the node used since it booted. The line barely moves and does not follow the load, while `container.cpu.usage.total` does. The collector version did not change, so no warning sign shows: download the agent's files again as [Upgrading the agent](#upgrading-the-agent) shows. From its second reading on, the collector then sends the CPU each container used over each 30-second interval. Readings already stored stay as they were.
+An older `otel-collector-config.yaml` sends the `docker_stats` receiver's own CPU figure. Since collector 0.150.0 the receiver works it out from a single stats reading: all the CPU a container used since it started, divided by all the CPU the node used since it booted. The line barely moves and does not follow the load, while `container.cpu.usage.total` does. Such an agent reports version 0.161.0 or earlier, so a warning sign shows beside its version: download the agent's files again as [Upgrading the agent](#upgrading-the-agent) shows. From its second reading on, the collector then sends the CPU each container used over each 30-second interval. Readings already stored stay as they were.
 :::
 
 ## Next steps

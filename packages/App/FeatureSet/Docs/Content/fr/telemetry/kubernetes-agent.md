@@ -258,7 +258,7 @@ Chaque événement est aussi un journal. Un avertissement est enregistré avec l
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Recherchez-les dans **Journaux**, supprimez ceux dont vous ne voulez pas avec un filtre de suppression, ou soyez prévenu quand l'un se produit avec un [moniteur de journaux](/docs/monitor/logs-monitor) : filtrez sur la gravité **Warning** et `k8s.event.reason`, et regroupez par `k8s.object.name` pour une alerte par nœud ou par autoscaler.
+Recherchez-les dans **Journaux**, ou supprimez ceux dont vous ne voulez pas avec un filtre de suppression. Pour être prévenu quand l'un se produit, activez **Warning Events** sur la page **Recommandations** du cluster, ou sélectionnez **Activer les alertes d'avertissement** en bas de sa page **Événements** : un [moniteur de journaux](/docs/monitor/logs-monitor) sur les avertissements du cluster, qui déclenche une alerte par objet et par motif et la résout une fois 5 minutes passées sans nouvel avertissement à son sujet. Pour n'être prévenu que de certains motifs, ajoutez `k8s.event.reason` à son filtre.
 
 ## Options de configuration
 
