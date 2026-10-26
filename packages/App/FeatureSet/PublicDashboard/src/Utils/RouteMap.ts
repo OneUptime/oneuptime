@@ -1,5 +1,5 @@
+import DashboardInTab from "./DashboardInTab";
 import PageMap from "./PageMap";
-import PublicDashboardUtil from "./PublicDashboard";
 import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
@@ -35,7 +35,7 @@ export class RouteUtil {
       route = tempRoute.addRouteParam(RouteParams.ModelID, modelId.toString());
     }
 
-    const id: ObjectID | null = PublicDashboardUtil.getDashboardId();
+    const id: ObjectID | null = DashboardInTab.get();
 
     if (id) {
       route = tempRoute.addRouteParam(RouteParams.DashboardId, id.toString());

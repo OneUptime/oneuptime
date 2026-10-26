@@ -1,6 +1,6 @@
 import PageMap from "./PageMap";
 import RouteParams from "./RouteParams";
-import StatusPageUtil from "./StatusPage";
+import StatusPageInTab from "./StatusPageInTab";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
@@ -162,7 +162,7 @@ export class RouteUtil {
       route = tempRoute.addRouteParam(RouteParams.ModelID, modelId.toString());
     }
 
-    const id: ObjectID | null = StatusPageUtil.getStatusPageId();
+    const id: ObjectID | null = StatusPageInTab.get();
 
     if (id) {
       route = tempRoute.addRouteParam(RouteParams.StatusPageId, id.toString());

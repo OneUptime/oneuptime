@@ -1,19 +1,10 @@
+import StatusPageInTab from "./StatusPageInTab";
 import UserUtil from "./User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
-import TabPageId from "Common/UI/Utils/TabPageId";
-
-/*
- * The status page this tab shows (Common/UI/Utils/TabPageId): the one its
- * address names on OneUptime's own host (/status-page/<id>/...), and on a
- * custom domain the one the master page found for the domain as the tab
- * started. Never an id kept in localStorage, which every tab on the address
- * shares: the page a second tab opened became every tab's page (#5277).
- */
-const statusPageInTab: TabPageId = new TabPageId("status-page");
 
 /*
  * What the browser keeps about one status page, under these names followed
@@ -61,7 +52,7 @@ export default class StatusPageUtil {
       !redirectUrl ||
       !Navigation.isSafeInternalRoute(redirectUrl) ||
       StatusPageUtil.isAuthPath(redirectUrl) ||
-      statusPageInTab.isAnotherPagesPath(redirectUrl)
+      StatusPageInTab.isAnotherPagesPath(redirectUrl)
     ) {
       return null;
     }
@@ -105,14 +96,14 @@ export default class StatusPageUtil {
     );
   }
 
-  // The status page this tab shows (see statusPageInTab above).
+  // The status page this tab shows (Utils/StatusPageInTab).
   public static getStatusPageId(): ObjectID | null {
-    return statusPageInTab.get();
+    return StatusPageInTab.get();
   }
 
   // The status page this tab's address names, if it names one.
   public static getStatusPageIdInAddress(): ObjectID | null {
-    return statusPageInTab.getIdInAddress();
+    return StatusPageInTab.getIdInAddress();
   }
 
   /*
@@ -121,7 +112,7 @@ export default class StatusPageUtil {
    * domain - and nothing another tab does changes it.
    */
   public static setStatusPageId(id: ObjectID | null): void {
-    statusPageInTab.set(id);
+    StatusPageInTab.set(id);
   }
 
   /*
@@ -132,8 +123,8 @@ export default class StatusPageUtil {
    * content.
    */
   public static isAddressOfAnotherStatusPage(): boolean {
-    const idInAddress: ObjectID | null = statusPageInTab.getIdInAddress();
-    const loadedId: ObjectID | null = statusPageInTab.getResolved();
+    const idInAddress: ObjectID | null = StatusPageInTab.getIdInAddress();
+    const loadedId: ObjectID | null = StatusPageInTab.getResolved();
 
     return Boolean(
       idInAddress &&

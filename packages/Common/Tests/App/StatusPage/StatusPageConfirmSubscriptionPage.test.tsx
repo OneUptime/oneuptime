@@ -21,7 +21,6 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -82,10 +81,16 @@ jest.mock(
 const checkIfUserHasLoggedIn: MockFunction = getJestMockFunction();
 let isPreviewPage: boolean = false;
 
+// The status page this tab shows, as StatusPageUtil.getStatusPageId answers it.
+let tabStatusPageId: string | null = null;
+
 jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      getStatusPageId: (): ObjectID | null => {
+        return tabStatusPageId ? new ObjectID(tabStatusPageId) : null;
+      },
       checkIfUserHasLoggedIn: (): void => {
         checkIfUserHasLoggedIn();
       },
@@ -173,7 +178,7 @@ function subscribeAgain(): HTMLElement | null {
 }
 
 beforeEach(() => {
-  LocalStorage.setItem("statusPageId", STATUS_PAGE_ID);
+  tabStatusPageId = STATUS_PAGE_ID;
   isPreviewPage = false;
   code = CODE;
   subscriberId = SUBSCRIBER_ID;
@@ -209,7 +214,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  LocalStorage.removeItem("statusPageId");
+  tabStatusPageId = null;
   jest.restoreAllMocks();
 });
 

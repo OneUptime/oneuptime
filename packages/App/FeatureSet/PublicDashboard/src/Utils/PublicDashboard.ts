@@ -1,3 +1,4 @@
+import DashboardInTab from "./DashboardInTab";
 import DashboardThemeUtil from "./DashboardTheme";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
@@ -5,16 +6,6 @@ import { DASHBOARD_THEME_LINK_PARAMETER } from "Common/Types/Dashboard/Dashboard
 import ObjectID from "Common/Types/ObjectID";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
-import TabPageId from "Common/UI/Utils/TabPageId";
-
-/*
- * The dashboard this tab shows (Common/UI/Utils/TabPageId): the one its
- * address names on OneUptime's own host (/public-dashboard/<id>/...), and on
- * a custom domain the one the app found for the domain as the tab started.
- * Never an id kept in localStorage, which every tab on the address shares:
- * the dashboard a second tab opened became every tab's (#5277).
- */
-const dashboardInTab: TabPageId = new TabPageId("public-dashboard");
 
 /*
  * What the browser keeps about one dashboard, under these names followed by
@@ -54,7 +45,7 @@ export default class PublicDashboardUtil {
       !redirectUrl.startsWith("/") ||
       redirectUrl.startsWith("//") ||
       PublicDashboardUtil.isAuthPath(redirectUrl) ||
-      dashboardInTab.isAnotherPagesPath(redirectUrl)
+      DashboardInTab.isAnotherPagesPath(redirectUrl)
     ) {
       return null;
     }
@@ -62,9 +53,9 @@ export default class PublicDashboardUtil {
     return redirectUrl;
   }
 
-  // The dashboard this tab shows (see dashboardInTab above).
+  // The dashboard this tab shows (Utils/DashboardInTab).
   public static getDashboardId(): ObjectID | null {
-    return dashboardInTab.get();
+    return DashboardInTab.get();
   }
 
   /*
@@ -73,7 +64,7 @@ export default class PublicDashboardUtil {
    * and nothing another tab does changes it.
    */
   public static setDashboardId(id: ObjectID | null): void {
-    dashboardInTab.set(id);
+    DashboardInTab.set(id);
   }
 
   public static setRequiresMasterPassword(value: boolean): void {

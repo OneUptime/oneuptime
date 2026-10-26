@@ -21,12 +21,12 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageResourceUptimeUtil from "../../../Utils/StatusPage/ResourceUptime";
 import UptimeUtil from "../../../Utils/Uptime/UptimeUtil";
 import Overview from "../../../../App/FeatureSet/StatusPage/src/Pages/Overview/Overview";
+import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
 /*
  * Contract under test - the two things the status page overview gained: it
@@ -494,7 +494,7 @@ describe("Status page overview - searching for a resource", () => {
   beforeEach(() => {
     postCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     setDocumentVisibility("visible");
@@ -729,7 +729,7 @@ describe("Status page overview - searching a large page with uptime history", ()
   beforeEach(() => {
     postCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     setDocumentVisibility("visible");
@@ -988,7 +988,7 @@ describe("Status page overview - keeping itself current", () => {
   beforeEach(() => {
     postCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     setDocumentVisibility("visible");

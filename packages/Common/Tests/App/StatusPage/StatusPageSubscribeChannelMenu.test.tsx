@@ -10,7 +10,6 @@ import {
   test,
 } from "@jest/globals";
 import Route from "../../../Types/API/Route";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 
 /*
  * The Subscribe page lists its channels in a side menu only when there is
@@ -103,10 +102,16 @@ jest.mock(
   },
 );
 
+// The status page this tab shows, as StatusPageUtil.getStatusPageId answers it.
+let tabStatusPageId: string | null = null;
+
 jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      getStatusPageId: (): ObjectID | null => {
+        return tabStatusPageId ? new ObjectID(tabStatusPageId) : null;
+      },
       checkIfUserHasLoggedIn: (): void => {},
       isPreviewPage: (): boolean => {
         return false;
@@ -168,6 +173,7 @@ import {
   isSubscribeChannelMenuShown,
 } from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/SubscribePageUtils";
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
+import ObjectID from "../../../Types/ObjectID";
 
 const STATUS_PAGE_ID: string = "11111111-1111-4111-8111-111111111111";
 
@@ -203,7 +209,7 @@ const PAGES: Array<[string, SubscribePage, keyof Channels]> = [
 ];
 
 beforeEach(() => {
-  LocalStorage.setItem("statusPageId", STATUS_PAGE_ID);
+  tabStatusPageId = STATUS_PAGE_ID;
 });
 
 afterEach(() => {
