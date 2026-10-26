@@ -79,6 +79,7 @@ Varje samtal har ett behörighetsläge, som du väljer i inmatningsfältet bredv
 Vad Fråga AI kan göra när ett läge tillåter det:
 
 - Skapa en incident, kvittera eller lösa incidenter och larm, och ändra en incidents allvarlighetsgrad.
+- Koppla en incident eller ett larm till den infrastruktur och de tjänster det gäller. En incident som skapas på en resurs sida, till exempel en värds, kopplas till den resursen, och godkännandekortet visar vad varje åtgärd kopplar till. OneUptime AI undersöker och åtgärdar det som en incident eller ett larm är kopplat till.
 - Lägga en intern anteckning på en incident eller ett larm. Interna anteckningar visas aldrig på en statussida.
 - Publicera en offentlig statusuppdatering på en incident. Det är en separat åtgärd, eftersom den meddelar statussidans prenumeranter.
 - Larma en jourpolicy, köra en runbook eller starta en AI-undersökning av en incident eller larm.

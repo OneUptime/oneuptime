@@ -79,6 +79,7 @@ Every conversation has a permission mode, which you pick in the composer, beside
 What Ask AI can do when a mode allows it:
 
 - Create an incident, acknowledge or resolve incidents and alerts, and change an incident's severity.
+- Link an incident or an alert to the infrastructure and services it is about. An incident it creates on a resource's page, such as a host's, is linked to that resource, and the approval card names what each action links. OneUptime AI investigates and fixes what an incident or alert is linked to.
 - Post an internal note on an incident or an alert. Internal notes never show on a status page.
 - Post a public status update on an incident. It is a separate action, because it notifies the status page's subscribers.
 - Page an on-call policy, run a runbook, or start an AI investigation of an incident or alert.

@@ -1,9 +1,9 @@
+import DashboardInTab from "./DashboardInTab";
 import PageMap from "./PageMap";
 import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 
 const RouteMap: Dictionary<Route> = {
   [PageMap.OVERVIEW]: new Route(`/`),
@@ -24,6 +24,10 @@ const RouteMap: Dictionary<Route> = {
 };
 
 export class RouteUtil {
+  /*
+   * A route of this app with its ids filled in: the record's, and the
+   * dashboard's - the one this tab shows, never one another tab opened since.
+   */
   public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
     const tempRoute: Route = new Route(route.toString());
 
@@ -31,7 +35,7 @@ export class RouteUtil {
       route = tempRoute.addRouteParam(RouteParams.ModelID, modelId.toString());
     }
 
-    const id: ObjectID = LocalStorage.getItem("dashboardId") as ObjectID;
+    const id: ObjectID | null = DashboardInTab.get();
 
     if (id) {
       route = tempRoute.addRouteParam(RouteParams.DashboardId, id.toString());

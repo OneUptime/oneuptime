@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  AFFECTED_RESOURCES_PLACE_ID,
   getRemediationDecisionLines,
   getRemediationDecisionStatus,
   pickRemediationDecision,
@@ -183,14 +184,26 @@ describe("getRemediationDecisionLines", () => {
   });
 
   describe("linked to nothing", () => {
-    test("reads as one line that links to each monitor", () => {
+    test("reads as one line that says what to do, and links to each monitor", () => {
       const lines: Array<RemediationDecisionLine> = linesOf(NOTHING_LINKED);
 
       expect(lines).toHaveLength(1);
       expect(lines[0]!.tone).toBe("attention");
       expect(lines[0]!.text).toBe(
-        "This incident is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every incident it raises from then on will be linked to it.",
+        "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
       );
+      // What lets it fix this one, then how the next ones are linked.
+      expect(lines[0]!.whatToDo).toBe(
+        "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every incident it raises from then on is linked for you.",
+      );
+      // The sentence is the why: no "Why:" repeats it.
+      expect(lines[0]!.why).toBeUndefined();
+      // And it takes the reader to the card it names, on the same page.
+      expect(lines[0]!.place).toEqual({
+        text: "Go to Affected Resources",
+        placeId: AFFECTED_RESOURCES_PLACE_ID,
+      });
+      expect(AFFECTED_RESOURCES_PLACE_ID).toBe("affected-resources");
       expect(
         lines[0]!.links.map((link: { text: string }) => {
           return link.text;
@@ -202,7 +215,12 @@ describe("getRemediationDecisionLines", () => {
       ]);
     });
 
-    test("says it plainly, with no link, for a signal without monitors", () => {
+    /*
+     * Issue #5293: an incident Ask AI declared had no monitor, and the line
+     * said only that it was linked to nothing - in the engine's words - and
+     * nothing about what would let OneUptime AI fix it.
+     */
+    test("says what to do for a signal without monitors - one Ask AI declared, say", () => {
       const line: RemediationDecisionLine = linesOf(
         NOTHING_LINKED.map((entry: AutoRemediationDecisionEntry) => {
           return { ...entry, monitors: [] };
@@ -211,9 +229,34 @@ describe("getRemediationDecisionLines", () => {
       )[0]!;
 
       expect(line.text).toBe(
-        "This alert is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
+        "This alert is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
       );
+      expect(line.whatToDo).toBe(
+        "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
+      );
+      // No monitor to link: going to Affected Resources is the one step.
       expect(line.links).toEqual([]);
+      expect(line.place?.placeId).toBe(AFFECTED_RESOURCES_PLACE_ID);
+    });
+
+    test("never words it as the engine does", () => {
+      for (const monitors of [[], NOTHING_LINKED[0]!.monitors || []]) {
+        for (const signal of ["incident", "alert"] as const) {
+          const line: RemediationDecisionLine = linesOf(
+            NOTHING_LINKED.map((entry: AutoRemediationDecisionEntry) => {
+              return { ...entry, monitors };
+            }),
+            signal,
+          )[0]!;
+
+          const said: string = `${line.text} ${line.whatToDo || ""}`;
+
+          expect(said).not.toContain("infrastructure resource");
+          expect(said).not.toContain("Kubernetes cluster or");
+          // Names the card the reader adds it on, as the page titles it.
+          expect(said).toContain("Affected Resources");
+        }
+      }
     });
 
     test("says nothing about clusters when a linked resource took the signal", () => {

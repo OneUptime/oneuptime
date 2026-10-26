@@ -79,6 +79,7 @@ Hver samtale har en tilladelsestilstand, som du vælger i indtastningsfeltet ved
 Hvad Spørg AI kan gøre, når en tilstand tillader det:
 
 - Oprette en hændelse, kvittere for eller løse hændelser og advarsler og ændre en hændelses alvorlighed.
+- Knytte en hændelse eller en advarsel til den infrastruktur og de tjenester, den drejer sig om. En hændelse, den opretter på en ressources side, fx en værts, knyttes til den ressource, og godkendelseskortet nævner, hvad hver handling knytter til. OneUptime AI undersøger og retter det, en hændelse eller advarsel er knyttet til.
 - Skrive en intern note på en hændelse eller en advarsel. Interne noter vises aldrig på en statusside.
 - Offentliggøre en statusopdatering på en hændelse. Det er en særskilt handling, fordi den giver statussidens abonnenter besked.
 - Kalde en vagtpolitik ud, køre en runbook eller starte en AI-undersøgelse af en hændelse eller advarsel.

@@ -552,7 +552,12 @@ jobs:
           # and agent version sign, dark and German) joined them on
           # 2026-10-26, when this group's run step took 15.1 minutes on
           # master's run of 03:08 that day, the lightest that holds several
-          # suites: about 17.
+          # suites: about 17. Side by Side Pages (about a minute locally
+          # with its two bundles, Chromium only: two status pages and two
+          # public dashboards open in two tabs of one browser - each tab's
+          # refresh, links, Subscribe form and password its own, and another
+          # page's address opened in full) joined them the same day, still
+          # the lightest: about 18.
           - group: 8
             browsers: chromium
             suites: >-
@@ -568,6 +573,7 @@ jobs:
               test-new-version-ui
               test-shared-ui-ui
               test-docker-swarm-pages-ui
+              test-side-by-side-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -879,4 +885,6 @@ jobs:
             output/playwright/asset-details-ui/test-results
             output/playwright/docker-swarm-pages-ui/*.png
             output/playwright/docker-swarm-pages-ui/test-results
+            output/playwright/side-by-side-pages-ui/*.png
+            output/playwright/side-by-side-pages-ui/test-results
           retention-days: 7

@@ -174,6 +174,7 @@ While **Fix new incidents automatically** is on and no AI rule is set up, OneUpt
 - the telemetry it was raised from names the cluster (a metric, log or trace monitor on the cluster's data);
 - its monitor is a Kubernetes monitor of the cluster;
 - its monitor is linked to the cluster under **Monitor → Overview → Linked Resources** — the way to link a website, API or synthetic monitor to the cluster that serves what it checks;
+- Ask AI declared it on the cluster's page, or linked it to the cluster when asked;
 - someone picked the cluster under **Other Affected Resources** when declaring it (picking a linked monitor adds it there for you).
 
 Each incident and alert says on its **Remediation** card whether it was linked to a cluster and what the cluster's fixes did; see [What auto-remediation did](#what-auto-remediation-did). The same holds for an infrastructure resource and its AI agent.
@@ -395,7 +396,7 @@ Every incident and alert has a **Remediation** card that says what auto-remediat
 - **The AI rules** — with rules set up, none matched (and how many were checked), or only rules that don't fix did, so nothing was fixed; or what each matching rule did: had OneUptime AI fix the incident (asking first or not), proposed or started a runbook, had AI compose commands or pick a runbook, or could not, and why.
 - **The project** — **Fix new incidents automatically** (or alerts) is off; **Enable AI** is off, so nothing runs; the incident already has the most fixes it can get; or the evaluation stopped on an error.
 
-When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with a link to each of its monitors, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the incident's (or alert's) AI settings, where its fixing switch and its rules are, **Enable AI**, or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed. When AI was off for an incident altogether, the **AI Investigation** card's one line says why nothing was fixed, and the **Remediation** card is left out.
+When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with what to do: add the host, cluster or database it is about under **Affected Resources**, and OneUptime AI tries again while the incident is open, as it would for a new one. An incident with monitors also gets a link to each of them, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the incident's (or alert's) AI settings, where its fixing switch and its rules are, **Enable AI**, or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed. When AI was off for an incident altogether, the **AI Investigation** card's one line says why nothing was fixed, and the **Remediation** card is left out.
 
 ## What OneUptime AI learned, and everything it did
 

@@ -193,6 +193,17 @@ describe("describeEvidenceTool", () => {
     expect(describeEvidenceTool("resolve_alert").description).toBe(
       "Resolved an alert",
     );
+    // Linking what an incident or alert is about (#5293), in words.
+    expect(describeEvidenceTool("add_incident_affected_resources")).toEqual({
+      description: "Linked an incident to affected resources",
+      icon: IconProp.Alert,
+      category: "Incidents",
+    });
+    expect(describeEvidenceTool("add_alert_affected_resources")).toEqual({
+      description: "Linked an alert to affected resources",
+      icon: IconProp.Bell,
+      category: "Alerts",
+    });
     expect(describeEvidenceTool("get_ai_investigation").description).toBe(
       "Read an AI investigation",
     );

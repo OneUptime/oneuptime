@@ -38,6 +38,12 @@ import { QueryMonitorsTool } from "../../../../Server/Utils/AI/Toolbox/MonitorTo
 import { SearchSecurityEventsTool } from "../../../../Server/Utils/AI/Toolbox/SecurityEventTools";
 import { ObservabilityTool } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  AI_AFFECTED_RESOURCE_KINDS,
+  AI_RESOURCE_TYPES_NOT_LINKABLE,
+  AiAffectedResourceKind,
+  AiAffectedResourceKindInfo,
+} from "../../../../Types/AI/AiAffectedResources";
 import { describe, expect, test } from "@jest/globals";
 
 const ENTITY_ID: string = "0f10509d-6656-4a08-b957-235fd4e8c52e";
@@ -1011,6 +1017,165 @@ describe("infrastructure commands guidance (issue #5259)", () => {
 
       expect(section).not.toContain(RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME);
       expect(section).not.toContain(RUN_KUBECTL_TOOL_NAME);
+    }
+  });
+});
+
+/*
+ * Issue #5293: on a host's page, Ask AI declared an incident linked to
+ * nothing. The page's guidance says what an incident declared there is
+ * linked to - in the exact affectedResources create_incident takes - and
+ * the base prompt says why linking matters and which tools link.
+ */
+describe("what an incident declared from a page is linked to (issue #5293)", () => {
+  test("a host's page: declared there, linked to the host, in the exact argument", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.Host,
+      entityId: ENTITY_ID,
+      entityTitle: "test01",
+    });
+
+    expect(section).toContain(
+      `An incident you declare here with create_incident is linked to it (affectedResources [{"resourceType":"Host","resourceId":"${ENTITY_ID}"}])`,
+    );
+    expect(section).toContain(
+      "pass affectedResources yourself only when the incident is about something else",
+    );
+    expect(section).toContain("add_incident_affected_resources");
+    expect(section).toContain("add_alert_affected_resources");
+  });
+
+  test.each(
+    AI_AFFECTED_RESOURCE_KINDS.filter(
+      (info: AiAffectedResourceKindInfo): boolean => {
+        return info.kind !== AiAffectedResourceKind.Service;
+      },
+    ).map((info: AiAffectedResourceKindInfo) => {
+      return [info.kind];
+    }),
+  )("every linkable resource's page says so (%s)", (kind: string) => {
+    expect(
+      buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType: kind as AIResourceType,
+        entityId: ENTITY_ID,
+      }),
+    ).toContain(`{"resourceType":"${kind}","resourceId":"${ENTITY_ID}"}`);
+  });
+
+  test("a pod's page links its cluster", () => {
+    expect(
+      buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType: AIResourceType.KubernetesCluster,
+        entityId: ENTITY_ID,
+        subresource: { kind: AIResourceSubresourceKind.Pod, key: "web-1" },
+      }),
+    ).toContain(
+      `{"resourceType":"KubernetesCluster","resourceId":"${ENTITY_ID}"}`,
+    );
+  });
+
+  test("a telemetry service's page links the service", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.TelemetryService,
+      entityId: ENTITY_ID,
+      entityTitle: "checkout",
+    });
+
+    expect(section).toContain(
+      `{"resourceType":"Service","resourceId":"${ENTITY_ID}"}`,
+    );
+    // Still scoped to the service the way it was.
+    expect(section).toContain(`serviceId="${ENTITY_ID}"`);
+  });
+
+  test.each(Object.keys(AI_RESOURCE_TYPES_NOT_LINKABLE))(
+    "the page of a resource an incident cannot be linked to (%s) says what to link instead",
+    (type: string) => {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType: type as AIResourceType,
+        entityId: ENTITY_ID,
+      });
+
+      expect(section).toContain("An incident or alert cannot be linked to a");
+      expect(section).toContain(
+        "link one you declare here to the hosts, clusters or services it runs on, if you can find them with a tool",
+      );
+      expect(section).not.toContain("affectedResources [");
+    },
+  );
+
+  test("a list page, an incident's page or a monitor's page links nothing by itself", () => {
+    for (const context of [
+      {
+        type: AIChatPageContextType.ResourcesList,
+        resourceType: AIResourceType.Host,
+      },
+      { type: AIChatPageContextType.Incident, entityId: ENTITY_ID },
+      { type: AIChatPageContextType.Monitor, entityId: ENTITY_ID },
+    ] as Array<AIChatPageContext>) {
+      expect(buildPageContextSection(context)).not.toContain(
+        "An incident you declare here",
+      );
+    }
+  });
+
+  test.each(Object.values(AIChatPermissionMode))(
+    "the %s prompt says OneUptime AI fixes only what an incident is linked to, and how to link",
+    (permissionMode: AIChatPermissionMode) => {
+      const prompt: string = buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-10-26T00:00:00Z"),
+        permissionMode,
+      });
+
+      expect(prompt).toContain(
+        "OneUptime AI investigates and fixes the infrastructure an incident or alert is linked to, and nothing else.",
+      );
+      expect(prompt).toContain(
+        "pass it in create_incident's affectedResources",
+      );
+      expect(prompt).toContain(
+        "Never link a resource you have not found with a tool.",
+      );
+    },
+  );
+
+  test("the modes that act list linking among the actions, and read-only says it cannot", () => {
+    for (const permissionMode of [
+      AIChatPermissionMode.AskForApproval,
+      AIChatPermissionMode.AutoRun,
+    ]) {
+      expect(
+        buildObservabilityChatSystemPrompt({
+          currentTime: new Date("2026-10-26T00:00:00Z"),
+          permissionMode,
+        }),
+      ).toContain(
+        "link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources)",
+      );
+    }
+
+    expect(
+      buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-10-26T00:00:00Z"),
+        permissionMode: AIChatPermissionMode.ReadOnly,
+      }),
+    ).toContain(
+      "If the user asks you to create an incident, link one to the resources it is about,",
+    );
+  });
+
+  test("the linking tools the prompt names are the toolbox's, and they change the project", () => {
+    for (const name of [
+      "create_incident",
+      "add_incident_affected_resources",
+      "add_alert_affected_resources",
+    ]) {
+      expect(AIToolbox.getToolByName(name)).toBeDefined();
+      expect(AIToolbox.isMutationTool(name)).toBe(true);
     }
   });
 });
