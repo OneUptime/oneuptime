@@ -764,6 +764,7 @@ function useBulkOwnerActions<T extends BaseModel>(
         // Not signed in: every row fails with why, as it always did.
         await runBulkAction<T>({
           actionProps: actionProps,
+          concurrency: BULK_ACTION_CONCURRENCY,
           step: async (): Promise<void> => {
             throw err;
           },

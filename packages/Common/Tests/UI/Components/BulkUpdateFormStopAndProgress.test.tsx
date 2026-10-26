@@ -24,6 +24,7 @@ import BulkUpdateForm, {
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import {
   BulkItemOutcome,
+  bulkItemUnchanged,
   runBulkAction,
 } from "../../../UI/Components/BulkUpdate/BulkActionRunner";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
@@ -368,6 +369,58 @@ describe("BulkUpdateForm while a run goes on", () => {
       );
     });
   });
+});
+
+describe("BulkUpdateForm's counts", () => {
+  /*
+   * A run of thousands is what bulk actions are for. Every count the bar
+   * and the dialog write is written the reader's way - "3,300", as the
+   * progress bar has always written it - not "3300" in one line and
+   * "3,300" in the next.
+   */
+  test("write thousands the reader's way: the selection, the progress and every line of the summary", async () => {
+    const items: Array<Row> = rows(3300);
+
+    renderWith(items, {
+      title: "Apply",
+      icon: IconProp.Check,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      onClick: async (props: BulkActionOnClickProps<Row>): Promise<void> => {
+        await runBulkAction<Row>({
+          actionProps: props,
+          concurrency: 4,
+          step: async (
+            _row: Row,
+            index: number,
+          ): Promise<BulkItemOutcome | void> => {
+            if (index < 1100) {
+              return;
+            }
+
+            if (index < 2200) {
+              return bulkItemUnchanged("Already applied.");
+            }
+
+            throw new Error("You need the Edit Device permission.");
+          },
+        });
+      },
+    });
+
+    expect(screen.getByText("3,300 Devices Selected")).toBeInTheDocument();
+
+    await screen.findByText("Completed", undefined, { timeout: 15000 });
+
+    expect(screen.getByTestId("bulk-action-succeeded-count")).toHaveTextContent(
+      "1,100 Devices succeeded",
+    );
+    expect(screen.getByTestId("bulk-action-failed-count")).toHaveTextContent(
+      "1,100 Devices failed",
+    );
+    expect(screen.getByTestId("bulk-action-unchanged-count")).toHaveTextContent(
+      "1,100 Devices not changed",
+    );
+  }, 30000);
 });
 
 describe("getBulkTimeLeftText", () => {

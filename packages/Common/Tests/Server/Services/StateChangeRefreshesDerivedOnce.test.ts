@@ -129,6 +129,19 @@ interface DerivedCalls {
   recomputes: () => number;
 }
 
+/*
+ * What the record's timeline held when a refresh or a recompute started:
+ * both read the timeline, so each must start only once the change is saved
+ * whole - the new row written, and the row before it closed.
+ */
+interface TimelineSeen {
+  call: "refresh" | "recompute";
+  rows: number;
+  isRowBeforeClosed: boolean;
+}
+
+type LookAtTimeline = () => Omit<TimelineSeen, "call">;
+
 interface TimelineCase {
   event: string;
   timelineService: DatabaseService<BaseModel>;
@@ -138,7 +151,7 @@ interface TimelineCase {
   currentStateColumn: string;
   states: { created: ObjectID; acknowledged: ObjectID; resolved: ObjectID };
   buildChange: (stateId: ObjectID, startsAt: Date) => BaseModel;
-  stub: () => DerivedCalls;
+  stub: (look: LookAtTimeline, seen: Array<TimelineSeen>) => DerivedCalls;
 }
 
 function stubAlertStates(): void {
@@ -194,7 +207,7 @@ const ALERT_CASE: TimelineCase = {
     timeline.startsAt = startsAt;
     return timeline;
   },
-  stub: (): DerivedCalls => {
+  stub: (look: LookAtTimeline, seen: Array<TimelineSeen>): DerivedCalls => {
     stubAlertStates();
     getJestSpyOn(AlertService, "getAlertNumber").mockResolvedValue({
       number: 7,
@@ -214,11 +227,15 @@ const ALERT_CASE: TimelineCase = {
     const refresh: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
       AlertService,
       "refreshAlertMetrics",
-    ).mockResolvedValue(undefined);
+    ).mockImplementation((async (): Promise<void> => {
+      seen.push({ call: "refresh", ...look() });
+    }) as never);
     const recompute: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
       AlertMeasurementValueService,
       "recomputeForAlert",
-    ).mockResolvedValue(undefined);
+    ).mockImplementation((async (): Promise<void> => {
+      seen.push({ call: "recompute", ...look() });
+    }) as never);
 
     return {
       refreshes: (): number => {
@@ -248,7 +265,7 @@ const INCIDENT_CASE: TimelineCase = {
     timeline.startsAt = startsAt;
     return timeline;
   },
-  stub: (): DerivedCalls => {
+  stub: (look: LookAtTimeline, seen: Array<TimelineSeen>): DerivedCalls => {
     stubIncidentStates();
     getJestSpyOn(IncidentService, "getIncidentNumber").mockResolvedValue({
       number: 42,
@@ -284,11 +301,15 @@ const INCIDENT_CASE: TimelineCase = {
     const refresh: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
       IncidentService,
       "refreshIncidentMetrics",
-    ).mockResolvedValue(undefined);
+    ).mockImplementation((async (): Promise<void> => {
+      seen.push({ call: "refresh", ...look() });
+    }) as never);
     const recompute: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
       IncidentMeasurementValueService,
       "recomputeForIncident",
-    ).mockResolvedValue(undefined);
+    ).mockImplementation((async (): Promise<void> => {
+      seen.push({ call: "recompute", ...look() });
+    }) as never);
 
     return {
       refreshes: (): number => {
@@ -339,6 +360,7 @@ describe.each([
 ])("a state change to %s", (_name: string, timelineCase: TimelineCase) => {
   let timelines: InMemoryTable;
   let derived: DerivedCalls;
+  let seen: Array<TimelineSeen> = [];
 
   function row(id: ObjectID, stateId: ObjectID, startsAt: Date): StoredRow {
     return {
@@ -378,7 +400,13 @@ describe.each([
       return onUpdate;
     }) as never);
 
-    derived = timelineCase.stub();
+    seen = [];
+    derived = timelineCase.stub((): Omit<TimelineSeen, "call"> => {
+      return {
+        rows: timelines.rows.length,
+        isRowBeforeClosed: Boolean(timelines.get(PREVIOUS_ROW_ID)?.["endsAt"]),
+      };
+    }, seen);
   }
 
   async function change(stateId: ObjectID, startsAt: Date): Promise<void> {
@@ -416,6 +444,12 @@ describe.each([
 
     expect(derived.refreshes()).toBe(1);
     expect(derived.recomputes()).toBe(1);
+
+    // Each started once the change was saved whole, never before.
+    expect(seen).toEqual([
+      { call: "refresh", rows: 2, isRowBeforeClosed: true },
+      { call: "recompute", rows: 2, isRowBeforeClosed: true },
+    ]);
   });
 
   test("a record's first state, which moves no row before it, refreshes and recomputes once too", async () => {
@@ -427,6 +461,13 @@ describe.each([
     expect(timelines.updates).toEqual([]);
     expect(derived.refreshes()).toBe(1);
     expect(derived.recomputes()).toBe(1);
+
+    // Once the first row is saved.
+    expect(
+      seen.map((call: TimelineSeen): number => {
+        return call.rows;
+      }),
+    ).toEqual([1, 1]);
   });
 
   test("a back-dated move between two rows moves both of them, and each refreshes once - never the new row's hook again", async () => {
@@ -440,5 +481,11 @@ describe.each([
     expect(timelines.inserts).toHaveLength(1);
     expect(derived.refreshes()).toBe(2);
     expect(derived.recomputes()).toBe(2);
+
+    // Every one of them once the new row is saved and the row before closed.
+    for (const call of seen) {
+      expect(call.rows).toBe(3);
+      expect(call.isRowBeforeClosed).toBe(true);
+    }
   });
 });

@@ -510,7 +510,7 @@ describe("BaseModelTable bulk Select All", () => {
     fireEvent.click(getByText("Select All Monitors"));
 
     await waitFor(() => {
-      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      expect(getByText("1,262 Monitors Selected")).toBeTruthy();
     });
 
     // Everything is selected, so there is nothing left for the button to do.
@@ -529,7 +529,7 @@ describe("BaseModelTable bulk Select All", () => {
     fireEvent.click(getByText("Select All Monitors"));
 
     await waitFor(() => {
-      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      expect(getByText("1,262 Monitors Selected")).toBeTruthy();
     });
 
     expect(
@@ -576,7 +576,9 @@ describe("BaseModelTable bulk Select All", () => {
 
     await waitFor(() => {
       expect(
-        getByText(`${BULK_SELECT_ALL_PAGE_SIZE * 2} Monitors Selected`),
+        getByText(
+          `${(BULK_SELECT_ALL_PAGE_SIZE * 2).toLocaleString("en")} Monitors Selected`,
+        ),
       ).toBeTruthy();
     });
 
@@ -599,7 +601,9 @@ describe("BaseModelTable bulk Select All", () => {
 
     await waitFor(() => {
       expect(
-        getByText(`${BULK_SELECT_ALL_PAGE_SIZE} Monitors Selected`),
+        getByText(
+          `${BULK_SELECT_ALL_PAGE_SIZE.toLocaleString("en")} Monitors Selected`,
+        ),
       ).toBeTruthy();
     });
 
@@ -628,7 +632,7 @@ describe("BaseModelTable bulk Select All", () => {
     fireEvent.click(getByText("Select All Monitors"));
 
     await waitFor(() => {
-      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      expect(getByText("1,262 Monitors Selected")).toBeTruthy();
     });
 
     fireEvent.click(getByText("Bulk Actions"));
@@ -762,7 +766,11 @@ describe("BaseModelTable bulk Select All", () => {
     fireEvent.click(getByText("Select All Monitors"));
 
     await waitFor(() => {
-      expect(getByText(`${LIMIT_PER_PROJECT} Monitors Selected`)).toBeTruthy();
+      expect(
+        getByText(
+          `${LIMIT_PER_PROJECT.toLocaleString("en")} Monitors Selected`,
+        ),
+      ).toBeTruthy();
     });
 
     expect(bulkCalls().length).toBe(
@@ -858,7 +866,7 @@ describe("BaseModelTable bulk Select All", () => {
     fireEvent.click(getByText("Select All Monitors"));
 
     await waitFor(() => {
-      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      expect(getByText("1,262 Monitors Selected")).toBeTruthy();
     });
 
     // A stale failure banner under a complete selection would be a lie.
@@ -894,7 +902,7 @@ describe("BaseModelTable bulk Select All", () => {
     });
 
     await waitFor(() => {
-      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      expect(getByText("1,262 Monitors Selected")).toBeTruthy();
     });
 
     expect(queryByText("Selecting All Monitors...")).toBeNull();
@@ -1002,7 +1010,7 @@ describe("BaseModelTable bulk Select All", () => {
       fireEvent.click(getByText("Select All Monitors"));
 
       await waitFor(() => {
-        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+        expect(getByText("1,262 Monitors Selected")).toBeTruthy();
       });
 
       // The parent narrows the table - a facet click, say - down to 12 rows.
@@ -1040,7 +1048,7 @@ describe("BaseModelTable bulk Select All", () => {
       fireEvent.click(getByText("Select All Monitors"));
 
       await waitFor(() => {
-        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+        expect(getByText("1,262 Monitors Selected")).toBeTruthy();
       });
 
       // Everything is selected, so the button is gone.
@@ -1123,7 +1131,7 @@ describe("BaseModelTable bulk Select All", () => {
       fireEvent.click(getByText("Select All Monitors"));
 
       await waitFor(() => {
-        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+        expect(getByText("1,262 Monitors Selected")).toBeTruthy();
       });
 
       fireEvent.change(getSearchInput(container), {
@@ -1218,7 +1226,7 @@ describe("BaseModelTable bulk Select All", () => {
       fireEvent.click(getByText("Select All Monitors"));
 
       await waitFor(() => {
-        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+        expect(getByText("1,262 Monitors Selected")).toBeTruthy();
       });
 
       fireEvent.click(getByText("Name"));
@@ -1229,7 +1237,7 @@ describe("BaseModelTable bulk Select All", () => {
         });
       });
 
-      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      expect(getByText("1,262 Monitors Selected")).toBeTruthy();
       // Still everything, so the button stays away.
       expect(queryByText("Select All Monitors")).toBeNull();
     });

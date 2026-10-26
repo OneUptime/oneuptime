@@ -695,7 +695,9 @@ const BulkUpdateForm: <T extends GenericObject>(
                       BULK_SUCCEEDED_COUNT,
                     progressInfo.successItems.length,
                     {
-                      count: String(progressInfo.successItems.length),
+                      count: translator.formatNumber(
+                        progressInfo.successItems.length,
+                      ),
                       itemName: itemTerm,
                       itemsName: itemsTerm,
                     },
@@ -718,7 +720,9 @@ const BulkUpdateForm: <T extends GenericObject>(
                     runningAction?.resultLabels?.failed || BULK_FAILED_COUNT,
                     progressInfo.failed.length,
                     {
-                      count: String(progressInfo.failed.length),
+                      count: translator.formatNumber(
+                        progressInfo.failed.length,
+                      ),
                       itemName: itemTerm,
                       itemsName: itemsTerm,
                     },
@@ -760,7 +764,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                   BULK_UNCHANGED_COUNT,
                   unchangedItems.length,
                   {
-                    count: String(unchangedItems.length),
+                    count: translator.formatNumber(unchangedItems.length),
                     itemName: itemTerm,
                     itemsName: itemsTerm,
                   },
@@ -983,7 +987,9 @@ const BulkUpdateForm: <T extends GenericObject>(
                     BULK_SELECTED_COUNT,
                     props.selectedItems.length,
                     {
-                      count: String(props.selectedItems.length),
+                      count: translator.formatNumber(
+                        props.selectedItems.length,
+                      ),
                       itemName: itemTerm,
                       itemsName: itemsTerm,
                     },
