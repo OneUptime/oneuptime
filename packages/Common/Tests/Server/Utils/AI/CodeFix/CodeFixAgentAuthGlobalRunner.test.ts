@@ -136,10 +136,7 @@ describe("a global Runner", () => {
 
     for (const project of [PROJECT_ID, OTHER_PROJECT_ID]) {
       expect(
-        CodeFixAgentAuth.deniesAccessToProject(
-          identity,
-          new ObjectID(project),
-        ),
+        CodeFixAgentAuth.deniesAccessToProject(identity, new ObjectID(project)),
       ).toBe(false);
     }
   });

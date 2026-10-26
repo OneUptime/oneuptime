@@ -872,8 +872,13 @@ describe("what is never counted", () => {
         (await codeFixCount(address, RUNNER, RUNNERS[RUNNER]!.key)).status,
       ).toBe(200);
       expect(
-        (await agentAlive(address, PROJECT_AGENT, AI_AGENTS[PROJECT_AGENT]!.key))
-          .status,
+        (
+          await agentAlive(
+            address,
+            PROJECT_AGENT,
+            AI_AGENTS[PROJECT_AGENT]!.key,
+          )
+        ).status,
       ).toBe(200);
       expect(
         (

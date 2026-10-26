@@ -356,9 +356,7 @@ describe("getOfferedTools", () => {
   });
 
   test("a project's own Runner's model is offered every tool it sent, the command tool included", () => {
-    expect(CodeFixAgentAuth.getOfferedTools(PROJECT_RUNNER, TOOLS)).toBe(
-      TOOLS,
-    );
+    expect(CodeFixAgentAuth.getOfferedTools(PROJECT_RUNNER, TOOLS)).toBe(TOOLS);
     expect(CodeFixAgentAuth.getOfferedTools(PROJECT_AGENT, TOOLS)).toBe(TOOLS);
   });
 

@@ -839,13 +839,10 @@ export default class Register {
       );
 
       if (GlobalRunnerMode.isActive()) {
-        logger.info(
-          GLOBAL_RUNNER_STARTED_MESSAGE,
-          {
-            runnerId: RUNNER_ID?.toString(),
-            runnerName: RUNNER_NAME,
-          } as LogAttributes,
-        );
+        logger.info(GLOBAL_RUNNER_STARTED_MESSAGE, {
+          runnerId: RUNNER_ID?.toString(),
+          runnerName: RUNNER_NAME,
+        } as LogAttributes);
       }
 
       logger.debug("Runner registered successfully", {

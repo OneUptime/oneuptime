@@ -602,9 +602,7 @@ export default class GitHubUtil extends HostedCodeRepository {
 
     const id: unknown = result.data["id"];
 
-    return typeof id === "number" && Number.isInteger(id) && id > 0
-      ? id
-      : null;
+    return typeof id === "number" && Number.isInteger(id) && id > 0 ? id : null;
   }
 
   /*

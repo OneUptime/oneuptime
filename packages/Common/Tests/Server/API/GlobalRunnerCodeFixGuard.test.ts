@@ -61,7 +61,20 @@ function codeOf(relativePath: string): string {
     index++;
   }
 
-  return code.split(/\s+/).join(" ");
+  /*
+   * Whitespace made single spaces, and none just inside a call's
+   * parentheses or before a trailing comma's closing one, so a call reads
+   * the same however prettier wraps it: f( a, b, ) is f(a, b).
+   */
+  return code
+    .split(/\s+/)
+    .join(" ")
+    .split("( ")
+    .join("(")
+    .split(", )")
+    .join(")")
+    .split(" )")
+    .join(")");
 }
 
 const API_DIRECTORY: string = "Server/API";
@@ -220,17 +233,17 @@ describe("the code-fix route files", () => {
       ).length - 1,
     ).toBe(4);
     expect(codeOf("Server/API/AIAgentGitHubAPI.ts")).toContain(
-      "CodeFixAgentAuth.getRepositoryCommands( aiAgent, codeRepository, )",
+      "CodeFixAgentAuth.getRepositoryCommands(aiAgent, codeRepository)",
     );
     // The code task brief is built with them, then answered without them.
     expect(codeOf("Server/API/AIAgentCodeTaskAPI.ts")).toContain(
-      "...CodeFixAgentAuth.getRepositoryCommands( aiAgent, brief.repository, )",
+      "...CodeFixAgentAuth.getRepositoryCommands(aiAgent, brief.repository)",
     );
   });
 
   test("the completion route offers the model getOfferedTools' tools", () => {
     expect(codeOf("Server/API/AIAgentDataAPI.ts")).toContain(
-      'CodeFixAgentAuth.getOfferedTools( aiAgent, this.parseCompletionTools(data["tools"]), )',
+      'CodeFixAgentAuth.getOfferedTools(aiAgent, this.parseCompletionTools(data["tools"]))',
     );
   });
 

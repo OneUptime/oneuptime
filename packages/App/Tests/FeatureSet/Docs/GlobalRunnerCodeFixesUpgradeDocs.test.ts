@@ -513,7 +513,9 @@ describe("a global Runner acts only for the fix it took, and a GitHub token reac
     );
 
     expect(auth).toContain("public static deniesAccessToRun(");
-    expect(auth).toContain("run.aiAgentId.toString() !== identity.id.toString()");
+    expect(auth).toContain(
+      "run.aiAgentId.toString() !== identity.id.toString()",
+    );
     expect(auth).toContain("return run.status !== AIRunStatus.Running;");
 
     const data: string = source("packages/Common/Server/API/AIAgentDataAPI.ts");
@@ -539,9 +541,9 @@ describe("a global Runner acts only for the fix it took, and a GitHub token reac
     expect(source("packages/Runner/Jobs/PollCodeFixWork.ts")).toContain(
       "await RepositoryTokenRevocation.revokeAll();",
     );
-    expect(source("packages/Runner/Utils/RepositoryTokenRevocation.ts")).toContain(
-      '"https://api.github.com/installation/token"',
-    );
+    expect(
+      source("packages/Runner/Utils/RepositoryTokenRevocation.ts"),
+    ).toContain('"https://api.github.com/installation/token"');
     // Only a GitHub repository's token: another host's is its connection's own.
     expect(source("packages/Runner/Utils/BackendAPI.ts")).toContain(
       "if (!data.codeHost && data.token) {\n      RepositoryTokenRevocation.remember(data.token);\n    }",

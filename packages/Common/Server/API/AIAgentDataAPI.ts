@@ -176,10 +176,7 @@ export default class AIAgentDataAPI {
       return false;
     }
 
-    if (
-      typeof data.taskId !== "string" ||
-      !ObjectID.isValidUUID(data.taskId)
-    ) {
+    if (typeof data.taskId !== "string" || !ObjectID.isValidUUID(data.taskId)) {
       return true;
     }
 
@@ -971,7 +968,10 @@ export default class AIAgentDataAPI {
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
                   // None for a global Runner, which runs no repository command.
-                  ...CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository),
+                  ...CodeFixAgentAuth.getRepositoryCommands(
+                    aiAgent,
+                    repository,
+                  ),
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -1108,7 +1108,10 @@ export default class AIAgentDataAPI {
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
                   // None for a global Runner, which runs no repository command.
-                  ...CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository),
+                  ...CodeFixAgentAuth.getRepositoryCommands(
+                    aiAgent,
+                    repository,
+                  ),
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,

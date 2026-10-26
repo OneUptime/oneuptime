@@ -246,11 +246,11 @@ beforeEach(() => {
   identity = GLOBAL_RUNNER;
   storedRun = null;
 
-  jest.spyOn(CodeFixAgentAuth, "checkCredential").mockImplementation(
-    async () => {
+  jest
+    .spyOn(CodeFixAgentAuth, "checkCredential")
+    .mockImplementation(async () => {
       return credentialCheckProving(identity);
-    },
-  );
+    });
 
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     return storedRun;
@@ -523,41 +523,53 @@ describe("POST /ai-agent-data/get-exception-details and get-code-repositories (w
     });
   }
 
-  for (const route of [
+  describe.each([
     "/ai-agent-data/get-exception-details",
     "/ai-agent-data/get-code-repositories",
-  ]) {
-    describe(route, () => {
-      test("a global Runner reads the exception of the run it holds", async () => {
-        storedRun = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
+  ])("%s", (route: string) => {
+    test("a global Runner reads the exception of the run it holds", async () => {
+      storedRun = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
+
+      const answer: Answer = await call(route, {
+        exceptionId: EXCEPTION_ID.toString(),
+        taskId: RUN_ID.toString(),
+      });
+
+      expect(answer.error).toBeUndefined();
+      expect(answer.json).toBeDefined();
+    });
+
+    test("a global Runner that names no run, or a malformed one, reads nothing", async () => {
+      storedRun = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
+
+      for (const taskId of [undefined, "", "not-a-uuid", 42]) {
+        jest.clearAllMocks();
 
         const answer: Answer = await call(route, {
           exceptionId: EXCEPTION_ID.toString(),
-          taskId: RUN_ID.toString(),
+          ...(taskId === undefined ? {} : { taskId: taskId as never }),
         });
 
-        expect(answer.error).toBeUndefined();
-        expect(answer.json).toBeDefined();
+        expect(answer.error?.message).toBe("Exception not found");
+        expect(answer.json).toBeUndefined();
+      }
+    });
+
+    test("a global Runner reads no exception but its run's own: the run must be about this exception", async () => {
+      storedRun = exceptionRun(HELD_BY_IT, OTHER_EXCEPTION_ID);
+
+      const answer: Answer = await call(route, {
+        exceptionId: EXCEPTION_ID.toString(),
+        taskId: RUN_ID.toString(),
       });
 
-      test("a global Runner that names no run, or a malformed one, reads nothing", async () => {
-        storedRun = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
+      expect(answer.error?.message).toBe("Exception not found");
+    });
 
-        for (const taskId of [undefined, "", "not-a-uuid", 42]) {
-          jest.clearAllMocks();
-
-          const answer: Answer = await call(route, {
-            exceptionId: EXCEPTION_ID.toString(),
-            ...(taskId === undefined ? {} : { taskId: taskId as never }),
-          });
-
-          expect(answer.error?.message).toBe("Exception not found");
-          expect(answer.json).toBeUndefined();
-        }
-      });
-
-      test("a global Runner reads no exception but its run's own: the run must be about this exception", async () => {
-        storedRun = exceptionRun(HELD_BY_IT, OTHER_EXCEPTION_ID);
+    test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
+      "a global Runner reads nothing for $name",
+      async (hold: RunHold) => {
+        storedRun = exceptionRun(hold, EXCEPTION_ID);
 
         const answer: Answer = await call(route, {
           exceptionId: EXCEPTION_ID.toString(),
@@ -565,35 +577,21 @@ describe("POST /ai-agent-data/get-exception-details and get-code-repositories (w
         });
 
         expect(answer.error?.message).toBe("Exception not found");
+        expect(answer.json).toBeUndefined();
+      },
+    );
+
+    test("a project's own Runner reads its project's exception, naming a run or not, as before", async () => {
+      identity = PROJECT_RUNNER;
+
+      const answer: Answer = await call(route, {
+        exceptionId: EXCEPTION_ID.toString(),
       });
 
-      test.each([HELD_BY_ANOTHER, WAITING, ENDED_ITS_OWN])(
-        "a global Runner reads nothing for $name",
-        async (hold: RunHold) => {
-          storedRun = exceptionRun(hold, EXCEPTION_ID);
-
-          const answer: Answer = await call(route, {
-            exceptionId: EXCEPTION_ID.toString(),
-            taskId: RUN_ID.toString(),
-          });
-
-          expect(answer.error?.message).toBe("Exception not found");
-          expect(answer.json).toBeUndefined();
-        },
-      );
-
-      test("a project's own Runner reads its project's exception, naming a run or not, as before", async () => {
-        identity = PROJECT_RUNNER;
-
-        const answer: Answer = await call(route, {
-          exceptionId: EXCEPTION_ID.toString(),
-        });
-
-        expect(answer.error).toBeUndefined();
-        expect(answer.json).toBeDefined();
-      });
+      expect(answer.error).toBeUndefined();
+      expect(answer.json).toBeDefined();
     });
-  }
+  });
 
   test("get-code-repositories hands a global Runner the repository without its commands, and a project's Runner with them", async () => {
     storedRun = exceptionRun(HELD_BY_IT, EXCEPTION_ID);
@@ -875,9 +873,12 @@ describe("the GitHub routes (work)", () => {
   test("get-github-task-details serves a global Runner the run it holds, the repository without its commands", async () => {
     storedRun = githubRun(HELD_BY_IT, CodeFixTaskType.GitHubIssueFix);
 
-    const answer: Answer = await call("/ai-agent-data/get-github-task-details", {
-      taskId: RUN_ID.toString(),
-    });
+    const answer: Answer = await call(
+      "/ai-agent-data/get-github-task-details",
+      {
+        taskId: RUN_ID.toString(),
+      },
+    );
 
     expect(answer.error).toBeUndefined();
 
@@ -893,9 +894,12 @@ describe("the GitHub routes (work)", () => {
     identity = PROJECT_RUNNER;
     storedRun = githubRun(HELD_BY_ANOTHER, CodeFixTaskType.GitHubIssueFix);
 
-    const answer: Answer = await call("/ai-agent-data/get-github-task-details", {
-      taskId: RUN_ID.toString(),
-    });
+    const answer: Answer = await call(
+      "/ai-agent-data/get-github-task-details",
+      {
+        taskId: RUN_ID.toString(),
+      },
+    );
 
     const repository: JSONObject = answer.json!["repository"] as JSONObject;
 

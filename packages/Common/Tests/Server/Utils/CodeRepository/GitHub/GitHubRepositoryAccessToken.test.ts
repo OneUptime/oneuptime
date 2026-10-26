@@ -228,8 +228,9 @@ describe("getRepositoryAccessToken", () => {
       // No token that reaches more than the repository is ever minted.
       for (let index: number = 0; index < postSpy.mock.calls.length; index++) {
         const body: JSONObject = tokenRequestBody(index);
-        const asksForWrite: boolean =
-          JSON.stringify(body["permissions"]).includes("write");
+        const asksForWrite: boolean = JSON.stringify(
+          body["permissions"],
+        ).includes("write");
 
         if (asksForWrite) {
           expect(body["repositories"] || body["repository_ids"]).toBeDefined();
@@ -294,9 +295,7 @@ describe("getRepositoryAccessToken", () => {
       permissions: PERMISSIONS,
     });
 
-    expect(
-      (getSpy.mock.calls[0]![0] as APIRequestOptions).url.toString(),
-    ).toBe(
+    expect((getSpy.mock.calls[0]![0] as APIRequestOptions).url.toString()).toBe(
       "https://api.github.com/repos/acme%2F..%2F..%2Forgs/users%20api%3Fx%3D1",
     );
   });

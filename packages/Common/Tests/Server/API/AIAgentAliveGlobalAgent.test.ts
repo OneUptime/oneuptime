@@ -93,9 +93,7 @@ async function heartbeat(): Promise<void> {
 }
 
 function refusal(): Error | undefined {
-  return responseUtil.sendErrorResponse.mock.calls[0]?.[2] as
-    | Error
-    | undefined;
+  return responseUtil.sendErrorResponse.mock.calls[0]?.[2] as Error | undefined;
 }
 
 beforeAll(() => {

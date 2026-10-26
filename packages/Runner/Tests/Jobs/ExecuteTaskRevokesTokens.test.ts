@@ -1,4 +1,8 @@
-import { executeTask, PendingTask, TaskOutcome } from "../../Jobs/PollCodeFixWork";
+import {
+  executeTask,
+  PendingTask,
+  TaskOutcome,
+} from "../../Jobs/PollCodeFixWork";
 import * as TaskHandlerIndex from "../../TaskHandlers/Index";
 import {
   TaskContext,
