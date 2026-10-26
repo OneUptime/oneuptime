@@ -306,6 +306,8 @@ const friendlyToolNames: { [key: string]: string } = {
   create_incident: translationKey("Creating incident"),
   acknowledge_incident: translationKey("Acknowledging incident"),
   resolve_incident: translationKey("Resolving incident"),
+  // An alert raised from the conversation (#5301), as an incident is declared.
+  create_alert: translationKey("Creating alert"),
   acknowledge_alert: translationKey("Acknowledging alert"),
   resolve_alert: translationKey("Resolving alert"),
   // What an incident or alert is about (#5293), never the tool's own name.

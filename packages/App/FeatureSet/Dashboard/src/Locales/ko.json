@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "중지하는 중입니다. 이미 시작된 항목은 마저 처리됩니다.",
   "Unhealthy": "비정상",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} {{count}}개 시작 안 됨: 작업을 중지했습니다",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} {{count}}개 시작 안 됨: 작업을 중지했습니다"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} {{count}}개 시작 안 됨: 작업을 중지했습니다",
+  "Created an alert": "경고를 생성함",
+  "Creating alert": "경고를 생성하는 중"
 }

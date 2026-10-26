@@ -87,6 +87,7 @@ import {
 import {
   AcknowledgeAlertTool,
   AddAlertAffectedResourcesTool,
+  CreateAlertTool,
   ResolveAlertTool,
 } from "./AlertWriteTools";
 import {
@@ -200,6 +201,8 @@ export default class AIToolbox {
     CreateIncidentTool,
     AcknowledgeIncidentTool,
     ResolveIncidentTool,
+    // An alert raised from the conversation, as an incident is declared (#5301).
+    CreateAlertTool,
     AcknowledgeAlertTool,
     ResolveAlertTool,
     /*

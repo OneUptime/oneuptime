@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Bezig met stoppen. Wat al gestart is, wordt nog afgerond.",
   "Unhealthy": "Ongezond",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} niet gestart: u hebt de actie gestopt",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} niet gestart: u hebt de actie gestopt"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} niet gestart: u hebt de actie gestopt",
+  "Created an alert": "Waarschuwing gemaakt",
+  "Creating alert": "Waarschuwing maken"
 }

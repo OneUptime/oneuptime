@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Wird gestoppt. Was bereits begonnen wurde, wird noch abgeschlossen.",
   "Unhealthy": "Fehlerhaft",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} nicht begonnen: Sie haben die Aktion gestoppt",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} nicht begonnen: Sie haben die Aktion gestoppt"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} nicht begonnen: Sie haben die Aktion gestoppt",
+  "Created an alert": "Hat eine Warnung erstellt",
+  "Creating alert": "Warnung wird erstellt"
 }

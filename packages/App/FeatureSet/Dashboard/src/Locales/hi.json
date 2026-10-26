@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "रोका जा रहा है। जो पहले शुरू हो चुके हैं, वे पूरे किए जा रहे हैं।",
   "Unhealthy": "अस्वस्थ",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} शुरू नहीं हुए: आपने कार्रवाई रोक दी",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} शुरू नहीं हुआ: आपने कार्रवाई रोक दी"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} शुरू नहीं हुआ: आपने कार्रवाई रोक दी",
+  "Created an alert": "अलर्ट बनाया",
+  "Creating alert": "अलर्ट बनाया जा रहा है"
 }

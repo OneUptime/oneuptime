@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Stopping. The ones already started are finishing.",
   "Unhealthy": "Unhealthy",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} not started: you stopped the action",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} not started: you stopped the action"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} not started: you stopped the action",
+  "Created an alert": "Created an alert",
+  "Creating alert": "Creating alert"
 }

@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Остановка. Уже начатые завершаются.",
   "Unhealthy": "Неисправно",
   "{{count}} {{itemsName}} not started: you stopped the action": "Не начато: {{count}} ({{itemsName}}) — вы остановили действие",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "Не начато: {{count}} ({{itemName}}) — вы остановили действие"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "Не начато: {{count}} ({{itemName}}) — вы остановили действие",
+  "Created an alert": "Оповещение создано",
+  "Creating alert": "Создание оповещения"
 }

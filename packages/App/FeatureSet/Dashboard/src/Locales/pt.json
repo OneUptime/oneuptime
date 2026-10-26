@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Parando. Os que já começaram estão terminando.",
   "Unhealthy": "Não íntegro",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} não iniciados: {{count}} (você parou a ação)",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} não iniciado: {{count}} (você parou a ação)"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} não iniciado: {{count}} (você parou a ação)",
+  "Created an alert": "Criou um alerta",
+  "Creating alert": "Criando alerta"
 }

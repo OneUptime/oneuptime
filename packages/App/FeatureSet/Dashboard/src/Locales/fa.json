@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "در حال توقف. مواردی که شروع شده‌اند در حال تکمیل هستند.",
   "Unhealthy": "ناسالم",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} مورد شروع نشد ({{itemsName}}): شما اقدام را متوقف کردید",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} مورد شروع نشد ({{itemName}}): شما اقدام را متوقف کردید"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} مورد شروع نشد ({{itemName}}): شما اقدام را متوقف کردید",
+  "Created an alert": "هشدار ساخته شد",
+  "Creating alert": "ساختن هشدار"
 }

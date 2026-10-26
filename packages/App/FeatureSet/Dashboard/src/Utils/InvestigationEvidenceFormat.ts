@@ -568,6 +568,14 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "create_alert",
+    {
+      description: "Created an alert",
+      icon: IconProp.Bell,
+      category: "Alerts",
+    },
+  ],
+  [
     "acknowledge_alert",
     {
       description: "Acknowledged an alert",

@@ -1,11 +1,15 @@
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import AlertService from "../../../Services/AlertService";
+import AlertSeverityService from "../../../Services/AlertSeverityService";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventType,
@@ -47,6 +51,19 @@ const resolveStateChangePermissions: () => Array<Permission> =
         new AlertStateTimeline().getCreatePermissions();
     }
     return cachedStateChangePermissions;
+  };
+
+/*
+ * Raising an alert creates one, as the dashboard's Create Alert form does:
+ * the permission to create alerts (Create Alert in a custom role).
+ */
+let cachedCreatePermissions: Array<Permission> | null = null;
+const resolveCreatePermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedCreatePermissions) {
+      cachedCreatePermissions = new Alert().getCreatePermissions();
+    }
+    return cachedCreatePermissions;
   };
 
 // Linking resources to an alert edits it, as its Affected Resources Edit does.
@@ -113,6 +130,352 @@ async function getAlertNumberForPerson(data: {
     return null;
   }
 }
+
+// The severity a new alert takes, and whether it is the one the call named.
+export interface AlertSeverityChoice {
+  severity: AlertSeverity;
+  // False when the call named none, or one the project does not have.
+  isNamed: boolean;
+}
+
+/*
+ * The severities a new alert may take, in the project's order - never an
+ * archived one - read as the person: what the dashboard's Create Alert
+ * form offers them.
+ */
+async function readAlertSeverities(
+  ctx: ToolContext,
+): Promise<Array<AlertSeverity>> {
+  return await AlertSeverityService.findBy({
+    query: { projectId: ctx.projectId, isArchived: false },
+    select: {
+      _id: true,
+      name: true,
+      order: true,
+    },
+    sort: {
+      order: SortOrder.Ascending,
+    },
+    limit: 50,
+    skip: 0,
+    props: ctx.props,
+  });
+}
+
+/*
+ * The severity a new alert takes: the one the call names, matched without
+ * regard to case, else the project's first - as create_incident picks an
+ * incident's. Null when the project has none.
+ */
+export function pickAlertSeverity(data: {
+  severities: Array<AlertSeverity>;
+  severityName: string | undefined;
+}): AlertSeverityChoice | null {
+  const first: AlertSeverity | undefined = data.severities[0];
+
+  if (!first) {
+    return null;
+  }
+
+  const wanted: string = (data.severityName || "").trim().toLowerCase();
+
+  if (wanted) {
+    const named: AlertSeverity | undefined = data.severities.find(
+      (severity: AlertSeverity): boolean => {
+        return (severity.name || "").trim().toLowerCase() === wanted;
+      },
+    );
+
+    if (named) {
+      return { severity: named, isNamed: true };
+    }
+  }
+
+  return { severity: first, isNamed: false };
+}
+
+/*
+ * The severity a call gives its alert, by its name in the project, for the
+ * arguments the person approves: the call's own, or the project's first
+ * when it names none, or one the project does not have. Null when the
+ * person may not read the severities or the project has none - running
+ * the action then says why.
+ */
+async function getAlertSeverityNameForPerson(data: {
+  args: JSONObject;
+  ctx: ToolContext;
+}): Promise<string | null> {
+  try {
+    const choice: AlertSeverityChoice | null = pickAlertSeverity({
+      severities: await readAlertSeverities(data.ctx),
+      severityName: ToolArgs.getString(data.args, "severityName"),
+    });
+
+    return choice?.severity.name?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * create_alert raises an alert from the conversation, as the dashboard's
+ * Create Alert form does (issue #5301: Ask AI declared incidents, but could
+ * not raise an alert). It is create_incident's twin:
+ *
+ *   - created as the person who asked, with their props: held to their
+ *     permission to create alerts, their labels and the project's plan,
+ *     and credited to them;
+ *   - with one of the project's alert severities, by name, else its first;
+ *   - starting where every new alert starts (AlertService stamps the
+ *     project's created state), so the project's rules, owners and on-call
+ *     policies treat it as they treat any new alert;
+ *   - linked to what it is about: the resources the call names or - raised
+ *     from a resource's page without naming any - that resource, written
+ *     out before the person approves it, with the severity it takes.
+ *
+ * Like create_incident, it never links a monitor
+ * (Types/AI/AiAffectedResources): an alert's monitor stays the person's
+ * pick on the Create Alert form.
+ */
+export const CreateAlertTool: ObservabilityTool = {
+  name: "create_alert",
+  description:
+    "Raise (create) a new alert in this project, as the dashboard's Create Alert does: for something the team should look into that is not, or not yet, an outage users feel, such as a host's memory running high or an error rate creeping up. For an outage or a problem users feel, declare an incident with create_incident instead; when the user names one, create that one. Provide a clear title and a description of what you found. Optionally set the severity by name (must match an existing alert severity); otherwise the project's first-defined alert severity is used. Link it to the infrastructure and services it is about with affectedResources: OneUptime AI investigates and fixes what an alert is linked to, and nothing else. Asked from a resource's page (a host, a cluster, a database, a service, ...), the alert is linked to that resource unless you pass affectedResources yourself; pass an empty list to link nothing. An alert is raised once, now: it is not a rule and watches nothing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        description: "Short, specific alert title (required).",
+      },
+      description: {
+        type: "string",
+        description:
+          "Markdown description of what you found, its impact and any known cause.",
+      },
+      severityName: {
+        type: "string",
+        description:
+          "Name of an existing alert severity (e.g. 'High', 'Low'). Defaults to the project's first-defined alert severity.",
+      },
+      [AFFECTED_RESOURCES_ARGUMENT_NAME]: AFFECTED_RESOURCES_ARGUMENT_SCHEMA,
+    },
+    required: ["title"],
+  },
+  get requiredPermissions(): Array<Permission> {
+    return resolveCreatePermissions();
+  },
+  isMutation: true,
+  buildActionTitle: (args: JSONObject): string => {
+    return `Create alert: ${ToolArgs.getString(args, "title") || "Untitled"}`;
+  },
+  /*
+   * The page's resource written out (the alert is raised from it), the
+   * severity it takes by name, and what every resource it names is, for
+   * the approval card.
+   */
+  prepareMutation: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<PreparedMutation> => {
+    const prepared: JSONObject =
+      AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx });
+
+    const toLink: AffectedResourcesToLink =
+      await AffectedResourceLinks.resolveForCall({
+        args: prepared,
+        ctx,
+        defaultsToPage: false,
+      });
+
+    const severityName: string | null = await getAlertSeverityNameForPerson({
+      args: prepared,
+      ctx,
+    });
+
+    return {
+      arguments: severityName ? { ...prepared, severityName } : prepared,
+      description: AffectedResourceLinks.describeForPerson({
+        linked: toLink.linked,
+        hasNotLinked: toLink.notLinked.length > 0,
+        verb: "Linked to",
+      }),
+    };
+  },
+  execute: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<ToolExecutionResult> => {
+    const title: string | undefined = ToolArgs.getString(args, "title");
+    if (!title) {
+      throw new BadDataException("title is required to create an alert.");
+    }
+
+    const description: string = ToolArgs.getString(args, "description") || "";
+
+    const userId: ObjectID | undefined = ctx.props.userId;
+    if (!userId) {
+      throw new BadDataException(
+        "No authenticated user in context; cannot create an alert.",
+      );
+    }
+
+    const severities: Array<AlertSeverity> = await readAlertSeverities(ctx);
+    const severityName: string | undefined = ToolArgs.getString(
+      args,
+      "severityName",
+    );
+    const choice: AlertSeverityChoice | null = pickAlertSeverity({
+      severities,
+      severityName,
+    });
+
+    if (!choice) {
+      throw new BadDataException(
+        "No alert severities are configured for this project. Add one in Alerts > Settings > Alert Severity first.",
+      );
+    }
+
+    const severity: AlertSeverity = choice.severity;
+
+    /*
+     * What it is linked to: the resources the call names, or - raised from
+     * a resource's page without naming any - that resource. Each read with
+     * the person's props; the ones they may not view, archived ones and
+     * ones of another project are left out, and the model is told why.
+     */
+    const toLink: AffectedResourcesToLink =
+      await AffectedResourceLinks.resolveForCall({
+        args,
+        ctx,
+        defaultsToPage: true,
+      });
+
+    const alert: Alert = new Alert();
+    alert.projectId = ctx.projectId;
+    alert.title = title;
+    /*
+     * The model wrote the description from what it read, telemetry included:
+     * it stays Markdown, but nothing in it acts on its own in the alert's
+     * feed, Slack and Teams (FeedMarkdown.aiWritten).
+     */
+    alert.description = FeedMarkdown.aiWritten(description).toString();
+    alert.alertSeverityId = severity.id!;
+    alert.createdByUserId = userId;
+
+    /*
+     * Linked with the create itself, as the Create Alert form links what
+     * its Other Affected Resources picks: the investigation and
+     * auto-remediation the create starts read these lists.
+     */
+    AffectedResourceLinks.setOnRecord(alert, toLink.linked);
+
+    // Created under the user's props so the model-layer RBAC applies too.
+    const created: Alert = await AlertService.create({
+      data: alert,
+      props: ctx.props,
+    });
+
+    const alertIdString: string = created.id!.toString();
+    // How the person knows it: its number with the project's prefix.
+    const alertNumber: string =
+      created.alertNumberWithPrefix || `#${created.alertNumber ?? ""}`;
+
+    const serialized: SerializedResult = ToolResultSerializer.serializeRows([
+      {
+        id: alertIdString,
+        alertNumber: alertNumber,
+        title: title,
+        severity: severity.name,
+        ...(toLink.linked.length > 0
+          ? {
+              affectedResources: AffectedResourceLinks.describeForWidget(
+                toLink.linked,
+              ),
+            }
+          : {}),
+      },
+    ]);
+
+    const lines: Array<string> = [
+      `Successfully created alert ${alertNumber} ("${title}", severity ${severity.name}).`,
+    ];
+
+    if (severityName && !choice.isNamed) {
+      lines.push(
+        `No alert severity of this project is named ${JSON.stringify(severityName)}, so it took the first, ${severity.name}. The project's alert severities: ${severities
+          .map((item: AlertSeverity): string => {
+            return item.name || "";
+          })
+          .filter((name: string): boolean => {
+            return Boolean(name);
+          })
+          .join(", ")}.`,
+      );
+    }
+
+    const linkedText: string = AffectedResourceLinks.describeForModel({
+      linked: toLink.linked,
+      notLinked: toLink.notLinked,
+      verb: "Linked to",
+    });
+
+    if (linkedText) {
+      lines.push(linkedText);
+    }
+
+    if (toLink.linked.length === 0) {
+      lines.push(
+        "It is linked to no infrastructure or service, and OneUptime AI fixes only what an alert is linked to. When you know what it is about, link it with add_alert_affected_resources.",
+      );
+    }
+
+    return {
+      dataForLlm: `${lines.join("\n")}\n${serialized.text}`,
+      rowCount: 1,
+      citationLabel: `Created alert ${alertNumber}`,
+      citationTarget: {
+        type: AIChatCitationTargetType.AlertView,
+        params: { alertId: alertIdString },
+      },
+      redactionCount: serialized.redactionCount,
+      isTruncated: false,
+      widget: WidgetBuilder.resourceCard({
+        title: "Alert created",
+        resourceType: "Alert",
+        heading: `${alertNumber} · ${title}`,
+        subheading: severity.name ? `Severity: ${severity.name}` : undefined,
+        fields: [
+          { label: "Number", value: alertNumber },
+          { label: "Severity", value: severity.name || "—" },
+          ...(toLink.linked.length > 0
+            ? [
+                {
+                  label: "Affected resources",
+                  value: AffectedResourceLinks.describeForWidget(toLink.linked),
+                },
+              ]
+            : []),
+          ...(description
+            ? [
+                {
+                  label: "Description",
+                  value:
+                    description.length > 200
+                      ? `${description.substring(0, 200)}…`
+                      : description,
+                },
+              ]
+            : []),
+        ],
+        link: {
+          type: AIChatCitationTargetType.AlertView,
+          params: { alertId: alertIdString },
+        },
+      }),
+    };
+  },
+};
 
 async function changeAlertStateTool(data: {
   args: JSONObject;

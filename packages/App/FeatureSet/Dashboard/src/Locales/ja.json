@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "停止しています。すでに開始したものは最後まで処理されます。",
   "Unhealthy": "異常",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}}: {{count}} 件未開始（操作を停止しました）",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}}: {{count}} 件未開始（操作を停止しました）"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}}: {{count}} 件未開始（操作を停止しました）",
+  "Created an alert": "アラートを作成しました",
+  "Creating alert": "アラートを作成中"
 }

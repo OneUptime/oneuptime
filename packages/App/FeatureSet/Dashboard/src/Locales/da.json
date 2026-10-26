@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Stopper. Dem, der allerede er startet, bliver gjort færdige.",
   "Unhealthy": "Usund",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} ikke startet: Du stoppede handlingen",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} ikke startet: Du stoppede handlingen"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} ikke startet: Du stoppede handlingen",
+  "Created an alert": "Oprettede en advarsel",
+  "Creating alert": "Opretter advarsel"
 }

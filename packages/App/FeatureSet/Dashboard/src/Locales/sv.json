@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "Stoppar. De som redan har påbörjats slutförs.",
   "Unhealthy": "Ej felfri",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} inte påbörjade: Du stoppade åtgärden",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} inte påbörjad: Du stoppade åtgärden"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} inte påbörjad: Du stoppade åtgärden",
+  "Created an alert": "Skapade ett larm",
+  "Creating alert": "Skapar larm"
 }

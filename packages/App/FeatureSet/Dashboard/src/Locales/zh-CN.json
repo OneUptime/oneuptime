@@ -35705,5 +35705,7 @@
   "Stopping. The ones already started are finishing.": "正在停止。已开始的项目正在完成。",
   "Unhealthy": "不健康",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} 个{{itemsName}}未开始：您已停止此操作",
-  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} 个{{itemName}}未开始：您已停止此操作"
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} 个{{itemName}}未开始：您已停止此操作",
+  "Created an alert": "已创建警报",
+  "Creating alert": "正在创建警报"
 }
