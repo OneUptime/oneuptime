@@ -114,8 +114,12 @@ describe("what saving one is refused with", () => {
     expect(SCHEDULED_MAINTENANCE_REMINDER_NEVER_REMINDS_REFUSAL).toContain(
       `set ${stopTitle} to ${Completed}`,
     );
+    // What each column does to the rule, named as the API names it.
     expect(SCHEDULED_MAINTENANCE_REMINDER_NEVER_REMINDS_REFUSAL).toContain(
-      `${stopTitle} ${Ongoing}`,
+      `${switchTitle} is off, so it waits for the event to start`,
+    );
+    expect(SCHEDULED_MAINTENANCE_REMINDER_NEVER_REMINDS_REFUSAL).toContain(
+      `${stopTitle} is ${Ongoing}, so it stops when the event starts`,
     );
   });
 

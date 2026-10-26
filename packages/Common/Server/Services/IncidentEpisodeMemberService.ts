@@ -69,15 +69,15 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import type { PendingRecord } from "./DatabaseService";
 import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
-// What adding an incident to an episode it is in already is refused with.
 /*
- * The unique index that lets at most one membership of an incident be its first
- * (the IncidentEpisodeMember model's isFirstMembership): a create that loses a race to it
- * is checked again (Service.create).
+ * The unique index that lets at most one membership of an incident be its
+ * first (the IncidentEpisodeMember model's isFirstMembership): a create that
+ * loses a race to it is checked again (Service.create).
  */
 export const INCIDENT_FIRST_MEMBERSHIP_INDEX: string =
   "IDX_IncidentEpisodeMember_first_membership";
 
+// What adding an incident to an episode it is in already is refused with.
 export const INCIDENT_ALREADY_IN_EPISODE_MESSAGE: string =
   "Incident is already a member of this episode";
 

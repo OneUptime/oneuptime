@@ -49,11 +49,11 @@ export function doesScheduledMaintenanceReminderRuleNeverRemind(
 }
 
 /*
- * What saving that pair is refused with, in the API's own column names, and
- * the two ways out.
+ * What saving that pair is refused with, in the API's own column names:
+ * what each of the two columns does to the rule, then the two ways out.
  */
 export const SCHEDULED_MAINTENANCE_REMINDER_NEVER_REMINDS_REFUSAL: string =
-  "This reminder rule would never send a reminder: with Remind While Event is Scheduled off it waits for the event to start, and Stop Reminders When Ongoing stops it when the event starts. Turn on Remind While Event is Scheduled, or set Stop Reminders When to Completed.";
+  "This reminder rule would never send a reminder: Remind While Event is Scheduled is off, so it waits for the event to start, and Stop Reminders When is Ongoing, so it stops when the event starts. Turn on Remind While Event is Scheduled, or set Stop Reminders When to Completed.";
 
 // The refusal for a pair that never reminds, or null for one that reminds.
 export function getScheduledMaintenanceReminderRuleRefusal(
