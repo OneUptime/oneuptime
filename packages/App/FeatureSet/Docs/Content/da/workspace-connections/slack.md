@@ -192,6 +192,8 @@ Svarene på `help` og `oncall` er beskeder, som kun du kan se, under kommandoen.
 
 Startsiden læser som dig, så den kræver din egen forbundne Slack-konto. Indtil den er forbundet, har startsiden knappen **Connect Slack account**, og den viser dig din startside, så snart du har forbundet den.
 
+I et Slack-workspace, der er forbundet til mere end ét projekt, viser startsiden ét projekt ad gangen. Er din Slack-konto forbundet i to eller flere af dem, viser menuen **Switch project** ved siden af projektets navn de andre, du er medlem af. Vælg et for at se dets startside, og startsiden åbner derefter på det, så længe du stadig er medlem der. Indtil du vælger et, viser den det af dine projekter, der først blev forbundet til Slack.
+
 Når nogen tilføjer OneUptime til en kanal, slår den en hilsen op der: hvordan man stiller den et spørgsmål, og hvor man tilføjer en notifikationsregel, der slår op i kanalen. Første gang du åbner fanen **Messages**, byder den dig velkommen der: hvad den gør i Slack, og hvordan du kommer i gang.
 
 ## Spørg OneUptime AI fra Slack

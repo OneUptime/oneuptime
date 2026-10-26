@@ -24,7 +24,10 @@ import MicrosoftTeamsHome, {
   MICROSOFT_TEAMS_HOME_ACTIONS,
   MICROSOFT_TEAMS_HOME_COMMAND,
 } from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHome";
-import { SLACK_HOME_ACTIONS } from "Common/Server/Utils/Workspace/Slack/SlackHome";
+import {
+  SLACK_HOME_ACTIONS,
+  SLACK_HOME_PROJECT_MENU,
+} from "Common/Server/Utils/Workspace/Slack/SlackHome";
 import {
   WORKSPACE_HOME_TEXT,
   WorkspaceHomeActions,
@@ -1506,6 +1509,34 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     ).toBe(true);
     expect(englishPage(TEAMS)).toContain(
       "**Open OneUptime in Microsoft Teams**, under **User Settings** > **Workspace** > **Microsoft Teams**, opens the app in Teams.",
+    );
+  });
+
+  /*
+   * Somebody in several of a Slack workspace's projects: the Home's Switch
+   * project menu, named as the app draws it, and what it does - one project
+   * at a time, the one chosen kept for later openings while the person is a
+   * member there, the first connected before that (SlackHome).
+   */
+  it("names the Slack Home's Switch project menu as the app draws it, and what it does", () => {
+    const home: string = section(englishPage(SLACK), 2, "OneUptime's Home in Slack");
+    const paragraph: string = lineStarting(
+      home,
+      "In a Slack workspace connected to more than one project,",
+    );
+
+    expect(SLACK_HOME_PROJECT_MENU.placeholder).toBe("Switch project");
+    expect(boldSpans(paragraph)).toEqual([SLACK_HOME_PROJECT_MENU.placeholder]);
+    expect(paragraph).toContain("the Home shows one project at a time");
+    expect(paragraph).toContain("two or more of them");
+    expect(paragraph).toContain("as long as you're still a member there");
+    expect(paragraph).toContain(
+      "whichever of your projects was connected to Slack first",
+    );
+
+    // Only Slack draws the menu: the Teams page names none.
+    expect(englishPage(TEAMS)).not.toContain(
+      `**${SLACK_HOME_PROJECT_MENU.placeholder}**`,
     );
   });
 
