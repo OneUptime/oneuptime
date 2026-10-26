@@ -36,6 +36,7 @@ import {
   translatableTerm,
   TranslatableTerm,
 } from "../../Utils/TranslateTemplate";
+import { FormValidationMessage } from "./Utils/FormValidationMessages";
 
 type InterpolationValues = TemplateValues;
 
@@ -79,41 +80,34 @@ export default class Validation {
     if (content && field.validation) {
       if (field.validation.minLength) {
         if (content.trim().length < field.validation?.minLength) {
-          return translateValidationMessage(
-            "{{field}} cannot be less than {{minLength}} characters.",
-            {
-              field: fieldTerm(field.title, field.name as string),
-              minLength: field.validation.minLength,
-            },
-          );
+          return translateValidationMessage(FormValidationMessage.MinLength, {
+            field: fieldTerm(field.title, field.name as string),
+            minLength: field.validation.minLength,
+          });
         }
       }
 
       if (field.validation.maxLength) {
         if (content.trim().length > field.validation?.maxLength) {
-          return translateValidationMessage(
-            "{{field}} cannot be more than {{maxLength}} characters.",
-            {
-              field: fieldTerm(field.title, field.name as string),
-              maxLength: field.validation.maxLength,
-            },
-          );
+          return translateValidationMessage(FormValidationMessage.MaxLength, {
+            field: fieldTerm(field.title, field.name as string),
+            maxLength: field.validation.maxLength,
+          });
         }
       }
 
       if (field.validation.noSpaces) {
         if (content.trim().includes(" ")) {
-          return translateValidationMessage(
-            "{{field}} should not have spaces.",
-            { field: fieldTerm(field.title, field.name as string) },
-          );
+          return translateValidationMessage(FormValidationMessage.NoSpaces, {
+            field: fieldTerm(field.title, field.name as string),
+          });
         }
       }
 
       if (field.validation.noSpecialCharacters) {
         if (!content.match(/^[A-Za-z0-9_-]*$/)) {
           return translateValidationMessage(
-            "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).",
+            FormValidationMessage.NoSpecialCharacters,
             { field: fieldTerm(field.title, field.name as string) },
           );
         }
@@ -121,10 +115,9 @@ export default class Validation {
 
       if (field.validation.noNumbers) {
         if (!content.match(/^[A-Za-z]*$/)) {
-          return translateValidationMessage(
-            "{{field}} should not have numbers.",
-            { field: fieldTerm(field.title, field.name as string) },
-          );
+          return translateValidationMessage(FormValidationMessage.NoNumbers, {
+            field: fieldTerm(field.title, field.name as string),
+          });
         }
       }
     }
@@ -138,10 +131,9 @@ export default class Validation {
     if (content && field.validation) {
       if (field.validation.dateShouldBeInTheFuture) {
         if (OneUptimeDate.isInThePast(content.trim())) {
-          return translateValidationMessage(
-            "{{field}} should be a future date.",
-            { field: fieldTerm(field.title, field.name as string) },
-          );
+          return translateValidationMessage(FormValidationMessage.FutureDate, {
+            field: fieldTerm(field.title, field.name as string),
+          });
         }
       }
     }
@@ -164,7 +156,7 @@ export default class Validation {
           content = parseFloat(content);
         } catch (e) {
           Logger.error(e as string);
-          return translateValidationMessage("{{field}} should be a number.", {
+          return translateValidationMessage(FormValidationMessage.NotANumber, {
             field: fieldTerm(field.title, field.name as string),
           });
         }
@@ -178,7 +170,7 @@ export default class Validation {
       if (field.validation.maxValue !== undefined) {
         if (content > field.validation.maxValue) {
           return translateValidationMessage(
-            "{{field}} should not be more than {{maxValue}}.",
+            FormValidationMessage.MoreThanMaxValue,
             {
               field: fieldTerm(field.title, field.name as string),
               maxValue: field.validation.maxValue,
@@ -190,7 +182,7 @@ export default class Validation {
       if (field.validation.minValue !== undefined) {
         if (content < field.validation.minValue) {
           return translateValidationMessage(
-            "{{field}} should not be less than {{minValue}}.",
+            FormValidationMessage.LessThanMinValue,
             {
               field: fieldTerm(field.title, field.name as string),
               minValue: field.validation.minValue,
@@ -220,7 +212,7 @@ export default class Validation {
     }
 
     if (required && (!content || content.length === 0)) {
-      return translateValidationMessage("{{field}} is required.", {
+      return translateValidationMessage(FormValidationMessage.Required, {
         field: fieldTerm(field.title, field.name as string),
       });
     }
@@ -239,15 +231,12 @@ export default class Validation {
       (entity[field.validation?.toMatchField] as string).toString().trim() !==
         content.trim()
     ) {
-      return translateValidationMessage(
-        "{{field}} should match {{matchField}}",
-        {
-          field: fieldTerm(field.title, field.name as string),
-          matchField: translatableTerm(
-            (field.validation?.toMatchField as string) || "",
-          ),
-        },
-      );
+      return translateValidationMessage(FormValidationMessage.DoesNotMatch, {
+        field: fieldTerm(field.title, field.name as string),
+        matchField: translatableTerm(
+          (field.validation?.toMatchField as string) || "",
+        ),
+      });
     }
     return null;
   }
@@ -258,7 +247,7 @@ export default class Validation {
   ): string | null {
     if (content && field.fieldType === FormFieldSchemaType.Email) {
       if (!Email.isValid(content!)) {
-        return translateValidationMessage("Email is not valid.");
+        return translateValidationMessage(FormValidationMessage.InvalidEmail);
       }
     }
 
@@ -370,13 +359,10 @@ export default class Validation {
       return null;
     }
 
-    return translateValidationMessage(
-      "{{field}} is not valid JSON. {{parserMessage}}",
-      {
-        field: fieldTerm(field.title, field.name as string),
-        parserMessage: result.errorMessage || "",
-      },
-    );
+    return translateValidationMessage(FormValidationMessage.InvalidJson, {
+      field: fieldTerm(field.title, field.name as string),
+      parserMessage: result.errorMessage || "",
+    });
   }
 
   /**
@@ -401,13 +387,10 @@ export default class Validation {
       return null;
     }
 
-    return translateValidationMessage(
-      "{{field}} is not valid YAML. {{parserMessage}}",
-      {
-        field: fieldTerm(field.title, field.name as string),
-        parserMessage: describeYamlSyntaxError(result),
-      },
-    );
+    return translateValidationMessage(FormValidationMessage.InvalidYaml, {
+      field: fieldTerm(field.title, field.name as string),
+      parserMessage: describeYamlSyntaxError(result),
+    });
   }
 
   public static validate<T extends GenericObject>(args: {

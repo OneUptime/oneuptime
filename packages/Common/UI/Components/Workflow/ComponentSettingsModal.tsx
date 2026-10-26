@@ -285,6 +285,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       <BasicForm
         hideSubmitButton={true}
         /*
+         * Save is off while a field fails, so no press would say what is
+         * wrong: a field says it as soon as it is left, changed or not.
+         */
+        showErrorsWhenLeftUnchanged={true}
+        /*
          * BasicForm focuses its first field on mount. This form mounts after
          * the settings, so it took the focus from the first setting, and on
          * the Webhook trigger from the URL's copy button.

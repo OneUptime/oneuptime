@@ -11,8 +11,13 @@ import { afterEach, describe, expect, it } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import {
   CREATE_PROJECT_INITIAL_BILLING_PERIOD,
+  PROJECT_NAME_MIN_LENGTH,
   getCreateProjectFormFields,
 } from "../../../../UI/Components/Project/CreateProjectFormFields";
+import {
+  isProjectNameServerError,
+  isPromoCodeServerError,
+} from "../../../../UI/Components/Project/CreateProjectServerErrors";
 import Field, {
   CustomElementProps,
 } from "../../../../UI/Components/Forms/Types/Field";
@@ -83,9 +88,14 @@ describe("getCreateProjectFormFields", () => {
       expect(fields.map(keyOf)).toEqual(["name"]);
     });
 
-    it("asks for a name of at least four characters, with a hint and an example", () => {
+    /*
+     * Two characters, as every other name in the product: a minimum of
+     * four refused "IBM", "Ops" and "QA".
+     */
+    it("asks for a name of at least two characters, with a hint and an example", () => {
       const name: Field<Project> = fields[0]!;
 
+      expect(PROJECT_NAME_MIN_LENGTH).toBe(2);
       expect(name).toMatchObject({
         title: "Project Name",
         description:
@@ -93,9 +103,19 @@ describe("getCreateProjectFormFields", () => {
         placeholder: "My Project",
         fieldType: FormFieldSchemaType.Text,
         required: true,
-        validation: { minLength: 4 },
+        validation: { minLength: 2 },
       });
       expect(name.stepId).toBeUndefined();
+    });
+
+    it("owns the server's answer that another project has the name", () => {
+      const name: Field<Project> = fields[0]!;
+
+      expect(name.ownsServerError).toBe(isProjectNameServerError);
+      expect(
+        name.ownsServerError!("Project with the same name already exists"),
+      ).toBe(true);
+      expect(name.ownsServerError!("Promo code is invalid.")).toBe(false);
     });
   });
 
@@ -181,6 +201,21 @@ describe("getCreateProjectFormFields", () => {
         openWhenConfigured: false,
         listFieldsWhileFolded: true,
       });
+    });
+
+    it("owns every answer the server refuses a promo code with, and nothing else", () => {
+      const promoCode: Field<Project> = fields[2]!;
+
+      expect(promoCode.ownsServerError).toBe(isPromoCodeServerError);
+      expect(fields[1]!.ownsServerError).toBeUndefined();
+      expect(
+        promoCode.ownsServerError!(
+          "Promocode is not valid for this plan. Please select the Growth plan.",
+        ),
+      ).toBe(true);
+      expect(
+        promoCode.ownsServerError!("Project with the same name already exists"),
+      ).toBe(false);
     });
 
     it("draws the plan picker with the form's value and error, and hands picks to the form", () => {

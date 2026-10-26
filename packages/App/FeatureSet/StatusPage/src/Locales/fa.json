@@ -415,6 +415,8 @@
   "Try again": "تلاش دوباره",
   "Loading...": "در حال بارگذاری...",
   "Loading": "در حال بارگذاری",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} یک JSON معتبر نیست. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} یک YAML معتبر نیست. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

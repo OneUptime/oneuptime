@@ -9,6 +9,7 @@ import EgressGuardException, {
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import { LLM_PROVIDER_TYPE_COPY } from "Common/UI/Components/AI/LlmProviderFormCopy";
+import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
 import { PermissionHelper } from "Common/Types/Permission";
 import API from "Common/Utils/API";
 import LlmProviderEndpoint from "Common/Utils/LLM/LlmProviderEndpoint";
@@ -1055,9 +1056,11 @@ describe("the troubleshooting quotes what OneUptime says", () => {
   }
 
   test("the forms build the length message from the template the page fills in", () => {
+    // Validation says it from the shared list of form messages.
     expect(readSource("Common/UI/Components/Forms/Validation.ts")).toContain(
-      `"${VALIDATION_TEMPLATE}"`,
+      "FormValidationMessage.MaxLength",
     );
+    expect(FormValidationMessage.MaxLength).toBe(VALIDATION_TEMPLATE);
     expect(lengthMessage("en")).toBe(
       "Base URL cannot be more than 100 characters.",
     );

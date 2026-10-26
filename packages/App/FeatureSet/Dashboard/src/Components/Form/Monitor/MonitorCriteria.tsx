@@ -316,7 +316,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                */}
                               <div
                                 data-testid="monitor-criteria-header"
-                                className="relative flex items-center px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                                className="relative flex items-center px-3 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors sm:px-4"
                               >
                                 <div
                                   {...draggableProvided.dragHandleProps}
@@ -426,7 +426,12 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     : ""
                                 }`}
                               >
-                                <div className="px-4 pb-4 bg-white">
+                                {/*
+                                 * 12px sides on a phone, 16 from sm up: the
+                                 * criteria sits in two cards there, and the
+                                 * rule forms in it in two boxes more.
+                                 */}
+                                <div className="px-3 pb-3 bg-white sm:px-4 sm:pb-4">
                                   <MonitorCriteriaInstanceElement
                                     monitorType={props.monitorType}
                                     monitorStep={props.monitorStep}
