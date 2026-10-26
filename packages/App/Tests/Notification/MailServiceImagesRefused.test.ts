@@ -32,7 +32,6 @@ import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import {
   getEmailServerType,
-  getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../../FeatureSet/Notification/Config";
 import MailService, {

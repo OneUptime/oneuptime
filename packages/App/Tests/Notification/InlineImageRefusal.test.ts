@@ -25,9 +25,12 @@ describe("SendGrid: HTTP 400 naming an attachments field, or 413", () => {
     [400, ["subject", "attachments.0.filename"]],
     [413, []],
     [413, ["content"]],
-  ])("HTTP %s with errors on %j: the images", (status: number, fields) => {
-    expect(InlineImageRefusal.isSendgridRefusal(status, fields)).toBe(true);
-  });
+  ])(
+    "HTTP %s with errors on %j: the images",
+    (status: number, fields: Array<string>) => {
+      expect(InlineImageRefusal.isSendgridRefusal(status, fields)).toBe(true);
+    },
+  );
 
   test.each([
     [400, ["personalizations.0.to.0.email"]],
@@ -43,7 +46,7 @@ describe("SendGrid: HTTP 400 naming an attachments field, or 413", () => {
     [undefined, ["attachments.0.content_id"]],
   ])(
     "HTTP %s with errors on %j: not the images",
-    (status: number | undefined, fields) => {
+    (status: number | undefined, fields: Array<string>) => {
       expect(InlineImageRefusal.isSendgridRefusal(status, fields)).toBe(false);
     },
   );
