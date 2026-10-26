@@ -293,7 +293,7 @@ Silencie uma interface na página **Interfaces** do dispositivo, para uma porta 
 
 ### Modelos de saúde dos fabricantes
 
-No editor **Health OIDs**, **Vendor Health Template** aplica um conjunto pronto de OIDs para o fabricante do dispositivo. Muitos modelos também trazem [tabelas SNMP](#tabelas-snmp), adicionadas com **Add a Vendor's Tables** no editor **SNMP Tables**.
+No editor **Health OIDs**, **Vendor Health Template** aplica um conjunto pronto de OIDs para o fabricante do dispositivo. Muitos modelos também trazem [tabelas SNMP](#tabelas-snmp), adicionadas com **Add a Vendor's Tables** no editor **Tabelas SNMP**.
 
 | Modelo do fabricante | OIDs de saúde | Tabelas SNMP |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ Adicione os OIDs que você quiser coletar a cada sondagem, em um modelo ou como 
 | Nome | Um nome amigável para o OID, como sysDescr. | Não |
 | Descrição | O que o OID representa. | Não |
 
-Os valores coletados aparecem em gráficos na página **Métricas** do dispositivo, e os critérios **SNMP OID Value** e **SNMP OID Exists** alertam sobre eles. O seletor de OIDs desses critérios lista os OIDs que o dispositivo escolhido coleta, os do modelo e os dele, então não há nada para digitar.
+Os valores coletados aparecem em gráficos na página **Métricas** do dispositivo, e os critérios **SNMP OID Value**, **SNMP OID Exists** e **SNMP OID Rate (per second)** alertam sobre eles. Um contador (Counter32 ou Counter64) só cresce, então alerte sobre a rapidez com que ele cresceu desde a sondagem anterior. O seletor de OIDs desses critérios lista os OIDs que o dispositivo escolhido coleta, os do modelo e os dele, então não há nada para digitar.
 
 Listas longas de OIDs são divididas em várias requisições SNMP GET para que cada uma caiba em um único datagrama UDP. Se você mantinha suas listas de OIDs curtas porque uma versão anterior informava como offline um dispositivo que respondia `tooBig`, não precisa mais.
 
@@ -386,12 +386,12 @@ Listas longas de OIDs são divididas em várias requisições SNMP GET para que 
 
 A página **Walk SNMP** de um dispositivo, em **Mais** no menu dele, lista cada OID que o dispositivo responde, com tipo, valor e, quando o OneUptime conhece a MIB, nome. É o `snmpwalk` que você executaria a partir da rede da sonda, executado pela própria sonda do dispositivo com as credenciais que o OneUptime guarda para ele, que nunca chegam ao seu navegador.
 
-Digite um OID numérico em **OID inicial** ou escolha um dos **Pontos de partida comuns**: **Tudo**, **Sistema**, **Interfaces**, **Recursos do host** ou **Específico do fabricante**. Depois clique em **Fazer walk**. A sonda pega o walk em até dez segundos e faz uma solicitação por vez, no máximo 1.000 OIDs em no máximo 45 segundos, então um walk nunca sobrecarrega o dispositivo. Quando há mais para ler, **Continuar o walk** lê os próximos 1.000 a partir de onde ele parou. Cada dispositivo tem um walk em andamento por vez, e os walks dele são mantidos por dois dias.
+Digite um OID numérico em **OID inicial** ou clique em um dos pontos de partida logo abaixo: **Tudo**, **Sistema**, **Interfaces**, **Recursos do host** ou **Específico do fabricante**. Depois clique em **Fazer walk**. A sonda pega o walk em até dez segundos e faz uma solicitação por vez, no máximo 1.000 OIDs em no máximo 45 segundos, então um walk nunca sobrecarrega o dispositivo. Quando há mais para ler, **Continuar o walk** lê os próximos 1.000 a partir de onde ele parou. Cada dispositivo tem um walk em andamento por vez, e os walks dele são mantidos por dois dias.
 
 Cada linha diz onde o OID dela é conhecido: um valor que um modelo de saúde de um fabricante coleta, uma coluna da tabela SNMP de um modelo de fabricante, um contador que o walk das interfaces já exibe em gráfico para cada porta, ou um OID sob a MIB do fabricante. A partir de uma linha:
 
 - **Coletar** adiciona o OID aos **Device-Specific Health OIDs** do dispositivo: cada sondagem o coleta a partir da próxima, e a página **Métricas** do dispositivo o exibe em gráfico. Em um dispositivo vinculado a um OID Collection Template, o menu da linha pode adicioná-lo ao modelo em vez disso, para cada dispositivo que o usa.
-- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério **SNMP OID Value** no OID, a partir do valor lido: um contador ou medidor alerta acima dele, um tempo de atividade abaixo (o dispositivo reiniciou), qualquer outro valor quando muda.
+- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério no OID. Um contador começa em **SNMP OID Rate (per second)** e um medidor em **SNMP OID Value**, ambos acima de um limite que você define; um tempo de atividade alerta abaixo de dez minutos (o dispositivo reiniciou), qualquer outro valor quando muda em relação ao lido.
 - **Copiar OID**, no menu da linha, copia o OID.
 
 Um walk que falha diz por quê, e o que verificar: um dispositivo que não responde (SNMP desligado, UDP 161 bloqueada ou, em v1 e v2c, uma community string errada, que um agente ignora sem dizer nada), um usuário, senha ou protocolo SNMPv3 que o dispositivo recusou, ou uma parte da árvore que a visão SNMP das credenciais deixa de fora. Um walk que para no meio do caminho mantém o que leu. Fazer walk exige a permissão **Create Network Device Diagnostic** e uma sonda recente o bastante para fazer walks SNMP: com uma mais antiga, a página pede que você a atualize.
@@ -408,13 +408,13 @@ Parte do que um dispositivo sabe é uma lista: uma linha por túnel IPsec, rádi
 | Nomes das linhas | Colunas opcionais cujos valores dão nome a cada linha, como o nome da conexão de um túnel. Sem elas, as linhas recebem o nome do seu índice. Um nome pode vir de uma tabela irmã que compartilha o índice (o Fabric Engine nomeia as adjacências IS-IS a partir de `rcIsisAdjHostName`), ou de uma tabela mãe cujo índice começa o desta tabela (o Aruba Instant nomeia cada rádio pelo seu access point). Uma tabela indexada por um nome (o ArubaOS indexa os seus SSIDs pelo SSID) recebe o nome do seu índice decodificado. |
 | Limite de linhas | Quantas linhas manter: 100 por padrão, 250 no máximo. |
 
-Números são lidos como números, e um texto que começa com um número é lido como esse número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muitos fabricantes colocam números dentro de strings. Defina o tipo de valor de uma coluna como **Text only** para valores que só parecem numéricos. Os **Value labels** transformam códigos em palavras (`0=inactive, 1=active`): o valor bruto continua sendo o que vai para os gráficos e as comparações, o rótulo é o que é exibido. Os **Healthy values** (`1`) dizem quais valores significam que está tudo bem: eles colorem a linha na página **SNMP Tables** do dispositivo e alimentam o critério **SNMP Table Row Is Unhealthy**.
+Números são lidos como números, e um texto que começa com um número é lido como esse número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muitos fabricantes colocam números dentro de strings. Defina o tipo de valor de uma coluna como **Text only** para valores que só parecem numéricos. Os **Value labels** transformam códigos em palavras (`0=inactive, 1=active`): o valor bruto continua sendo o que vai para os gráficos e as comparações, o rótulo é o que é exibido. Os **Healthy values** (`1`) dizem quais valores significam que está tudo bem: eles colorem a linha na página **Tabelas SNMP** do dispositivo e alimentam o critério **SNMP Table Row Is Unhealthy**.
 
 Algumas colunas dos modelos dos fabricantes também **ajustam** o número que leem, para MIBs que guardam um valor em uma unidade própria: o ArubaOS informa a potência de transmissão dobrada (lida × 0.5), o Aruba Instant o ruído de fundo sem o sinal (× −1), o Aerohive o ruído de fundo mais 256 (− 256), e o controlador da Extreme a largura do canal em passos de 20 MHz (× 20). O número ajustado é o que é exibido, colocado em gráficos e comparado, então **Noise Floor Maior que -80** significa o mesmo em todos os fabricantes, e o editor de tabelas mostra a conta embaixo da coluna.
 
 As tabelas vêm de um [OID Collection Template](#oid-collection-templates), compartilhado por cada dispositivo vinculado (até 10 tabelas), ou do próprio dispositivo em **Device-Specific SNMP Tables** (até mais 10). Elas são mescladas por chave a cada sondagem, o modelo primeiro, e uma tabela do dispositivo com a mesma chave substitui a do modelo. Os dois editores oferecem **Add a Vendor's Tables**.
 
-A sonda faz o walk de cada coluna como uma subárvore, dentro de um orçamento de 30 segundos compartilhado por todas as tabelas do dispositivo. Uma tabela cujo walk não é possível diz por quê e nunca faz a sondagem falhar: a página **SNMP Tables** do dispositivo mantém as últimas linhas válidas e informa que o walk mais recente falhou, enquanto os critérios julgam só o que este walk produziu, então um timeout nunca é lido como uma tabela vazia. Cada célula numérica é registrada como a métrica `oneuptime.monitor.snmp.table.value`, com os atributos `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` e `snmpTableRowIndex`, então um painel pode mostrar o status de cada túnel ou a potência de transmissão de cada rádio, e um monitor de métricas pode agrupar por `snmpTableRow`.
+A sonda faz o walk de cada coluna como uma subárvore, dentro de um orçamento de 30 segundos compartilhado por todas as tabelas do dispositivo. Uma tabela cujo walk não é possível diz por quê e nunca faz a sondagem falhar: a página **Tabelas SNMP** do dispositivo mantém as últimas linhas válidas e informa que o walk mais recente falhou, enquanto os critérios julgam só o que este walk produziu, então um timeout nunca é lido como uma tabela vazia. Cada célula numérica é registrada como a métrica `oneuptime.monitor.snmp.table.value`, com os atributos `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` e `snmpTableRowIndex`, então um painel pode mostrar o status de cada túnel ou a potência de transmissão de cada rádio, e um monitor de métricas pode agrupar por `snmpTableRow`.
 
 ### A aba Wi-Fi
 
@@ -781,6 +781,7 @@ Os critérios verificam cada resultado de sondagem e cada trap, e abrem incident
 | SNMP Response Time (in ms) | O tempo de resposta do walk em milissegundos, nunca o do ping. | Não avaliado |
 | SNMP OID Value | O valor que um OID retornou. | Não avaliado |
 | SNMP OID Exists | Se um OID retorna um valor. | Não avaliado |
+| SNMP OID Rate (per second) | A rapidez com que um OID contador cresceu, por segundo, desde a sondagem anterior: um contador só cresce, então alerte sobre isto e não sobre o valor dele. Sem veredito até ser lido duas vezes. | Não avaliado |
 | SNMP Interface Is Down | Verdadeiro quando uma interface habilitada administrativamente está fora do ar operacionalmente. | Não avaliado |
 | SNMP Interface Utilization (in %) | A utilização do enlace da interface mais carregada. | Não avaliado |
 | SNMP Interface Errors (per second) | A taxa de erros da pior interface. | Não avaliado |

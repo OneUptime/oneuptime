@@ -600,6 +600,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       PermissionGate.gateCardButton(
         {
           title: "Create Alert",
+          phoneTitle: "Create",
           onClick: () => {
             Navigation.navigate(
               RouteUtil.getPageRoute(PageMap.ALERT_CREATE, {

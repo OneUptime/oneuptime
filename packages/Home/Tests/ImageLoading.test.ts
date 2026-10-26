@@ -20,6 +20,12 @@ import path from "path";
  * moves when it arrives. Everything below the fold waits until it is near
  * the viewport (loading="lazy") and decodes off the main thread
  * (decoding="async"), with a width and height that reserve its box.
+ *
+ * But for the customer logos under the hero. They drift past on the
+ * compositor, which draws no new frame on the page itself, and a lazy image
+ * only asks whether it is near the screen when the page draws one - so a logo
+ * that slid in while the visitor sat still was never fetched. They load with
+ * the page instead, after everything else (fetchpriority="low").
  */
 
 const STATIC_IMG: string = path.join(__dirname, "..", "Static", "img");
@@ -97,15 +103,18 @@ describe("the homepage", () => {
     }
   });
 
-  test("leaves every image below the nav to load near the viewport, in a reserved box", () => {
+  test("leaves every other image below the nav to load near the viewport, in a reserved box", () => {
     const later: Array<Element> = Array.from(
       document.querySelectorAll("img"),
     ).filter((image: Element): boolean => {
-      return image.closest("header") === null;
+      return (
+        image.closest("header") === null &&
+        !image.classList.contains("customer-logo")
+      );
     });
 
-    // The customer logos and the footer's logo.
-    expect(later.length).toBeGreaterThan(10);
+    // The footer's logo.
+    expect(later.length).toBeGreaterThan(0);
 
     const eager: Array<string> = later
       .filter((image: Element): boolean => {
@@ -121,6 +130,31 @@ describe("the homepage", () => {
       });
 
     expect(eager).toEqual([]);
+  });
+
+  test("loads the drifting customer logos with the page, after everything else, in a reserved box", () => {
+    const logos: Array<Element> = Array.from(
+      document.querySelectorAll("img.customer-logo"),
+    );
+
+    // Two rows of sixteen, each drawn twice to loop.
+    expect(logos).toHaveLength(64);
+
+    const unlike: Array<string> = logos
+      .filter((image: Element): boolean => {
+        return (
+          image.getAttribute("loading") !== "eager" ||
+          image.getAttribute("fetchpriority") !== "low" ||
+          image.getAttribute("decoding") !== "async" ||
+          !image.getAttribute("width") ||
+          !image.getAttribute("height")
+        );
+      })
+      .map((image: Element): string => {
+        return image.outerHTML;
+      });
+
+    expect(unlike).toEqual([]);
   });
 
   test("gives the footer's logo a box in its own proportions", () => {

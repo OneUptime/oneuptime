@@ -77,7 +77,7 @@ Andate in **Avvisi → Tutti gli avvisi** e fate clic su **Crea avviso**. Il mod
 
 ### Descrivere l'avviso
 
-Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbligatori. Aggiungete una **Descrizione** se aiuta. In **Altri campi**, compresso, potete scegliere uno **Stato iniziale**, aggiungere **Etichette** o attivare **Avviso privato**. Lì trovate anche **Proprietari**: diventate comunque proprietari dell'avviso che create, e ogni team di cui siete membri è a un clic sotto il selettore.
+Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbligatori. Aggiungete una **Descrizione** se aiuta. In **Altri campi**, compresso, potete scegliere uno **Stato iniziale**, aggiungere **Etichette** o attivare **Avviso privato**. Lì trovate anche **Proprietari**: diventate comunque proprietari dell'avviso che create, e ogni team di cui siete membri è a un clic sotto il selettore. Un amministratore principale, che gestisce l'intera installazione, è l'unica eccezione: non diventa proprietario di ciò che crea.
 
 ### Scegliere che cosa riguarda e chi viene chiamato
 

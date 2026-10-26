@@ -904,6 +904,19 @@ migrate:
   affinity: {}
   # Optional PriorityClass so the migration run isn't preempted under pressure.
   priorityClassName: ""
+  # Annotations for the migrate Job itself, for example
+  # argocd.argoproj.io/hook: Sync under Argo CD (see "Migration Job annotations"
+  # in docs/configuration.md). With hook: true the chart writes the Job's
+  # helm.sh/hook annotations itself; a helm.sh/hook-weight ("-5") or
+  # helm.sh/hook-delete-policy (before-hook-creation) here replaces the chart's.
+  # helm.sh/hook itself is refused here: it comes from `hook`, which also
+  # decides whether the pods wait for the Job.
+  annotations: {}
+  # Annotations for the Job's pod, for example sidecar.istio.io/inject: "false":
+  # a service-mesh sidecar can keep the pod running after the migrations finish,
+  # so the Job never completes. Annotation values are strings, here and above:
+  # quote "false", "true" and numbers.
+  podAnnotations: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
   extraEnv: []

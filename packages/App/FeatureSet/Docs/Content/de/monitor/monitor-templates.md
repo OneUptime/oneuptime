@@ -39,7 +39,7 @@ Gehen Sie zu **Monitore → Einstellungen → Vorlagen** und klicken Sie auf **M
 
 ### Die Vorlage benennen
 
-Geben Sie unter **Vorlageninformationen** einen **Vorlagenname** ein, etwa `Production API Health`, und eine **Vorlagenbeschreibung**, und klicken Sie dann auf **Weiter**.
+Geben Sie unter **Vorlageninformationen** einen **Vorlagenname** ein, etwa `Production API Health`. Eine **Vorlagenbeschreibung** ist optional. Klicken Sie dann auf **Weiter**.
 
 ### Die Standardwerte des Monitors festlegen
 

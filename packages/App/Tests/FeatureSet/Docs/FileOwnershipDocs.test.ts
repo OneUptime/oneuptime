@@ -46,7 +46,7 @@ describe("Status page branding docs: the images are the project's own files", ()
 
   it("says each image is a file of the status page's own project, checked on every save", () => {
     expect(page).toContain(
-      "The logo, the cover image and the favicon are files uploaded in the status page's own project",
+      "The logo, the dark theme logo, the cover image and the favicon are files uploaded in the status page's own project",
     );
     expect(page).toContain(
       "from the dashboard, the API, Terraform or a workflow",
@@ -56,7 +56,8 @@ describe("Status page branding docs: the images are the project's own files", ()
   it("quotes every refusal the server gives, word for word", () => {
     const refusals: Array<string> = refusalsOf(new StatusPage());
 
-    expect(refusals).toHaveLength(3);
+    // The logo, the dark theme logo, the cover image and the favicon.
+    expect(refusals).toHaveLength(4);
 
     for (const refusal of refusals) {
       expect(page).toContain(`"${refusal}"`);

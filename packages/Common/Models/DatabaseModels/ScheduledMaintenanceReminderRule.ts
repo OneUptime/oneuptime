@@ -364,7 +364,7 @@ export default class ScheduledMaintenanceReminderRule extends RelationOnlyRuleBa
     type: TableColumnType.ShortText,
     title: "Stop Reminders When",
     description:
-      "Stop sending reminders once the scheduled maintenance event reaches this state. Select Ongoing to stop reminders when the event starts, or Completed to keep reminding until the event is completed.",
+      "Stop sending reminders once the scheduled maintenance event reaches this state. Select Ongoing to stop reminders when the event starts, or Completed to keep reminding until the event is completed. Ongoing needs Remind While Event is Scheduled on: a rule that waits for the event to start and stops when it starts would never remind, so it is refused.",
     defaultValue: ScheduledMaintenanceReminderStopState.Completed,
     isDefaultValueColumn: true,
     canReadOnRelationQuery: true,

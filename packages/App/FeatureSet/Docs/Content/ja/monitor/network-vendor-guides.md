@@ -54,7 +54,7 @@ Sophos は、どの SFOS のバージョンでも、ゲートウェイや SD-WAN
 3. デバイスの **設定** ページの **ポーリングとデータ収集** で、**ベンダーのヘルステンプレート** からテンプレート **Sophos Firewall (SFOS / XGS)** を適用し、**Add a Vendor's Tables** からそのテーブルを追加します。または **ベンダーのヘルステンプレートを自動適用** をオンにすると、最初のポーリングで両方が行われます。
 :::
 
-次のポーリングの後、デバイスの **SNMP Tables** ページには、各 IPsec 接続がそのステータス(active、inactive、partially active)とともに、CPU コアとあわせて一覧表示されます。SFOS はコアに 196608 から番号を振るため、CPU は単一の `hrProcessorLoad.1` ではなくテーブルから取得します。
+次のポーリングの後、デバイスの **SNMP テーブル** ページには、各 IPsec 接続がそのステータス(active、inactive、partially active)とともに、CPU コアとあわせて一覧表示されます。SFOS はコアに 196608 から番号を振るため、CPU は単一の `hrProcessorLoad.1` ではなくテーブルから取得します。
 
 ### すべての IPsec トンネルにアラートを出す
 

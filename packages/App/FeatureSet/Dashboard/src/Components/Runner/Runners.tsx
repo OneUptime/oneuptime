@@ -1,5 +1,6 @@
 import RunnerElement from "./Runner";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_RUNNERS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const RunnersElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.runners}
-      moreText="more Runners"
+      moreTemplate={MORE_RUNNERS_TEMPLATE}
       getEachElement={(runner: Runner) => {
         return (
           <RunnerElement

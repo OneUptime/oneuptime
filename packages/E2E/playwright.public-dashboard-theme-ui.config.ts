@@ -1,6 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
+/*
+ * The fixture's port: 4351, or another one for a second copy running at the
+ * same time (the server reads the same variable).
+ */
+const port: string =
+  process.env["PUBLIC_DASHBOARD_THEME_FIXTURE_PORT"] || "4351";
+
 export default defineConfig({
   testDir: "./PublicDashboardTheme",
   testMatch: "**/*.spec.ts",
@@ -25,7 +32,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: "http://127.0.0.1:4351",
+    baseURL: `http://127.0.0.1:${port}`,
     timezoneId: "UTC",
     locale: "en-GB",
     trace: "retain-on-failure",
@@ -34,7 +41,7 @@ export default defineConfig({
   webServer: {
     command: "node PublicDashboardTheme/Fixture/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4351/release",
+    url: `http://127.0.0.1:${port}/release`,
     timeout: 300000,
     reuseExistingServer: false,
   },

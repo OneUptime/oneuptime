@@ -5,7 +5,8 @@
  * production answer.
  *
  * A page with a logo made for a light background (dark lettering on
- * nothing), a description, an announcement, an incident in progress, a
+ * nothing) - and, with hasDarkLogo, one made for the dark theme too
+ * (light lettering) - a description, an announcement, an incident in progress, a
  * maintenance event, a list group whose history shows every bar colour
  * the recommended rules give a day - and days with no data - and a grid
  * group. Colours are the product's defaults for new projects.
@@ -31,8 +32,9 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import { RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES } from "Common/Utils/StatusPage/HistoryChartBarColors";
-// A data: URL (Common/UI/esbuild-config's file loader).
+// data: URLs (Common/UI/esbuild-config's file loader).
 import LOGO_DATA_URL from "./logo.svg";
+import DARK_LOGO_DATA_URL from "./logo-dark.svg";
 
 export const id = (value) => {
   return `00000000-0000-4000-8000-${String(value).padStart(12, "0")}`;
@@ -50,9 +52,11 @@ const DAY = 24 * HOUR;
  * The logo (logo.svg): dark lettering and an indigo mark on nothing, the
  * way most logos are made for a light page. The sign-in pages load it from
  * the API's /logo route, which the fixture's server answers with the file.
+ * The logo for the dark theme (logo-dark.svg) is light lettering, from
+ * /dark-theme-logo.
  */
-const logoBytes = () => {
-  const base64 = LOGO_DATA_URL.slice(LOGO_DATA_URL.indexOf(",") + 1);
+const logoBytes = (dataUrl) => {
+  const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
   const binary = atob(base64);
   const bytes = [];
 
@@ -71,15 +75,31 @@ const logoFile = () => {
   return file;
 };
 
+const darkLogoFile = () => {
+  const file = new File();
+  file._id = id(901);
+  file.name = "acme-logo-dark.svg";
+  file.fileType = "image/svg+xml";
+  return file;
+};
+
 /*
- * The logo's bytes as the API sends them: a Node Buffer, which
+ * The logos' bytes as the API sends them: a Node Buffer, which
  * JSON.stringify writes as { type: "Buffer", data: [...] }.
  */
 const withLogoBytes = (statusPageJson) => {
   statusPageJson.logoFile.file = {
     _type: "Buffer",
-    value: { type: "Buffer", data: logoBytes() },
+    value: { type: "Buffer", data: logoBytes(LOGO_DATA_URL) },
   };
+
+  if (statusPageJson.darkThemeLogoFile) {
+    statusPageJson.darkThemeLogoFile.file = {
+      _type: "Buffer",
+      value: { type: "Buffer", data: logoBytes(DARK_LOGO_DATA_URL) },
+    };
+  }
+
   return statusPageJson;
 };
 
@@ -302,6 +322,12 @@ export const buildFixture = (data) => {
     theme: data.theme,
     logoFile: logoFile(),
     logoFileId: new ObjectID(id(900)),
+    ...(data.hasDarkLogo
+      ? {
+          darkThemeLogoFile: darkLogoFile(),
+          darkThemeLogoFileId: new ObjectID(id(901)),
+        }
+      : {}),
     logoAltText: "Acme Cloud",
     copyrightText: "Acme, Inc.",
     overviewPageDescription:

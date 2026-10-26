@@ -381,6 +381,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           buttons: [
             {
               title: "Add Host",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {

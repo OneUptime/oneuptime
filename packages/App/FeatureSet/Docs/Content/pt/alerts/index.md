@@ -77,7 +77,7 @@ Vá para **Alertas → Todos os alertas** e clique em **Criar alerta**. O formul
 
 ### Descrever o alerta
 
-Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obrigatórios. Adicione uma **Descrição** se ajudar. Em **Mais campos**, recolhido, você pode escolher um **Estado Inicial**, adicionar **Rótulos** ou ativar **Alerta privado**. **Proprietários** também está lá: você se torna proprietário do alerta que cria de qualquer forma, e cada equipe da qual você é membro está a um clique abaixo do seletor.
+Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obrigatórios. Adicione uma **Descrição** se ajudar. Em **Mais campos**, recolhido, você pode escolher um **Estado Inicial**, adicionar **Rótulos** ou ativar **Alerta privado**. **Proprietários** também está lá: você se torna proprietário do alerta que cria de qualquer forma, e cada equipe da qual você é membro está a um clique abaixo do seletor. Um administrador mestre, que gerencia toda a instalação, é a única exceção: ele não se torna proprietário do que cria.
 
 ### Escolher o que ele afeta e quem é acionado
 

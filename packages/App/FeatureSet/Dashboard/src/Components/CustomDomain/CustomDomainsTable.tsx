@@ -1,10 +1,15 @@
 import {
   CustomDomainCopy,
+  CustomDomainInstallation,
   CustomDomainState,
   getCustomDomainState,
   isCustomDomainDnsSetupAvailable,
 } from "./CustomDomainCopy";
-import { CustomDomainKind, CustomDomainModel } from "./CustomDomainKinds";
+import {
+  CustomDomainKind,
+  CustomDomainModel,
+  getCustomDomainInstallation,
+} from "./CustomDomainKinds";
 import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
 import CustomDomainName from "./CustomDomainName";
 import CustomDomainStatus from "./CustomDomainStatus";
@@ -83,10 +88,16 @@ import React, {
 const certificateSection: FormFieldCollapsibleSection<CustomDomainModel> =
   getAdvancedFormSection<CustomDomainModel>({
     getSummary: (values: FormValues<CustomDomainModel>): Array<string> => {
+      /*
+       * An installation without a Let's Encrypt account key issues no free
+       * certificate, so the folded header does not promise one.
+       */
       return [
         values.isCustomCertificate
           ? CustomDomainCopy.advancedSummaryUploadedCertificate
-          : CustomDomainCopy.advancedSummaryFreeCertificate,
+          : getCustomDomainInstallation().issuesFreeCertificates
+            ? CustomDomainCopy.advancedSummaryFreeCertificate
+            : CustomDomainCopy.advancedSummaryWithoutFreeCertificate,
       ];
     },
   });
@@ -105,6 +116,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const kind: CustomDomainKind = props.kind;
   const cnameRecord: string = kind.getCnameRecord();
+  const installation: CustomDomainInstallation = getCustomDomainInstallation();
   const crudApiPath: string =
     new kind.modelType().crudApiPath?.toString() || "";
 
@@ -264,9 +276,14 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Custom Domains",
           description: cnameRecord
-            ? translator.translateTemplate(kind.copy.cardDescription, {
-                cnameRecord: cnameRecord,
-              })
+            ? translator.translateTemplate(
+                installation.issuesFreeCertificates
+                  ? kind.copy.cardDescription
+                  : kind.copy.cardDescriptionWithoutFreeCertificates,
+                {
+                  cnameRecord: cnameRecord,
+                },
+              )
             : CustomDomainCopy.cardDescriptionNotEnabled,
         }}
         refreshToggle={refreshToggle}
@@ -308,7 +325,12 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
              * orders it again and says why it failed.
              */
             isVisible: (item: CustomDomainModel): boolean => {
-              return isCustomDomainDnsSetupAvailable(item, certificateOf(item));
+              return isCustomDomainDnsSetupAvailable(
+                item,
+                certificateOf(item),
+                undefined,
+                installation,
+              );
             },
             onClick: async (
               item: CustomDomainModel,
@@ -353,10 +375,13 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
                * Only where there is a Let's Encrypt certificate of ours to
                * replace. A custom certificate is the customer's own upload,
                * and a domain whose first certificate is not ordered yet
-               * gets one on its own.
+               * gets one on its own. An installation without a Let's
+               * Encrypt account key orders none, so nothing is reissued
+               * there - not even for a domain ordered before the key went.
                */
               return Boolean(
-                !item.isCustomCertificate &&
+                installation.issuesFreeCertificates &&
+                  !item.isCustomCertificate &&
                   item.isCnameVerified &&
                   item.isSslOrdered,
               );
@@ -542,6 +567,11 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * A sentence, and an order's failure under it: they wrap in
+             * the column rather than run out of it mid-word.
+             */
+            wrapContent: true,
 
             getElement: (item: CustomDomainModel): ReactElement => {
               return (
@@ -563,6 +593,8 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             getCustomDomainState(
               dnsSetupDomain,
               certificateOf(dnsSetupDomain),
+              undefined,
+              installation,
             ) === CustomDomainState.CertificateExpired
           }
           checkNowGate={updateGate}

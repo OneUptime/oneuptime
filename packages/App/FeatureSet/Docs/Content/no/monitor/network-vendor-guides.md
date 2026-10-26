@@ -54,7 +54,7 @@ Sophos rapporterer ikke helsen til gatewayer eller SD-WAN via SNMP, i noen SFOS-
 3. På enhetens side **Innstillinger**, under **Polling & Data Collection**, bruker du malen **Sophos Firewall (SFOS / XGS)** fra **Vendor Health Template** og legger til tabellene dens fra **Add a Vendor's Tables**. Eller slå på **Auto-Apply Vendor Health Template**, så gjør første polling begge deler.
 :::
 
-Etter neste polling viser enhetens side **SNMP Tables** hver IPsec-tilkobling med statusen (active, inactive, partially active), og CPU-kjernene. SFOS nummererer kjernene sine fra 196608, og derfor kommer CPU-en fra en tabell i stedet for fra én enkelt `hrProcessorLoad.1`.
+Etter neste polling viser enhetens side **SNMP-tabeller** hver IPsec-tilkobling med statusen (active, inactive, partially active), og CPU-kjernene. SFOS nummererer kjernene sine fra 196608, og derfor kommer CPU-en fra en tabell i stedet for fra én enkelt `hrProcessorLoad.1`.
 
 ### Varsle om hver IPsec-tunnel
 

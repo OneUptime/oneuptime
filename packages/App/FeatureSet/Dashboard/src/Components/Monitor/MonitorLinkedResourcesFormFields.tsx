@@ -107,13 +107,14 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
       /*
        * Hidden registrations so ModelForm.getSelectFields includes the
        * other relations on load and submit (hosts is the picker's anchor
-       * above).
+       * above). Drawn nowhere, so they say nothing.
        */
       {
         field: { kubernetesClusters: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -123,6 +124,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -132,6 +134,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -141,6 +144,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -150,6 +154,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -159,6 +164,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -168,6 +174,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -177,6 +184,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -186,6 +194,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -195,6 +204,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },
@@ -204,6 +214,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,
+        hideColumnDescription: true,
         showIf: () => {
           return false;
         },

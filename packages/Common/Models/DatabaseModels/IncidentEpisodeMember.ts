@@ -115,6 +115,26 @@ export enum IncidentEpisodeMemberAddedBy {
 @Index(["isOwnerNotifiedOfIncidentAdded"], {
   where: '"isOwnerNotifiedOfIncidentAdded" = false AND "deletedAt" IS NULL',
 })
+/*
+ * AT MOST ONE FIRST MEMBERSHIP PER INCIDENT (isFirstMembership).
+ *
+ * A project can allow an incident in only one episode (EpisodeSingleMembership).
+ * The member service checks the incident's memberships before it adds one, and
+ * two adds of an incident that is in no episode, at the same moment - a person
+ * and the grouping engine, two tabs - both found none, and both were added.
+ * Every add made while the incident is in no episode is its first membership,
+ * and this index takes one per incident: the add that loses the race is refused
+ * here, and the service checks it again - refused while the project allows
+ * one episode, added as a second membership while it allows several
+ * (IncidentEpisodeMemberService.create).
+ *
+ * Partial, so only first memberships are in it; "deletedAt" IS NULL as in
+ * the index above. Built online in its own migration (OnlineDdl).
+ */
+@Index("IDX_IncidentEpisodeMember_first_membership", ["incidentId"], {
+  unique: true,
+  where: '"isFirstMembership" = true AND "deletedAt" IS NULL',
+})
 export default class IncidentEpisodeMember extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -690,6 +710,34 @@ export default class IncidentEpisodeMember extends BaseModel {
     default: false,
   })
   public isOwnerNotifiedOfIncidentAdded?: boolean = undefined;
+
+  /*
+   * Whether the incident was in no episode when this membership was made: its
+   * first. Written by OneUptime on every add, whatever a write sends; the
+   * index above lets at most one membership of an incident have it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Is First Membership",
+    description:
+      "Whether the incident was in no other episode when it was added to this one. Set by the server.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isFirstMembership?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -2,9 +2,14 @@ import OneUptimeDate from "Common/Types/Date";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import {
+  SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SummaryFact,
+  SummaryFacts,
+  SummaryView,
+} from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -38,20 +43,16 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="sql-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            props.probeMonitorResponse.isOnline ? "Online" : "Offline",
+          )}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Row Count"
           value={
             sqlResponse?.rowCount === null ||
@@ -60,21 +61,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
               : sqlResponse.rowCount.toString()
           }
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Value"
-          value={scalarValue}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Execution Time"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
-        />
-      </div>
-
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Rows Truncated"
           value={
             translator.translateText(
@@ -82,8 +69,13 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
             ) || ""
           }
         />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
+        {/* A query's value may be text of any length: the row is its own. */}
+        <SummaryFact isWide={true} title="Value" value={scalarValue} />
+        <SummaryFact
+          title="Execution Time"
+          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+        />
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -93,12 +85,9 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      {(sqlResponse?.queryError || props.probeMonitorResponse.failureCause) && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
+        {sqlResponse?.queryError || props.probeMonitorResponse.failureCause ? (
+          <SummaryFact
+            isWide={true}
             title="Error"
             value={
               sqlResponse?.queryError ||
@@ -106,8 +95,10 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
               "-"
             }
           />
-        </div>
-      )}
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {hadRetries && (
         <ProbeAttemptsView
@@ -122,7 +113,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
             <h3 className="text-sm font-medium text-gray-700">
               {translator.translateText("First Row")}
             </h3>
-            <div className="border rounded-md overflow-hidden">
+            <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -159,7 +150,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         )}
-    </div>
+    </SummaryView>
   );
 };
 

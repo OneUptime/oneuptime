@@ -3,7 +3,8 @@
  * styles, MoreMenu's own trigger, Modal's first focus, the Duplicate, Reset
  * and Delete cards and their dialogs, CollapsibleSection and SideMenuSection,
  * the pills (Pill, BooleanValue, DropdownValueBadge), the stat tiles
- * (InfoCard), the multi-selects' chips and the team avatars.
+ * (InfoCard), the multi-selects' chips, the team avatars, and the radios and
+ * checkboxes (ChoiceRows, Checkbox).
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced; every component is the production one from this
@@ -11,7 +12,7 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars  which part to draw
+ *   - section=buttons|dialogs|sections|pills|avatars|choices  which part to draw
  *     (all of them when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN   the Dashboard's words in that language
@@ -41,6 +42,9 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
+import ChoiceRows from "Common/UI/Components/ChoiceRows/ChoiceRows";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
@@ -782,12 +786,113 @@ function Avatars() {
   );
 }
 
+const THEME_CHOICES = [
+  {
+    value: "Light",
+    title: "Light",
+    description: "Every visitor sees the light page.",
+    dataTestId: "choice-light",
+  },
+  {
+    value: "Dark",
+    title: "Dark",
+    description: "Every visitor sees the dark page.",
+    dataTestId: "choice-dark",
+  },
+  {
+    value: "System",
+    title: "Match each visitor's device",
+    description: "Light or dark, as each visitor's device is set.",
+    dataTestId: "choice-system",
+  },
+];
+
+// A choice card's body, full bleed and ruled, as a Theme card draws it.
+function RuledBody(props) {
+  return <div className={useCardRuledBodyClassName()}>{props.children}</div>;
+}
+
+/*
+ * The radios of a choice card (ChoiceRows) - one picked, then the same card
+ * locked - and the checkboxes (Checkbox): ticked, not ticked, partly ticked
+ * and locked, as forms and tables draw them.
+ */
+function Choices() {
+  const [theme, setTheme] = useState("Dark");
+  const [isTicked, setIsTicked] = useState(true);
+
+  return (
+    <div className="space-y-5" data-testid="section-choices">
+      <Card title="Theme" description="How your status page looks to visitors.">
+        <RuledBody>
+          <ChoiceRows
+            value={theme}
+            options={THEME_CHOICES}
+            onPick={(value) => {
+              setTheme(value);
+            }}
+            ariaLabel="Status page theme"
+            dataTestId="choice-rows"
+          />
+        </RuledBody>
+      </Card>
+      <Card title="Theme, locked" description="Somebody who may not edit it.">
+        <RuledBody>
+          <ChoiceRows
+            value="Dark"
+            options={THEME_CHOICES.map((choice) => {
+              return { ...choice, dataTestId: `locked-${choice.dataTestId}` };
+            })}
+            onPick={() => {}}
+            lockedReason="You do not have permission to edit this status page."
+            ariaLabel="Locked status page theme"
+            dataTestId="choice-rows-locked"
+          />
+        </RuledBody>
+      </Card>
+      <Card title="Notifications" description="Who hears about it.">
+        <div className="space-y-3" data-testid="checkboxes">
+          <Checkbox
+            title="Notify subscribers"
+            value={isTicked}
+            onChange={(value) => {
+              setIsTicked(value);
+            }}
+            dataTestId="checkbox-ticked"
+          />
+          <Checkbox
+            title="Include resolved incidents"
+            value={false}
+            onChange={() => {}}
+            dataTestId="checkbox-unticked"
+          />
+          <Checkbox
+            title="Some monitors"
+            value={false}
+            isIndeterminate={true}
+            onChange={() => {}}
+            dataTestId="checkbox-partly"
+          />
+          <Checkbox
+            title="Locked"
+            value={true}
+            disabled={true}
+            onChange={() => {}}
+            dataTestId="checkbox-locked"
+          />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
   sections: Sections,
   pills: Pills,
   avatars: Avatars,
+  choices: Choices,
 };
 
 function Gallery() {

@@ -309,14 +309,12 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
         return item.method;
       }),
     ).toEqual(["post", "alarm", "update"]);
-    expect(sent[1]!.text).toContain(
-      "paged nobody at escalation rule 2 of 2 (second)",
-    );
+    expect(sent[1]!.text).toContain("paged nobody at second (Level 2 of 2)");
     // The alarm is posted to be seen: its notification says what is wrong.
     expect(sent[1]!.notification).toBe(
-      "PolicyX paged nobody at escalation rule 2 of 2 (second) for Incident INC-8",
+      "PolicyX paged nobody at second (Level 2 of 2) for Incident INC-8",
     );
-    expect(sent[2]!.text).toContain("Escalation rule 2 of 2 (second)");
+    expect(sent[2]!.text).toContain("second (Level 2 of 2)");
     expect(sent[2]!.notification).toBe("PolicyX is paging for Incident INC-8");
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],

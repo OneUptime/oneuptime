@@ -1,5 +1,6 @@
 import KubernetesClusterElement from "./KubernetesCluster";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_KUBERNETES_CLUSTERS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const KubernetesClustersElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.kubernetesClusters}
-      moreText="more Kubernetes clusters"
+      moreTemplate={MORE_KUBERNETES_CLUSTERS_TEMPLATE}
       getEachElement={(cluster: KubernetesCluster) => {
         return (
           <KubernetesClusterElement

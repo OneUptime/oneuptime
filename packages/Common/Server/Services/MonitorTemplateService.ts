@@ -33,6 +33,7 @@ import DeviceMonitorTemplateUtil, {
 import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
 import QueryHelper from "../Types/Database/QueryHelper";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
@@ -141,6 +142,17 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.monitorSteps,
       createBy.data.monitorType,
     );
+
+    /*
+     * A Synthetic template whose step has no browser or no screen size
+     * would give every monitor made or synced from it a step that runs
+     * nothing.
+     */
+    SyntheticMonitorStepsUtil.assertRunsSomewhere({
+      monitorType: createBy.data.monitorType,
+      monitorSteps: createBy.data.monitorSteps,
+    });
+
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId || createBy.data.projectId,
@@ -263,6 +275,16 @@ export class Service extends ProjectReferencesService<Model> {
         (updateBy.data.monitorType as MonitorType | undefined) ||
           template.monitorType,
       );
+      // The steps and type this write leaves (see onBeforeCreate).
+      SyntheticMonitorStepsUtil.assertRunsSomewhere({
+        monitorType:
+          (updateBy.data.monitorType as MonitorType | undefined) ||
+          template.monitorType,
+        monitorSteps:
+          updateBy.data.monitorSteps === undefined
+            ? template.monitorSteps
+            : (updateBy.data.monitorSteps as MonitorSteps | JSONObject),
+      });
       if (!updateBy.data.monitorSteps) {
         continue;
       }

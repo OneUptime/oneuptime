@@ -39,7 +39,7 @@ Gå til **Monitorer → Indstillinger → Skabeloner**, og klik på **Opret Moni
 
 ### Navngiv skabelonen
 
-Angiv under **Skabeloninformation** et **Skabelonnavn**, som `Production API Health`, og en **Skabelonbeskrivelse**, og klik så på **Næste**.
+Angiv under **Skabeloninformation** et **Skabelonnavn**, som `Production API Health`. En **Skabelonbeskrivelse** er valgfri. Klik så på **Næste**.
 
 ### Angiv monitorens standarder
 

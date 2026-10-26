@@ -285,9 +285,12 @@ const Summary: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * The per-type views lay their numbers out as quarter-width cards in one
-     * row, which is wider than a phone. They scroll inside this card, as the
-     * uptime strip does, rather than making the whole page scroll sideways.
+     * The per-type views lay their facts out by their own width
+     * (SummaryFacts) and scroll their tables inside their own frames, so
+     * nothing here is wider than the card. They laid them out as a row of
+     * quarter-width cards, which was wider than a phone and scrolled
+     * sideways in here. The scroll stays only as a last resort: something
+     * too wide still scrolls inside this card, never the whole page.
      */
     return (
       <div data-testid="monitor-summary-body" className="overflow-x-auto">

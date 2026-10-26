@@ -862,9 +862,9 @@ test.describe("In the Project Settings layout", () => {
   }: {
     page: Page;
   }) => {
-    // German's longer words first: "Verbunden 14 Werkzeuge", "Ansehen".
+    // German's longer words first: "Verbunden 14 Werkzeuge", "Anzeigen".
     await open(page, "layout=page&servers=many&lang=de");
-    await expectEveryRowToFit(page, "Ansehen");
+    await expectEveryRowToFit(page, "Anzeigen");
     await shoot(page, "list-in-settings-de");
 
     await open(page, "layout=page&servers=many");

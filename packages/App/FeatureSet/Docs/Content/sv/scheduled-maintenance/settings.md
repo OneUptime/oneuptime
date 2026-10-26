@@ -82,7 +82,7 @@ Under **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur of
 | **Innan den börjar** | Från att händelsen schemaläggs tills den börjar. |
 | **Innan den börjar och medan den pågår** | Från att händelsen schemaläggs tills den slutar. |
 
-En regel som sparats via API:et eller Terraform och som väntar tills händelsen börjar och slutar när den börjar skickar aldrig någon påminnelse: listan markerar den med **Påminner aldrig**, och dess formulär ber dig välja ett svar.
+API:et och Terraform avvisar en regel som skulle vänta tills händelsen börjar och sluta när den börjar: den skulle aldrig skicka någon påminnelse. En äldre regel som sparats så markeras i listan med **Påminner aldrig**, och dess formulär ber dig välja när påminnelser ska skickas.
 
 Ägarna får varje påminnelse som **Maintenance reminder**, som är påslagen via e-post för varje ny medlem. Att spara, ändra eller ta bort en påminnelseregel matchar varje händelse som inte är slutförd på nytt. För att stoppa påminnelserna för en händelse stänger du av **Skicka påminnelser** på dess sida **Inställningar**; reglaget sparas i samma stund som du slår om det.
 

@@ -140,6 +140,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
       PermissionGate.gateCardButton(
         {
           title: "Create Announcement",
+          phoneTitle: "Create",
           onClick: () => {
             Navigation.navigate(
               getAnnouncementCreateRoute({

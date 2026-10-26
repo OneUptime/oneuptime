@@ -77,7 +77,7 @@ Go to **Alerts → All Alerts** and click **Create Alert**. The **Create New Ale
 
 ### Describe the alert
 
-Fill in the **Title** and pick an **Alert Severity**; both are required. Add a **Description** if it helps. Under **More fields**, folded, you can pick an **Initial State**, add **Labels**, or make it a **Private Alert**. **Owners** waits there too: you become an owner of the alert you create anyway, and each team you are a member of is one click away under the picker.
+Fill in the **Title** and pick an **Alert Severity**; both are required. Add a **Description** if it helps. Under **More fields**, folded, you can pick an **Initial State**, add **Labels**, or make it a **Private Alert**. **Owners** waits there too: you become an owner of the alert you create anyway, and each team you are a member of is one click away under the picker. A master admin, who runs the whole installation, is the one exception: they are not made an owner of what they create.
 
 ### Pick what it affects and who is paged
 

@@ -164,9 +164,11 @@ function buildPage(
   page.isPublicStatusPage = true;
   page.isArchived = false;
   page.logoFileId = new ObjectID(OWN_FILE_ID);
+  page.darkThemeLogoFileId = new ObjectID(OWN_FILE_ID);
   page.coverImageFileId = new ObjectID(OWN_FILE_ID);
   page.faviconFileId = new ObjectID(OWN_FILE_ID);
   page.logoFile = image(bytes, owner);
+  page.darkThemeLogoFile = image(bytes, owner);
   page.coverImageFile = image(bytes, owner);
   page.faviconFile = image(bytes, owner);
   return page;
@@ -400,7 +402,12 @@ describe("public routes serve only a record's own files", () => {
 
   describe("a status page's logo, cover image and favicon", () => {
     it("serves the images of the page's own project", async () => {
-      for (const asset of ["logo", "cover-image", "favicon"]) {
+      for (const asset of [
+        "logo",
+        "dark-theme-logo",
+        "cover-image",
+        "favicon",
+      ]) {
         const result: HttpResult = await send({
           port,
           method: "GET",
@@ -432,6 +439,7 @@ describe("public routes serve only a record's own files", () => {
       for (const pageId of [FOREIGN_PAGE_ID, UNOWNED_PAGE_ID]) {
         for (const [asset, message] of [
           ["logo", "Status Page logo not found"],
+          ["dark-theme-logo", "Status Page dark theme logo not found"],
           ["cover-image", "Status Page cover image not found"],
         ]) {
           const result: HttpResult = await send({
@@ -499,7 +507,12 @@ describe("public routes serve only a record's own files", () => {
 
       const statusPage: JSONObject = result.body?.["statusPage"] as JSONObject;
 
-      for (const relation of ["logoFile", "coverImageFile", "faviconFile"]) {
+      for (const relation of [
+        "logoFile",
+        "darkThemeLogoFile",
+        "coverImageFile",
+        "faviconFile",
+      ]) {
         expect(statusPage[relation]).toBeDefined();
         expect(
           (statusPage[relation] as JSONObject)["projectId"],
@@ -507,6 +520,7 @@ describe("public routes serve only a record's own files", () => {
       }
 
       expect(statusPage["logoFileId"]).toBeDefined();
+      expect(statusPage["darkThemeLogoFileId"]).toBeDefined();
       expect(statusPage["coverImageFileId"]).toBeDefined();
       expect(statusPage["projectId"]).toBeUndefined();
       expect(result.text).toContain(serializedBytes(OWN_BYTES));
@@ -529,6 +543,8 @@ describe("public routes serve only a record's own files", () => {
         for (const column of [
           "logoFile",
           "logoFileId",
+          "darkThemeLogoFile",
+          "darkThemeLogoFileId",
           "coverImageFile",
           "coverImageFileId",
           "faviconFile",
@@ -560,6 +576,17 @@ describe("public routes serve only a record's own files", () => {
       expect(page.coverImageFile).toBeUndefined();
       expect(page.coverImageFileId).toBeUndefined();
       expect(page.projectId).toBeUndefined();
+    });
+
+    it("holds the dark theme logo to the page's project as the logo is", () => {
+      const page: StatusPage = buildPage(OWN_PAGE_ID, OWN_BYTES, PROJECT_ID);
+      page.darkThemeLogoFile = image(FOREIGN_BYTES, OTHER_PROJECT_ID);
+
+      keepOwnStatusPageImages(page);
+
+      expect(page.logoFile?.file).toBe(OWN_BYTES);
+      expect(page.darkThemeLogoFile).toBeUndefined();
+      expect(page.darkThemeLogoFileId).toBeUndefined();
     });
   });
 

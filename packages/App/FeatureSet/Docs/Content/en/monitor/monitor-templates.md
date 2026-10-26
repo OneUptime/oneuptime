@@ -39,7 +39,7 @@ Go to **Monitors → Settings → Templates** and click **Create Monitor Templat
 
 ### Name the template
 
-On **Template Info**, enter a **Template Name**, such as `Production API Health`, and a **Template Description**, then click **Next**.
+On **Template Info**, enter a **Template Name**, such as `Production API Health`. A **Template Description** is optional. Then click **Next**.
 
 ### Set the monitor defaults
 

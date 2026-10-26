@@ -290,7 +290,7 @@ test.describe("the Incidents list of the screenshot", () => {
         "Title",
         "State",
         "Severity",
-        "Resources Affected",
+        "Affected Resources",
         "Declared",
         "Duration",
         "Labels",
@@ -1856,12 +1856,16 @@ test.describe("a row's name uses the room its row has", () => {
     await screenshot(page, "status-pages-long-1000");
   });
 
-  test("at 900px even 10rem does not fit: the rows scroll, and the name is back at its cap", async ({
+  /*
+   * Its row's View is "View" now, not "View Status Page": 900px fits too,
+   * and the rows scroll from below about 860px.
+   */
+  test("at 820px even 10rem does not fit: the rows scroll, and the name is back at its cap", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGES}?data=long`, 900);
+    await open(page, `${STATUS_PAGES}?data=long`, 820);
 
     await expect(page.getByTestId("table-scroll")).toHaveAttribute(
       "data-overflowing",
@@ -1892,9 +1896,9 @@ test.describe("a row's name uses the room its row has", () => {
     const name: Locator = statusPageName(page, 2);
 
     for (const [width, overflowing, fill] of [
-      [900, "true", "false"],
+      [820, "true", "false"],
       [1000, "false", "true"],
-      [880, "true", "false"],
+      [800, "true", "false"],
       [1280, "false", "true"],
     ] as Array<[number, string, string]>) {
       await page.setViewportSize({ width: width, height: 900 });
@@ -1903,10 +1907,10 @@ test.describe("a row's name uses the room its row has", () => {
     }
 
     // A window's edge dragged across both, a few pixels a frame, and back.
-    for (let width: number = 1280; width >= 860; width -= 7) {
+    for (let width: number = 1280; width >= 800; width -= 7) {
       await page.setViewportSize({ width: width, height: 900 });
     }
-    for (let width: number = 860; width <= 1280; width += 9) {
+    for (let width: number = 800; width <= 1280; width += 9) {
       await page.setViewportSize({ width: width, height: 900 });
     }
     await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
@@ -2008,6 +2012,494 @@ test.describe("a row's name uses the room its row has", () => {
     await expect(shortPerson).not.toHaveAttribute("title", /.+/);
 
     await screenshot(page, "gallery-people-1280");
+  });
+});
+
+/*
+ * "Tables that run past their card": beside a side menu at 1280px a card is
+ * about 938px wide, and table after table ran its rows under the sticky
+ * Actions column for a header of two words or a name 30px too long. A table
+ * now gives way before it scrolls - its header's names break between their
+ * words, then its long values are cut short a little more, never below 8rem
+ * - and scrolls as before only when that is not enough. The gallery's give
+ * table (?table=give) is a list of hosts just too wide for such a card; the
+ * Shell around it is 64px narrower than the window, so a 1002px window gives
+ * the 938px of a card at 1280 beside a side menu.
+ */
+test.describe("a table gives way before its rows scroll", () => {
+  const GIVE: string = `${GALLERY}?table=give`;
+
+  interface GiveReading {
+    overflowing: string | null;
+    wrapsHeaders: boolean;
+    gives: Array<string | null>;
+    hostWidths: Array<number>;
+    headerHeight: number;
+    tableWidth: number;
+    boxWidth: number;
+  }
+
+  async function readGive(page: Page): Promise<GiveReading> {
+    return await page.evaluate((): GiveReading => {
+      const box: Element = document.querySelector(
+        '[data-testid="table-scroll"]',
+      ) as Element;
+      const table: HTMLTableElement = box.querySelector(
+        "table",
+      ) as HTMLTableElement;
+      const hosts: Array<HTMLElement> = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "#gallery-give-body > tr > td:nth-child(3) > div",
+        ),
+      );
+
+      return {
+        overflowing: box.getAttribute("data-overflowing"),
+        wrapsHeaders: table.getAttribute("data-wrap-headers") === "true",
+        gives: hosts.map((host: HTMLElement): string | null => {
+          return host.getAttribute("data-give");
+        }),
+        hostWidths: hosts.map((host: HTMLElement): number => {
+          return Math.round(host.getBoundingClientRect().width);
+        }),
+        headerHeight: Math.round(
+          (table.querySelector("thead tr") as Element).getBoundingClientRect()
+            .height,
+        ),
+        tableWidth: Math.round(table.getBoundingClientRect().width),
+        boxWidth: Math.round(box.getBoundingClientRect().width),
+      };
+    });
+  }
+
+  function giveRows(page: Page): Locator {
+    return bodyRows(page, "gallery-give");
+  }
+
+  async function expectRowButtonsOnTheCard(page: Page): Promise<void> {
+    const card: Box = await box(page.getByTestId("card").first());
+
+    for (const view of await giveRows(page)
+      .getByRole("button", { name: "View Monitor" })
+      .all()) {
+      const button: Box = await box(view);
+      expect(button.x + button.width).toBeLessThanOrEqual(card.x + card.width);
+    }
+  }
+
+  test("wide enough, it is drawn as it is: its header on one line, every value whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1280);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const reading: GiveReading = await readGive(page);
+
+    expect(reading.overflowing).toBe("false");
+    expect(reading.wrapsHeaders).toBe(false);
+    expect(reading.gives).toEqual([null, null, null, null]);
+    // One line of 12px names on the band, its two rules.
+    expect(reading.headerHeight).toBeLessThanOrEqual(39);
+  });
+
+  test("a little too wide, its header's names break between their words - and nothing is cut short", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1120);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const reading: GiveReading = await readGive(page);
+
+    expect(reading.overflowing).toBe("false");
+    expect(reading.wrapsHeaders).toBe(true);
+    expect(reading.gives).toEqual([null, null, null, null]);
+    expect(reading.tableWidth).toBeLessThanOrEqual(reading.boxWidth);
+
+    // "Poll Interval (Minutes)" over a 5: on two lines, never inside a word.
+    const poll: Locator = header(page).filter({
+      hasText: "Poll Interval (Minutes)",
+    });
+    const lines: Array<number> = await poll
+      .locator("span")
+      .first()
+      .evaluate((element: Element): Array<number> => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        return Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          });
+      });
+    expect(new Set(lines).size).toBeGreaterThan(1);
+    expect(reading.headerHeight).toBeGreaterThan(39);
+
+    await expectRowButtonsOnTheCard(page);
+    await screenshot(page, "gallery-give-1120");
+  });
+
+  test("too wide for that - the card beside a side menu at 1280px - its long host names are cut short, never below 8rem, whole under the pointer; its date, count and status stay whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1002);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const reading: GiveReading = await readGive(page);
+
+    expect(reading.overflowing).toBe("false");
+    expect(reading.wrapsHeaders).toBe(true);
+    expect(reading.gives).toEqual(["line", "line", "line", "line"]);
+    expect(reading.tableWidth).toBeLessThanOrEqual(reading.boxWidth);
+
+    for (const width of reading.hostWidths) {
+      expect(width).toBeGreaterThanOrEqual(128);
+      expect(width).toBeLessThan(320);
+    }
+
+    // One line of each host, cut short where its column ends.
+    const host: Locator = giveRows(page)
+      .nth(0)
+      .locator("td")
+      .nth(2)
+      .locator("> div");
+    const cut: { lineClamp: string; height: number; isCut: boolean } =
+      await host.evaluate(
+        (
+          element: Element,
+        ): { lineClamp: string; height: number; isCut: boolean } => {
+          return {
+            lineClamp: getComputedStyle(element).webkitLineClamp,
+            height: Math.round(element.getBoundingClientRect().height),
+            isCut: element.scrollHeight > element.clientHeight,
+          };
+        },
+      );
+    expect(cut).toEqual({ lineClamp: "1", height: 24, isCut: true });
+    // Every row keeps its 48px.
+    expect(new Set(await rowHeights(giveRows(page)))).toEqual(
+      new Set([49, 48]),
+    );
+
+    await host.hover();
+    await expect(host).toHaveAttribute(
+      "title",
+      "web-prod-03.eu-west-1.acme-commerce.internal",
+    );
+
+    // A date, a count and a status are never cut short.
+    for (const column of [3, 4, 5]) {
+      const value: Locator = giveRows(page)
+        .nth(0)
+        .locator("td")
+        .nth(column)
+        .locator("> div");
+      await expect(value).not.toHaveAttribute("data-give", /.+/);
+      expect(
+        await value.evaluate((element: Element): boolean => {
+          return element.scrollWidth <= element.clientWidth;
+        }),
+      ).toBe(true);
+    }
+
+    await expectRowButtonsOnTheCard(page);
+    await expect(
+      page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).resolves.toBe(0);
+    await screenshot(page, "gallery-give-1002");
+  });
+
+  /*
+   * A value cut short shows its first line to its column's end, the "..."
+   * where the room runs out, as a value cut with an ellipsis does. Broken
+   * only between words, "web-prod-03.eu-west-1.acme-commerce.internal"
+   * ended at "web-prod-03.eu-west-..." with a third of its column empty,
+   * and each host was cut at a different width.
+   */
+  test("a value cut short runs to its column's end: never short at a hyphen or a space", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1002);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const lines: Array<{ give: string | null; box: number; gap: number }> =
+      await page.evaluate(
+        (): Array<{ give: string | null; box: number; gap: number }> => {
+          return Array.from(
+            document.querySelectorAll<HTMLElement>(
+              "#gallery-give-body > tr > td:nth-child(3) > div",
+            ),
+          ).map((host: HTMLElement) => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(host);
+            const parts: Array<DOMRect> = Array.from(
+              range.getClientRects(),
+            ).filter((rect: DOMRect): boolean => {
+              return rect.width > 0;
+            });
+            // The first line: the parts that sit highest.
+            const top: number = Math.min(
+              ...parts.map((rect: DOMRect): number => {
+                return Math.round(rect.top);
+              }),
+            );
+            const right: number = Math.max(
+              ...parts
+                .filter((rect: DOMRect): boolean => {
+                  return Math.round(rect.top) === top;
+                })
+                .map((rect: DOMRect): number => {
+                  return rect.right;
+                }),
+            );
+            const box: DOMRect = host.getBoundingClientRect();
+
+            return {
+              give: host.getAttribute("data-give"),
+              box: Math.round(box.width),
+              gap: Math.round(box.right - right),
+            };
+          });
+        },
+      );
+
+    expect(lines).toHaveLength(4);
+    for (const line of lines) {
+      expect(line.give).toBe("line");
+      // No more empty than an ellipsis is wide.
+      expect(line.gap).toBeLessThanOrEqual(16);
+    }
+  });
+
+  /*
+   * A name no wider than the 10rem a name set free gives way to has
+   * nothing to give: it is not set free, and its column is as wide as its
+   * longest name - the room goes to the hosts beside it. "Checkout API"
+   * stood in a 10rem column while the person on call beside it was cut
+   * short to "ada@acme-co...".
+   */
+  test("short names keep their own width: not set free, their column no wider than the longest of them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1002);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const names: Array<{ fill: string | null; box: number; words: number }> =
+      await page.evaluate(
+        (): Array<{ fill: string | null; box: number; words: number }> => {
+          return Array.from(
+            document.querySelectorAll<HTMLElement>(
+              "#gallery-give-body > tr > td:nth-child(2) > div",
+            ),
+          ).map((name: HTMLElement) => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(name);
+
+            return {
+              fill: name.getAttribute("data-fill"),
+              box: Math.round(name.getBoundingClientRect().width),
+              words: Math.round(range.getBoundingClientRect().width),
+            };
+          });
+        },
+      );
+
+    expect(names).toHaveLength(4);
+
+    const longest: number = Math.max(
+      ...names.map((name: { words: number }): number => {
+        return name.words;
+      }),
+    );
+    // "Billing Reconciler", the longest, is under the 10rem floor.
+    expect(longest).toBeLessThan(160);
+
+    for (const name of names) {
+      expect(name.fill).toBe("false");
+      expect(name.box).toBeLessThanOrEqual(longest + 1);
+    }
+  });
+
+  test("too wide even so, it scrolls as it did: its header on one line, every value whole, its Actions in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 840);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const reading: GiveReading = await readGive(page);
+
+    expect(reading.overflowing).toBe("true");
+    expect(reading.wrapsHeaders).toBe(false);
+    expect(reading.gives).toEqual([null, null, null, null]);
+    expect(reading.headerHeight).toBeLessThanOrEqual(39);
+    await expectRowButtonsOnTheCard(page);
+  });
+
+  test("a window made narrower and wider again goes through every reading and settles, with no error on the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1280);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const scrollBox: Locator = page.getByTestId("table-scroll");
+    const table: Locator = scrollBox.locator("table");
+    const firstHost: Locator = giveRows(page)
+      .nth(0)
+      .locator("td")
+      .nth(2)
+      .locator("> div");
+
+    for (const [width, overflowing, wraps, give] of [
+      [1002, "false", "true", "line"],
+      [1280, "false", null, null],
+      [840, "true", null, null],
+      [1120, "false", "true", null],
+      [1002, "false", "true", "line"],
+    ] as Array<[number, string, string | null, string | null]>) {
+      await page.setViewportSize({ width: width, height: 900 });
+      await expect(scrollBox).toHaveAttribute("data-overflowing", overflowing);
+      if (wraps) {
+        await expect(table).toHaveAttribute("data-wrap-headers", wraps);
+      } else {
+        await expect(table).not.toHaveAttribute("data-wrap-headers", /.+/);
+      }
+      if (give) {
+        await expect(firstHost).toHaveAttribute("data-give", give);
+      } else {
+        await expect(firstHost).not.toHaveAttribute("data-give", /.+/);
+      }
+    }
+
+    // A window's edge dragged across all of them, and back.
+    for (let width: number = 1280; width >= 820; width -= 11) {
+      await page.setViewportSize({ width: width, height: 900 });
+    }
+    for (let width: number = 820; width <= 1002; width += 7) {
+      await page.setViewportSize({ width: width, height: 900 });
+    }
+    await page.setViewportSize({ width: 1002, height: 900 });
+    await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
+    await expect(firstHost).toHaveAttribute("data-give", "line");
+
+    const settled: string = await table.evaluate((element: Element): string => {
+      return element.outerHTML;
+    });
+    await page.waitForTimeout(300);
+    expect(
+      await table.evaluate((element: Element): string => {
+        return element.outerHTML;
+      }),
+    ).toBe(settled);
+  });
+});
+
+/*
+ * A row's View says "View": the row names its record in its first column
+ * and the list's title its kind, so "View Scheduled Maintenance Template"
+ * on every row only took two columns' room. Its name still says what it
+ * views, for a screen reader and for every spec that presses it.
+ */
+test.describe("a row's View", () => {
+  test("says View on every row, and is named by what it views", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich`);
+
+    const views: Array<Locator> = await bodyRows(page, "incidents-table")
+      .getByRole("button", { name: "View Incident", exact: true })
+      .all();
+
+    expect(views.length).toBe(5);
+    for (const view of views) {
+      await expect(view).toHaveText("View");
+      await expect(view).toHaveAttribute("aria-label", "View Incident");
+      // The row's button is narrow: its word and its padding.
+      expect((await box(view)).width).toBeLessThan(70);
+    }
+  });
+
+  /*
+   * German's View is "Anzeigen", the verb its names use: the word a row
+   * shows is in the name a voice command looks for (WCAG 2.5.3).
+   */
+  test("in German, 'Anzeigen' on the row, named 'Vorfall anzeigen'", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?lang=de`);
+
+    const view: Locator = bodyRows(page, "incidents-table")
+      .first()
+      .getByRole("button", { name: "Vorfall anzeigen", exact: true });
+
+    await expect(view).toHaveText("Anzeigen");
+    await expect(view).toHaveAttribute("aria-label", "Vorfall anzeigen");
+  });
+});
+
+/*
+ * A table drawn without a card has one hairline at its top, as a card
+ * does: its frame's border, with the header band's top rule dropped under
+ * it. The two drew a 2px top edge no card has.
+ */
+test.describe("a table drawn without a card", () => {
+  test("has one hairline at its top: its frame's, the band's own rule dropped under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${GALLERY}?table=plain`);
+
+    const edge: { frame: string; band: string; gap: number } =
+      await page.evaluate((): { frame: string; band: string; gap: number } => {
+        const scroll: Element = document.querySelector(
+          '[data-testid="table-scroll"]',
+        ) as Element;
+        const frame: Element = scroll.parentElement as Element;
+        const band: Element = scroll.querySelector("thead th") as Element;
+
+        return {
+          frame: getComputedStyle(frame).borderTopWidth,
+          band: getComputedStyle(band).borderTopWidth,
+          gap: Math.round(
+            band.getBoundingClientRect().top -
+              frame.getBoundingClientRect().top,
+          ),
+        };
+      });
+
+    expect(edge).toEqual({ frame: "1px", band: "0px", gap: 1 });
+    // The band keeps its rule under its names, over the rows.
+    expect(
+      await header(page)
+        .first()
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).borderBottomWidth;
+        }),
+    ).toBe("1px");
   });
 });
 
@@ -2168,7 +2660,7 @@ test.describe("the header row stays in sight", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGES}?data=long`, 900);
+    await open(page, `${STATUS_PAGES}?data=long`, 820);
 
     const scrollBox: Locator = page.getByTestId("table-scroll");
     const nameHeader: Locator = page.getByRole("columnheader", {

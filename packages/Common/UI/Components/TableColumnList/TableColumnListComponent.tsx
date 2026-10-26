@@ -14,6 +14,8 @@ import {
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
+import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * Three items, then "N more" - or all four, never a fold of one
@@ -50,14 +52,33 @@ export interface ComponentProps<TGenericObject extends GenericObject | string> {
    * more" and "Show less" buttons take it with "-more" and "-less" after it.
    */
   dataTestId?: string | undefined;
-  moreText?: string | undefined;
   /*
-   * The more button's whole text for a count, when the page words it as a
-   * sentence of its own ("2 more templates", through its locale's plural
-   * forms) rather than as the count followed by `moreText`.
+   * What the fold says, as one sentence with its count: "2 more resources"
+   * ({ one: "{{count}} more resource", other: "{{count}} more resources" }),
+   * looked up with the reader's plural forms - "Ещё ресурсов: 5", "ほか 2
+   * 件のリソース", "리소스 2개 더". A count followed by words looked up on
+   * their own read "2 ещё ресурсов" and "2 件のリソース（ほか）", and every
+   * language but German and Spanish kept the words in English. So a list
+   * hands over its whole sentence; the count is never glued to words here.
    */
-  getMoreText?: ((count: number) => string) | undefined;
+  moreTemplate: PluralTemplate;
 }
+
+/*
+ * The fold's words for `count` hidden items, in the reader's language and
+ * plural form. Exported for its tests.
+ */
+export const getTableColumnListMoreText: (data: {
+  translator: Translator;
+  template: PluralTemplate;
+  count: number;
+}) => string = (data: {
+  translator: Translator;
+  template: PluralTemplate;
+  count: number;
+}): string => {
+  return data.translator.translatePlural(data.template, data.count);
+};
 
 const TableColumnListComponent: <TGenericObject extends GenericObject>(
   props: ComponentProps<TGenericObject>,
@@ -65,6 +86,7 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
   props: ComponentProps<TGenericObject>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   /*
    * Every hook runs before the empty-list return. A table reuses a row's
@@ -152,7 +174,16 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
   };
 
   return (
-    <div className={props.className} data-testid={props.dataTestId}>
+    <div
+      className={props.className}
+      data-testid={props.dataTestId}
+      /*
+       * In a table's cell each item ends in "..." where the column ends, so
+       * a table that would run past its card may narrow the list
+       * (TableLayout's TABLE_SHRINKABLE_ATTRIBUTE).
+       */
+      data-table-shrinks={isTableCell && !isTableCard ? "true" : undefined}
+    >
       {firstItems.map((item: TGenericObject, i: number) => {
         return getItem(item, i);
       })}
@@ -186,18 +217,12 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
           >
             {showMoreItems
               ? translateString("Show less") || "Show less"
-              : /*
-                 * "2 more labels": the page's own sentence for the count,
-                 * or the count and then the page's words looked up on
-                 * their own ("2 weitere Ressourcen").
-                 */
-                props.getMoreText
-                ? props.getMoreText(remainingItems.length)
-                : `${remainingItems.length} ${
-                    translateString(props.moreText || "more") ||
-                    props.moreText ||
-                    "more"
-                  }`}
+              : // "2 more labels": the list's own sentence for the count.
+                getTableColumnListMoreText({
+                  translator: translator,
+                  template: props.moreTemplate,
+                  count: remainingItems.length,
+                })}
           </button>
         </div>
       ) : (

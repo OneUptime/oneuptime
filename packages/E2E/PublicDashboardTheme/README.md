@@ -31,8 +31,10 @@ large), the HTML widget transparent on the dark card, the empty states, and the
 toolbar's menus and time range picker. Screenshots of every board in both themes, of
 the prompt and of the error pages are under `output/playwright/public-dashboard-theme-ui`.
 
-The dashboard's page is 1000px wide, so on the phone its toolbar is past the screen's
-right edge; the spec's `press` explains how it reaches it there.
+On a phone the page is the screen's width: the dashboard's name has the header's row,
+the toolbar sits under it, and only the board, which keeps the 1000px its twelve
+columns are laid out for, scrolls sideways in its own frame. The spec's `press`
+explains how it reaches a control the visitor scrolls to.
 
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

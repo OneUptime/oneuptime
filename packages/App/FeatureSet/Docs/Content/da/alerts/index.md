@@ -77,7 +77,7 @@ Gå til **Advarsler → Alle advarsler**, og klik på **Opret advarsel**. Formul
 
 ### Beskriv advarslen
 
-Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj en **Beskrivelse**, hvis det hjælper. Under **Flere felter**, foldet sammen, kan du vælge en **Indledende tilstand**, tilføje **Etiketter** eller slå **Privat advarsel** til. Der venter også **Ejere**: du bliver alligevel ejer af den advarsel, du opretter, og hvert team, du er medlem af, er et enkelt klik væk under vælgeren.
+Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj en **Beskrivelse**, hvis det hjælper. Under **Flere felter**, foldet sammen, kan du vælge en **Indledende tilstand**, tilføje **Etiketter** eller slå **Privat advarsel** til. Der venter også **Ejere**: du bliver alligevel ejer af den advarsel, du opretter, og hvert team, du er medlem af, er et enkelt klik væk under vælgeren. En master-admin, der driver hele installationen, er den eneste undtagelse: vedkommende bliver ikke ejer af det, vedkommende opretter.
 
 ### Vælg, hvad den berører, og hvem der tilkaldes
 

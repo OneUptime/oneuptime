@@ -6,7 +6,7 @@ import {
   getMaintenanceReminderTiming,
 } from "./MaintenanceReminderTiming";
 import { Yellow } from "Common/Types/BrandColors";
-import Pill from "Common/UI/Components/Pill/Pill";
+import ExplainedPill from "Common/UI/Components/Pill/ExplainedPill";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -19,14 +19,19 @@ export interface ComponentProps {
 export const MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID: string =
   "maintenance-reminder-never-reminds-pill";
 
+// The pill's own button, inside MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID.
+export const MAINTENANCE_REMINDER_NEVER_REMINDS_BUTTON_TEST_ID: string =
+  "maintenance-reminder-never-reminds-button";
+
 /*
  * A maintenance reminder rule's "Remind Owners" answer in the rules list -
  * "While it is in progress" - read off its two columns the way the form
  * reads them. A rule stored with the pair that never reminds is marked
- * "Never reminds", in amber, with why in its tooltip - as a label rule that
- * adds nothing is marked "Adds nothing" - so a rule that quietly does
- * nothing stands out in the list, on a phone's cards too, where an empty
- * value's dash left the line out altogether.
+ * "Never reminds", in amber - as a label rule that adds nothing is marked
+ * "Adds nothing" - so a rule that quietly does nothing stands out in the
+ * list, on a phone's cards too, where an empty value's dash left the line
+ * out altogether. Why, and what to do, is said on hover, on a tap, on
+ * keyboard focus and to a screen reader (ExplainedPill).
  */
 const MaintenanceReminderTimingText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -43,10 +48,11 @@ const MaintenanceReminderTimingText: FunctionComponent<ComponentProps> = (
   if (timing === null) {
     return (
       <span data-testid={MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID}>
-        <Pill
+        <ExplainedPill
           color={Yellow}
           text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}
-          tooltip={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}
+          explanation={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}
+          dataTestId={MAINTENANCE_REMINDER_NEVER_REMINDS_BUTTON_TEST_ID}
         />
       </span>
     );

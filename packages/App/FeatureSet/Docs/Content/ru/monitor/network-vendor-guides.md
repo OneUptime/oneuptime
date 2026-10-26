@@ -54,7 +54,7 @@ Sophos не сообщает состояние шлюзов и SD-WAN по SNMP
 3. На странице **Настройки** устройства в разделе **Polling & Data Collection** примените шаблон **Sophos Firewall (SFOS / XGS)** из **Vendor Health Template** и добавьте его таблицы через **Add a Vendor's Tables**. Или включите **Auto-Apply Vendor Health Template**, и первый опрос сделает и то, и другое.
 :::
 
-После следующего опроса страница **SNMP Tables** устройства перечисляет каждое подключение IPsec с его статусом (active, inactive, partially active) и ядра CPU. SFOS нумерует свои ядра начиная с 196608, поэтому CPU берётся из таблицы, а не из одного `hrProcessorLoad.1`.
+После следующего опроса страница **Таблицы SNMP** устройства перечисляет каждое подключение IPsec с его статусом (active, inactive, partially active) и ядра CPU. SFOS нумерует свои ядра начиная с 196608, поэтому CPU берётся из таблицы, а не из одного `hrProcessorLoad.1`.
 
 ### Оповещения по каждому туннелю IPsec
 

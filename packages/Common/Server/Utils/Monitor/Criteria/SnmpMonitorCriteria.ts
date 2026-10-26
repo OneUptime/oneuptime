@@ -39,6 +39,7 @@ export default class SnmpMonitorCriteria {
       checkOn === CheckOn.SnmpResponseTime ||
       checkOn === CheckOn.SnmpOidExists ||
       checkOn === CheckOn.SnmpOidValue ||
+      checkOn === CheckOn.SnmpOidRatePerSecond ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
@@ -605,6 +606,51 @@ export default class SnmpMonitorCriteria {
       }
 
       return null;
+    }
+
+    /*
+     * How fast a counter OID grew since the previous poll that read it
+     * (SnmpOidRateUtil, on ingest). Not evaluated - null - until there is a
+     * rate: on a device's first poll, on a poll whose counter went
+     * backwards, and for an OID that is not a counter. A rate is a fraction
+     * as often as not ("errors above 0.5 a second"), so the threshold keeps
+     * its decimals, as a metric threshold does.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpOidRatePerSecond) {
+      const oid: string | undefined =
+        input.criteriaFilter.snmpMonitorOptions?.oid;
+      const numericThreshold: number | null =
+        CompareCriteria.convertMetricThresholdToNumber(threshold);
+
+      if (!oid || numericThreshold === null) {
+        return null;
+      }
+
+      const normalizedOid: string = SnmpOidListUtil.normalizeOid(oid);
+
+      const oidResponse: SnmpOidResponse | undefined =
+        snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
+          return SnmpOidListUtil.normalizeOid(response.oid) === normalizedOid;
+        });
+
+      if (
+        !oidResponse ||
+        typeof oidResponse.ratePerSecond !== "number" ||
+        !Number.isFinite(oidResponse.ratePerSecond)
+      ) {
+        return null;
+      }
+
+      const result: string | null = CompareCriteria.compareCriteriaNumbers({
+        value: oidResponse.ratePerSecond,
+        threshold: numericThreshold,
+        criteriaFilter: input.criteriaFilter,
+      });
+
+      // The result names the rate itself, as SNMP OID Value's names the value.
+      return result
+        ? `SNMP OID ${oid} (${oidResponse.name || oid}): ${result}`
+        : null;
     }
 
     // Check the value of a specific OID

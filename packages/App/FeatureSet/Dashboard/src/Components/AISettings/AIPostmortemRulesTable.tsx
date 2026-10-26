@@ -54,6 +54,7 @@ import {
 } from "./PostmortemRuleForm";
 import PostmortemRuleTemplates, {
   POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
+  POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,
 } from "./PostmortemRuleTemplates";
 import {
   RULE_ENABLED_DESCRIPTION,
@@ -185,9 +186,11 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
            * Criteria, Templates and Status, the column is narrow on a
            * 1280px screen, and cut short on one line every name read
            * "Draft with Database..." - the part that tells rules apart was
-           * the part cut off.
+           * the part cut off. Never narrower than 8rem, so the table fits
+           * in German and Russian too.
            */
           wrapContent: true,
+          contentClassName: POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,
         },
         ...(offersTemplates
           ? [
@@ -203,6 +206,7 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
                 wrapContent: true,
                 wrapMaxWidthClassName:
                   POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
+                contentClassName: POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,
                 getElement: (item: AIPostmortemRule): ReactElement => {
                   return (
                     <PostmortemRuleTemplates

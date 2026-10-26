@@ -445,7 +445,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
         {criteriaFilter?.checkOn &&
           (criteriaFilter.checkOn === CheckOn.SnmpOidValue ||
-            criteriaFilter.checkOn === CheckOn.SnmpOidExists) &&
+            criteriaFilter.checkOn === CheckOn.SnmpOidExists ||
+            criteriaFilter.checkOn === CheckOn.SnmpOidRatePerSecond) &&
           (() => {
             /*
              * The options are the device's effective OID list, fetched once

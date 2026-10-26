@@ -823,7 +823,14 @@ export class MonitorTypeHelper {
       {
         monitorType: MonitorType.Traces,
         title: "Traces",
-        description: "Alert on span latency and error rate from any source.",
+        /*
+         * A Traces monitor counts the spans that match its filters (its one
+         * criteria is Span Count): it cannot read a span's duration, so its
+         * card promises no latency. Latency is alerted on through a Metrics
+         * monitor on a request duration metric, which answers "latency".
+         */
+        description:
+          "Alert on the number of matching spans, like failed requests, from any source.",
         icon: IconProp.Waterfall,
         keywords: [
           "trace",
@@ -832,7 +839,9 @@ export class MonitorTypeHelper {
           "opentelemetry",
           "distributed tracing",
           "apm",
-          "latency",
+          "span count",
+          "failed requests",
+          "error spans",
         ],
       },
       {
@@ -849,6 +858,8 @@ export class MonitorTypeHelper {
           "histogram",
           "timeseries",
           "prometheus",
+          "latency",
+          "request duration",
         ],
       },
       {

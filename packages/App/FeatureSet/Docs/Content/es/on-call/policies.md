@@ -138,7 +138,7 @@ Las políticas de guardia son el recurso `/api/on-call-duty-policy`, y el recurs
 | **¿Después de cuántos minutos?** | `acknowledgementTimeoutInMinutes` |
 | Archivada | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true` y `repeatPolicyIfNoOneAcknowledgesNoOfTimes` en `0`, una política nunca se repite, y el panel la muestra como **Dejar de avisar**.
+`repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` debe ser un número entero de 1 o más: OneUptime rechaza `0`. Una política antigua guardada con `0` nunca se repite, y el panel la muestra como **Dejar de avisar**.
 
 `acknowledgementTimeoutInMinutes` es `null` para **No volver a avisar**, y un número entero de minutos de 5 a 1440 para **Volver a avisar**. OneUptime rechaza cualquier otro valor.
 

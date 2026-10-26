@@ -894,6 +894,12 @@ export default class QuietChannelsWorld {
       .mockImplementation((async (ruleId: ObjectID): Promise<void> => {
         await this.executeRule(ruleId);
       }) as never);
+    // The policy's levels, as a feed entry counts them for "Level 2 of 3".
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
+      .mockImplementation((async () => {
+        return new PositiveNumber(this.rules.length);
+      }) as never);
 
     // Its steps.
     const stepWithRelations: (

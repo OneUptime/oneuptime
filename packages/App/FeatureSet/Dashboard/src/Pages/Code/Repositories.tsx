@@ -215,6 +215,7 @@ const CodeRepositoriesPage: FunctionComponent<
       !isDisconnected || !areAllOnGitHub(repositories)
         ? {
             title: "Connect repositories",
+            phoneTitle: "Connect",
             icon: IconProp.Add,
             buttonStyle: ButtonStyleType.NORMAL,
             disabled: connectLock.isLocked,

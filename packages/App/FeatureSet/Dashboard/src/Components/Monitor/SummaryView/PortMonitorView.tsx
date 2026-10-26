@@ -2,11 +2,14 @@ import OneUptimeDate from "Common/Types/Date";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import PortTimingsView from "./PortTimingsView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import SummaryErrorFacts from "./SummaryErrorFacts";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -26,6 +29,7 @@ const formatDurationInMs: (durationInMs: number | undefined) => string = (
 const PortMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const response: ProbeMonitorResponse = props.probeMonitorResponse;
   const destination: string = response.monitorDestination?.toString() || "";
   const destinationPort: string =
@@ -33,13 +37,12 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
   const probeAttempts: Array<ProbeAttempt> = response.probeAttempts || [];
   const totalAttempts: number = response.totalAttempts ?? probeAttempts.length;
   const hadRetries: boolean = totalAttempts > 1;
-  const hasErrorDetails: boolean = Boolean(response.requestFailedDetails);
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-full shadow-none border-2 border-gray-100 "
+    <SummaryView dataTestId="port-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
+          isWide={true}
           title="Hostname or IP address"
           value={
             HostAddressUtil.formatHostAndPort({
@@ -48,25 +51,18 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
             }) || "-"
           }
         />
-      </div>
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={response.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            response.isOnline ? "Online" : "Offline",
+          )}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Total Connection Time (DNS + TCP)"
           value={formatDurationInMs(response.responseTimeInMs)}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Monitored At"
           value={
             response.monitoredAt
@@ -76,44 +72,12 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
+      </SummaryFacts>
+
+      <SummaryErrorFacts probeMonitorResponse={response} />
 
       {response.portTimings && (
         <PortTimingsView portTimings={response.portTimings} />
-      )}
-
-      {response.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100 "
-            title="Error"
-            value={response.failureCause.toString() || "-"}
-          />
-        </div>
-      )}
-
-      {hasErrorDetails && (
-        <div className="space-y-3">
-          <div className="flex space-x-3">
-            <InfoCard
-              className="w-1/2 shadow-none border-2 border-gray-100 "
-              title="Failed At"
-              value={response.requestFailedDetails?.failedPhase || "-"}
-            />
-            <InfoCard
-              className="w-1/2 shadow-none border-2 border-gray-100 "
-              title="Error Code"
-              value={response.requestFailedDetails?.errorCode || "-"}
-            />
-          </div>
-          <div className="flex space-x-3">
-            <InfoCard
-              className="w-full shadow-none border-2 border-gray-100 "
-              title="Error Details"
-              value={response.requestFailedDetails?.errorDescription || "-"}
-            />
-          </div>
-        </div>
       )}
 
       {response.networkPathTrace && (
@@ -126,7 +90,7 @@ const PortMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

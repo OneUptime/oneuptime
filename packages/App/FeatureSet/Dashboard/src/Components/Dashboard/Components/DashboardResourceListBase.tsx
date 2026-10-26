@@ -36,6 +36,23 @@ export interface ResourceListColumn {
 const FIT_CONTENT_WIDTH: string = "1%";
 
 /*
+ * A list widget's table fits its widget. A cell that ends its words in
+ * "..." (truncate - a row's name, an image, a namespace) takes the room the
+ * other columns leave it rather than its whole text: an incident's title, a
+ * host's name or a container's image on one line made the table wider than
+ * the widget at 6 units - incidents, alerts, hosts, containers, VMware,
+ * Ceph and storage lists scrolled sideways, and the default sort's arrow
+ * (an incident list's Declared, its last column) was out of sight. Each
+ * such cell keeps 6rem of its words before the rows scroll at all.
+ *
+ * max-w-0 on a table cell is what lets its column give its text's width
+ * up (a cell's own max-width is otherwise not a cap a table honours); the
+ * floor is the cell's min-width, which a table does.
+ */
+export const DASHBOARD_LIST_TABLE_CLASS_NAME: string =
+  "w-full text-sm text-left [&_td.truncate]:max-w-0 [&_td.truncate]:min-w-[6rem]";
+
+/*
  * What a list's sortable headers draw and do: the columns it can sort by,
  * the order its rows are in, and a header's click.
  */
@@ -174,7 +191,7 @@ const DashboardResourceListBase: FunctionComponent<
         </div>
       ) : (
         <div className="flex-1 overflow-auto rounded-md border border-gray-100">
-          <table className="w-full text-sm text-left">
+          <table className={DASHBOARD_LIST_TABLE_CLASS_NAME}>
             <thead className="text-xs text-gray-400 uppercase bg-gray-50/80 sticky top-0 border-b border-gray-100">
               <tr>
                 {props.columns.map((c: ResourceListColumn, i: number) => {

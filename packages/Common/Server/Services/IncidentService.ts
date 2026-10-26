@@ -34,7 +34,6 @@ import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
-import UserService from "./UserService";
 import URL from "../../Types/API/URL";
 import LinkedAffectedResources, {
   LinkedAffectedResource,
@@ -63,7 +62,6 @@ import EventFieldChange, {
   EventFieldSet,
   EventValuesBeforeUpdate,
 } from "../Utils/EventFieldChange";
-import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   INCIDENT_EPISODE_REFERENCE,
 } from "../Utils/Episode/EpisodeMembershipReference";
@@ -3386,19 +3384,16 @@ export class Service extends ProjectReferencesService<Model> {
       incidentCounterResult.counter,
     );
 
-    // Who declared it, under either name of it: see CreatedByUser.
-    const declaredByUserId: ObjectID | null = CreatedByUser.getId(
-      createBy.data,
-      createBy.props,
-    );
-
-    if (declaredByUserId && !createBy.data.rootCause) {
-      createBy.data.rootCause =
-        mdText`Incident created by ${await UserService.getUserMarkdownString({
-          userId: declaredByUserId,
-          projectId: projectId,
-        })}`.toString();
-    }
+    /*
+     * The root cause is left as it was sent - none, until somebody writes
+     * one. It used to default to "Incident created by <who declared it>",
+     * which said who, not why: the record names its declarer itself
+     * (createdByUser, the Declared tile, the feed's first entry), and the
+     * line only stood where the cause belongs - in the What happened card,
+     * the feed's "Root Cause", the first state's timeline row and the
+     * monitors' status timeline (Utils/Incident/WhoOpenedItRootCause
+     * reads the ones written before as none).
+     */
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
     if (

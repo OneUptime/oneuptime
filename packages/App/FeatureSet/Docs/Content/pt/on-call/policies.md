@@ -138,7 +138,7 @@ As políticas de plantão são o recurso `/api/on-call-duty-policy`, e o recurso
 | **Depois de quantos minutos?** | `acknowledgementTimeoutInMinutes` |
 | Arquivada | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` em `0`, uma política nunca se repete, e o painel a mostra como **Parar de acionar**.
+`repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` precisa ser um número inteiro de 1 ou mais: o OneUptime recusa `0`. Uma política mais antiga salva com `0` nunca se repete, e o painel a mostra como **Parar de acionar**.
 
 `acknowledgementTimeoutInMinutes` é `null` para **Não acionar de novo**, e um número inteiro de minutos de 5 a 1440 para **Acionar de novo**. O OneUptime recusa qualquer outro valor.
 
