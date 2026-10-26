@@ -244,7 +244,19 @@ describe("an Azure OpenAI provider whose Base URL is the resource's endpoint", (
         totalTokens: 40,
         cachedInputTokens: 12,
       },
+      // The deployment it was asked of, for AI Logs.
+      modelName: "gpt-5.1",
     });
+  });
+
+  test("a blank Model Name: says the deployment it asked for instead", async () => {
+    mockReplies(success(AZURE_SUCCESS_BODY));
+
+    const response: LLMCompletionResponse = await complete(
+      azureConfig("https://contoso.openai.azure.com"),
+    );
+
+    expect(response.modelName).toBe(LLMService.AZURE_OPENAI_DEFAULT_DEPLOYMENT);
   });
 
   test("the egress guard checks the URL the request is sent to", async () => {

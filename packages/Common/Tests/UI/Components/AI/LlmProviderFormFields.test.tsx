@@ -23,6 +23,7 @@ import {
   LLM_PROVIDER_TYPES,
   LLM_PROVIDER_TYPE_COPY,
   LlmProviderFormCopy,
+  getLlmProviderShownModelName,
   getLlmProviderShownValue,
   readLlmType,
 } from "../../../../UI/Components/AI/LlmProviderFormCopy";
@@ -208,11 +209,21 @@ describe("the provider cards", () => {
     ).toBe(LLM_PROVIDER_CARD_OPTIONS);
   });
 
-  test("two to a row, each card carrying a line", () => {
-    expect(
-      fieldOf(getProjectLlmProviderFormFields(), "llmType")
-        .cardSelectMaxColumns,
-    ).toBe(2);
+  /*
+   * Two cards to a row squeezed every line to a few words in the dialog's
+   * column, and Azure's long name left the card beside it half empty: one
+   * ruled row each now, in one panel, on a project's form and the Admin
+   * Dashboard's alike.
+   */
+  test("one row each, in one panel, on every form", () => {
+    for (const fields of [
+      getProjectLlmProviderFormFields(),
+      getGlobalLlmProviderFormFields({ includeCost: true }),
+      getGlobalLlmProviderFormFields({ includeCost: false }),
+    ]) {
+      expect(fieldOf(fields, "llmType").cardSelectLayout).toBe("list");
+      expect(fieldOf(fields, "llmType").cardSelectMaxColumns).toBeUndefined();
+    }
   });
 
   test("every card has an icon of its own", () => {
@@ -296,8 +307,27 @@ describe("the help under each field, for the provider picked", () => {
     );
     expect(
       helpUnder(fieldOf(fields, "modelName"), LlmType.OpenAICompatible),
-    ).toBe("A model your server serves, exactly as it names it.");
+    ).toBe(
+      "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
+    );
     expect(helpUnder(fieldOf(fields, "modelName"), undefined)).toBe("");
+  });
+
+  test("Model Name: optional for every provider, an OpenAI-compatible server's too", () => {
+    for (const type of LLM_PROVIDER_TYPES) {
+      expect({
+        type,
+        required: isRequired(fieldOf(fields, "modelName"), type),
+      }).toEqual({ type, required: false });
+    }
+
+    for (const globalField of getGlobalLlmProviderFormFields({
+      includeCost: true,
+    })) {
+      if (columnOf(globalField) === "modelName") {
+        expect(isRequired(globalField, LlmType.OpenAICompatible)).toBe(false);
+      }
+    }
   });
 
   /*
@@ -508,5 +538,110 @@ describe("a provider's page names what a blank field gets", () => {
         translator: english,
       }),
     ).toBe("-");
+  });
+
+  describe("its Model Name, on its page and in every list", () => {
+    test("what was typed, as typed, whatever the provider", () => {
+      for (const type of LLM_PROVIDER_TYPES) {
+        expect(
+          getLlmProviderShownModelName({
+            modelName: " Qwen/Qwen3.8-27B ",
+            llmType: type,
+            translator: english,
+          }),
+        ).toBe("Qwen/Qwen3.8-27B");
+      }
+    });
+
+    test("left blank, the model the server asks for, by name", () => {
+      expect(
+        getLlmProviderShownModelName({
+          modelName: "",
+          llmType: LlmType.OpenAI,
+          translator: english,
+        }),
+      ).toBe("gpt-5.1 (default)");
+      expect(
+        getLlmProviderShownModelName({
+          modelName: undefined,
+          llmType: LlmType.Ollama,
+          translator: english,
+        }),
+      ).toBe("llama3.1 (default)");
+      // A Claude deployment in Foundry is asked for Anthropic's default.
+      expect(
+        getLlmProviderShownModelName({
+          modelName: null,
+          llmType: LlmType.AzureOpenAI,
+          baseUrl: "https://contoso-ai.services.ai.azure.com/anthropic",
+          translator: english,
+        }),
+      ).toBe("claude-sonnet-5-5 (default)");
+    });
+
+    test("left blank on an OpenAI-compatible server, what it does instead: no model can be named in advance", () => {
+      expect(
+        getLlmProviderShownModelName({
+          modelName: "  ",
+          llmType: LlmType.OpenAICompatible,
+          baseUrl: "http://vllm:8000/v1",
+          translator: english,
+        }),
+      ).toBe("First model the server lists");
+    });
+
+    test("in the reader's language", () => {
+      const german: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "App",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Locales",
+            "de.json",
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const inGerman: ReturnType<typeof createTranslator> = createTranslator(
+        (key: string): string => {
+          return german[key] || key;
+        },
+      );
+
+      expect(
+        getLlmProviderShownModelName({
+          modelName: "",
+          llmType: LlmType.OpenAICompatible,
+          translator: inGerman,
+        }),
+      ).toBe("Erstes Modell, das der Server auflistet");
+      expect(
+        getLlmProviderShownModelName({
+          modelName: "",
+          llmType: LlmType.OpenAI,
+          translator: inGerman,
+        }),
+      ).toBe("gpt-5.1 (Standard)");
+    });
+
+    test("no provider picked, or one this version does not know: a dash", () => {
+      for (const llmType of [undefined, null, "", "NotAProvider"]) {
+        expect(
+          getLlmProviderShownModelName({
+            modelName: "",
+            llmType: llmType,
+            translator: english,
+          }),
+        ).toBe("-");
+      }
+    });
   });
 });

@@ -4725,7 +4725,9 @@ test.describe("detections", () => {
         "data-overflowing",
         "false",
       );
-      const card: Box = await boxOf(cardTitled(page, "Rule Library"));
+      const card: Box = await boxOf(
+        cardTitled(page, lang === "de" ? "Regelbibliothek" : "Rule Library"),
+      );
       const add: Box = await boxOf(
         libraryRow(page, CLOUDTRAIL_RULE).getByTestId(
           `rule-library-add-${CLOUDTRAIL_RULE.id}`,
@@ -7545,13 +7547,13 @@ test.describe("the project's case priorities and statuses", () => {
     await expect(page.locator("table").first().locator("thead")).toContainText(
       "Schweregrad der Erkennung",
     );
-    // Low keeps the word every German Dashboard page draws for it.
+    // Low reads Niedrig, the word every German Dashboard page draws for it.
     expect(await cellTexts(page, "state-settings-built-in-column")).toEqual([
       "Keine",
       "Kritisch",
       "Hoch",
       "Mittel oder unbekannt",
-      "Low",
+      "Niedrig",
       "Hinweise",
     ]);
   });

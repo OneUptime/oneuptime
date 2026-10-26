@@ -1,6 +1,7 @@
 import BadRequestException from "../../../../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../../Types/JSON";
+import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -16,6 +17,7 @@ import WorkspaceCommands, {
 } from "../../WorkspaceCommands";
 import WorkspaceOnCallNow from "../../WorkspaceOnCallNow";
 import SlackCommandParser, { SlackCommandRequest } from "../SlackCommandParser";
+import SlackProjectChoice from "../SlackProjectChoice";
 import SlackActionType from "./ActionTypes";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import SlackAuthAction, { SlackAction, SlackRequest } from "./Auth";
@@ -53,8 +55,11 @@ import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
  * The forms, who is on call and a page act as the OneUptime member the Slack
  * account is connected to, like every button (SlackAuthAction): somebody
  * not connected is asked to connect, with a Connect button, and to run the
- * command again - named as they typed it. A question for OneUptime AI is
- * answered as an @mention is (askQuestion).
+ * command again - named as they typed it. In a workspace connected to more
+ * than one project, a command that nothing ties to one of them is asked
+ * which, with a button for each project its person is in, and run again in
+ * the one they choose (SlackProjectChoice, runInChosenProject). A question
+ * for OneUptime AI is answered as an @mention is (askQuestion).
  *
  * Apps created from an older manifest still have /incident and /maintenance
  * of their own. Slack sends those to /api/slack/interactive, where they are
@@ -175,9 +180,54 @@ export default class SlackCommandActions {
     req: ExpressRequest;
     res: ExpressResponse;
   }): Promise<void> {
-    const slackRequest: SlackRequest = await SlackAuthAction.isAuthorized({
+    return await SlackCommandActions.run({
       req: data.req,
+      res: data.res,
+      slackRequest: await SlackAuthAction.isAuthorized({
+        req: data.req,
+      }),
     });
+  }
+
+  /*
+   * A request whose person chose its project (SlackProjectChoice) - a
+   * command, a shortcut, an older app's /incident or a Home button - made
+   * again: read from what Slack first sent of it (`payload`, with the
+   * trigger_id of the button they chose with, good for three seconds), in
+   * the chosen project, and answered by what it asks for as it would have
+   * been. A form it opens takes the place of `replaceViewId`, the modal
+   * they chose in.
+   */
+  @CaptureSpan()
+  public static async runInChosenProject(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    payload: JSONObject;
+    chosenProjectId: ObjectID;
+    replaceViewId?: string | undefined;
+  }): Promise<void> {
+    return await SlackCommandActions.run({
+      req: data.req,
+      res: data.res,
+      slackRequest: await SlackAuthAction.isAuthorized({
+        req: data.req,
+        payload: data.payload,
+        chosenProjectId: data.chosenProjectId,
+        replaceViewId: data.replaceViewId,
+      }),
+    });
+  }
+
+  /*
+   * A request read as a press: its refusal told, or what it asks for - one
+   * of SlackProjectChoice.PRESSES_MADE_AGAIN - answered.
+   */
+  private static async run(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    slackRequest: SlackRequest;
+  }): Promise<void> {
+    const { slackRequest } = data;
 
     if (!slackRequest.isAuthorized) {
       if (slackRequest.refusal) {
@@ -197,9 +247,16 @@ export default class SlackCommandActions {
       );
     }
 
+    /*
+     * What it asks for: the command's word, a shortcut's form, a Home
+     * button's press.
+     */
     const action: SlackAction | undefined = (slackRequest.actions || []).find(
       (candidate: SlackAction): boolean => {
-        return Boolean(candidate.command);
+        return (
+          Boolean(candidate.actionType) &&
+          SlackProjectChoice.PRESSES_MADE_AGAIN.includes(candidate.actionType!)
+        );
       },
     );
 
