@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  fillValueWidgetSeriesGaps,
   getMeanOfValues,
   getValueWidgetBucketWidthMs,
   getValueWidgetPointTime,
@@ -11,6 +12,7 @@ import {
   ValueWidgetTrend,
   ValueWidgetTrendDirection,
   VALUE_WIDGET_FLAT_TREND_PERCENT,
+  VALUE_WIDGET_MAX_FILLED_POINTS,
 } from "../../../Utils/Dashboard/ValueWidgetSeries";
 import {
   SeededRandom,
@@ -966,5 +968,184 @@ describe("getValueWidgetTrend: the second half of the range against the first", 
         ).toEqual(expected);
       }
     }
+  });
+});
+
+/*
+ * A sum's or a count's sparkline draws the empty buckets between its
+ * readings at 0 (the metrics API answers only the buckets that had one), so
+ * a sparse count's spikes read as spikes instead of a flat line. Never
+ * before the first reading or after the last, never off the bucket grid,
+ * and never past VALUE_WIDGET_MAX_FILLED_POINTS.
+ */
+describe("fillValueWidgetSeriesGaps: a sparse count's empty buckets at 0", () => {
+  const at: (hour: number, value: number) => ValueWidgetPoint = (
+    hour: number,
+    value: number,
+  ): ValueWidgetPoint => {
+    return {
+      timestamp: new Date(WEEK_START_MS + hour * HOUR_MS),
+      value: value,
+    };
+  };
+
+  const hoursOf: (points: Array<ValueWidgetPoint>) => Array<number> = (
+    points: Array<ValueWidgetPoint>,
+  ): Array<number> => {
+    return points.map((point: ValueWidgetPoint): number => {
+      return (point.timestamp.getTime() - WEEK_START_MS) / HOUR_MS;
+    });
+  };
+
+  test("every empty hour between the first reading and the last is drawn at 0", () => {
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: [at(2, 4), at(5, 9), at(6, 1)],
+      bucketWidthMs: HOUR_MS,
+    });
+
+    expect(hoursOf(filled)).toEqual([2, 3, 4, 5, 6]);
+    expect(
+      filled.map((point: ValueWidgetPoint): number => {
+        return point.value;
+      }),
+    ).toEqual([4, 0, 0, 9, 1]);
+  });
+
+  test("the readings keep their values and their times", () => {
+    const series: Array<ValueWidgetPoint> = [at(0, 7), at(10, 3)];
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: series,
+      bucketWidthMs: HOUR_MS,
+    });
+
+    expect(filled[0]).toEqual(series[0]);
+    expect(filled[10]).toEqual(series[1]);
+    expect(filled).toHaveLength(11);
+  });
+
+  test("nothing before the first reading or after the last: a bucket still filling is not an outage", () => {
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: [at(40, 1), at(42, 1)],
+      bucketWidthMs: HOUR_MS,
+    });
+
+    expect(hoursOf(filled)).toEqual([40, 41, 42]);
+  });
+
+  test("a series with no gap, one point or none is handed back as it is", () => {
+    const steady: Array<ValueWidgetPoint> = [at(1, 1), at(2, 2), at(3, 3)];
+
+    expect(
+      fillValueWidgetSeriesGaps({ series: steady, bucketWidthMs: HOUR_MS }),
+    ).toBe(steady);
+    expect(
+      fillValueWidgetSeriesGaps({ series: [at(5, 5)], bucketWidthMs: HOUR_MS }),
+    ).toEqual([at(5, 5)]);
+    expect(
+      fillValueWidgetSeriesGaps({ series: [], bucketWidthMs: HOUR_MS }),
+    ).toEqual([]);
+  });
+
+  test("points off the bucket grid are left as they came: no zeros between real readings", () => {
+    // Readings 90 minutes apart cannot be hourly buckets.
+    const offGrid: Array<ValueWidgetPoint> = [
+      { timestamp: new Date(WEEK_START_MS), value: 1 },
+      { timestamp: new Date(WEEK_START_MS + 90 * MINUTE_MS), value: 2 },
+      { timestamp: new Date(WEEK_START_MS + 180 * MINUTE_MS), value: 3 },
+    ];
+
+    expect(
+      fillValueWidgetSeriesGaps({ series: offGrid, bucketWidthMs: HOUR_MS }),
+    ).toBe(offGrid);
+  });
+
+  test("a width that is no width fills nothing", () => {
+    const series: Array<ValueWidgetPoint> = [at(0, 1), at(5, 1)];
+
+    for (const width of [0, -HOUR_MS, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(
+        fillValueWidgetSeriesGaps({ series: series, bucketWidthMs: width }),
+      ).toBe(series);
+    }
+  });
+
+  test("readings spread over more buckets than a sparkline draws are left as they came", () => {
+    const wide: Array<ValueWidgetPoint> = [
+      { timestamp: new Date(WEEK_START_MS), value: 1 },
+      {
+        timestamp: new Date(
+          WEEK_START_MS + VALUE_WIDGET_MAX_FILLED_POINTS * MINUTE_MS,
+        ),
+        value: 1,
+      },
+    ];
+
+    expect(
+      fillValueWidgetSeriesGaps({ series: wide, bucketWidthMs: MINUTE_MS }),
+    ).toBe(wide);
+
+    const justFits: Array<ValueWidgetPoint> = [
+      wide[0]!,
+      {
+        timestamp: new Date(
+          WEEK_START_MS + (VALUE_WIDGET_MAX_FILLED_POINTS - 1) * MINUTE_MS,
+        ),
+        value: 1,
+      },
+    ];
+
+    expect(
+      fillValueWidgetSeriesGaps({ series: justFits, bucketWidthMs: MINUTE_MS }),
+    ).toHaveLength(VALUE_WIDGET_MAX_FILLED_POINTS);
+  });
+
+  test("the series behind the fill is the sorted one: newest-first buckets fill the same way", () => {
+    const newestFirst: Array<ValueWidgetPointInput> = [
+      point(WEEK_START_MS + 6 * HOUR_MS, 1),
+      point(WEEK_START_MS + 2 * HOUR_MS, 4),
+    ];
+
+    const filled: Array<ValueWidgetPoint> = fillValueWidgetSeriesGaps({
+      series: getValueWidgetSeries(newestFirst, sum),
+      bucketWidthMs: HOUR_MS,
+    });
+
+    expect(hoursOf(filled)).toEqual([2, 3, 4, 5, 6]);
+    expect(filled[0]!.value).toBe(4);
+    expect(filled[4]!.value).toBe(1);
+  });
+
+  test("filling never moves the trend: a sum's zeros add nothing to either half", () => {
+    const sparse: Array<ValueWidgetPoint> = [
+      at(10, 4),
+      at(40, 4),
+      at(100, 12),
+      at(130, 12),
+      at(160, 12),
+    ];
+
+    const fromReadings: ValueWidgetTrend | null = getValueWidgetTrend({
+      points: sparse,
+      reduce: sum,
+      isAdditive: true,
+      windowStart: new Date(WEEK_START_MS),
+      windowEnd: new Date(WEEK_END_MS),
+      bucketWidthMs: HOUR_MS,
+    });
+    const fromFilled: ValueWidgetTrend | null = getValueWidgetTrend({
+      points: fillValueWidgetSeriesGaps({
+        series: sparse,
+        bucketWidthMs: HOUR_MS,
+      }),
+      reduce: sum,
+      isAdditive: true,
+      windowStart: new Date(WEEK_START_MS),
+      windowEnd: new Date(WEEK_END_MS),
+      bucketWidthMs: HOUR_MS,
+    });
+
+    expect(fromReadings?.percent).toBe(350);
+    expect(fromFilled?.percent).toBe(fromReadings?.percent);
+    expect(fromFilled?.direction).toBe(ValueWidgetTrendDirection.Up);
   });
 });

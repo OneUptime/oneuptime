@@ -1,7 +1,9 @@
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import {
+  fillValueWidgetSeriesGaps,
   getValueWidgetSeries,
   ValueWidgetPoint,
   ValueWidgetReduce,
@@ -135,6 +137,49 @@ export function getMetricValueWidgetSeries(
     collectDataPoints(results),
     getMetricValueWidgetReduce(aggregationType),
   );
+}
+
+/*
+ * The interval the metrics API buckets a window at: the same rule the
+ * server compiles its toStartOfInterval with (AggregationIntervalUtil).
+ */
+export function getMetricValueWidgetBucketWidthMs(window: {
+  startDate: Date;
+  endDate: Date;
+}): number {
+  return AggregationIntervalUtil.getAggregationIntervalMs(
+    AggregationIntervalUtil.getAggregationIntervalForWindow({
+      startDate: window.startDate,
+      endDate: window.endDate,
+    }),
+  );
+}
+
+/*
+ * What the sparkline draws: the series, and for a sum or a count every
+ * empty bucket between its first reading and its last drawn at 0
+ * (fillValueWidgetSeriesGaps). A sparse count drew only the buckets it had,
+ * so its line read flat while its arrow said it rose. An average, a
+ * percentile, a min or a max of no readings is not 0, and keeps its gaps.
+ */
+export function getMetricValueWidgetSparkline(data: {
+  results: Array<AggregatedResult>;
+  aggregationType: AggregationType;
+  window: { startDate: Date; endDate: Date } | null;
+}): Array<ValueWidgetPoint> {
+  const series: Array<ValueWidgetPoint> = getMetricValueWidgetSeries(
+    data.results,
+    data.aggregationType,
+  );
+
+  if (!data.window || !isAdditiveAggregation(data.aggregationType)) {
+    return series;
+  }
+
+  return fillValueWidgetSeriesGaps({
+    series: series,
+    bucketWidthMs: getMetricValueWidgetBucketWidthMs(data.window),
+  });
 }
 
 /*
