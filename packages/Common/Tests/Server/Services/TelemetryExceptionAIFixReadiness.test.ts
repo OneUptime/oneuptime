@@ -28,6 +28,7 @@ import AIAgent, {
 } from "../../../Models/DatabaseModels/AIAgent";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../Types/Date";
 import AIService from "../../../Server/Services/AIService";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
@@ -138,6 +139,10 @@ function mockReadiness(data: ReadinessMocks): void {
     runnerId: data.repositoryRunner?.id,
   } as unknown as CodeRepository);
   jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
+  // None of them, so none follows the project's default Runner (#5275).
+  jest
+    .spyOn(CodeRepositoryService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0));
   jest
     .spyOn(RunnerService, "findOneBy")
     .mockResolvedValue(data.repositoryRunner || null);
