@@ -354,9 +354,9 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
     expect(compose).toContain(
       `- APP_VERSION=\${APP_VERSION:-${DOCKER_SWARM_AGENT_VERSION}}`,
     );
-    expect(
-      AGENT_KINDS[AgentKind.DockerSwarmAgent].collectorVersion,
-    ).toBe(DOCKER_SWARM_AGENT_COLLECTOR_VERSION);
+    expect(AGENT_KINDS[AgentKind.DockerSwarmAgent].collectorVersion).toBe(
+      DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
+    );
     expect(
       readRepoFile("agents", "DockerSwarmAgent", "otel-collector-config.yaml"),
     ).toMatch(

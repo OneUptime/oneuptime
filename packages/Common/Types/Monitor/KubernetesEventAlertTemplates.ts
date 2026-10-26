@@ -183,7 +183,8 @@ function buildWarningEventsCriteria(
 const warningEventsTemplate: KubernetesEventAlertTemplate = {
   id: KUBERNETES_WARNING_EVENTS_TEMPLATE_ID,
   name: "Warning Events",
-  summary: "Kubernetes reports a warning event: one alert per object and reason.",
+  summary:
+    "Kubernetes reports a warning event: one alert per object and reason.",
   /*
    * No backticks: the description is drawn as plain text on the
    * recommendation card.

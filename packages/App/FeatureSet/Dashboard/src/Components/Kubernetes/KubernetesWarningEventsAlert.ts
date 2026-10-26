@@ -49,7 +49,11 @@ export interface KubernetesWarningEventsMonitorLike {
                     data?:
                       | {
                           logMonitor?:
-                            | { attributes?: Record<string, unknown> | undefined }
+                            | {
+                                attributes?:
+                                  | Record<string, unknown>
+                                  | undefined;
+                              }
                             | undefined;
                         }
                       | undefined;

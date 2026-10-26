@@ -100,9 +100,12 @@ describe("which monitors alert on a cluster's warning events", () => {
   test("a monitor that is turned off does not: its warnings reach nobody", () => {
     expect(
       isKubernetesWarningEventsMonitor(
-        logsMonitor(buildKubernetesWarningEventsLogMonitor(CLUSTER).attributes, {
-          disableActiveMonitoring: true,
-        }),
+        logsMonitor(
+          buildKubernetesWarningEventsLogMonitor(CLUSTER).attributes,
+          {
+            disableActiveMonitoring: true,
+          },
+        ),
         CLUSTER,
       ),
     ).toBe(false);
@@ -111,9 +114,12 @@ describe("which monitors alert on a cluster's warning events", () => {
   test("a monitor of another type does not, whatever its steps say", () => {
     expect(
       isKubernetesWarningEventsMonitor(
-        logsMonitor(buildKubernetesWarningEventsLogMonitor(CLUSTER).attributes, {
-          monitorType: MonitorType.Kubernetes,
-        }),
+        logsMonitor(
+          buildKubernetesWarningEventsLogMonitor(CLUSTER).attributes,
+          {
+            monitorType: MonitorType.Kubernetes,
+          },
+        ),
         CLUSTER,
       ),
     ).toBe(false);
@@ -141,7 +147,10 @@ describe("which monitors alert on a cluster's warning events", () => {
 
     expect(isKubernetesWarningEventsMonitor(monitor, CLUSTER)).toBe(true);
     expect(
-      isKubernetesWarningEventsMonitor({ monitorType: MonitorType.Logs }, CLUSTER),
+      isKubernetesWarningEventsMonitor(
+        { monitorType: MonitorType.Logs },
+        CLUSTER,
+      ),
     ).toBe(false);
   });
 

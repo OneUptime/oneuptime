@@ -189,23 +189,25 @@ function normalize(data: {
 
 function getKubernetesRecommendations(): Array<MonitorRecommendation> {
   const metricRecommendations: Array<MonitorRecommendation> =
-    getAllKubernetesAlertTemplates().map((template: KubernetesAlertTemplate) => {
-      return normalize({
-        resourceType: MonitorRecommendationResourceType.Kubernetes,
-        monitorType: MonitorType.Kubernetes,
-        template: template,
-        getMonitorStep: (args: MonitorRecommendationArgs) => {
-          return template.getMonitorStep({
-            clusterIdentifier: args.resourceIdentifier,
-            onlineMonitorStatusId: args.onlineMonitorStatusId,
-            offlineMonitorStatusId: args.offlineMonitorStatusId,
-            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-            defaultAlertSeverityId: args.defaultAlertSeverityId,
-            monitorName: args.monitorName,
-          });
-        },
-      });
-    });
+    getAllKubernetesAlertTemplates().map(
+      (template: KubernetesAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          monitorType: MonitorType.Kubernetes,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              clusterIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
 
   /*
    * A cluster's warning events are logs (KubernetesEventAlertTemplates), so

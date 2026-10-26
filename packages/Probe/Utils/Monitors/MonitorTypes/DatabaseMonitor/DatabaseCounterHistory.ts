@@ -119,8 +119,7 @@ export default class DatabaseCounterHistory {
     key: string,
     reading: DatabaseCounterReading,
   ): DatabaseCounterReading | undefined {
-    const previous: DatabaseCounterReading | undefined =
-      this.readings.get(key);
+    const previous: DatabaseCounterReading | undefined = this.readings.get(key);
 
     this.readings.delete(key);
     this.readings.set(key, reading);

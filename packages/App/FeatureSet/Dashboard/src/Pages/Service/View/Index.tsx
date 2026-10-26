@@ -647,7 +647,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         />
       </div>
-
     </TimeRangeZoomScope>
   );
 };

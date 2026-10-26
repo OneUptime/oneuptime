@@ -320,9 +320,9 @@ describe("the Details card says only what the resource reported", () => {
       { label: "Cloud Region", value: "" },
     ]);
 
-    expect(screen.getByTestId("resource-overview-no-details")).toHaveTextContent(
-      "No details reported yet.",
-    );
+    expect(
+      screen.getByTestId("resource-overview-no-details"),
+    ).toHaveTextContent("No details reported yet.");
     expect(
       screen.queryByTestId("resource-overview-details"),
     ).not.toBeInTheDocument();
@@ -388,7 +388,9 @@ describe("the Service Overview has one Details card", () => {
     });
   });
 
-  async function renderService(service: Record<string, unknown>): Promise<void> {
+  async function renderService(
+    service: Record<string, unknown>,
+  ): Promise<void> {
     getItemMock.mockImplementation(async () => {
       return { name: "checkout", ...service };
     });

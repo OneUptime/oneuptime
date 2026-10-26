@@ -36,8 +36,9 @@ import {
  *      AutoRefreshControl - lays its top row out with the three class names:
  *      the row holds the identity (with the <h1>) and then the controls
  *      (with the refresh control), each with its test id.
- *   3. No Dashboard file keeps the old window-keyed hero row or its
- *      unshrinkable controls.
+ *   3. No Dashboard file that draws the refresh control keeps the old
+ *      window-keyed hero row, its squeezable name or its unshrinkable
+ *      controls.
  *   4. Every hero this change moved onto the layout is still found, so a
  *      page that is renamed or moved does not slip out of the guard.
  *
@@ -440,29 +441,42 @@ describe("every resource hero", () => {
   );
 });
 
-describe("no Dashboard file keeps the old hero row", () => {
+describe("no file that draws the refresh control keeps the old hero row", () => {
+  /*
+   * Only where the refresh control is drawn: a component with nothing to do
+   * with a hero may still write any of these class lists.
+   */
   const offenders: Array<string> = [];
+  let filesRead: number = 0;
   for (const file of FILES) {
     if (!file.endsWith(".tsx")) {
       continue;
     }
-    const literals: Array<string> = classNameLiterals(parse(file));
-    for (const literal of literals) {
+    const source: ts.SourceFile = parse(file);
+    const drawsRefresh: boolean = importsOf(source).some(
+      (entry: { from: string; names: Array<string> }): boolean => {
+        return entry.from.endsWith(AUTO_REFRESH_MODULE_SUFFIX);
+      },
+    );
+    if (!drawsRefresh) {
+      continue;
+    }
+    filesRead++;
+    for (const literal of classNameLiterals(source)) {
       const trimmed: string = literal.trim();
       if (
         trimmed === OLD_HERO_ROW ||
         trimmed === OLD_HERO_CONTROLS ||
-        (trimmed === OLD_HERO_IDENTITY &&
-          HEROES.some((hero: Hero): boolean => {
-            return hero.file === file;
-          }))
+        trimmed === OLD_HERO_IDENTITY
       ) {
         offenders.push(`${relative(file)}: "${trimmed}"`);
       }
     }
   }
 
-  test("neither its window-keyed row nor its unshrinkable controls, anywhere", () => {
+  test("neither its window-keyed row, its squeezable name nor its unshrinkable controls", () => {
+    // Every hero, and the pages and components that draw the control alone.
+    expect(filesRead).toBeGreaterThan(KNOWN_HEROES.length);
     expect(offenders).toEqual([]);
   });
 });

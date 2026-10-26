@@ -218,9 +218,7 @@ describe("NetworkDeviceDiscoveryScan.isSnmpEnabled", () => {
 
     expect(mentions).toEqual([]);
     expect(scan.tableDescription ?? "").not.toContain("Check SNMP");
-    expect(scan.tableDescription ?? "").toContain(
-      "an SNMP scan also queries",
-    );
+    expect(scan.tableDescription ?? "").toContain("an SNMP scan also queries");
   });
 
   /*

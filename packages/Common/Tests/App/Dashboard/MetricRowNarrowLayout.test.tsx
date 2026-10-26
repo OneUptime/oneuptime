@@ -57,27 +57,32 @@ describe("a metrics list row lays itself out by its own width", () => {
   test.each([
     ["a row that opens the explorer", true],
     ["a row that opens nothing", false],
-  ])("%s is a container its parts measure", (_name: string, clickable: boolean) => {
-    render(
-      <MetricRow
-        metric={METRIC}
-        sparklinePoints={POINTS}
-        lastValue={1536}
-        onClick={clickable ? (): void => {} : undefined}
-      />,
-    );
+  ])(
+    "%s is a container its parts measure",
+    (_name: string, clickable: boolean) => {
+      render(
+        <MetricRow
+          metric={METRIC}
+          sparklinePoints={POINTS}
+          lastValue={1536}
+          onClick={clickable ? (): void => {} : undefined}
+        />,
+      );
 
-    const row: HTMLElement = screen.getByTestId("metric-row");
-    expect(row.tagName).toBe(clickable ? "BUTTON" : "DIV");
-    expectClasses(row, METRIC_ROW_CONTAINER_CLASS_NAME);
-    expectClasses(
-      screen.getByTestId("metric-row-layout"),
-      METRIC_ROW_LAYOUT_CLASS_NAME,
-    );
-  });
+      const row: HTMLElement = screen.getByTestId("metric-row");
+      expect(row.tagName).toBe(clickable ? "BUTTON" : "DIV");
+      expectClasses(row, METRIC_ROW_CONTAINER_CLASS_NAME);
+      expectClasses(
+        screen.getByTestId("metric-row-layout"),
+        METRIC_ROW_LAYOUT_CLASS_NAME,
+      );
+    },
+  );
 
   test("stacked by default, the name and its description first, then the value and sparkline", () => {
-    render(<MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />);
+    render(
+      <MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />,
+    );
 
     const layout: HTMLElement = screen.getByTestId("metric-row-layout");
     const [info, value] = Array.from(layout.children) as Array<HTMLElement>;
@@ -92,7 +97,9 @@ describe("a metrics list row lays itself out by its own width", () => {
   });
 
   test("stacked, a long name wraps; side by side, it keeps to one line", () => {
-    render(<MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />);
+    render(
+      <MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />,
+    );
 
     const name: HTMLElement = screen.getByTestId("metric-row-name");
     expect(name).toHaveTextContent("container.memory.usage.total");
@@ -106,7 +113,9 @@ describe("a metrics list row lays itself out by its own width", () => {
   });
 
   test("the description gets two lines stacked and one side by side", () => {
-    render(<MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />);
+    render(
+      <MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />,
+    );
 
     const description: HTMLElement = screen.getByText(METRIC.description!);
     expectClasses(description, METRIC_ROW_DESCRIPTION_CLASS_NAME);
@@ -115,7 +124,9 @@ describe("a metrics list row lays itself out by its own width", () => {
   });
 
   test("the value and sparkline are never squeezed", () => {
-    render(<MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />);
+    render(
+      <MetricRow metric={METRIC} sparklinePoints={POINTS} lastValue={1536} />,
+    );
 
     const value: HTMLElement = screen.getByTestId("metric-row-value");
     expect(classesOf(value)).toContain("flex-shrink-0");

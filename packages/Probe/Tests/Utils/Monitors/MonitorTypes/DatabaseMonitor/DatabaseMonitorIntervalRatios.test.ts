@@ -448,9 +448,9 @@ describe("DatabaseMonitor.execute divides each check by the previous one", () =>
   };
 
   // Each check reads the next set of counters; a null reads none (failed).
-  const stubChecks: (
+  const stubChecks: (counters: Array<PostgresCounters | null>) => jest.Mock = (
     counters: Array<PostgresCounters | null>,
-  ) => jest.Mock = (counters: Array<PostgresCounters | null>): jest.Mock => {
+  ): jest.Mock => {
     const queue: Array<PostgresCounters | null> = [...counters];
 
     return (

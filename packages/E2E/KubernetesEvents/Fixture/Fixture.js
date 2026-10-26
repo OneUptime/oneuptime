@@ -1564,10 +1564,7 @@ const PAGES = [
   ],
   [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL, KubernetesNamespaceDetail],
   // Where the Events page's "Turn on warning alerts" goes.
-  [
-    PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS,
-    KubernetesRecommendations,
-  ],
+  [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS, KubernetesRecommendations],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),

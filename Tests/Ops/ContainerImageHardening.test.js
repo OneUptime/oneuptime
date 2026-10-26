@@ -978,10 +978,13 @@ describe("the OpenTelemetry collector pin", () => {
 
   test("the Swarm agent's APP_VERSION default and the severity model follow it", () => {
     const [version] = pinsIn("agents/DockerAgent/Dockerfile.tpl");
-    const filesVersion = read("agents/DockerSwarmAgent/docker-compose.yml").match(
-      SWARM_APP_VERSION_DEFAULT,
-    )?.[1];
-    expect({ version: filesVersion, isOfThePin: isFilesVersionOf(filesVersion, version) }).toEqual({
+    const filesVersion = read(
+      "agents/DockerSwarmAgent/docker-compose.yml",
+    ).match(SWARM_APP_VERSION_DEFAULT)?.[1];
+    expect({
+      version: filesVersion,
+      isOfThePin: isFilesVersionOf(filesVersion, version),
+    }).toEqual({
       version: filesVersion,
       isOfThePin: true,
     });

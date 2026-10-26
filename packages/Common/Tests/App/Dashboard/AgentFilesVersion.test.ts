@@ -150,7 +150,10 @@ function digestOf(pin: AgentFilesPin): string {
     hash.update(`${file}\n`);
     hash.update(
       `${withoutComments(
-        fs.readFileSync(path.join(REPO_ROOT, "agents", pin.directory, file), "utf8"),
+        fs.readFileSync(
+          path.join(REPO_ROOT, "agents", pin.directory, file),
+          "utf8",
+        ),
       )}\n`,
     );
   }

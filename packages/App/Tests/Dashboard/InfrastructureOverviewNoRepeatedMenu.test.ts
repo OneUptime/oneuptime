@@ -171,7 +171,9 @@ test("every Overview drawn with ResourceOverview is held to these rules", () => 
         walk(full);
       } else if (entry.name.endsWith(".tsx")) {
         if (DRAWS_RESOURCE_OVERVIEW.test(fs.readFileSync(full, "utf8"))) {
-          drawers.push(path.relative(DASHBOARD_SRC, full).split(path.sep).join("/"));
+          drawers.push(
+            path.relative(DASHBOARD_SRC, full).split(path.sep).join("/"),
+          );
         }
       }
     }

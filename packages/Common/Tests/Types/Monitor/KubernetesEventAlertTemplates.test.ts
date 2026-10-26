@@ -27,7 +27,11 @@ import {
   MonitorRecommendationResourceType,
   buildRecommendationId,
 } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
-import { CheckOn, CriteriaFilter, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepLogMonitor, {
@@ -194,7 +198,11 @@ describe("the Warning Events template's Logs monitor", () => {
     const [unhealthy, healthy] = criteriaOf(stepFor());
 
     expect(unhealthy?.data?.filters).toEqual([
-      { checkOn: CheckOn.LogCount, filterType: FilterType.GreaterThan, value: 0 },
+      {
+        checkOn: CheckOn.LogCount,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+      },
     ]);
     expect(healthy?.data?.filters).toEqual([
       { checkOn: CheckOn.LogCount, filterType: FilterType.EqualTo, value: 0 },
@@ -294,7 +302,12 @@ describe("what ingest stamps on an Event is what the alert counts", () => {
 
   test("a Normal event is not counted", () => {
     expect(
-      counts(storedAttributes(kubernetesEventObject(normalPodEvent(1, NOW)), CLUSTER)),
+      counts(
+        storedAttributes(
+          kubernetesEventObject(normalPodEvent(1, NOW)),
+          CLUSTER,
+        ),
+      ),
     ).toBe(false);
   });
 
@@ -314,9 +327,8 @@ describe("the Warning Events recommendation", () => {
       MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.Kubernetes,
       );
-    const last: MonitorRecommendation = recommendations[
-      recommendations.length - 1
-    ]!;
+    const last: MonitorRecommendation =
+      recommendations[recommendations.length - 1]!;
 
     expect(recommendations).toHaveLength(
       getAllKubernetesAlertTemplates().length +
@@ -429,19 +441,16 @@ describe("the Warning Events recommendation", () => {
       MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.Kubernetes,
       );
-    const warningStep: MonitorStep = recommendation().getMonitorStep(
-      buildArgs(),
-    );
+    const warningStep: MonitorStep =
+      recommendation().getMonitorStep(buildArgs());
 
-    expect(
-      [
-        ...MonitorRecommendationUtil.getCoveredRecommendationIds({
-          recommendations: all,
-          existingMonitorSteps: [warningStep],
-          args: buildArgs(),
-        }),
-      ],
-    ).toEqual([recommendation().recommendationId]);
+    expect([
+      ...MonitorRecommendationUtil.getCoveredRecommendationIds({
+        recommendations: all,
+        existingMonitorSteps: [warningStep],
+        args: buildArgs(),
+      }),
+    ]).toEqual([recommendation().recommendationId]);
 
     const metricSteps: Array<MonitorStep> = all
       .filter((candidate: MonitorRecommendation): boolean => {

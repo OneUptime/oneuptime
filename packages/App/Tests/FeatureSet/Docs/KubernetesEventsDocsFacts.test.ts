@@ -371,9 +371,9 @@ describe("the Kubernetes events section's alert", () => {
     expect(alertParagraph()).toContain(
       `turn on **${template.name}** on the cluster's **Recommendations** page`,
     );
-    expect(
-      dashboardFile("Pages/Kubernetes/View/SideMenu.tsx"),
-    ).toContain("PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS");
+    expect(dashboardFile("Pages/Kubernetes/View/SideMenu.tsx")).toContain(
+      "PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS",
+    );
   });
 
   test("names the Events page's link as the line draws it", () => {

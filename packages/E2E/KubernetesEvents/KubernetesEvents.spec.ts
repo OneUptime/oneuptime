@@ -1610,9 +1610,7 @@ test.describe("being told when Kubernetes warns", () => {
     ).toHaveAttribute("aria-pressed", "true");
 
     // Its own heading, Events, after every metric template's.
-    const headings: Array<string> = await page
-      .locator("h4")
-      .allTextContents();
+    const headings: Array<string> = await page.locator("h4").allTextContents();
     expect(headings[headings.length - 1]).toBe("Events");
     expect(headings).toEqual(
       expect.arrayContaining([
@@ -1729,7 +1727,9 @@ test.describe("being told when Kubernetes warns", () => {
       expect(lineBox!.x + lineBox!.width).toBeLessThanOrEqual(390);
 
       // The link reads as a link in both themes: darker than its page in light, lighter in dark.
-      const link: Locator = line.getByTestId("kubernetes-warning-alerts-turn-on");
+      const link: Locator = line.getByTestId(
+        "kubernetes-warning-alerts-turn-on",
+      );
       const linkLightness: number = await lightness(link, "color");
       if (theme) {
         expect(linkLightness).toBeGreaterThan(0.45);
