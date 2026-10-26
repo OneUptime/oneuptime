@@ -82,7 +82,7 @@ Stel onder **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak
 | **Voordat het begint** | Vanaf het moment dat de gebeurtenis gepland is tot het begin ervan. |
 | **Voordat het begint en terwijl het bezig is** | Vanaf het moment dat de gebeurtenis gepland is tot het einde ervan. |
 
-Een regel die via de API of Terraform is opgeslagen en wacht tot de gebeurtenis begint en stopt zodra die begint, stuurt nooit een herinnering: de lijst markeert hem met **Herinnert nooit**, en het formulier vraagt je een antwoord te kiezen.
+De API en Terraform weigeren een regel die zou wachten tot de gebeurtenis begint en zou stoppen zodra die begint: die zou nooit een herinnering sturen. Een oudere regel die zo is opgeslagen, staat in de lijst met **Herinnert nooit**, en het formulier vraagt je te kiezen wanneer er herinnerd wordt.
 
 Eigenaren krijgen elke herinnering als **Maintenance reminder**, die voor elk nieuw lid per e-mail aanstaat. Een herinneringsregel opslaan, wijzigen of verwijderen koppelt elke gebeurtenis die nog niet voltooid is opnieuw aan een regel. Om de herinneringen voor één gebeurtenis te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat slaat op zodra je omschakelt.
 
