@@ -14,11 +14,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * Follow-up of #5076, the Swarm pages on a phone: the Overview's hero drew
  * its refresh control beside the cluster's name at every width, so a phone
- * read "swa…" and the description "The pr…". The hero's top row sits in a
- * container now (ResourceHeroLayout): stacked until the row is wide enough
- * for the name and the refresh control side by side. jsdom cannot measure,
- * so this holds the hero to the layout's classes; the offline browser suite
- * (packages/E2E/DockerSwarmPages) measures it at 390, 768 and 1280 pixels.
+ * read "swa…" and the description "The pr…". The hero's top row takes the
+ * layout every resource hero shares (ResourceHeroLayout, the Kubernetes
+ * cluster's): the name keeps its room and the refresh control gives way,
+ * under the name when the row is too narrow for both. jsdom cannot
+ * measure, so this holds the rendered hero to the layout's parts and
+ * classes; the offline browser suite (packages/E2E/DockerSwarmPages)
+ * measures it at 390, 768 and 1280 pixels, and App's
+ * ResourceHeroLayoutGuard holds every hero's source to it.
  */
 
 const CLUSTER_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -110,9 +113,12 @@ jest.mock(
 
 import DockerSwarmClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Index";
 import {
-  RESOURCE_HERO_SIDE_BY_SIDE_MIN_WIDTH_REM,
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
-  RESOURCE_HERO_TOP_ROW_CONTAINER_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -121,8 +127,6 @@ const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
 // A Tailwind variant keyed to the window's width.
 const WINDOW_BREAKPOINT: RegExp = /^(max-)?(sm|md|lg|xl|2xl):/;
-
-const SIDE_BY_SIDE_VARIANT: string = `[@container(min-width:${RESOURCE_HERO_SIDE_BY_SIDE_MIN_WIDTH_REM}rem)]:`;
 
 function cluster(agentVersion: string): DockerSwarmCluster {
   const model: DockerSwarmCluster = new DockerSwarmCluster();
@@ -148,7 +152,8 @@ async function flush(): Promise<void> {
 
 async function renderOverview(agentVersion: string = "0.161.0"): Promise<{
   topRow: HTMLElement;
-  container: HTMLElement;
+  identity: HTMLElement;
+  controls: HTMLElement;
 }> {
   getItemMock.mockImplementation(async () => {
     return cluster(agentVersion);
@@ -157,9 +162,24 @@ async function renderOverview(agentVersion: string = "0.161.0"): Promise<{
   await flush();
 
   const topRow: HTMLElement = await screen.findByTestId(
-    "resource-hero-top-row",
+    RESOURCE_HERO_TOP_ROW_TEST_ID,
   );
-  return { topRow, container: topRow.parentElement as HTMLElement };
+  return {
+    topRow,
+    identity: within(topRow).getByTestId(RESOURCE_HERO_IDENTITY_TEST_ID),
+    controls: within(topRow).getByTestId(RESOURCE_HERO_CONTROLS_TEST_ID),
+  };
+}
+
+// Every element from the top row up to the document, the row included.
+function rowAndAncestors(topRow: HTMLElement): Array<HTMLElement> {
+  const chain: Array<HTMLElement> = [];
+  let node: HTMLElement | null = topRow;
+  while (node) {
+    chain.push(node);
+    node = node.parentElement;
+  }
+  return chain;
 }
 
 beforeEach(() => {
@@ -175,72 +195,77 @@ afterEach(() => {
 });
 
 describe("the layout's classes", () => {
-  test("stacked by default: a column, with no window breakpoint anywhere", () => {
+  test("a column on a phone: no window breakpoint decides the column", () => {
     const classes: Array<string> = RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(" ");
 
     expect(classes).toEqual(expect.arrayContaining(["flex", "flex-col"]));
     expect(classes).not.toContain("flex-row");
     expect(
       classes.filter((className: string): boolean => {
-        return WINDOW_BREAKPOINT.test(className);
+        return !WINDOW_BREAKPOINT.test(className);
       }),
-    ).toEqual([]);
+    ).toEqual(["flex", "flex-col", "gap-4"]);
   });
 
-  test("side by side only from the row's own width, as the hero's start and end", () => {
-    const sideBySide: Array<string> = RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(
-      " ",
-    ).filter((className: string): boolean => {
-      return className.startsWith("[@container");
-    });
-
-    expect(sideBySide).toEqual([
-      `${SIDE_BY_SIDE_VARIANT}flex-row`,
-      `${SIDE_BY_SIDE_VARIANT}items-start`,
-      `${SIDE_BY_SIDE_VARIANT}justify-between`,
-    ]);
-  });
-
-  test("a whole two-digit rem, which the Tailwind runtime sorts correctly as text", () => {
-    expect(Number.isInteger(RESOURCE_HERO_SIDE_BY_SIDE_MIN_WIDTH_REM)).toBe(
-      true,
+  test("from md, one row that wraps: the name and the controls side by side only while both fit", () => {
+    expect(RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "md:flex-row",
+        "md:flex-wrap",
+        "md:items-start",
+        "md:justify-between",
+      ]),
     );
-    expect(RESOURCE_HERO_SIDE_BY_SIDE_MIN_WIDTH_REM).toBeGreaterThanOrEqual(10);
-    expect(RESOURCE_HERO_SIDE_BY_SIDE_MIN_WIDTH_REM).toBeLessThan(100);
   });
 
-  test("the container measures the inline size only", () => {
-    expect(RESOURCE_HERO_TOP_ROW_CONTAINER_CLASS_NAME).toBe(
-      "[container-type:inline-size]",
+  test("the identity never shrinks below its own content; the controls give way", () => {
+    const identity: Array<string> =
+      RESOURCE_HERO_IDENTITY_CLASS_NAME.split(" ");
+    expect(identity).not.toContain("min-w-0");
+    expect(identity).toEqual(
+      expect.arrayContaining(["md:w-full", "md:flex-1"]),
+    );
+
+    const controls: Array<string> =
+      RESOURCE_HERO_CONTROLS_CLASS_NAME.split(" ");
+    expect(controls).not.toContain("flex-shrink-0");
+    expect(controls).toEqual(
+      expect.arrayContaining([
+        "md:flex-[1000_1_0%]",
+        "md:max-w-max",
+        "md:min-w-[min(100%,24rem)]",
+        "md:ml-auto",
+        "md:[&>div]:justify-end",
+      ]),
     );
   });
 });
 
 describe("the Docker Swarm Overview's hero", () => {
-  test("its top row takes the layout, inside a container of its own", async () => {
-    const { topRow, container } = await renderOverview();
+  test("its top row takes the shared layout: the row, the identity, the controls", async () => {
+    const { topRow, identity, controls } = await renderOverview();
 
-    for (const className of RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(" ")) {
-      expect(classesOf(topRow)).toContain(className);
-    }
-    expect(classesOf(container)).toEqual([
-      RESOURCE_HERO_TOP_ROW_CONTAINER_CLASS_NAME,
-    ]);
-
-    // The old row that put the two side by side at every width is gone.
-    expect(classesOf(topRow)).not.toContain("justify-between");
+    expect(classesOf(topRow)).toEqual(
+      RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(" "),
+    );
+    expect(classesOf(identity)).toEqual(
+      RESOURCE_HERO_IDENTITY_CLASS_NAME.split(" "),
+    );
+    expect(classesOf(controls)).toEqual(
+      RESOURCE_HERO_CONTROLS_CLASS_NAME.split(" "),
+    );
+    // The two parts, in that order, and nothing else in the row.
+    expect(Array.from(topRow.children)).toEqual([identity, controls]);
   });
 
-  test("the top row holds the cluster's name and description first, then the refresh control", async () => {
-    const { topRow } = await renderOverview();
+  test("the identity holds the cluster's name and description; the controls the refresh control", async () => {
+    const { identity, controls } = await renderOverview();
 
-    const parts: Array<Element> = Array.from(topRow.children);
-    expect(parts).toHaveLength(2);
-
-    const [identity, controls] = parts as [HTMLElement, HTMLElement];
-    expect(
-      within(identity).getByRole("heading", { name: "swarm-prod" }),
-    ).toBeInTheDocument();
+    const name: HTMLElement = within(identity).getByRole("heading", {
+      name: "swarm-prod",
+    });
+    // A name longer than the whole row is cut inside the hero.
+    expect(classesOf(name)).toContain("truncate");
     expect(
       within(identity).getByText("The production swarm in Frankfurt."),
     ).toBeInTheDocument();
@@ -250,28 +275,40 @@ describe("the Docker Swarm Overview's hero", () => {
     expect(
       within(controls).getByRole("button", { name: "Refresh" }),
     ).toBeInTheDocument();
+    expect(within(identity).queryByRole("combobox")).toBeNull();
   });
 
-  test("the agent version's sign, and so the dialog it opens, sit outside the container", async () => {
-    const { container } = await renderOverview("0.161.0");
+  test("no container query on the way up: the fixed dialogs the hero opens are laid out against the window", async () => {
+    const { topRow } = await renderOverview();
+
+    for (const element of rowAndAncestors(topRow)) {
+      expect(
+        classesOf(element).filter((className: string): boolean => {
+          return className.includes("container");
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("the agent version's sign sits in the chips under the top row, not in it", async () => {
+    const { topRow } = await renderOverview("0.161.0");
 
     const sign: HTMLElement = screen.getByTestId("agent-version-outdated");
     expect(sign).toHaveAttribute("data-agent-kind", "docker-swarm-agent");
-    expect(container.contains(sign)).toBe(false);
+    expect(topRow.contains(sign)).toBe(false);
 
-    // The chips' row comes after the top row's container, in the hero.
+    // The chips' row comes after the top row, in the hero.
     expect(
-      container.compareDocumentPosition(sign) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      topRow.compareDocumentPosition(sign) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  test("an agent with this release's files: the plain chip, outside the container too", async () => {
-    const { container } = await renderOverview("0.161.1");
+  test("an agent with this release's files: the plain chip, under the top row too", async () => {
+    const { topRow } = await renderOverview("0.161.1");
 
     expect(screen.queryByTestId("agent-version-outdated")).toBeNull();
     const chip: HTMLElement = screen.getByTestId("agent-version-chip");
     expect(chip).toHaveTextContent("Agent 0.161.1");
-    expect(container.contains(chip)).toBe(false);
+    expect(topRow.contains(chip)).toBe(false);
   });
 });
