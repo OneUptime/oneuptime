@@ -4,10 +4,16 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import SnmpInterfacesView from "./SnmpInterfacesView";
+import {
+  SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SUMMARY_TABLE_VALUE_CLASS_NAME,
+  SummaryFact,
+  SummaryFacts,
+  SummaryView,
+} from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -36,25 +42,20 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="snmp-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            props.probeMonitorResponse.isOnline ? "Online" : "Offline",
+          )}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Response Time"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -64,17 +65,16 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      {props.probeMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
+        {props.probeMonitorResponse.failureCause ? (
+          <SummaryFact
+            isWide={true}
             title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+            value={props.probeMonitorResponse.failureCause.toString()}
           />
-        </div>
-      )}
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {(snmpResponse?.interfaces || snmpResponse?.interfaceWalkFailure) && (
         <SnmpInterfacesView
@@ -89,7 +89,7 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
           <h3 className="text-sm font-medium text-gray-700">
             {translator.translateText("OID Responses")}
           </h3>
-          <div className="border rounded-md overflow-hidden">
+          <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -112,13 +112,17 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
                   (oidResponse: SnmpOidResponse, index: number) => {
                     return (
                       <tr key={index}>
-                        <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                        <td
+                          className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                        >
                           {oidResponse.oid}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500">
                           {oidResponse.name || "-"}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900">
+                        <td
+                          className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                        >
                           {oidResponse.value !== null
                             ? String(oidResponse.value)
                             : "-"}
@@ -142,7 +146,7 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

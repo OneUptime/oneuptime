@@ -222,16 +222,31 @@ describe("NTP monitor summary", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("wraps its cards two to a row on a phone and four on a wide screen", () => {
+  /*
+   * Two to a row, four once the summary itself is wide: by its own width
+   * (a container query), not the screen's - four to a row by the screen
+   * squeezed the cards in the overview's two-thirds card.
+   */
+  it("wraps its cards two to a row, four once the summary itself is wide", () => {
     const summary: HTMLElement = renderSummary(buildResponse(answered()));
+
+    expect(summary.className).toContain("[container-type:inline-size]");
 
     const grids: Array<Element> = Array.from(summary.querySelectorAll(".grid"));
 
-    expect(grids.length).toBe(3);
+    expect(grids.length).toBe(2);
 
     for (const grid of grids) {
       expect(grid.className).toContain("grid-cols-2");
-      expect(grid.className).toContain("lg:grid-cols-4");
+      expect(grid.className).toContain(
+        "[@container(min-width:64rem)]:grid-cols-4",
+      );
+      expect(grid.className).not.toContain("lg:grid-cols-4");
     }
+
+    // The server takes the whole of the first row.
+    expect(
+      within(summary).getByText("NTP Server").closest("div.rounded-xl"),
+    ).toHaveClass("col-span-full");
   });
 });

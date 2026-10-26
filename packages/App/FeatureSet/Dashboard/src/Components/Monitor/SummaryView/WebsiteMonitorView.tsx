@@ -4,11 +4,12 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 import HttpTimingsView from "./HttpTimingsView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import SummaryErrorFacts from "./SummaryErrorFacts";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -47,11 +48,6 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
-  // Check if there are error details to show
-  const hasErrorDetails: boolean = Boolean(
-    props.probeMonitorResponse.requestFailedDetails,
-  );
-
   const probeAttempts: Array<ProbeAttempt> =
     props.probeMonitorResponse.probeAttempts || [];
   const totalAttempts: number =
@@ -59,34 +55,25 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-full shadow-none border-2 border-gray-100 "
+    <SummaryView dataTestId="website-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
+          isWide={true}
           title="URL"
           value={
             props.probeMonitorResponse.monitorDestination?.toString() || "-"
           }
         />
-      </div>
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Response Status Code"
           value={props.probeMonitorResponse?.responseCode?.toString() || "-"}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Response Time (in ms)"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -96,54 +83,13 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
+      </SummaryFacts>
 
+      <SummaryErrorFacts probeMonitorResponse={props.probeMonitorResponse} />
+
+      {/* Why it failed comes first, then where the time went. */}
       {props.probeMonitorResponse.httpTimings && (
         <HttpTimingsView httpTimings={props.probeMonitorResponse.httpTimings} />
-      )}
-
-      {props.probeMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100 "
-            title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
-          />
-        </div>
-      )}
-
-      {/* Error Details Section */}
-      {hasErrorDetails && (
-        <div className="space-y-3">
-          <div className="flex space-x-3">
-            <InfoCard
-              className="w-1/2 shadow-none border-2 border-gray-100 "
-              title="Failed At"
-              value={
-                props.probeMonitorResponse.requestFailedDetails?.failedPhase ||
-                "-"
-              }
-            />
-            <InfoCard
-              className="w-1/2 shadow-none border-2 border-gray-100 "
-              title="Error Code"
-              value={
-                props.probeMonitorResponse.requestFailedDetails?.errorCode ||
-                "-"
-              }
-            />
-          </div>
-          <div className="flex space-x-3">
-            <InfoCard
-              className="w-full shadow-none border-2 border-gray-100 "
-              title="Error Details"
-              value={
-                props.probeMonitorResponse.requestFailedDetails
-                  ?.errorDescription || "-"
-              }
-            />
-          </div>
-        </div>
       )}
 
       {showMoreDetails && hadRetries && (
@@ -189,7 +135,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-    </div>
+    </SummaryView>
   );
 };
 

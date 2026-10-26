@@ -3,9 +3,9 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   incomingMonitorRequest: IncomingMonitorRequest;
@@ -35,11 +35,15 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * Two to a row, in a grid that follows the summary's width: the three
+   * half-width cards of a flex row were a card and a half wider than the
+   * Monitor Summary card, which scrolled sideways on a phone (#5101).
+   */
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3 justify-between">
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="incoming-request-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
           title="Last Request Received At"
           value={
             props.incomingMonitorRequest?.incomingRequestReceivedAt
@@ -49,25 +53,21 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Request Method"
           value={props.incomingMonitorRequest.requestMethod || "-"}
         />
-        {props.incomingRequestMonitorHeartbeatCheckedAt && (
-          <InfoCard
-            className="w-1/2 shadow-none border-2 border-gray-100"
+        {props.incomingRequestMonitorHeartbeatCheckedAt ? (
+          <SummaryFact
             title="Monitor Status Check At"
-            value={
-              props.incomingRequestMonitorHeartbeatCheckedAt
-                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    props.incomingRequestMonitorHeartbeatCheckedAt,
-                  )
-                : "-"
-            }
+            value={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              props.incomingRequestMonitorHeartbeatCheckedAt,
+            )}
           />
+        ) : (
+          <></>
         )}
-      </div>
+      </SummaryFacts>
 
       {showMoreDetails && (
         <div>
@@ -105,7 +105,7 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-    </div>
+    </SummaryView>
   );
 };
 

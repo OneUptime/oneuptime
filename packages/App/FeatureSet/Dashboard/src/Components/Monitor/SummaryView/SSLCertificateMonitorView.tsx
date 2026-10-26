@@ -4,10 +4,10 @@ import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -63,185 +63,136 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-5">
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100 "
-            title="URL"
-            value={
-              props.probeMonitorResponse.monitorDestination?.toString() || "-"
-            }
-          />
-        </div>
-        <div className="flex space-x-3 w-full">
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
-            title="Probe"
-            value={props.probeName || "-"}
-          />
-          {/*
-           * Reports the VALIDATION verdict, not just how the certificate was
-           * signed. "Signed by a CA" was shown for any certificate that was
-           * not self-signed, so an expired or wrong-hostname certificate read
-           * as reassuring - see issue #3225.
-           */}
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
-            title="SSL Status"
-            value={sslStatusLabel(sslResponse)}
-          />
-
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
-            title="Issued At"
-            value={
-              sslResponse.createdAt
-                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    sslResponse.createdAt,
-                  )
-                : "-"
-            }
-          />
-
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
-            title="Expires At"
-            value={
-              sslResponse.expiresAt
-                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    sslResponse.expiresAt,
-                  )
-                : "-"
-            }
-          />
-        </div>
-
+    <SummaryView dataTestId="ssl-certificate-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
+          isWide={true}
+          title="URL"
+          value={
+            props.probeMonitorResponse.monitorDestination?.toString() || "-"
+          }
+        />
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        {/*
+         * Reports the VALIDATION verdict, not just how the certificate was
+         * signed. "Signed by a CA" was shown for any certificate that was
+         * not self-signed, so an expired or wrong-hostname certificate read
+         * as reassuring - see issue #3225.
+         */}
+        <SummaryFact title="SSL Status" value={sslStatusLabel(sslResponse)} />
+        <SummaryFact
+          title="Issued At"
+          value={
+            sslResponse.createdAt
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  sslResponse.createdAt,
+                )
+              : "-"
+          }
+        />
+        <SummaryFact
+          title="Expires At"
+          value={
+            sslResponse.expiresAt
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  sslResponse.expiresAt,
+                )
+              : "-"
+          }
+        />
         {/*
          * The reason a certificate failed validation is the single most
          * useful thing on this page when something is wrong, so it is shown
          * without needing to expand details.
          */}
         {sslResponse.certificateValidationError ? (
-          <div className="flex space-x-3 w-full">
-            <InfoCard
-              className="w-full shadow-none border-2 border-gray-100 "
-              title="Certificate Problem"
-              value={sslResponse.certificateValidationError}
-            />
-          </div>
+          <SummaryFact
+            isWide={true}
+            title="Certificate Problem"
+            value={sslResponse.certificateValidationError}
+          />
         ) : (
           <></>
         )}
+      </SummaryFacts>
 
-        {showMoreDetails && hadRetries && (
-          <ProbeAttemptsView
-            attempts={probeAttempts}
-            totalAttempts={totalAttempts}
+      {showMoreDetails && hadRetries && (
+        <ProbeAttemptsView
+          attempts={probeAttempts}
+          totalAttempts={totalAttempts}
+        />
+      )}
+
+      {/*
+       * Who the certificate is for and who signed it, then the long values
+       * - the issuer, the serial number and the fingerprints - each on a
+       * row of its own and whole, where they were cut short with an ellipsis.
+       */}
+      {showMoreDetails && (
+        <SummaryFacts dataTestId="ssl-certificate-details">
+          <SummaryFact
+            title="Common Name"
+            value={sslResponse.commonName || "-"}
           />
-        )}
+          <SummaryFact
+            title="Organization"
+            value={sslResponse.organization || "-"}
+          />
+          <SummaryFact
+            title="Organizational Unit"
+            value={sslResponse.organizationalUnit || "-"}
+          />
+          <SummaryFact title="Country" value={sslResponse.country || "-"} />
+          <SummaryFact title="State" value={sslResponse.state || "-"} />
+          <SummaryFact title="Locality" value={sslResponse.locality || "-"} />
+          {/* Without this the product could not name the signing CA. */}
+          <SummaryFact
+            isWide={true}
+            title="Issuer"
+            value={sslResponse.issuer || "-"}
+          />
+          <SummaryFact
+            isWide={true}
+            title="Serial Number"
+            value={sslResponse.serialNumber || "-"}
+          />
+          <SummaryFact
+            isWide={true}
+            title="Fingerprint"
+            value={sslResponse.fingerprint || "-"}
+          />
+          <SummaryFact
+            isWide={true}
+            title="Fingerprint 256"
+            value={sslResponse.fingerprint256 || "-"}
+          />
+        </SummaryFacts>
+      )}
 
-        {showMoreDetails && (
-          <div className="space-y-5">
-            <div className="flex space-x-3 w-full">
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Common Name"
-                value={sslResponse.commonName || "-"}
-              />
+      {!showMoreDetails && (
+        <div className="-ml-2">
+          <Button
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            title="Show More Details"
+            onClick={() => {
+              return setShowMoreDetails(true);
+            }}
+          />
+        </div>
+      )}
 
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Organizational Unit"
-                value={sslResponse.organizationalUnit || "-"}
-              />
-
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Organization"
-                value={sslResponse.organization || "-"}
-              />
-            </div>
-            <div className="flex space-x-3 w-full">
-              {/* Without this the product could not name the signing CA. */}
-              <InfoCard
-                className="w-full shadow-none border-2 border-gray-100 "
-                title="Issuer"
-                value={sslResponse.issuer || "-"}
-                textClassName="text-xs truncate"
-              />
-            </div>
-            <div className="flex space-x-3 w-full">
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Locality"
-                value={sslResponse.locality || "-"}
-              />
-
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="State"
-                value={sslResponse.state || "-"}
-              />
-
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Country"
-                value={sslResponse.country || "-"}
-              />
-            </div>
-            <div className="flex space-x-3 w-full">
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Serial Number"
-                value={sslResponse.serialNumber || "-"}
-                textClassName="text-xs truncate"
-              />
-
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Fingerprint"
-                value={sslResponse.fingerprint || "-"}
-                textClassName="text-xs truncate"
-              />
-
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Fingerprint 256"
-                value={sslResponse.fingerprint256 || "-"}
-                textClassName="text-xs truncate"
-              />
-            </div>
-          </div>
-        )}
-
-        {!showMoreDetails && (
-          <div className="-ml-2">
-            <Button
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              title="Show More Details"
-              onClick={() => {
-                return setShowMoreDetails(true);
-              }}
-            />
-          </div>
-        )}
-
-        {/* Hide details button */}
-
-        {showMoreDetails && (
-          <div className="-ml-2">
-            <Button
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              title="Hide Details"
-              onClick={() => {
-                return setShowMoreDetails(false);
-              }}
-            />
-          </div>
-        )}
-      </div>
-    </div>
+      {showMoreDetails && (
+        <div className="-ml-2">
+          <Button
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            title="Hide Details"
+            onClick={() => {
+              return setShowMoreDetails(false);
+            }}
+          />
+        </div>
+      )}
+    </SummaryView>
   );
 };
 

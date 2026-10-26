@@ -22,6 +22,7 @@ export interface ComponentProps {
   ariaLabel?: string | undefined;
   // What the value means, shown in an (i) tooltip beside the title.
   tooltip?: string | undefined;
+  dataTestId?: string | undefined;
 }
 
 const InfoCard: FunctionComponent<ComponentProps> = (
@@ -51,6 +52,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
     return (
       <div
         className={`relative rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${props.className || ""}`}
+        data-testid={props.dataTestId}
       >
         <button
           type="button"
@@ -89,6 +91,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      data-testid={props.dataTestId}
       onClick={props.onClick}
       /*
        * Click handlers on a div are invisible to the keyboard and to screen

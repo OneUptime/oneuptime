@@ -5,9 +5,15 @@ import DnssecMonitorResponse, {
   DnssecNameserverCheck,
   DnssecResolverCheck,
 } from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import {
+  SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SUMMARY_TABLE_VALUE_CLASS_NAME,
+  SummaryFact,
+  SummaryFacts,
+  SummaryView,
+} from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -49,7 +55,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
     if (value === undefined) {
       return "-";
     }
-    return value ? "Yes" : "No";
+    return translator.translateTemplate(value ? "Yes" : "No");
   };
 
   const probeAttempts: Array<ProbeAttempt> =
@@ -59,48 +65,30 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="dnssec-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Chain Valid"
           value={yesNo(dnssecResponse?.isChainValid)}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Zone Signed"
           value={yesNo(dnssecResponse?.isZoneSigned)}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="DS at Parent"
           value={yesNo(dnssecResponse?.isParentDsPresent)}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Response Time"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
-        />
-      </div>
-
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Resolver Consensus (AD)"
           value={yesNo(dnssecResponse?.resolverConsensusAd)}
         />
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Nameservers Consistent"
           value={yesNo(dnssecResponse?.isNameserverConsistent)}
         />
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Signature Expires"
           value={
             dnssecResponse?.daysUntilSignatureExpiry !== undefined
@@ -119,17 +107,20 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      {props.probeMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
+        <SummaryFact
+          title="Response Time"
+          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+        />
+        {props.probeMonitorResponse.failureCause ? (
+          <SummaryFact
+            isWide={true}
             title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+            value={props.probeMonitorResponse.failureCause.toString()}
           />
-        </div>
-      )}
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {dnssecResponse?.resolverChecks &&
         dnssecResponse.resolverChecks.length > 0 && (
@@ -137,7 +128,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
             <h3 className="text-sm font-medium text-gray-700">
               {translator.translateText("Resolver Checks")}
             </h3>
-            <div className="border rounded-md overflow-hidden">
+            <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -160,7 +151,9 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                     (check: DnssecResolverCheck, index: number) => {
                       return (
                         <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                          <td
+                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                          >
                             {check.resolver}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
@@ -169,7 +162,9 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                           <td className="px-4 py-2 text-sm text-gray-900">
                             {yesNo(check.servfailWhenValidating)}
                           </td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
+                          <td
+                            className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                          >
                             {check.error || "-"}
                           </td>
                         </tr>
@@ -188,7 +183,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
             <h3 className="text-sm font-medium text-gray-700">
               {translator.translateText("Nameserver Consistency")}
             </h3>
-            <div className="border rounded-md overflow-hidden">
+            <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -211,7 +206,9 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                     (check: DnssecNameserverCheck, index: number) => {
                       return (
                         <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                          <td
+                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                          >
                             {check.nameServer}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900 font-mono">
@@ -220,7 +217,9 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                           <td className="px-4 py-2 text-sm text-gray-900">
                             {formatDateText(check.rrsigExpiration)}
                           </td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
+                          <td
+                            className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                          >
                             {check.error || "-"}
                           </td>
                         </tr>
@@ -239,7 +238,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 
