@@ -612,7 +612,6 @@ const MessageQueueOverview: FunctionComponent<
       mono: false,
     },
     { label: "Queue identifier", value: q.queueIdentifier },
-    { label: "Queue ID", value: modelId.toString() },
   );
 
   return (
@@ -671,7 +670,9 @@ const MessageQueueOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        recordId={modelId.toString()}
         labels={q.labels}
+        settingsRoute={populate(PageMap.MESSAGE_QUEUE_VIEW_SETTINGS)}
       />
 
       {/*

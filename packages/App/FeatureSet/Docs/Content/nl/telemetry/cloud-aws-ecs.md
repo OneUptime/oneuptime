@@ -322,7 +322,7 @@ aws ecs update-service \
 ## Wat je krijgt
 
 - **Overzicht**: aanvragen, foutpercentage en p95-latentie uit je traces, de tegels **CPU** en **Geheugen** en **Topinstanties op CPU**. De tegels worden gevuld uit `ecs.task.cpu.utilized` en `ecs.task.memory.utilized` van de receiver `awsecscontainermetrics`, of uit elke metriek `container.cpu.utilization` en `container.memory.usage` die de identiteit van de taak draagt. SDK direct levert geen van beide.
-- **Instanties**: één rij per draaiende taak, met het taak-ID als naam (het eind van `aws.ecs.task.arn`), met de laatste CPU, het geheugen en het tijdstip waarop de taak het laatst is gezien. Een taak die niet meer rapporteert, wordt **Stale**.
+- **Instanties**: één rij per draaiende taak, met het taak-ID als naam (het eind van `aws.ecs.task.arn`), met de laatste CPU, het geheugen en het tijdstip waarop de taak het laatst is gezien. Een taak die niet meer rapporteert, wordt **Verouderd**.
 - **Logboeken**, **Traces** en **Metrieken**: alles wat `cloud.platform=aws_ecs` droeg voor dit account en deze regio.
 - **Services**: dezelfde taken, uitgesplitst naar `service.name`.
 

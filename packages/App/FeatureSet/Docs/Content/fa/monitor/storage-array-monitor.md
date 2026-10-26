@@ -121,8 +121,8 @@ OneUptime در مجموع ۱۸ قالب دارد – ۱۱ قالب برای Flas
 | Warning Array Alert | Array Health | Warning | `purefa_alerts_open` با فیلتر `severity=warning`، Max به ازای هر `summary`، ۵ دقیقه گذشته | > ۰ – آرایه یک هشدار سطح warning باز دارد. یک حادثه به ازای هر هشدار؛ با بسته شدن هشدار بهبود می‌یابد |
 | Capacity Above 80% | ظرفیت | Warning | `purefa_array_space_utilization`، Max، ۱۵ دقیقه گذشته | > ۸۰ – نخستین آستانه ظرفیت خود Pure؛ در ≤ ۷۲ بهبود می‌یابد |
 | Capacity Above 90% | ظرفیت | بحرانی | `purefa_array_space_utilization`، Max، ۵ دقیقه گذشته | > ۹۰ – آرایه نزدیک است که نوشتن‌ها را رد کند؛ در ≤ ۸۱ بهبود می‌یابد |
-| High Read Latency | Performance | Warning | `purefa_array_performance_latency_usec` با فیلتر `dimension=usec_per_read_op`، Avg، ۱۰ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms) – خواندن‌های FlashArray معمولاً خیلی زیر ۱ ms کامل می‌شوند؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
-| High Write Latency | Performance | Warning | `purefa_array_performance_latency_usec` با فیلتر `dimension=usec_per_write_op`، Avg، ۱۰ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms)؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
+| High Read Latency | کارایی | Warning | `purefa_array_performance_latency_usec` با فیلتر `dimension=usec_per_read_op`، Avg، ۱۰ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms) – خواندن‌های FlashArray معمولاً خیلی زیر ۱ ms کامل می‌شوند؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
+| High Write Latency | کارایی | Warning | `purefa_array_performance_latency_usec` با فیلتر `dimension=usec_per_write_op`، Avg، ۱۰ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms)؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
 | Hardware Component Failed | سخت‌افزار | بحرانی | `purefa_hw_component_status` با فیلتر `component_status=critical`، Max به ازای هر `component_name`، ۵ دقیقه گذشته | > ۰ – یک کنترلر، منبع تغذیه، فن، جایگاه یا پورت در وضعیت بحرانی است و افزونگی از دست رفته است. یک حادثه به ازای هر قطعه؛ وقتی ok گزارش دهد بهبود می‌یابد |
 | Hardware Component Degraded | سخت‌افزار | Warning | `purefa_hw_component_status` با فیلتر `component_status=degraded`، Max به ازای هر `component_name`، ۵ دقیقه گذشته | > ۰ – یک قطعه افت کارکرد دارد. یک حادثه به ازای هر قطعه؛ وقتی ok گزارش دهد بهبود می‌یابد |
 | Drive Failed | سخت‌افزار | بحرانی | `purefa_drive_capacity_bytes` با فیلتر `component_status=failed`، Max به ازای هر `component_name`، ۵ دقیقه گذشته | > ۰ – یک ماژول DirectFlash یا SSD از کار افتاده و آرایه داده را روی بقیه بازسازی می‌کند. یک حادثه به ازای هر درایو؛ با تعویض آن بهبود می‌یابد |
@@ -138,7 +138,7 @@ OneUptime در مجموع ۱۸ قالب دارد – ۱۱ قالب برای Flas
 | Capacity Above 80% | ظرفیت | Warning | `purefb_array_space_utilization` با فیلتر `type=array`، Max، ۱۵ دقیقه گذشته | > ۸۰؛ در ≤ ۷۲ بهبود می‌یابد |
 | Capacity Above 90% | ظرفیت | بحرانی | `purefb_array_space_utilization` با فیلتر `type=array`، Max، ۵ دقیقه گذشته | > ۹۰ – وقتی پر شود نوشتن برای همه کلاینت‌ها شکست می‌خورد؛ در ≤ ۸۱ بهبود می‌یابد |
 | Hardware Component Unhealthy | سخت‌افزار | بحرانی | `purefb_hardware_health`، Min به ازای هر `name`، ۵ دقیقه گذشته | < ۱ – یک blade، ماژول fabric، منبع تغذیه یا فن سالم نیست (جایگاه بی‌استفاده ۲ گزارش می‌دهد). یک حادثه به ازای هر قطعه؛ در ≥ ۱ بهبود می‌یابد |
-| High Read Latency | Performance | Warning | `purefb_array_performance_latency_usec` با فیلتر `dimension=usec_per_read_op` و `protocol=all`، Avg، ۱۰ دقیقه گذشته | > ۱۰۰۰۰ µs (۱۰ ms) در همه پروتکل‌ها؛ در ≤ ۹۰۰۰ بهبود می‌یابد |
+| High Read Latency | کارایی | Warning | `purefb_array_performance_latency_usec` با فیلتر `dimension=usec_per_read_op` و `protocol=all`، Avg، ۱۰ دقیقه گذشته | > ۱۰۰۰۰ µs (۱۰ ms) در همه پروتکل‌ها؛ در ≤ ۹۰۰۰ بهبود می‌یابد |
 | File System Near Full | سامانه‌های فایل | Warning | `purefb_file_systems_space_bytes` با فیلتر `space=available_ratio`، Min به ازای هر `name`، ۱۵ دقیقه گذشته | < ۰٫۱ – کمتر از ۱۰٪ اندازه تأمین‌شده یک سیستم فایل باقی مانده است. یک حادثه به ازای هر سیستم فایل؛ در ≥ ۰٫۱۱ بهبود می‌یابد |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.

@@ -566,7 +566,12 @@ jobs:
           # Security Events Empty States (2.2 minutes) and Shared UI (2.5) moved
           # to group 11, and New Version (1.4) to group 12, on 2026-10-26, when
           # 14.0.93's gate run took this group 24.4 minutes before Side by Side
-          # Pages joined: about 19.5 with it.
+          # Pages joined: about 19.5 with it. #5298's UI review (#5307) grew
+          # Docker Swarm Pages by twelve tests the same day (where names break,
+          # sparklines that line up and stay under the pointer, the hero's
+          # description and its Show more, its pills in German and for an agent
+          # that stopped reporting, right to left: 1.3 minutes locally for its
+          # 31 with the bundle): about 20.
           - group: 8
             browsers: chromium
             suites: >-
@@ -686,7 +691,15 @@ jobs:
           # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
           # Exceptions AI (2.4) and Acknowledgement Timeout (0.5) from group
           # 9, New Version (1.4) from group 8 and Global Runners (1.9) from
-          # group 10, all Chromium only: about 19.
+          # group 10, all Chromium only: about 19. Resource Overviews (1.3
+          # minutes locally with its bundle, Chromium only: a service's, a
+          # database's and a queue's Overview - the Details card's ID line, the
+          # labels card on a phone only, long values, the description under
+          # the name and its Show more, and the hero's controls - at 1280,
+          # 1024, 768 and 390 pixels, dark, German and right to left) joined
+          # them the same day with #5298's UI review (#5307), rather than
+          # group 8, which its grown Docker Swarm Pages takes to about 20:
+          # about 20.5.
           - group: 12
             browsers: chromium
             suites: >-
@@ -695,6 +708,7 @@ jobs:
               test-acknowledgement-timeout-ui
               test-new-version-ui
               test-global-runners-ui
+              test-resource-overviews-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -929,4 +943,6 @@ jobs:
             output/playwright/docker-swarm-pages-ui/test-results
             output/playwright/side-by-side-pages-ui/*.png
             output/playwright/side-by-side-pages-ui/test-results
+            output/playwright/resource-overviews-ui/*.png
+            output/playwright/resource-overviews-ui/test-results
           retention-days: 7

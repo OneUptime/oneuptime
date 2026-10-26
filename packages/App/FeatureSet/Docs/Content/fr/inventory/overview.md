@@ -38,7 +38,7 @@ Un élément découvert a un battement de cœur. Chaque fois que de la télémé
 | --- | --- |
 | **En direct** | Vu au cours des 30 dernières minutes. |
 | **Recent** | Vu au cours de la dernière journée. |
-| **Stale** | Pas vu depuis plus d'une journée. La page **Devenu silencieux** les liste. |
+| **Obsolète** | Pas vu depuis plus d'une journée. La page **Devenu silencieux** les liste. |
 
 Toutes les trois heures, OneUptime retire les éléments découverts restés silencieux plus longtemps que la fenêtre de leur type, archivés compris, et leurs valeurs de champs personnalisés partent avec eux. Les éléments répliqués et ceux que vous avez ajoutés ne sont jamais retirés de cette façon.
 

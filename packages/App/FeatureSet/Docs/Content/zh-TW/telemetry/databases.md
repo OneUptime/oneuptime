@@ -147,10 +147,10 @@ OneUptime 每 10 分鐘彙總一次你的應用程式在過去 15 分鐘內傳�
 - 位址在整個專案中指向唯一的一台伺服器：是 DNS 名稱，而不是 IP 常值，也不是只在一台機器上或一個網路內才能解析的名稱，除非呼叫端的 Kubernetes 叢集對其加以限定（請參閱 [端點](#端點和唯一擁有者規則)）；
 - 連接埠是伺服器監聽的連接埠。作業系統從 32768 以上為連線的用戶端一側分配連接埠（Linux 的預設暫時連接埠範圍從這裡開始；Windows 和 macOS 使用 49152–65535），因此 32768 以上的連接埠永遠不會建立資料庫，除非它是該引擎本身的預設連接埠（IBM Db2 的 50000）。eBPF 檢測（包括 Kubernetes 代理程式的檢測）可能在長時間連線中途加入並把兩端對調。這時 span 會把用戶端自己的連接埠回報為伺服器連接埠，如果沒有這條規則，每個連線都會變成一個單獨的資料庫；
 - 引擎是 OneUptime 知道且有獨立位址的引擎：請參閱 [支援的資料庫](#支援的資料庫) 中的 **從追蹤建立** 欄。所有客戶共用主機的雲端 API（DynamoDB、BigQuery、Spanner、Firestore、Bigtable、Cosmos DB、Pinecone）、在應用程式內部執行的引擎（SQLite、DuckDB、H2、HyperSQL、Derby）以及 OneUptime 不認識的引擎，永遠不會從追蹤建立；請手動新增它們；
-- 該端點在一次執行所查看的 15 分鐘視窗內至少收到 10 個查詢，這樣一次性指令碼就不會建立資料庫。用戶端程式庫的連線管理 span（node-postgres 的 `pg.connect` 和 `pg-pool.connect`、`redis-connect`、`connect`、…）不是查詢：它們既不計入這裡，也不計入資料庫的 **Queries**；
+- 該端點在一次執行所查看的 15 分鐘視窗內至少收到 10 個查詢，這樣一次性指令碼就不會建立資料庫。用戶端程式庫的連線管理 span（node-postgres 的 `pg.connect` 和 `pg-pool.connect`、`redis-connect`、`connect`、…）不是查詢：它們既不計入這裡，也不計入資料庫的 **查詢**；
 - 專案未超出其 [自動建立額度](#自動建立額度)。
 
-每個傳往資料庫的 CLIENT span 在擷取時也會被標記上它的端點，因此一旦某個資料庫擁有了某個端點，**Queries from applications** 區段和 **追蹤** 分頁就會顯示對它的每一次呼叫，包括資料庫建立之前的呼叫。帶有 `server.address` 的 `db.client.*` 指標（例如 `db.client.operation.duration`）也以同樣的方式標記。
+每個傳往資料庫的 CLIENT span 在擷取時也會被標記上它的端點，因此一旦某個資料庫擁有了某個端點，**來自應用程式的查詢** 區段和 **追蹤** 分頁就會顯示對它的每一次呼叫，包括資料庫建立之前的呼叫。帶有 `server.address` 的 `db.client.*` 指標（例如 `db.client.operation.duration`）也以同樣的方式標記。
 
 **叢集和主機清單。** 列出多台主機的連線字串（`m1:27017,m2:27017,m3:27017`）是一個資料庫，無論用戶端以什麼順序列出它們。MongoDB Atlas 成員（`cluster0-shard-00-01.ab1cd.mongodb.net`）會成為一個以其叢集命名的資料庫（`cluster0.ab1cd.mongodb.net`），看到的每個成員都會成為它的一個端點。單獨回報 Cassandra 環、Redis Cluster、Elasticsearch 叢集的每個成員或 ElastiCache 節點的驅動程式，仍然會為每個成員產生一個資料庫：這些主機名稱中沒有任何資訊說明它們屬於哪個叢集。保留一個，並把其他的 [合併](#端點和唯一擁有者規則) 到它上面。
 
@@ -713,13 +713,13 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-d
 
 ### 我的應用程式使用的資料庫沒有被建立
 
-它很可能不符合 [建立原則](#從應用程式追蹤)：IP 位址、僅本機有效的名稱或單一標籤名稱、從 Kubernetes 外部呼叫的只在一個網路內解析的名稱（`.internal` 或 `.local` 名稱、叢集本機名稱）、不是引擎預設連接埠的 32768 以上連接埠（例如隨機發布的 Docker 連接埠）、過去 15 分鐘內少於 10 個查詢（`pg.connect` 和 `pg-pool.connect` 之類的連線 span 不計入）、永遠不會從追蹤建立的引擎（共用雲端 API、處理序內引擎或 OneUptime 不認識的引擎），或專案的 [自動建立額度](#自動建立額度)。請以你的應用程式使用的位址手動建立它：它的 **Queries from applications** 區段會以已儲存的 span 填入。
+它很可能不符合 [建立原則](#從應用程式追蹤)：IP 位址、僅本機有效的名稱或單一標籤名稱、從 Kubernetes 外部呼叫的只在一個網路內解析的名稱（`.internal` 或 `.local` 名稱、叢集本機名稱）、不是引擎預設連接埠的 32768 以上連接埠（例如隨機發布的 Docker 連接埠）、過去 15 分鐘內少於 10 個查詢（`pg.connect` 和 `pg-pool.connect` 之類的連線 span 不計入）、永遠不會從追蹤建立的引擎（共用雲端 API、處理序內引擎或 OneUptime 不認識的引擎），或專案的 [自動建立額度](#自動建立額度)。請以你的應用程式使用的位址手動建立它：它的 **來自應用程式的查詢** 區段會以已儲存的 span 填入。
 
 ### Kubernetes 資料庫沒有被偵測到
 
 叢集必須已連線（Kubernetes 代理程式正在執行），而且資料庫的某個 Pod 必須已處於 Ready 狀態約 10 分鐘；處於 `CrashLoopBackOff` 的 Pod 每次重新啟動都會重新變成 Ready。同時執行應用程式容器的 Pod、資料庫映像檔的用戶端或偵錯執行（直接執行、透過 `sh -c`，或在 `env`、`nohup`、`tini`、`dumb-init` 或 `docker-entrypoint.sh` 之後）、沒有宣告連接埠的 `kubectl run` Pod、OneUptime 不認得的映像檔，或連線集區，都不是資料庫。請手動建立它，並把它的 Service 名稱作為附帶叢集的端點（`postgres.prod.svc.cluster.local:5432@my-cluster`）新增，這樣來自叢集中應用程式的呼叫就能相符。
 
-### Queries from applications 為空
+### 來自應用程式的查詢為空
 
 span 缺少 `db.system.name` / `db.system` 或 `server.address`，或使用的位址不是資料庫的端點之一：比較 **端點** 分頁與 **追蹤** 瀏覽器中某個 span 上的 `server.address`，並新增缺少的別名。
 
@@ -736,6 +736,6 @@ _未連線_：從未有 Database Agent 或 Collector 為該資料庫回報過資
 :::cards
 - [指標監控](/docs/monitor/metrics-monitor): 對資料庫的引擎指標設定警示，並依其 `oneuptime.database.server.id` 篩選。
 - [資料庫健康狀態監控](/docs/monitor/database-health-monitor): 不需要代理程式，從探測器檢查 PostgreSQL、MySQL 或 SQL Server。
-- [OpenTelemetry](/docs/telemetry/open-telemetry): 為你的應用程式加上檢測，讓它們的資料庫呼叫填入 **Queries from applications**。
+- [OpenTelemetry](/docs/telemetry/open-telemetry): 為你的應用程式加上檢測，讓它們的資料庫呼叫填入 **來自應用程式的查詢**。
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): 資料庫 AI 代理程式可以執行什麼，以及修正如何運作。
 :::

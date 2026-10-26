@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 環境的 **概覽** 會顯示：
 
-- 根據追蹤計算的 **請求**、**錯誤率** 與 **p95 latency**，以及你所選時間範圍內的請求、錯誤與記憶體圖表。
+- 根據追蹤計算的 **請求**、**錯誤率** 與 **p95 延遲**，以及你所選時間範圍內的請求、錯誤與記憶體圖表。
 - 所有線上執行個體的 **CPU** 與 **記憶體**，以及 **依 CPU 排序的前幾名執行個體** 清單。這些資料來自帶有執行個體識別的 `container.cpu.utilization` 與 `container.memory.usage` 指標；在 ECS 上則來自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 與 `ecs.task.memory.utilized`。
 - **執行個體**：最近 15 分鐘內回報過的執行個體數量。**執行個體** 分頁中每個執行個體一列。
 - 依環境篩選的 **日誌**、**追蹤** 與 **指標** 分頁。

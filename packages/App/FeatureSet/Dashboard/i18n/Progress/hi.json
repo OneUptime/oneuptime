@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 35538,
-    "untranslated": 13477
+    "keys": 35667,
+    "untranslated": 13461
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -33,6 +33,7 @@
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
+    "OK",
     "OSD",
     "PR #{{number}}",
     "PV",

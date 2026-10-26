@@ -101,8 +101,8 @@ Un ambiente mostra **Disconnesso** quando per 15 minuti non è arrivata alcuna t
 
 Le istanze seguono due orologi:
 
-- **Stale:** la scheda **Istanze** segna un task, un'istanza o una replica come **Stale** quando non ha segnalato negli ultimi 15 minuti, e la panoramica conta come attive solo le altre.
-- **Eliminata:** una pulizia elimina le righe delle istanze non viste da `CLOUD_INSTANCE_STALE_MINUTES` (15 per impostazione predefinita, almeno 10), misurato dall'ultima telemetria dell'ambiente stesso, così un'interruzione del collector ferma quell'orologio invece di cancellare l'ultimo elenco noto dei task. Le funzioni serverless usano `SERVERLESS_INSTANCE_STALE_MINUTES`. Alzare la soglia mantiene le righe più a lungo; non cambia il momento in cui diventano **Stale**.
+- **Non aggiornato:** la scheda **Istanze** segna un task, un'istanza o una replica come **Non aggiornato** quando non ha segnalato negli ultimi 15 minuti, e la panoramica conta come attive solo le altre.
+- **Eliminata:** una pulizia elimina le righe delle istanze non viste da `CLOUD_INSTANCE_STALE_MINUTES` (15 per impostazione predefinita, almeno 10), misurato dall'ultima telemetria dell'ambiente stesso, così un'interruzione del collector ferma quell'orologio invece di cancellare l'ultimo elenco noto dei task. Le funzioni serverless usano `SERVERLESS_INSTANCE_STALE_MINUTES`. Alzare la soglia mantiene le righe più a lungo; non cambia il momento in cui diventano **Non aggiornato**.
 
 ## Due ambienti dove dovrebbe essercene uno
 

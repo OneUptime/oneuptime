@@ -50,7 +50,7 @@ Sophos는 어떤 SFOS 버전에서도 게이트웨이나 SD-WAN 상태를 SNMP�
 
 :::steps
 1. 방화벽에서 **Administration → SNMP** 아래의 SNMP를 켭니다. SNMPv3 사용자나 v2c 커뮤니티를 추가하고, 프로브의 주소가 조회할 수 있도록 허용하세요.
-2. OneUptime에서 **네트워크 → Devices**로 이동해 **디바이스 추가**를 클릭합니다. 방화벽의 관리 주소를 입력하고, 도달할 수 있는 프로브를 고르고, **SNMP** 아래에 SNMP 자격 증명을 추가하세요.
+2. OneUptime에서 **네트워크 → 디바이스**로 이동해 **디바이스 추가**를 클릭합니다. 방화벽의 관리 주소를 입력하고, 도달할 수 있는 프로브를 고르고, **SNMP** 아래에 SNMP 자격 증명을 추가하세요.
 3. 디바이스의 **설정** 페이지에서 **Polling & Data Collection** 아래의 **Vendor Health Template**에서 **Sophos Firewall (SFOS / XGS)** 템플릿을 적용하고, **Add a Vendor's Tables**에서 그 테이블을 추가합니다. 또는 **Auto-Apply Vendor Health Template**을 켜면 첫 폴링이 둘 다 해 줍니다.
 :::
 
