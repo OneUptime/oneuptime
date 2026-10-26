@@ -3,7 +3,7 @@ import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
+import StatusPageUtil from "./StatusPage";
 
 const RouteMap: Dictionary<Route> = {
   [PageMap.OVERVIEW]: new Route(`/`),
@@ -155,13 +155,13 @@ export class RouteUtil {
     const tempRoute: Route = new Route(route.toString());
 
     if (modelId) {
-      route = tempRoute.addRouteParam(RouteParams.ModelID, modelId.toString());
+      tempRoute.addRouteParam(RouteParams.ModelID, modelId.toString());
     }
 
-    const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+    const id: ObjectID | null = StatusPageUtil.getStatusPageId();
 
     if (id) {
-      route = tempRoute.addRouteParam(RouteParams.StatusPageId, id.toString());
+      tempRoute.addRouteParam(RouteParams.StatusPageId, id.toString());
     }
 
     return tempRoute;
