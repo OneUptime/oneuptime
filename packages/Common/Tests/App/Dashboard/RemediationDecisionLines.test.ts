@@ -194,7 +194,7 @@ describe("getRemediationDecisionLines", () => {
       );
       // What lets it fix this one, then how the next ones are linked.
       expect(lines[0]!.whatToDo).toBe(
-        "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every incident it raises from then on is linked for you.",
+        "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every incident it raises from then on is linked for you.",
       );
       // The sentence is the why: no "Why:" repeats it.
       expect(lines[0]!.why).toBeUndefined();
@@ -232,7 +232,7 @@ describe("getRemediationDecisionLines", () => {
         "This alert is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
       );
       expect(line.whatToDo).toBe(
-        "Add the one it is about under Affected Resources, and OneUptime AI tries again.",
+        "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
       );
       // No monitor to link: going to Affected Resources is the one step.
       expect(line.links).toEqual([]);

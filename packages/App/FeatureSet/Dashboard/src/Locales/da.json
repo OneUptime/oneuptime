@@ -24581,8 +24581,8 @@
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Den anden container: Den lader OneUptime AI køre skrivebeskyttede docker-kommandoer på denne vært, mens den undersøger. Slået til som standard.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "Denne {{signal}} har allerede det højeste antal rettelser, en {{signal}} kan få, så der blev ikke forsøgt mere.",
   "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "Denne {{signal}} er ikke knyttet til en vært, en klynge eller en database, så OneUptime AI havde intet at rette.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again.": "Tilføj det, den drejer sig om, under Berørte ressourcer, så prøver OneUptime AI igen.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Tilføj det, den drejer sig om, under Berørte ressourcer, så prøver OneUptime AI igen. Knyt dens monitor til det, den overvåger, så bliver hver {{signal}}, den udløser fra da af, knyttet automatisk.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Tilføj den vært, klynge eller database, den drejer sig om, under Berørte ressourcer, så prøver OneUptime AI igen.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Tilføj den vært, klynge eller database, den drejer sig om, under Berørte ressourcer, så prøver OneUptime AI igen. Knyt dens monitor til det, den overvåger, så bliver hver {{signal}}, den udløser fra da af, knyttet automatisk.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Denne {{signal}} er ikke knyttet til en Kubernetes-klynge.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Denne {{signal}} er ikke knyttet til en infrastrukturressource med en AI-agent.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35600,5 +35600,8 @@
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "Hændelsens SLA overskredet",
   "An incident you own misses its SLA response or resolution deadline.": "En hændelse, du ejer, overskrider sin SLA-frist for svar eller løsning.",
-  "Go to Affected Resources": "Gå til Berørte ressourcer"
+  "Go to Affected Resources": "Gå til Berørte ressourcer",
+  "Linking affected resources": "Knytter berørte ressourcer",
+  "Linked an incident to affected resources": "Knyttede en hændelse til berørte ressourcer",
+  "Linked an alert to affected resources": "Knyttede en advarsel til berørte ressourcer"
 }

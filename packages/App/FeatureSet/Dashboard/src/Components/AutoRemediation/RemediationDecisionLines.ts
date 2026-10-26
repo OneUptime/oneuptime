@@ -672,11 +672,11 @@ export function getRemediationDecisionLines(input: {
             whatToDo:
               monitors.length > 0
                 ? translator.translateTemplate(
-                    "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
+                    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
                     { signal: signalTerm },
                   )
                 : translator.translateTemplate(
-                    "Add the one it is about under Affected Resources, and OneUptime AI tries again.",
+                    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
                   ),
             place: {
               text: translateText(translator, GO_TO_AFFECTED_RESOURCES),

@@ -24581,8 +24581,8 @@
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again.": "Add the one it is about under Affected Resources, and OneUptime AI tries again.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "This {{signal}} is not linked to a Kubernetes cluster.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "This {{signal}} is not linked to an infrastructure resource with an AI agent.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35600,5 +35600,8 @@
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "Incident SLA breached",
   "An incident you own misses its SLA response or resolution deadline.": "An incident you own misses its SLA response or resolution deadline.",
-  "Go to Affected Resources": "Go to Affected Resources"
+  "Go to Affected Resources": "Go to Affected Resources",
+  "Linking affected resources": "Linking affected resources",
+  "Linked an incident to affected resources": "Linked an incident to affected resources",
+  "Linked an alert to affected resources": "Linked an alert to affected resources"
 }

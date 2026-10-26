@@ -24581,8 +24581,8 @@
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Le second conteneur : il permet à OneUptime AI d'exécuter des commandes docker en lecture seule sur cet hôte pendant ses investigations. Activé par défaut.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "L'{{signal}} a déjà le nombre maximal de correctifs autorisés par {{signal}}, rien d'autre n'a donc été tenté.",
   "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "L'{{signal}} n'est lié à aucun hôte, cluster ni aucune base de données : OneUptime AI n'avait donc rien à corriger.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again.": "Ajoutez la ressource concernée dans Ressources affectées, et OneUptime AI réessaiera.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Ajoutez la ressource concernée dans Ressources affectées, et OneUptime AI réessaiera. Liez son moniteur à ce qu'il surveille, et chaque élément ({{signal}}) qu'il déclenchera ensuite y sera lié automatiquement.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Ajoutez dans Ressources affectées l'hôte, le cluster ou la base de données dont il s'agit, et OneUptime AI réessaiera.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Ajoutez dans Ressources affectées l'hôte, le cluster ou la base de données dont il s'agit, et OneUptime AI réessaiera. Liez son moniteur à ce qu'il surveille, et chaque élément ({{signal}}) qu'il déclenchera ensuite y sera lié automatiquement.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "L'{{signal}} n'a aucun lien avec un cluster Kubernetes.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "L'{{signal}} n'a aucun lien avec une ressource d'infrastructure dotée d'un agent IA.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35600,5 +35600,8 @@
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "SLA d'incident non respecté",
   "An incident you own misses its SLA response or resolution deadline.": "Un incident dont vous êtes propriétaire dépasse son délai SLA de réponse ou de résolution.",
-  "Go to Affected Resources": "Aller aux ressources affectées"
+  "Go to Affected Resources": "Aller aux ressources affectées",
+  "Linking affected resources": "Liaison des ressources affectées",
+  "Linked an incident to affected resources": "Incident lié à des ressources affectées",
+  "Linked an alert to affected resources": "Alerte liée à des ressources affectées"
 }

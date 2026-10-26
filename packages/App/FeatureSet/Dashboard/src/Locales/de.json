@@ -24581,8 +24581,8 @@
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Der zweite Container: Über ihn führt OneUptime AI auf diesem Host schreibgeschützte Docker-Befehle aus, während es untersucht. Standardmäßig aktiviert.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "Für diesen Eintrag ({{signal}}) gibt es bereits die Höchstzahl an Korrekturen, die ein Eintrag ({{signal}}) erhalten kann, daher wurde nichts weiter versucht.",
   "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "Dieser Eintrag ({{signal}}) ist mit keinem Host, keinem Cluster und keiner Datenbank verknüpft, daher konnte OneUptime AI nichts beheben.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again.": "Fügen Sie unter Betroffene Ressourcen hinzu, worum es geht, dann versucht es OneUptime AI erneut.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Fügen Sie unter Betroffene Ressourcen hinzu, worum es geht, dann versucht es OneUptime AI erneut. Verknüpfen Sie seinen Monitor mit dem, was er überwacht. Dann wird jeder Eintrag ({{signal}}), den er ab dann auslöst, automatisch verknüpft.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Fügen Sie unter Betroffene Ressourcen den Host, den Cluster oder die Datenbank hinzu, um die es geht, dann versucht es OneUptime AI erneut.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Fügen Sie unter Betroffene Ressourcen den Host, den Cluster oder die Datenbank hinzu, um die es geht, dann versucht es OneUptime AI erneut. Verknüpfen Sie seinen Monitor mit dem, was er überwacht. Dann wird jeder Eintrag ({{signal}}), den er ab dann auslöst, automatisch verknüpft.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Dieser Eintrag ({{signal}}) ist mit keinem Kubernetes-Cluster verknüpft.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Dieser Eintrag ({{signal}}) ist mit keiner Infrastruktur-Ressource mit KI-Agent verknüpft.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35600,5 +35600,8 @@
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "SLA eines Vorfalls verletzt",
   "An incident you own misses its SLA response or resolution deadline.": "Ein Vorfall, dessen Eigentümer Sie sind, verpasst seine SLA-Frist für Reaktion oder Lösung.",
-  "Go to Affected Resources": "Zu den betroffenen Ressourcen"
+  "Go to Affected Resources": "Zu den betroffenen Ressourcen",
+  "Linking affected resources": "Betroffene Ressourcen werden verknüpft",
+  "Linked an incident to affected resources": "Vorfall mit betroffenen Ressourcen verknüpft",
+  "Linked an alert to affected resources": "Warnung mit betroffenen Ressourcen verknüpft"
 }

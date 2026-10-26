@@ -24581,8 +24581,8 @@
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Den andra containern: den låter OneUptime AI köra skrivskyddade docker-kommandon på den här värden medan den utreder. På som standard.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "Den här händelsen ({{signal}}) har redan det högsta antalet åtgärder som tillåts per {{signal}}, så inget mer har provats.",
   "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "Den här händelsen ({{signal}}) är inte kopplad till någon värd, något kluster eller någon databas, så OneUptime AI hade inget att åtgärda.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again.": "Lägg till det den gäller under Berörda resurser, så försöker OneUptime AI igen.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Lägg till det den gäller under Berörda resurser, så försöker OneUptime AI igen. Koppla dess monitor till det den övervakar, så kopplas varje händelse ({{signal}}) som den skapar därefter automatiskt.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Lägg till den värd, det kluster eller den databas den gäller under Berörda resurser, så försöker OneUptime AI igen.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Lägg till den värd, det kluster eller den databas den gäller under Berörda resurser, så försöker OneUptime AI igen. Koppla dess monitor till det den övervakar, så kopplas varje händelse ({{signal}}) som den skapar därefter automatiskt.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Den här händelsen ({{signal}}) är inte kopplad till ett Kubernetes-kluster.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Den här händelsen ({{signal}}) är inte kopplad till en infrastrukturresurs med en AI-agent.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35600,5 +35600,8 @@
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "Incidentens SLA överskridet",
   "An incident you own misses its SLA response or resolution deadline.": "En incident som du äger missar sin SLA-tidsgräns för svar eller lösning.",
-  "Go to Affected Resources": "Gå till Berörda resurser"
+  "Go to Affected Resources": "Gå till Berörda resurser",
+  "Linking affected resources": "Kopplar berörda resurser",
+  "Linked an incident to affected resources": "Kopplade en incident till berörda resurser",
+  "Linked an alert to affected resources": "Kopplade ett larm till berörda resurser"
 }

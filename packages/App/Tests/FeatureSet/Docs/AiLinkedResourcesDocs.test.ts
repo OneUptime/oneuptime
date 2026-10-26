@@ -141,12 +141,17 @@ describe("AI SRE says how an incident is linked, and what to do when it is not",
     const lines: string = readSource(
       "App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines.ts",
     );
+    const paragraph: string = AI_SRE_LINES[NOTHING_LINKED_LINE] || "";
 
     expect(lines).toContain(
       '"This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix."',
     );
     expect(lines).toContain(
-      '"Add the one it is about under Affected Resources, and OneUptime AI tries again."',
+      '"Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again."',
+    );
+    // What to add, named as the page names it.
+    expect(paragraph).toContain(
+      "add the host, cluster or database it is about under **Affected Resources**, and OneUptime AI tries again",
     );
   });
 

@@ -195,7 +195,7 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     expect(
       within(lines[0]!).getByTestId("remediation-decision-what-to-do"),
     ).toHaveTextContent(
-      "What to do: Add the one it is about under Affected Resources, and OneUptime AI tries again.",
+      "What to do: Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
     );
     expect(
       within(lines[0]!).queryByTestId("remediation-decision-why"),

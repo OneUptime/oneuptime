@@ -24581,8 +24581,8 @@
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "El segundo contenedor: permite a OneUptime AI ejecutar comandos docker de solo lectura en este host mientras investiga. Activado de forma predeterminada.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "Este elemento ({{signal}}) ya tiene el máximo de correcciones permitido por {{signal}}, así que no se intentó nada más.",
   "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "Este elemento ({{signal}}) no está vinculado a ningún host, clúster ni base de datos, así que OneUptime AI no tenía nada que corregir.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again.": "Añade el recurso al que se refiere en Recursos afectados y OneUptime AI lo intentará de nuevo.",
-  "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Añade el recurso al que se refiere en Recursos afectados y OneUptime AI lo intentará de nuevo. Vincula su monitor a lo que vigila, y cada elemento ({{signal}}) que genere a partir de entonces quedará vinculado automáticamente.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Añade el host, el clúster o la base de datos al que se refiere en Recursos afectados y OneUptime AI lo intentará de nuevo.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Añade el host, el clúster o la base de datos al que se refiere en Recursos afectados y OneUptime AI lo intentará de nuevo. Vincula su monitor a lo que vigila, y cada elemento ({{signal}}) que genere a partir de entonces quedará vinculado automáticamente.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Este elemento ({{signal}}) no está vinculado a ningún clúster de Kubernetes.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Este elemento ({{signal}}) no está vinculado a ningún recurso de infraestructura con un agente de IA.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35600,5 +35600,8 @@
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "SLA de incidente incumplido",
   "An incident you own misses its SLA response or resolution deadline.": "Un incidente del que eres propietario no cumple su plazo SLA de respuesta o de resolución.",
-  "Go to Affected Resources": "Ir a Recursos afectados"
+  "Go to Affected Resources": "Ir a Recursos afectados",
+  "Linking affected resources": "Vinculando recursos afectados",
+  "Linked an incident to affected resources": "Vinculó un incidente a recursos afectados",
+  "Linked an alert to affected resources": "Vinculó una alerta a recursos afectados"
 }
