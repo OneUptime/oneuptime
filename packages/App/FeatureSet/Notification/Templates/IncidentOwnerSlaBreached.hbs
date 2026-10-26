@@ -1,0 +1,43 @@
+{{!--
+  An incident SLA rule's response or resolution deadline passed while the
+  incident was not acknowledged, or not resolved (Workers
+  IncidentSla/CheckSlaBreaches). Sent to the incident's owners - the
+  project's owners when it has none - under their "Incident SLA breached"
+  notification setting. Every value is a plain value, escaped where it is
+  shown; the deadline is the HTML OneUptimeDate writes for the reader's own
+  time zone, under the label of the deadline it was ("Resolution
+  Deadline:") - the sentence above the card says it was missed.
+--}}
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "SLA breached - Incident " incidentNumber ": " incidentTitle) }}
+
+{{> InfoBlock plainInfo=breachSentence }}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Incident Title:" plainText=incidentTitle }}
+{{> DetailBoxField title=deadlineLabel text=deadline }}
+{{> DetailBoxField title="SLA Rule:" plainText=slaRuleName }}
+{{> DetailBoxField title="Current State:" plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
+{{> DetailBoxField title="Open For:" plainText=openDuration }}
+{{> DetailBoxField title="Severity:" plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> DetailBoxField title="Project:" plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this incident by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=incidentViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=incidentViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

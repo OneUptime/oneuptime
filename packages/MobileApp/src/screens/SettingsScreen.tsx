@@ -21,7 +21,7 @@ import {
   type ColorTokens,
   type Theme,
 } from "../theme";
-import { radius, spacing } from "../theme/tokens";
+import { radius, spacing, touchTarget } from "../theme/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
 import {
@@ -41,6 +41,7 @@ import { ListGroup, ListItem } from "../components/ListGroup";
 import ScreenIntro from "../components/ScreenIntro";
 import type { SettingsStackParamList } from "../navigation/types";
 import { getCriticalAlertSoundOption } from "../notifications/criticalAlertSounds";
+import { CriticalAlertSettingsPlace } from "../notifications/criticalAlerts";
 import type { CriticalAlertSoundChoice } from "../storage/preferences";
 import { getInitials } from "../utils/text";
 
@@ -253,21 +254,39 @@ function AppearancePicker({
   );
 }
 
-/** Help or status text under a group, with an icon that repeats its tone. */
+/*
+ * Help or status text under a group, with an icon that repeats its tone: a
+ * lead in bold when it has one (what turned a switch off), and an action
+ * under the text when it names one (the phone's settings), as tall to tap
+ * as a Banner's.
+ */
 function GroupFootnote({
   tone,
   icon,
   isAlert = false,
   testID,
+  title,
+  actionLabel,
+  onAction,
   children,
 }: {
-  tone: "danger" | "success";
+  tone: "danger" | "success" | "warning";
   icon: IconName;
   isAlert?: boolean;
   testID?: string;
+  title?: string | undefined;
+  actionLabel?: string | undefined;
+  onAction?: (() => void) | undefined;
   children: React.ReactNode;
 }): React.JSX.Element {
   const { theme } = useTheme();
+  const toneColor: string =
+    tone === "danger"
+      ? theme.colors.statusError
+      : tone === "warning"
+        ? theme.colors.statusWarning
+        : theme.colors.statusSuccess;
+
   return (
     <View
       testID={testID}
@@ -281,24 +300,70 @@ function GroupFootnote({
       <Ionicons
         name={icon}
         size={15}
-        color={
-          tone === "danger"
-            ? theme.colors.statusError
-            : theme.colors.statusSuccess
-        }
+        color={toneColor}
         style={{ marginTop: 2 }}
       />
-      <AppText
-        variant="footnote"
-        tone={tone}
-        accessibilityRole={isAlert ? "alert" : undefined}
-        accessibilityLiveRegion="polite"
-        style={{ flex: 1 }}
-      >
-        {children}
-      </AppText>
+      <View style={{ flex: 1, gap: spacing.xs }}>
+        <AppText
+          variant="footnote"
+          tone={tone}
+          accessibilityRole={isAlert ? "alert" : undefined}
+          accessibilityLiveRegion="polite"
+        >
+          {title ? (
+            <AppText
+              testID={testID ? `${testID}-title` : undefined}
+              variant="footnote"
+              tone={tone}
+              weight="700"
+            >
+              {title}{" "}
+            </AppText>
+          ) : null}
+          {children}
+        </AppText>
+        {actionLabel && onAction ? (
+          <Pressable
+            testID={testID ? `${testID}-action` : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={actionLabel}
+            onPress={onAction}
+            hitSlop={8}
+            style={({ pressed }: { pressed: boolean }): ViewStyle => {
+              return {
+                alignSelf: "flex-start",
+                minHeight: touchTarget - 12,
+                justifyContent: "center",
+                opacity: pressed ? 0.7 : 1,
+              };
+            }}
+          >
+            <AppText variant="footnote" weight="700" color={toneColor}>
+              {actionLabel}
+            </AppText>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
+}
+
+/*
+ * The action under "Off in iOS Settings" and the like: where it opens. None
+ * for an app the App Store has to update - the words say so.
+ */
+function phoneSettingsActionLabel(
+  place: CriticalAlertSettingsPlace,
+): string | undefined {
+  if (place === CriticalAlertSettingsPlace.IosAppSettings) {
+    return "Open iOS Settings";
+  }
+
+  if (place === CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess) {
+    return "Open Do Not Disturb access";
+  }
+
+  return undefined;
 }
 
 export default function SettingsScreen(): React.JSX.Element {
@@ -498,6 +563,25 @@ export default function SettingsScreen(): React.JSX.Element {
               isAlert
             >
               {criticalAlerts.error}
+            </GroupFootnote>
+          ) : criticalAlerts.offInPhoneSettings ? (
+            <GroupFootnote
+              testID="settings-critical-alerts-off-in-phone-settings"
+              tone={criticalAlerts.offInPhoneSettings.tone}
+              icon={
+                criticalAlerts.offInPhoneSettings.tone === "danger"
+                  ? "alert-circle"
+                  : "warning"
+              }
+              title={criticalAlerts.offInPhoneSettings.title}
+              actionLabel={phoneSettingsActionLabel(
+                criticalAlerts.offInPhoneSettings.place,
+              )}
+              onAction={() => {
+                void criticalAlerts.openPhoneSettings();
+              }}
+            >
+              {criticalAlerts.offInPhoneSettings.message}
             </GroupFootnote>
           ) : criticalAlerts.isEnabled && criticalAlerts.statusMessage ? (
             <GroupFootnote

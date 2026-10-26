@@ -9,18 +9,12 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import User from "Common/Models/DatabaseModels/User";
-import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
-import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import { SMSMessage } from "Common/Types/SMS/SMS";
-import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import Dictionary from "Common/Types/Dictionary";
-import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
-import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
-import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
-import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
+import IncidentSlaBreachNotice, {
+  IncidentSlaBreachFacts,
+  IncidentSlaBreachMessages,
+  IncidentSlaBreachType,
+} from "Common/Server/Utils/Incident/IncidentSlaBreachNotice";
 
 /**
  * This job checks SLAs for breach conditions and updates their status:
@@ -51,7 +45,7 @@ RunCron(
           sla.incidentSlaRule?.atRiskThresholdInPercentage || 80;
 
         let newStatus: IncidentSlaStatus | null = null;
-        let breachType: "response" | "resolution" | null = null;
+        let breachType: IncidentSlaBreachType | null = null;
 
         // Check response deadline first
         if (
@@ -176,9 +170,15 @@ RunCron(
   },
 );
 
+/*
+ * Tells the incident's owners - the project's owners when it has none -
+ * that its SLA was breached, on every channel each of them has on for
+ * "Incident SLA breached" (IncidentSlaBreachNotice words it). Never throws:
+ * a breach is recorded whether or not anyone could be told.
+ */
 async function sendBreachNotification(data: {
   sla: IncidentSla;
-  breachType: "response" | "resolution";
+  breachType: IncidentSlaBreachType;
 }): Promise<void> {
   const { sla, breachType } = data;
 
@@ -187,7 +187,6 @@ async function sendBreachNotification(data: {
   }
 
   try {
-    // Get the incident details
     const incident: Incident | null = await IncidentService.findOneById({
       id: sla.incidentId,
       select: {
@@ -196,6 +195,8 @@ async function sendBreachNotification(data: {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         projectId: true,
+        declaredAt: true,
+        createdAt: true,
         project: {
           name: true,
         },
@@ -217,21 +218,17 @@ async function sendBreachNotification(data: {
       return;
     }
 
-    // Get incident owners
     let owners: Array<User> = await IncidentService.findOwners(sla.incidentId);
+    const hasOwners: boolean = owners.length > 0;
 
-    if (owners.length === 0) {
-      // Fall back to project owners
+    if (!hasOwners) {
+      // The project's owners, for an incident with none.
       owners = await ProjectService.getOwners(sla.projectId);
     }
 
     if (owners.length === 0) {
       return;
     }
-
-    const incidentNumberStr: string =
-      incident.incidentNumberWithPrefix ||
-      (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
     const incidentViewLink: string = (
       await IncidentService.getIncidentLinkInDashboard(
@@ -240,107 +237,76 @@ async function sendBreachNotification(data: {
       )
     ).toString();
 
-    const breachTypeStr: string =
-      breachType === "response" ? "Response" : "Resolution";
-
-    const deadline: Date | undefined =
-      breachType === "response" ? sla.responseDeadline : sla.resolutionDeadline;
-
-    const deadlineStr: string = deadline
-      ? OneUptimeDate.getDateAsLocalFormattedString(deadline)
-      : "N/A";
-
-    const ruleName: string = sla.incidentSlaRule?.name || "SLA Rule";
-
-    const vars: Dictionary<string> = {
-      incidentTitle: incident.title!,
-      incidentNumber: incidentNumberStr,
-      projectName: incident.project!.name!,
-      currentState: incident.currentIncidentState?.name || "Unknown",
-      ...EmailColorUtil.getTemplateVariables(
-        "currentState",
-        incident.currentIncidentState?.color,
-      ),
-      incidentSeverity: incident.incidentSeverity?.name || "Unknown",
-      ...EmailColorUtil.getTemplateVariables(
-        "incidentSeverity",
-        incident.incidentSeverity?.color,
-      ),
-      breachType: breachTypeStr,
-      deadline: deadlineStr,
-      slaRuleName: ruleName,
+    const facts: IncidentSlaBreachFacts = {
+      breachType: breachType,
+      deadline:
+        breachType === "response"
+          ? sla.responseDeadline
+          : sla.resolutionDeadline,
+      slaRuleName: sla.incidentSlaRule?.name,
+      incidentTitle: incident.title || "",
+      incidentNumber: incident.incidentNumber,
+      incidentNumberWithPrefix: incident.incidentNumberWithPrefix,
+      projectName: incident.project?.name || "",
+      currentStateName: incident.currentIncidentState?.name,
+      currentStateColor: incident.currentIncidentState?.color,
+      severityName: incident.incidentSeverity?.name,
+      severityColor: incident.incidentSeverity?.color,
+      openedAt: incident.declaredAt || incident.createdAt,
       incidentViewLink: incidentViewLink,
+      now: OneUptimeDate.getCurrentDate(),
     };
 
     for (const user of owners) {
-      const emailMessage: EmailEnvelope = {
-        templateType: EmailTemplateType.IncidentOwnerResourceCreated, // Using a generic template
-        vars: {
-          ...vars,
-          subject: `[SLA ${breachTypeStr} Breached] Incident ${incidentNumberStr} - ${incident.title}`,
-        },
-        subject: `[SLA ${breachTypeStr} Breached] Incident ${incidentNumberStr} - ${incident.title}`,
-        isSubjectLiteral: true,
-      };
+      if (!user.id) {
+        continue;
+      }
 
-      const sms: SMSMessage = {
-        message: buildNotificationSms(
-          `SLA ${breachTypeStr} Breached for incident ${incident.title} ${incidentNumberStr}. Deadline was ${deadlineStr}.`,
-        ),
-      };
-
-      const callMessage: CallRequestMessage = {
-        data: [
-          {
-            sayMessage: `This is an alert from OneUptime. SLA ${breachTypeStr} has been breached for incident ${incident.title}. The deadline was ${deadlineStr}. Please check the incident in OneUptime Dashboard immediately.`,
-          },
-        ],
-      };
-
-      const eventType: NotificationSettingEventType =
-        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
-
-      const pushMessage: PushNotificationMessage = {
-        title: `SLA ${breachTypeStr} Breached`,
-        body: `SLA ${breachTypeStr} breached for incident ${incident.title} ${incidentNumberStr}`,
-      };
-
-      const whatsAppMessage: WhatsAppMessagePayload =
-        createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            incident_title: incident.title!,
-            incident_number: incident.incidentNumber?.toString() || "",
-            /*
-             * The template names the project: without it the template threw
-             * "Missing variable", and the breach reached nobody on any channel.
-             */
-            project_name: incident.project?.name || "",
-            incident_link: incidentViewLink,
+      const messages: IncidentSlaBreachMessages =
+        IncidentSlaBreachNotice.getMessages({
+          facts: facts,
+          recipient: {
+            timezone: user.timezone,
+            isOwner: hasOwners,
           },
         });
 
+      /*
+       * Nothing is sent for an event a person has no setting for. Somebody
+       * who joined before SLA breaches had a setting of their own gets one
+       * now, on the channels they had on for "Incident created", which
+       * breaches were sent through before.
+       */
+      try {
+        await UserNotificationSettingService.addIncidentSlaBreachedNotificationSettings(
+          user.id,
+          sla.projectId,
+        );
+      } catch (err) {
+        logger.debug(
+          `Could not make sure of a user's SLA breach notification setting: ${err}`,
+          {
+            projectId: sla.projectId?.toString(),
+            incidentId: sla.incidentId?.toString(),
+          },
+        );
+      }
+
       await UserNotificationSettingService.sendUserNotification({
-        userId: user.id!,
+        userId: user.id,
         projectId: sla.projectId,
-        emailEnvelope: emailMessage,
-        smsMessage: sms,
-        callRequestMessage: callMessage,
-        pushNotificationMessage: pushMessage,
-        whatsAppMessage,
-        eventType,
+        emailEnvelope: messages.emailEnvelope,
+        smsMessage: messages.smsMessage,
+        callRequestMessage: messages.callRequestMessage,
+        pushNotificationMessage: messages.pushNotificationMessage,
+        whatsAppMessage: messages.whatsAppMessage,
+        incidentId: sla.incidentId,
         /*
-         * Never coalesced into a rollup. This job borrows another family's
-         * identity - the envelope above uses
-         * EmailTemplateType.IncidentOwnerResourceCreated at :265 and eventType
-         * is SEND_INCIDENT_CREATED_OWNER_NOTIFICATION at :286 - so nothing the
-         * rollup writer can see distinguishes "your SLA deadline has been
-         * breached" from an ordinary incident-created notice. An SLA breach is
-         * a deadline that has already passed; delaying it by five minutes to
-         * batch it with the incident chatter that caused it is exactly
-         * backwards.
+         * Never coalesced into a rollup: the event is one of
+         * NEVER_ROLLED_UP_EVENT_TYPES - an SLA breach is a deadline that has
+         * already passed.
          */
-        forceImmediate: true,
+        eventType: messages.eventType,
       });
     }
 

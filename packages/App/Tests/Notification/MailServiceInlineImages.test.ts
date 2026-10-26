@@ -405,11 +405,13 @@ describe("a screenshot in an incident description, over SMTP", () => {
       ),
     );
 
+    // The text part (EmailPlainText, EmailPlainTextParts) goes beside the HTML.
     expect(Object.keys(payload).sort()).toEqual([
       "attachments",
       "from",
       "html",
       "subject",
+      "text",
       "to",
     ]);
     expect(payload.attachments).toEqual([

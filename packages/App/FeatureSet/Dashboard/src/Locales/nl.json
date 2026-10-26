@@ -35578,5 +35578,7 @@
   "Project Labels": "Projectlabels",
   "Telemetry Attribute": "Telemetrie-attribuut",
   "Text Input": "Tekstinvoer",
-  "Is First Membership": "Is First Membership"
+  "Is First Membership": "Is First Membership",
+  "Incident SLA breached": "SLA van incident geschonden",
+  "An incident you own misses its SLA response or resolution deadline.": "Een incident waarvan u eigenaar bent, haalt de SLA-deadline voor reactie of oplossing niet."
 }

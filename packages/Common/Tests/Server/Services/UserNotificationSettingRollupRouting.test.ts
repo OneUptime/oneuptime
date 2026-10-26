@@ -38,6 +38,7 @@ import { EmailEnvelope } from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
+import { isRollupEligible } from "../../../Types/NotificationSetting/NotificationEmailRollupPolicy";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -869,29 +870,27 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
 
   /*
    * ----------------------------------------------------------------------- *
-   * (F) The SLA-breach bypass - the only caller of forceImmediate there is.
+   * (F) SLA breaches - never held back, by their own event type.
    *
-   * Every other "must never be delayed" case in this design is excluded
+   * Every "must never be delayed" case in this design is excluded
    * STRUCTURALLY: NEVER_ROLLED_UP_EVENT_TYPES is a property of the event type
    * itself, so no caller can forget it and no reviewer has to remember it.
-   * The SLA-breach job is the one exception. It sends under
-   * EmailTemplateType.IncidentOwnerResourceCreated and reuses
-   * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, so its event type cannot say
-   * "this deadline has already passed" - only the caller knows that, and it
-   * says so with one property in a twenty-line object literal.
+   * The SLA-breach job was the one exception: it sent under
+   * EmailTemplateType.IncidentOwnerResourceCreated and reused
+   * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, so its event type could not
+   * say "this deadline has already passed" and the job asked for the bypass
+   * (forceImmediate) with one property of an object literal - a property a
+   * rebase or a reformat can drop without anything downstream noticing.
    *
-   * A property like that gets deleted by accident: in a rebase, in a
-   * find-and-replace, by a reformat that drops a line. Nothing downstream
-   * notices. The mail still goes out - five minutes late, batched with the
-   * incident chatter that caused the breach, and only for the projects noisy
-   * enough to cross the threshold, which are exactly the projects whose SLA
-   * breaches matter most. So it is pinned twice: as behaviour at the seam,
-   * and as source text at the caller, because Common cannot import App.
+   * It has an event of its own now (SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION),
+   * which is one of NEVER_ROLLED_UP_EVENT_TYPES, and the caller-side flag is
+   * gone. Pinned as behaviour at the seam, and as source text at the caller,
+   * because Common cannot import App.
    * -----------------------------------------------------------------------
    */
 
-  describe("the SLA-breach bypass", () => {
-    test("far past the burst threshold, forceImmediate is the only reason the mail goes out", async () => {
+  describe("SLA breaches", () => {
+    test("far past the burst threshold, an SLA breach goes out at once, uncounted", async () => {
       /*
        * Twenty-five times the threshold: a recipient this deep into a burst
        * has every other rollup-eligible email deferred, which is what makes
@@ -902,7 +901,10 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       );
 
       await UserNotificationSettingService.sendUserNotification(
-        notificationData({ forceImmediate: true }),
+        notificationData({
+          eventType:
+            NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+        }),
       );
 
       expect(sendMail).toHaveBeenCalledTimes(1);
@@ -912,31 +914,29 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       expect(delivered.subject).toBe(SUBJECT);
       expect(delivered.toEmail.toString()).toBe("owner@example.com");
 
-      /*
-       * Not merely "sent anyway": the bypass sits above every database line,
-       * so an urgent email must not pay for the counter or the ledger row.
-       */
+      // An urgent email pays for neither the counter nor the ledger row.
       expect(countRecent).not.toHaveBeenCalled();
       expect(createItem).not.toHaveBeenCalled();
 
       /*
-       * THE CONTROL. The identical notification without the flag is deferred.
-       * Without it, the assertions above would still pass in a world where
-       * forceImmediate were ignored end to end and the burst counter were the
-       * thing that was broken.
+       * THE CONTROL. The same notification under "Incident created" - the
+       * event an SLA breach used to borrow - is deferred.
        */
       sendMail.mockClear();
       createItem.mockClear();
 
       await UserNotificationSettingService.sendUserNotification(
-        notificationData(),
+        notificationData({
+          eventType:
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+        }),
       );
 
       expect(sendMail).not.toHaveBeenCalled();
       expect(createItem).toHaveBeenCalledTimes(1);
     });
 
-    test("the job file is still where the two source assertions below look for it", () => {
+    test("the job file is still where the source assertions below look for it", () => {
       /*
        * A moved or renamed job would otherwise turn those assertions into a
        * readFileSync throw that says nothing about what was being checked.
@@ -944,7 +944,7 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       expect(fs.existsSync(SLA_BREACH_JOB_PATH)).toBe(true);
     });
 
-    test("CheckSlaBreaches asks for the bypass by name when it sends the breach notification", () => {
+    test("CheckSlaBreaches sends under the SLA breach event, never the incident-created identity", () => {
       const source: string = fs.readFileSync(SLA_BREACH_JOB_PATH, "utf8");
 
       const functionIndex: number = source.indexOf(
@@ -957,41 +957,31 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
         "UserNotificationSettingService.sendUserNotification",
       );
 
-      /*
-       * Null means sendBreachNotification no longer calls sendUserNotification
-       * at all - a bigger change than this test can judge, and one that must
-       * not be allowed to read as "the bypass is fine".
-       */
+      // Null: sendBreachNotification no longer sends at all.
       expect(argumentText).not.toBeNull();
-
-      /*
-       * Whitespace- and position-insensitive: the property may sit anywhere in
-       * the object literal, formatted however prettier likes. What it may not
-       * be is absent, false, or a variable whose value this test cannot see.
-       */
       expect(argumentText ?? "").toMatch(
-        /(^|[{,\s])forceImmediate\s*:\s*true\s*(,|\}|$)/,
+        /(^|[{,\s])eventType\s*:\s*messages\.eventType\s*(,|\}|$)/,
+      );
+      // Its words and event come from IncidentSlaBreachNotice.
+      expect(source).toContain("IncidentSlaBreachNotice.getMessages(");
+      expect(source).not.toContain(
+        "EmailTemplateType.IncidentOwnerResourceCreated",
+      );
+      expect(source).not.toContain(
+        "NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION",
       );
     });
 
-    test("the reason the bypass is needed is still true: the job borrows the incident-created identity", () => {
-      /*
-       * The bypass exists only because this job cannot express urgency through
-       * its event type. If that ever stops being true - the job gets its own
-       * NotificationSettingEventType, or its own template - the right fix is
-       * to add that type to NEVER_ROLLED_UP_EVENT_TYPES and delete the
-       * caller-side flag, making the exclusion structural like every other
-       * one. This test going red is the prompt to do that, not a bug in
-       * itself.
-       */
+    test("the exclusion is structural: the event is never rolled up, so the caller needs no bypass", () => {
+      expect(
+        isRollupEligible(
+          NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+        ),
+      ).toBe(false);
+
       const source: string = fs.readFileSync(SLA_BREACH_JOB_PATH, "utf8");
 
-      expect(source).toContain(
-        "EmailTemplateType.IncidentOwnerResourceCreated",
-      );
-      expect(source).toContain(
-        "NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION",
-      );
+      expect(source).not.toMatch(/forceImmediate\s*:/);
     });
   });
 });

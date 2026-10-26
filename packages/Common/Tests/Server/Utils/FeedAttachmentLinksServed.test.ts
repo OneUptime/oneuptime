@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  FEED_ATTACHMENT_ROUTES_NOT_SERVED,
+  FEED_ATTACHMENT_ROUTES_SERVED,
+} from "../../../Server/Utils/Feed/FeedAttachmentLinks";
 
 /*
  * Every attachment link a feed entry carries leads to a route that serves it.
@@ -155,6 +159,37 @@ describe("feed attachment links", () => {
         /findOneById\(\{\s*id: modelId,\s*select: \{\s*projectId: true,\s*attachments: \{/,
       );
     }
+  });
+
+  /*
+   * Entries written before the routes took the project id keep the old
+   * address; the RewriteFeedAttachmentLinks data migration rewrites them
+   * (FeedAttachmentLinks) for exactly the routes the feed links today, and
+   * turns the episodes' private notes' links, which never had a route,
+   * into the names the feed lists today.
+   */
+  test("the old links rewritten are exactly the feed's own: served routes, and the episodes' private notes", () => {
+    const served: Array<string> = [];
+
+    for (const service of NOTE_SERVICES) {
+      for (const attachmentPath of service.attachmentPaths) {
+        const match: RegExpExecArray | null = attachmentPath
+          ? ATTACHMENT_PATH.exec(attachmentPath)
+          : null;
+
+        if (match) {
+          served.push(match[1]!.slice(1));
+        }
+      }
+    }
+
+    expect([...FEED_ATTACHMENT_ROUTES_SERVED].sort()).toEqual(
+      Array.from(new Set(served)).sort(),
+    );
+    expect([...FEED_ATTACHMENT_ROUTES_NOT_SERVED].sort()).toEqual([
+      "alert-episode-internal-note",
+      "incident-episode-internal-note",
+    ]);
   });
 
   test("a note with no download route passes none, and has no download route", () => {

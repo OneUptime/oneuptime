@@ -35578,5 +35578,7 @@
   "Project Labels": "Project Labels",
   "Telemetry Attribute": "Telemetry Attribute",
   "Text Input": "Text Input",
-  "Is First Membership": "Is First Membership"
+  "Is First Membership": "Is First Membership",
+  "Incident SLA breached": "Incident SLA breached",
+  "An incident you own misses its SLA response or resolution deadline.": "An incident you own misses its SLA response or resolution deadline."
 }

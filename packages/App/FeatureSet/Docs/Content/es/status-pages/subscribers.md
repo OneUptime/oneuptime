@@ -446,6 +446,8 @@ Cuatro secciones más, en **Más ajustes** al final de **Ajustes de suscriptores
 
 Merece la pena configurar el SMTP personalizado pronto si tienes suscriptores por correo electrónico: el correo que sale de tu propio dominio tiene muchas menos probabilidades de acabar filtrado, y muchas más de que confíe en él el cliente que lo lee a las 2 de la madrugada.
 
+Los SMS predeterminados se escriben con los caracteres que un SMS transporta de la forma más barata: las comillas tipográficas, los guiones y similares salen como su equivalente simple y se omite un emoji, de modo que un solo carácter en un título nunca hace que un SMS cueste dos o tres partes. Los enlaces salen exactamente como están escritos. Una plantilla de SMS propia sale tal como la escribiste, con los valores que inserta.
+
 ## Anuncios
 
 Un anuncio es un registro de nivel de proyecto (el modelo `StatusPageAnnouncement`) que repartes a una o varias páginas de estado, limitado opcionalmente a monitores concretos, con una ventana durante la cual se muestra.

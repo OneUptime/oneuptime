@@ -35578,5 +35578,7 @@
   "Project Labels": "プロジェクトラベル",
   "Telemetry Attribute": "テレメトリ属性",
   "Text Input": "テキスト入力",
-  "Is First Membership": "Is First Membership"
+  "Is First Membership": "Is First Membership",
+  "Incident SLA breached": "インシデントの SLA 違反",
+  "An incident you own misses its SLA response or resolution deadline.": "あなたが所有するインシデントが SLA の応答期限または解決期限を過ぎました。"
 }

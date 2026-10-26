@@ -35578,5 +35578,7 @@
   "Project Labels": "프로젝트 레이블",
   "Telemetry Attribute": "텔레메트리 속성",
   "Text Input": "텍스트 입력",
-  "Is First Membership": "Is First Membership"
+  "Is First Membership": "Is First Membership",
+  "Incident SLA breached": "인시던트 SLA 위반",
+  "An incident you own misses its SLA response or resolution deadline.": "내가 소유한 인시던트가 SLA 응답 기한 또는 해결 기한을 넘깁니다."
 }

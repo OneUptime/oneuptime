@@ -446,6 +446,8 @@ Mais quatro seções, em **Mais configurações** no fim de **Configurações de
 
 Vale configurar o SMTP personalizado cedo se você tem assinantes de e-mail: e-mails que saem do seu próprio domínio têm muito menos chance de ser filtrados, e muito mais chance de ganhar a confiança do cliente que os lê às 2 da manhã.
 
+Os SMS padrão são escritos com os caracteres que um SMS transporta com menor custo: aspas tipográficas, travessões e afins saem como seu equivalente simples e um emoji é omitido, de modo que um único caractere em um título nunca faz um SMS custar duas ou três partes. Os links saem exatamente como foram escritos. Um modelo de SMS personalizado sai como você o escreveu, com os valores que ele insere.
+
 ## Anúncios
 
 Um anúncio é um registro no nível do projeto (o modelo `StatusPageAnnouncement`) que você distribui para uma ou mais páginas de status, opcionalmente limitado a monitores específicos, com uma janela durante a qual ele é mostrado.

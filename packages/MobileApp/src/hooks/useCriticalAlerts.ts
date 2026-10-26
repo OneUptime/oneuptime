@@ -3,7 +3,9 @@ import { AppState, AppStateStatus, Platform } from "react-native";
 import {
   CriticalAlertAvailability,
   CriticalAlertStatus,
+  type CriticalAlertsOffInPhoneSettings,
   getCriticalAlertStatus,
+  openCriticalAlertSettings,
   requestCriticalAlertPermission,
 } from "../notifications/criticalAlerts";
 import {
@@ -37,6 +39,16 @@ export interface CriticalAlertsState {
   error: string;
   // What the current state means, in a sentence, for the settings screen.
   statusMessage: string;
+  /*
+   * Set while the responder has Critical On-Call Alerts on and the phone's
+   * own settings turn them off (iOS Settings, Android's Do Not Disturb
+   * access): the switch reads off, and this says why, what pages do
+   * meanwhile and where to turn them back on. Null otherwise - the switch
+   * off by choice, granted, or an OS read that failed.
+   */
+  offInPhoneSettings: CriticalAlertsOffInPhoneSettings | null;
+  // Opens the place offInPhoneSettings names, in the phone's settings.
+  openPhoneSettings: () => Promise<void>;
   setEnabled: (enabled: boolean) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -55,6 +67,8 @@ export function useCriticalAlerts(): CriticalAlertsState {
   const [isBusy, setIsBusy] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [offInPhoneSettings, setOffInPhoneSettings] =
+    useState<CriticalAlertsOffInPhoneSettings | null>(null);
 
   /*
    * State updates are dropped once the screen is gone. The Android flow leaves
@@ -112,6 +126,20 @@ export function useCriticalAlerts(): CriticalAlertsState {
          * through a page believing they were covered.
          */
         setIsEnabled(reading.isEffective);
+
+        /*
+         * And the switch says why it reads off: chosen, and turned off by
+         * the phone's settings - an answer the OS gave, never a failed read.
+         */
+        setOffInPhoneSettings(
+          reading.isChosen &&
+            !reading.isEffective &&
+            reading.isCertain &&
+            reading.status.availability === CriticalAlertAvailability.Denied &&
+            reading.status.offInPhoneSettings
+            ? reading.status.offInPhoneSettings
+            : null,
+        );
       }
 
       /*
@@ -244,10 +272,12 @@ export function useCriticalAlerts(): CriticalAlertsState {
         /*
          * Saved, or - turning it off with no device on the server to turn
          * off - kept on the phone, which the registration that makes the
-         * device restates. Either way the switch says what is in force.
+         * device restates. Either way the switch says what is in force, and
+         * the phone's settings no longer turn off what was chosen.
          */
         if (isMountedRef.current) {
           setIsEnabled(enabled);
+          setOffInPhoneSettings(null);
         }
       } catch (toggleError: unknown) {
         logger.error(
@@ -274,6 +304,18 @@ export function useCriticalAlerts(): CriticalAlertsState {
     [applyStatus, refresh],
   );
 
+  /*
+   * The phone's settings page that turns critical alerts back on. Coming
+   * back to the app reads the phone again (the foreground listener above),
+   * so the switch and its explanation follow what was changed there.
+   */
+  const openPhoneSettings: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (offInPhoneSettings) {
+        await openCriticalAlertSettings(offInPhoneSettings.place);
+      }
+    }, [offInPhoneSettings]);
+
   return {
     // Web has no ringer to override; the toggle is not offered there at all.
     isSupported: isSupported && Platform.OS !== "web",
@@ -282,6 +324,8 @@ export function useCriticalAlerts(): CriticalAlertsState {
     isBusy,
     error,
     statusMessage,
+    offInPhoneSettings,
+    openPhoneSettings,
     setEnabled,
     refresh,
   };

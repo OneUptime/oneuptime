@@ -173,6 +173,7 @@ import StatusPagesListingMonitorsBuilder, {
 import FileOwnership from "../Utils/File/FileOwnership";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
+import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -3683,7 +3684,8 @@ export default class StatusPageAPI extends BaseAPI<
                 manageTemplateVariables,
               );
           } else {
-            smsMessage = defaultChatMessage;
+            // OneUptime's own words, in GSM-7's characters (SubscriberSms).
+            smsMessage = writeDefaultSubscriberSms(defaultChatMessage);
           }
 
           const sms: SMS = {

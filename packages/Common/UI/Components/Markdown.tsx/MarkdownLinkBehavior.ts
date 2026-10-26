@@ -33,6 +33,15 @@ import {
  * mailto:, tel: and the other schemes a browser hands to another program: a
  * tab of their own would stay empty.
  *
+ * A link that stays in the tab and goes to another page of the same app
+ * opens inside the app (inAppPath), as the app's own links do, rather than
+ * loading the whole app again: in the Dashboard, a page of the same project
+ * (another project is loaded in full, as switching projects is, so nothing
+ * of the first one is left behind); on a status page or a public
+ * dashboard, a page of the same one; in the Admin Dashboard and Accounts,
+ * any of their pages. A "#section" of the page it is on is left to the
+ * browser, which scrolls to it.
+ *
  * A status page on a custom domain is served at the domain's root, under no
  * app route, so there every page of the domain is the status page's own,
  * apart from the files.
@@ -54,12 +63,20 @@ export interface MarkdownLinkBehavior {
   needsSignedInSession: boolean;
   // The address, made absolute against the page; null when it could not be read.
   absoluteUrl: string | null;
+  /*
+   * For a link to another page of the same app (see the top): its path,
+   * query and fragment, to open inside the app without loading it again.
+   * Null for everything else - a new tab, a "#section" of this page, a page
+   * the app must load in full.
+   */
+  inAppPath: string | null;
 }
 
 const STAYS_IN_TAB: MarkdownLinkBehavior = {
   opensInNewTab: false,
   needsSignedInSession: false,
   absoluteUrl: null,
+  inAppPath: null,
 };
 
 // The first segment of a route ("/dashboard" -> "dashboard").
@@ -95,6 +112,37 @@ const SIGNED_IN_APP_SEGMENTS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const APP_API_SEGMENT: string = segmentOf(AppApiRoute);
+
+/*
+ * The apps whose second segment says what a page belongs to - the project
+ * (/dashboard/<project>/...), the status page, the public dashboard - so a
+ * link opens inside the app only within the same one.
+ */
+const SCOPED_APP_SEGMENTS: ReadonlySet<string> = new Set<string>([
+  segmentOf(DashboardRoute),
+  segmentOf(StatusPageRoute),
+  segmentOf(PublicDashboardRoute),
+]);
+
+/*
+ * What a page of an app belongs to: "/dashboard/<project>", "/admin", or ""
+ * for a status page on a domain of its own, which is the whole domain. In
+ * lower case: an id is the same id in any case.
+ */
+const scopeOf: (pathname: string) => string = (pathname: string): string => {
+  const segments: Array<string> = pathname.split("/");
+  const app: string = segments[1] || "";
+
+  if (!APP_SEGMENTS.has(app)) {
+    return "";
+  }
+
+  const scope: string = SCOPED_APP_SEGMENTS.has(app)
+    ? "/" + app + "/" + (segments[2] || "")
+    : "/" + app;
+
+  return scope.toLowerCase();
+};
 
 const WEB_PROTOCOLS: ReadonlySet<string> = new Set<string>(["http:", "https:"]);
 
@@ -145,6 +193,7 @@ export const getMarkdownLinkBehavior: (
     opensInNewTab: true,
     needsSignedInSession: false,
     absoluteUrl: link.href,
+    inAppPath: null,
   };
 
   if (!page || link.origin !== page.origin) {
@@ -168,7 +217,19 @@ export const getMarkdownLinkBehavior: (
     return newTab;
   }
 
-  return { ...STAYS_IN_TAB, absoluteUrl: link.href };
+  const isThisPage: boolean =
+    link.pathname === page.pathname && link.search === page.search;
+  const isSameScope: boolean =
+    scopeOf(link.pathname) === scopeOf(page.pathname);
+
+  return {
+    ...STAYS_IN_TAB,
+    absoluteUrl: link.href,
+    inAppPath:
+      !isThisPage && isSameScope
+        ? link.pathname + link.search + link.hash
+        : null,
+  };
 };
 
 /*

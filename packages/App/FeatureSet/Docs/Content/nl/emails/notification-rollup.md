@@ -68,7 +68,7 @@ Nooit vertraagd en nooit meegeteld:
 | Facturatie en saldo | Facturen, verlopen abonnement, "we konden niemand oproepen omdat de kaart werd geweigerd" |
 | Gezondheid van de instantie | Waarschuwingen over Postgres, Valkey en ClickHouse aan beheerders van de instantie |
 | Abonnees van statuspagina's | Elke e-mail die je statuspagina naar je eigen abonnees stuurt |
-| SLA-schendingen | Worden meteen verzonden, ook al hergebruiken ze het meldingstype voor aangemaakte incidenten |
+| SLA-schendingen | Een incident waarvan u eigenaar bent dat de SLA-deadline voor reactie of oplossing niet haalt |
 
 Alleen e-mail is betrokken. Sms, telefoongesprekken, pushmeldingen, WhatsApp, Telegram, Slack, Microsoft Teams en webhooks worden meteen bezorgd, precies zoals voorheen — ook voor de meldingen waarvan de e-mail werd tegengehouden.
 

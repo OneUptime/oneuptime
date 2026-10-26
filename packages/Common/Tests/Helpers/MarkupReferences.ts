@@ -113,12 +113,12 @@ const isNameEnd: IsCharacterFunction = (
   );
 };
 
-interface TagAttribute {
+export interface TagAttribute {
   name: string;
   value: string;
 }
 
-interface StartTag {
+export interface StartTag {
   name: string;
   attributes: Array<TagAttribute>;
   // Where the start tag ends: past its ">".
@@ -127,9 +127,11 @@ interface StartTag {
 
 /*
  * The start tag at the beginning of `markup`: its name and attributes, read
- * a character at a time, to the first ">" outside a quoted value.
+ * a character at a time, to the first ">" outside a quoted value. Names in
+ * lower case; values as written, quotes left out. ScreenReaderText reads
+ * tags with it too.
  */
-const readStartTag: (markup: string) => StartTag = (
+export const readStartTag: (markup: string) => StartTag = (
   markup: string,
 ): StartTag => {
   let index: number = 1;

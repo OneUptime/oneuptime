@@ -446,6 +446,8 @@ Fire avsnitt til, under **Flere innstillinger** nederst på **Abonnentsinnstilli
 
 Egendefinert SMTP er verdt å sette opp tidlig hvis du har e-postabonnenter: e-post som kommer fra ditt eget domene, blir langt sjeldnere filtrert bort og langt oftere stolt på av kunden som leser den klokken 2 om natten.
 
+Standard-SMS-ene skrives med tegnene en SMS bærer billigst: typografiske anførselstegn, tankestreker og lignende sendes som sitt enkle motstykke, og en emoji utelates, så ett tegn i en tittel aldri får en SMS til å koste to eller tre deler. Lenker sendes nøyaktig slik de er skrevet. En egendefinert SMS-mal sendes slik du skrev den, med verdiene den setter inn.
+
 ## Kunngjøringer
 
 En kunngjøring er en post på prosjektnivå (modellen `StatusPageAnnouncement`) som du sender ut til én eller flere statussider, eventuelt begrenset til bestemte monitorer, med et vindu der den vises.

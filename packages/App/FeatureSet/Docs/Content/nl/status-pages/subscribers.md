@@ -446,6 +446,8 @@ Nog vier secties, onder **Meer instellingen** onderaan **Abonneeinstellingen**, 
 
 Aangepaste SMTP is de moeite waard om vroeg in te stellen als u e-mailabonnees hebt: mail die van uw eigen domein komt, wordt veel minder snel weggefilterd en veel eerder vertrouwd door de klant die hem om 2 uur 's nachts leest.
 
+De standaard-sms'jes worden geschreven in de tekens die een sms het goedkoopst vervoert: gekrulde aanhalingstekens, streepjes en dergelijke gaan als hun eenvoudige tegenhanger de deur uit en een emoji wordt weggelaten, zodat één teken in een titel een sms nooit twee of drie delen laat kosten. Links gaan precies zoals ze geschreven zijn. Een eigen sms-sjabloon gaat zoals u het schreef, met de waarden die het invult.
+
 ## Aankondigingen
 
 Een aankondiging is een record op projectniveau (het model `StatusPageAnnouncement`) dat u naar een of meer statuspagina's verspreidt, optioneel beperkt tot specifieke monitoren, met een venster waarin ze wordt getoond.

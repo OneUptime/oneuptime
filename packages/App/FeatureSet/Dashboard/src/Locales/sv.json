@@ -35578,5 +35578,7 @@
   "Project Labels": "Projektetiketter",
   "Telemetry Attribute": "Telemetriattribut",
   "Text Input": "Textinmatning",
-  "Is First Membership": "Is First Membership"
+  "Is First Membership": "Is First Membership",
+  "Incident SLA breached": "Incidentens SLA överskridet",
+  "An incident you own misses its SLA response or resolution deadline.": "En incident som du äger missar sin SLA-tidsgräns för svar eller lösning."
 }

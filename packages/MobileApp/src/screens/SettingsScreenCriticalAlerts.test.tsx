@@ -4,9 +4,19 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import SettingsScreen from "./SettingsScreen";
 import type { CriticalAlertsState } from "../hooks/useCriticalAlerts";
+import { StyleSheet } from "react-native";
+import {
+  ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+  IOS_CRITICAL_ALERTS_NOT_OFFERED,
+  IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+  IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
+} from "../notifications/criticalAlerts";
+import { lightColors } from "../theme";
+import { touchTarget } from "../theme/tokens";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 
 /*
@@ -109,6 +119,10 @@ function stateWith(
     isBusy: false,
     error: "",
     statusMessage: "On-call pages will play a sound even when silenced.",
+    offInPhoneSettings: null,
+    openPhoneSettings: jest.fn(async () => {
+      return undefined;
+    }) as unknown as CriticalAlertsState["openPhoneSettings"],
     setEnabled: jest.fn(async () => {
       return undefined;
     }) as unknown as (enabled: boolean) => Promise<void>,
@@ -233,6 +247,194 @@ describe("What the responder is told", () => {
       expect(screen.getByText("Could not save this setting.")).toBeTruthy();
       expect(screen.queryByText(/play a sound even when silenced/i)).toBeNull();
     });
+  });
+});
+
+/*
+ * The maintainer's screenshot: Critical On-Call Alerts read off on a phone
+ * whose critical alerts had been switched off in iOS Settings, with no
+ * reason anywhere. A footnote under the switch says why, what pages do
+ * meanwhile, and opens the place to turn them back on.
+ */
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+describe("Turned off in the phone's settings", () => {
+  test("the footnote says why the switch reads off, under it", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      isEnabled: false,
+      offInPhoneSettings: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    });
+
+    await render(<SettingsScreen />);
+
+    const footnote: HostElement = await screen.findByTestId(
+      "settings-critical-alerts-off-in-phone-settings",
+    );
+
+    // One sentence to a screen reader: the lead, then what to do.
+    expect(
+      within(footnote).getByText(
+        `${IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS.title} ${IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS.message}`,
+      ),
+    ).toBeTruthy();
+    expect(
+      within(footnote).getByRole("button", { name: "Open iOS Settings" }),
+    ).toBeTruthy();
+  });
+
+  /*
+   * What turned the switch off is what the responder looks for when their
+   * own choice reads off: it comes first, in bold, in the footnote's tone.
+   */
+  test("it leads with what turned it off, in bold", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      offInPhoneSettings: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    });
+
+    await render(<SettingsScreen />);
+
+    const lead: HostElement = await screen.findByTestId(
+      "settings-critical-alerts-off-in-phone-settings-title",
+    );
+
+    expect(lead).toHaveTextContent("Off in iOS Settings.", { exact: false });
+    expect(StyleSheet.flatten(lead.props.style)).toMatchObject({
+      fontWeight: "700",
+      color: lightColors.statusWarning,
+    });
+  });
+
+  /*
+   * Notifications off for the app is worse than critical alerts off: pages
+   * do not come at all. Said in red, with the error's icon - amber is for
+   * pages that still come, as ordinary notifications.
+   */
+  test("notifications off for the app is said in red", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      offInPhoneSettings: IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
+    });
+
+    await render(<SettingsScreen />);
+
+    const lead: HostElement = await screen.findByTestId(
+      "settings-critical-alerts-off-in-phone-settings-title",
+    );
+
+    expect(lead).toHaveTextContent("Notifications are off in iOS Settings.", {
+      exact: false,
+    });
+    expect(StyleSheet.flatten(lead.props.style)).toMatchObject({
+      color: lightColors.statusError,
+    });
+    expect(
+      screen.getByText(
+        `${IOS_NOTIFICATIONS_OFF_IN_SETTINGS.title} ${IOS_NOTIFICATIONS_OFF_IN_SETTINGS.message}`,
+      ),
+    ).toBeTruthy();
+    expect(
+      within(
+        screen.getByTestId("settings-critical-alerts-off-in-phone-settings"),
+      ).getByRole("button", { name: "Open iOS Settings" }),
+    ).toBeTruthy();
+  });
+
+  test("its button opens the phone's settings, and is as tall to tap as a banner's", async () => {
+    const openPhoneSettings: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+    mockCriticalAlertsState.current = stateWith({
+      offInPhoneSettings: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+      openPhoneSettings:
+        openPhoneSettings as unknown as CriticalAlertsState["openPhoneSettings"],
+    });
+
+    await render(<SettingsScreen />);
+
+    const button: HostElement = await screen.findByRole("button", {
+      name: "Open iOS Settings",
+    });
+
+    expect(
+      StyleSheet.flatten(
+        typeof button.props.style === "function"
+          ? button.props.style({ pressed: false })
+          : button.props.style,
+      ),
+    ).toMatchObject({ minHeight: touchTarget - 12 });
+
+    fireEvent.press(button);
+
+    expect(openPhoneSettings).toHaveBeenCalledTimes(1);
+  });
+
+  test("on Android, the button names Do Not Disturb access", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      offInPhoneSettings: ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    });
+
+    await render(<SettingsScreen />);
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Open Do Not Disturb access",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        `${ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS.title} ${ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS.message}`,
+      ),
+    ).toBeTruthy();
+  });
+
+  test("an app the App Store has to update gets the words and no button", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      offInPhoneSettings: IOS_CRITICAL_ALERTS_NOT_OFFERED,
+    });
+
+    await render(<SettingsScreen />);
+
+    const footnote: HostElement = await screen.findByTestId(
+      "settings-critical-alerts-off-in-phone-settings",
+    );
+
+    expect(
+      within(footnote).getByText(
+        `${IOS_CRITICAL_ALERTS_NOT_OFFERED.title} ${IOS_CRITICAL_ALERTS_NOT_OFFERED.message}`,
+      ),
+    ).toBeTruthy();
+    expect(within(footnote).queryByRole("button")).toBeNull();
+  });
+
+  test("an error the responder caused comes first", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      error: "Could not save this setting.",
+      offInPhoneSettings: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    });
+
+    await render(<SettingsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Could not save this setting.")).toBeTruthy();
+    });
+    expect(
+      screen.queryByTestId("settings-critical-alerts-off-in-phone-settings"),
+    ).toBeNull();
+  });
+
+  test("nothing is said while the phone's settings allow it", async () => {
+    mockCriticalAlertsState.current = stateWith({
+      isEnabled: true,
+      offInPhoneSettings: null,
+    });
+
+    await render(<SettingsScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/play a sound even when silenced/i)).toBeTruthy();
+    });
+    expect(
+      screen.queryByTestId("settings-critical-alerts-off-in-phone-settings"),
+    ).toBeNull();
   });
 });
 

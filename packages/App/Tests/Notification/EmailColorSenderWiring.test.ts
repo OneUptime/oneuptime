@@ -284,7 +284,8 @@ describe("the senders of coloured templates", () => {
       "App/FeatureSet/Workers/Jobs/ScheduledMaintenanceOwners/SendUnresolvedReminderNotification.ts",
       "App/FeatureSet/Workers/Jobs/MonitorOwners/SendStatusChangeNotification.ts",
       "App/FeatureSet/Workers/Jobs/IncidentMembers/SendMemberAddedNotification.ts",
-      "App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts",
+      // The SLA breach job sends what this words.
+      "Common/Server/Utils/Incident/IncidentSlaBreachNotice.ts",
       "App/FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers.ts",
       "App/FeatureSet/Workers/Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers.ts",
       "App/FeatureSet/Workers/Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers.ts",

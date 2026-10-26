@@ -113,6 +113,10 @@ function stateWith(
     isBusy: false,
     error: "",
     statusMessage: "On-call pages will play a sound even when silenced.",
+    offInPhoneSettings: null,
+    openPhoneSettings: jest.fn(async () => {
+      return undefined;
+    }) as unknown as CriticalAlertsState["openPhoneSettings"],
     setEnabled: jest.fn(async () => {
       return undefined;
     }) as unknown as (enabled: boolean) => Promise<void>,
