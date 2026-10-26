@@ -51,6 +51,13 @@ export interface SendGridApiError {
 }
 
 /*
+ * The fields one reason is written with, at most: SendGrid names the same
+ * reason once for every attachment it refuses, and an email can hold twenty
+ * screenshots beside its logo.
+ */
+const MAX_FIELDS_NAMED_PER_REASON: number = 3;
+
+/*
  * What @sendgrid/client rejects with: its ResponseError when SendGrid
  * answered (code is the HTTP status, message the status text, response.body
  * the answer), else the network error. Read by shape, not by class.
@@ -170,6 +177,52 @@ export default class SendGridMailProvider {
   }
 
   /**
+   * SendGrid's reasons as one text: each reason once, in the order SendGrid
+   * gave them, with the fields it named it for - the first
+   * MAX_FIELDS_NAMED_PER_REASON, and how many more. An email whose two
+   * images both lack a Content-ID reads "The content_id parameter is
+   * required if disposition = 'inline'. (attachments.0.content_id,
+   * attachments.1.content_id)", not the same sentence twice.
+   */
+  public static describeApiErrors(apiErrors: Array<SendGridApiError>): string {
+    // A Map and its Sets keep the order each was first given in.
+    const fieldsByReason: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+
+    for (const apiError of apiErrors) {
+      const fields: Set<string> =
+        fieldsByReason.get(apiError.message) || new Set<string>();
+
+      if (apiError.field) {
+        fields.add(apiError.field);
+      }
+
+      fieldsByReason.set(apiError.message, fields);
+    }
+
+    return Array.from(fieldsByReason.entries())
+      .map(([reason, fieldSet]: [string, Set<string>]): string => {
+        const fields: Array<string> = Array.from(fieldSet);
+
+        if (fields.length === 0) {
+          return reason;
+        }
+
+        const named: string = fields
+          .slice(0, MAX_FIELDS_NAMED_PER_REASON)
+          .join(", ");
+        const more: number = fields.length - MAX_FIELDS_NAMED_PER_REASON;
+
+        return more > 0
+          ? `${reason} (${named} and ${more} more)`
+          : `${reason} (${named})`;
+      })
+      .join(" ");
+  }
+
+  /**
    * What @sendgrid/mail rejected a send with, as a SendGridSendException
    * whose message says what SendGrid said - its reasons, each with the field
    * it names - after what the status means for whoever reads the Email Log.
@@ -212,13 +265,7 @@ export default class SendGridMailProvider {
       meaning = `SendGrid is limiting how many emails this account sends (${status}).`;
     }
 
-    const reasons: string = apiErrors
-      .map((apiError: SendGridApiError): string => {
-        return apiError.field
-          ? `${apiError.message} (${apiError.field})`
-          : apiError.message;
-      })
-      .join(" ");
+    const reasons: string = SendGridMailProvider.describeApiErrors(apiErrors);
 
     return new SendGridSendException(
       reasons ? `${meaning} SendGrid said: ${reasons}` : meaning,

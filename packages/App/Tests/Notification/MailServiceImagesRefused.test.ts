@@ -24,6 +24,7 @@ import MailStatus from "Common/Types/Mail/MailStatus";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailLogService from "Common/Server/Services/EmailLogService";
@@ -34,11 +35,14 @@ import {
   getEmailServerType,
   getSendgridConfig,
 } from "../../FeatureSet/Notification/Config";
-import MailService, {
-  EMAIL_SENT_STATUS_MESSAGE,
-  getSentWithoutImagesStatusMessage,
-} from "../../FeatureSet/Notification/Services/MailService";
+import MailService from "../../FeatureSet/Notification/Services/MailService";
 import SMTPOAuthService from "../../FeatureSet/Notification/Services/SMTPOAuthService";
+import {
+  EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT,
+  EMAIL_SENT_STATUS_MESSAGE,
+  MAX_EMAIL_STATUS_MESSAGE_LENGTH,
+  getSentWithoutImagesStatusMessage,
+} from "../../FeatureSet/Notification/Utils/EmailStatusMessage";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 import {
   FakeMicrosoftGraph,
@@ -185,6 +189,25 @@ async function incidentWithScreenshot(): Promise<EmailMessage> {
   };
 }
 
+// A real 1x1 JPEG: a second screenshot, of another type.
+const SECOND_SCREENSHOT: string =
+  "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+
+// The on-call email for an incident whose description holds two screenshots.
+async function incidentWithTwoScreenshots(): Promise<EmailMessage> {
+  const mail: EmailMessage = await incidentWithScreenshot();
+
+  mail.vars = {
+    ...mail.vars,
+    incidentDescription: await Markdown.convertToHTML(
+      `Timeout 30000ms exceeded\n\n![Checkout page](data:image/png;base64,${SCREENSHOT})\n\n![Payment page](data:image/jpeg;base64,${SECOND_SCREENSHOT})`,
+      MarkdownContentType.Email,
+    ),
+  };
+
+  return mail;
+}
+
 function passwordReset(): EmailMessage {
   return {
     toEmail: new Email("alice@example.test"),
@@ -202,6 +225,35 @@ function passwordReset(): EmailMessage {
 interface LoggedEmail {
   status?: string;
   statusMessage?: string;
+}
+
+/*
+ * The Email Log and the on-call timeline as the database layer writes their
+ * rows: a status message longer than its column is refused
+ * (DatabaseService.checkMaxLengthOfFields), and the row is not written.
+ * EmailStatusMessage.test.ts holds MAX_EMAIL_STATUS_MESSAGE_LENGTH to both
+ * columns.
+ */
+function holdStatusMessagesToTheirColumns(): void {
+  const write: (data: LoggedEmail) => void = (data: LoggedEmail): void => {
+    if ((data.statusMessage || "").length > MAX_EMAIL_STATUS_MESSAGE_LENGTH) {
+      throw new BadDataException(
+        `statusMessage length cannot be more than ${MAX_EMAIL_STATUS_MESSAGE_LENGTH} characters`,
+      );
+    }
+  };
+
+  jest.mocked(EmailLogService.create).mockImplementation((async (createBy: {
+    data: LoggedEmail;
+  }) => {
+    write(createBy.data);
+    return createBy.data;
+  }) as never);
+  jest
+    .mocked(UserOnCallLogTimelineService.updateOneById)
+    .mockImplementation((async (updateBy: { data: LoggedEmail }) => {
+      write(updateBy.data);
+    }) as never);
 }
 
 // The Email Log rows written, in order.
@@ -366,6 +418,7 @@ beforeEach(() => {
   sendSendGridTo(sendGrid);
   sendMicrosoftGraphTo(graph);
   jest.mocked(SMTPOAuthService.getAccessToken).mockResolvedValue("token-123");
+  holdStatusMessagesToTheirColumns();
 });
 
 afterEach(async () => {
@@ -792,6 +845,165 @@ describe("an SMTP server refuses a message for its images", () => {
     ]);
     expect(imagesRefusalLogs()).toEqual([]);
   }, 20000);
+});
+
+/*
+ * What a mail service says can be any length: SendGrid names a reason once
+ * for each attachment it refuses, and its reasons are its own words. The
+ * Email Log row and the on-call timeline entry hold 500 characters
+ * (EmailStatusMessage), and the database refuses a longer status message
+ * (holdStatusMessagesToTheirColumns, above): an email that went would be
+ * reported as failed, and a refusal would lose its row. So each row says
+ * what fits, and the email is reported as it went.
+ */
+describe("a long answer from the mail service", () => {
+  // SendGrid's words for a refusal, long enough that no row can hold them.
+  const LONG_REASON: string =
+    `The attachment could not be read: ${"its bytes are not the type it names. ".repeat(18)}`.trim();
+
+  test("three images refused alike: the reason once, with each field it was given for", async () => {
+    useSendGrid();
+    sendGrid.answerNextWith({
+      status: 400,
+      body: {
+        errors: [
+          sendGridContentIdRequired(0),
+          sendGridContentIdRequired(1),
+          sendGridContentIdRequired(2),
+        ],
+      },
+    });
+
+    await MailService.send(await incidentWithTwoScreenshots(), {
+      projectId: ObjectID.generate(),
+    });
+
+    expect(sendGridJson(0).attachments).toHaveLength(3);
+    expect(sendGrid.requests).toHaveLength(2);
+    expect(Object.keys(sendGridJson(1))).not.toContain("attachments");
+    expect(sendGridHtml(1)).toContain(
+      "[Payment page: image could not be included in this email]",
+    );
+
+    /*
+     * SendGrid's answer, whole: it fits beside the first two sentences of
+     * what every sent email says, not beside all of them.
+     */
+    const expected: string =
+      "Email sent successfully without its images, which the mail service refused: SendGrid did not accept the email (HTTP 400 Bad Request). SendGrid said: The content_id parameter is required if disposition = 'inline'. (attachments.0.content_id, attachments.1.content_id, attachments.2.content_id). This does not mean the email was delivered. We do not track email delivery.";
+
+    expect(expected.length).toBeLessThanOrEqual(
+      MAX_EMAIL_STATUS_MESSAGE_LENGTH,
+    );
+    expect(emailLogRows()).toEqual([
+      expect.objectContaining({
+        status: MailStatus.Success,
+        statusMessage: expected,
+      }),
+    ]);
+  });
+
+  test("sent without its images after a longer answer: it went, and both rows say so within their columns", async () => {
+    useSendGrid();
+    sendGrid.answerNextWith({
+      status: 400,
+      body: {
+        errors: [
+          { message: LONG_REASON, field: "attachments.0.content", help: null },
+        ],
+      },
+    });
+
+    const timelineId: ObjectID = ObjectID.generate();
+
+    await MailService.send(await incidentWithScreenshot(), {
+      projectId: ObjectID.generate(),
+      userOnCallLogTimelineId: timelineId,
+    });
+
+    expect(sendGrid.requests).toHaveLength(2);
+    expectSentWithoutImages(sendGridHtml(1));
+
+    const rows: Array<LoggedEmail> = emailLogRows();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.status).toBe(MailStatus.Success);
+
+    const statusMessage: string = rows[0]!.statusMessage!;
+
+    expect(statusMessage.length).toBeLessThanOrEqual(
+      MAX_EMAIL_STATUS_MESSAGE_LENGTH,
+    );
+    // That it went, what SendGrid said for as long as it fits, and the rest.
+    expect(
+      statusMessage.startsWith(
+        "Email sent successfully without its images, which the mail service refused: SendGrid did not accept the email (HTTP 400 Bad Request). SendGrid said: The attachment could not be read: its bytes are not the type it names.",
+      ),
+    ).toBe(true);
+    expect(
+      statusMessage.endsWith(`… ${EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT}`),
+    ).toBe(true);
+    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: timelineId,
+        data: {
+          status: UserNotificationStatus.Sent,
+          statusMessage: statusMessage,
+        },
+      }),
+    );
+  });
+
+  test("refused with a long answer: the rows keep its start, and the error thrown keeps all of it", async () => {
+    useSendGrid();
+    sendGrid.answerNextWith({
+      status: 403,
+      body: { errors: [{ message: LONG_REASON, field: "from", help: null }] },
+    });
+
+    const timelineId: ObjectID = ObjectID.generate();
+    const refusal: string = `SendGrid would not send this email (HTTP 403 Forbidden). The API key needs the Mail Send permission, and the From Email must be a sender verified in SendGrid. SendGrid said: ${LONG_REASON} (from)`;
+
+    expect(refusal.length).toBeGreaterThan(MAX_EMAIL_STATUS_MESSAGE_LENGTH);
+
+    let thrown: unknown = undefined;
+
+    try {
+      await MailService.send(passwordReset(), {
+        projectId: ObjectID.generate(),
+        userOnCallLogTimelineId: timelineId,
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    // SendGrid's refusal, not the database's, and every word of it.
+    expect((thrown as Error).message).toBe(refusal);
+    expect(sendGrid.requests).toHaveLength(1);
+
+    const rows: Array<LoggedEmail> = emailLogRows();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.status).toBe(MailStatus.Error);
+
+    const statusMessage: string = rows[0]!.statusMessage!;
+
+    expect(statusMessage.length).toBeLessThanOrEqual(
+      MAX_EMAIL_STATUS_MESSAGE_LENGTH,
+    );
+    expect(statusMessage.endsWith("…")).toBe(true);
+    expect(refusal.startsWith(statusMessage.slice(0, -1))).toBe(true);
+    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: timelineId,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: statusMessage,
+        },
+      }),
+    );
+  });
 });
 
 describe("an email that goes as it is", () => {

@@ -20,8 +20,12 @@
  *   - Microsoft Graph: HTTP 400 whose error names an attachment or the
  *     message's size, or HTTP 413.
  *   - SMTP: a server that will not take the message for its size or its
- *     parts - reply code 552, or the enhanced status 5.3.4 (message too big
- *     for the system) or 5.6.x (a media error, RFC 3463).
+ *     parts. Its enhanced status code says so where it gives one (RFC
+ *     3463): 5.2.3 (message length exceeds an administrative limit), 5.3.4
+ *     (message too big for the system) or 5.6.x (a media error) - and any
+ *     other, such as 552 5.2.2 for a full mailbox, is not about the images.
+ *     A reply without one counts when its code is 552, "exceeded storage
+ *     allocation", the classic answer to a message too big.
  *
  * The images are left out once and never sent again; a refusal of the
  * email without them is the email's own failure.
@@ -43,12 +47,42 @@ const GRAPH_ATTACHMENT_ERROR_PATTERN: RegExp =
   /attachment|contentBytes|contentId|isInline|MessageSizeExceeded/i;
 
 /*
- * A reply whose enhanced status code (RFC 3463) is 5.3.4 or 5.6.x, as in
- * "552 5.3.4 Message size exceeds fixed maximum message size". Anchored, and
- * every repeat is bounded, so it reads any reply in time linear in its length.
+ * A reply's code and enhanced status code (RFC 3463) - its class, subject
+ * and detail - as in "552 5.3.4 Message size exceeds fixed maximum message
+ * size", or "552-5.2.2 The email account that you tried to reach is over
+ * quota" on the first of several lines. Anchored, and every repeat is
+ * bounded, so it reads any reply in time linear in its length.
  */
-const SMTP_IMAGE_REFUSAL_STATUS_PATTERN: RegExp =
-  /^5\d\d[ -]5\.(?:3\.4|6\.\d{1,3})(?:\s|$)/;
+const SMTP_ENHANCED_STATUS_PATTERN: RegExp =
+  /^\d{3}[ -]([245])\.(\d{1,3})\.(\d{1,3})(?:\s|$)/;
+
+// The enhanced status code of an SMTP reply.
+interface SmtpEnhancedStatus {
+  statusClass: number;
+  subject: number;
+  detail: number;
+}
+
+const readEnhancedStatus: (response: unknown) => SmtpEnhancedStatus | null = (
+  response: unknown,
+): SmtpEnhancedStatus | null => {
+  if (typeof response !== "string") {
+    return null;
+  }
+
+  const match: RegExpExecArray | null =
+    SMTP_ENHANCED_STATUS_PATTERN.exec(response);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    statusClass: Number(match[1]),
+    subject: Number(match[2]),
+    detail: Number(match[3]),
+  };
+};
 
 const ATTACHMENTS_FIELD: string = "attachments";
 
@@ -94,15 +128,21 @@ export default class InlineImageRefusal {
     }
 
     const reply: SmtpErrorReply = error as SmtpErrorReply;
+    const status: SmtpEnhancedStatus | null = readEnhancedStatus(
+      reply.response,
+    );
 
-    if (reply.responseCode === 552) {
-      return true;
+    // What the server says was refused, where it says it.
+    if (status) {
+      return (
+        status.statusClass === 5 &&
+        ((status.subject === 2 && status.detail === 3) ||
+          (status.subject === 3 && status.detail === 4) ||
+          status.subject === 6)
+      );
     }
 
-    return (
-      typeof reply.response === "string" &&
-      SMTP_IMAGE_REFUSAL_STATUS_PATTERN.test(reply.response)
-    );
+    return reply.responseCode === 552;
   }
 
   // What MailService asks of whatever a transport threw.

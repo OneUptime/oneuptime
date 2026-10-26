@@ -37,10 +37,9 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../../FeatureSet/Notification/Config";
-import MailService, {
-  EMAIL_SENT_STATUS_MESSAGE,
-} from "../../FeatureSet/Notification/Services/MailService";
+import MailService from "../../FeatureSet/Notification/Services/MailService";
 import SMTPOAuthService from "../../FeatureSet/Notification/Services/SMTPOAuthService";
+import { EMAIL_SENT_STATUS_MESSAGE } from "../../FeatureSet/Notification/Utils/EmailStatusMessage";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 import {
   FakeMicrosoftGraph,

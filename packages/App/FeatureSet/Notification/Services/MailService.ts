@@ -65,6 +65,11 @@ import {
   getCurrentEmailBrandingVariables,
   withBrandedSubject,
 } from "../Utils/EmailBranding";
+import {
+  EMAIL_SENT_STATUS_MESSAGE,
+  getSentWithoutImagesStatusMessage,
+  toEmailStatusMessage,
+} from "../Utils/EmailStatusMessage";
 import HandlebarsText from "../Utils/HandlebarsText";
 
 // An email as it is sent: its final subject and HTML body.
@@ -72,30 +77,6 @@ export interface RenderedEmail {
   subject: string;
   body: string;
 }
-
-// What every email that went says it was not: delivered.
-const EMAIL_DELIVERY_NOT_TRACKED: string =
-  "This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.";
-
-export const EMAIL_SENT_STATUS_MESSAGE: string = `Email sent successfully. ${EMAIL_DELIVERY_NOT_TRACKED}`;
-
-const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
-
-/*
- * What the Email Log says of an email that went without its images, the
- * mail service having refused it with them (sendEvenWithoutImages):
- * `refusal` is the service's answer, as its provider explains it.
- */
-export const getSentWithoutImagesStatusMessage: (refusal: string) => string = (
-  refusal: string,
-): string => {
-  const answer: string = refusal.trim();
-  const sentence: string = SENTENCE_END_PATTERN.test(answer)
-    ? answer
-    : `${answer}.`;
-
-  return `Email sent successfully without its images, which the mail service refused: ${sentence} ${EMAIL_DELIVERY_NOT_TRACKED}`;
-};
 
 interface PooledTransporter {
   transporter: Transporter<SMTPSentMessageInfo>;
@@ -1618,12 +1599,20 @@ export default class MailService {
         message = "Email failed to send. Unknown error.";
       }
 
+      /*
+       * What the mail service said, as the log rows hold it
+       * (EmailStatusMessage): a longer message would be refused by the
+       * database, and the refusal would be lost with the row. The error
+       * itself is thrown as it is.
+       */
+      const statusMessage: string = toEmailStatusMessage(message);
+
       logger.error(err);
       if (options?.userOnCallLogTimelineId) {
         await UserOnCallLogTimelineService.updateOneById({
           data: {
             status: UserNotificationStatus.Error,
-            statusMessage: message,
+            statusMessage: statusMessage,
           },
           id: options.userOnCallLogTimelineId,
           props: {
@@ -1634,7 +1623,7 @@ export default class MailService {
 
       if (emailLog) {
         emailLog.status = MailStatus.Error;
-        emailLog.statusMessage = message;
+        emailLog.statusMessage = statusMessage;
 
         await EmailLogService.create({
           data: emailLog,

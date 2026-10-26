@@ -92,7 +92,7 @@ describe("Microsoft Graph: HTTP 400 naming an attachment or the size, or 413", (
   });
 });
 
-describe("SMTP: reply 552, or an enhanced status 5.3.4 or 5.6.x", () => {
+describe("SMTP: an enhanced status 5.2.3, 5.3.4 or 5.6.x, or a reply 552 without one", () => {
   test.each([
     {
       responseCode: 552,
@@ -102,7 +102,12 @@ describe("SMTP: reply 552, or an enhanced status 5.3.4 or 5.6.x", () => {
       responseCode: 552,
       response: "552-5.2.3 Your message exceeded Google's message size limits.",
     },
+    {
+      responseCode: 552,
+      response: "552 5.2.3 Message length exceeds administrative limit",
+    },
     { responseCode: 552 },
+    { responseCode: 552, response: "552 Message size exceeds fixed limit" },
     {
       responseCode: 554,
       response: "554 5.3.4 Message too big for system",
@@ -129,6 +134,15 @@ describe("SMTP: reply 552, or an enhanced status 5.3.4 or 5.6.x", () => {
     { response: "Message failed: 552 5.3.4 Message too big" },
     { code: "ECONNREFUSED", message: "connect ECONNREFUSED 127.0.0.1:25" },
     { responseCode: "552" },
+    // A full mailbox: the same email without its images would be refused too.
+    { responseCode: 552, response: "552 5.2.2 Mailbox full" },
+    {
+      responseCode: 552,
+      response:
+        "552-5.2.2 The email account that you tried to reach is over quota.",
+    },
+    { responseCode: 552, response: "552 5.7.1 Message refused by policy" },
+    { responseCode: 552, response: "552 4.3.4 Message too big, try later" },
   ])("%j: not the images", (reply: Record<string, unknown>) => {
     expect(InlineImageRefusal.isSmtpRefusal(reply)).toBe(false);
     expect(InlineImageRefusal.isRefusalOfInlineImages(reply)).toBe(false);

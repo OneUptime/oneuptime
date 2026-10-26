@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import SendgridMail from "@sendgrid/mail";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import Email from "Common/Types/Email";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
@@ -271,6 +272,87 @@ describe("SendGrid's errors, read from the body the client hands back", () => {
   });
 });
 
+describe("SendGrid's reasons as one text", () => {
+  const CONTENT_ID_REQUIRED: string =
+    "The content_id parameter is required if disposition = 'inline'.";
+
+  test("each reason with its field, in SendGrid's order", () => {
+    expect(
+      SendGridMailProvider.describeApiErrors([
+        { message: "Does not contain a valid address.", field: "from.email" },
+        { message: "The subject is required.", field: "subject" },
+      ]),
+    ).toBe(
+      "Does not contain a valid address. (from.email) The subject is required. (subject)",
+    );
+  });
+
+  test("a reason given for several fields is said once, naming each", () => {
+    expect(
+      SendGridMailProvider.describeApiErrors([
+        { message: CONTENT_ID_REQUIRED, field: "attachments.0.content_id" },
+        { message: "The subject is required.", field: "subject" },
+        { message: CONTENT_ID_REQUIRED, field: "attachments.1.content_id" },
+      ]),
+    ).toBe(
+      `${CONTENT_ID_REQUIRED} (attachments.0.content_id, attachments.1.content_id) The subject is required. (subject)`,
+    );
+  });
+
+  test("past three fields, how many more", () => {
+    expect(
+      SendGridMailProvider.describeApiErrors(
+        Array.from({ length: 21 }, (_value: unknown, index: number) => {
+          return {
+            message: CONTENT_ID_REQUIRED,
+            field: `attachments.${index}.content_id`,
+          };
+        }),
+      ),
+    ).toBe(
+      `${CONTENT_ID_REQUIRED} (attachments.0.content_id, attachments.1.content_id, attachments.2.content_id and 18 more)`,
+    );
+  });
+
+  test("the same reason and field twice, or a reason with no field, is said once", () => {
+    expect(
+      SendGridMailProvider.describeApiErrors([
+        { message: "Payload Too Large", field: null },
+        { message: CONTENT_ID_REQUIRED, field: "attachments.0.content_id" },
+        { message: "Payload Too Large", field: null },
+        { message: CONTENT_ID_REQUIRED, field: "attachments.0.content_id" },
+      ]),
+    ).toBe(
+      `Payload Too Large ${CONTENT_ID_REQUIRED} (attachments.0.content_id)`,
+    );
+  });
+
+  test("no reasons, no text", () => {
+    expect(SendGridMailProvider.describeApiErrors([])).toBe("");
+  });
+
+  test("an answer listing a reason for each of 100,000 fields is read in one pass", () => {
+    const run: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return SendGridMailProvider.describeApiErrors(
+          Array.from({ length: 100000 }, (_value: unknown, index: number) => {
+            return {
+              message: CONTENT_ID_REQUIRED,
+              field: `attachments.${index}.content_id`,
+            };
+          }),
+        );
+      },
+      limitInMs: 2000,
+    });
+
+    expect(run.result).toBe(
+      `${CONTENT_ID_REQUIRED} (attachments.0.content_id, attachments.1.content_id, attachments.2.content_id and 99997 more)`,
+    );
+    expect(run.inMs).toBeLessThan(2000);
+  });
+});
+
 describe("what a refusal says, for whoever reads the Email Log", () => {
   test("HTTP 400: what SendGrid did not accept, each reason with its field", () => {
     const exception: SendGridSendException = SendGridMailProvider.explainError(
@@ -288,6 +370,26 @@ describe("what a refusal says, for whoever reads the Email Log", () => {
     );
     expect(exception.statusCode).toBe(400);
     expect(exception.refusedInlineImages).toBe(false);
+  });
+
+  test("a reason SendGrid gives for several attachments is said once, with each field", () => {
+    expect(
+      SendGridMailProvider.explainError(
+        responseError(400, "Bad Request", {
+          errors: [0, 1].map((index: number) => {
+            return {
+              message:
+                "The content_id parameter is required if disposition = 'inline'.",
+              field: `attachments.${index}.content_id`,
+              help: "http://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/errors.html#message.attachments.content_id",
+            };
+          }),
+        }),
+        { hadInlineImages: true },
+      ).message,
+    ).toBe(
+      "SendGrid did not accept the email (HTTP 400 Bad Request). SendGrid said: The content_id parameter is required if disposition = 'inline'. (attachments.0.content_id, attachments.1.content_id)",
+    );
   });
 
   test("HTTP 401: the API key, and where to set it", () => {
