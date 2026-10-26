@@ -304,30 +304,33 @@ describe("the master page of a tab", () => {
     );
   });
 
-  const renderMasterPage: (isPreview: boolean) => Promise<RenderResult> =
-    async (isPreview: boolean): Promise<RenderResult> => {
-      let result: RenderResult | null = null;
+  const renderMasterPage: (
+    isPreview: boolean,
+  ) => Promise<RenderResult> = async (
+    isPreview: boolean,
+  ): Promise<RenderResult> => {
+    let result: RenderResult | null = null;
 
-      await act(async () => {
-        result = render(
-          <MemoryRouter>
-            <StatusPageMasterPage
-              isPreview={isPreview}
-              isPrivateStatusPage={false}
-              enableEmailSubscribers={true}
-              enableSMSSubscribers={false}
-              onLoadComplete={() => {}}
-            >
-              <div>Status page content</div>
-            </StatusPageMasterPage>
-          </MemoryRouter>,
-        );
-      });
+    await act(async () => {
+      result = render(
+        <MemoryRouter>
+          <StatusPageMasterPage
+            isPreview={isPreview}
+            isPrivateStatusPage={false}
+            enableEmailSubscribers={true}
+            enableSMSSubscribers={false}
+            onLoadComplete={() => {}}
+          >
+            <div>Status page content</div>
+          </StatusPageMasterPage>
+        </MemoryRouter>,
+      );
+    });
 
-      await screen.findByText("Status page content");
+    await screen.findByText("Status page content");
 
-      return result!;
-    };
+    return result!;
+  };
 
   const masterPagesRead: () => Array<string> = (): Array<string> => {
     return posted
@@ -596,30 +599,33 @@ describe("subscribing from a tab", () => {
     ).mockResolvedValue({ categories: [], options: [] } as never);
   });
 
-  const renderSubscribePage: (Page: SubscribePage) => Promise<RenderResult> =
-    async (Page: SubscribePage): Promise<RenderResult> => {
-      let result: RenderResult | null = null;
+  const renderSubscribePage: (
+    Page: SubscribePage,
+  ) => Promise<RenderResult> = async (
+    Page: SubscribePage,
+  ): Promise<RenderResult> => {
+    let result: RenderResult | null = null;
 
-      await act(async () => {
-        result = render(
-          <MemoryRouter>
-            <Page
-              pageRoute={new Route("/subscribe/email")}
-              onLoadComplete={(): void => {}}
-              enableEmailSubscribers={true}
-              enableSMSSubscribers={true}
-              enableSlackSubscribers={true}
-              enableMicrosoftTeamsSubscribers={true}
-              enableWebhookSubscribers={true}
-              allowSubscribersToChooseResources={false}
-              allowSubscribersToChooseEventTypes={false}
-            />
-          </MemoryRouter>,
-        );
-      });
+    await act(async () => {
+      result = render(
+        <MemoryRouter>
+          <Page
+            pageRoute={new Route("/subscribe/email")}
+            onLoadComplete={(): void => {}}
+            enableEmailSubscribers={true}
+            enableSMSSubscribers={true}
+            enableSlackSubscribers={true}
+            enableMicrosoftTeamsSubscribers={true}
+            enableWebhookSubscribers={true}
+            allowSubscribersToChooseResources={false}
+            allowSubscribersToChooseEventTypes={false}
+          />
+        </MemoryRouter>,
+      );
+    });
 
-      return result!;
-    };
+    return result!;
+  };
 
   interface SentSubscription {
     url: string;

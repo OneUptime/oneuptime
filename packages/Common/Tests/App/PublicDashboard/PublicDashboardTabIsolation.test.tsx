@@ -208,15 +208,18 @@ describe("where the password prompt leads", () => {
     [`/public-dashboard/${BOARD_B}`],
     [`/public-dashboard/${BOARD_B}?var-env=prod`],
     [`/public-dashboard/${BOARD_B.toUpperCase()}`],
-  ])("on dashboard A's prompt, never to another dashboard: %s", (redirectUrl: string) => {
-    openAt(
-      `/public-dashboard/${BOARD_A}/master-password?redirectUrl=${encodeURIComponent(
-        redirectUrl,
-      )}`,
-    );
+  ])(
+    "on dashboard A's prompt, never to another dashboard: %s",
+    (redirectUrl: string) => {
+      openAt(
+        `/public-dashboard/${BOARD_A}/master-password?redirectUrl=${encodeURIComponent(
+          redirectUrl,
+        )}`,
+      );
 
-    expect(PublicDashboardUtil.getSafeRedirectUrl()).toBeNull();
-  });
+      expect(PublicDashboardUtil.getSafeRedirectUrl()).toBeNull();
+    },
+  );
 
   test("on a custom domain, never to another dashboard's address", () => {
     PublicDashboardUtil.setDashboardId(new ObjectID(BOARD_A));
@@ -292,7 +295,9 @@ describe("the addresses and requests of a tab", () => {
       "https://dashboard.acme.com",
     );
 
-    expect(address.pathname).toBe(`/public-dashboard/${BOARD_A}/master-password`);
+    expect(address.pathname).toBe(
+      `/public-dashboard/${BOARD_A}/master-password`,
+    );
     expect(address.searchParams.get("redirectUrl")).toBe(
       `/public-dashboard/${BOARD_A}?var-env=prod`,
     );

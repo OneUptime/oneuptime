@@ -247,26 +247,27 @@ describe("where signing in leads", () => {
   ])("on page A's address, keeps %s", (redirectPath: string) => {
     setUrl(`/status-page/${PAGE_A}/login`);
 
-    expect(StatusPageUtil.getSafeRedirectPath(redirectPath)).toBe(
-      redirectPath,
-    );
+    expect(StatusPageUtil.getSafeRedirectPath(redirectPath)).toBe(redirectPath);
   });
 
   test.each([
     [`/status-page/${PAGE_B}`],
     [`/status-page/${PAGE_B}/subscribe/email`],
     [`/status-page/${PAGE_B.toUpperCase()}/incidents`],
-  ])("on page A's address, never to another page: %s", (redirectPath: string) => {
-    setUrl(`/status-page/${PAGE_A}/login`);
+  ])(
+    "on page A's address, never to another page: %s",
+    (redirectPath: string) => {
+      setUrl(`/status-page/${PAGE_A}/login`);
 
-    expect(StatusPageUtil.getSafeRedirectPath(redirectPath)).toBeNull();
-    expect(
-      StatusPageUtil.getSignInRoute({
-        path: `/status-page/${PAGE_A}/sso`,
-        redirectUrl: redirectPath,
-      }).toString(),
-    ).toBe(`/status-page/${PAGE_A}/sso`);
-  });
+      expect(StatusPageUtil.getSafeRedirectPath(redirectPath)).toBeNull();
+      expect(
+        StatusPageUtil.getSignInRoute({
+          path: `/status-page/${PAGE_A}/sso`,
+          redirectUrl: redirectPath,
+        }).toString(),
+      ).toBe(`/status-page/${PAGE_A}/sso`);
+    },
+  );
 
   test("on a custom domain, never to another page's preview address", () => {
     setUrl("/login");
@@ -278,9 +279,7 @@ describe("where signing in leads", () => {
     expect(
       StatusPageUtil.getSafeRedirectPath(`/status-page/${PAGE_A}/incidents`),
     ).toBe(`/status-page/${PAGE_A}/incidents`);
-    expect(StatusPageUtil.getSafeRedirectPath("/incidents")).toBe(
-      "/incidents",
-    );
+    expect(StatusPageUtil.getSafeRedirectPath("/incidents")).toBe("/incidents");
   });
 
   test("a redirect query naming another page is dropped", () => {
@@ -442,7 +441,11 @@ describe("the routes a tab links to", () => {
     StatusPageUtil.navigateToLoginPage();
     StatusPageUtil.navigateToMasterPasswordPage();
 
-    expect(navigate.mock.calls.map((call: Array<unknown>) => String(call[0]))).toEqual([
+    expect(
+      navigate.mock.calls.map((call: Array<unknown>) => {
+        return String(call[0]);
+      }),
+    ).toEqual([
       `/status-page/${PAGE_A}/login?redirectUrl=${encodeURIComponent(
         `/status-page/${PAGE_A}/incidents`,
       )}`,

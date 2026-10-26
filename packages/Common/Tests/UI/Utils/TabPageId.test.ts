@@ -254,14 +254,11 @@ describe("TabPageId.isAnotherPagesPath", () => {
     // Something under the page segment that is not this page is another one.
     ["/status-page/not-a-page/incidents"],
     ["/status-page/:statusPageId"],
-  ])(
-    "on its own page's address, %s is another page's",
-    (path: string) => {
-      setUrl(`/status-page/${PAGE_A}`);
+  ])("on its own page's address, %s is another page's", (path: string) => {
+    setUrl(`/status-page/${PAGE_A}`);
 
-      expect(pageInTab.isAnotherPagesPath(path)).toBe(true);
-    },
-  );
+    expect(pageInTab.isAnotherPagesPath(path)).toBe(true);
+  });
 
   test.each([
     [`/status-page/${PAGE_A}`],
@@ -272,14 +269,11 @@ describe("TabPageId.isAnotherPagesPath", () => {
     ["/"],
     ["/status-page/"],
     [`/public-dashboard/${PAGE_B}`],
-  ])(
-    "on its own page's address, %s is not another page's",
-    (path: string) => {
-      setUrl(`/status-page/${PAGE_A}`);
+  ])("on its own page's address, %s is not another page's", (path: string) => {
+    setUrl(`/status-page/${PAGE_A}`);
 
-      expect(pageInTab.isAnotherPagesPath(path)).toBe(false);
-    },
-  );
+    expect(pageInTab.isAnotherPagesPath(path)).toBe(false);
+  });
 
   test("on a custom domain, its own preview address is its own, another page's is not", () => {
     setUrl("/");

@@ -18,11 +18,11 @@ import { BrowserContext, Locator, Page, expect, test } from "@playwright/test";
  * window.__sideBySideFixture.
  */
 
-const statusPageId = (value: number): string => {
+const statusPageId: (value: number) => string = (value: number): string => {
   return `5ba90000-0000-4000-8000-${String(value).padStart(12, "0")}`;
 };
 
-const dashboardId = (value: number): string => {
+const dashboardId: (value: number) => string = (value: number): string => {
   return `da5b0000-0000-4000-8000-${String(value).padStart(12, "0")}`;
 };
 
@@ -31,7 +31,10 @@ const PASSWORD: string = "open sesame";
 // Each tab as the visitor sees it, for a reviewer to look at.
 const SCREENSHOTS: string = "../../output/playwright/side-by-side-pages-ui";
 
-const snapshot = async (page: Page, name: string): Promise<void> => {
+const snapshot: (page: Page, name: string) => Promise<void> = async (
+  page: Page,
+  name: string,
+): Promise<void> => {
   await page.screenshot({ path: `${SCREENSHOTS}/${name}.png`, fullPage: true });
 };
 
@@ -100,14 +103,19 @@ interface FixtureRecord {
   unexpected: Array<string>;
 }
 
-const recordOf = async (page: Page): Promise<FixtureRecord> => {
+const recordOf: (page: Page) => Promise<FixtureRecord> = async (
+  page: Page,
+): Promise<FixtureRecord> => {
   return await page.evaluate((): FixtureRecord => {
     return (window as unknown as { __sideBySideFixture: FixtureRecord })
       .__sideBySideFixture;
   });
 };
 
-const requestsTo = async (
+const requestsTo: (
+  page: Page,
+  route: string,
+) => Promise<Array<FixtureRequest>> = async (
   page: Page,
   route: string,
 ): Promise<Array<FixtureRequest>> => {
@@ -119,10 +127,15 @@ const requestsTo = async (
 };
 
 // Every request a tab made named one page: in its address and its header.
-const expectOnlyRequestsFor = async (
+interface RequestsFor {
+  id: string;
+  header: "statusPageIdHeader" | "dashboardIdHeader";
+}
+
+const expectOnlyRequestsFor: (
   page: Page,
-  data: { id: string; header: "statusPageIdHeader" | "dashboardIdHeader" },
-): Promise<void> => {
+  data: RequestsFor,
+) => Promise<void> = async (page: Page, data: RequestsFor): Promise<void> => {
   const record: FixtureRecord = await recordOf(page);
 
   expect(record.unexpected).toEqual([]);
@@ -139,7 +152,9 @@ const expectOnlyRequestsFor = async (
 };
 
 // The ids a request body holds, wherever in it they are.
-const idsIn = (value: unknown): Array<string> => {
+const idsIn: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
   const text: string = JSON.stringify(value || {});
   const ids: Array<string> = [];
 
@@ -152,7 +167,11 @@ const idsIn = (value: unknown): Array<string> => {
   return ids;
 };
 
-const openStatusPage = async (
+const openStatusPage: (
+  context: BrowserContext,
+  statusPage: FixturePage,
+  subPath?: string,
+) => Promise<Page> = async (
   context: BrowserContext,
   statusPage: FixturePage,
   subPath: string = "",
@@ -162,16 +181,26 @@ const openStatusPage = async (
   return page;
 };
 
-const resourceOf = (page: Page, statusPage: FixturePage): Locator => {
+const resourceOf: (page: Page, statusPage: FixturePage) => Locator = (
+  page: Page,
+  statusPage: FixturePage,
+): Locator => {
   return page.getByText(statusPage.resource, { exact: true }).first();
 };
 
-const logoOf = (page: Page, statusPage: FixturePage): Locator => {
+const logoOf: (page: Page, statusPage: FixturePage) => Locator = (
+  page: Page,
+  statusPage: FixturePage,
+): Locator => {
   return page.locator("#status-page-logo").getByAltText(statusPage.title);
 };
 
 // The status page a tab is drawing, by its logo and its resource.
-const expectToShowStatusPage = async (
+const expectToShowStatusPage: (
+  page: Page,
+  statusPage: FixturePage,
+  others: Array<FixturePage>,
+) => Promise<void> = async (
   page: Page,
   statusPage: FixturePage,
   others: Array<FixturePage>,
@@ -394,7 +423,10 @@ test.describe("Status pages open side by side", () => {
   });
 });
 
-const openDashboard = async (
+const openDashboard: (
+  context: BrowserContext,
+  board: FixtureDashboard,
+) => Promise<Page> = async (
   context: BrowserContext,
   board: FixtureDashboard,
 ): Promise<Page> => {
@@ -404,7 +436,11 @@ const openDashboard = async (
 };
 
 // The dashboard a tab is drawing: its header, and its board's text widget.
-const expectToShowDashboard = async (
+const expectToShowDashboard: (
+  page: Page,
+  board: FixtureDashboard,
+  others: Array<FixtureDashboard>,
+) => Promise<void> = async (
   page: Page,
   board: FixtureDashboard,
   others: Array<FixtureDashboard>,
@@ -426,7 +462,10 @@ const expectToShowDashboard = async (
   }
 };
 
-const expectPasswordPrompt = async (
+const expectPasswordPrompt: (
+  page: Page,
+  board: FixtureDashboard,
+) => Promise<void> = async (
   page: Page,
   board: FixtureDashboard,
 ): Promise<void> => {
@@ -438,7 +477,9 @@ const expectPasswordPrompt = async (
   );
 };
 
-const unlock = async (page: Page): Promise<void> => {
+const unlock: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
   await page.bringToFront();
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Unlock Dashboard" }).click();

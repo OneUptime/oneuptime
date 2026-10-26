@@ -127,9 +127,7 @@ export default class StatusPageUtil {
     const loadedId: ObjectID | null = StatusPageInTab.getResolved();
 
     return Boolean(
-      idInAddress &&
-        loadedId &&
-        idInAddress.toString() !== loadedId.toString(),
+      idInAddress && loadedId && idInAddress.toString() !== loadedId.toString(),
     );
   }
 

@@ -277,14 +277,24 @@ describe("the status page and public dashboard apps' storage", () => {
       ].join("\n"),
     );
 
-    expect(calls.filter(isWrittenOut).map((call: StorageCall) => call.keyText))
-      .toEqual(['"statusPageId"', '"dashboardId"', "`redirectUrl`"]);
+    expect(
+      calls.filter(isWrittenOut).map((call: StorageCall) => {
+        return call.keyText;
+      }),
+    ).toEqual(['"statusPageId"', '"dashboardId"', "`redirectUrl`"]);
     expect(
       calls
         .filter((call: StorageCall): boolean => {
           return !isExplained(call);
         })
-        .map((call: StorageCall) => call.keyText),
-    ).toEqual(['"statusPageId"', '"dashboardId"', "`redirectUrl`", "currentPage"]);
+        .map((call: StorageCall) => {
+          return call.keyText;
+        }),
+    ).toEqual([
+      '"statusPageId"',
+      '"dashboardId"',
+      "`redirectUrl`",
+      "currentPage",
+    ]);
   });
 });
