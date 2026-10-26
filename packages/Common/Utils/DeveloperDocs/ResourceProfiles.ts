@@ -1924,6 +1924,26 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     ],
   },
 
+  CloudAccount: {
+    createNote:
+      "Cloud accounts are added when a cloud connection first reads them. Create one only to name and label it before it is connected.",
+    fields: [
+      field("name", literal("Production")),
+      field(
+        "provider",
+        literal("aws"),
+        "Which cloud it is in: aws, azure or gcp.",
+      ),
+      field(
+        "accountId",
+        literal("123456789012"),
+        "Its id in that cloud: an AWS account, an Azure subscription or a Google Cloud project.",
+      ),
+      field("description", literal("The checkout stack's production account.")),
+      "labels",
+    ],
+  },
+
   NetworkDevice: {
     fields: [
       field("name", literal("core-switch-1")),

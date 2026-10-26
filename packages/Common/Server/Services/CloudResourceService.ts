@@ -751,6 +751,65 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /**
+   * The live resources of a project that answer on any of the host names
+   * or addresses given (CloudResource.cloudEndpoints), at most `limit`, by
+   * id. Raw SQL on purpose: "the endpoint list holds one of these" is a
+   * jsonb containment the query builder cannot say. Pinned to the project;
+   * callers read the rows themselves, with the caller's own rights.
+   */
+  @CaptureSpan()
+  public async findIdsByEndpoints(data: {
+    projectId: ObjectID;
+    endpoints: Array<string>;
+    limit: number;
+  }): Promise<Array<ObjectID>> {
+    const endpoints: Array<string> = Array.from(
+      new Set<string>(
+        data.endpoints
+          .map((endpoint: string): string => {
+            return endpoint.trim().toLowerCase();
+          })
+          .filter((endpoint: string): boolean => {
+            return endpoint.length > 0;
+          }),
+      ),
+    );
+
+    if (endpoints.length === 0 || data.limit <= 0) {
+      return [];
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT "_id"
+        FROM "CloudResource"
+        WHERE "projectId" = $1
+          AND "deletedAt" IS NULL
+          AND "isArchived" = false
+          AND jsonb_typeof("cloudEndpoints") = 'array'
+          AND "cloudEndpoints" ?| $2::text[]
+        ORDER BY "_id"
+        LIMIT $3`,
+      [data.projectId.toString(), endpoints, data.limit],
+    );
+
+    return (Array.isArray(rows) ? rows : [])
+      .map((row: unknown): string => {
+        const record: Record<string, unknown> =
+          row && typeof row === "object"
+            ? (row as Record<string, unknown>)
+            : {};
+
+        return String(record["_id"] || "");
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+  }
+
+  /**
    * Resources whose metrics stopped for CLOUD_RESOURCE_DISCONNECTED_MINUTES
    * read "not reporting". One set-based UPDATE: a collector that stops can
    * take thousands of resources with it, and each one is only a status.

@@ -420,9 +420,55 @@ export function readCloudTags(value: unknown): Record<string, string> {
     : {};
 }
 
+// A properties object as "path=value" pairs, one level of nesting deep.
+export function flattenCloudProperties(
+  properties: unknown,
+): Record<string, string> {
+  const flat: Record<string, string> = {};
+
+  if (
+    !properties ||
+    typeof properties !== "object" ||
+    Array.isArray(properties)
+  ) {
+    return flat;
+  }
+
+  const visit: (value: unknown, path: string) => void = (
+    value: unknown,
+    path: string,
+  ): void => {
+    if (value === null || value === undefined || value === "") {
+      return;
+    }
+
+    if (typeof value === "object" && !Array.isArray(value)) {
+      for (const [key, child] of Object.entries(
+        value as Record<string, unknown>,
+      )) {
+        visit(child, path ? `${path}.${key}` : key);
+      }
+      return;
+    }
+
+    flat[path] = Array.isArray(value)
+      ? value
+          .map((item: unknown): string => {
+            return typeof item === "object"
+              ? JSON.stringify(item)
+              : String(item);
+          })
+          .join(", ")
+      : String(value);
+  };
+
+  visit(properties, "");
+
+  return flat;
+}
+
 /*
- * A resource's tags as label and owner rules match them: each written
- * key=value ("team=payments"), so one pattern can say a key, a value or
+ * A resource's tags as label and owner rules match them: each written key=value ("team=payments"), so one pattern can say a key, a value or
  * both (^team=payments$, ^env=, =production$).
  */
 export function getCloudTagRuleMatchValues(tags: unknown): Array<string> {

@@ -144,6 +144,7 @@ export const getAlertAffectedResources: GetAlertAffectedResourcesFunction = (
     dockerSwarmClusters: alert.dockerSwarmClusters || [],
     iotFleets: alert.iotFleets || [],
     databaseServers: alert.databaseServers || [],
+    cloudResources: alert.cloudResources || [],
     services: alert.services || [],
     serviceLevelObjectives: alert.serviceLevelObjectives || [],
   };
@@ -486,6 +487,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       excludeMonitor: true,
       // Burn rate alerts are linked to the SLO that raised them.
       includeServiceLevelObjective: true,
+      includeCloudResource: true,
     }),
   ];
 
@@ -759,6 +761,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          cloudResources: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -940,6 +947,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
               databaseServers: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              cloudResources: {
                 name: true,
                 _id: true,
                 projectId: true,

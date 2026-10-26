@@ -1579,6 +1579,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    cloudResources: {
+                      name: true,
+                      _id: true,
+                    },
                     services: {
                       name: true,
                       _id: true,
@@ -1612,6 +1616,7 @@ const IncidentView: FunctionComponent<
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}
+                        cloudResources={item.cloudResources || []}
                         services={item.services || []}
                         serviceLevelObjectives={
                           item.serviceLevelObjectives || []

@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { CloudResourceIndex } from "../../../Types/Cloud/CloudResourceIndex";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
@@ -224,106 +225,6 @@ export function buildCloudChangeEntry(data: {
     description: clamp(description, MAX_CHANGE_EVENT_DESCRIPTION_LENGTH),
     attributes,
   };
-}
-
-// The last segment of an ARN, an ARM id or a resource name: its own name or id.
-function lastSegment(value: string): string {
-  const slash: number = value.lastIndexOf("/");
-  const colon: number = value.lastIndexOf(":");
-  const cut: number = Math.max(slash, colon);
-
-  return cut >= 0 && cut < value.length - 1 ? value.slice(cut + 1) : value;
-}
-
-/*
- * The Cloud Resources of one account, by every name a change may give
- * them: the provider id whole, its last segment with its type, its last
- * segment alone, and - for Google Cloud, whose audit log writes
- * "projects/p/zones/z/instances/web-1" for
- * "//compute.googleapis.com/projects/p/zones/z/instances/web-1" - the full
- * name without its service.
- */
-export class CloudResourceIndex {
-  private byKey: Map<string, { id: ObjectID; name: string }> = new Map();
-  // Short names two resources answer to: neither is guessed.
-  private ambiguous: Set<string> = new Set();
-
-  public constructor(
-    rows: Array<{
-      id: ObjectID;
-      name: string;
-      providerResourceId: string;
-      type: string;
-    }>,
-  ) {
-    for (const row of rows) {
-      const id: string = row.providerResourceId.trim().toLowerCase();
-
-      if (!id) {
-        continue;
-      }
-
-      const entry: { id: ObjectID; name: string } = {
-        id: row.id,
-        name: row.name,
-      };
-      this.add(id, entry);
-      this.add(`${row.type.toLowerCase()}|${lastSegment(id)}`, entry);
-      this.add(`|${lastSegment(id)}`, entry);
-
-      if (id.startsWith("//")) {
-        const serviceEnd: number = id.indexOf("/", 2);
-
-        if (serviceEnd > 0) {
-          this.add(id.slice(serviceEnd + 1), entry);
-        }
-      }
-    }
-  }
-
-  private add(key: string, entry: { id: ObjectID; name: string }): void {
-    if (this.byKey.has(key) && this.byKey.get(key)?.id !== entry.id) {
-      this.ambiguous.add(key);
-      return;
-    }
-
-    this.byKey.set(key, entry);
-  }
-
-  // The resource a change's resource names, or null.
-  public find(resource: {
-    id: string;
-    type?: string | undefined;
-  }): { id: ObjectID; name: string } | null {
-    const id: string = resource.id.trim().toLowerCase();
-
-    if (!id) {
-      return null;
-    }
-
-    const keys: Array<string> = [
-      id,
-      ...(resource.type
-        ? [`${resource.type.toLowerCase()}|${lastSegment(id)}`]
-        : []),
-      `|${lastSegment(id)}`,
-    ];
-
-    for (const key of keys) {
-      if (this.ambiguous.has(key)) {
-        continue;
-      }
-
-      const found: { id: ObjectID; name: string } | undefined =
-        this.byKey.get(key);
-
-      if (found) {
-        return found;
-      }
-    }
-
-    return null;
-  }
 }
 
 /*

@@ -5,6 +5,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { ChangeEventAttribute } from "Common/Utils/Telemetry/ChangeEventFields";
 import {
   DictionaryFilterOperator,
   detectOperatorFromValue,
@@ -206,8 +207,6 @@ const UNSUPPORTED_RESOURCE_KEYS: ReadonlyArray<string> = [
   "networkDeviceIds",
   "serverlessFunctionId",
   "serverlessFunctionIds",
-  "cloudResourceId",
-  "cloudResourceIds",
   "rumApplicationId",
   "rumApplicationIds",
   "realUserMonitorId",
@@ -228,6 +227,74 @@ const UNSUPPORTED_RESOURCE_KEYS: ReadonlyArray<string> = [
     "oneuptime.rum.application.id",
   ),
 ];
+
+/*
+ * A Cloud Resource is one row, and the chart of its metrics names it by id
+ * (eventScope.cloudResourceId). Its metric filter - the namespace,
+ * dimensions, account and region its provider reports it under
+ * (CloudMonitoredResourceScope), or an environment's cloud.* attributes -
+ * says nothing more about which events are its own, so the id alone
+ * decides: its incidents and alerts are those linked to it
+ * (cloudResources), its changes those a cloud connection tied to it
+ * (oneuptime.resource.id).
+ */
+const CLOUD_RESOURCE_ID_KEYS: ReadonlyArray<string> = [
+  "cloudResourceId",
+  "cloudResourceIds",
+];
+
+function cloudResourceScope(
+  attributes: Attributes,
+  eventScope: Attributes | undefined,
+): EventOverlayScope | null {
+  const key: string | undefined = CLOUD_RESOURCE_ID_KEYS.find(
+    (candidate: string): boolean => {
+      return Object.prototype.hasOwnProperty.call(attributes, candidate);
+    },
+  );
+
+  if (!key) {
+    return null;
+  }
+
+  const ids: Array<string> | null = exactValues(attributes[key], true);
+  const declaresMore: boolean = Object.keys(eventScope || {}).some(
+    (scopeKey: string): boolean => {
+      return !CLOUD_RESOURCE_ID_KEYS.includes(scopeKey);
+    },
+  );
+
+  /*
+   * An id that is not one, more ids than are fetched apart, or a resource
+   * context naming something else as well: no markers, rather than another
+   * resource's or the whole project's.
+   */
+  if (
+    !ids ||
+    ids.length === 0 ||
+    ids.length > EVENT_OVERLAY_SCOPE_QUERY_LIMIT ||
+    declaresMore ||
+    ids.some((id: string): boolean => {
+      return !ObjectID.isValidUUID(id);
+    })
+  ) {
+    return { incidentQueries: [], alertQueries: [], changeEventQueries: [] };
+  }
+
+  return {
+    incidentQueries: ids.map((id: string): Query<Incident> => {
+      return { cloudResources: { _id: id } } as unknown as Query<Incident>;
+    }),
+    alertQueries: ids.map((id: string): Query<Alert> => {
+      return { cloudResources: { _id: id } } as unknown as Query<Alert>;
+    }),
+    changeEventQueries: ids.map((id: string): Query<ChangeEvent> => {
+      return {
+        attributes: { [ChangeEventAttribute.ResourceId]: id },
+      } as unknown as Query<ChangeEvent>;
+    }),
+  };
+}
 
 const KUBERNETES_KINDS: Record<string, string> = {
   node: "Node",
@@ -490,6 +557,7 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
   for (const key of [
     "primaryEntityId",
     "primaryEntityType",
+    ...CLOUD_RESOURCE_ID_KEYS,
     ...UNSUPPORTED_RESOURCE_KEYS,
   ]) {
     if (Object.prototype.hasOwnProperty.call(filterData, key)) {
@@ -502,6 +570,15 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
    * over presentation attributes, including polymorphic analytics ids.
    */
   Object.assign(attributes, config.eventScope || {});
+
+  const cloudScope: EventOverlayScope | null = cloudResourceScope(
+    attributes,
+    config.eventScope as Attributes | undefined,
+  );
+
+  if (cloudScope) {
+    return cloudScope;
+  }
 
   let incidentQueries: Array<ScopeQuery> = [{}];
   let alertQueries: Array<ScopeQuery> = [{}];

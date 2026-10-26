@@ -6,6 +6,7 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionAwsRoleSetup,
+  CloudConnectionSetupScope,
   getCloudConnectionSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -27,6 +28,8 @@ import { cloudConnectionDocsUrl } from "./CloudConnectApi";
 export interface ComponentProps {
   definition: CloudConnectionDefinition;
   method: CloudConnectionAuthMethod;
+  // The account the command is run in, or its whole organization.
+  scope?: CloudConnectionSetupScope | undefined;
   /*
    * AWS role only: what the role trusts. Undefined while it loads; the
    * command is shown once it is known.
@@ -46,6 +49,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
     {
       trustedPrincipalArn: props.roleSetup?.trustedPrincipalArn,
       externalId: props.roleSetup?.externalId,
+      scope: props.scope,
     },
   );
 

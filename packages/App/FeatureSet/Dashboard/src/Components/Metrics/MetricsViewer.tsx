@@ -446,6 +446,15 @@ interface Props {
   entityKeyDisplays?: LockedEntityKeyDisplayMap | undefined;
   entityScope?: EntityScopeFilter | undefined;
   /*
+   * The resource a row's chart is about, for its incident, alert and change
+   * markers (EventOverlayScope), when its attribute filter does not say it:
+   * a Cloud Resource's page passes `{ cloudResourceId }`, because the
+   * namespace, dimensions and region its metrics are filtered by name no
+   * row its incidents are linked to. Carried to the explorer beside the
+   * filter; it never filters the metrics themselves.
+   */
+  eventScope?: Record<string, string> | undefined;
+  /*
    * Controlled shared window (the entity telemetry hub). When set, the
    * viewer seeds from it and adopts every value change; the host is expected
    * to hand back whatever `onTimeRangeChange` lifted, so an echo of the
@@ -1774,7 +1783,9 @@ const MetricsViewer: FunctionComponent<Props> = (
        * their identity separately so the chart's event markers cannot
        * silently broaden to the whole project during this navigation.
        */
-      const eventScope: MetricsQuery["attributes"] = {};
+      const eventScope: MetricsQuery["attributes"] = {
+        ...(props.eventScope || {}),
+      };
       const scopedServiceIds: Includes | undefined = (
         metricQuery as Record<string, unknown>
       )["services"] as Includes | undefined;
@@ -1856,6 +1867,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       entityKeysFilter,
       props.entityKeyDisplays,
       entityScope,
+      JSON.stringify(props.eventScope || {}),
     ],
   );
 

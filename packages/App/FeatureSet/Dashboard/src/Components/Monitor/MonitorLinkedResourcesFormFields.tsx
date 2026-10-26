@@ -5,6 +5,7 @@ import { MONITOR_LINKED_RESOURCE_TYPES } from "../AffectedResources/MonitorLinke
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -40,7 +41,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         },
         title: "Linked Resources",
         description:
-          "The hosts, clusters, databases and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.",
+          "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: (
@@ -64,6 +65,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
               }
               iotFleets={values.iotFleets as Array<IoTFleet>}
               databaseServers={values.databaseServers as Array<DatabaseServer>}
+              cloudResources={values.cloudResources as Array<CloudResource>}
               services={values.services as Array<Service>}
               resourceTypes={MONITOR_LINKED_RESOURCE_TYPES}
               ariaLabelledby={elementProps.ariaLabelledby}
@@ -98,6 +100,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
                 dockerSwarmClusters: payload.dockerSwarmClusters,
                 iotFleets: payload.iotFleets,
                 databaseServers: payload.databaseServers,
+                cloudResources: payload.cloudResources,
                 services: payload.services,
               } as FormValues<Monitor>);
             });
@@ -201,6 +204,16 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
       },
       {
         field: { databaseServers: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        hideColumnDescription: true,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { cloudResources: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

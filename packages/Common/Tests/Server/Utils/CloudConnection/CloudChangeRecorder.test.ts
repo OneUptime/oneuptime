@@ -15,7 +15,6 @@ import CloudChangeRecorder, {
   CLOUD_CHANGE_CLAIM_NAMESPACE,
   CLOUD_CHANGE_CLAIM_SECONDS,
   CloudChangeRecordOutcome,
-  CloudResourceIndex,
   buildCloudChangeEntry,
   classifyCloudChange,
   getCloudChangeClaimKey,
@@ -25,6 +24,7 @@ import { CloudChange } from "../../../../Server/Utils/CloudConnection/CloudConne
 import logger from "../../../../Server/Utils/Logger";
 import TelemetryFanInWriter from "../../../../Server/Utils/Telemetry/TelemetryFanInWriter";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
+import { CloudResourceIndex } from "../../../../Types/Cloud/CloudResourceIndex";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";

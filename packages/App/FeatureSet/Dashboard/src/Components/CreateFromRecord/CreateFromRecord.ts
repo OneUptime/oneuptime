@@ -57,6 +57,7 @@ export enum CreateFromRecordKind {
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
+  CloudResource = "CloudResource",
   NetworkSite = "NetworkSite",
   Service = "Service",
   StatusPage = "StatusPage",
@@ -401,6 +402,29 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         [CreatedRecordKind.ScheduledMaintenance]: {
           page: PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE,
           title: SCHEDULED_MAINTENANCE_TAB_TITLE,
+        },
+      },
+    },
+    /*
+     * Only incidents and alerts are attached to a cloud resource: a
+     * maintenance window silences monitors, not cloud resources.
+     */
+    {
+      kind: CreateFromRecordKind.CloudResource,
+      queryParam: "cloudResourceId",
+      listTitle: "Cloud",
+      listPage: PageMap.CLOUD_MONITORED_RESOURCES,
+      viewTitle: "View Resource",
+      viewPage: PageMap.CLOUD_RESOURCE_VIEW,
+      field: namedRecords("cloudResources"),
+      tabs: {
+        [CreatedRecordKind.Incident]: {
+          page: PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
+          title: INCIDENTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.Alert]: {
+          page: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,
+          title: ALERTS_TAB_TITLE,
         },
       },
     },

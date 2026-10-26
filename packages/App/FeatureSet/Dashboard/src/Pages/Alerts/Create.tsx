@@ -23,6 +23,7 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -102,6 +103,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
+  "CloudResource",
   "Service",
 ];
 
@@ -381,6 +383,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         databaseServers={
                           values.databaseServers as Array<DatabaseServer>
                         }
+                        cloudResources={
+                          values.cloudResources as Array<CloudResource>
+                        }
                         services={values.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
                         onChange={(payload: unknown) => {
@@ -410,6 +415,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           dockerSwarmClusters: payload.dockerSwarmClusters,
                           iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
+                          cloudResources: payload.cloudResources,
                           services: payload.services,
                         } as FormValues<Alert>);
                       });
@@ -453,6 +459,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       item.dockerSwarmClusters,
                       item.iotFleets,
                       item.databaseServers,
+                      item.cloudResources,
                       item.services,
                     ].some((resources: unknown): boolean => {
                       return Array.isArray(resources) && resources.length > 0;
@@ -492,6 +499,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         databaseServers={
                           item.databaseServers as Array<DatabaseServer>
                         }
+                        cloudResources={
+                          item.cloudResources as Array<CloudResource>
+                        }
                         services={item.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
                         onChange={() => {
@@ -505,7 +515,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/proxmoxClusters/
                  * vmwareVCenters/cephClusters/storageArrays/
-                 * dockerSwarmClusters/iotFleets/databaseServers/services.
+                 * dockerSwarmClusters/iotFleets/databaseServers/
+                 * cloudResources/services.
                  * (hosts is already the picker's anchor field above so it
                  * doesn't need an extra registration.)
                  */
@@ -601,6 +612,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 {
                   field: { databaseServers: true },
+                  stepId: "on-call",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { cloudResources: true },
                   stepId: "on-call",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

@@ -3,6 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -39,13 +40,17 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../../../Components/AppLink/AppLink";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import CloudResourceInventoryCards from "../../../Components/Cloud/CloudResourceInventoryCards";
 
 /*
- * The Overview of a Cloud Resource discovered from cloud monitoring: what
- * the provider says it is - its type, service model, region, account and
- * the provider's own id - and every metric the provider reports about it,
- * each one a click away from the explorer and from "Create monitor from
- * this view".
+ * The Overview of a Cloud Resource - one a cloud connection lists from its
+ * account's inventory, or one discovered from cloud monitoring: what the
+ * provider says it is - its type, service model, region, account and the
+ * provider's own id - its open incidents and alerts, what its inventory
+ * says (what it is connected to, its endpoints, tags and settings), and
+ * every metric the provider reports about it, each one a click away from
+ * the explorer and from "Create monitor from this view".
  *
  * There are no golden-metric tiles: a resource is any of a hundred types,
  * each with its own metrics, and the list below is what this one reports.
@@ -56,6 +61,13 @@ const MONITORING_SOURCE_BY_PROVIDER: Readonly<Record<string, string>> = {
   azure: "Azure Monitor",
   aws: "Amazon CloudWatch",
   gcp: "Google Cloud Monitoring",
+};
+
+// The inventory a cloud connection lists an account's resources from.
+const INVENTORY_SOURCE_BY_PROVIDER: Readonly<Record<string, string>> = {
+  azure: "Azure Resource Graph",
+  aws: "AWS Cloud Control",
+  gcp: "Google Cloud Asset Inventory",
 };
 
 const CloudMonitoredResourceOverview: FunctionComponent<
@@ -78,6 +90,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         modelType: CloudResource,
         id: modelId,
         select: {
+          _id: true,
           name: true,
           description: true,
           cloudResourceKind: true,
@@ -88,6 +101,11 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           cloudAccountId: true,
           cloudResourceGroup: true,
           telemetryAttributes: true,
+          cloudTags: true,
+          cloudProperties: true,
+          cloudRelationships: true,
+          cloudEndpoints: true,
+          inventoriedAt: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
           createdAt: true,
@@ -126,6 +144,11 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const attributeFilterDisplayKeys: Record<string, string> = useMemo(() => {
     return getCloudMonitoredResourceAttributeDisplayKeys(attributeFilters);
   }, [attributeFilters]);
+
+  // A chart opened from here draws this resource's incidents, alerts and changes.
+  const eventScope: Record<string, string> = useMemo(() => {
+    return { cloudResourceId: modelId.toString() };
+  }, [modelId.toString()]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -196,7 +219,23 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     },
     {
       label: "Discovered From",
-      value: MONITORING_SOURCE_BY_PROVIDER[provider],
+      value: Object.keys(attributeFilters).length
+        ? MONITORING_SOURCE_BY_PROVIDER[provider]
+        : undefined,
+    },
+    {
+      label: "Listed By",
+      value: r.inventoriedAt
+        ? INVENTORY_SOURCE_BY_PROVIDER[provider]
+        : undefined,
+    },
+    {
+      label: "Last Listed",
+      value: r.inventoriedAt
+        ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            r.inventoriedAt,
+          )
+        : undefined,
     },
     /*
      * The cloud connection that reads it (Cloud > Connect), when one does:
@@ -230,7 +269,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         status={r.otelCollectorStatus}
         statusLabel={isReporting ? "Reporting" : "Not reporting"}
         statusTone={isReporting ? "positive" : "neutral"}
-        statusDescription="Reporting while its provider has sent a metric about it within the last hour. A quiet resource can skip an hour, and one silent for a week is archived until it reports again."
+        statusDescription="Reporting while its cloud connection listed it, or its provider sent a metric about it, within the last hour. One its account no longer lists, or silent for a week, is archived."
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
         chips={chips}
@@ -241,6 +280,17 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       />
 
       <div className="mt-6">
+        <ResourceActivityCards
+          modelId={modelId}
+          resourceQueryKey="cloudResources"
+          incidentsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS)}
+          alertsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_ALERTS)}
+        />
+      </div>
+
+      <CloudResourceInventoryCards resource={r} />
+
+      <div className="mt-6">
         <Card
           title="Metrics"
           description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
@@ -249,6 +299,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
             <MetricsViewer
               attributeFilters={attributeFilters}
               attributeFilterDisplayKeys={attributeFilterDisplayKeys}
+              eventScope={eventScope}
               disableUrlSync={true}
             />
           ) : (

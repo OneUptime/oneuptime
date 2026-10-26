@@ -11,11 +11,16 @@ import {
 import {
   CLOUD_RELATIONSHIP_LABELS,
   CloudResourceRelationship,
-  isCloudRelationshipKind,
+  flattenCloudProperties,
   readCloudEndpoints,
   readCloudRelationships,
   readCloudTags,
 } from "../../../../Types/Cloud/CloudInventory";
+import {
+  CloudLinkedResource,
+  CloudResolvedRelationship,
+  resolveCloudRelationships,
+} from "../../../../Types/Cloud/CloudResourceIndex";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeLabel } from "../../../../Types/Cloud/CloudResourceCatalog";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -25,7 +30,6 @@ import Permission from "../../../../Types/Permission";
 import CloudAccountService from "../../../Services/CloudAccountService";
 import CloudResourceService from "../../../Services/CloudResourceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import { CloudResourceIndex } from "../../CloudConnection/CloudChangeRecorder";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   ObservabilityTool,
@@ -74,13 +78,7 @@ const resolveAccountPermissions: () => Array<Permission> =
   };
 
 // A neighbour of a resource: what it is linked to, or what links to it.
-export interface CloudNeighbour {
-  id: ObjectID;
-  name: string;
-  providerResourceId: string;
-  type: string;
-  relationships: Array<CloudResourceRelationship>;
-}
+export type CloudNeighbour = CloudLinkedResource;
 
 /*
  * One resource's relationships, both ways, named after the resources the
@@ -93,125 +91,27 @@ export function describeCloudRelationships(data: {
   neighbours: Array<CloudNeighbour>;
   limit: number;
 }): { rows: Array<JSONObject>; total: number } {
-  const index: CloudResourceIndex = new CloudResourceIndex(data.neighbours);
-  const typeById: Map<string, string> = new Map();
-
-  for (const neighbour of data.neighbours) {
-    typeById.set(neighbour.id.toString(), neighbour.type.toLowerCase());
-  }
-
-  // Two resources of different types are never the same one.
-  const isOfType: (id: ObjectID, type: string | undefined) => boolean = (
-    id: ObjectID,
-    type: string | undefined,
-  ): boolean => {
-    return !type || typeById.get(id.toString()) === type.toLowerCase();
-  };
-
-  const rows: Array<JSONObject> = [];
-
-  for (const relationship of data.relationships) {
-    const found: { id: ObjectID; name: string } | null = index.find({
-      id: relationship.target,
-      type: relationship.targetType,
-    });
-    const other: { id: ObjectID; name: string } | null =
-      found && isOfType(found.id, relationship.targetType) ? found : null;
-
-    rows.push({
+  const rows: Array<JSONObject> = resolveCloudRelationships({
+    resource: data.resource,
+    relationships: data.relationships,
+    neighbours: data.neighbours,
+  }).map((relationship: CloudResolvedRelationship): JSONObject => {
+    return {
       relationship: CLOUD_RELATIONSHIP_LABELS[relationship.kind],
-      direction: "out",
-      other: other?.name || relationship.target,
-      otherType: relationship.targetType || "",
-      otherCloudResourceId: other ? other.id.toString() : "",
-    });
-  }
-
-  // What names this resource: its id whole, or its own name with its type.
-  const self: CloudResourceIndex = new CloudResourceIndex([
-    {
-      id: data.resource.id,
-      name: "",
-      providerResourceId: data.resource.providerResourceId,
-      type: data.resource.type,
-    },
-  ]);
-
-  for (const neighbour of data.neighbours) {
-    if (neighbour.id.toString() === data.resource.id.toString()) {
-      continue;
-    }
-
-    for (const relationship of neighbour.relationships) {
-      if (
-        !isCloudRelationshipKind(relationship.kind) ||
-        (relationship.targetType &&
-          relationship.targetType.toLowerCase() !==
-            data.resource.type.toLowerCase()) ||
-        !self.find({ id: relationship.target, type: relationship.targetType })
-      ) {
-        continue;
-      }
-
-      rows.push({
-        relationship: CLOUD_RELATIONSHIP_LABELS[relationship.kind],
-        direction: "in",
-        other: neighbour.name || neighbour.providerResourceId,
-        otherType: neighbour.type,
-        otherCloudResourceId: neighbour.id.toString(),
-      });
-    }
-  }
+      direction: relationship.direction,
+      other: relationship.otherName,
+      otherType: relationship.otherType,
+      otherCloudResourceId: relationship.other
+        ? relationship.other.id.toString()
+        : "",
+    };
+  });
 
   return { rows: rows.slice(0, data.limit), total: rows.length };
 }
 
-// A properties object as "path=value" pairs, one level of nesting deep.
-export function flattenCloudProperties(
-  properties: unknown,
-): Record<string, string> {
-  const flat: Record<string, string> = {};
-
-  if (
-    !properties ||
-    typeof properties !== "object" ||
-    Array.isArray(properties)
-  ) {
-    return flat;
-  }
-
-  const visit: (value: unknown, path: string) => void = (
-    value: unknown,
-    path: string,
-  ): void => {
-    if (value === null || value === undefined || value === "") {
-      return;
-    }
-
-    if (typeof value === "object" && !Array.isArray(value)) {
-      for (const [key, child] of Object.entries(
-        value as Record<string, unknown>,
-      )) {
-        visit(child, path ? `${path}.${key}` : key);
-      }
-      return;
-    }
-
-    flat[path] = Array.isArray(value)
-      ? value
-          .map((item: unknown): string => {
-            return typeof item === "object"
-              ? JSON.stringify(item)
-              : String(item);
-          })
-          .join(", ")
-      : String(value);
-  };
-
-  visit(properties, "");
-
-  return flat;
-}
+// Kept here too: the AI tools read a resource's properties this way.
+export { flattenCloudProperties };
 
 export const QueryCloudResourceTool: ObservabilityTool = {
   name: "query_cloud_resource",
