@@ -1180,9 +1180,7 @@ describe("useBulkLabelActions", () => {
         ...snapshot.failedIds,
       ].sort();
 
-      expect(everyId).toEqual(
-        [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID].sort(),
-      );
+      expect(everyId).toEqual([ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID].sort());
     }
 
     expect(progressSnapshots[progressSnapshots.length - 1]).toEqual({
@@ -1612,5 +1610,159 @@ describe("useBulkLabelActions", () => {
     expect(onBulkActionStartMock).not.toHaveBeenCalled();
     expect(getItemMock).not.toHaveBeenCalled();
     expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  describe("reading the items' labels a window at a time (issue #5299)", () => {
+    type AnswerWindowFunction = (data: { leaveOut?: Array<string> }) => void;
+
+    // The window read answers each id it is asked about with no labels.
+    const answerWindowsDirectly: AnswerWindowFunction = (data: {
+      leaveOut?: Array<string>;
+    }): void => {
+      windowReadMock.mockImplementation(async (listData: any): Promise<any> => {
+        const rows: Array<Monitor> = (listData.query._id as Includes).values
+          .map((id: unknown) => {
+            return String(id);
+          })
+          .filter((id: string) => {
+            return !(data.leaveOut || []).includes(id);
+          })
+          .map((id: string) => {
+            return makeItemWithLabels(id, []);
+          });
+
+        return {
+          data: rows,
+          count: rows.length,
+          skip: 0,
+          limit: rows.length,
+        };
+      });
+    };
+
+    type IdsAskedForFunction = (callIndex: number) => Array<string>;
+
+    const idsAskedFor: IdsAskedForFunction = (
+      callIndex: number,
+    ): Array<string> => {
+      const listData: any = (
+        windowReadMock.mock.calls[callIndex] as Array<any>
+      )[0];
+
+      return (listData.query._id as Includes).values.map((id: unknown) => {
+        return String(id);
+      });
+    };
+
+    type AddAlphaToFunction = (items: Array<Monitor>) => Promise<void>;
+
+    const addAlphaTo: AddAlphaToFunction = async (
+      items: Array<Monitor>,
+    ): Promise<void> => {
+      getListMock.mockResolvedValue({
+        data: [makeLabel(LABEL_ALPHA_ID, "Alpha")],
+        count: 1,
+      });
+
+      render(<Harness items={items} />);
+
+      await waitForMountedLabelFetch();
+
+      clickTrigger("Add Labels");
+      await waitForModalTitle("Add Labels");
+      await selectLabel("Alpha");
+      submitModal();
+
+      await waitForBulkRunToEnd();
+    };
+
+    test("reads the selection's labels in one list request, not a read per item", async () => {
+      answerWindowsDirectly({});
+
+      await addAlphaTo([
+        makeItem(ITEM_ONE_ID),
+        makeItem(ITEM_TWO_ID),
+        makeItem(ITEM_THREE_ID),
+      ]);
+
+      expect(windowReadMock).toHaveBeenCalledTimes(1);
+      expect(idsAskedFor(0)).toEqual([ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID]);
+
+      const listData: any = (windowReadMock.mock.calls[0] as Array<any>)[0];
+
+      // Every row it asks for, and the label ids a merge needs.
+      expect(listData.limit).toBe(3);
+      expect(listData.skip).toBe(0);
+      expect(listData.select).toEqual({ _id: true, labels: { _id: true } });
+      expect(getItemMock).not.toHaveBeenCalled();
+
+      // Each item still gets its own write, the picked label merged in.
+      expect(updateByIdMock).toHaveBeenCalledTimes(3);
+
+      const writtenIds: Array<string> = (
+        updateByIdMock.mock.calls as Array<Array<any>>
+      )
+        .map((call: Array<any>) => {
+          return String(call[0].id);
+        })
+        .sort();
+
+      expect(writtenIds).toEqual(
+        [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID].sort(),
+      );
+
+      for (let index: number = 0; index < 3; index++) {
+        expect(getUpdatedLabelIds(index)).toEqual([LABEL_ALPHA_ID]);
+      }
+    });
+
+    test("reads a selection of more than fifty fifty at a time, in selection order", async () => {
+      answerWindowsDirectly({});
+
+      const ids: Array<string> = [];
+
+      for (let index: number = 0; index < 120; index++) {
+        ids.push(`44444444-4444-4444-8444-${String(index).padStart(12, "0")}`);
+      }
+
+      await addAlphaTo(
+        ids.map((id: string) => {
+          return makeItem(id);
+        }),
+      );
+
+      expect(windowReadMock).toHaveBeenCalledTimes(3);
+      expect(idsAskedFor(0)).toEqual(ids.slice(0, 50));
+      expect(idsAskedFor(1)).toEqual(ids.slice(50, 100));
+      expect(idsAskedFor(2)).toEqual(ids.slice(100));
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(updateByIdMock).toHaveBeenCalledTimes(120);
+      expect(
+        progressSnapshots[progressSnapshots.length - 1]!.successIds,
+      ).toHaveLength(120);
+    });
+
+    test("fails an item the read leaves out, as it failed a deleted item, and reads it no more", async () => {
+      answerWindowsDirectly({ leaveOut: [ITEM_TWO_ID] });
+
+      await addAlphaTo([
+        makeItem(ITEM_ONE_ID),
+        makeItem(ITEM_TWO_ID),
+        makeItem(ITEM_THREE_ID),
+      ]);
+
+      const last: ProgressSnapshot =
+        progressSnapshots[progressSnapshots.length - 1]!;
+
+      expect(last.failedIds).toEqual([ITEM_TWO_ID]);
+      expect(last.failedMessages).toEqual([
+        "Could not read the current labels for this item.",
+      ]);
+      expect(last.successIds.sort()).toEqual(
+        [ITEM_ONE_ID, ITEM_THREE_ID].sort(),
+      );
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

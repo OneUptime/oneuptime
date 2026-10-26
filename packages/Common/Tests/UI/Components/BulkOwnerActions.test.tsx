@@ -990,6 +990,125 @@ describe("useBulkOwnerActions", () => {
     expect(resourceIds).toEqual([SLO_ONE_ID, SLO_TWO_ID]);
   });
 
+  test("reads the owners of the whole selection in one request, not one per item (issue #5299)", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const lookups: Array<any> = getListCallsFor(ServiceLevelObjectiveOwnerUser);
+
+    expect(lookups).toHaveLength(1);
+    expect(
+      (lookups[0].query.serviceLevelObjectiveId.values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([SLO_ONE_ID, SLO_TWO_ID]);
+    expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("reads each item on its own when the selection's owner rows are more than one request holds", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [],
+    });
+
+    const answerLists: (listData: any) => Promise<any> =
+      getListMock.getMockImplementation() as (listData: any) => Promise<any>;
+
+    getListMock.mockImplementation(async (listData: any): Promise<any> => {
+      if (listData.modelType !== ServiceLevelObjectiveOwnerUser) {
+        return await answerLists(listData);
+      }
+
+      const askedAbout: number =
+        listData.query.serviceLevelObjectiveId.values.length;
+
+      // The whole window matches more rows than came back; one item does not.
+      return askedAbout > 1
+        ? { data: [], count: LIMIT_PER_PROJECT + 1, skip: 0, limit: 0 }
+        : { data: [], count: 0, skip: 0, limit: LIMIT_PER_PROJECT };
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const askedAbout: Array<Array<string>> = getListCallsFor(
+      ServiceLevelObjectiveOwnerUser,
+    ).map((call: any) => {
+      return (call.query.serviceLevelObjectiveId.values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      );
+    });
+
+    expect(askedAbout[0]).toEqual([SLO_ONE_ID, SLO_TWO_ID]);
+    expect(askedAbout.slice(1).sort()).toEqual([[SLO_ONE_ID], [SLO_TWO_ID]]);
+    expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("matches each owner row read to its own item: an owner of one item is still added to the other", async () => {
+    mockLists({
+      teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
+      teams: [],
+      // Alice owns the second SLO already, and only that one.
+      ownerUsers: [
+        makeOwnerUserRow({
+          id: OWNER_ROW_ID,
+          userId: ALICE_ID,
+          sloId: SLO_TWO_ID,
+        }),
+      ],
+      ownerTeams: [],
+    });
+
+    render(<Harness items={[makeSlo(SLO_ONE_ID), makeSlo(SLO_TWO_ID)]} />);
+    await settle();
+    await openOwnerModal("Add Owner");
+    await selectOwner("Alice");
+    submitOwnerModal();
+
+    await waitFor(
+      () => {
+        expect(onBulkActionEnd).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        createMock.mock.calls[0] as Array<any>
+      )[0].model.serviceLevelObjectiveId.toString(),
+    ).toBe(SLO_ONE_ID);
+  });
+
   test("skips an owner the item already has", async () => {
     mockLists({
       teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
@@ -1051,11 +1170,11 @@ describe("useBulkOwnerActions", () => {
       Includes,
     );
     expect(
-      (ownerUserCall.query.serviceLevelObjectiveId.values as Array<ObjectID>).map(
-        (id: ObjectID) => {
-          return id.toString();
-        },
-      ),
+      (
+        ownerUserCall.query.serviceLevelObjectiveId.values as Array<ObjectID>
+      ).map((id: ObjectID) => {
+        return id.toString();
+      }),
     ).toEqual([SLO_ONE_ID]);
     expect(ownerUserCall.query.projectId.toString()).toBe(PROJECT_ID);
     // Only the people picked: whether each owns the item already.

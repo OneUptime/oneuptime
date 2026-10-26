@@ -399,6 +399,17 @@ function useBulkOwnerActions<T extends BaseModel>(
           sort: {},
         });
 
+      /*
+       * More rows than one request holds: some item's rows would be missed
+       * and its owners added again. The window's items are read one by one
+       * instead (BulkReadAhead's readOne).
+       */
+      if (result.data.length < result.count) {
+        throw new BadDataException(
+          "Too many owner rows to read in one request.",
+        );
+      }
+
       return result.data;
     };
 
