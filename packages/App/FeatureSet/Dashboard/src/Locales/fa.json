@@ -35087,5 +35087,9 @@
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "با HTTPS پروکسی خودتان ارائه می‌شود، مگر اینکه گواهی بارگذاری کنید.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "ما هر ۱۵ دقیقه این رکورد را بررسی می‌کنیم. قبلاً اضافه کرده‌اید؟ روی «اکنون بررسی کن» کلیک کنید.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "این صفحه وضعیت را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید.",
-  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "این داشبورد را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید."
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "این داشبورد را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید.",
+  "Dark Theme Logo": "لوگوی پوسته تیره",
+  "Upload logo for the dark theme": "بارگذاری لوگو برای پوسته تیره",
+  "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "هر جا صفحه وضعیت شما تیره است، به جای لوگو نشان داده می‌شود. بدون آن، لوگو در آنجا روی پس‌زمینه‌ای روشن نشان داده می‌شود.",
+  "None. The logo is shown on a light backdrop.": "هیچ. لوگو روی پس‌زمینه‌ای روشن نشان داده می‌شود."
 }

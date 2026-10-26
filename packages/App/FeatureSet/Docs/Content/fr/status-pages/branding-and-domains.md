@@ -33,10 +33,10 @@ La première carte, **Logo et image de couverture**, a un bouton **Modifier les 
 
 | Étape | Champs |
 | ---- | ------ |
-| **Logo** | Le téléversement du logo (texte indicatif `Upload logo`) et **Texte alternatif du logo** (texte indicatif `Logo of My Company`). Laissez le texte alternatif vide et le titre de la page de statut est utilisé à la place. |
+| **Logo** | Le téléversement du logo (texte indicatif `Upload logo`), **Logo du thème sombre** (texte indicatif `Upload logo for the dark theme`), un logo facultatif conçu pour un fond sombre, et **Texte alternatif du logo** (texte indicatif `Logo of My Company`). Laissez le texte alternatif vide et le titre de la page de statut est utilisé à la place. |
 | **Image de couverture** | **Couverture**, un téléversement (texte indicatif `Upload cover image`) pour la large bannière derrière l'en-tête, et **Texte alternatif de l'image de couverture**. Laissez le texte alternatif vide si la couverture est purement décorative. |
 
-Le logo, l'image de couverture et le favicon sont des fichiers téléversés dans le projet de la page de statut lui-même, et c'est vérifié à chaque enregistrement – depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mêmes mots qu'un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." ou "The favicon's file could not be found. Upload the favicon again." Téléverser à nouveau l'image depuis la page règle le problème.
+Le logo, le logo du thème sombre, l'image de couverture et le favicon sont des fichiers téléversés dans le projet de la page de statut lui-même, et c'est vérifié à chaque enregistrement – depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mêmes mots qu'un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." ou "The favicon's file could not be found. Upload the favicon again." Téléverser à nouveau l'image depuis la page règle le problème.
 
 Votre page de statut n'affiche que les images de son propre projet ; une image qu'elle ne peut pas afficher est omise, comme si la page n'en avait pas. Le tableau de bord, l'API et Terraform lisent les images de la page de la même façon : une image d'un autre projet revient comme aucune image. Les e-mails que la page envoie – aux abonnés, et aux utilisateurs privés au sujet de leur connexion – affichent son logo de la même manière : un logo que la page ne peut pas afficher en est omis lui aussi, plutôt qu'affiché comme une image cassée.
 
@@ -50,7 +50,9 @@ La carte **Thème**, juste sous le logo, définit l'apparence de la page pour se
 | **Sombre** | La page sombre, quel que soit le réglage de leur appareil. |
 | **Selon l'appareil de chaque visiteur** | Claire ou sombre, selon le réglage de leur appareil, et elle change avec lui tant que la page est ouverte. Un bouton soleil ou lune dans le pied de page permet au visiteur de basculer, et son navigateur retient ce choix. |
 
-Sur la page sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible.
+Sur la page sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible. Une page qui a un **Logo du thème sombre** affiche celui-ci à la place sur la page sombre, tel quel, sans fond, dans son en-tête et sur ses pages de connexion. Les e-mails que la page envoie affichent toujours le logo.
+
+À l'adresse de la page sur OneUptime, `/status-page/:id`, une page en **Clair** ou **Sombre** a elle aussi le bouton soleil ou lune dans son pied de page, pour que vous la voyiez dans l'autre thème, avec son **Logo du thème sombre**, avant de choisir. Un choix fait là dure jusqu'au rechargement de la page et n'est pas mémorisé : la page s'ouvre toujours dans son propre thème, pour vous comme pour toute personne qui ouvre cette adresse. Sur les domaines personnalisés de la page, une page en **Clair** ou **Sombre** n'a pas de bouton.
 
 Une page de statut créée à partir de maintenant commence avec **Selon l'appareil de chaque visiteur**. Dans l'API et dans Terraform, le champ est `theme`, avec l'une des valeurs `Light`, `Dark` ou `System` (**Selon l'appareil de chaque visiteur**), écrites exactement ainsi ; toute autre valeur est refusée. Une configuration Terraform qui ne définit aucun `theme` reçoit `Light`, si bien qu'une configuration écrite avant ce réglage ne planifie jamais de changement sur une page qu'elle gère.
 
@@ -250,6 +252,8 @@ Si une commande échoue, la colonne Statut l'indique, avec la raison sur la lign
 
 Si vous avez téléversé votre propre certificat sous **Plus de champs**, OneUptime sert celui-ci à la place, dans les 15 minutes qui suivent l'enregistrement. Téléversez son remplaçant avant son expiration en modifiant le domaine.
 
+Une installation auto-hébergée sans clé de compte Let's Encrypt, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` dans le chart Helm), n'émet pas de certificats gratuits. Là, un domaine est en ligne dès que son enregistrement CNAME est vérifié, et sa colonne Statut le dit : servez son HTTPS depuis votre propre proxy ou répartiteur de charge, ou téléversez un certificat sous **Plus de champs**.
+
 ### Réémettre un certificat
 
 Le renouvellement automatique couvre le cas ordinaire, mais vous voulez parfois un tout nouveau certificat immédiatement : une clé privée que vous préférez ne pas garder, un certificat qui déplaît à votre propre scanner, ou un domaine qui a changé en amont. Dès qu'un certificat gratuit a été commandé pour un domaine, sa ligne affiche une action **Reissue SSL**.
@@ -265,7 +269,7 @@ Le même bouton, avec la même limite de 24 heures, existe sur les domaines pers
 
 ### Lire la colonne Statut du domaine
 
-La colonne **Statut** indique où en est chaque domaine sur le chemin de HTTPS, dans l'un de sept états. Quand une commande a échoué, la raison figure sur la ligne en dessous.
+La colonne **Statut** indique où en est chaque domaine sur le chemin de HTTPS, dans l'un de huit états. Quand une commande a échoué, la raison figure sur la ligne en dessous.
 
 | Ce qu'indique la colonne Statut | Ce que cela signifie |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ La colonne **Statut** indique où en est chaque domaine sur le chemin de HTTPS, 
 | Certificat émis, renouvelé automatiquement. | Terminé. Le domaine sert son certificat en HTTPS, et OneUptime le renouvelle. |
 | Certificat émis, mais son renouvellement a échoué. Nous continuons d'essayer. | Le domaine sert toujours un certificat valide, mais son dernier renouvellement a échoué, pour la raison indiquée sur la ligne en dessous. OneUptime réessaie bien avant l'expiration du certificat. |
 | Utilise votre certificat téléversé. | L'enregistrement est vérifié, et le domaine est servi avec le certificat que vous avez téléversé. |
+| Vérifié. Cette installation n'émet pas de certificats gratuits : servez le HTTPS de ce domaine depuis votre propre proxy, ou téléversez un certificat. | Sur une installation auto-hébergée sans clé de compte Let's Encrypt, l'enregistrement est vérifié et le domaine est en ligne. Son HTTPS revient à votre propre proxy, sauf si vous téléversez un certificat. |
 
 :::details Un domaine reste sur « En attente du DNS » longtemps après l'ajout de l'enregistrement
 Vérifiez que le nom de l'enregistrement est le domaine complet, comme `status.yourcompany.com`, et que sa valeur correspond exactement à l'enregistrement CNAME de votre installation. Sur un domaine racine, utilisez un enregistrement ALIAS, ANAME ou CNAME aplati. Cliquez ensuite sur **Vérifier maintenant** dans **Configuration DNS**.

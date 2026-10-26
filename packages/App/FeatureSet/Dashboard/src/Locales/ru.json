@@ -35087,5 +35087,9 @@
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Обслуживается по HTTPS вашего прокси, если вы не загрузите сертификат.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Мы проверяем эту запись каждые 15 минут. Уже добавили? Нажмите «Проверить сейчас».",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Разместите эту страницу статуса на своём домене. Направьте CNAME-запись каждого домена на {{cnameRecord}}.",
-  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Разместите эту панель на своём домене. Направьте CNAME-запись каждого домена на {{cnameRecord}}."
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Разместите эту панель на своём домене. Направьте CNAME-запись каждого домена на {{cnameRecord}}.",
+  "Dark Theme Logo": "Логотип для тёмной темы",
+  "Upload logo for the dark theme": "Загрузить логотип для тёмной темы",
+  "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "Показывается вместо логотипа там, где страница статуса тёмная. Без него логотип показывается там на светлой подложке.",
+  "None. The logo is shown on a light backdrop.": "Нет. Логотип показывается на светлой подложке."
 }

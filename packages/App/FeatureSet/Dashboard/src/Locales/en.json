@@ -35087,5 +35087,9 @@
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Served with your own proxy's HTTPS, unless you upload a certificate.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "We check for this record every 15 minutes. Added it already? Click Check now.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
-  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}."
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
+  "Dark Theme Logo": "Dark Theme Logo",
+  "Upload logo for the dark theme": "Upload logo for the dark theme",
+  "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.",
+  "None. The logo is shown on a light backdrop.": "None. The logo is shown on a light backdrop."
 }

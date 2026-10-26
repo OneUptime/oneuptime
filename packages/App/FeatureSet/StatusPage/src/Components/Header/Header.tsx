@@ -17,6 +17,8 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   links: Array<Link>;
   logo?: File | undefined;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkLogo?: File | undefined;
   logoAltText?: string | undefined;
   onLogoClicked: () => void;
 }
@@ -62,7 +64,9 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
 
   const hasLinks: boolean = Boolean(props.links && props.links.length > 0);
 
-  if (!props.logo && !hasLinks) {
+  const hasLogo: boolean = Boolean(props.logo || props.darkLogo);
+
+  if (!hasLogo && !hasLinks) {
     return <></>;
   }
 
@@ -76,18 +80,37 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
   return (
     <div className="mt-5 flex items-start justify-between gap-4">
       <div className="flex min-h-[3rem] items-center">
-        {props.logo && (
-          <LogoPlate id="status-page-logo" className="flex">
-            <Logo
-              file={props.logo}
-              alt={props.logoAltText}
-              onClick={() => {
-                props.onLogoClicked();
-              }}
-              style={{
-                height: "50px",
-              }}
-            />
+        {hasLogo && (
+          <LogoPlate
+            id="status-page-logo"
+            className="flex"
+            darkLogo={
+              props.darkLogo ? (
+                <Logo
+                  file={props.darkLogo}
+                  alt={props.logoAltText}
+                  onClick={() => {
+                    props.onLogoClicked();
+                  }}
+                  style={{
+                    height: "50px",
+                  }}
+                />
+              ) : undefined
+            }
+          >
+            {props.logo ? (
+              <Logo
+                file={props.logo}
+                alt={props.logoAltText}
+                onClick={() => {
+                  props.onLogoClicked();
+                }}
+                style={{
+                  height: "50px",
+                }}
+              />
+            ) : undefined}
           </LogoPlate>
         )}
       </div>

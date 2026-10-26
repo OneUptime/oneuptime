@@ -35087,5 +35087,9 @@
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "使用您自己的代理提供的 HTTPS，除非您上传证书。",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "我们每 15 分钟检查一次此记录。已经添加了？请点击“立即检查”。",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "在您自己的域名上提供此状态页。将每个域名的 CNAME 记录指向 {{cnameRecord}}。",
-  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "在您自己的域名上提供此仪表板。将每个域名的 CNAME 记录指向 {{cnameRecord}}。"
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "在您自己的域名上提供此仪表板。将每个域名的 CNAME 记录指向 {{cnameRecord}}。",
+  "Dark Theme Logo": "深色主题徽标",
+  "Upload logo for the dark theme": "上传深色主题徽标",
+  "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "在状态页为深色的地方代替徽标显示。如果没有，徽标会在那里显示在浅色衬底上。",
+  "None. The logo is shown on a light backdrop.": "无。徽标显示在浅色衬底上。"
 }

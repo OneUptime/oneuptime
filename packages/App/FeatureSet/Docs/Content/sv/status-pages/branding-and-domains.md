@@ -33,10 +33,10 @@ Det första kortet, **Logotyp och omslagsbild**, har knappen **Edit Images**, so
 
 | Steg | Fält |
 | ---- | ------ |
-| **Logotyp** | Uppladdningen av logotypen (platshållare `Upload logo`) och **Logo Alt Text** (platshållare `Logo of My Company`). Lämna alt-texten tom så används statussidans titel i stället. |
+| **Logotyp** | Uppladdningen av logotypen (platshållare `Upload logo`), **Logotyp för mörkt tema** (platshållare `Upload logo for the dark theme`), en valfri logotyp gjord för en mörk bakgrund, och **Logo Alt Text** (platshållare `Logo of My Company`). Lämna alt-texten tom så används statussidans titel i stället. |
 | **Omslagsbild** | **Omslag**, en uppladdning (platshållare `Upload cover image`) för den breda bannern bakom sidhuvudet, och **Cover Image Alt Text**. Lämna alt-texten tom om omslaget bara är dekoration. |
 
-Logotypen, omslagsbilden och faviconen är filer som har laddats upp i statussidans eget projekt, och det kontrolleras varje gång någon av dem sparas, från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." Att ladda upp bilden igen från sidan löser det.
+Logotypen, logotypen för mörkt tema, omslagsbilden och faviconen är filer som har laddats upp i statussidans eget projekt, och det kontrolleras varje gång någon av dem sparas, från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." Att ladda upp bilden igen från sidan löser det.
 
 Din statussida visar bara bilder från sitt eget projekt; en bild som den inte kan visa utelämnas, som om sidan inte hade någon. Instrumentpanelen, API:et och Terraform läser sidans bilder på samma sätt: en bild från ett annat projekt kommer tillbaka som ingen bild alls. E-postmeddelandena som sidan skickar (till prenumeranter, och till privata användare om deras inloggning) visar dess logotyp på samma sätt: en logotyp som sidan inte kan visa utelämnas även från dem i stället för att visas som en trasig bild.
 
@@ -50,7 +50,9 @@ Kortet **Tema**, direkt under logotypen, bestämmer hur sidan ser ut för sina b
 | **Mörkt** | Den mörka sidan, hur deras enhet än är inställd. |
 | **Som varje besökares enhet** | Ljust eller mörkt, som deras enhet är inställd, och sidan växlar med enheten medan den är öppen. En sol- eller månknapp i sidans sidfot låter en besökare växla, och deras webbläsare kommer ihåg valet. |
 
-På den mörka sidan står logotypen på en ljus bakgrund, så en logotyp som är gjord för en vit sida syns fortfarande tydligt.
+På den mörka sidan står logotypen på en ljus bakgrund, så en logotyp som är gjord för en vit sida syns fortfarande tydligt. En sida med en **Logotyp för mörkt tema** visar i stället den på den mörka sidan, som den är, utan bakgrund, i sidhuvudet och på inloggningssidorna. E-postmeddelandena som sidan skickar visar alltid logotypen.
+
+På sidans adress hos OneUptime, `/status-page/:id`, har även en sida med **Ljust** eller **Mörkt** knappen med sol eller måne i sidfoten, så att du kan se den i det andra temat, med dess **Logotyp för mörkt tema**, innan du väljer. Ett val där gäller tills sidan laddas om och sparas inte, så sidan öppnas alltid i sitt eget tema, för dig och för alla andra som öppnar den adressen. På sidans anpassade domäner har en sida med **Ljust** eller **Mörkt** ingen knapp.
 
 En statussida som skapas från och med nu börjar med **Som varje besökares enhet**. Via API:et och Terraform heter fältet `theme`, med ett av värdena `Light`, `Dark` eller `System` (**Som varje besökares enhet**), skrivet exakt så; alla andra värden avvisas. En Terraform-konfiguration som inte anger något `theme` får `Light`, så en konfiguration som skrevs före inställningen planerar aldrig en ändring på en sida den hanterar.
 
@@ -250,6 +252,8 @@ Om en beställning misslyckas säger domänens kolumn Status det, med orsaken p�
 
 Om du har laddat upp ett eget certifikat under **Fler fält** serverar OneUptime det i stället, inom 15 minuter efter att du sparade. Ladda upp dess ersättare innan det går ut, genom att redigera domänen.
 
+En egeninstallation utan en Let's Encrypt-kontonyckel, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` i Helm-diagrammet), utfärdar inga gratis certifikat. Där är en domän i drift så snart dess CNAME-post är verifierad, och dess Status-kolumn säger det: leverera dess HTTPS via din egen proxy eller lastbalanserare, eller ladda upp ett certifikat under **Fler fält**.
+
 ### Utfärda ett certifikat på nytt
 
 Automatisk förnyelse täcker det vanliga fallet, men ibland vill du ha ett helt nytt certifikat direkt: en privat nyckel som du helst inte vill behålla, ett certifikat som din egen skanner inte gillar, eller en domän som har ändrats någon annanstans. Så snart ett kostnadsfritt certifikat har beställts för en domän visar dess rad åtgärden **Reissue SSL**.
@@ -265,7 +269,7 @@ Samma knapp, med samma gräns på 24 timmar, finns på instrumentpanelernas anpa
 
 ### Läsa domänens kolumn Status
 
-Kolumnen **Status** säger hur långt varje domän har kommit på vägen mot HTTPS, i ett av sju lägen. När en beställning misslyckades står orsaken på raden under.
+Kolumnen **Status** säger hur långt varje domän har kommit på vägen mot HTTPS, i ett av åtta lägen. När en beställning misslyckades står orsaken på raden under.
 
 | Vad kolumnen Status säger | Vad det betyder |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ Kolumnen **Status** säger hur långt varje domän har kommit på vägen mot HTT
 | Certifikat utfärdat, förnyas automatiskt. | Klart. Domänen serverar sitt certifikat över HTTPS, och OneUptime förnyar det. |
 | Certifikat utfärdat, men förnyelsen misslyckades. Vi fortsätter att försöka. | Domänen serverar fortfarande ett giltigt certifikat, men dess senaste förnyelse misslyckades, av orsaken på raden under. OneUptime försöker igen i god tid innan certifikatet går ut. |
 | Använder ditt uppladdade certifikat. | Posten är verifierad, och domänen serveras med det certifikat som du laddade upp. |
+| Verifierad. Den här installationen utfärdar inga gratis certifikat: leverera HTTPS för den här domänen via din egen proxy, eller ladda upp ett certifikat. | På en egeninstallation utan Let's Encrypt-kontonyckel är posten verifierad och domänen i drift. Dess HTTPS sköter din egen proxy, om du inte laddar upp ett certifikat. |
 
 :::details En domän blir kvar på "Väntar på DNS" långt efter att jag lade till posten
 Kontrollera att postens namn är den fullständiga domänen, som `status.yourcompany.com`, och att dess värde exakt matchar din installations CNAME-post. På en rotdomän använder du en ALIAS-, ANAME- eller flattened CNAME-post. Klicka sedan på **Kontrollera nu** i **DNS-inställning**.

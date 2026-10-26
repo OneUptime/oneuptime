@@ -115,7 +115,7 @@ Til et domene er bekreftet og sertifikatet er på plass, har raden en handling *
 
 ### Slik leser du kolonnen Status
 
-Kolonnen **Status** forteller hvor hvert domene er på veien mot HTTPS, i én av sju tilstander, de samme som for statussider. Når en bestilling har feilet, står årsaken på linjen under.
+Kolonnen **Status** forteller hvor hvert domene er på veien mot HTTPS, i én av åtte tilstander, de samme som for statussider. Når en bestilling har feilet, står årsaken på linjen under.
 
 | Hva kolonnen Status sier | Hva det betyr |
 | --- | --- |
@@ -126,6 +126,7 @@ Kolonnen **Status** forteller hvor hvert domene er på veien mot HTTPS, i én av
 | Sertifikat utstedt, fornyes automatisk. | Ferdig. Domenet serverer sertifikatet over HTTPS, og OneUptime fornyer det. |
 | Sertifikat utstedt, men fornyelsen mislyktes. Vi fortsetter å prøve. | Domenet serverer fortsatt et gyldig sertifikat, men den siste fornyelsen feilet, av årsaken på linjen under. OneUptime prøver igjen i god tid før sertifikatet utløper. |
 | Bruker det opplastede sertifikatet ditt. | Posten er bekreftet, og domenet serveres med sertifikatet du lastet opp. |
+| Bekreftet. Denne installasjonen utsteder ingen gratis sertifikater: lever HTTPS for dette domenet via din egen proxy, eller last opp et sertifikat. | På en selvdriftet installasjon uten Let's Encrypt-kontonøkkel er posten verifisert og domenet i drift. HTTPS-en står din egen proxy for, med mindre du laster opp et sertifikat. |
 
 Hvis en bestilling feiler, er de vanlige årsakene en CAA-post på domenet ditt som ikke tillater `letsencrypt.org`, og, på en selvdriftet installasjon, en server som Let's Encrypt ikke kan nå på port 80.
 
@@ -135,7 +136,7 @@ For å bruke ditt eget sertifikat i stedet åpner du **Flere felt** når du legg
 
 Når et gratis sertifikat er bestilt for et domene, viser raden **Reissue SSL**, som ber Let's Encrypt om et helt nytt sertifikat når du vil ha et før den automatiske fornyelsen. Hvert domene kan få et nytt sertifikat én gang hver 24. time.
 
-På en selvdriftet installasjon slås egendefinerte domener for dashbord på med miljøvariabelen `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` i Helm-chartet), som er målet CNAME-postene dine peker mot. Uten den sier kortet og dialogen **DNS-oppsett** "Custom Domains not enabled for this OneUptime installation" i stedet for å vise en post, og OneUptime bekrefter ikke domener og bestiller ikke sertifikater for dashbord.
+På en selvdriftet installasjon slås egendefinerte domener for dashbord på med miljøvariabelen `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` i Helm-chartet), som er målet CNAME-postene dine peker mot. Uten den sier kortet og dialogen **DNS-oppsett** "Custom Domains not enabled for this OneUptime installation" i stedet for å vise en post, og OneUptime bekrefter ikke domener og bestiller ikke sertifikater for dashbord. En installasjon uten Let's Encrypt-kontonøkkel (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` i Helm-chartet) bestiller ingen sertifikater: et dashborddomene er i drift så snart posten er bekreftet, og serveres med HTTPS fra din egen proxy eller et sertifikat du laster opp.
 
 ### Hvem som kan sjekke og utstede på nytt
 

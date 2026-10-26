@@ -1,4 +1,4 @@
-import LogoPlate from "../../Components/Logo/LogoPlate";
+import PageLogo from "../../Components/Logo/PageLogo";
 import {
   STATUS_PAGE_API_URL,
   STATUS_PAGE_OIDC_API_URL,
@@ -25,6 +25,8 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkThemeLogoFileId?: ObjectID | undefined;
   /*
    * The page requires SSO (Require SSO for Login): its private users can't
    * sign in with an email and password, so the page offers no way back to
@@ -64,12 +66,6 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     StatusPageUtil.isPrivateStatusPage() &&
     StatusPageUtil.requiresMasterPassword() &&
     !StatusPageUtil.isMasterPasswordValidated();
-  const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString() && statusPageId
-      ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageId}`)
-          .toString()
-      : null;
 
   if (!statusPageObjectId) {
     return <></>;
@@ -138,13 +134,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {logoUrl ? (
-          <LogoPlate className="mx-auto w-fit">
-            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
-          </LogoPlate>
-        ) : (
-          <></>
-        )}
+        <PageLogo
+          logoFileId={props.logoFileId}
+          darkThemeLogoFileId={props.darkThemeLogoFileId}
+          altText={props.statusPageName}
+        />
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
           {t("accounts.sso.title")}
         </h2>

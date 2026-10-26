@@ -33,10 +33,10 @@ De eerste kaart, **Logo en omslagafbeelding**, heeft een knop **Edit Images** di
 
 | Stap | Velden |
 | ---- | ------ |
-| **Logo** | De upload van het logo (plaatshouder `Upload logo`) en **Logo Alt Text** (plaatshouder `Logo of My Company`). Laat de alt-tekst leeg en de titel van de statuspagina wordt in plaats daarvan gebruikt. |
+| **Logo** | De upload van het logo (plaatshouder `Upload logo`), **Logo voor donker thema** (plaatshouder `Upload logo for the dark theme`), een optioneel logo gemaakt voor een donkere achtergrond, en **Logo Alt Text** (plaatshouder `Logo of My Company`). Laat de alt-tekst leeg en de titel van de statuspagina wordt in plaats daarvan gebruikt. |
 | **Omslagafbeelding** | **Omslag**, een upload (plaatshouder `Upload cover image`) voor de brede banner achter de koptekst, en **Cover Image Alt Text**. Laat de alt-tekst leeg als de omslag puur decoratief is. |
 
-Het logo, de omslagafbeelding en de favicon zijn bestanden die in het eigen project van de statuspagina zijn geüpload, en dat wordt gecontroleerd telkens wanneer er een wordt opgeslagen, vanuit het dashboard, de API, Terraform of een workflow. Een bestand dat in een ander project is geüpload, wordt geweigerd met de woorden die een bestand krijgt dat niet meer bestaat: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." of "The favicon's file could not be found. Upload the favicon again." De afbeelding opnieuw uploaden vanaf de pagina lost het op.
+Het logo, het logo voor donker thema, de omslagafbeelding en de favicon zijn bestanden die in het eigen project van de statuspagina zijn geüpload, en dat wordt gecontroleerd telkens wanneer er een wordt opgeslagen, vanuit het dashboard, de API, Terraform of een workflow. Een bestand dat in een ander project is geüpload, wordt geweigerd met de woorden die een bestand krijgt dat niet meer bestaat: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." of "The favicon's file could not be found. Upload the favicon again." De afbeelding opnieuw uploaden vanaf de pagina lost het op.
 
 Uw statuspagina toont alleen afbeeldingen van haar eigen project; een afbeelding die ze niet kan tonen, wordt weggelaten, alsof de pagina er geen had. Het dashboard, de API en Terraform lezen de afbeeldingen van de pagina op dezelfde manier: een afbeelding van een ander project komt terug als helemaal geen afbeelding. De e-mails die de pagina stuurt (aan abonnees, en aan privégebruikers over hun aanmelding) tonen haar logo op dezelfde manier: een logo dat de pagina niet kan tonen, wordt ook daaruit weggelaten in plaats van als kapotte afbeelding te verschijnen.
 
@@ -50,7 +50,9 @@ De kaart **Thema**, direct onder het logo, bepaalt hoe de pagina er voor haar be
 | **Donker** | De donkere pagina, hoe hun apparaat ook is ingesteld. |
 | **Zoals het apparaat van elke bezoeker** | Licht of donker, zoals hun apparaat is ingesteld, en de pagina wisselt mee met het apparaat zolang ze open is. Met een knop met een zon of een maan in de footer van de pagina kan een bezoeker wisselen, en hun browser onthoudt de keuze. |
 
-Op de donkere pagina staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft.
+Op de donkere pagina staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft. Een pagina met een **Logo voor donker thema** toont op de donkere pagina in plaats daarvan dat logo, zoals het is, zonder achtergrond, in de header en op de aanmeldpagina's. De e-mails die de pagina verstuurt, tonen altijd het logo.
+
+Op het adres van de pagina bij OneUptime, `/status-page/:id`, heeft ook een pagina op **Licht** of **Donker** de knop met de zon of de maan in de footer, zodat u haar in het andere thema kunt zien, met haar **Logo voor donker thema**, voordat u kiest. Een keuze daar geldt tot de pagina opnieuw wordt geladen en wordt niet onthouden, dus de pagina opent altijd in haar eigen thema, voor u en voor iedereen die dat adres opent. Op de aangepaste domeinen van de pagina heeft een pagina op **Licht** of **Donker** geen knop.
 
 Een statuspagina die vanaf nu wordt gemaakt, begint met **Zoals het apparaat van elke bezoeker**. Via de API en Terraform heet het veld `theme`, met een van de waarden `Light`, `Dark` of `System` (**Zoals het apparaat van elke bezoeker**), precies zo geschreven; elke andere waarde wordt geweigerd. Een Terraform-configuratie die geen `theme` instelt, krijgt `Light`, zodat een configuratie die vóór de instelling is geschreven nooit een wijziging plant op een pagina die ze beheert.
 
@@ -250,6 +252,8 @@ Mislukt een bestelling, dan zegt de kolom Status van het domein dat, met de rede
 
 Hebt u onder **Meer velden** uw eigen certificaat geüpload, dan serveert OneUptime dat, binnen 15 minuten na het opslaan. Upload de vervanger ervan voordat het verloopt, door het domein te bewerken.
 
+Een zelfgehoste installatie zonder Let's Encrypt-accountsleutel, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` in de Helm-chart), geeft geen gratis certificaten uit. Daar is een domein bereikbaar zodra het CNAME-record is geverifieerd, en de kolom Status zegt dat: lever het HTTPS via uw eigen proxy of load balancer, of upload een certificaat onder **Meer velden**.
+
 ### Een certificaat opnieuw uitgeven
 
 Automatisch verlengen dekt het gewone geval, maar soms wilt u nu meteen een gloednieuw certificaat: een privésleutel die u liever niet houdt, een certificaat waar uw eigen scanner niet blij mee is, of een domein dat elders is gewijzigd. Zodra er voor een domein een gratis certificaat is besteld, toont de rij ervan een actie **Reissue SSL**.
@@ -265,7 +269,7 @@ Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen 
 
 ### De kolom Status van het domein lezen
 
-De kolom **Status** zegt hoe ver elk domein op weg is naar HTTPS, in een van zeven toestanden. Wanneer een bestelling mislukte, staat de reden op de regel eronder.
+De kolom **Status** zegt hoe ver elk domein op weg is naar HTTPS, in een van acht toestanden. Wanneer een bestelling mislukte, staat de reden op de regel eronder.
 
 | Wat de kolom Status zegt | Wat het betekent |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ De kolom **Status** zegt hoe ver elk domein op weg is naar HTTPS, in een van zev
 | Certificaat uitgegeven, wordt automatisch verlengd. | Klaar. Het domein serveert zijn certificaat via HTTPS, en OneUptime verlengt het. |
 | Certificaat uitgegeven, maar verlengen is mislukt. We blijven het proberen. | Het domein serveert nog een geldig certificaat, maar de laatste verlenging is mislukt, om de reden op de regel eronder. OneUptime probeert het ruim voordat het certificaat verloopt opnieuw. |
 | Gebruikt uw geüploade certificaat. | Het record is geverifieerd, en het domein wordt geserveerd met het certificaat dat u hebt geüpload. |
+| Geverifieerd. Deze installatie geeft geen gratis certificaten uit: lever HTTPS voor dit domein via uw eigen proxy, of upload een certificaat. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
 
 :::details Een domein blijft lang na het toevoegen van het record op "Wachten op DNS" staan
 Controleer of de naam van het record het volledige domein is, zoals `status.yourcompany.com`, en of de waarde precies overeenkomt met het CNAME-record van uw installatie. Gebruik op een hoofddomein een ALIAS-, ANAME- of afgevlakt CNAME-record. Klik daarna op **Nu controleren** in **DNS-instelling**.

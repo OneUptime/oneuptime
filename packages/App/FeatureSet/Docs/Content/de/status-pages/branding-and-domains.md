@@ -33,10 +33,10 @@ Die erste Karte, **Logo und Titelbild**, hat eine Schaltfläche **Bilder bearbei
 
 | Schritt | Felder |
 | ---- | ------ |
-| **Logo** | Der Logo-Upload (Platzhalter `Upload logo`) und **Alternativtext des Logos** (Platzhalter `Logo of My Company`). Lassen Sie den Alternativtext leer, wird stattdessen der Titel der Statusseite verwendet. |
+| **Logo** | Der Logo-Upload (Platzhalter `Upload logo`), **Logo für dunkles Design** (Platzhalter `Upload logo for the dark theme`), ein optionales Logo für einen dunklen Hintergrund, und **Alternativtext des Logos** (Platzhalter `Logo of My Company`). Lassen Sie den Alternativtext leer, wird stattdessen der Titel der Statusseite verwendet. |
 | **Titelbild** | **Titelbild**, ein Upload (Platzhalter `Upload cover image`) für das breite Banner hinter dem Header, und **Alternativtext des Titelbilds**. Lassen Sie den Alternativtext leer, wenn das Titelbild rein dekorativ ist. |
 
-Das Logo, das Titelbild und das Favicon sind Dateien, die im eigenen Projekt der Statusseite hochgeladen wurden, und das wird bei jedem Speichern geprüft – aus dem Dashboard, der API, Terraform oder einem Workflow. Eine Datei, die in einem anderen Projekt hochgeladen wurde, wird mit denselben Worten abgelehnt wie eine Datei, die nicht mehr existiert: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." oder "The favicon's file could not be found. Upload the favicon again." Das Bild auf der Seite erneut hochzuladen behebt das.
+Das Logo, das Logo für dunkles Design, das Titelbild und das Favicon sind Dateien, die im eigenen Projekt der Statusseite hochgeladen wurden, und das wird bei jedem Speichern geprüft – aus dem Dashboard, der API, Terraform oder einem Workflow. Eine Datei, die in einem anderen Projekt hochgeladen wurde, wird mit denselben Worten abgelehnt wie eine Datei, die nicht mehr existiert: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." oder "The favicon's file could not be found. Upload the favicon again." Das Bild auf der Seite erneut hochzuladen behebt das.
 
 Ihre Statusseite zeigt nur Bilder ihres eigenen Projekts; ein Bild, das sie nicht zeigen kann, wird weggelassen, als hätte die Seite keines. Das Dashboard, die API und Terraform lesen die Bilder der Seite genauso: Ein Bild eines anderen Projekts kommt als gar kein Bild zurück. Die E-Mails, die die Seite sendet – an Abonnenten und an private Benutzer zu ihrer Anmeldung –, zeigen ihr Logo genauso: Ein Logo, das die Seite nicht zeigen kann, wird auch darin weggelassen, statt als defektes Bild zu erscheinen.
 
@@ -50,7 +50,9 @@ Die Karte **Design**, direkt unter dem Logo, legt fest, wie die Seite für ihre 
 | **Dunkel** | Die dunkle Seite, egal wie ihr Gerät eingestellt ist. |
 | **Wie das Gerät des Besuchers** | Hell oder dunkel, wie ihr Gerät eingestellt ist, und die Seite wechselt mit dem Gerät, solange sie offen ist. Eine Schaltfläche mit Sonne oder Mond in der Fußzeile der Seite lässt Besucher umschalten, und ihr Browser merkt sich die Wahl. |
 
-Auf der dunklen Seite steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt.
+Auf der dunklen Seite steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt. Eine Seite mit einem **Logo für dunkles Design** zeigt auf der dunklen Seite stattdessen dieses, so wie es ist, ohne Hintergrund, im Header und auf ihren Anmeldeseiten. Die E-Mails, die die Seite sendet, zeigen immer das Logo.
+
+Unter der Adresse der Seite bei OneUptime, `/status-page/:id`, hat auch eine Seite mit **Hell** oder **Dunkel** die Schaltfläche mit Sonne oder Mond in der Fußzeile, sodass Sie sie im anderen Design sehen können, mit ihrem **Logo für dunkles Design**, bevor Sie eines wählen. Eine Wahl dort gilt, bis die Seite neu geladen wird, und wird nicht gespeichert, sodass die Seite immer in ihrem eigenen Design öffnet, für Sie und für alle anderen, die diese Adresse öffnen. Auf den eigenen Domains der Seite hat eine Seite mit **Hell** oder **Dunkel** keine Schaltfläche.
 
 Eine Statusseite, die ab jetzt angelegt wird, beginnt mit **Wie das Gerät des Besuchers**. Über die API und Terraform heißt das Feld `theme`, mit einem der Werte `Light`, `Dark` oder `System` (**Wie das Gerät des Besuchers**), genau so geschrieben; jeder andere Wert wird abgelehnt. Eine Terraform-Konfiguration, die kein `theme` setzt, bekommt `Light`, sodass eine Konfiguration von vor dieser Einstellung nie eine Änderung an einer Seite plant, die sie verwaltet.
 
@@ -250,6 +252,8 @@ Schlägt eine Bestellung fehl, sagt die Spalte Status das, mit dem Grund in der 
 
 Haben Sie unter **Weitere Felder** ein eigenes Zertifikat hochgeladen, liefert OneUptime stattdessen dieses aus, innerhalb von 15 Minuten nach dem Speichern. Laden Sie seinen Ersatz vor dem Ablauf hoch, indem Sie die Domain bearbeiten.
 
+Eine selbst gehostete Installation ohne Let's-Encrypt-Kontoschlüssel, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` im Helm-Chart), stellt keine kostenlosen Zertifikate aus. Dort ist eine Domain erreichbar, sobald ihr CNAME-Eintrag verifiziert ist, und ihre Status-Spalte sagt das: Stellen Sie ihr HTTPS über Ihren eigenen Proxy oder Load Balancer bereit, oder laden Sie unter **Weitere Felder** ein Zertifikat hoch.
+
 ### Ein Zertifikat neu ausstellen
 
 Die automatische Erneuerung deckt den Normalfall ab, aber manchmal wollen Sie sofort ein brandneues Zertifikat: einen privaten Schlüssel, den Sie lieber nicht behalten wollen, ein Zertifikat, mit dem Ihr eigener Scanner unzufrieden ist, oder eine Domain, die sich vorgelagert geändert hat. Sobald für eine Domain ein kostenloses Zertifikat bestellt wurde, zeigt ihre Zeile eine Aktion **SSL neu ausstellen**.
@@ -265,7 +269,7 @@ Dieselbe Schaltfläche, mit derselben 24-Stunden-Grenze, gibt es bei den eigenen
 
 ### Die Spalte Status der Domain lesen
 
-Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in einem von sieben Zuständen. Ist eine Bestellung fehlgeschlagen, steht der Grund in der Zeile darunter.
+Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in einem von acht Zuständen. Ist eine Bestellung fehlgeschlagen, steht der Grund in der Zeile darunter.
 
 | Was die Spalte Status sagt | Was es bedeutet |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in eine
 | Zertifikat ausgestellt, wird automatisch erneuert. | Fertig. Die Domain liefert ihr Zertifikat über HTTPS aus, und OneUptime erneuert es. |
 | Zertifikat ausgestellt, aber die Erneuerung ist fehlgeschlagen. Wir versuchen es weiter. | Die Domain liefert noch ein gültiges Zertifikat aus, aber ihre letzte Erneuerung ist fehlgeschlagen, aus dem Grund in der Zeile darunter. OneUptime versucht es lange vor dem Ablauf des Zertifikats erneut. |
 | Verwendet Ihr hochgeladenes Zertifikat. | Der Eintrag ist verifiziert, und die Domain wird mit dem Zertifikat ausgeliefert, das Sie hochgeladen haben. |
+| Verifiziert. Diese Installation stellt keine kostenlosen Zertifikate aus: Stellen Sie HTTPS für diese Domain über Ihren eigenen Proxy bereit, oder laden Sie ein Zertifikat hoch. | Bei einer selbst gehosteten Installation ohne Let's-Encrypt-Kontoschlüssel ist der Eintrag verifiziert und die Domain erreichbar. Ihr HTTPS übernimmt Ihr eigener Proxy, es sei denn, Sie laden ein Zertifikat hoch. |
 
 :::details Eine Domain bleibt lange nach dem Hinzufügen des Eintrags auf „Warten auf DNS“
 Prüfen Sie, dass der Name des Eintrags die vollständige Domain ist, etwa `status.yourcompany.com`, und dass sein Wert genau dem CNAME-Eintrag Ihrer Installation entspricht. Verwenden Sie bei einer Stammdomain einen ALIAS-, ANAME- oder geflachten CNAME-Eintrag. Klicken Sie dann in **DNS-Einrichtung** auf **Jetzt prüfen**.

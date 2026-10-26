@@ -240,14 +240,14 @@ const themeMenu: (page: Page) => Locator = (page: Page): Locator => {
 /*
  * A press on a control of the dashboard's toolbar, as the visitor makes it.
  *
- * The dashboard's page is 1000px wide (DashboardViewPage, minWidth), so on
- * a phone its toolbar sits past the screen's right edge and the visitor
- * scrolls to it. Playwright's own click cannot reach it there: in the phone
- * emulation (isMobile) the browser scrolls the visual viewport, not the
- * page, and Playwright's check of what is under the pointer then looks at
- * the wrong place - it finds the dashboard's title. So on the phone the
- * control is scrolled to, must be visible and enabled, and gets the click a
- * tap ends in; at 1280 it is Playwright's real click.
+ * The dashboard's board keeps its 1000px on a phone and scrolls sideways in
+ * its own frame (DashboardViewLayout); the toolbar fits the screen. A
+ * control the visitor scrolls to is where Playwright's own click cannot
+ * reach it: in the phone emulation (isMobile) the browser scrolls the
+ * visual viewport, not the page, and Playwright's check of what is under
+ * the pointer then looks at the wrong place. So on the phone the control
+ * is scrolled to, must be visible and enabled, and gets the click a tap
+ * ends in; at 1280 it is Playwright's real click.
  */
 const press: (control: Locator) => Promise<void> = async (
   control: Locator,

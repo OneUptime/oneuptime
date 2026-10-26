@@ -115,7 +115,7 @@ Bis eine Domain verifiziert ist und ihr Zertifikat bereitsteht, hat ihre Zeile e
 
 ### Die Spalte Status lesen
 
-Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in einem von sieben Zuständen, genau wie bei Statusseiten. Ist eine Bestellung fehlgeschlagen, steht der Grund in der Zeile darunter.
+Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in einem von acht Zuständen, genau wie bei Statusseiten. Ist eine Bestellung fehlgeschlagen, steht der Grund in der Zeile darunter.
 
 | Was die Spalte Status sagt | Was es bedeutet |
 | --- | --- |
@@ -126,6 +126,7 @@ Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in eine
 | Zertifikat ausgestellt, wird automatisch erneuert. | Fertig. Die Domain liefert ihr Zertifikat über HTTPS aus, und OneUptime erneuert es. |
 | Zertifikat ausgestellt, aber die Erneuerung ist fehlgeschlagen. Wir versuchen es weiter. | Die Domain liefert noch ein gültiges Zertifikat aus, aber ihre letzte Erneuerung ist fehlgeschlagen, aus dem Grund in der Zeile darunter. OneUptime versucht es lange vor dem Ablauf des Zertifikats erneut. |
 | Verwendet Ihr hochgeladenes Zertifikat. | Der Eintrag ist verifiziert, und die Domain wird mit dem Zertifikat ausgeliefert, das Sie hochgeladen haben. |
+| Verifiziert. Diese Installation stellt keine kostenlosen Zertifikate aus: Stellen Sie HTTPS für diese Domain über Ihren eigenen Proxy bereit, oder laden Sie ein Zertifikat hoch. | Bei einer selbst gehosteten Installation ohne Let's-Encrypt-Kontoschlüssel ist der Eintrag verifiziert und die Domain erreichbar. Ihr HTTPS übernimmt Ihr eigener Proxy, es sei denn, Sie laden ein Zertifikat hoch. |
 
 Schlägt eine Bestellung fehl, sind die üblichen Ursachen ein CAA-Eintrag Ihrer Domain, der `letsencrypt.org` nicht erlaubt, und bei einer selbst gehosteten Installation ein Server, den Let's Encrypt auf Port 80 nicht erreichen kann.
 
@@ -135,7 +136,7 @@ Um stattdessen Ihr eigenes Zertifikat zu verwenden, öffnen Sie beim Hinzufügen
 
 Sobald für eine Domain ein kostenloses Zertifikat bestellt wurde, zeigt ihre Zeile **SSL neu ausstellen**, das Let's Encrypt um ein brandneues Zertifikat bittet, wenn Sie eines vor der automatischen Erneuerung wollen. Jede Domain kann einmal alle 24 Stunden neu ausgestellt werden.
 
-Bei einer selbst gehosteten Installation werden eigene Domains für Dashboards über die Umgebungsvariable `DASHBOARD_CNAME_RECORD` eingeschaltet (`dashboard.cnameRecord` im Helm-Chart), das Ziel, auf das Ihre CNAME-Einträge zeigen. Ohne sie sagen die Karte und der Dialog **DNS-Einrichtung** "Custom Domains not enabled for this OneUptime installation", statt einen Eintrag zu zeigen, und OneUptime verifiziert keine Domains und bestellt keine Zertifikate für Dashboards.
+Bei einer selbst gehosteten Installation werden eigene Domains für Dashboards über die Umgebungsvariable `DASHBOARD_CNAME_RECORD` eingeschaltet (`dashboard.cnameRecord` im Helm-Chart), das Ziel, auf das Ihre CNAME-Einträge zeigen. Ohne sie sagen die Karte und der Dialog **DNS-Einrichtung** "Custom Domains not enabled for this OneUptime installation", statt einen Eintrag zu zeigen, und OneUptime verifiziert keine Domains und bestellt keine Zertifikate für Dashboards. Eine Installation ohne Let's-Encrypt-Kontoschlüssel (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` im Helm-Chart) bestellt keine Zertifikate: Eine Dashboard-Domain ist erreichbar, sobald ihr Eintrag verifiziert ist, und wird über das HTTPS Ihres eigenen Proxys oder ein Zertifikat ausgeliefert, das Sie hochladen.
 
 ### Wer prüfen und neu ausstellen darf
 

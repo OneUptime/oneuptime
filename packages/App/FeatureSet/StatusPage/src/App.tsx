@@ -247,6 +247,9 @@ const App: () => JSX.Element = () => {
     useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
   const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>("");
+  // The logo made for the dark theme, shown instead while the page is dark.
+  const [statusPageDarkThemeLogoFileId, setStatusPageDarkThemeLogoFileId] =
+    useState<string>("");
   const [isPrivateStatusPage, setIsPrivateStatusPage] =
     useState<boolean>(false);
 
@@ -426,6 +429,14 @@ const App: () => JSX.Element = () => {
 
         setStatusPageLogoFileId(fileId || "");
 
+        const darkThemeLogoFileId: string | null =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.darkThemeLogoFileId",
+          ) as string | null;
+
+        setStatusPageDarkThemeLogoFileId(darkThemeLogoFileId || "");
+
         setHasEnabledSSO(
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -474,6 +485,9 @@ const App: () => JSX.Element = () => {
               <Login
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
                 hasEnabledSSOConfig={hasEnabledSSO}
               />
@@ -486,6 +500,9 @@ const App: () => JSX.Element = () => {
               <MasterPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
               />
             }
           />
@@ -496,6 +513,9 @@ const App: () => JSX.Element = () => {
               <Sso
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -509,6 +529,9 @@ const App: () => JSX.Element = () => {
               <ResetPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -520,6 +543,9 @@ const App: () => JSX.Element = () => {
               <ResetPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -531,6 +557,9 @@ const App: () => JSX.Element = () => {
               <ForgotPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -744,6 +773,9 @@ const App: () => JSX.Element = () => {
               <Unsubscribe
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 manageLinkChannels={manageLinkChannels}
               />
             }
@@ -755,6 +787,9 @@ const App: () => JSX.Element = () => {
               <Unsubscribe
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 manageLinkChannels={manageLinkChannels}
               />
             }
@@ -1154,6 +1189,9 @@ const App: () => JSX.Element = () => {
               <Login
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
                 hasEnabledSSOConfig={hasEnabledSSO}
               />
@@ -1166,6 +1204,9 @@ const App: () => JSX.Element = () => {
               <MasterPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
               />
             }
           />
@@ -1178,6 +1219,9 @@ const App: () => JSX.Element = () => {
               <ResetPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -1189,6 +1233,9 @@ const App: () => JSX.Element = () => {
               <ResetPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -1200,6 +1247,9 @@ const App: () => JSX.Element = () => {
               <ForgotPassword
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -1211,6 +1261,9 @@ const App: () => JSX.Element = () => {
               <Sso
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 forceSSO={forceSSO}
               />
             }
@@ -1241,6 +1294,9 @@ const App: () => JSX.Element = () => {
               <Unsubscribe
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 manageLinkChannels={manageLinkChannels}
               />
             }
@@ -1252,6 +1308,9 @@ const App: () => JSX.Element = () => {
               <Unsubscribe
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                darkThemeLogoFileId={
+                  new ObjectID(statusPageDarkThemeLogoFileId)
+                }
                 manageLinkChannels={manageLinkChannels}
               />
             }

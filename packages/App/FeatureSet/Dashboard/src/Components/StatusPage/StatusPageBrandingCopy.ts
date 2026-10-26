@@ -48,6 +48,12 @@ export const StatusPageBrandingCopy: {
    * status page."
    */
   imagesDescription: string;
+  /*
+   * The logo for the dark theme, in the Edit Images dialog and on the card
+   * while the page has none.
+   */
+  darkThemeLogoDescription: string;
+  noDarkThemeLogo: string;
   titleDescription: string;
   pageTitlePlaceholder: string;
   pageDescriptionPlaceholder: string;
@@ -99,6 +105,12 @@ export const StatusPageBrandingCopy: {
   notFound: string;
 } = {
   imagesDescription: translationKey("Shown at the top of your status page."),
+  darkThemeLogoDescription: translationKey(
+    "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.",
+  ),
+  noDarkThemeLogo: translationKey(
+    "None. The logo is shown on a light backdrop.",
+  ),
   titleDescription: translationKey(
     "Its name in the browser tab and in subscriber emails, and the description search engines show.",
   ),

@@ -33,10 +33,10 @@ Det første kort, **Logo og forsidebillede**, har knappen **Edit Images**, der �
 
 | Trin | Felter |
 | ---- | ------ |
-| **Logo** | Upload af logoet (pladsholder `Upload logo`) og **Logo Alt Text** (pladsholder `Logo of My Company`). Lad alt-teksten stå tom, så bruges statussidens titel i stedet. |
+| **Logo** | Upload af logoet (pladsholder `Upload logo`), **Logo til mørkt tema** (pladsholder `Upload logo for the dark theme`), et valgfrit logo lavet til en mørk baggrund, og **Logo Alt Text** (pladsholder `Logo of My Company`). Lad alt-teksten stå tom, så bruges statussidens titel i stedet. |
 | **Forsidebillede** | **Forside**, en upload (pladsholder `Upload cover image`) til det brede banner bag headeren, og **Cover Image Alt Text**. Lad alt-teksten stå tom, hvis forsiden er ren dekoration. |
 
-Logoet, forsidebilledet og faviconet er filer, der er uploadet i statussidens eget projekt, og det tjekkes, hver gang et af dem gemmes, fra dashboardet, API'et, Terraform eller et workflow. En fil, der er uploadet i et andet projekt, afvises med de ord, en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." At uploade billedet igen fra siden løser det.
+Logoet, logoet til mørkt tema, forsidebilledet og faviconet er filer, der er uploadet i statussidens eget projekt, og det tjekkes, hver gang et af dem gemmes, fra dashboardet, API'et, Terraform eller et workflow. En fil, der er uploadet i et andet projekt, afvises med de ord, en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." At uploade billedet igen fra siden løser det.
 
 Din statusside viser kun billeder fra sit eget projekt; et billede, den ikke kan vise, udelades, som om siden ikke havde noget. Dashboardet, API'et og Terraform læser sidens billeder på samme måde: et billede fra et andet projekt kommer tilbage som slet intet billede. De e-mails, siden sender (til abonnenter og til private brugere om deres login), viser dens logo på samme måde: et logo, siden ikke kan vise, udelades også fra dem i stedet for at blive vist som et ødelagt billede.
 
@@ -50,7 +50,9 @@ Kortet **Tema**, lige under logoet, bestemmer, hvordan siden ser ud for dens bes
 | **Mørkt** | Den mørke side, uanset hvordan deres enhed er indstillet. |
 | **Som hver besøgendes enhed** | Lyst eller mørkt, som deres enhed er indstillet, og siden skifter med enheden, mens den er åben. En sol- eller måneknap i sidens sidefod lader en besøgende skifte, og deres browser husker valget. |
 
-På den mørke side står logoet på en lys baggrund, så et logo, der er lavet til en hvid side, stadig kan ses.
+På den mørke side står logoet på en lys baggrund, så et logo, der er lavet til en hvid side, stadig kan ses. En side med et **Logo til mørkt tema** viser i stedet det på den mørke side, som det er, uden baggrund, i sidehovedet og på login-siderne. De e-mails, siden sender, viser altid logoet.
+
+På sidens adresse på OneUptime, `/status-page/:id`, har en side med **Lyst** eller **Mørkt** også knappen med sol eller måne i sidefoden, så du kan se den i det andet tema, med dens **Logo til mørkt tema**, før du vælger. Et valg der varer, indtil siden genindlæses, og huskes ikke, så siden åbner altid i sit eget tema, for dig og for alle andre, der åbner den adresse. På sidens brugerdefinerede domæner har en side med **Lyst** eller **Mørkt** ingen knap.
 
 En statusside, der oprettes fra nu af, starter med **Som hver besøgendes enhed**. Gennem API'et og Terraform hedder feltet `theme`, en af `Light`, `Dark` eller `System` (**Som hver besøgendes enhed**), skrevet præcis sådan; enhver anden værdi afvises. En Terraform-konfiguration, der ikke angiver noget `theme`, får `Light`, så en konfiguration, der er skrevet før indstillingen, aldrig planlægger en ændring på en side, den styrer.
 
@@ -250,6 +252,8 @@ Hvis en bestilling mislykkes, siger domænets kolonne Status det, med årsagen p
 
 Hvis du har uploadet dit eget certifikat under **Flere felter**, serverer OneUptime det i stedet, inden for 15 minutter efter du har gemt. Upload dets afløser, før det udløber, ved at redigere domænet.
 
+En selvhostet installation uden en Let's Encrypt-kontonøgle, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` i Helm-chartet), udsteder ingen gratis certifikater. Der er et domæne live, så snart dets CNAME-post er bekræftet, og dets Status-kolonne siger det: lever dets HTTPS via din egen proxy eller load balancer, eller upload et certifikat under **Flere felter**.
+
 ### Genudsted et certifikat
 
 Automatisk fornyelse dækker det almindelige tilfælde, men nogle gange vil du have et helt nyt certifikat med det samme: en privat nøgle, du hellere ikke vil beholde, et certifikat, din egen scanner ikke bryder sig om, eller et domæne, der er ændret et andet sted. Så snart der er bestilt et gratis certifikat til et domæne, viser dets række handlingen **Reissue SSL**.
@@ -265,7 +269,7 @@ Den samme knap, med den samme grænse på 24 timer, findes på dashboards' bruge
 
 ### Sådan læser du domænets kolonne Status
 
-Kolonnen **Status** siger, hvor langt hvert domæne er på vej mod HTTPS, i en af syv tilstande. Når en bestilling mislykkedes, står årsagen på linjen under.
+Kolonnen **Status** siger, hvor langt hvert domæne er på vej mod HTTPS, i en af otte tilstande. Når en bestilling mislykkedes, står årsagen på linjen under.
 
 | Hvad kolonnen Status siger | Hvad det betyder |
 | --------------------------- | ------------- |
@@ -276,6 +280,7 @@ Kolonnen **Status** siger, hvor langt hvert domæne er på vej mod HTTPS, i en a
 | Certifikat udstedt, fornyes automatisk. | Færdig. Domænet serverer sit certifikat over HTTPS, og OneUptime fornyer det. |
 | Certifikat udstedt, men fornyelsen mislykkedes. Vi bliver ved med at prøve. | Domænet serverer stadig et gyldigt certifikat, men dets seneste fornyelse mislykkedes af årsagen på linjen under. OneUptime prøver igen i god tid før certifikatet udløber. |
 | Bruger dit uploadede certifikat. | Posten er bekræftet, og domænet serveres med det certifikat, du har uploadet. |
+| Bekræftet. Denne installation udsteder ingen gratis certifikater: lever HTTPS for dette domæne via din egen proxy, eller upload et certifikat. | På en selvhostet installation uden en Let's Encrypt-kontonøgle er posten bekræftet, og domænet er live. Dets HTTPS klarer din egen proxy, medmindre du uploader et certifikat. |
 
 :::details Et domæne bliver stående på "Venter på DNS" længe efter, at jeg har tilføjet posten
 Tjek, at postens navn er det fulde domæne, såsom `status.yourcompany.com`, og at dens værdi matcher din installations CNAME-post præcist. På et roddomæne bruger du en ALIAS-, ANAME- eller flattened CNAME-post. Klik derefter på **Tjek nu** i **DNS-opsætning**.

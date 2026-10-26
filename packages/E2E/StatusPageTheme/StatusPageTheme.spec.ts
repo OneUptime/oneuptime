@@ -23,6 +23,11 @@ import {
  *     pages or the not-found page is left a light box; status text reads at
  *     4.5:1; the very dark red of a long outage's bar has an edge; a Dark
  *     page and one that follows the device put the logo on a light backdrop.
+ *   - A logo made for the dark theme is shown instead while the page is
+ *     dark, with no backdrop, in the header and on the sign-in pages.
+ *   - On its own domain a Light or Dark page offers no switch; on the
+ *     Dashboard's preview (its OneUptime address, where the rest of this
+ *     suite opens it) every page does, for the visit only.
  *   - The footer's language and theme controls sit centred on a phone, and
  *     the switch is a target a thumb can hit.
  *
@@ -45,6 +50,13 @@ const PAGE: string = "/status-page/00000000-0000-4000-8000-000000000001";
 const INCIDENT: string = `${PAGE}/incidents/00000000-0000-4000-8000-000000000500`;
 const ANNOUNCEMENT: string = `${PAGE}/announcements/00000000-0000-4000-8000-000000000600`;
 const MAINTENANCE: string = `${PAGE}/scheduled-events/00000000-0000-4000-8000-000000000700`;
+
+/*
+ * The same page on its own domain: the fixture answers the app's lookup of
+ * this host with the page, as the API answers for a verified custom domain.
+ * PAGE above is its OneUptime address - the Dashboard's preview.
+ */
+const OWN_DOMAIN: string = "/";
 
 const LIGHT_CANVAS: string = "rgb(249, 250, 251)";
 const DARK_CANVAS: string = "rgb(15, 23, 42)";
@@ -584,7 +596,7 @@ test.describe("the footer's controls for the visitor", () => {
   }
 });
 
-test.describe("a Light or Dark page", () => {
+test.describe("a Light or Dark page, on its own domain", () => {
   for (const theme of ["Light", "Dark"]) {
     test(`${theme} offers no switch, and the device does not move it`, async ({
       page,
@@ -592,7 +604,7 @@ test.describe("a Light or Dark page", () => {
       page: Page;
     }) => {
       await page.emulateMedia({ colorScheme: "light" });
-      await openPage(page, PAGE, `theme=${theme}`);
+      await openPage(page, OWN_DOMAIN, `theme=${theme}`);
 
       await expect(page.getByTestId("status-page-theme-switch")).toHaveCount(0);
 
@@ -605,6 +617,110 @@ test.describe("a Light or Dark page", () => {
       await expectScheme(page, scheme);
     });
   }
+});
+
+/*
+ * At its OneUptime address - the Dashboard's preview, /status-page/<id> - a
+ * Light or Dark page offers the footer's switch too, so its owner can see
+ * it in the other theme, and its logo for the dark theme, without changing
+ * what its visitors get. It opens in its own theme every time: the pick
+ * lasts for the visit and is kept nowhere, not even as the pick that pages
+ * following the device remember.
+ */
+test.describe("the Dashboard's preview of a Light or Dark page", () => {
+  const PREVIEWS: Array<[string, Scheme, Scheme]> = [
+    ["Light", "light", "dark"],
+    ["Dark", "dark", "light"],
+  ];
+
+  const switchTo: (scheme: Scheme) => string = (scheme: Scheme): string => {
+    return scheme === "dark" ? "Switch to dark theme" : "Switch to light theme";
+  };
+
+  const storedPick: (page: Page) => Promise<string | null> = async (
+    page: Page,
+  ): Promise<string | null> => {
+    return page.evaluate((key: string): string | null => {
+      return window.localStorage.getItem(key);
+    }, STORAGE_KEY);
+  };
+
+  for (const [theme, own, other] of PREVIEWS) {
+    test(`${theme}: the footer's switch shows it ${other}, and back, whatever the device`, async ({
+      page,
+    }: { page: Page }, testInfo: TestInfo) => {
+      // A device set the other way does not move it, before or after.
+      await page.emulateMedia({ colorScheme: other });
+      await openPage(page, PAGE, `theme=${theme}`);
+      await expectScheme(page, own);
+
+      await page.getByRole("button", { name: switchTo(other) }).click();
+      await expectScheme(page, other);
+      expect(await storedPick(page)).toBeNull();
+
+      await page.emulateMedia({ colorScheme: own });
+      await expectScheme(page, other);
+      await shoot(page, testInfo, `preview-${theme.toLowerCase()}-as-${other}`);
+
+      await page.getByRole("button", { name: switchTo(own) }).click();
+      await expectScheme(page, own);
+      expect(await storedPick(page)).toBeNull();
+    });
+
+    test(`${theme}: opens in its own theme again on the next visit`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.emulateMedia({ colorScheme: "light" });
+      await openPage(page, PAGE, `theme=${theme}`);
+      await page.getByRole("button", { name: switchTo(other) }).click();
+      await expectScheme(page, other);
+
+      await openPage(page, PAGE, `theme=${theme}`);
+      await expectScheme(page, own);
+      expect(await storedPick(page)).toBeNull();
+    });
+  }
+
+  test("the pick lasts while the owner moves around the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, PAGE, "theme=Light");
+    await page.getByRole("button", { name: switchTo("dark") }).click();
+    await expectScheme(page, "dark");
+
+    // On a phone the page's links are behind the navigation button.
+    const navigation: Locator = page.getByRole("button", {
+      name: "Navigation",
+    });
+
+    if (await navigation.isVisible()) {
+      await navigation.click();
+    }
+
+    await page.getByRole("link", { name: "Incidents", exact: true }).click();
+    await expect(
+      page.getByText("Webhook deliveries are delayed", { exact: true }).first(),
+    ).toBeVisible();
+    await expectScheme(page, "dark");
+  });
+
+  test("a page that follows the device keeps the visitor's remembered pick there, as on its own domain", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, PAGE, "theme=System");
+    await page.getByRole("button", { name: switchTo("dark") }).click();
+    await expectScheme(page, "dark");
+
+    expect(await storedPick(page)).toBe("dark");
+  });
 });
 
 test.describe("the dark theme on every surface", () => {
@@ -774,10 +890,26 @@ test.describe("the logo", () => {
     page: Page;
   }) => {
     await page.emulateMedia({ colorScheme: "dark" });
-    await openPage(page, PAGE, "theme=Light");
+    await openPage(page, OWN_DOMAIN, "theme=Light");
 
     expect(await plateOf(page)).toBe("rgba(0, 0, 0, 0)");
     await expect(page.locator("[data-ou-logo-plate]")).toHaveCount(0);
+  });
+
+  test("on the Dashboard's preview of a Light page: on nothing, then on the backdrop once switched dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, PAGE, "theme=Light");
+
+    expect(await plateOf(page)).toBe("rgba(0, 0, 0, 0)");
+
+    await page.getByRole("button", { name: "Switch to dark theme" }).click();
+    await expectScheme(page, "dark");
+
+    expect(await plateOf(page)).toBe("rgb(248, 250, 252)");
   });
 
   test("sits on the backdrop on a sign-in page too", async ({
@@ -797,6 +929,180 @@ test.describe("the logo", () => {
         return getComputedStyle(element).backgroundColor;
       }),
     ).toBe("rgb(248, 250, 252)");
+  });
+});
+
+/*
+ * A logo made for the dark theme (Branding's Dark Theme Logo): light
+ * lettering (Fixture/logo-dark.svg) where the logo is dark lettering. While
+ * the page is dark it is drawn instead of the logo, as it is, on nothing;
+ * while it is light the logo is drawn, as before.
+ */
+test.describe("a logo made for the dark theme", () => {
+  interface DrawnLogo {
+    // Which logo LogoPlate drew: "light" (the logo) or "dark".
+    variant: string | null;
+    // The lettering of the image that is drawn: "dark" (#111827) or "light".
+    lettering: string;
+    backdrop: string;
+  }
+
+  // What the header draws, read from the image's own bytes.
+  const headerLogo: (page: Page) => Promise<DrawnLogo> = async (
+    page: Page,
+  ): Promise<DrawnLogo> => {
+    return page
+      .locator("#status-page-logo")
+      .evaluate(async (element: Element): Promise<DrawnLogo> => {
+        const image: HTMLImageElement | null = element.querySelector("img");
+        const svg: string = image ? await (await fetch(image.src)).text() : "";
+
+        return {
+          variant: element.getAttribute("data-ou-logo-variant"),
+          lettering: svg.includes('fill="#f8fafc"')
+            ? "light"
+            : svg.includes('fill="#111827"')
+              ? "dark"
+              : "none",
+          backdrop: getComputedStyle(element).backgroundColor,
+        };
+      });
+  };
+
+  const DARK_LOGO_DRAWN: DrawnLogo = {
+    variant: "dark",
+    lettering: "light",
+    backdrop: "rgba(0, 0, 0, 0)",
+  };
+
+  test("is the logo of a Dark page, on nothing, whatever the device", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, OWN_DOMAIN, "theme=Dark&darkLogo=1");
+
+    await expect
+      .poll(async (): Promise<DrawnLogo> => {
+        return headerLogo(page);
+      })
+      .toEqual(DARK_LOGO_DRAWN);
+    await expect(page.locator("[data-ou-logo-plate]")).toHaveCount(0);
+    await page.locator("#status-page-logo").screenshot({
+      path: `${SCREENSHOTS}/${testInfo.project.name}-dark-theme-logo.png`,
+    });
+  });
+
+  test("takes turns with the logo on a page that follows the device, live", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await openPage(page, PAGE, "theme=System&darkLogo=1");
+
+    await expect
+      .poll(async (): Promise<DrawnLogo> => {
+        return headerLogo(page);
+      })
+      .toEqual(DARK_LOGO_DRAWN);
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expectScheme(page, "light");
+    await expect
+      .poll(async (): Promise<DrawnLogo> => {
+        return headerLogo(page);
+      })
+      .toEqual({
+        variant: "light",
+        lettering: "dark",
+        backdrop: "rgba(0, 0, 0, 0)",
+      });
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect
+      .poll(async (): Promise<DrawnLogo> => {
+        return headerLogo(page);
+      })
+      .toEqual(DARK_LOGO_DRAWN);
+  });
+
+  test("is not drawn on a Light page, on a dark device too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await openPage(page, OWN_DOMAIN, "theme=Light&darkLogo=1");
+
+    await expect
+      .poll(async (): Promise<DrawnLogo> => {
+        return headerLogo(page);
+      })
+      .toEqual({
+        variant: "light",
+        lettering: "dark",
+        backdrop: "rgba(0, 0, 0, 0)",
+      });
+  });
+
+  test("is what the Dashboard's preview of a Light page shows once switched dark", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, PAGE, "theme=Light&darkLogo=1");
+    expect((await headerLogo(page)).variant).toBe("light");
+
+    await page.getByRole("button", { name: "Switch to dark theme" }).click();
+    await expectScheme(page, "dark");
+    await expect
+      .poll(async (): Promise<DrawnLogo> => {
+        return headerLogo(page);
+      })
+      .toEqual(DARK_LOGO_DRAWN);
+    await shoot(page, testInfo, "preview-light-as-dark-with-dark-theme-logo");
+  });
+
+  test("is the sign-in page's logo while it is dark, from its own address", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await openPage(
+      page,
+      `${PAGE}/login`,
+      "theme=System&private=1&darkLogo=1",
+      "",
+    );
+    await expectScheme(page, "dark");
+
+    const image: Locator = page.locator("[data-ou-logo-variant] img");
+
+    await expect(image).toHaveCount(1);
+    await expect(image).toHaveAttribute(
+      "src",
+      /\/status-page-api\/dark-theme-logo\/00000000-0000-4000-8000-000000000001$/,
+    );
+    await expect(page.locator("[data-ou-logo-variant]")).toHaveAttribute(
+      "data-ou-logo-variant",
+      "dark",
+    );
+    await expect(page.locator("[data-ou-logo-plate]")).toHaveCount(0);
+    await expect
+      .poll(async (): Promise<number> => {
+        return image.evaluate((element: Element): number => {
+          return (element as HTMLImageElement).naturalWidth;
+        });
+      })
+      .toBeGreaterThan(0);
+
+    // Light again: the logo, from its own address.
+    await page.emulateMedia({ colorScheme: "light" });
+    await expectScheme(page, "light");
+    await expect(image).toHaveAttribute(
+      "src",
+      /\/status-page-api\/logo\/00000000-0000-4000-8000-000000000001$/,
+    );
   });
 });
 

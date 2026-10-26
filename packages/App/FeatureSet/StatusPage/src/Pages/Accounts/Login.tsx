@@ -1,4 +1,4 @@
-import LogoPlate from "../../Components/Logo/LogoPlate";
+import PageLogo from "../../Components/Logo/PageLogo";
 import { LOGIN_API_URL } from "../../Utils/ApiPaths";
 import LoginUtil from "../../Utils/Login";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
@@ -16,7 +16,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
 import IconProp from "Common/Types/Icon/IconProp";
-import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect } from "react";
@@ -25,6 +24,8 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkThemeLogoFileId?: ObjectID | undefined;
   forceSSO: boolean;
   hasEnabledSSOConfig: boolean;
 }
@@ -69,14 +70,6 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   }, [props.forceSSO, statusPageIdString, requiresMasterPasswordLock]);
 
   const apiUrl: URL = LOGIN_API_URL;
-  const statusPageIdForLogo: string | undefined =
-    StatusPageUtil.getStatusPageId()?.toString();
-  const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString() && statusPageIdForLogo
-      ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageIdForLogo}`)
-          .toString()
-      : null;
 
   if (!statusPageId) {
     return <></>;
@@ -109,13 +102,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {logoUrl ? (
-          <LogoPlate className="mx-auto w-fit">
-            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
-          </LogoPlate>
-        ) : (
-          <></>
-        )}
+        <PageLogo
+          logoFileId={props.logoFileId}
+          darkThemeLogoFileId={props.darkThemeLogoFileId}
+          altText={props.statusPageName}
+        />
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
           {t("accounts.login.welcomeBack")}
         </h2>

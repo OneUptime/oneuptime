@@ -1,4 +1,4 @@
-import LogoPlate from "../../Components/Logo/LogoPlate";
+import PageLogo from "../../Components/Logo/PageLogo";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import StatusPageUtil from "../../Utils/StatusPage";
 import UserUtil from "../../Utils/User";
@@ -20,6 +20,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkThemeLogoFileId?: ObjectID | undefined;
 }
 
 const MasterPasswordPage: FunctionComponent<ComponentProps> = (
@@ -64,13 +66,6 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
   if (!statusPageId || !StatusPageUtil.requiresMasterPassword()) {
     return <PageLoader isVisible={true} />;
   }
-
-  const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString()
-      ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageId.toString()}`)
-          .toString()
-      : null;
 
   const privatePageCopy: string = t("accounts.masterPassword.prompt");
 
@@ -139,11 +134,11 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
-        {logoUrl ? (
-          <LogoPlate className="mx-auto w-fit">
-            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
-          </LogoPlate>
-        ) : null}
+        <PageLogo
+          logoFileId={props.logoFileId}
+          darkThemeLogoFileId={props.darkThemeLogoFileId}
+          altText={props.statusPageName}
+        />
         {/*
          * What the visitor is opening, then what to do, once: the title, the
          * sentence under it, the field's description and its placeholder

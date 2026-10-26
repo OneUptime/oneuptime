@@ -424,11 +424,62 @@ describe("the cards people set", () => {
       }),
     ).toEqual([
       "logoFile@logo",
+      "darkThemeLogoFile@logo",
       "logoAltText@logo",
       "coverImageFile@cover-image",
       "coverImageAltText@cover-image",
     ]);
     expect(columnsOf(formFieldsOf(name))).not.toContain("faviconFile");
+  });
+
+  /*
+   * The logo for the dark theme sits beside the logo, in the same step: an
+   * image, never required, saying where it is shown and what happens
+   * without one. The card shows it under the logo, and says the same while
+   * there is none, instead of a bare No logo uploaded.
+   */
+  test("Logo and Cover Image: a dark theme logo beside the logo, optional, saying what it is for", async () => {
+    await renderPage();
+
+    const name: string = "Status Page > Branding > Header Style";
+    const darkLogo: FieldShape | undefined = formFieldsOf(name).find(
+      (field: FieldShape): boolean => {
+        return columnsOf([field])[0] === "darkThemeLogoFile";
+      },
+    );
+
+    expect(darkLogo).toBeDefined();
+    expect(darkLogo!.title).toBe("Dark Theme Logo");
+    expect(darkLogo!.stepId).toBe("logo");
+    expect(darkLogo!.fieldType).toBe(FormFieldSchemaType.ImageFile);
+    expect(darkLogo!.required).toBe(false);
+    expect(darkLogo!.placeholder).toBe("Upload logo for the dark theme");
+    expect(darkLogo!.description).toBe(
+      StatusPageBrandingCopy.darkThemeLogoDescription,
+    );
+    expect(StatusPageBrandingCopy.darkThemeLogoDescription).toBe(
+      "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.",
+    );
+
+    const details: Array<FieldShape> = detailFieldsOf(name);
+
+    expect(columnsOf(details).slice(0, 2)).toEqual([
+      "logoFile",
+      "darkThemeLogoFile",
+    ]);
+
+    const shown: FieldShape = details[1]!;
+
+    expect(shown.title).toBe("Dark Theme Logo");
+    expect(shown.fieldType).toBe(FieldType.ImageFile);
+    // The card reads the image itself, as it reads the logo's.
+    expect(shown.field).toEqual({
+      darkThemeLogoFile: { file: true, fileType: true },
+    });
+    expect(shown.placeholder).toBe(StatusPageBrandingCopy.noDarkThemeLogo);
+    expect(StatusPageBrandingCopy.noDarkThemeLogo).toBe(
+      "None. The logo is shown on a light backdrop.",
+    );
   });
 
   test("Title and Description, then Favicon, each with its own fields", async () => {

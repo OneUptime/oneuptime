@@ -169,6 +169,24 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "Upload logo",
           },
+          /*
+           * A logo made for a dark background, shown instead of the logo
+           * where the page is dark (its Theme). Optional: without it the
+           * logo sits on a light backdrop there, and the emails always use
+           * the logo.
+           */
+          {
+            field: {
+              darkThemeLogoFile: true,
+            },
+            title: "Dark Theme Logo",
+            stepId: "logo",
+            fieldType: FormFieldSchemaType.ImageFile,
+            required: false,
+            placeholder: "Upload logo for the dark theme",
+            description: StatusPageBrandingCopy.darkThemeLogoDescription,
+            hideColumnDescription: true,
+          },
           {
             field: {
               logoAltText: true,
@@ -219,6 +237,17 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.ImageFile,
               title: "Logo",
               placeholder: "No logo uploaded.",
+            },
+            {
+              field: {
+                darkThemeLogoFile: {
+                  file: true,
+                  fileType: true,
+                },
+              },
+              fieldType: FieldType.ImageFile,
+              title: "Dark Theme Logo",
+              placeholder: StatusPageBrandingCopy.noDarkThemeLogo,
             },
             {
               field: {

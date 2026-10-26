@@ -35087,5 +35087,9 @@
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Wordt geleverd met de HTTPS van uw eigen proxy, tenzij u een certificaat uploadt.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "We controleren elke 15 minuten op dit record. Al toegevoegd? Klik op Nu controleren.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Bied deze statuspagina aan op uw eigen domein. Laat het CNAME-record van elk domein verwijzen naar {{cnameRecord}}.",
-  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Bied dit dashboard aan op uw eigen domein. Laat het CNAME-record van elk domein verwijzen naar {{cnameRecord}}."
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Bied dit dashboard aan op uw eigen domein. Laat het CNAME-record van elk domein verwijzen naar {{cnameRecord}}.",
+  "Dark Theme Logo": "Logo voor donker thema",
+  "Upload logo for the dark theme": "Logo voor donker thema uploaden",
+  "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "Staat in plaats van het logo waar je statuspagina donker is. Zonder staat het logo daar op een lichte achtergrond.",
+  "None. The logo is shown on a light backdrop.": "Geen. Het logo staat op een lichte achtergrond."
 }

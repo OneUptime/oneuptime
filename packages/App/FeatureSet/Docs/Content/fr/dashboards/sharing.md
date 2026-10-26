@@ -115,7 +115,7 @@ Tant qu'un domaine n'est pas vérifié et que son certificat n'est pas en place,
 
 ### Lire la colonne Statut
 
-La colonne **Statut** indique où en est chaque domaine sur la voie du HTTPS, dans l'un de sept états, les mêmes que pour les pages de statut. Quand une commande a échoué, la raison figure sur la ligne en dessous.
+La colonne **Statut** indique où en est chaque domaine sur la voie du HTTPS, dans l'un de huit états, les mêmes que pour les pages de statut. Quand une commande a échoué, la raison figure sur la ligne en dessous.
 
 | Ce qu'indique la colonne Statut | Ce que cela signifie |
 | --- | --- |
@@ -126,6 +126,7 @@ La colonne **Statut** indique où en est chaque domaine sur la voie du HTTPS, da
 | Certificat émis, renouvelé automatiquement. | Terminé. Le domaine sert son certificat en HTTPS, et OneUptime le renouvelle. |
 | Certificat émis, mais son renouvellement a échoué. Nous continuons d'essayer. | Le domaine sert encore un certificat valide, mais son dernier renouvellement a échoué, pour la raison indiquée en dessous. OneUptime réessaie bien avant l'expiration du certificat. |
 | Utilise votre certificat téléversé. | L'enregistrement est vérifié, et le domaine est servi avec le certificat que vous avez téléversé. |
+| Vérifié. Cette installation n'émet pas de certificats gratuits : servez le HTTPS de ce domaine depuis votre propre proxy, ou téléversez un certificat. | Sur une installation auto-hébergée sans clé de compte Let's Encrypt, l'enregistrement est vérifié et le domaine est en ligne. Son HTTPS revient à votre propre proxy, sauf si vous téléversez un certificat. |
 
 Si une commande échoue, les causes habituelles sont un enregistrement CAA de votre domaine qui n'autorise pas `letsencrypt.org` et, sur une installation auto-hébergée, un serveur que Let's Encrypt ne peut pas joindre sur le port 80.
 
@@ -135,7 +136,7 @@ Pour utiliser votre propre certificat, ouvrez **Plus de champs** en ajoutant le 
 
 Une fois qu'un certificat gratuit a été commandé pour un domaine, sa ligne affiche **Reissue SSL**, qui demande à Let's Encrypt un tout nouveau certificat quand vous en voulez un avant le renouvellement automatique. Chaque domaine peut être réémis une fois toutes les 24 heures.
 
-Sur une installation auto-hébergée, les domaines personnalisés de tableaux de bord sont activés par la variable d'environnement `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` dans le chart Helm), la cible vers laquelle pointent vos enregistrements CNAME. Sans elle, la carte et la boîte de dialogue **Configuration DNS** affichent "Custom Domains not enabled for this OneUptime installation" au lieu d'un enregistrement, et OneUptime ne vérifie aucun domaine et ne commande aucun certificat pour les tableaux de bord.
+Sur une installation auto-hébergée, les domaines personnalisés de tableaux de bord sont activés par la variable d'environnement `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` dans le chart Helm), la cible vers laquelle pointent vos enregistrements CNAME. Sans elle, la carte et la boîte de dialogue **Configuration DNS** affichent "Custom Domains not enabled for this OneUptime installation" au lieu d'un enregistrement, et OneUptime ne vérifie aucun domaine et ne commande aucun certificat pour les tableaux de bord. Une installation sans clé de compte Let's Encrypt (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` dans le chart Helm) ne commande aucun certificat : un domaine de tableau de bord est en ligne dès que son enregistrement est vérifié, servi avec le HTTPS de votre propre proxy ou un certificat que vous téléversez.
 
 ### Qui peut vérifier et réémettre
 

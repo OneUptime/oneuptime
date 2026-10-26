@@ -10,6 +10,9 @@
  * applies) are given. `seoTheme` gives the template another one, as a
  * server whose /seo lookup failed would (`none`: no theme at all).
  *
+ * The page answers at its OneUptime address, /status-page/<id> (the
+ * Dashboard's preview), and at / as if this host were its custom domain.
+ *
  * Inter and the production Tailwind are served where index.ejs asks for
  * them, so what the browser lays out is what a visitor gets.
  */
@@ -39,6 +42,7 @@ const inter = path.join(
   "Server/Static/Vendor/fonts/InterVariable.woff2",
 );
 const logo = path.join(__dirname, "logo.svg");
+const darkLogo = path.join(__dirname, "logo-dark.svg");
 
 /*
  * The page's bundle is Index.js, so the template's own
@@ -206,6 +210,12 @@ async function main() {
     // The page's logo, as the sign-in pages load it.
     if (url.pathname.startsWith("/status-page-api/logo/")) {
       send(response, logo, "image/svg+xml");
+      return;
+    }
+
+    // Its logo for the dark theme (darkLogo=1), as the sign-in pages load it.
+    if (url.pathname.startsWith("/status-page-api/dark-theme-logo/")) {
+      send(response, darkLogo, "image/svg+xml");
       return;
     }
 

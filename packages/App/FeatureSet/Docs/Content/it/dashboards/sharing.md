@@ -115,7 +115,7 @@ Finché un dominio non è verificato e il suo certificato non è al suo posto, l
 
 ### Leggere la colonna Stato
 
-La colonna **Stato** indica a che punto è ogni dominio sulla strada verso HTTPS, in uno di sette stati, gli stessi delle pagine di stato. Quando un ordine è fallito, il motivo si trova nella riga sottostante.
+La colonna **Stato** indica a che punto è ogni dominio sulla strada verso HTTPS, in uno di otto stati, gli stessi delle pagine di stato. Quando un ordine è fallito, il motivo si trova nella riga sottostante.
 
 | Che cosa dice la colonna Stato | Che cosa significa |
 | --- | --- |
@@ -126,6 +126,7 @@ La colonna **Stato** indica a che punto è ogni dominio sulla strada verso HTTPS
 | Certificato emesso, si rinnova automaticamente. | Fatto. Il dominio serve il suo certificato via HTTPS, e OneUptime lo rinnova. |
 | Certificato emesso, ma il rinnovo non è riuscito. Continuiamo a provare. | Il dominio serve ancora un certificato valido, ma il suo ultimo rinnovo è fallito, per il motivo indicato nella riga sottostante. OneUptime riprova ben prima che il certificato scada. |
 | Usa il tuo certificato caricato. | Il record è verificato, e il dominio è servito con il certificato che hai caricato. |
+| Verificato. Questa installazione non emette certificati gratuiti: servi l'HTTPS di questo dominio dal tuo proxy o carica un certificato. | Su un'installazione self-hosted senza chiave dell'account Let's Encrypt, il record è verificato e il dominio è attivo. Il suo HTTPS spetta al vostro proxy, a meno che non carichiate un certificato. |
 
 Se un ordine fallisce, le cause abituali sono un record CAA sul tuo dominio che non consente `letsencrypt.org` e, su un'installazione self-hosted, un server che Let's Encrypt non riesce a raggiungere sulla porta 80.
 
@@ -135,7 +136,7 @@ Per usare invece un tuo certificato, apri **Altri campi** quando aggiungi il dom
 
 Una volta ordinato un certificato gratuito per un dominio, la riga mostra **Reissue SSL**, che chiede a Let's Encrypt un certificato completamente nuovo quando ne vuoi uno prima del rinnovo automatico. Ogni dominio può essere riemesso una volta ogni 24 ore.
 
-Su un'installazione self-hosted, i domini personalizzati delle dashboard si attivano con la variabile d'ambiente `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` nel chart Helm), che è la destinazione a cui puntano i tuoi record CNAME. Senza di essa, la scheda e la finestra **Configurazione DNS** dicono "Custom Domains not enabled for this OneUptime installation" invece di mostrare un record, e OneUptime non verifica domini né ordina certificati per le dashboard.
+Su un'installazione self-hosted, i domini personalizzati delle dashboard si attivano con la variabile d'ambiente `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` nel chart Helm), che è la destinazione a cui puntano i tuoi record CNAME. Senza di essa, la scheda e la finestra **Configurazione DNS** dicono "Custom Domains not enabled for this OneUptime installation" invece di mostrare un record, e OneUptime non verifica domini né ordina certificati per le dashboard. Un'installazione senza chiave dell'account Let's Encrypt (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` nel chart Helm) non ordina certificati: un dominio di dashboard è attivo non appena il suo record è verificato, servito con l'HTTPS del tuo proxy o con un certificato che carichi.
 
 ### Chi può verificare e riemettere
 
