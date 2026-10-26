@@ -412,7 +412,7 @@ describe("the Runners list, inside Runbooks", () => {
     open(RUNNERS_PATH);
 
     const row: HTMLElement = await rowOf("staging-runner");
-    fireEvent.click(within(row).getByText("View Runner"));
+    fireEvent.click(within(row).getByRole("button", { name: "View Runner" }));
 
     await expectPath(runnerPath(STAGING_ID));
     await expectRunnerPage("staging-runner");
@@ -522,7 +522,7 @@ describe("arriving on an old Project Settings bookmark", () => {
     expect(screen.queryByTestId("settings-page")).not.toBeInTheDocument();
     expect(breadcrumbs()).toEqual(["Project", "Runbooks", "Runners"]);
 
-    fireEvent.click(within(row).getByText("View Runner"));
+    fireEvent.click(within(row).getByRole("button", { name: "View Runner" }));
 
     await expectPath(runnerPath(BASTION_ID));
     await expectRunnerPage("prod-bastion");

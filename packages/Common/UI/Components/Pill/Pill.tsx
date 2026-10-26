@@ -92,6 +92,12 @@ const Pill: FunctionComponent<ComponentProps> = (
       <span
         data-testid="pill"
         data-ou-pill={props.isMinimal ? undefined : ""}
+        /*
+         * Its words end in "..." where its box ends, so a table that would
+         * run past its card may narrow it (TableLayout's
+         * TABLE_SHRINKABLE_ATTRIBUTE); a pill that wraps does not.
+         */
+        data-table-shrinks={props.isWrapping ? undefined : "true"}
         className={`${
           props.isWrapping ? WRAPPING_PILL_CLASS_NAME : PILL_CLASS_NAME
         } ${

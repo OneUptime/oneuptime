@@ -1261,6 +1261,126 @@ test.describe("the Events table at every width", () => {
     });
   }
 
+  /*
+   * Beside the cluster's side menu at 768px the card is 478px wide, and the
+   * four columns needed 680px: the rows scrolled under the sticky last
+   * column. Below lg, how many times and when go in the Event's own lines,
+   * as on a phone's card, and Event and Object fit the card.
+   */
+  for (const width of [768, 900]) {
+    test(`at ${width}px Count and Last seen go in the Event's lines, and Event and Object fit the card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openEventsPage(page);
+      await expect(page.getByTestId("kubernetes-event")).toHaveCount(11);
+
+      const widths: Record<string, number> = await headerWidths(page);
+      expect(Object.keys(widths)).toEqual(["Event", "Object"]);
+      expect(widths["Event"]!).toBeGreaterThan(widths["Object"]!);
+
+      await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      await expectNoSidewaysScroll(page);
+
+      // Still a table's rows, not a phone's cards.
+      await expect(
+        page.locator("#kubernetes-events-table-header"),
+      ).toBeVisible();
+
+      const backOff: Locator = page
+        .getByTestId("kubernetes-event")
+        .filter({
+          has: page
+            .getByTestId("kubernetes-event-reason")
+            .getByText("BackOff", { exact: true }),
+        })
+        .filter({ hasText: CHECKOUT_POD });
+      await expect(backOff).toHaveCount(1);
+
+      // How many times, and when - each once in the row, in the Event.
+      await expect(backOff.getByTestId("kubernetes-event-count")).toHaveText(
+        "14 times",
+      );
+      await expect(
+        backOff.getByTestId("kubernetes-event-last-seen"),
+      ).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
+      const row: Locator = page.locator("tr").filter({ has: backOff });
+      await expect(row.getByTestId("kubernetes-event-count")).toHaveCount(1);
+      await expect(row.getByTestId("kubernetes-event-last-seen")).toHaveCount(
+        1,
+      );
+
+      // When, at the end of the reason's line.
+      const reason: { x: number; y: number; height: number } = (await backOff
+        .getByTestId("kubernetes-event-reason")
+        .boundingBox())!;
+      const when: { x: number; y: number; height: number } = (await backOff
+        .getByTestId("kubernetes-event-last-seen")
+        .boundingBox())!;
+      expect(when.x).toBeGreaterThan(reason.x + 60);
+      expect(
+        Math.abs(when.y + when.height / 2 - (reason.y + reason.height / 2)),
+      ).toBeLessThan(6);
+
+      // The object keeps its column: not drawn again in the Event.
+      await expect(backOff.getByTestId("kubernetes-event-object")).toHaveCount(
+        0,
+      );
+      await expect(row.getByTestId("kubernetes-event-object")).toHaveCount(1);
+
+      // FailedComputeMetricsReplicas is never broken mid-word.
+      expect(
+        await lineCounts(page.getByTestId("kubernetes-event-reason")),
+      ).toEqual(Array(11).fill(1));
+
+      await screenshot(page, `events-table-${width}`);
+    });
+  }
+
+  test("a window made wider than lg and narrower again moves Count and Last seen between their columns and the Event", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 900, height: 900 });
+    await openEventsPage(page);
+    await expect(page.getByTestId("kubernetes-event")).toHaveCount(11);
+    expect(Object.keys(await headerWidths(page))).toEqual(["Event", "Object"]);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return Object.keys(await headerWidths(page));
+      })
+      .toEqual(["Event", "Object", "Count", "Last seen"]);
+    // In their columns now, not in the Event's lines as well.
+    await expect(
+      page
+        .getByTestId("kubernetes-event")
+        .getByTestId("kubernetes-event-last-seen"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
+
+    await page.setViewportSize({ width: 768, height: 900 });
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return Object.keys(await headerWidths(page));
+      })
+      .toEqual(["Event", "Object"]);
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
+  });
+
   test("the namespace sits beside the object's name, in the Object column", async ({
     page,
   }: {

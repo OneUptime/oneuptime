@@ -98,6 +98,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
       buttons={[
         {
           title: "Add Step",
+          phoneTitle: "Add",
           icon: IconProp.Add,
           buttonStyle: ButtonStyleType.NORMAL,
           disabled: !props.canEdit || isFull || isSaving,

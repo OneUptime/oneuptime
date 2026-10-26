@@ -252,9 +252,14 @@ describe("Alert on it opens a monitor on the OID", () => {
     );
   });
 
-  test("an OID replaces the recommended pack with its one criteria", () => {
+  /*
+   * The check and the description come from the prefill too: a counter is
+   * alerted on by its rate (SNMP OID Rate (per second)), with words that
+   * say so, not by its raw value.
+   */
+  test("an OID replaces the recommended pack with its one criteria, on the check its type is alerted on", () => {
     expect(CREATE_PAGE).toContain(
-      "const recommendedCriteria: Array<MonitorCriteriaInstance> = walkedOid ? [ NetworkDeviceAlertPackUtil.buildOidValueCriteriaInstance({ oid: walkedOid.oid, name: walkedOid.oidName, filterType: walkedOid.filterType, value: walkedOid.value, }), ] : NetworkDeviceAlertPackUtil.buildCriteriaInstances({",
+      "const recommendedCriteria: Array<MonitorCriteriaInstance> = walkedOid ? [ NetworkDeviceAlertPackUtil.buildOidValueCriteriaInstance({ oid: walkedOid.oid, name: walkedOid.oidName, checkOn: walkedOid.checkOn, filterType: walkedOid.filterType, value: walkedOid.value, description: walkedOid.description, }), ] : NetworkDeviceAlertPackUtil.buildCriteriaInstances({",
     );
   });
 

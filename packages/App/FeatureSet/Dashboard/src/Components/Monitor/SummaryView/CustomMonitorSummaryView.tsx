@@ -6,12 +6,12 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
@@ -75,7 +75,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1 && retryAttempts.length > 0;
 
   return (
-    <div className="space-y-5">
+    <SummaryView dataTestId="custom-code-monitor-summary">
       <div className="space-y-5">
         {hadRetries && (
           <div className="rounded-md border-2 border-yellow-100 bg-yellow-50 p-3 text-sm text-yellow-900">
@@ -99,32 +99,23 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <div className="flex space-x-3 w-full">
-          {props.probeName && (
-            <InfoCard
-              className="w-1/4 shadow-none border-2 border-gray-100 "
-              title="Probe"
-              value={props.probeName || "-"}
-            />
+        {/*
+         * With the probe, four facts; a Synthetic run, under the probe its
+         * summary names once, has three that belong together. A run that
+         * failed says why in its last fact, a row of its own, where it said
+         * "Yes" and kept the reason under Show More Details.
+         */}
+        <SummaryFacts isInThrees={!props.probeName}>
+          {props.probeName ? (
+            <SummaryFact title="Probe" value={props.probeName} />
+          ) : (
+            <></>
           )}
-          <InfoCard
-            className={`${props.probeName ? "w-1/4" : "w-1/3"} shadow-none border-2 border-gray-100 `}
+          <SummaryFact
             title="Execution Time (in ms)"
             value={executionTimeInMS ? executionTimeInMS + " ms" : "-"}
           />
-
-          <InfoCard
-            className={`${props.probeName ? "w-1/4" : "w-1/3"} shadow-none border-2 border-gray-100 `}
-            title="Error"
-            value={
-              translator.translateText(
-                customCodeMonitorResponse.scriptError ? "Yes" : "No",
-              ) || ""
-            }
-          />
-
-          <InfoCard
-            className={`${props.probeName ? "w-1/4" : "w-1/3"} shadow-none border-2 border-gray-100 `}
+          <SummaryFact
             title="Monitored At"
             value={
               props.monitoredAt
@@ -134,7 +125,19 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                 : "-"
             }
           />
-        </div>
+          {customCodeMonitorResponse.scriptError ? (
+            <SummaryFact
+              isWide={true}
+              title="Error"
+              value={customCodeMonitorResponse.scriptError}
+            />
+          ) : (
+            <SummaryFact
+              title="Error"
+              value={translator.translateText("No") || ""}
+            />
+          )}
+        </SummaryFacts>
 
         {showMoreDetails && (
           <div className="space-y-5">
@@ -207,7 +210,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
         )}
 
         {!showMoreDetails && (
-          <div className="-ml-2">
+          <div className="-ml-3">
             <Button
               buttonStyle={ButtonStyleType.SECONDARY_LINK}
               title="Show More Details"
@@ -221,7 +224,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
         {/* Hide details button */}
 
         {showMoreDetails && (
-          <div className="-ml-2">
+          <div className="-ml-3">
             <Button
               buttonStyle={ButtonStyleType.SECONDARY_LINK}
               title="Hide Details"
@@ -232,7 +235,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
-    </div>
+    </SummaryView>
   );
 };
 

@@ -2627,6 +2627,11 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           "Whether a specific SNMP OID exists on the device. Requires snmpMonitorOptions.oid. Use with 'True' or 'False'. Applies to: SNMP monitors.",
       },
       {
+        value: "SNMP OID Rate (per second)",
+        description:
+          "How fast a counter OID (Counter32 or Counter64) grew, per second, since the previous poll. Requires snmpMonitorOptions.oid. Use with numeric FilterTypes. Not evaluated until the counter has been read twice. Applies to: Network Device monitors.",
+      },
+      {
         value: "SNMP Response Time (in ms)",
         description:
           "The SNMP query response time in milliseconds. Use with numeric FilterTypes. Applies to: SNMP monitors.",

@@ -120,7 +120,7 @@ A etapa **Configurar** do assistente de criação pede até sete valores: todo m
 
 **Como os modelos entram.** O assistente salva o locatário, o client ID e o segredo em uma única [variável OAuth 2.0](/docs/workflows/variables#variáveis-oauth-20-tokens-que-se-renovam-sozinhos), `dynamicsAccessToken`, em **Variáveis do fluxo** do workflow: Client Credentials, a URL do token `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, o escopo `<environment URL>/.default` e o segredo do cliente, enviado no corpo da requisição e guardado criptografado. Toda chamada ao Dynamics 365 envia `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. O OneUptime busca o token na primeira vez que uma etapa precisa dele, busca um novo antes que ele expire e o substitui por `[REDACTED]` nos logs de execução e nos rastros das etapas.
 
-Para verificar a conexão antes de qualquer execução, abra **Variáveis do fluxo**, clique em **Visualizar** em `dynamicsAccessToken` e clique em **Atualizar agora**. **Access Token Fetched** significa que o registro do aplicativo está certo. Caso contrário, o erro do Microsoft Entra ID diz o que está errado, como `AADSTS7000215: Invalid client secret provided`.
+Para verificar a conexão antes de qualquer execução, abra **Variáveis do fluxo**, clique em **Ver** em `dynamicsAccessToken` e clique em **Atualizar agora**. **Access Token Fetched** significa que o registro do aplicativo está certo. Caso contrário, o erro do Microsoft Entra ID diz o que está errado, como `AADSTS7000215: Invalid client secret provided`.
 
 Cada workflow guarda a sua própria cópia. Quando você trocar o segredo do cliente, abra `dynamicsAccessToken` em cada workflow do Dynamics 365 e use **Update Credentials**.
 

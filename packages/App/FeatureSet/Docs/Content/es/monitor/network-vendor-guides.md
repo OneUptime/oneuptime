@@ -54,7 +54,7 @@ Sophos no informa la salud de los gateways ni de SD-WAN por SNMP, en ninguna ver
 3. En la página **Ajustes** del dispositivo, en **Sondeo y recopilación de datos**, aplica la plantilla **Sophos Firewall (SFOS / XGS)** desde **Plantilla de salud del fabricante** y añade sus tablas desde **Add a Vendor's Tables**. O activa **Aplicar automáticamente la plantilla de salud del fabricante**, y el primer sondeo hace las dos cosas.
 :::
 
-Tras el siguiente sondeo, la página **SNMP Tables** del dispositivo lista cada conexión IPsec con su estado (active, inactive, partially active), y los núcleos de CPU. SFOS numera sus núcleos a partir de 196608, por eso la CPU sale de una tabla y no de un único `hrProcessorLoad.1`.
+Tras el siguiente sondeo, la página **Tablas SNMP** del dispositivo lista cada conexión IPsec con su estado (active, inactive, partially active), y los núcleos de CPU. SFOS numera sus núcleos a partir de 196608, por eso la CPU sale de una tabla y no de un único `hrProcessorLoad.1`.
 
 ### Alertar sobre cada túnel IPsec
 

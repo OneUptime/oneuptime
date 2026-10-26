@@ -54,7 +54,7 @@ Sophos ne rapporte la santé des passerelles et du SD-WAN par SNMP dans aucune v
 3. Sur la page **Paramètres** de l'équipement, sous **Polling & Data Collection**, appliquez le modèle **Sophos Firewall (SFOS / XGS)** depuis **Vendor Health Template** et ajoutez ses tables depuis **Add a Vendor's Tables**. Ou activez **Appliquer automatiquement le modèle de santé du fabricant**, et la première interrogation fait les deux.
 :::
 
-Après l'interrogation suivante, la page **SNMP Tables** de l'équipement liste chaque connexion IPsec avec son statut (active, inactive, partially active), ainsi que les cœurs CPU. SFOS numérote ses cœurs à partir de 196608, c'est pourquoi le CPU vient d'une table plutôt que d'un unique `hrProcessorLoad.1`.
+Après l'interrogation suivante, la page **Tables SNMP** de l'équipement liste chaque connexion IPsec avec son statut (active, inactive, partially active), ainsi que les cœurs CPU. SFOS numérote ses cœurs à partir de 196608, c'est pourquoi le CPU vient d'une table plutôt que d'un unique `hrProcessorLoad.1`.
 
 ### Alerter sur chaque tunnel IPsec
 

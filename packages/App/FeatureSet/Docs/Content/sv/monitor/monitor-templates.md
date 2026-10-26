@@ -39,7 +39,7 @@ Gå till **Monitorer → Inställningar → Mallar** och klicka på **Skapa Moni
 
 ### Namnge mallen
 
-Under **Mallinformation** anger du ett **Mallnamn**, som `Production API Health`, och en **Mallbeskrivning**, och klickar sedan på **Nästa**.
+Under **Mallinformation** anger du ett **Mallnamn**, som `Production API Health`. En **Mallbeskrivning** är valfri. Klicka sedan på **Nästa**.
 
 ### Ange monitorns standardvärden
 

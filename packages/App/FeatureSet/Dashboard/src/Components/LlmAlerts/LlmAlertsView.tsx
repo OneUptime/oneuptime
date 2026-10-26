@@ -150,6 +150,7 @@ const LlmAlertsView: FunctionComponent = (): ReactElement => {
   const createButton: CardButtonSchema | null = PermissionGate.gateCardButton(
     {
       title: "Create AI alert",
+      phoneTitle: "Create",
       onClick: () => {
         Navigation.navigate(getLlmMonitorCreateRoute());
       },

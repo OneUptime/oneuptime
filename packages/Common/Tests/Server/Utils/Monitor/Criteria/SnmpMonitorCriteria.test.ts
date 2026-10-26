@@ -809,6 +809,12 @@ describe("SnmpMonitorCriteria — ping-first polling", () => {
         snmpMonitorOptions: { oid: PSU_OID },
       },
       {
+        checkOn: CheckOn.SnmpOidRatePerSecond,
+        filterType: FilterType.LessThan,
+        value: 100,
+        snmpMonitorOptions: { oid: PSU_OID },
+      },
+      {
         checkOn: CheckOn.SnmpResponseTime,
         filterType: FilterType.GreaterThan,
         value: 0,

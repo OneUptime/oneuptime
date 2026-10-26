@@ -241,6 +241,8 @@ El agente envía a OneUptime cada evento de Kubernetes del clúster: de cada esp
 | Recuento | Cuántas veces ocurrió: una repetición sube el recuento en lugar de añadir una fila |
 | Visto por última vez | Cuándo ocurrió por última vez; pasa el puntero por encima para ver cuándo ocurrió por primera vez |
 
+En una pantalla de menos de 1024 píxeles de ancho, la columna **Evento** también muestra **Recuento** y **Visto por última vez**, que allí no tienen columna propia.
+
 ### Buscar eventos y recibir alertas
 
 Cada evento también es un registro. Una advertencia se guarda con la gravedad **Advertencia**, y lo que dice el evento está en sus atributos:

@@ -415,11 +415,12 @@ describe("the facts", () => {
   );
 
   /*
-   * Two to a row, four once the view itself is 64rem wide: it is drawn in
-   * the overview's Summary card and in wide dialogs at one screen width,
-   * so its own width decides. Values get a smaller size below 32rem.
+   * One a row on a phone, two to a row from 22rem, four once the view
+   * itself is 64rem wide: it is drawn in the overview's Summary card and in
+   * wide dialogs at one screen width, so its own width decides. Values get
+   * a smaller size below 32rem.
    */
-  test("sit two to a row, four in a wide view, by the view's own width", () => {
+  test("sit one a row on a phone, two to a row, four in a wide view, by the view's own width", () => {
     renderView();
 
     expect(screen.getByTestId("external-status-page-summary")).toHaveClass(
@@ -431,11 +432,22 @@ describe("the facts", () => {
       "external-status-page-page-facts",
     ]) {
       expect(screen.getByTestId(testId)).toHaveClass(
-        "grid",
-        "grid-cols-2",
-        "[@container(min-width:64rem)]:grid-cols-4",
+        "flex",
+        "flex-wrap",
+        "gap-3",
       );
       expect(screen.getByTestId(testId)).not.toHaveClass("lg:grid-cols-4");
+
+      for (const fact of Array.from(
+        screen.getByTestId(testId).children,
+      ) as Array<HTMLElement>) {
+        expect(fact).toHaveClass(
+          "grow",
+          "basis-full",
+          "[@container(min-width:22rem)]:basis-[calc(50%-0.75rem)]",
+          "[@container(min-width:64rem)]:basis-[calc(25%-0.75rem)]",
+        );
+      }
     }
 
     expect(factValue("external-status-page-page-facts", 1)).toHaveClass(

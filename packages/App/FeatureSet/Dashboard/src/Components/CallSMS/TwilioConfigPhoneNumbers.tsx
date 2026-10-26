@@ -25,7 +25,28 @@ export interface ComponentProps {
  * A line with more numbers of its kind - secondary numbers after the
  * primary one, more SMS numbers after the first - says how many ("+2
  * more"), and lists them on hover: the config's Edit dialog has them all.
+ *
+ * A number is never cut short: "+14155..." says nothing about which
+ * number it is. Where the column is narrow, its "+2 more" goes onto a line
+ * of its own under it instead (TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME), so
+ * the column needs no more than one number's width - in German the Twilio
+ * Config table ran 51px past its card at 1280px beside the side menu.
  */
+/*
+ * A line of the cell: the icon and the number, which stay together and
+ * whole, and the "+2 more", which wraps onto a line of its own where the
+ * column is narrow - under the number, the icon's 16px and its 6px gap
+ * hung to the left of the line (pl-[22px] on the line, -ml-[22px] on the
+ * icon and the number).
+ */
+export const TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-1.5";
+
+export const TWILIO_CONFIG_NUMBER_LINE_WITH_ICON_CLASS_NAME: string = `${TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME} pl-[22px]`;
+
+export const TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME: string =
+  "-ml-[22px] inline-flex items-center gap-1.5 whitespace-nowrap";
+
 const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -46,30 +67,42 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
           ? translator.translateText(line.label) || line.label
           : null;
 
+        const number: ReactElement = (
+          <span className="whitespace-nowrap text-gray-900">
+            {line.phoneNumber}
+          </span>
+        );
+
         return (
           <div
             key={`${line.label || "all"}-${line.phoneNumber}`}
-            className="flex items-center gap-1.5"
+            className={
+              label
+                ? TWILIO_CONFIG_NUMBER_LINE_WITH_ICON_CLASS_NAME
+                : TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME
+            }
             title={label || undefined}
           >
             {label ? (
-              <Icon
-                icon={
-                  line.label === TwilioConfigNumbersCopy.smsLabel
-                    ? IconProp.SMS
-                    : IconProp.Call
-                }
-                size={SizeProp.Small}
-                className="h-4 w-4 flex-none text-gray-400"
-                ariaLabel={label}
-              />
+              <span className={TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME}>
+                <Icon
+                  icon={
+                    line.label === TwilioConfigNumbersCopy.smsLabel
+                      ? IconProp.SMS
+                      : IconProp.Call
+                  }
+                  size={SizeProp.Small}
+                  className="h-4 w-4 flex-none text-gray-400"
+                  ariaLabel={label}
+                />
+                {number}
+              </span>
             ) : (
-              <></>
+              number
             )}
-            <span className="text-gray-900">{line.phoneNumber}</span>
             {line.otherPhoneNumbers.length > 0 ? (
               <span
-                className="text-gray-500"
+                className="whitespace-nowrap text-gray-500"
                 title={line.otherPhoneNumbers.join(", ")}
                 data-testid="twilio-config-more-phone-numbers"
               >

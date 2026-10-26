@@ -39,7 +39,7 @@ Allez dans **Moniteurs → Paramètres → Modèles** et cliquez sur **Créer : 
 
 ### Nommer le modèle
 
-Dans **Informations du modèle**, saisissez un **Nom du modèle**, comme `Production API Health`, et une **Description du modèle**, puis cliquez sur **Suivant**.
+Dans **Informations du modèle**, saisissez un **Nom du modèle**, comme `Production API Health`. La **Description du modèle** est facultative. Cliquez ensuite sur **Suivant**.
 
 ### Définir les valeurs par défaut du moniteur
 

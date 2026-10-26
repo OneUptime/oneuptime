@@ -222,16 +222,38 @@ describe("NTP monitor summary", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("wraps its cards two to a row on a phone and four on a wide screen", () => {
+  /*
+   * One a row on a phone, two to a row, four once the summary itself is
+   * wide: by its own width (a container query), not the screen's - four to
+   * a row by the screen squeezed the cards in the overview's two-thirds
+   * card.
+   */
+  it("wraps its cards one a row on a phone, two to a row, four once the summary itself is wide", () => {
     const summary: HTMLElement = renderSummary(buildResponse(answered()));
 
-    const grids: Array<Element> = Array.from(summary.querySelectorAll(".grid"));
+    expect(summary.className).toContain("[container-type:inline-size]");
 
-    expect(grids.length).toBe(3);
+    const groups: Array<Element> = Array.from(
+      summary.querySelectorAll(".flex-wrap"),
+    );
 
-    for (const grid of grids) {
-      expect(grid.className).toContain("grid-cols-2");
-      expect(grid.className).toContain("lg:grid-cols-4");
+    expect(groups.length).toBe(2);
+
+    for (const group of groups) {
+      expect(group.className).toBe("flex flex-wrap gap-3");
+      expect(group.className).not.toContain("lg:grid-cols-4");
     }
+
+    expect(
+      within(summary).getByText("Stratum").closest("div.rounded-xl")?.className,
+    ).toContain("[@container(min-width:64rem)]:basis-[calc(25%-0.75rem)]");
+
+    // The server takes the whole of the first row, at every width.
+    const server: HTMLElement = within(summary)
+      .getByText("NTP Server")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    expect(server).toHaveClass("basis-full");
+    expect(server.className).not.toContain(":basis-[calc(");
   });
 });

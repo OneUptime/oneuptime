@@ -91,6 +91,15 @@ export enum CheckOn {
   // SNMP monitors.
   SnmpOidValue = "SNMP OID Value",
   SnmpOidExists = "SNMP OID Exists",
+  /*
+   * How fast a counter OID (Counter32, Counter64) grew, per second, between
+   * the device's last two polls that read it. A counter only ever grows
+   * until it wraps or the device restarts, so its value against a threshold
+   * stays crossed once crossed: its rate is what says how busy, how lossy
+   * or how full of errors something is now. Not evaluated until the device
+   * has been polled twice, nor on a poll whose counter went backwards.
+   */
+  SnmpOidRatePerSecond = "SNMP OID Rate (per second)",
   SnmpResponseTime = "SNMP Response Time (in ms)",
   /*
    * Device reachability: true when the device answered ping OR its SNMP

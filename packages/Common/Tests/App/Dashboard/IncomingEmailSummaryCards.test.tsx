@@ -15,9 +15,9 @@ import ObjectID from "../../../Types/ObjectID";
  * that opens an incident for every email: a reply, a second delivery, an
  * automatic reply), so it is read on a phone as much as anywhere.
  *
- * The row wraps on a narrow screen. Its cards were spaced with space-x,
- * which gives every card after the first a margin on its left even when it
- * wraps onto a line of its own: on a phone the From and Subject cards each
+ * The cards wrap on a narrow screen. They were spaced with space-x, which
+ * gives every card after the first a margin on its left even when it wraps
+ * onto a line of its own: on a phone the From and Subject cards each
  * stepped in from the one above. A gap spaces only cards that sit side by
  * side.
  */
@@ -56,7 +56,12 @@ describe("An Incoming Email monitor's summary cards", () => {
     ).toBeInTheDocument();
   });
 
-  test("wrap with a gap, so a card on a line of its own does not step in", () => {
+  /*
+   * Since every monitor summary's facts share one layout (SummaryFacts), the
+   * cards sit in rows that wrap, with a gap that spaces only cards side by
+   * side - and never with space-x.
+   */
+  test("sit in wrapping rows with a gap, so a card on a line of its own does not step in", () => {
     renderSummary();
 
     const fromCard: HTMLElement = screen
@@ -65,7 +70,9 @@ describe("An Incoming Email monitor's summary cards", () => {
     const row: HTMLElement = fromCard.parentElement as HTMLElement;
     const classes: Array<string> = row.className.split(" ");
 
-    expect(classes).toEqual(expect.arrayContaining(["flex-wrap", "gap-x-3"]));
+    expect(classes).toEqual(
+      expect.arrayContaining(["flex", "flex-wrap", "gap-3"]),
+    );
     expect(
       classes.filter((name: string): boolean => {
         return name.startsWith("space-x-");

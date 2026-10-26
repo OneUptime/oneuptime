@@ -165,7 +165,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk. Het zijmenu i
 
 **Overzicht** en **Episoden** staan open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn standaard ingeklapt, zodat het menu opent op de lijsten die je elke dag gebruikt. Klik op de titel van een sectie om die uit te klappen en de pagina's te vinden waar de rest van deze documentatie naar verwijst; een sectie gaat ook vanzelf open wanneer je op een van haar pagina's bent. De incidentconfiguratie staat niet onder de projectinstellingen; die staat helemaal hier.
 
-De incidentenlijst zelf toont **Incidentnummer**, **Titel**, **Status**, **Ernst**, **Getroffen middelen**, **Verklaard**, **Duur**, **Labels** en **Eigenaren**. Het menu **⋯** aan het eind van de rij van elk incident biedt **Bevestigen** en **Oplossen** zolang het incident die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Add Owner** om het aan iemand anders over te dragen. Selecteer meerdere incidenten om hetzelfde met allemaal tegelijk te doen.
+De incidentenlijst zelf toont **Incidentnummer**, **Titel**, **Status**, **Ernst**, **Getroffen resources**, **Verklaard**, **Duur**, **Labels** en **Eigenaren**. Het menu **⋯** aan het eind van de rij van elk incident biedt **Bevestigen** en **Oplossen** zolang het incident die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Add Owner** om het aan iemand anders over te dragen. Selecteer meerdere incidenten om hetzelfde met allemaal tegelijk te doen.
 
 ## Wat elke pagina van een incident toont
 

@@ -164,6 +164,7 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
           buttons: [
             {
               title: "Add Processor",
+              phoneTitle: "Add",
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
                 setEditingProcessor(undefined);

@@ -125,6 +125,7 @@ import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUni
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
@@ -835,6 +836,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillLabelNameSortKeys(),
+  /*
+   * Synthetic monitors and templates stored with a step that lists no
+   * browser or no screen size ran nothing and never failed: each such step
+   * is given what the form gives a new one, Chromium at Desktop, and runs
+   * from its next check. Only empty lists are filled; idempotent, and a row
+   * is written only while it holds what was read. The server refuses such
+   * steps on every write now (SyntheticMonitorStepsUtil). Above the runbook
+   * moves, which keep their places right before the last slot.
+   */
+  new FillSyntheticMonitorBrowsersAndScreenSizes(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

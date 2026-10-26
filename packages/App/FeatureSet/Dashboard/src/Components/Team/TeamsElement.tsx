@@ -1,6 +1,7 @@
 import TeamElement from "./Team";
 import Team from "Common/Models/DatabaseModels/Team";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_TEAMS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -18,7 +19,7 @@ const TeamsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.teams}
-      moreText="more teams"
+      moreTemplate={MORE_TEAMS_TEMPLATE}
       getEachElement={(team: Team) => {
         return (
           <TeamElement

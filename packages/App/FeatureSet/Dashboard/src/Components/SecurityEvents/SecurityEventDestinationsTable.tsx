@@ -163,6 +163,7 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
           buttons: [
             {
               title: "Add destination",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               disabled: !createGate.isAllowed,

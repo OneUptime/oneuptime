@@ -4,10 +4,16 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "Common/Types/Monitor/DnsMonitor/DnsMonitorResponse";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SUMMARY_TABLE_VALUE_CLASS_NAME,
+  SummaryFact,
+  SummaryFacts,
+  SummaryView,
+} from "./SummaryFacts";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -30,11 +36,18 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
 
   type GetDnssecStatusText = () => string;
 
+  /*
+   * English, looked up where it is drawn. What the probe checks is whether a
+   * validating resolver set the AD flag, and an unsigned zone never gets it:
+   * "Not validated", not "Invalid", which would accuse every unsigned zone.
+   */
   const getDnssecStatusText: GetDnssecStatusText = (): string => {
     if (dnsResponse?.isDnssecValid === undefined) {
-      return "Unknown";
+      return translationKey("Unknown");
     }
-    return dnsResponse.isDnssecValid ? "Valid" : "Invalid";
+    return dnsResponse.isDnssecValid
+      ? translationKey("Validated")
+      : translationKey("Not validated");
   };
 
   const probeAttempts: Array<ProbeAttempt> =
@@ -44,30 +57,20 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="dns-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            props.probeMonitorResponse.isOnline ? "Online" : "Offline",
+          )}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Response Time"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="DNSSEC"
-          value={getDnssecStatusText()}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -77,17 +80,20 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      {props.probeMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
+        <SummaryFact
+          title="DNSSEC"
+          value={translator.translateTemplate(getDnssecStatusText())}
+        />
+        {props.probeMonitorResponse.failureCause ? (
+          <SummaryFact
+            isWide={true}
             title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+            value={props.probeMonitorResponse.failureCause.toString()}
           />
-        </div>
-      )}
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {hadRetries && (
         <ProbeAttemptsView
@@ -102,7 +108,7 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
           <h3 className="text-sm font-medium text-gray-700">
             {translator.translateText("DNS Records")}
           </h3>
-          <div className="border rounded-md overflow-hidden">
+          <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -125,7 +131,9 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
                         <td className="px-4 py-2 text-sm text-gray-500 font-mono">
                           {record.type}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                        <td
+                          className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                        >
                           {record.value}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500">
@@ -140,7 +148,7 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
           </div>
         </div>
       )}
-    </div>
+    </SummaryView>
   );
 };
 

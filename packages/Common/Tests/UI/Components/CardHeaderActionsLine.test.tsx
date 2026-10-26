@@ -3,6 +3,7 @@ import Card, {
   CARD_DESCRIPTION_CLASS_NAME,
   CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME,
   CARD_HEADER_ACTIONS_BESIDE_TITLE_CLASS_NAMES,
+  CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
   CARD_HEADER_TITLE_BLOCK_OVER_NOTHING_CLASS_NAME,
   CARD_HEADER_TITLE_LINE_CLASS_NAMES,
   CARD_HEADER_TITLE_ROW_CLASS_NAME,
@@ -374,10 +375,25 @@ describe.each(STACKED_LAYOUTS)(
       const { rerender } = render(<Card {...propsFor(layout)} />);
       expectDescriptionInTitleBlock();
 
-      // Without a description there is nothing to move: no watching.
+      /*
+       * Without a description there is nothing to move: a stacked header
+       * stops watching. A toolbar still reads where its controls went, for
+       * its search - on a line of their own, it fills it.
+       */
       rerender(<Card {...propsFor(layout)} description={undefined} />);
       expect(screen.queryByTestId("card-description")).toBeNull();
-      expect(resizes.observed()).toHaveLength(0);
+      if (layout === "toolbar") {
+        expect(resizes.observed()).toEqual([titleRow()]);
+        expect(titleRow()).toHaveAttribute(
+          CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+          "true",
+        );
+      } else {
+        expect(resizes.observed()).toHaveLength(0);
+        expect(titleRow()).not.toHaveAttribute(
+          CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+        );
+      }
       expect(classOf(titleRow())).toBe(
         `${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${CARD_HEADER_TITLE_LINE_CLASS_NAMES.besideActions}`,
       );
