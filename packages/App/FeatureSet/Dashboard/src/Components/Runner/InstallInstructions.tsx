@@ -86,9 +86,13 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
           icon={IconProp.Code}
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
         />
+        {/*
+         * "works on": the repositories that pick it and, while it is the
+         * project's default, the ones that follow the default.
+         */}
         <span>
           {translator.translateText(
-            "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
+            "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that works on this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
           )}
         </span>
       </div>

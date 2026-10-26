@@ -1023,6 +1023,18 @@ test.describe("Traces → AI → Logs", () => {
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
         await expect(entries.nth(2)).toContainText("Nothing to change");
 
+        /*
+         * A failing operation's investigation says what it found - in an
+         * exception's words, as its verdict decides its pull request the
+         * same way; a pull request says no verdict.
+         */
+        await expect(
+          entries.nth(1).getByTestId("telemetry-ai-log-verdict"),
+        ).toHaveText("Found a fault in the code");
+        await expect(
+          automatic.getByTestId("telemetry-ai-log-verdict"),
+        ).toHaveCount(0);
+
         await expectAiSection(page, testInfo, "Logs");
 
         if (isPhone(testInfo)) {
@@ -1033,12 +1045,24 @@ test.describe("Traces → AI → Logs", () => {
       },
     );
 
-    // The fourth entry is a page away.
+    /*
+     * The older entries are a page away: one that failed, which found
+     * nothing, and the slow operation's first look, which found avoidable
+     * work - a slow operation's verdict in its own words.
+     */
     await page.getByTestId("telemetry-ai-logs-load-more").click();
-    await expect(page.getByTestId("telemetry-ai-log-entry")).toHaveCount(4);
+    await expect(page.getByTestId("telemetry-ai-log-entry")).toHaveCount(5);
+
+    const failed: Locator = page.getByTestId("telemetry-ai-log-entry").nth(3);
+
+    await expect(failed).toContainText("Failed");
+    await expect(failed.getByTestId("telemetry-ai-log-verdict")).toHaveCount(0);
     await expect(
-      page.getByTestId("telemetry-ai-log-entry").nth(3),
-    ).toContainText("Failed");
+      page
+        .getByTestId("telemetry-ai-log-entry")
+        .nth(4)
+        .getByTestId("telemetry-ai-log-verdict"),
+    ).toHaveText("Found avoidable work in the code");
 
     // A finding opens under Traces' AI tab.
     await page

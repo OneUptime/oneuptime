@@ -75,6 +75,7 @@ import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/
 import VariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
 import RunnerViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
@@ -331,8 +332,10 @@ const VARIABLES = [
 
 /*
  * The project's code repositories, and the Runner each picks in Code
- * (CodeRepository.runnerId): checkout-service picks prod-eu-west-1, and
- * web-app picks none (a global Runner).
+ * (CodeRepository.runnerId): checkout-service picks prod-eu-west-1,
+ * web-app picks none (it follows the project's default Runner, else a
+ * global Runner), and docs-site picked the Global Runner itself
+ * (isGlobalRunnerPicked), so it never follows the default.
  */
 const CODE_REPOSITORIES = [
   record(CodeRepository, {
@@ -347,6 +350,12 @@ const CODE_REPOSITORIES = [
     _id: "90000000-0000-4000-8000-000000000c02",
     projectId: new ObjectID(PROJECT_ID),
     name: "web-app",
+  }),
+  record(CodeRepository, {
+    _id: "90000000-0000-4000-8000-000000000c03",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "docs-site",
+    isGlobalRunnerPicked: true,
   }),
 ];
 
@@ -408,9 +417,24 @@ ModelAPI.getList = async (options) => {
     return list(GLOBAL_RUNNERS, options.limit);
   }
 
-  // The repositories that pick a Runner, as a Runner's page asks.
+  /*
+   * The repositories that pick a Runner, as a Runner's page asks - or, for
+   * the project's default Runner, the ones that pick none (IsNull), which
+   * follow it unless they picked the Global Runner.
+   */
   if (name === "CodeRepository") {
-    const runnerId = idOf(options.query && options.query.runnerId);
+    const asked = options.query && options.query.runnerId;
+
+    if (asked instanceof IsNull) {
+      return list(
+        TABLES.CodeRepository.filter((repository) => {
+          return !idOf(repository.runnerId);
+        }),
+        options.limit,
+      );
+    }
+
+    const runnerId = idOf(asked);
     return list(
       TABLES.CodeRepository.filter((repository) => {
         return !runnerId || idOf(repository.runnerId) === runnerId;

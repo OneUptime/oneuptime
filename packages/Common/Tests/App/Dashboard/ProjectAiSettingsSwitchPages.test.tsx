@@ -24,6 +24,7 @@ import AlertAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Aler
 import AIInsightsSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/Settings";
 import IncidentAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
 import SecurityEventsAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
+import ProfilesAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Settings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   AI_INSIGHTS_SWITCHES,
@@ -50,6 +51,8 @@ import {
   SecurityAiSettingsCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import { AI_RULES_FIX_NOTHING_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesFixNothing";
+import { getModelSwitchWarningTestId } from "../../../UI/Components/ModelSwitch/ModelSwitchRow";
 import Project from "../../../Models/DatabaseModels/Project";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "../../../Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity, {
@@ -123,6 +126,15 @@ let projectReadError: Error | null = null;
 
 // How many enabled rules each rules table counts, by model name.
 let ruleCounts: Record<string, number> = {};
+
+/*
+ * Of them, how many fix what they match (a count asked with fixes: true),
+ * by model name: the same as ruleCounts unless a test says otherwise.
+ */
+let fixingRuleCounts: Record<string, number> = {};
+
+// A count asked with fixes: true fails with this, when set.
+let fixingCountError: Error | null = null;
 
 let updateByIdSpy: ReturnType<typeof jest.spyOn>;
 let createOrUpdateSpy: ReturnType<typeof jest.spyOn>;
@@ -223,11 +235,23 @@ beforeEach(() => {
       return { data: [], count: 0, skip: 0, limit: 10 };
     });
   ruleCounts = {};
+  fixingRuleCounts = {};
+  fixingCountError = null;
   jest
     .spyOn(ModelAPI, "count")
     .mockImplementation(async (data: unknown): Promise<number> => {
       const modelName: string =
         (data as { modelType?: { name?: string } }).modelType?.name || "";
+      const query: Record<string, unknown> =
+        (data as { query?: Record<string, unknown> }).query || {};
+
+      if (query["fixes"] === true) {
+        if (fixingCountError) {
+          throw fixingCountError;
+        }
+
+        return fixingRuleCounts[modelName] ?? ruleCounts[modelName] ?? 0;
+      }
 
       return ruleCounts[modelName] || 0;
     });
@@ -403,6 +427,200 @@ function detailValue(title: string): string {
   return (row?.textContent || "").replace(title, "").trim();
 }
 
+/*
+ * With AI rules, OneUptime AI fixes only what a rule that fixes matches:
+ * once every enabled rule says Don't fix, nothing is fixed - while "Fix new
+ * incidents automatically" stays on and still says it fixes each one. The
+ * switch says so under its sentences, with the way to the rules, and only
+ * then (AiRulesFixNothing).
+ */
+describe("the fix switch says when every AI rule says Don't fix", () => {
+  const INCIDENT_FIX: string = getProjectAiSwitchTestId(
+    "enableAutomaticIncidentRemediation",
+  );
+  const ALERT_FIX: string = getProjectAiSwitchTestId(
+    "enableAutomaticAlertRemediation",
+  );
+
+  async function warningOf(switchTestId: string): Promise<HTMLElement> {
+    return await screen.findByTestId(
+      getModelSwitchWarningTestId(switchTestId),
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+  }
+
+  test("on, with two rules that fix nothing: nothing is fixed, and the way to the rules", async () => {
+    stored = projectWith({ enableAutomaticIncidentRemediation: true });
+    ruleCounts = { AutoRemediationRule: 2 };
+    fixingRuleCounts = { AutoRemediationRule: 0 };
+
+    openIncidentPage();
+
+    const warning: HTMLElement = await warningOf(INCIDENT_FIX);
+
+    expect(warning).toHaveTextContent(
+      "Every enabled AI rule is set to “Don't fix”, so nothing is fixed. Review the AI rules",
+    );
+    // Under the fix switch's own sentences, in its row.
+    expect(screen.getByTestId(`${INCIDENT_FIX}-row`).contains(warning)).toBe(
+      true,
+    );
+    // Read out with the switch: part of what describes it.
+    const control: HTMLElement = screen.getByTestId(INCIDENT_FIX);
+    const describedBy: Array<string> = (
+      control.getAttribute("aria-describedby") || ""
+    ).split(" ");
+    expect(
+      describedBy.some((id: string): boolean => {
+        return Boolean(document.getElementById(id)?.contains(warning));
+      }),
+    ).toBe(true);
+
+    // The link opens More settings at the AI rules, on this page.
+    const link: HTMLElement = within(warning).getByRole("link", {
+      name: "Review the AI rules",
+    });
+    expect(link.getAttribute("href")).toBe(
+      `/dashboard/${PROJECT_ID}/incidents/ai/settings#AiRules`,
+    );
+
+    // Only the fix switch says it.
+    expect(
+      screen.queryByTestId(
+        getModelSwitchWarningTestId(
+          getProjectAiSwitchTestId("enableAutomaticIncidentInvestigation"),
+        ),
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByTestId(AI_RULES_FIX_NOTHING_TEST_IDS.warning),
+    ).toHaveLength(1);
+  });
+
+  test("a rule that fixes, no rules at all, or a count that could not be read: nothing to say", async () => {
+    stored = projectWith({ enableAutomaticIncidentRemediation: true });
+
+    for (const [enabled, fixing] of [
+      [2, 1],
+      [0, 0],
+    ] as Array<[number, number]>) {
+      cleanup();
+      ruleCounts = { AutoRemediationRule: enabled };
+      fixingRuleCounts = { AutoRemediationRule: fixing };
+
+      openIncidentPage();
+      await findSwitch(INCIDENT_FIX);
+      await flush();
+
+      expect(
+        screen.queryByTestId(getModelSwitchWarningTestId(INCIDENT_FIX)),
+      ).not.toBeInTheDocument();
+    }
+
+    cleanup();
+    ruleCounts = { AutoRemediationRule: 2 };
+    fixingCountError = new Error("You do not have permission to read rules");
+
+    openIncidentPage();
+    await findSwitch(INCIDENT_FIX);
+    await flush();
+
+    expect(
+      screen.queryByTestId(getModelSwitchWarningTestId(INCIDENT_FIX)),
+    ).not.toBeInTheDocument();
+  });
+
+  test("off, it says nothing; turned on, it says nothing is fixed", async () => {
+    stored = projectWith({ enableAutomaticIncidentRemediation: false });
+    ruleCounts = { AutoRemediationRule: 3 };
+    fixingRuleCounts = { AutoRemediationRule: 0 };
+
+    openIncidentPage();
+
+    const control: HTMLElement = await findSwitch(INCIDENT_FIX);
+    await flush();
+
+    expect(
+      screen.queryByTestId(getModelSwitchWarningTestId(INCIDENT_FIX)),
+    ).not.toBeInTheDocument();
+
+    await press(control);
+
+    expect(await warningOf(INCIDENT_FIX)).toHaveTextContent(
+      "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.",
+    );
+  });
+
+  /*
+   * A telemetry lane the same way: "Find and fix slow code" finds and
+   * looks into slow code, and opens no pull request on its own once every
+   * rule says Don't fix - Fix with AI is still on each finding.
+   */
+  test("a telemetry lane's switch says no pull request opens on its own, with the way to its rules", async () => {
+    stored = projectWith({ enableAutomaticProfileRemediation: true });
+    ruleCounts = { AutoRemediationRule: 2 };
+    fixingRuleCounts = { AutoRemediationRule: 0 };
+
+    openPage(
+      <ProfilesAISettings {...PAGE_PROPS} />,
+      `/dashboard/${PROJECT_ID}/profiles/ai/settings`,
+    );
+
+    const warning: HTMLElement = await warningOf(
+      getProjectAiSwitchTestId("enableAutomaticProfileRemediation"),
+    );
+
+    expect(warning).toHaveTextContent(
+      "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own. Review the AI rules",
+    );
+    expect(
+      within(warning).getByRole("link", { name: "Review the AI rules" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/profiles/ai/settings#telemetry-ai-rules-table-Profile`,
+    );
+  });
+
+  test("the alerts' fix switch says it too, for the alert rules, with the way to them", async () => {
+    stored = projectWith({ enableAutomaticAlertRemediation: true });
+    ruleCounts = { AutoRemediationRule: 1 };
+    fixingRuleCounts = { AutoRemediationRule: 0 };
+
+    openAlertPage();
+
+    const warning: HTMLElement = await warningOf(ALERT_FIX);
+
+    expect(
+      within(warning).getByRole("link", { name: "Review the AI rules" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/alerts/ai/settings#AiRules`,
+    );
+
+    // The alert rules were counted, never the incidents'.
+    const fixingQueries: Array<Record<string, unknown>> = (
+      (ModelAPI.count as unknown as { mock: { calls: Array<Array<unknown>> } })
+        .mock.calls as Array<Array<{ query: Record<string, unknown> }>>
+    )
+      .map((call: Array<{ query: Record<string, unknown> }>) => {
+        return call[0]!.query;
+      })
+      .filter((query: Record<string, unknown>): boolean => {
+        return query["fixes"] === true;
+      });
+
+    expect(fixingQueries.length).toBeGreaterThan(0);
+    for (const query of fixingQueries) {
+      expect(query).toEqual({
+        triggerEntityType: "Alert",
+        isEnabled: true,
+        fixes: true,
+      });
+    }
+  });
+});
+
 describe("Incidents → AI → Settings", () => {
   test("every AI behaviour is a switch, in order, with what the project has", async () => {
     stored = projectWith({
@@ -540,7 +758,7 @@ describe("Incidents → AI → Settings", () => {
         `${getProjectAiSwitchTestId("enableAutomaticIncidentRemediation")}-row`,
       ),
     ).toHaveTextContent(
-      "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks, or with a pull request.",
+      "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.",
     );
   });
 
@@ -996,7 +1214,7 @@ describe("Alerts → AI → Settings", () => {
         `${getProjectAiSwitchTestId("enableAutomaticAlertRemediation")}-row`,
       ),
     ).toHaveTextContent(
-      "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks, or with a pull request.",
+      "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks or MCP servers, or with a pull request.",
     );
   });
 
@@ -1112,8 +1330,15 @@ describe("Alerts → AI → Settings", () => {
     });
 
     expect(queries.length).toBeGreaterThan(0);
+    /*
+     * The alert rules alone: how many are on, and - for the fix switch's
+     * "nothing is fixed" line - how many of them fix.
+     */
     for (const query of queries) {
-      expect(query).toEqual({ triggerEntityType: "Alert", isEnabled: true });
+      expect([
+        { triggerEntityType: "Alert", isEnabled: true },
+        { triggerEntityType: "Alert", isEnabled: true, fixes: true },
+      ]).toContainEqual(query);
     }
   });
 

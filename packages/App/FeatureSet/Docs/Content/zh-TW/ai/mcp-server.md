@@ -9,6 +9,8 @@ OneUptime MCP 伺服器讓 AI 助理可以直接操作您的 OneUptime 專案。
 - [疑難排解](#疑難排解): 登入、權限和連線問題。
 :::
 
+本頁介紹連線到 OneUptime 的 AI 助理。如果要反過來讓 OneUptime AI 使用其他 MCP 伺服器（例如 AWS 或 GitHub 的）的工具，請參閱 [外部 MCP 伺服器](/docs/ai/external-mcp-servers)。
+
 ## 運作方式
 
 MCP 伺服器是每個 OneUptime 執行個體的一部分，位於與儀表板相同位址的 `/mcp`，使用 streamable HTTP 傳輸。不需要安裝任何東西。

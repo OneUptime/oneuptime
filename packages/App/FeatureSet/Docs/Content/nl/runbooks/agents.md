@@ -5,7 +5,7 @@ Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf ge
 :::cards
 - [Een Runner installeren](#een-runner-installeren): Van het dashboard naar een verbonden container, in vijf stappen.
 - [Een stap op een Runner richten](#een-stap-op-een-runner-richten): Een stap koppelen aan de Runner die hem moet uitvoeren.
-- [De standaard-Runner van het project](#de-standaard-runner-van-het-project): De Runner waarop een stap loopt die er geen kiest.
+- [De standaard-Runner van het project](#de-standaard-runner-van-het-project): De Runner waarop een stap of code-repository loopt die er geen kiest.
 - [Globale Runners](#globale-runners): De Runners die OneUptime voor elk project draait, en wat ze uitvoeren.
 - [Time-outs](#time-outs): Claim- en uitvoeringstime-outs, en hoe ze samenwerken.
 - [Omgevingsvariabelen](#omgevingsvariabelen): Wat de container bij het starten leest.
@@ -70,7 +70,7 @@ Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt 
 - Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele.
 - Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
 
-Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
+Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op de standaard-Runner van het project of, als er geen is ingesteld, op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
 
 ### Waar globale Runners vandaan komen
 
@@ -156,7 +156,7 @@ Meer dan één Runner nodig? Maak ze en richt elke stap op de juiste. Voor redun
 
 ## De standaard-Runner van het project
 
-Een project kan een van zijn eigen Runners zijn standaard maken, zoals het een Twilio-configuratie zijn standaard maakt. Elke runbookstap die geen Runner kiest, loopt dan daarop: Bash-, SSH- en kubectl-stappen, en JavaScript-stappen, die anders op een globale Runner zouden lopen.
+Een project kan een van zijn eigen Runners zijn standaard maken, zoals het een Twilio-configuratie zijn standaard maakt. Elke runbookstap die geen Runner kiest, loopt dan daarop: Bash-, SSH- en kubectl-stappen, en JavaScript-stappen, die anders op een globale Runner zouden lopen. Hetzelfde geldt voor AI in elke code-repository die in zijn instellingen in Code geen Runner kiest.
 
 Om een Runner de standaard te maken, gaat u naar **Runbooks → Runbook-agenten**, opent u het menu **⋯** in de rij van de Runner, klikt u op **Instellen als projectstandaard** en bevestigt u met **Projectstandaard maken**. Of open de Runner en zet op zijn kaart **Projectstandaard** de schakelaar **Als projectstandaard gebruiken** aan. De lijst markeert de standaard met **Projectstandaard**, naast zijn naam, en de vervolgkeuzelijst **Runner** van een stap doet dat ook, bij de eerste keuze. Een project heeft één standaard-Runner: een andere Runner de standaard maken vervangt hem. **Niet meer als projectstandaard gebruiken**, in hetzelfde menu, of de schakelaar op de pagina van de Runner, stopt het gebruik ervan.
 
@@ -172,7 +172,7 @@ Een stap die een Runner heeft gekozen, houdt die, wat de standaard ook is, en ee
 
 De standaard is een van de eigen Runners van het project die runbookstappen uitvoert: geen globale Runner, niet de Runner in het cluster die de Kubernetes-agent heeft geïnstalleerd, en geen Runner waarbij **Voert Runbooks uit** uit staat. Zolang een Runner de standaard is, blijft zijn **Voert Runbooks uit** aan. Als de standaard niet verbonden is, zegt de vervolgkeuzelijst van een stap dat, en een stap erop wacht erop, zoals op elke Runner, tot zijn claim timeout verstrijkt.
 
-Alleen runbookstappen gebruiken de standaard. Een code-repository kiest zijn Runner in zijn instellingen in Code, en een AI-regel kiest zijn eigen Runner.
+Runbookstappen en code-repositories die geen Runner kiezen, gebruiken de standaard en verhuizen mee wanneer een andere Runner de standaard wordt. Een AI-regel kiest zijn eigen Runner, en een nieuwe regel begint op de standaard.
 
 ## Beheernotities
 

@@ -395,6 +395,13 @@ export interface CodeTaskOriginJSON {
   recordId?: string | undefined;
   // A GitHub issue or pull request to link to.
   url?: string | undefined;
+  /*
+   * An Insight's kind (AIInsightType), when it was read: where it opens -
+   * a telemetry lane's finding opens in its lane's own AI section (slow
+   * code in the Profiler, an error log in Logs), as its pull request links
+   * it; any other in AI Insights.
+   */
+  insightType?: string | undefined;
 }
 
 /*

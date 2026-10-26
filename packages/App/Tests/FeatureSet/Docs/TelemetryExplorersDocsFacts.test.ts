@@ -1229,6 +1229,51 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     );
   });
 
+  /*
+   * A fix for the trace that already did its work is linked, never offered
+   * again (FixPerformanceTaskTrigger answers Done, the strip draws it), and
+   * what else stops AI - Code's gate, asked by CodeFixStartGate - is said
+   * with the step that clears it (the strip draws Code's own notice).
+   */
+  it("says a trace whose fix did its work links to it, and what else stops AI is said with its fix", () => {
+    const suggestionCopy: string = readDashboardSource(
+      "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",
+    );
+    const strip: string = readDashboardSource(
+      "Components/Traces/TraceDetail/TracePerformanceSuggestion.tsx",
+    );
+    const trigger: string = readCommonSource(
+      "Server/Utils/AI/SRE/FixPerformanceTaskTrigger.ts",
+    );
+    const offer: string = readCommonSource(
+      "Utils/Suggestions/SuggestionOffer.ts",
+    );
+
+    // Done is an offer, and the trace's own trigger answers it.
+    expect(offer).toContain('Done = "Done",');
+    expect(trigger).toContain("findFinishedFix");
+    expect(trigger).toContain("PERFORMANCE_FIX_ALREADY_DONE_MESSAGE");
+    expect(suggestionCopy).toContain('translationKey("View the task")');
+    // Code's gate, asked for the run the click would queue, in Code's words.
+    expect(trigger).toContain("CodeFixStartGate.check(");
+    expect(strip).toContain("<CodeBlockerNotice");
+    // The three the page names are what Code's gate says them as.
+    const gate: string = readCommonSource(
+      "Server/Utils/AI/CodeTask/CodeTaskGate.ts",
+    );
+    for (const blocker of [
+      "CodeTaskBlockerType.PlanRequired",
+      "CodeTaskBlockerType.NoAiCredits",
+      "getRepositoryRunnerBlocker(",
+    ]) {
+      expect(gate).toContain(blocker);
+    }
+
+    expect(page).toContain(
+      "Once a fix for the trace has done its work, the trace links to that fix's task instead of offering a second one. When something else stops AI working, such as the plan, used-up AI credits or no Runner online, the trace says what, with the link that clears it.",
+    );
+  });
+
   it("quotes the finding as the strip words it", () => {
     const suggestionCopy: string = readDashboardSource(
       "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",

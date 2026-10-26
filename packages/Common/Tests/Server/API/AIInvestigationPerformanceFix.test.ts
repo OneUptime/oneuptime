@@ -4,6 +4,14 @@ import ServiceService from "../../../Server/Services/ServiceService";
 import SpanService from "../../../Server/Services/SpanService";
 import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
 import SubjectCodeFixRun from "../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
+import CodeFixStartGate, {
+  CodeFixStart,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
+import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -148,6 +156,19 @@ beforeEach(() => {
   jest
     .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
     .mockResolvedValue(true);
+  // No fix for the trace did its work yet, and Code's gate says nothing.
+  jest
+    .spyOn(FixPerformanceTaskTrigger, "findFinishedFix")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(SubjectCodeFixRun, "findFinishedPerformanceFixRunForTrace")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(CodeFixStartGate, "check")
+    .mockResolvedValue({ codeRepositoryId: null, blocker: null });
+  jest
+    .spyOn(ServiceService, "findOneById")
+    .mockResolvedValue({ name: "checkout-service" } as unknown as Service);
 });
 
 afterEach(() => {
@@ -223,6 +244,8 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
       offer: "None",
       finding: null,
       findingCount: 0,
+      fixOutcome: null,
+      blocker: null,
       aiRunId: null,
     });
   });
@@ -277,6 +300,61 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
         offer: SuggestionOffer.InProgress,
         aiRunId: runId.toString(),
       }),
+    );
+  });
+
+  test("a fix that already did its work: Done, with its run and how it came out", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(FixPerformanceTaskTrigger, "findFinishedFix").mockResolvedValue({
+      aiRunId: "70000000-0000-4000-8000-000000000010",
+      outcome: FinishedFixOutcome.NothingToChange,
+    });
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual(
+      expect.objectContaining({
+        offer: "Done",
+        fixOutcome: "NothingToChange",
+        blocker: null,
+        aiRunId: "70000000-0000-4000-8000-000000000010",
+      }),
+    );
+    expect(parseTracePerformanceFixSuggestion(call.json).offer).toBe(
+      SuggestionOffer.Done,
+    );
+  });
+
+  test("Code's gate says the plan does not include AI in Code: SetUp, with the blocker as the page draws it", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
+      codeRepositoryId: new ObjectID("50000000-0000-4000-8000-000000000005"),
+      blocker: {
+        type: CodeTaskBlockerType.PlanRequired,
+        message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+      },
+    } as CodeFixStart);
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json?.["offer"]).toBe("SetUp");
+    expect(call.json?.["blocker"]).toEqual({
+      type: CodeTaskBlockerType.PlanRequired,
+      message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+      repositoryId: "50000000-0000-4000-8000-000000000005",
+    });
+    expect(parseTracePerformanceFixSuggestion(call.json).blocker?.type).toBe(
+      CodeTaskBlockerType.PlanRequired,
+    );
+    // The gate was asked about the trace's service, read as OneUptime.
+    expect(ServiceService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({ props: { isRoot: true } }),
     );
   });
 });
@@ -336,6 +414,53 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
 
     expect((call.thrown as Error).message).toMatch(
       /^Nothing in this trace is worth an AI performance fix\./,
+    );
+  });
+
+  /*
+   * The real trigger behind the route, with only its reads stubbed: what
+   * the suggestion would have said as a set-up step, the click is refused
+   * with - as the error of its kind, so a plan below Growth is a 402 the
+   * way Code refuses it.
+   */
+  test("Code's gate says the plan does not include AI in Code: refused as a payment, nothing queued", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
+      codeRepositoryId: null,
+      blocker: {
+        type: CodeTaskBlockerType.PlanRequired,
+        message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+      },
+    } as CodeFixStart);
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeInstanceOf(PaymentRequiredException);
+    expect((call.thrown as Error).message).toBe(
+      CODE_TASK_PLAN_REQUIRED_MESSAGE,
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("a fix for the trace already did its work: refused, pointing at its task", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest
+      .spyOn(SubjectCodeFixRun, "findFinishedPerformanceFixRunForTrace")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect((call.thrown as Error).message).toMatch(
+      /^OneUptime AI already worked on a fix for this trace\./,
     );
   });
 });

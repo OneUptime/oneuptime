@@ -56,6 +56,9 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
   const apiKeysRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
   );
+  const externalMcpServersRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route,
+  );
 
   return (
     <div>
@@ -305,6 +308,27 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
                     className="underline"
                   >
                     {translator.translateText("MCP server documentation")}
+                  </Link>
+                ),
+              }}
+            />
+          </p>
+          {/*
+           * The other way round, one line: this page lets agents use
+           * OneUptime's tools, and External MCP Servers lets OneUptime AI use
+           * other servers' - a person looking for one finds the other here.
+           */}
+          <p data-testid="mcp-server-external-servers">
+            <TranslatedSentence
+              template="To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in {{externalServersLink}}."
+              slots={{
+                externalServersLink: (
+                  <Link
+                    to={externalMcpServersRoute}
+                    className="underline"
+                    dataTestId="mcp-server-external-servers-link"
+                  >
+                    {translator.translateText("External MCP Servers")}
                   </Link>
                 ),
               }}

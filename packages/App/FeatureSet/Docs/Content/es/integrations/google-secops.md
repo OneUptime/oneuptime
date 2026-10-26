@@ -227,7 +227,18 @@ Un [feed de inteligencia de amenazas](/docs/telemetry/threat-intelligence#cómo-
 
 ## Enviar eventos de seguridad a Google SecOps
 
-OneUptime también puede enviar lo que encuentra a Google SecOps, para que el SIEM en el que trabaja su equipo vea las detecciones de OneUptime junto a las suyas. Cada evento de seguridad se importa como evento UDM: un inicio de sesión como `USER_LOGIN`, el inicio de un proceso como `PROCESS_LAUNCH`, una conexión de red como `NETWORK_CONNECTION` y todo lo demás como `GENERIC_EVENT`, con su gravedad, sus etiquetas de MITRE ATT&CK y la regla que lo encontró.
+OneUptime también puede enviar lo que encuentra a Google SecOps, para que el SIEM en el que trabaja su equipo vea las detecciones de OneUptime junto a las suyas. Cada evento de seguridad se importa como evento UDM, con su gravedad, sus etiquetas de MITRE ATT&CK y la regla que lo encontró:
+
+| Evento de seguridad | Tipo de evento UDM |
+| --- | --- |
+| Un inicio de sesión | `USER_LOGIN` |
+| Un proceso iniciado, abierto, inyectado o finalizado | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| Un proceso que elevó sus privilegios | `PROCESS_PRIVILEGE_ESCALATION` |
+| Cualquier otra actividad de proceso | `PROCESS_UNCATEGORIZED` |
+| Una conexión de red | `NETWORK_CONNECTION` |
+| Todo lo demás, o un evento sin los campos que necesita su tipo | `GENERIC_EVENT` |
+
+En un evento de proceso, `principal` es el proceso que actuó y `target`, el proceso sobre el que actuó: en un inicio, el proceso padre y el proceso que inició.
 
 :::steps
 ### Crear una clave que pueda importar eventos

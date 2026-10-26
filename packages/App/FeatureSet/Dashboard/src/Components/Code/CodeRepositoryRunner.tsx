@@ -2,24 +2,27 @@ import RunnerPicker from "../Runner/RunnerPicker";
 import RunnerChoicesLoader, { RunnerChoices } from "../Runner/RunnerChoices";
 import { RunnerLiveStatusBubble } from "../Runner/RunnerStatus";
 import {
-  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   CODE_HIDDEN_RUNNER_LABEL,
-  CODE_OWN_RUNNER_HELPER_TEXT,
+  CodeRepositoryRunnerWords,
   GLOBAL_RUNNER_CHOICE_LABEL,
-  GLOBAL_RUNNER_CHOICE_VALUE,
+  PROJECT_DEFAULT_TAG,
   RunnerPickerModel,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
   RunnerPickerWork,
   buildRunnerPickerModel,
+  getCodeRepositoryRunnerWords,
 } from "../Runner/RunnerPickerModel";
+import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
 import useRefreshRunnerChoicesOnFocus from "../Runner/useRefreshRunnerChoicesOnFocus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { Green } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
-import { getRepositoryRunnerId } from "Common/Types/Runner/CodeRepositoryRunner";
+import { getChosenRunnerId } from "Common/Types/Runner/RunnerChoice";
 import Link from "Common/UI/Components/Link/Link";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -32,9 +35,12 @@ import React, {
 } from "react";
 
 /*
- * A code repository's Runner setting in Code (CodeRepository.runnerId): the
- * Runner AI works in the repository on - Global Runner, one OneUptime runs
- * for every project, unless the repository picks one of the project's own
+ * A code repository's Runner setting in Code (CodeRepository.runnerId and
+ * isGlobalRunnerPicked, held as one choice: CodeRepositoryRunnerChoice):
+ * the Runner AI works in the repository on - the project's default Runner
+ * when it has one, and the Global Runner, one OneUptime runs for every
+ * project, while it has none, unless the repository picks one of the
+ * project's own, or the Global Runner itself
  * (Common/Types/Runner/CodeRepositoryRunner).
  *
  * Each half reads the choices (RunnerChoicesLoader.loadForCodeRepository,
@@ -65,6 +71,10 @@ export const CODE_REPOSITORY_RUNNER_VALUE_TEST_ID: string =
 // The line under Global Runner: it does not build or test AI's change.
 export const CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID: string =
   "code-repository-runner-skips";
+
+// "Project default", beside the default Runner a repository follows.
+export const CODE_REPOSITORY_RUNNER_DEFAULT_TAG_TEST_ID: string =
+  "code-repository-runner-default-tag";
 
 export const CodeRepositoryRunnerCopy: {
   fieldTitle: string;
@@ -139,12 +149,23 @@ export function useCodeRepositoryRunnerChoices(): RunnerChoices | null {
 }
 
 export interface CodeRepositoryRunnerPickerProps {
-  // The Runner the repository picks, as the form holds it; empty for none.
+  /*
+   * The repository's choice, as the form holds it
+   * (getCodeRepositoryRunnerChoice): a Runner's id, the Global Runner's own
+   * pick, or empty for none.
+   */
   value: unknown;
-  // The Runner picked: its id, or null for Global Runner.
-  onChange: (runnerId: string | null) => void;
+  // The choice picked, in the same words.
+  onChange: (choice: string) => void;
   // The label the form drew for the field, read out with the menu.
   ariaLabelledby?: string | undefined;
+  /*
+   * Where the repository is hosted (CodeHost): the lines under the picker
+   * say what AI's work becomes there - a merge request on GitLab, a pushed
+   * branch on a Git server (getCodeRepositoryRunnerWords). Left out, a pull
+   * request.
+   */
+  provider?: string | null | undefined;
 }
 
 export const CODE_REPOSITORY_RUNNER_LOADING_TEST_ID: string =
@@ -155,6 +176,9 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
 > = (props: CodeRepositoryRunnerPickerProps): ReactElement => {
   const translator: Translator = useTranslator();
   const choices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
+  const words: CodeRepositoryRunnerWords = getCodeRepositoryRunnerWords(
+    props.provider,
+  );
 
   if (!choices) {
     // The menu's own height, so the step does not jump when it arrives.
@@ -172,16 +196,13 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
       isFormField={true}
       ariaLabelledby={props.ariaLabelledby}
       stepType=""
-      value={getRepositoryRunnerId(props.value)}
-      onChange={(runnerId: string): void => {
-        props.onChange(
-          runnerId === GLOBAL_RUNNER_CHOICE_VALUE ? null : runnerId,
-        );
+      value={getChosenRunnerId(props.value)}
+      onChange={(choice: string): void => {
+        props.onChange(choice);
       }}
       choices={choices}
-      ownRunnerHelperText={translator.translateText(
-        CODE_OWN_RUNNER_HELPER_TEXT,
-      )}
+      codeRepositoryWords={words}
+      ownRunnerHelperText={translator.translateText(words.ownRunnerHelperText)}
       dataTestId={CODE_REPOSITORY_RUNNER_PICKER_TEST_ID}
     />
   );
@@ -189,6 +210,9 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
 
 export interface CodeRepositoryRunnerValueProps {
   runnerId: unknown;
+  isGlobalRunnerPicked?: unknown;
+  // Where the repository is hosted, as the picker's `provider`.
+  provider?: string | null | undefined;
 }
 
 /*
@@ -203,6 +227,8 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
   return (
     <CodeRepositoryRunnerValueView
       runnerId={props.runnerId}
+      isGlobalRunnerPicked={props.isGlobalRunnerPicked}
+      provider={props.provider}
       choices={choices}
     />
   );
@@ -210,6 +236,13 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
 
 export interface CodeRepositoryRunnerValueViewProps {
   runnerId: unknown;
+  // Whether the repository picked the Global Runner itself.
+  isGlobalRunnerPicked?: unknown;
+  /*
+   * Where the repository is hosted, as the picker's `provider`: the line
+   * under Global Runner says what AI's work becomes there.
+   */
+  provider?: string | null | undefined;
   /*
    * The choices, as a page read them (useCodeRepositoryRunnerChoices) - the
    * Settings page reads them once for this value and for what More settings
@@ -220,19 +253,26 @@ export interface CodeRepositoryRunnerValueViewProps {
 
 /*
  * What the repository runs on, as the card shows it: "Global Runner", or
- * the Runner's name - a link to its page - and how it is doing, as the
- * Runners page draws it (a green dot for Connected, red for Disconnected,
- * grey for Never connected). It stays still: a settings value, not a live
- * view. On Global Runner the line under it says that Runner does not build
- * or test AI's change before the pull request opens - what a Runner of the
- * project's own does, the way the repository's AGENTS.md says.
+ * the Runner's name - a link to its page, tagged "Project default" when the
+ * repository follows the project's default Runner - and how it is doing, as
+ * the Runners page draws it (a green dot for Connected, red for
+ * Disconnected, grey for Never connected). It stays still: a settings
+ * value, not a live view. On Global Runner the line under it says that
+ * Runner does not build or test AI's change before the pull request opens
+ * (the merge request on GitLab, the pushed branch on a Git server) - what a
+ * Runner of the project's own does, the way the repository's AGENTS.md
+ * says. The "Project default" tag is the pill the Runners list draws
+ * beside the default's name.
  */
 export const CodeRepositoryRunnerValueView: FunctionComponent<
   CodeRepositoryRunnerValueViewProps
 > = (props: CodeRepositoryRunnerValueViewProps): ReactElement => {
   const translator: Translator = useTranslator();
   const choices: RunnerChoices | null = props.choices;
-  const runnerId: string = getRepositoryRunnerId(props.runnerId);
+  const choice: string = getCodeRepositoryRunnerChoice({
+    runnerId: props.runnerId,
+    isGlobalRunnerPicked: props.isGlobalRunnerPicked,
+  });
 
   if (!choices) {
     // A value's own line, so the rows below do not jump when it arrives.
@@ -247,7 +287,7 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
   const model: RunnerPickerModel = buildRunnerPickerModel({
     work: RunnerPickerWork.CodeRepository,
     stepType: "",
-    currentRunnerId: runnerId,
+    currentRunnerId: choice,
     projectRunners: choices.projectRunners,
     globalRunners: choices.globalRunners,
     projectUsesGlobalRunners: choices.projectUsesGlobalRunners,
@@ -302,6 +342,37 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
   }
 
   /*
+   * The project's default Runner, by its name and tagged as the default,
+   * as the picker's first choice reads: the repository follows it.
+   */
+  if (
+    model.selected?.kind === RunnerPickerOptionKind.ProjectDefault &&
+    model.selected.runnerId
+  ) {
+    return withStatus(
+      <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <Link
+          to={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route,
+            { modelId: model.selected.runnerId },
+          )}
+          className="min-w-0 break-words font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+        >
+          <>{model.selected.name}</>
+        </Link>
+        {/* As Runbooks -> Runners marks the default, beside its name. */}
+        <span data-testid={CODE_REPOSITORY_RUNNER_DEFAULT_TAG_TEST_ID}>
+          <Pill
+            text={PROJECT_DEFAULT_TAG}
+            color={Green}
+            size={PillSize.Small}
+          />
+        </span>
+      </span>,
+    );
+  }
+
+  /*
    * A pick the reader is not shown: one of the project's Runners they may
    * not see. Nothing is wrong with it, so it is said in the value's own
    * colour.
@@ -339,6 +410,6 @@ export const CodeRepositoryRunnerValueView: FunctionComponent<
 
   return withStatus(
     <span>{translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}</span>,
-    CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    getCodeRepositoryRunnerWords(props.provider).globalRunnerDescription,
   );
 };

@@ -44,7 +44,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
-| **Waiting for Approval** | Playbooks | The playbook steps waiting for someone to approve or reject them |
+| **Approvals** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
 | **Protected Entities** | Playbooks | The users and hosts no playbook contains |
 | **Settings** | AI | Whether OneUptime AI triages each new case |
@@ -205,10 +205,12 @@ Every event is stored with typed fields and its source payload:
 | Severity | `severityName`, one of Unknown, Informational, Low, Medium, High, Critical, Fatal or Other, and `severityId` |
 | Who did it | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | What it touched | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| The process | `processName`, `processPath` and `processCommandLine`: in a process launch the process that started, otherwise the process that acted. `parentProcessName`, `parentProcessPath` and `parentProcessCommandLine`: the process that started it |
+| The process | `processName`, `processPath` and `processCommandLine`: in a process activity the process launched, opened, injected into or ended, otherwise the process that acted. `parentProcessName`, `parentProcessPath` and `parentProcessCommandLine`: the process that started it |
 | Source | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Content | `message`, `mitreTactics`, `mitreTechniques` and `observables`: every user, host, IP address, domain and hash taken from the event |
 | Attributes | The whole source payload, flattened to dotted keys |
+
+Events stored before OneUptime 14.0.84 leave the process fields empty and name their process only as `principalProcess`, the process that acted. They are not filled in afterwards: they keep what they were stored with until their retention ends.
 
 ## Explore security events
 

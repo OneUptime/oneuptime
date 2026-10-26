@@ -13,15 +13,20 @@ import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import { TracePerformanceFixSuggestion } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { formatDurationNano } from "../../../Utils/TraceDetailPresentation";
+import CodeBlockerNotice from "../../Code/CodeBlockerNotice";
 import {
   AI_IS_WORKING_ON_A_FIX,
   CONNECT_REPOSITORY_TO_FIX,
   COULD_NOT_START_THE_FIX,
+  FINISHED_FIX_LINKS,
+  FINISHED_FIX_MARKS,
+  FINISHED_FIX_SENTENCES,
   FIX_PERFORMANCE_BUTTON_TITLE,
   FIX_PERFORMANCE_BUTTON_TOOLTIP,
   PerformanceFindingWords,
   SHOW_IT,
   SHOW_THEM,
+  TRACE_FIX_PERFORMANCE_DONE_TEST_IDS,
   VIEW_TASK_PROGRESS,
   getPerformanceFindingWords,
 } from "./TracePerformanceSuggestionCopy";
@@ -35,7 +40,7 @@ export interface ComponentProps {
   suggestion: TracePerformanceFixSuggestion;
   /*
    * The fix run to link to: the one just created on this page, or the one
-   * the server says is already on its way.
+   * the server says is already on its way, or already done.
    */
   taskRoute: Route | null;
   // Where a repository is connected (Code).
@@ -57,9 +62,12 @@ const LINK_CLASS_NAME: string =
 /*
  * "Fix performance with AI", only on a trace worth fixing, saying what it
  * found: the slow pattern in plain words, what it costs, and the one next
- * step - the fix, a quiet link to connect a repository, or a link to the
- * fix already on its way. A trace with nothing worth fixing shows nothing
- * at all (the header does not draw this component).
+ * step - the fix, a quiet link to connect a repository, what else stops
+ * AI working now in Code's own words (the plan, AI credits, a Runner
+ * online - with the link that clears it), a link to the fix already on its
+ * way, or how the fix that already did its work came out, with a link to
+ * its task. A trace with nothing worth fixing shows nothing at all (the
+ * header does not draw this component).
  *
  * The clock marks a finding about time; the bolt stays the AI fix's own.
  * The next step sits under the words, lined up with them, and beside them
@@ -81,6 +89,8 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
     suggestion.finding,
   );
 
+  const isDone: boolean = suggestion.offer === SuggestionOffer.Done;
+
   const isWorking: boolean =
     Boolean(props.taskRoute) &&
     (suggestion.offer === SuggestionOffer.InProgress ||
@@ -88,7 +98,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
 
   // The next step is the fix button (not a link or a line of status).
   const isFixButton: boolean =
-    !isWorking && suggestion.offer !== SuggestionOffer.SetUp;
+    !isWorking && !isDone && suggestion.offer !== SuggestionOffer.SetUp;
 
   const name: (text: string) => ReactNode = (text: string): ReactNode => {
     return (
@@ -123,7 +133,52 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
     ),
   });
 
-  const getAction: () => ReactElement = (): ReactElement => {
+  const getAction: () => ReactElement | null = (): ReactElement | null => {
+    if (isDone) {
+      /*
+       * How the fix that already did its work came out, marked as Code
+       * marks its task, and where to read it - in the words' own line.
+       */
+      if (!suggestion.fixOutcome) {
+        return null;
+      }
+
+      const mark: { icon: IconProp; className: string } =
+        FINISHED_FIX_MARKS[suggestion.fixOutcome];
+
+      return (
+        <div
+          className="flex items-start gap-2 text-sm text-gray-700"
+          data-testid={TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.done}
+          data-outcome={suggestion.fixOutcome}
+        >
+          <Icon
+            icon={mark.icon}
+            className={`mt-0.5 h-4 w-4 flex-none ${mark.className}`}
+          />
+          <p>
+            {translator.translateText(
+              FINISHED_FIX_SENTENCES[suggestion.fixOutcome],
+            )}
+            {props.taskRoute && (
+              <>
+                {" "}
+                <Link
+                  className={`sm:whitespace-nowrap ${LINK_CLASS_NAME}`}
+                  to={props.taskRoute}
+                  dataTestId={TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.link}
+                >
+                  {translator.translateText(
+                    FINISHED_FIX_LINKS[suggestion.fixOutcome],
+                  )}
+                </Link>
+              </>
+            )}
+          </p>
+        </div>
+      );
+    }
+
     if (isWorking && props.taskRoute) {
       /*
        * A live dot, as Code draws a task that is working, then where to
@@ -155,6 +210,23 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
             </Link>
           </p>
         </div>
+      );
+    }
+
+    if (suggestion.offer === SuggestionOffer.SetUp && suggestion.blocker) {
+      // In the strip's own amber, not a box of its own inside it.
+      return (
+        <CodeBlockerNotice
+          blocker={{
+            type: suggestion.blocker.type,
+            message: suggestion.blocker.message,
+            ...(suggestion.blocker.runnerName
+              ? { runnerName: suggestion.blocker.runnerName }
+              : {}),
+          }}
+          repositoryId={suggestion.blocker.repositoryId}
+          isInline={true}
+        />
       );
     }
 

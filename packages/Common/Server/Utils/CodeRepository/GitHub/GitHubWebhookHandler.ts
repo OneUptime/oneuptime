@@ -34,6 +34,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ProductionReviewQueue from "../ProductionReview/ProductionReviewQueue";
 import ProductionReviewGitHubTrigger from "../ProductionReview/ProductionReviewGitHubTrigger";
 import { ProductionReviewTrigger } from "../../../../Types/CodeRepository/ProductionReview";
+import { CodeRepositorySetting } from "../../../../Types/CodeRepository/CodeRepositorySetting";
+import ProductBrandingText from "../../ProductBrandingText";
 
 /*
  * The interactive half of the GitHub App: everything between a verified
@@ -1029,14 +1031,34 @@ export default class GitHubWebhookHandler {
     await GitHubWebhookHandler.reply({
       context: data.context,
       conversationNumber: data.conversationNumber,
-      body: GitHubReplyComposer.refusal({
-        reason:
-          data.context.authorization.reason ||
-          "GitHub commands are switched off for this repository.",
+      body: GitHubReplyComposer.commandsSwitchedOff({
+        productName: ProductBrandingText.getProductName(),
+        settingsUrl: GitHubWebhookHandler.getCommandsSwitchUrl(
+          data.context.authorization.codeRepository,
+        ),
       }),
     });
 
     return { handled: true, outcome: "commands-disabled" };
+  }
+
+  /*
+   * Where the repository's GitHub Commands switch is in the product: its
+   * Settings page in Code, at the switch. Null for a repository the
+   * answer cannot name (no ids), which is then pointed at in words.
+   */
+  private static getCommandsSwitchUrl(
+    codeRepository: CodeRepository | undefined,
+  ): string | null {
+    if (!codeRepository?.id || !codeRepository.projectId) {
+      return null;
+    }
+
+    return GitHubRunReply.buildRepositorySettingsUrl({
+      projectId: codeRepository.projectId,
+      codeRepositoryId: codeRepository.id,
+      setting: CodeRepositorySetting.GitHubCommands,
+    });
   }
 
   private static areCommandsDisabled(context: ResolvedWebhookContext): boolean {

@@ -1150,6 +1150,157 @@ test.describe("fix performance with AI", () => {
     );
   });
 
+  /*
+   * A fix for this trace that already did its work is not offered again:
+   * the strip says how it came out, marked as Code marks its task, and
+   * links to that task - and the create route refuses a second one, so
+   * nothing on the page can open another pull request for the same trace.
+   */
+  test("a fix that already opened its pull request: says so and links to its task, with no second fix", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "fix=done");
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    await expect(strip).toHaveAttribute("data-offer", "Done");
+    await expect(page.getByTestId("trace-performance-finding")).toHaveText(
+      "The same database query ran 40 times in ReportService.build",
+    );
+    const done: Locator = page.getByTestId("trace-fix-performance-done");
+    await expect(done).toHaveAttribute("data-outcome", "Fixed");
+    await expect(done).toHaveText(
+      "OneUptime AI already opened a pull request that fixes this. View the task",
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+    await expect(
+      strip.getByRole("button", { name: "Fix performance with AI" }),
+    ).toHaveCount(0);
+    await screenshot(page, "performance-fix-done", false);
+
+    await done.getByRole("link", { name: "View the task" }).click();
+    await expect(page.getByTestId("ai-task-page")).toContainText(
+      "70000000-0000-4000-8000-000000000010",
+    );
+  });
+
+  test("a fix that found nothing to change, and one that waits for an answer, say so in their own words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, outcome, sentence, linkWords] of [
+      [
+        "fix=nothing",
+        "NothingToChange",
+        "OneUptime AI already looked at this and found nothing to change.",
+        "View the task",
+      ],
+      // Waiting for an answer: the link is what to do there.
+      [
+        "fix=question",
+        "WaitingForYou",
+        "OneUptime AI has a question about fixing this.",
+        "Answer it",
+      ],
+    ]) {
+      await openLoaded(page, "report", query);
+
+      const done: Locator = page.getByTestId("trace-fix-performance-done");
+      await expect(done).toHaveAttribute("data-outcome", outcome!);
+      await expect(done).toHaveText(`${sentence!} ${linkWords!}`);
+      await expect(
+        done.getByRole("link", { name: linkWords!, exact: true }),
+      ).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID}/code/tasks/70000000-0000-4000-8000-000000000010`,
+      );
+      await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+      await screenshot(page, `performance-fix-${query!.split("=")[1]}`, false);
+    }
+  });
+
+  /*
+   * What Code's own gate says stops the run - the plan, AI credits, the
+   * repository's Runner - takes the button's place, in Code's words and
+   * with the step that clears it, instead of a click that would only
+   * queue a run that fails, or waits for a Runner that never comes.
+   */
+  test("Code's gate says the AI credits are used up: its words and where to add them, in place of the button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "gate=NoAiCredits");
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    await expect(strip).toHaveAttribute("data-offer", "SetUp");
+    const notice: Locator = strip.getByTestId("code-blocker");
+    await expect(notice).toHaveAttribute("data-blocker", "NoAiCredits");
+    await expect(notice).toContainText(
+      "This project's AI credits are used up.",
+    );
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
+      "Add AI credits",
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+    await expect(page.getByTestId("trace-fix-performance-connect")).toHaveCount(
+      0,
+    );
+    await screenshot(page, "performance-fix-blocked", false);
+  });
+
+  test("the repository's Runner is offline: names it, and opens the repository's settings at its Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "gate=RunnerNotOnline");
+
+    const notice: Locator = page
+      .getByTestId("trace-performance-suggestion")
+      .getByTestId("code-blocker");
+    await expect(notice.getByTestId("code-blocker-runner")).toHaveText(
+      "build-box",
+    );
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
+      "Pick a Runner",
+    );
+    expect(
+      await notice.getByTestId("code-blocker-fix").getAttribute("href"),
+    ).toContain("50000000-0000-4000-8000-000000000005");
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+  });
+
+  test("the plan does not include AI in Code: says so, with no button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "gate=PlanRequired");
+
+    await expect(
+      page
+        .getByTestId("trace-performance-suggestion")
+        .getByTestId("code-blocker"),
+    ).toContainText("AI in Code needs the Growth plan or above.");
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+  });
+
+  test("a fix already done is said before what Code's gate says now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "fix=done&gate=NoAiCredits");
+
+    await expect(
+      page.getByTestId("trace-performance-suggestion"),
+    ).toHaveAttribute("data-offer", "Done");
+    await expect(page.getByTestId("code-blocker")).toHaveCount(0);
+  });
+
   test("AI switched off for the project: the page does not ask, and shows nothing", async ({
     page,
   }: {
@@ -1444,6 +1595,8 @@ test.describe("phone", () => {
     for (const [query, testId] of [
       ["repo=none", "trace-fix-performance-connect"],
       ["fix=running", "trace-fix-performance-progress"],
+      ["fix=done", "trace-fix-performance-done"],
+      ["gate=NoAiCredits", "code-blocker"],
     ]) {
       await openLoaded(page, "report", query);
 
@@ -1454,7 +1607,17 @@ test.describe("phone", () => {
 
       expect(Math.abs(action.x - finding.x)).toBeLessThanOrEqual(1);
       expect(action.y).toBeGreaterThan(finding.y + finding.height - 1);
+      const overflow: number = await page.evaluate(() => {
+        return document.documentElement.scrollWidth - window.innerWidth;
+      });
+      expect(overflow).toBeLessThanOrEqual(1);
     }
+    await page.getByTestId("trace-performance-suggestion").screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "phone-performance-suggestion-blocked-synthetic.png",
+      ),
+    });
   });
 
   test("'Show them' puts the 40 queries in view with no sheet over them, the search on a row of its own", async ({

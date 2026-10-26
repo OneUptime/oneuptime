@@ -1956,6 +1956,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddCodeRepositoryRunnerPostgres.test.ts --forceExit
 
+      # A code repository that picks no Runner follows its project's default
+      # Runner. Clones the migrated Project, Runner, CodeRepository and AIRun
+      # tables into an isolated schema with the repository as it was before
+      # AddCodeRepositoryGlobalRunnerPick, runs it and
+      # KeepCodeRepositoriesOnGlobalRunners on seeded rows (a repository that
+      # picks none beside a default stays on its global Runner, by the rule a
+      # default must meet), then runs the code-fix claim's condition
+      # (CodeFixClaimQuery) for each worker: the default takes what follows
+      # it and lets go when another Runner is the default, a global Runner
+      # never takes a repository that follows a default.
+      - name: Test code repositories following the project's default Runner on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CODE_REPOSITORY_DEFAULT_RUNNER_TESTS: "true"
+          CODE_REPOSITORY_DEFAULT_RUNNER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CODE_REPOSITORY_DEFAULT_RUNNER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CODE_REPOSITORY_DEFAULT_RUNNER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/AI/CodeFix/CodeRepositoryDefaultRunnerPostgres.test.ts --forceExit
+
       # An auto remediation rule picks the Runner OneUptime AI runs its
       # commands on, and a Runner has no "Runs AI Remediation Commands"
       # switch. Clones the migrated Runner, AutoRemediationRule and

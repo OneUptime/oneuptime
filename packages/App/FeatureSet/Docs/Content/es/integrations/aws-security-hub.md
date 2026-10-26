@@ -93,6 +93,7 @@ Cada hallazgo se convierte en un evento, con el proveedor `Amazon Web Services` 
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` o `SUPPRESSED`, si no el antiguo `WorkflowState` | Estado |
 | `Types` bajo `TTPs/`: `TTPs/Initial Access/...` se convierte en `TA0001` | Tácticas y técnicas de MITRE ATT&CK |
 | El usuario de IAM de un recurso de clave de acceso o de usuario, `Network.SourceIpV4` o `SourceIpV6`, `Process.Name` o `Process.Path` | Usuario, IP y proceso del actor |
+| `Process.Name` y `Process.Path` | Nombre y ruta del proceso. Un hallazgo no indica ni la línea de comandos ni el proceso padre. |
 | El ID de instancia de un recurso `AwsEc2Instance`, `Network.DestinationIpV4` o `DestinationIpV6`, `Network.DestinationPort`, el primer `Resources[].Id` | Host, IP, puerto y recurso del destino |
 | Esos, cada `Resources[].Id`, `AwsAccountId`, los dominios de la red, los nombres de malware y los valores de inteligencia de amenazas | Observables |
 | El hallazgo entero, aplanado en claves con puntos, como `Compliance.Status` y `Remediation.Recommendation.Url` | `attributes` |

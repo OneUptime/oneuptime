@@ -93,6 +93,7 @@ Ogni finding diventa un evento, con il fornitore `Amazon Web Services` e il prod
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` o `SUPPRESSED`, altrimenti il vecchio `WorkflowState` | Stato |
 | `Types` sotto `TTPs/`: `TTPs/Initial Access/...` diventa `TA0001` | Tattiche e tecniche MITRE ATT&CK |
 | L'utente IAM di una risorsa chiave di accesso o utente, `Network.SourceIpV4` o `SourceIpV6`, `Process.Name` o `Process.Path` | Utente, IP e processo dell'attore |
+| `Process.Name` e `Process.Path` | Nome e percorso del processo. Un finding non indica né la riga di comando né il processo padre. |
 | L'ID istanza di una risorsa `AwsEc2Instance`, `Network.DestinationIpV4` o `DestinationIpV6`, `Network.DestinationPort`, il primo `Resources[].Id` | Host, IP, porta e risorsa della destinazione |
 | Questi, ogni `Resources[].Id`, `AwsAccountId`, i domini della rete, i nomi dei malware e i valori di threat intelligence | Osservabili |
 | L'intero finding, appiattito in chiavi puntate, come `Compliance.Status` e `Remediation.Recommendation.Url` | `attributes` |

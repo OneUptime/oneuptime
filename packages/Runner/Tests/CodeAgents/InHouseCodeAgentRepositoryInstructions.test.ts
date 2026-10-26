@@ -197,7 +197,7 @@ describe("on a Runner of the project's own", () => {
     // The tool it checks with is there, and says what it is for.
     expect(tools).toContain("run_command");
     expect(prompt).toContain(
-      "Use it to set up, build and run the tests the way the",
+      "set up, build and run the tests the way the repository says to.",
     );
     expect(prompt.indexOf("Fix the checkout total.")).toBeLessThan(
       prompt.indexOf("<repository-instructions"),

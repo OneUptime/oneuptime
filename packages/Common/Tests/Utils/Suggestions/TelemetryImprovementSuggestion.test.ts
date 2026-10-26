@@ -10,9 +10,10 @@ import {
 
 /*
  * "Improve logging / tracing with AI" on a service's Logs and Traces pages:
- * the card shows only with AI on and a repository for the pull request, a
- * fix already on its way is linked instead of offered again, and nothing
- * else - not even a "connect a repository" link, which on every page of
+ * the card shows only with AI on, a repository for the pull request and
+ * nothing Code's gate says stops the run, a fix already on its way is
+ * linked instead of offered again, and nothing else - not even a "connect
+ * a repository" link, or what Code's gate says, which on every page of
  * every service would be noise.
  */
 
@@ -47,6 +48,43 @@ describe("getTelemetryImprovementOffer", () => {
     ).toBe(SuggestionOffer.None);
   });
 
+  test("Code's gate says something stops the run (the plan, AI credits, a Runner): nothing, never a set-up step", () => {
+    expect(
+      getTelemetryImprovementOffer({
+        isAiEnabled: true,
+        hasActiveFix: false,
+        hasConnectedRepository: true,
+        isBlocked: true,
+      }),
+    ).toBe(SuggestionOffer.None);
+  });
+
+  test("an improvement on its way is linked whatever Code's gate says now", () => {
+    expect(
+      getTelemetryImprovementOffer({
+        isAiEnabled: true,
+        hasActiveFix: true,
+        hasConnectedRepository: true,
+        isBlocked: true,
+      }),
+    ).toBe(SuggestionOffer.InProgress);
+  });
+
+  test("never says an improvement is done: it stands for good", () => {
+    for (const isBlocked of [true, false]) {
+      for (const hasActiveFix of [true, false]) {
+        expect(
+          getTelemetryImprovementOffer({
+            isAiEnabled: true,
+            hasActiveFix,
+            hasConnectedRepository: true,
+            isBlocked,
+          }),
+        ).not.toBe(SuggestionOffer.Done);
+      }
+    }
+  });
+
   test("AI off: nothing, whatever else is true", () => {
     for (const hasActiveFix of [true, false]) {
       for (const hasConnectedRepository of [true, false]) {
@@ -65,13 +103,16 @@ describe("getTelemetryImprovementOffer", () => {
     for (const isAiEnabled of [true, false]) {
       for (const hasActiveFix of [true, false]) {
         for (const hasConnectedRepository of [true, false]) {
-          expect(
-            getTelemetryImprovementOffer({
-              isAiEnabled,
-              hasActiveFix,
-              hasConnectedRepository,
-            }),
-          ).not.toBe(SuggestionOffer.SetUp);
+          for (const isBlocked of [true, false]) {
+            expect(
+              getTelemetryImprovementOffer({
+                isAiEnabled,
+                hasActiveFix,
+                hasConnectedRepository,
+                isBlocked,
+              }),
+            ).not.toBe(SuggestionOffer.SetUp);
+          }
         }
       }
     }
@@ -102,6 +143,10 @@ describe("the wire format the card reads", () => {
     ["a list", ["Act"]],
     ["an unknown offer", { offer: "Soon" }],
     ["SetUp, which this suggestion never makes", { offer: "SetUp" }],
+    [
+      "Done, which this suggestion never makes",
+      { offer: "Done", aiRunId: "70000000-0000-4000-8000-000000000009" },
+    ],
     ["in progress with no run", { offer: "InProgress" }],
     ["in progress with an empty run", { offer: "InProgress", aiRunId: "" }],
   ])("%s reads as nothing", (_label: string, value: unknown) => {

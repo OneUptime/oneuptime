@@ -78,6 +78,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | `status_label`、なければ `status_description`、なければ `status` が持つレビューステータスの名前 | ステータス |
 | `annotations.mitre_attack`、および `mitre_technique_id` や `mitre_tactic` などのフィールド | MITRE ATT&CK の戦術と手法 |
 | `user` または `src_user`、`src`、`src_ip` または `src_host`、`process`、`process_name` または `parent_process` | 主体のユーザー、IP、ホスト、プロセス |
+| `process_name` または `process_exec`、`process_path`、`process`、`parent_process_name` または `parent_process_exec`、`parent_process_path`、`parent_process` | プロセスの名前、パス、コマンドライン。親プロセスの名前、パス、コマンドライン |
 | `dest_user`、`dest`、`dest_ip` または `dest_host`、`dest_port` | ターゲットのユーザー、IP、ホスト、ポート |
 | `file_path`、`url` または `risk_object` | ターゲットのリソース |
 | 各ユーザー、ホスト、IP、および `dvc`、`host`、`file_hash`、`file_name`、`url`、`domain`、`query`、`risk_object` | オブザーバブル |

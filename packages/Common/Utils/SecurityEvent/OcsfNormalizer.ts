@@ -11,6 +11,12 @@ import {
   ocsfEventClassByUid,
 } from "../../Types/SecurityEvent/OcsfEventClass";
 import {
+  OCSF_PROCESS_ACTIVITY_CLASS_UID,
+  ProcessActivityKind,
+  getProcessActivityKind,
+  ocsfProcessActivityName,
+} from "../../Types/SecurityEvent/OcsfProcessActivity";
+import {
   ProcessFields,
   ProcessReading,
   buildObservables,
@@ -38,9 +44,6 @@ import {
  * https://schema.ocsf.io/
  */
 
-const PROCESS_ACTIVITY_CLASS_UID: number = 1007;
-const LAUNCH_ACTIVITY_ID: number = 1;
-
 // An OCSF Process object at `at`: its name, its executable's path, its command line.
 function readOcsfProcess(payload: JSONObject, at: string): ProcessReading {
   return {
@@ -60,24 +63,36 @@ function readOcsfProcess(payload: JSONObject, at: string): ProcessReading {
 
 /*
  * A Process Activity launch: activity_id 1, or no activity named at all,
- * since a launch is what nearly every process event is.
+ * since a launch is what nearly every process event is - the rule every
+ * reader of a process activity shares (getProcessActivityKind).
  */
 function isLaunch(payload: JSONObject, classUid: number): boolean {
-  if (classUid !== PROCESS_ACTIVITY_CLASS_UID) {
+  if (classUid !== OCSF_PROCESS_ACTIVITY_CLASS_UID) {
     return false;
   }
 
-  const activityId: number | null = readNumber(payload, "activity_id");
+  return (
+    getProcessActivityKind({
+      activityId: readNumber(payload, "activity_id"),
+      activityName: readString(payload, "activity_name"),
+    }) === ProcessActivityKind.Launch
+  );
+}
 
-  if (activityId !== null) {
-    return activityId === LAUNCH_ACTIVITY_ID;
+/*
+ * The activity's name: the payload's activity_name, or - for a Process
+ * Activity that gives only its activity_id - the name OCSF gives that id,
+ * so the event says it was an open or an injection wherever it is read
+ * (the event's panel, the Activity facet, a SIEM it is sent to).
+ */
+function readActivityName(payload: JSONObject, classUid: number): string {
+  const named: string = readString(payload, "activity_name");
+
+  if (named || classUid !== OCSF_PROCESS_ACTIVITY_CLASS_UID) {
+    return named;
   }
 
-  const activityName: string = readString(payload, "activity_name")
-    .trim()
-    .toLowerCase();
-
-  return !activityName || activityName === "launch";
+  return ocsfProcessActivityName(readNumber(payload, "activity_id"));
 }
 
 /*
@@ -110,7 +125,7 @@ function readOcsfProcesses(
   }
 
   // A Process Activity event that does not name its process: the actor is never it.
-  if (classUid === PROCESS_ACTIVITY_CLASS_UID) {
+  if (classUid === OCSF_PROCESS_ACTIVITY_CLASS_UID) {
     return buildProcessFields({ parent: launch ? actor : undefined });
   }
 
@@ -243,7 +258,7 @@ export default class OcsfNormalizer {
       categoryName,
       classUid,
       className,
-      activityName: readString(payload, "activity_name"),
+      activityName: readActivityName(payload, classUid),
       severityId: OcsfSeverityId[severityName],
       severityName,
       statusName:

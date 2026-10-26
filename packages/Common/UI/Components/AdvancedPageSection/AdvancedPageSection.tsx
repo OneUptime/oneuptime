@@ -1,4 +1,5 @@
 import CardSections from "../Card/CardSections";
+import { CardPlaceFromTitleContext } from "../Card/CardSurface";
 import FoldedSection from "../FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "../FoldedSection/FoldedSectionItem";
 import {
@@ -47,7 +48,10 @@ import React, {
  * "Pick a Runner" opening a repository's ".../settings#runner". It opens
  * at once, never drawn folded first, and the card whose id is that key
  * (Card's `id`) is brought into view, its divider right under the sticky
- * header - or, for a card with no id, the section itself. The card is
+ * header - or, for a card with no id, the section itself. Every card in it
+ * has a place: the id its page gives it, or else one after its title
+ * ("Default Bar Color" is "#default-bar-color"), which is the key
+ * foldedSectionItem names its item by unless the page gives one. The card is
  * tinted for a moment and holds the keyboard's focus
  * (markPageAnchorLanded), so the setting the link was for is the one the
  * eye and Tab find. Each time the address names one of its items again it
@@ -222,9 +226,16 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
          * without a frame of its own - with a divider across the whole card
          * above it (CardSections).
          */}
-        <CardSections dataTestId={ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID}>
-          {props.children}
-        </CardSections>
+        {/*
+         * Each card in it has a place on the page - its own id, or one
+         * after its title (CardPlaceFromTitleContext) - so a link can land
+         * on it: its item is named the same way (foldedSectionItem).
+         */}
+        <CardPlaceFromTitleContext.Provider value={true}>
+          <CardSections dataTestId={ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID}>
+            {props.children}
+          </CardSections>
+        </CardPlaceFromTitleContext.Provider>
       </FoldedSection>
     </div>
   );

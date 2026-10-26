@@ -5,7 +5,7 @@ Ein **Runbook-Agent**, im Dashboard **Runner** genannt, ist ein kleiner, selbst 
 :::cards
 - [Einen Runner installieren](#einen-runner-installieren): Vom Dashboard zu einem verbundenen Container, in fünf Schritten.
 - [Einen Schritt auf einen Runner richten](#einen-schritt-auf-einen-runner-richten): Einen Schritt an den Runner binden, der ihn ausführen soll.
-- [Der Standard-Runner des Projekts](#der-standard-runner-des-projekts): Der Runner, auf dem ein Schritt läuft, der keinen wählt.
+- [Der Standard-Runner des Projekts](#der-standard-runner-des-projekts): Der Runner für Schritte und Code-Repositorys, die keinen wählen.
 - [Globale Runner](#globale-runner): Die Runner, die OneUptime für jedes Projekt betreibt, und was sie ausführen.
 - [Timeouts](#timeouts): Übernahme- und Ausführungs-Timeouts und wie sie zusammenwirken.
 - [Umgebungsvariablen](#umgebungsvariablen): Was der Container beim Start liest.
@@ -70,7 +70,7 @@ Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Sc
 - Er erhält eine geheime Variable nur, wenn ihr Schalter **Globale Runner dürfen es nutzen** eingeschaltet ist, und nur für einen Schritt aus dem eigenen Projekt der Variable.
 - Ein Projekt führt höchstens drei Schritte gleichzeitig auf globalen Runnern aus, sodass kein Projekt sie für sich allein belegt.
 
-Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, läuft dann auf dem Standard-Runner des Projekts oder schlägt, wenn keiner festgelegt ist, mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall. Ein Code-Repository, das in seinen Einstellungen in Code keinen Runner auswählt, arbeitet ebenfalls auf einem globalen Runner und braucht einen Ihrer Runner, solange der Schalter aus ist; siehe [Code](/docs/ai/ai-agent#den-runner-des-repositorys-auswählen).
+Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, läuft dann auf dem Standard-Runner des Projekts oder schlägt, wenn keiner festgelegt ist, mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall. Ein Code-Repository, das in seinen Einstellungen in Code keinen Runner auswählt, arbeitet ebenfalls auf dem Standard-Runner des Projekts oder, wenn keiner festgelegt ist, auf einem globalen Runner und braucht einen Ihrer Runner, solange der Schalter aus ist; siehe [Code](/docs/ai/ai-agent#den-runner-des-repositorys-auswählen).
 
 ### Woher globale Runner kommen
 
@@ -156,7 +156,7 @@ Brauchen Sie mehr als einen Runner? Erstellen Sie sie und richten Sie jeden Schr
 
 ## Der Standard-Runner des Projekts
 
-Ein Projekt kann einen seiner eigenen Runner zu seinem Standard machen, so wie es eine Twilio-Konfiguration zu seinem Standard macht. Jeder Runbook-Schritt, der keinen Runner wählt, läuft dann auf ihm: Bash-, SSH- und kubectl-Schritte, und JavaScript-Schritte, die sonst auf einem globalen Runner laufen würden.
+Ein Projekt kann einen seiner eigenen Runner zu seinem Standard machen, so wie es eine Twilio-Konfiguration zu seinem Standard macht. Jeder Runbook-Schritt, der keinen Runner wählt, läuft dann auf ihm: Bash-, SSH- und kubectl-Schritte, und JavaScript-Schritte, die sonst auf einem globalen Runner laufen würden. Ebenso die KI in jedem Code-Repository, das in seinen Einstellungen in Code keinen Runner wählt.
 
 Um einen Runner zum Standard zu machen, gehen Sie zu **Runbooks → Runbook-Agents**, öffnen das Menü **⋯** in der Zeile des Runners, klicken auf **Als Projektstandard festlegen** und bestätigen mit **Zum Projektstandard machen**. Oder öffnen Sie den Runner und schalten Sie auf seiner Karte **Projektstandard** den Schalter **Als Projektstandard nutzen** ein. Die Liste markiert den Standard mit **Projektstandard**, neben seinem Namen, und ebenso die Dropdown-Liste **Runner** eines Schritts, bei ihrer ersten Wahl. Ein Projekt hat einen Standard-Runner: Wird ein anderer Runner zum Standard gemacht, ersetzt er ihn. **Nicht mehr als Projektstandard nutzen**, im selben Menü, oder der Schalter auf der Seite des Runners beendet seine Nutzung.
 
@@ -172,7 +172,7 @@ Ein Schritt, der einen Runner gewählt hat, behält ihn, was auch immer der Stan
 
 Der Standard ist einer der eigenen Runner des Projekts, der Runbook-Schritte ausführt: kein globaler Runner, nicht der In-Cluster-Runner, den der Kubernetes-Agent installiert hat, und keiner, bei dem **Führt Runbooks aus** aus ist. Solange ein Runner der Standard ist, bleibt sein **Führt Runbooks aus** an. Ist der Standard nicht verbunden, sagt die Dropdown-Liste eines Schritts das, und ein Schritt auf ihm wartet auf ihn, wie auf jeden Runner, bis sein Übernahme-Timeout abgelaufen ist.
 
-Nur Runbook-Schritte nutzen den Standard. Ein Code-Repository wählt seinen Runner in seinen Einstellungen in Code, und eine KI-Regel wählt ihren eigenen.
+Runbook-Schritte und Code-Repositorys, die keinen Runner wählen, nutzen den Standard und wechseln mit, wenn ein anderer Runner zum Standard wird. Eine KI-Regel wählt ihren eigenen Runner, und eine neue Regel startet auf dem Standard.
 
 ## Betriebshinweise
 

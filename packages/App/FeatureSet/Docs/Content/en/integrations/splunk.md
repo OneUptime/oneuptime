@@ -78,6 +78,7 @@ Each row the search returns becomes one Detection Finding event (OCSF class `200
 | `status_label`, else `status_description`, else the name of the review status `status` holds | Status |
 | `annotations.mitre_attack`, and fields such as `mitre_technique_id` and `mitre_tactic` | MITRE ATT&CK tactics and techniques |
 | `user` or `src_user`; `src`, `src_ip` or `src_host`; `process`, `process_name` or `parent_process` | Principal user, IP, host and process |
+| `process_name` or `process_exec`, `process_path` and `process`; `parent_process_name` or `parent_process_exec`, `parent_process_path` and `parent_process` | Process name, path and command line; parent process name, path and command line |
 | `dest_user`; `dest`, `dest_ip` or `dest_host`; `dest_port` | Target user, IP, host and port |
 | `file_path`, `url` or `risk_object` | Target resource |
 | Every user, host and IP, and `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` and `risk_object` | Observables |

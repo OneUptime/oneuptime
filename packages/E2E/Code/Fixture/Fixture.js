@@ -71,7 +71,9 @@
  *                       next read moves it on (default 1000, so a task is
  *                       seen queued first and then moves one stage a poll)
  *   - refuse=create|reply  the server refuses that send (its sentence)
- *   - fail=repositories|repository|list|task|branches  that read fails
+ *   - fail=repositories|repository|list|task|branches|log  that read fails
+ *                       (log: a turn's Log, the page's record of it;
+ *                       logonce: only its first read)
  *   - commands=1        checkout-api has the build and test commands an
  *                       operator set before Code stopped asking for them
  *                       (npm ci, npm run build, npm test); by default none
@@ -82,6 +84,12 @@
  *                       prod-eu-west-1, or one the page is not shown (a
  *                       Runner the reader does not have access to); by
  *                       default none (a global Runner)
+ *   - default=prod      prod-eu-west-1 is the project's default Runner, which
+ *                       a repository that picks no Runner follows; by
+ *                       default the project has none
+ *   - gpick=1           checkout-api picked the Global Runner itself
+ *                       (isGlobalRunnerPicked), so it never follows the
+ *                       project's default Runner
  *   - uses=0            the project turned global Runners off
  *   - global=0          the server runs no global Runner for code;
  *                       gstatus=disconnected: it is not heard from
@@ -148,6 +156,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import AIInsightType from "Common/Types/AI/AIInsightType";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
@@ -241,6 +250,7 @@ const RUNNER_IDS = {
 const params = new URLSearchParams(window.location.search);
 const role = params.get("role") || "owner";
 const runnerParam = params.get("runner");
+const isProdTheDefault = params.get("default") === "prod";
 const usesGlobalRunners = params.get("uses") !== "0";
 const globalCodeRunnerStatus =
   params.get("gstatus") === "disconnected" ? "disconnected" : "connected";
@@ -284,7 +294,7 @@ window.__fixture = {
   connects: [],
   gitConnects: [],
   tokenReplacements: [],
-  reads: { task: 0, list: 0, repositories: 0, repository: 0 },
+  reads: { task: 0, list: 0, repositories: 0, repository: 0, log: 0 },
 };
 
 const now = Date.now();
@@ -659,6 +669,11 @@ function withProductionReview(repository) {
   };
 }
 
+// checkout-api picked the Global Runner itself (gpick=1).
+if (checkoutSettings && params.get("gpick") === "1") {
+  checkoutSettings.isGlobalRunnerPicked = true;
+}
+
 if (
   runnerParam &&
   RUNNER_IDS[runnerParam] &&
@@ -688,6 +703,13 @@ const PROJECT_RUNNERS = [
   runnerModel(RUNNER_IDS.office, "office-runner", minutesAgo(180)),
   runnerModel(RUNNER_IDS.prod, "prod-eu-west-1", minutesAgo(0.5)),
 ];
+
+// The project's default Runner, as the picker reads it (default=prod).
+if (isProdTheDefault) {
+  const prod = PROJECT_RUNNERS[PROJECT_RUNNERS.length - 1];
+  prod.isProjectDefault = true;
+  prod.canRunRunbooks = true;
+}
 
 // ---- tasks: each a conversation of turns -----------------------------------
 
@@ -1585,6 +1607,8 @@ if (hasInsightTask && !hasNoTasks) {
       type: CodeTaskOriginType.Insight,
       label: "parseOrder takes 34% of the CPU time in checkout",
       recordId: RECORD_IDS.insight,
+      // Slow code the Profiler's AI section filed: it opens there.
+      insightType: AIInsightType.ProfileHotspot,
     },
   });
 }
@@ -2562,6 +2586,13 @@ async function answer(path, body) {
 
 // A turn's Log page: its recorded events, verbatim.
 function logOf(runId) {
+  window.__fixture.reads.log = (window.__fixture.reads.log || 0) + 1;
+  if (
+    failParam === "log" ||
+    (failParam === "logonce" && window.__fixture.reads.log === 1)
+  ) {
+    return refused(500, "The log could not be read.");
+  }
   const task = findTask(runId);
   const item = task
     ? task.turns.find((candidate) => {
@@ -2587,7 +2618,8 @@ function logOf(runId) {
         [CodeTaskStepKind.PullRequest]: "open_pull_request",
         [CodeTaskStepKind.Note]: "note",
       }[entry.kind],
-      message: entry.subject,
+      // Where the server keeps a step's words (AIAgentTaskLogAPI).
+      resultSummary: { message: entry.subject },
       createdAt: entry.createdAt,
     };
   });
@@ -3143,6 +3175,7 @@ const SETTING_KEYS = [
   "buildCommand",
   "testCommand",
   "runnerId",
+  "isGlobalRunnerPicked",
   "isProductionReviewEnabled",
   "productionReviewPullRequestContent",
 ];

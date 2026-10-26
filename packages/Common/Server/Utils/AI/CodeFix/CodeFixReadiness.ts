@@ -39,7 +39,7 @@ export const GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL: string =
   "This project does not use global Runners, and this repository picks no Runner of its own. Pick one of your Runners for it in the repository's settings in Code, or turn global Runners on under Runbooks → Runners.";
 
 export const NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL: string =
-  "No Runner is online to work in this project's repositories. Each repository works on the Runner it picks in its settings in Code, or on a global Runner when it picks none.";
+  "No Runner is online to work in this project's repositories. Each repository works on the Runner it picks in its settings in Code; one that picks none works on the project's default Runner, or on a global Runner when the project has no default.";
 
 export function getRepositoryRunnerOfflineDetail(
   runnerName?: string | undefined,
@@ -49,6 +49,20 @@ export function getRepositoryRunnerOfflineDetail(
     : "The Runner";
 
   return `${runner} this repository picks is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.`;
+}
+
+/*
+ * The project's default Runner, which a repository that picks no Runner of
+ * its own works on, is not online.
+ */
+export function getProjectDefaultRunnerOfflineDetail(
+  runnerName?: string | undefined,
+): string {
+  const runner: string = runnerName
+    ? `The project's default Runner, "${runnerName}",`
+    : "The project's default Runner";
+
+  return `${runner} which this repository works on, is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.`;
 }
 
 // Why nothing can do the repository's work now, or null while something can.
@@ -62,6 +76,8 @@ export function describeRepositoryRunnerStatus(
   switch (status.decision.kind) {
     case CodeRepositoryRunnerChoiceKind.Custom:
       return getRepositoryRunnerOfflineDetail(status.runnerName);
+    case CodeRepositoryRunnerChoiceKind.ProjectDefault:
+      return getProjectDefaultRunnerOfflineDetail(status.runnerName);
     case CodeRepositoryRunnerChoiceKind.Global:
       return NO_GLOBAL_RUNNER_ONLINE_DETAIL;
     case CodeRepositoryRunnerChoiceKind.NoRunner:
@@ -84,7 +100,8 @@ export function getRepositoryRunnerBlocker(
   }
 
   const type: CodeTaskBlockerType =
-    status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom
+    status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom ||
+    status.decision.kind === CodeRepositoryRunnerChoiceKind.ProjectDefault
       ? CodeTaskBlockerType.RunnerNotOnline
       : status.decision.kind === CodeRepositoryRunnerChoiceKind.NoRunner
         ? CodeTaskBlockerType.GlobalRunnersOff
@@ -250,9 +267,10 @@ export default class CodeFixReadiness {
 
   /*
    * A Runner must be alive to pick the task up, or runs sit Queued forever.
-   * For a known repository, the one its Runner setting in Code picks (or a
-   * global Runner, for one that picks none); before a repository is known,
-   * anything online for the project's repositories.
+   * For a known repository, the one its Runner setting in Code picks (or,
+   * for one that picks none, the project's default Runner, else a global
+   * Runner); before a repository is known, anything online for the
+   * project's repositories.
    */
   @CaptureSpan()
   public static async getAgentCheck(params: {
@@ -279,6 +297,7 @@ export default class CodeFixReadiness {
       await CodeRepositoryRunnerChoice.getStatusForRepository({
         projectId: params.projectId,
         runnerId: params.repository.runnerId,
+        isGlobalRunnerPicked: params.repository.isGlobalRunnerPicked,
       });
 
     const offline: string | null = describeRepositoryRunnerStatus(status);
@@ -296,7 +315,8 @@ export default class CodeFixReadiness {
       id: "agentAvailable",
       ok: true,
       title:
-        status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom
+        status.decision.kind === CodeRepositoryRunnerChoiceKind.Custom ||
+        status.decision.kind === CodeRepositoryRunnerChoiceKind.ProjectDefault
           ? `Runner online: ${status.runnerName || "Runner"}`
           : "Global Runner online",
       detail: "Connected and polling for tasks.",

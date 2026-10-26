@@ -227,7 +227,18 @@ Een [threat-intelfeed](/docs/telemetry/threat-intelligence#hoe-google-secops-wor
 
 ## Beveiligingsgebeurtenissen naar Google SecOps sturen
 
-OneUptime kan wat het vindt ook naar Google SecOps sturen, zodat de SIEM waarin uw team werkt de detecties van OneUptime naast die van zichzelf ziet. Elke beveiligingsgebeurtenis wordt geïmporteerd als UDM-gebeurtenis: een aanmelding als `USER_LOGIN`, het starten van een proces als `PROCESS_LAUNCH`, een netwerkverbinding als `NETWORK_CONNECTION` en al het andere als `GENERIC_EVENT`, met de ernst, de MITRE ATT&CK-tags en de regel die haar vond.
+OneUptime kan wat het vindt ook naar Google SecOps sturen, zodat de SIEM waarin uw team werkt de detecties van OneUptime naast die van zichzelf ziet. Elke beveiligingsgebeurtenis wordt geïmporteerd als UDM-gebeurtenis, met de ernst, de MITRE ATT&CK-tags en de regel die haar vond:
+
+| Beveiligingsgebeurtenis | UDM-gebeurtenistype |
+| --- | --- |
+| Een aanmelding | `USER_LOGIN` |
+| Een proces dat wordt gestart, geopend, geïnjecteerd of beëindigd | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| Een proces dat zijn rechten verhoogde | `PROCESS_PRIVILEGE_ESCALATION` |
+| Elke andere procesactiviteit | `PROCESS_UNCATEGORIZED` |
+| Een netwerkverbinding | `NETWORK_CONNECTION` |
+| Al het andere, of een gebeurtenis zonder de velden die haar type nodig heeft | `GENERIC_EVENT` |
+
+In een procesgebeurtenis is `principal` het proces dat handelde en `target` het proces waarop het handelde: bij een start het bovenliggende proces en het proces dat het startte.
 
 :::steps
 ### Een sleutel maken die gebeurtenissen mag importeren

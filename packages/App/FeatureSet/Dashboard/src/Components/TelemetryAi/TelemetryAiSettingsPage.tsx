@@ -9,7 +9,12 @@ import {
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { ModelSwitchColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useState,
+} from "react";
 import ProjectAiNotice from "../AISettings/ProjectAiNotice";
 import ProjectAiSwitchesCard from "../AISettings/ProjectAiSwitchesCard";
 import {
@@ -27,6 +32,8 @@ import TelemetryAiReadiness, {
   useTelemetryAiReadiness,
 } from "./TelemetryAiReadiness";
 import TelemetryAiRulesTable from "./TelemetryAiRulesTable";
+import { useAiRulesFixNothingSwitchWarning } from "../AISettings/AiRulesFixNothingWarning";
+import { AiRulesFixNothingLaneKind } from "../AISettings/AiRulesFixNothing";
 
 /*
  * A telemetry product's AI → Settings - the Profiler's first: what
@@ -92,6 +99,20 @@ const TelemetryAiSettingsPage: FunctionComponent<ComponentProps> = (
   );
   // Where the lane's switch is on the screen: null until the card reads it.
   const [isLaneOn, setIsLaneOn] = useState<boolean | null>(null);
+  /*
+   * With rules that all say Don't fix, the lane finds and looks into its
+   * problems and opens no pull request on its own, while its switch says
+   * it finds and fixes them: the switch says so (AiRulesFixNothing).
+   */
+  const fixNothing: {
+    getWarning: (column: string, isOn: boolean) => ReactNode;
+    refresh: () => void;
+  } = useAiRulesFixNothingSwitchWarning({
+    triggerEntityType: TELEMETRY_AI_LANES[props.lane].triggerEntityType,
+    switchColumn: TELEMETRY_AI_LANES[props.lane].switchColumn,
+    kind: AiRulesFixNothingLaneKind.Telemetry,
+    rulesAnchor: getTelemetryAiRulesTableId(props.lane),
+  });
 
   return (
     <>
@@ -101,6 +122,7 @@ const TelemetryAiSettingsPage: FunctionComponent<ComponentProps> = (
         cardTitle={TELEMETRY_AI_SWITCHES_CARD_TITLE}
         cardDescription={copy.switchesCardDescription}
         switches={TELEMETRY_AI_SWITCHES[props.lane]}
+        getWarning={fixNothing.getWarning}
         onChange={(column: ModelSwitchColumn<Project>, isOn: boolean): void => {
           if (column === TELEMETRY_AI_LANES[props.lane].switchColumn) {
             setIsLaneOn(isOn);
@@ -124,6 +146,8 @@ const TelemetryAiSettingsPage: FunctionComponent<ComponentProps> = (
           lane={props.lane}
           onRulesLoaded={(count: number): void => {
             setRuleCount(count);
+            // A rule added, changed or turned off: read what they fix again.
+            fixNothing.refresh();
           }}
         />
       </AdvancedPageSection>

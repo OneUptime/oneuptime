@@ -678,7 +678,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           modelDetailProps={{
             showDetailsInNumberOfColumns: 1,
             modelType: StatusPage,
-            id: "default-bar-color",
+            /*
+             * Not "default-bar-color": that is its card's place in More
+             * settings, after its title, which a link lands on.
+             */
+            id: "default-bar-color-detail",
             onItemLoaded: (item: StatusPage): void => {
               rememberAdvanced({ defaultBarColor: item.defaultBarColor });
             },

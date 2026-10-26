@@ -19,6 +19,7 @@ import AdvancedPageSection, {
 } from "../../../UI/Components/AdvancedPageSection/AdvancedPageSection";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card from "../../../UI/Components/Card/Card";
+import CardSections from "../../../UI/Components/Card/CardSections";
 import {
   FoldedSectionItem,
   foldedSectionItem,
@@ -609,22 +610,31 @@ describe("opens by itself at a card the page's address names", () => {
 
   function Section(props: {
     items?: Array<FoldedSectionItem> | undefined;
-    // The cards' ids; left out, the cards have none.
+    /*
+     * The cards' ids. Left out, a card takes its place after its title -
+     * unless its title makes none (withPlaces false: titles that are not
+     * text).
+     */
     withIds?: boolean | undefined;
+    withPlaces?: boolean | undefined;
   }): ReactElement {
+    const noPlace: boolean = props.withPlaces === false;
+
     return (
       <AdvancedPageSection
         description="Which incidents are investigated, and limits."
         items={props.items || ITEMS}
       >
         <Card
-          title="Investigation rules"
+          title={
+            noPlace ? <span>Investigation rules</span> : "Investigation rules"
+          }
           id={props.withIds === false ? undefined : "investigation-rules"}
         >
           <div>rules</div>
         </Card>
         <Card
-          title="Daily limits"
+          title={noPlace ? <span>Daily limits</span> : "Daily limits"}
           id={props.withIds === false ? undefined : "daily-limits"}
           buttons={[
             {
@@ -721,7 +731,7 @@ describe("opens by itself at a card the page's address names", () => {
   test("landing on a card with no place of its own marks nothing and takes no focus: nothing in the section is the one", async () => {
     window.history.replaceState(null, "", "#daily-limits");
 
-    render(<Section withIds={false} />);
+    render(<Section withIds={false} withPlaces={false} />);
 
     const section: HTMLElement = screen.getByTestId(
       ADVANCED_PAGE_SECTION_TEST_ID,
@@ -760,7 +770,7 @@ describe("opens by itself at a card the page's address names", () => {
   test("a card with no place of its own: the section itself is brought into view, clear of the header", async () => {
     window.history.replaceState(null, "", "#daily-limits");
 
-    render(<Section withIds={false} />);
+    render(<Section withIds={false} withPlaces={false} />);
 
     expect(header()).toHaveAttribute("aria-expanded", "true");
 
@@ -780,15 +790,123 @@ describe("opens by itself at a card the page's address names", () => {
     document.body.appendChild(elsewhere);
     window.history.replaceState(null, "", "#daily-limits");
 
+    try {
+      render(<Section withIds={false} withPlaces={false} />);
+
+      await waitFor(() => {
+        expect(scrolled).toEqual([
+          screen.getByTestId(ADVANCED_PAGE_SECTION_TEST_ID),
+        ]);
+      });
+    } finally {
+      elsewhere.remove();
+    }
+  });
+
+  /*
+   * Every card in a page's More settings has a place a link can land on:
+   * the id its page gives it, or one after its title - the name its item
+   * goes by too (foldedSectionItem). So a page gives its cards no ids for
+   * a link to land on one.
+   */
+  test("a card the page gives no id takes its place after its title, and a link lands on it", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
     render(<Section withIds={false} />);
 
-    await waitFor(() => {
-      expect(scrolled).toEqual([
-        screen.getByTestId(ADVANCED_PAGE_SECTION_TEST_ID),
-      ]);
-    });
+    expect(header()).toHaveAttribute("aria-expanded", "true");
 
-    elsewhere.remove();
+    const daily: HTMLElement = document.getElementById("daily-limits")!;
+
+    expect(daily).toBeInTheDocument();
+    expect(daily).toHaveAttribute("data-card-surface", "section");
+    expect(document.getElementById("investigation-rules")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([daily]);
+    });
+    expect(daily).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    // Clear of the sticky header, as a card a page gives an id lands.
+    expect(daily.style.scrollMarginTop).not.toBe("");
+  });
+
+  test("an item and a card named by the same title meet at one place: 'Block Permissions' is #block-permissions", async () => {
+    window.history.replaceState(null, "", "#block-permissions");
+
+    render(
+      <AdvancedPageSection items={[foldedSectionItem("Block Permissions")]}>
+        <Card title="Block Permissions">
+          <div>permissions</div>
+        </Card>
+      </AdvancedPageSection>,
+    );
+
+    expect(foldedSectionItem("Block Permissions").key).toBe(
+      "block-permissions",
+    );
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([document.getElementById("block-permissions")]);
+    });
+  });
+
+  test("the id a page gives a card wins over its title's place", () => {
+    render(
+      <AdvancedPageSection items={ITEMS}>
+        <Card title="Daily limits" id="limits">
+          <div>daily</div>
+        </Card>
+      </AdvancedPageSection>,
+    );
+
+    expect(document.getElementById("limits")).toBeInTheDocument();
+    expect(document.getElementById("daily-limits")).toBeNull();
+  });
+
+  test("a card whose title is drawn as more than words takes its place after its words (titleText): a table's, with its plan's badge", () => {
+    render(
+      <AdvancedPageSection items={ITEMS}>
+        <Card
+          title={
+            <span>
+              Daily limits <b>Scale</b>
+            </span>
+          }
+          titleText="Daily limits"
+        >
+          <div>daily</div>
+        </Card>
+        <Card title={<span>Investigation rules</span>}>
+          <div>rules, with no words given</div>
+        </Card>
+      </AdvancedPageSection>,
+    );
+
+    expect(document.getElementById("daily-limits")).toHaveAttribute(
+      "data-card-surface",
+      "section",
+    );
+    // A title drawn as more than words, with none given: no place.
+    expect(document.getElementById("investigation-rules")).toBeNull();
+  });
+
+  test("a card outside a page's More settings takes no place after its title", () => {
+    render(
+      <>
+        <Card title="Daily limits">
+          <div>a card of its own</div>
+        </Card>
+        <CardSections>
+          <Card title="Investigation rules">
+            <div>a section of another fold</div>
+          </Card>
+        </CardSections>
+      </>,
+    );
+
+    expect(document.getElementById("daily-limits")).toBeNull();
+    expect(document.getElementById("investigation-rules")).toBeNull();
   });
 
   test("an address that names none of its items leaves it folded, brings nothing into view, and draws as before", async () => {

@@ -74,6 +74,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | `kibana.alert.workflow_status`: `open`, `acknowledged` 또는 `closed` | 상태 |
 | `kibana.alert.rule.threat`(하위 기법 포함) | MITRE ATT&CK 전술과 기법 |
 | `user.name`, `host.name`, `source.ip` 또는 `host.ip`, `process.name` 또는 `process.executable` | 주체 사용자, 호스트, IP, 프로세스 |
+| `process.name`, `process.executable` 및 `process.command_line`; `process.parent.name`, `process.parent.executable` 및 `process.parent.command_line` | 프로세스 이름, 경로, 명령줄; 부모 프로세스 이름, 경로, 명령줄 |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | 대상 사용자, 호스트, IP, 포트, 리소스 |
 | 그것들과 함께 `related.*`, `dns.question.name`, `url.domain`, 파일 해시 | Observable |
 | 알림 전체. `_index`, `_id`와 함께 점 구분 키로 펼침 | `attributes` |
