@@ -393,6 +393,16 @@ describe("times in the reader's digits", () => {
         );
       },
     },
+    {
+      // The time an incident's Declared tile writes beside its date.
+      name: "a 24-hour time of day written to a pattern",
+      read: (): string => {
+        return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+          date: INSTANT,
+          format: "HH:mm",
+        });
+      },
+    },
   ];
 
   test.each(
@@ -420,6 +430,12 @@ describe("times in the reader's digits", () => {
     expect(
       OneUptimeDate.getHourAndMinuteInTimezoneString(INSTANT, "Asia/Tehran"),
     ).toContain("۱۲:۳۵");
+    expect(
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: INSTANT,
+        format: "HH:mm",
+      }),
+    ).toBe("۱۰:۰۵");
 
     // Remembered with its English, which a sentence in English puts back.
     expect(getEnglishOf(time)).toBe("10:05");
@@ -434,11 +450,23 @@ describe("times in the reader's digits", () => {
       expect(
         OneUptimeDate.getHourAndMinuteInTimezoneString(INSTANT, "Asia/Tehran"),
       ).toContain("12:35");
+      expect(
+        OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+          date: INSTANT,
+          format: "HH:mm",
+        }),
+      ).toBe("10:05");
     },
   );
 
   test("nothing set: English, as it always read", () => {
     expect(OneUptimeDate.getLocalTimeString(INSTANT)).toBe("10:05");
+    expect(
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: INSTANT,
+        format: "HH:mm",
+      }),
+    ).toBe("10:05");
   });
 });
 

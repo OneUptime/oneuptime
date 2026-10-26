@@ -8,7 +8,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Route from "Common/Types/API/Route";
 import { Green } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import OneUptimeDate, { Moment } from "Common/Types/Date";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -423,7 +423,16 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
              * from weeks later.
              */}
             <div className="mt-2 flex justify-between text-xs text-gray-500">
-              <span>{Moment(summary.startDate).format("MMM D")}</span>
+              {/*
+               * In the reader's language and digits ("۳۰ ژوئیه"), as every
+               * other date on the page.
+               */}
+              <span>
+                {OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+                  date: summary.startDate,
+                  format: "MMM D",
+                })}
+              </span>
               <span>{translator.translateText("Today")}</span>
             </div>
           </div>

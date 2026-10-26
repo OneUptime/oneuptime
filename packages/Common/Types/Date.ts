@@ -44,6 +44,8 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   "MMMM D, YYYY": { month: "long", day: "numeric", year: "numeric" },
   "h:mm A": { hour: "numeric", minute: "2-digit", hour12: true },
   "hh:mm A": { hour: "2-digit", minute: "2-digit", hour12: true },
+  // A 24-hour time of day, in the reader's digits: "۲۲:۲۷" on a Persian page.
+  "HH:mm": { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
 };
 
 // A whole number of nanoseconds, as fromUnixNano reads one exactly.

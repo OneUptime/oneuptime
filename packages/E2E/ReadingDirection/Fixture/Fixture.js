@@ -38,6 +38,9 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import Breadcrumbs from "Common/UI/Components/Breadcrumbs/Breadcrumbs";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Input from "Common/UI/Components/Input/Input";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import Icon from "Common/UI/Components/Icon/Icon";
 import KeyboardShortcut, {
@@ -104,6 +107,32 @@ const PERSIAN_NOTE = [
   "",
   "The search cluster lost one node at 10:05.",
 ].join("\n");
+
+/*
+ * What an incident's feed writes when it is created: its title (here in
+ * Persian), its description, and the product's own English lines and list.
+ */
+const FEED_NOTE = [
+  "**کندی در جستجوی محصولات**:",
+  "",
+  "The search cluster lost one node at 10:05.",
+  "",
+  "**Resources Affected**:",
+  "",
+  "- [Checkout API](/reading-direction)",
+  "- [Payments gateway](/reading-direction)",
+].join("\n");
+
+// A Persian list with one item in English.
+const MIXED_LIST_NOTE = [
+  "- پایگاه داده اصلی را بررسی کنید",
+  "- صف پیام‌ها را خالی کنید",
+  "- Restart the checkout service.",
+].join("\n");
+
+// A Persian sentence that starts with an English word.
+const PERSIAN_FROM_AN_ENGLISH_WORD_NOTE =
+  "`kubectl` را روی کلاستر پرداخت دوباره اجرا کنید.";
 
 const ROWS = [
   {
@@ -252,6 +281,15 @@ function Page() {
           <div data-testid="note-persian">
             <MarkdownViewer text={PERSIAN_NOTE} />
           </div>
+          <div data-testid="note-feed">
+            <MarkdownViewer text={FEED_NOTE} />
+          </div>
+          <div data-testid="note-mixed-list">
+            <MarkdownViewer text={MIXED_LIST_NOTE} />
+          </div>
+          <div data-testid="note-persian-from-english">
+            <MarkdownViewer text={PERSIAN_FROM_AN_ENGLISH_WORD_NOTE} />
+          </div>
           <div data-testid="editor-empty">
             <MarkdownEditor
               initialValue=""
@@ -261,6 +299,45 @@ function Page() {
           </div>
           <div data-testid="editor-english">
             <MarkdownEditor initialValue={ENGLISH_NOTE} onChange={() => {}} />
+          </div>
+        </div>
+      </Section>
+
+      {/*
+       * Values someone wrote, shown on the page (Detail, as a record's card
+       * draws them), and typed into fields.
+       */}
+      <Section name="written">
+        <div className="w-full max-w-sm bg-white p-4">
+          <Detail
+            item={{
+              description: "Watches the checkout endpoint every minute.",
+              notes: "پایش نقطه پرداخت.",
+            }}
+            fields={[
+              {
+                key: "description",
+                title: "Description",
+                fieldType: FieldType.Text,
+              },
+              { key: "notes", title: "Notes", fieldType: FieldType.Text },
+            ]}
+            showRecordLine={false}
+          />
+          <div data-testid="field-english">
+            <Input
+              initialValue="Watches the checkout endpoint."
+              onChange={() => {}}
+            />
+          </div>
+          <div data-testid="field-empty">
+            <Input placeholder="Monitor name" onChange={() => {}} />
+          </div>
+          <div data-testid="textarea-english">
+            <TextArea
+              initialValue="Rolled back the deploy."
+              onChange={() => {}}
+            />
           </div>
         </div>
       </Section>

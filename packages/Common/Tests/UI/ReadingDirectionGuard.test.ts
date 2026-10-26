@@ -443,3 +443,131 @@ describe("offline fixtures draw a right-to-left page as production does", () => 
     expect(missing).toEqual([]);
   });
 });
+
+/*
+ * A translate does not follow the reading direction (TailwindReadingDirection
+ * leaves transforms alone). A box centred with left-1/2 and -translate-x-1/2
+ * ends up off-centre by its own width on a page that reads right to left,
+ * where left-1/2 is the start - the right; and a box hung half over its
+ * parent's end edge with right-0 and translate-x-1/2 ends up inside it.
+ */
+const CLASS_TOKEN_SEPARATOR_REGEX: RegExp = /[\s"'`{}]+/;
+
+// The words of a line of source, as a className lists them.
+const classTokensOf: (line: string) => Set<string> = (
+  line: string,
+): Set<string> => {
+  return new Set<string>(line.split(CLASS_TOKEN_SEPARATOR_REGEX));
+};
+
+const isCentredByTranslate: (line: string) => boolean = (
+  line: string,
+): boolean => {
+  const tokens: Set<string> = classTokensOf(line);
+
+  return tokens.has("left-1/2") && tokens.has("-translate-x-1/2");
+};
+
+const isHungOverTheEnd: (line: string) => boolean = (line: string): boolean => {
+  const tokens: Set<string> = classTokensOf(line);
+
+  return (
+    (tokens.has("right-0") || tokens.has("end-0")) &&
+    tokens.has("translate-x-1/2")
+  );
+};
+
+const turnsRoundRightToLeft: (line: string) => boolean = (
+  line: string,
+): boolean => {
+  const tokens: Set<string> = classTokensOf(line);
+
+  return (
+    tokens.has("rtl:-translate-x-1/2") ||
+    tokens.has("[&:dir(rtl)]:-translate-x-1/2")
+  );
+};
+
+describe("boxes placed with a translate stay in place right to left", () => {
+  test("the checks find a box centred, or hung over an end, with a translate", () => {
+    expect(
+      isCentredByTranslate(
+        'className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2"',
+      ),
+    ).toBe(true);
+    expect(
+      isCentredByTranslate('className="absolute inset-x-0 mx-auto w-fit"'),
+    ).toBe(false);
+    // -translate-x-1/2 alone, beside an inline left: a mark on a chart.
+    expect(
+      isCentredByTranslate(
+        'className="absolute -translate-x-1/2" style={{ left: x }}',
+      ),
+    ).toBe(false);
+    expect(
+      isHungOverTheEnd(
+        'className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2"',
+      ),
+    ).toBe(true);
+    expect(
+      isHungOverTheEnd('className="absolute right-0 -translate-x-1/2"'),
+    ).toBe(false);
+    expect(
+      turnsRoundRightToLeft('className="end-0 rtl:-translate-x-1/2"'),
+    ).toBe(true);
+    expect(
+      turnsRoundRightToLeft(
+        'className="right-0 [&:dir(rtl)]:-translate-x-1/2"',
+      ),
+    ).toBe(true);
+  });
+
+  test("a box is centred with inset-x-0 mx-auto w-fit, unless it is in a time chart that reads left to right", () => {
+    const offCentre: Array<string> = [];
+
+    for (const file of componentFiles()) {
+      if (TIME_CHARTS[file]) {
+        continue;
+      }
+
+      read(file)
+        .split("\n")
+        .forEach((line: string, index: number): void => {
+          if (isCentredByTranslate(line)) {
+            offCentre.push(`${file}:${index + 1}`);
+          }
+        });
+    }
+
+    expect(offCentre).toEqual([]);
+  });
+
+  test("a box hung over its parent's end turns the other way right to left", () => {
+    const inside: Array<string> = [];
+
+    for (const file of componentFiles()) {
+      if (TIME_CHARTS[file]) {
+        continue;
+      }
+
+      read(file)
+        .split("\n")
+        .forEach((line: string, index: number): void => {
+          if (isHungOverTheEnd(line) && !turnsRoundRightToLeft(line)) {
+            inside.push(`${file}:${index + 1}`);
+          }
+        });
+    }
+
+    expect(inside).toEqual([]);
+  });
+
+  test("a chevron drawn by hand, not with Icon, points where the line goes too", () => {
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceRow.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/FilterQueryBuilder/FilterQueryBuilderField.tsx",
+    ]) {
+      expect(read(file)).toContain("ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME}");
+    }
+  });
+});

@@ -34,6 +34,7 @@ import {
   MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS,
 } from "./MarkdownReadingDirection";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
+import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../Utils/TypedTextDirection";
 import { clipboardToMarkdown } from "./MarkdownPaste";
 import {
   deleteSelectionForInsert,
@@ -2754,7 +2755,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
                 props.error ? errorId : undefined,
               )}
               placeholder={sourcePlaceholder}
-              className={`${className} rounded-t-none min-h-32 [unicode-bidi:plaintext] ${
+              className={`${className} rounded-t-none min-h-32 ${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME} ${
                 isDraggingOver
                   ? "ring-2 ring-indigo-400 ring-offset-1 border-indigo-400"
                   : ""

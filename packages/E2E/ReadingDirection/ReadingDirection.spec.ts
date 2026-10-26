@@ -439,13 +439,11 @@ test.describe("notes read the way they are written", () => {
       .getByTestId("note-english")
       .locator("[dir]")
       .first();
-    const persian: Locator = page
-      .getByTestId("note-persian")
-      .locator("[dir]")
-      .first();
+    // Half Persian, half English: each of its paragraphs reads its own way.
+    const persian: Locator = page.getByTestId("note-persian");
 
     expect(await english.getAttribute("dir")).toBe("ltr");
-    expect(await persian.getAttribute("dir")).toBe("rtl");
+    expect(await persian.locator("p").first().getAttribute("dir")).toBe("rtl");
 
     // The English note's list is indented from its left, where its bullets sit.
     const list: Locator = english.locator("ul").first();
@@ -479,7 +477,119 @@ test.describe("notes read the way they are written", () => {
     expect(englishText.left - persianLine.left).toBeLessThan(
       persianLine.right - englishText.right,
     );
-    expect(await styleOf(paragraphs.last(), "unicode-bidi")).toBe("plaintext");
+    // Each paragraph says which way it reads (rehypeBlocksReadTheirOwnWay).
+    expect(await paragraphs.first().getAttribute("dir")).toBe("rtl");
+    expect(await paragraphs.last().getAttribute("dir")).toBe("ltr");
+    expect(await styleOf(paragraphs.last(), "direction")).toBe("ltr");
+  });
+
+  test("fa: an incident's feed note - its Persian title right to left, its English list left to right with its bullets beside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const note: Locator = page.getByTestId("note-feed");
+    const paragraphs: Locator = note.locator("p");
+
+    expect(
+      await paragraphs.evaluateAll(
+        (elements: Array<Element>): Array<string> => {
+          return elements.map((element: Element): string => {
+            return element.getAttribute("dir") || "";
+          });
+        },
+      ),
+    ).toEqual(["rtl", "ltr", "ltr"]);
+
+    const list: Locator = note.locator("ul");
+
+    expect(await list.getAttribute("dir")).toBe("ltr");
+    expect(await styleOf(list, "direction")).toBe("ltr");
+    expect(await styleOf(list, "padding-left")).toBe("24px");
+    // Its items read the list's way: no isolate needed.
+    expect(await list.locator("bdi").count()).toBe(0);
+
+    // Each item's words start at its bullet's side, the left, not across the card.
+    const listBox: Box = await boxOf(list);
+
+    for (const item of await list.locator("li a").all()) {
+      const itemBox: Box = await boxOf(item);
+
+      expect(itemBox.left - listBox.left).toBeLessThanOrEqual(25);
+      expect(listBox.right - itemBox.right).toBeGreaterThan(100);
+    }
+  });
+
+  test("fa: a Persian list with one English item - every bullet on the list's side, the English item's full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const list: Locator = page.getByTestId("note-mixed-list").locator("ul");
+
+    expect(await list.getAttribute("dir")).toBe("rtl");
+
+    const items: Array<Locator> = await list.locator("li").all();
+
+    expect(items).toHaveLength(3);
+
+    const english: Locator = items[2]!.locator("bdi");
+
+    expect(await english.getAttribute("dir")).toBe("ltr");
+    expect(await english.textContent()).toBe("Restart the checkout service.");
+
+    // The English item starts where the Persian ones do: at the list's right, beside its bullet.
+    const persianRight: number = (await boxOf(items[0]!)).right;
+    const englishBox: Box = await boxOf(english);
+
+    expect(
+      Math.abs((await boxOf(items[2]!)).right - persianRight),
+    ).toBeLessThan(1);
+    expect(persianRight - englishBox.right).toBeLessThan(2);
+
+    // Its full stop is drawn at its end - the right - not before its first word.
+    const fullStop: Box = await english.evaluate((element: Element): Box => {
+      const text: Text = element.firstChild as Text;
+      const range: Range = document.createRange();
+      range.setStart(text, text.length - 1);
+      range.setEnd(text, text.length);
+      const rect: DOMRect = range.getBoundingClientRect();
+
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
+
+    expect(englishBox.right - fullStop.right).toBeLessThan(1);
+  });
+
+  test("fa: a Persian sentence that starts with an English word reads right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const paragraph: Locator = page
+      .getByTestId("note-persian-from-english")
+      .locator("p");
+
+    expect(await paragraph.getAttribute("dir")).toBe("rtl");
+
+    // Its first word, the code, stands at the right, where the sentence starts.
+    const paragraphBox: Box = await boxOf(paragraph);
+    const code: Box = await boxOf(paragraph.locator("code"));
+
+    expect(paragraphBox.right - code.right).toBeLessThan(2);
   });
 
   test("fa: an empty editor follows the page, and an English note in it reads left to right", async ({
@@ -517,13 +627,11 @@ test.describe("notes read the way they are written", () => {
   }) => {
     await open(page, "lang=en");
 
-    expect(
-      await page
-        .getByTestId("note-persian")
-        .locator("[dir]")
-        .first()
-        .getAttribute("dir"),
-    ).toBe("rtl");
+    const persian: Locator = page.getByTestId("note-persian").locator("p");
+
+    expect(await persian.first().getAttribute("dir")).toBe("rtl");
+    expect(await styleOf(persian.first(), "direction")).toBe("rtl");
+    expect(await persian.last().getAttribute("dir")).toBe("ltr");
     expect(
       await page
         .getByTestId("note-english")
@@ -531,6 +639,86 @@ test.describe("notes read the way they are written", () => {
         .first()
         .getAttribute("dir"),
     ).toBe("ltr");
+    // A Persian sentence that starts with an English word, on an English page too.
+    expect(
+      await page
+        .getByTestId("note-persian-from-english")
+        .locator("p")
+        .getAttribute("dir"),
+    ).toBe("rtl");
+  });
+});
+
+test.describe("values someone wrote, shown and typed", () => {
+  test("fa: an English value keeps its full stop at its end, under its name at the right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const section: Locator = page.getByTestId("section-written");
+    const values: Array<Locator> = await section
+      .getByTestId("detail-value")
+      .all();
+
+    expect(values).toHaveLength(2);
+
+    const english: Locator = values[0]!.locator("bdi");
+    const persian: Locator = values[1]!.locator("bdi");
+
+    expect(await english.getAttribute("dir")).toBe("ltr");
+    expect(await persian.getAttribute("dir")).toBe("rtl");
+
+    // The value starts where its name does: at the right of a Persian card.
+    const label: Box = await boxOf(
+      section.getByTestId("detail-label").first().locator("span").first(),
+    );
+    const englishBox: Box = await boxOf(english);
+
+    expect(Math.abs(label.right - englishBox.right)).toBeLessThan(2);
+    expect(await english.textContent()).toBe(
+      "Watches the checkout endpoint every minute.",
+    );
+  });
+
+  test("fa: what is typed reads its own way, and an empty field shows its placeholder the page's way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const typed: Locator = page.getByTestId("field-english").locator("input");
+    const empty: Locator = page.getByTestId("field-empty").locator("input");
+    const area: Locator = page
+      .getByTestId("textarea-english")
+      .locator("textarea");
+
+    expect(await styleOf(typed, "unicode-bidi")).toBe("plaintext");
+    expect(await styleOf(area, "unicode-bidi")).toBe("plaintext");
+    // Firefox laid a right-to-left placeholder out of sight with plaintext.
+    expect(await styleOf(empty, "unicode-bidi")).toBe("normal");
+    expect(await styleOf(empty, "direction")).toBe("rtl");
+
+    await empty.fill("Payments gateway");
+    expect(await styleOf(empty, "unicode-bidi")).toBe("plaintext");
+  });
+
+  test("en: a Persian value on an English page reads right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=en");
+
+    const values: Array<Locator> = await page
+      .getByTestId("section-written")
+      .getByTestId("detail-value")
+      .all();
+
+    expect(await values[0]!.locator("bdi").getAttribute("dir")).toBe("ltr");
+    expect(await values[1]!.locator("bdi").getAttribute("dir")).toBe("rtl");
   });
 });
 

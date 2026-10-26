@@ -2,6 +2,7 @@ import Input, {
   ComponentProps,
   InputType,
 } from "../../../UI/Components/Input/Input";
+import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../../UI/Utils/TypedTextDirection";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React, {
@@ -245,7 +246,11 @@ describe("Input", () => {
     const { getByRole } = render(<Input {...{ className }} />);
     const input: HTMLElement = getByRole("textbox");
 
-    expect(Array.from(input.classList.values())).toEqual([className]);
+    // What is typed still reads the way it is written (TypedTextDirection).
+    expect(Array.from(input.classList.values())).toEqual([
+      className,
+      ...TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME.split(" "),
+    ]);
   });
 
   test("sets default className", () => {

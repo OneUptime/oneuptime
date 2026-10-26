@@ -4,6 +4,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import OneUptimeDate from "Common/Types/Date";
 import SpanUtil from "../../Utils/SpanUtil";
 import { formatAbsoluteTime } from "./TraceTimeFormat";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "Common/UI/Components/Icon/Icon";
 import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
 import {
@@ -236,13 +237,17 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
             </div>
           )}
 
-          {/* Chevron — rotates to point down when the row is expanded */}
+          {/*
+           * Chevron — rotates to point down when the row is expanded. It
+           * points where the line goes: left on a page that reads right to
+           * left, as Icon's own chevrons do.
+           */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"
-            className={`h-4 w-4 flex-shrink-0 transition-all duration-150 ${
+            className={`h-4 w-4 flex-shrink-0 transition-all duration-150 ${ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME} ${
               isExpanded
                 ? "rotate-90 text-gray-500"
                 : "text-gray-300 group-hover:translate-x-0.5 group-hover:text-gray-500"

@@ -117,11 +117,12 @@ export const isRightToLeftLanguage: (
  *
  * A team's note, a description or an answer from OneUptime AI is written
  * in whatever language its author wrote it in - an English note on a
- * Persian page, a Persian one on an English page. It reads the way its
- * first letter does, as a browser decides dir="auto": a letter of a
- * right-to-left script makes it right to left, any other letter left to
- * right. Digits, punctuation and Markdown's own marks ("## ", "- ", "**")
- * decide nothing. Null when there is no letter to go by, so the text
+ * Persian page, a Persian one on an English page. While it is being typed
+ * it reads the way its first letter does, as a browser decides
+ * dir="auto": a letter of a right-to-left script makes it right to left,
+ * any other letter left to right, and the line does not turn round as the
+ * words come. Digits, punctuation and Markdown's own marks ("## ", "- ",
+ * "**") decide nothing. Null when there is no letter to go by, so the text
  * follows the page.
  *
  * Only the start of the text is read (TEXT_DIRECTION_SCAN_LENGTH): a log
@@ -133,6 +134,63 @@ const FIRST_LETTER_REGEX: RegExp = /\p{L}/u;
 
 const RIGHT_TO_LEFT_LETTER_REGEX: RegExp =
   /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Adlam}\p{Script=Hanifi_Rohingya}\p{Script=Mandaic}\p{Script=Samaritan}]/u;
+
+// One letter, of any script.
+const LETTER_REGEX: RegExp = /^\p{L}$/u;
+
+/*
+ * WHICH WAY A TEXT SHOWN ON A PAGE IS READ: the way most of its letters
+ * read. A name, a description or a paragraph of a note is shown, not typed,
+ * so it can be read as a whole: "`kubectl` را اجرا کنید" and "API پرداخت از
+ * کار افتاده" are Persian sentences that start with an English word, and
+ * laid out from that first letter their Persian words came out in the
+ * wrong order. "Checkout API (EU)" and "Rolled back v2.4.1." read left to
+ * right, their full stop at their end. A tie goes to the first letter.
+ * Null when there is no letter, so the text follows the page; only the
+ * first TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ */
+export const getTextReadingDirectionByMostLetters: (
+  text: string | null | undefined,
+) => ReadingDirection | null = (
+  text: string | null | undefined,
+): ReadingDirection | null => {
+  if (!text) {
+    return null;
+  }
+
+  let rightToLeftLetters: number = 0;
+  let leftToRightLetters: number = 0;
+  let firstLetterDirection: ReadingDirection | null = null;
+
+  // By code point, so a letter outside the Basic Multilingual Plane counts once.
+  for (const character of text.slice(0, TEXT_DIRECTION_SCAN_LENGTH)) {
+    if (!LETTER_REGEX.test(character)) {
+      continue;
+    }
+
+    const direction: ReadingDirection = RIGHT_TO_LEFT_LETTER_REGEX.test(
+      character,
+    )
+      ? RIGHT_TO_LEFT
+      : LEFT_TO_RIGHT;
+
+    if (direction === RIGHT_TO_LEFT) {
+      rightToLeftLetters++;
+    } else {
+      leftToRightLetters++;
+    }
+
+    firstLetterDirection = firstLetterDirection || direction;
+  }
+
+  if (rightToLeftLetters === leftToRightLetters) {
+    return firstLetterDirection;
+  }
+
+  return rightToLeftLetters > leftToRightLetters
+    ? RIGHT_TO_LEFT
+    : LEFT_TO_RIGHT;
+};
 
 export const getTextReadingDirection: (
   text: string | null | undefined,

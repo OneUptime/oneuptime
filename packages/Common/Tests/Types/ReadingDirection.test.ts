@@ -1,6 +1,7 @@
 import {
   getReadingDirection,
   getTextReadingDirection,
+  getTextReadingDirectionByMostLetters,
   isRightToLeftLanguage,
   LEFT_TO_RIGHT,
   ReadingDirection,
@@ -218,6 +219,85 @@ describe("which way a text someone wrote is read", () => {
     });
 
     expect(read.result).toBeNull();
+    expect(read.inMs).toBeLessThan(2000);
+  });
+});
+
+describe("which way a text shown on a page is read", () => {
+  test.each([
+    ["Watches the checkout endpoint every minute.", LEFT_TO_RIGHT],
+    ["زمان پاسخ جستجو بیش از ۳ ثانیه است.", RIGHT_TO_LEFT],
+    ["Checkout API (EU)", LEFT_TO_RIGHT],
+    ["پنل مدیریت فروشگاه", RIGHT_TO_LEFT],
+    ["שלום עולם", RIGHT_TO_LEFT],
+    ["Привет", LEFT_TO_RIGHT],
+  ])("%p reads %p", (text: string, expected: ReadingDirection) => {
+    expect(getTextReadingDirectionByMostLetters(text)).toBe(expected);
+  });
+
+  test("a Persian sentence that starts with an English word is Persian", () => {
+    // Laid out from its first letter, its Persian words came out in the wrong order.
+    expect(getTextReadingDirection("API پرداخت از کار افتاده.")).toBe(
+      LEFT_TO_RIGHT,
+    );
+    expect(
+      getTextReadingDirectionByMostLetters("API پرداخت از کار افتاده."),
+    ).toBe(RIGHT_TO_LEFT);
+    expect(
+      getTextReadingDirectionByMostLetters(
+        "OneUptime هشدار را برای تیم فرستاد.",
+      ),
+    ).toBe(RIGHT_TO_LEFT);
+  });
+
+  test("an English sentence with a Persian word is English", () => {
+    expect(
+      getTextReadingDirectionByMostLetters("Paged the پرداخت team about it."),
+    ).toBe(LEFT_TO_RIGHT);
+  });
+
+  test("as many letters each way: its first letter decides", () => {
+    expect(getTextReadingDirectionByMostLetters("abc ابت")).toBe(LEFT_TO_RIGHT);
+    expect(getTextReadingDirectionByMostLetters("ابت abc")).toBe(RIGHT_TO_LEFT);
+  });
+
+  test("a letter outside the Basic Multilingual Plane counts once", () => {
+    // Two mathematical letters (one code point, two UTF-16 units each) to one Persian letter.
+    expect(getTextReadingDirectionByMostLetters("\u{1D400}\u{1D401} ب")).toBe(
+      LEFT_TO_RIGHT,
+    );
+    expect(getTextReadingDirectionByMostLetters("\u{1D400} ب ت")).toBe(
+      RIGHT_TO_LEFT,
+    );
+  });
+
+  test.each([undefined, null, "", "   ", "12:30 - 99.9%", "**", "۱۲:۳۰"])(
+    "a text with no letter (%p) follows the page",
+    (text: string | null | undefined) => {
+      expect(getTextReadingDirectionByMostLetters(text)).toBeNull();
+    },
+  );
+
+  test("only the start of a text is read", () => {
+    const english: string = "a".repeat(TEXT_DIRECTION_SCAN_LENGTH);
+
+    // Persian past the start: not read.
+    expect(
+      getTextReadingDirectionByMostLetters(`${english}${"ف".repeat(10000)}`),
+    ).toBe(LEFT_TO_RIGHT);
+  });
+
+  test("a megabytes-long text is read in a moment", () => {
+    const log: string = "12:30:45.123 GET /checkout 200 ".repeat(15000);
+
+    const read: FastestRun<ReadingDirection | null> = fastestRun({
+      run: (): ReadingDirection | null => {
+        return getTextReadingDirectionByMostLetters(log);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toBe(LEFT_TO_RIGHT);
     expect(read.inMs).toBeLessThan(2000);
   });
 });

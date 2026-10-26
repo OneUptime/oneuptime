@@ -22,11 +22,27 @@ import ProjectPicker from "../../../UI/Components/Header/ProjectPicker/ProjectPi
 import ProjectPickerMenuItem from "../../../UI/Components/Header/ProjectPicker/ProjectPickerMenuItem";
 import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 import MarkdownEditor from "../../../UI/Components/Markdown.tsx/MarkdownEditor";
+import MarkdownBlockquote from "../../../UI/Components/Markdown.tsx/MarkdownQuote";
+import { MARKDOWN_CALLOUT_ATTRIBUTE } from "../../../UI/Components/Markdown.tsx/MarkdownCallouts";
 import {
+  getMarkdownBlockText,
   getMarkdownReadingDirection,
-  MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME,
+  getMarkdownWords,
+  getShownMarkdownReadingDirection,
   MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS,
+  MarkdownTreeNode,
+  rehypeBlocksReadTheirOwnWay,
 } from "../../../UI/Components/Markdown.tsx/MarkdownReadingDirection";
+import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../../UI/Utils/TypedTextDirection";
+import Input, { InputType } from "../../../UI/Components/Input/Input";
+import TextArea from "../../../UI/Components/TextArea/TextArea";
+import IsolatedText from "../../../UI/Components/IsolatedText/IsolatedText";
+import TableBody from "../../../UI/Components/Table/TableBody";
+import Detail from "../../../UI/Components/Detail/Detail";
+import LongTextViewer from "../../../UI/Components/LongText/LongTextViewer";
+import FieldType from "../../../UI/Components/Types/FieldType";
+import { TEXT_DIRECTION_SCAN_LENGTH } from "../../../Types/ReadingDirection";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import Project from "../../../Models/DatabaseModels/Project";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -349,7 +365,7 @@ describe("words that read their own way", () => {
 });
 
 describe("notes read the way they are written", () => {
-  test("the direction of a note is its first letter's", () => {
+  test("as it is typed, a note reads the way its first letter does", () => {
     expect(getMarkdownReadingDirection("The deploy finished.")).toBe("ltr");
     expect(getMarkdownReadingDirection("استقرار تمام شد.")).toBe("rtl");
 
@@ -358,49 +374,325 @@ describe("notes read the way they are written", () => {
     expect(getMarkdownReadingDirection("- [ ] `npm` 42 Fix it")).toBe("ltr");
   });
 
-  test("a note with no letter yet follows the page", () => {
-    expect(getMarkdownReadingDirection("")).toBeUndefined();
-    expect(getMarkdownReadingDirection(null)).toBeUndefined();
-    expect(getMarkdownReadingDirection(undefined)).toBeUndefined();
-    expect(getMarkdownReadingDirection("123 - 456")).toBeUndefined();
+  test("shown, a note reads the way most of its words do, its links' addresses and its code left out", () => {
+    expect(getShownMarkdownReadingDirection("The deploy finished.")).toBe(
+      "ltr",
+    );
+    // A Persian sentence that starts with an English word is Persian.
+    expect(getShownMarkdownReadingDirection("API پرداخت از کار افتاده.")).toBe(
+      "rtl",
+    );
+    expect(
+      getShownMarkdownReadingDirection(
+        "`kubectl rollout restart deployment/checkout` را اجرا کنید",
+      ),
+    ).toBe("rtl");
+    expect(
+      getShownMarkdownReadingDirection(
+        "[حادثه](https://oneuptime.example/dashboard/incidents/view) باز شد",
+      ),
+    ).toBe("rtl");
+    expect(
+      getShownMarkdownReadingDirection("Rolled back [v2.4.1](/releases)."),
+    ).toBe("ltr");
   });
 
-  test("each block of a note reads its own way, and starts on that side", () => {
-    for (const rule of [
-      MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME,
-      MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS,
+  test("a note with no letter yet follows the page", () => {
+    for (const read of [
+      getMarkdownReadingDirection,
+      getShownMarkdownReadingDirection,
     ]) {
-      expect(rule).toMatch(/unicode-bidi:\s?plaintext/);
-      expect(rule).toMatch(/text-start|text-align: start/);
-
-      for (const block of ["p", "li", "h1", "h6", "dd", "figcaption"]) {
-        expect(rule).toMatch(new RegExp(`[(,]\\s?${block}[,)]`));
-      }
+      expect(read("")).toBeUndefined();
+      expect(read(null)).toBeUndefined();
+      expect(read(undefined)).toBeUndefined();
+      expect(read("123 - 456")).toBeUndefined();
     }
   });
 
-  test("the viewer lays an English note out left to right, a Persian one right to left", async () => {
+  test("the words of a note leave out where its links go and its code", () => {
+    expect(getMarkdownWords("See [the runbook](https://x.example/a) now")).toBe(
+      "See [the runbook now",
+    );
+    expect(getMarkdownWords("![graph](/img.png) and `code here` done")).toBe(
+      "![graph and  done",
+    );
+    // An unclosed mark is a character like any other.
+    expect(getMarkdownWords("a ` b ](c")).toBe("a ` b ](c");
+    expect(getMarkdownWords(null)).toBe("");
+  });
+
+  test("the words of a note are read in one pass, however its marks are left open", () => {
+    // Marks that are never closed: each would otherwise be searched for to the end.
+    for (const adversarial of [
+      "](".repeat(200000),
+      "`".repeat(400000),
+      `${"](x".repeat(130000)}`,
+    ]) {
+      const read: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return getMarkdownWords(adversarial);
+        },
+        limitInMs: 2000,
+      });
+
+      expect(read.inMs).toBeLessThan(2000);
+      expect(read.result.length).toBeLessThanOrEqual(
+        TEXT_DIRECTION_SCAN_LENGTH,
+      );
+    }
+  });
+});
+
+describe("each block of a shown note reads its own way", () => {
+  const text: (value: string) => MarkdownTreeNode = (
+    value: string,
+  ): MarkdownTreeNode => {
+    return { type: "text", value };
+  };
+
+  const element: (
+    tagName: string,
+    children: Array<MarkdownTreeNode>,
+    properties?: Record<string, unknown>,
+  ) => MarkdownTreeNode = (
+    tagName: string,
+    children: Array<MarkdownTreeNode>,
+    properties?: Record<string, unknown>,
+  ): MarkdownTreeNode => {
+    return { type: "element", tagName, properties: properties || {}, children };
+  };
+
+  const laidOut: (tree: MarkdownTreeNode) => MarkdownTreeNode = (
+    tree: MarkdownTreeNode,
+  ): MarkdownTreeNode => {
+    rehypeBlocksReadTheirOwnWay()(tree);
+
+    return tree;
+  };
+
+  test("every paragraph, heading, list, quote and table takes the way most of its words read", () => {
+    const tree: MarkdownTreeNode = laidOut({
+      type: "root",
+      children: [
+        element("h2", [text("کندی در جستجو")]),
+        text("\n"),
+        element("p", [text("The search cluster lost one node.")]),
+        element("ul", [
+          element("li", [element("a", [text("Checkout API")])]),
+          element("li", [element("a", [text("Payments gateway")])]),
+        ]),
+        element("blockquote", [element("p", [text("نقل قول.")])]),
+        element("table", [element("tr", [element("td", [text("Region")])])]),
+      ],
+    });
+
+    const [heading, , paragraph, list, quote, table] = tree.children!;
+
+    expect(heading!.properties!["dir"]).toBe("rtl");
+    expect(paragraph!.properties!["dir"]).toBe("ltr");
+    // A list of English names on a Persian page: its bullets beside them.
+    expect(list!.properties!["dir"]).toBe("ltr");
+    expect(quote!.properties!["dir"]).toBe("rtl");
+    expect(table!.properties!["dir"]).toBe("ltr");
+  });
+
+  test("code says nothing about a block's way, and keeps the page's own rules", () => {
+    const tree: MarkdownTreeNode = laidOut({
+      type: "root",
+      children: [
+        element("p", [
+          element("code", [text("kubectl rollout restart deployment")]),
+          text(" را اجرا کنید"),
+        ]),
+        element("pre", [element("code", [text("echo done")])]),
+        element("p", [text("12:30 - 99.9%")]),
+      ],
+    });
+
+    const [runIt, block, figures] = tree.children!;
+
+    expect(runIt!.properties!["dir"]).toBe("rtl");
+    // A code block is left to right everywhere (Theme.css), never given a way here.
+    expect(block!.properties!["dir"]).toBeUndefined();
+    // No letters: it follows the note.
+    expect(figures!.properties!["dir"]).toBeUndefined();
+  });
+
+  test("an item written the other way reads its own way where it stands, beside its bullet", () => {
+    const tree: MarkdownTreeNode = laidOut({
+      type: "root",
+      children: [
+        element("ul", [
+          element("li", [text("مورد اول فارسی")]),
+          element("li", [text("مورد دوم فارسی")]),
+          element("li", [text("Checkout API returns 503.")]),
+        ]),
+      ],
+    });
+
+    const list: MarkdownTreeNode = tree.children![0]!;
+    const english: MarkdownTreeNode = list.children![2]!;
+
+    expect(list.properties!["dir"]).toBe("rtl");
+    // The Persian items read the list's way and are left as they are.
+    expect(list.children![0]!.children).toEqual([text("مورد اول فارسی")]);
+    // The English one: its words in an isolate that reads left to right.
+    expect(english.properties!["dir"]).toBeUndefined();
+    expect(english.children).toEqual([
+      {
+        type: "element",
+        tagName: "bdi",
+        properties: { dir: "ltr" },
+        children: [text("Checkout API returns 503.")],
+      },
+    ]);
+  });
+
+  test("a task list's check box stays where the bullet would be", () => {
+    const checkBox: MarkdownTreeNode = element("input", [], {
+      type: "checkbox",
+    });
+    const tree: MarkdownTreeNode = laidOut({
+      type: "root",
+      children: [
+        element("ul", [
+          element("li", [text("اول این مورد را با دقت ببینید")]),
+          element("li", [checkBox, text(" "), text("Roll back the deploy")]),
+        ]),
+      ],
+    });
+
+    const item: MarkdownTreeNode = tree.children![0]!.children![1]!;
+
+    expect(item.children![0]).toBe(checkBox);
+    expect(item.children![1]).toEqual(text(" "));
+    expect(item.children![2]!.tagName).toBe("bdi");
+    expect(item.children![2]!.children).toEqual([text("Roll back the deploy")]);
+  });
+
+  test("an item that holds paragraphs or a list has them read in turn", () => {
+    const tree: MarkdownTreeNode = laidOut({
+      type: "root",
+      children: [
+        element("ol", [
+          element("li", [
+            element("p", [text("گام اول را با دقت انجام دهید")]),
+            element("p", [text("Restart it.")]),
+            element("ul", [element("li", [text("Checkout")])]),
+          ]),
+        ]),
+      ],
+    });
+
+    const item: MarkdownTreeNode = tree.children![0]!.children![0]!;
+    const [persian, english, nested] = item.children!;
+
+    expect(tree.children![0]!.properties!["dir"]).toBe("rtl");
+    // The item itself keeps its list's way: its bullet stays on the list's side.
+    expect(item.properties!["dir"]).toBeUndefined();
+    expect(persian!.children).toEqual([text("گام اول را با دقت انجام دهید")]);
+    expect(english!.children![0]!.tagName).toBe("bdi");
+    expect(english!.children![0]!.properties).toEqual({ dir: "ltr" });
+    expect(nested!.properties!["dir"]).toBeUndefined();
+    expect(nested!.children![0]!.children![0]!.tagName).toBe("bdi");
+  });
+
+  test("the words of a block are read up to the length a direction is read from", () => {
+    const block: MarkdownTreeNode = element("p", [
+      text("a".repeat(TEXT_DIRECTION_SCAN_LENGTH + 10)),
+      text("فارسی"),
+    ]);
+
+    expect(getMarkdownBlockText(block)).toHaveLength(
+      TEXT_DIRECTION_SCAN_LENGTH,
+    );
+  });
+});
+
+/*
+ * react-markdown is a stand-in under jest (Tests/__mocks__): the blocks a
+ * note is drawn as, and their directions, are measured in a real browser by
+ * packages/E2E/ReadingDirection. MarkdownViewerHugeText pins that the
+ * viewer always hands the parser rehypeBlocksReadTheirOwnWay, last.
+ */
+describe("the viewer lays a note out the way its words read", () => {
+  test("an English note left to right, a Persian one right to left - even one that starts with an English word", () => {
     const { container, rerender } = render(
       <MarkdownViewer text="The deploy finished." />,
     );
 
-    const frameOf: () => HTMLElement = (): HTMLElement => {
-      return screen
-        .getByText(/deploy finished|استقرار/)
-        .closest("[dir]") as HTMLElement;
+    const frame: () => Element = (): Element => {
+      return container.firstElementChild!;
     };
 
-    expect(frameOf()).toHaveAttribute("dir", "ltr");
-    expect(frameOf().className).toContain(
-      MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME,
-    );
+    expect(frame()).toHaveAttribute("dir", "ltr");
 
     rerender(<MarkdownViewer text="استقرار تمام شد." />);
-    expect(frameOf()).toHaveAttribute("dir", "rtl");
+    expect(frame()).toHaveAttribute("dir", "rtl");
+
+    rerender(<MarkdownViewer text="`kubectl` را روی کلاستر اجرا کنید." />);
+    expect(frame()).toHaveAttribute("dir", "rtl");
 
     // Nothing to read: the page's way, with no dir of its own.
     rerender(<MarkdownViewer text="" />);
     expect(container.querySelector("[dir]")).toBeNull();
+  });
+
+  test("a quote and a callout stand on the side their words start", () => {
+    const { container, rerender } = render(
+      <MarkdownBlockquote dir="rtl">
+        <p>این را بخوانید.</p>
+      </MarkdownBlockquote>,
+    );
+
+    expect(container.querySelector("blockquote")).toHaveAttribute("dir", "rtl");
+
+    rerender(
+      <MarkdownBlockquote
+        dir="ltr"
+        {...{ [MARKDOWN_CALLOUT_ATTRIBUTE]: "warning" }}
+      >
+        <p>Do not restart the primary.</p>
+      </MarkdownBlockquote>,
+    );
+
+    const callout: Element = container.querySelector("blockquote")!;
+
+    expect(callout).toHaveAttribute("data-callout", "warning");
+    expect(callout).toHaveAttribute("dir", "ltr");
+
+    // With no way of its own, a quote follows the note.
+    rerender(
+      <MarkdownBlockquote>
+        <p>12:30</p>
+      </MarkdownBlockquote>,
+    );
+    expect(container.querySelector("blockquote")).not.toHaveAttribute("dir");
+  });
+});
+
+describe("the editor writes the way its text is typed", () => {
+  test("its paragraphs and headings read their own way; a list's items, a quote's and a table's stay beside their bullets", () => {
+    expect(MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS).toMatch(
+      /unicode-bidi:\s?plaintext/,
+    );
+    expect(MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS).toMatch(
+      /text-align: start/,
+    );
+
+    for (const block of ["p", "h1", "h6", "dd", "figcaption"]) {
+      expect(MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS).toMatch(
+        new RegExp(`[(,]\\s?${block}[,)]`),
+      );
+    }
+
+    // A list item turned round by its own first letter put its bullet on the other side in Safari.
+    expect(MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS).not.toMatch(
+      /[(,]\s?li[,)]/,
+    );
+    expect(MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS).toContain(
+      ":not(li *, blockquote *, td *, th *)",
+    );
   });
 
   test("the editor writes the way its text reads, and follows it as it changes", () => {
@@ -416,7 +708,11 @@ describe("notes read the way they are written", () => {
 
     // Empty, it follows the page.
     expect(area()).toBeNull();
-    expect(textarea.className).toContain("[unicode-bidi:plaintext]");
+    for (const className of TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME.split(
+      " ",
+    )) {
+      expect(textarea.className).toContain(className);
+    }
 
     act(() => {
       fireEvent.change(textarea, { target: { value: "استقرار تمام شد." } });
@@ -427,5 +723,159 @@ describe("notes read the way they are written", () => {
       fireEvent.change(textarea, { target: { value: "The deploy finished." } });
     });
     expect(area()).toHaveAttribute("dir", "ltr");
+  });
+});
+
+describe("fields read what is typed into them the way it is written", () => {
+  test("each line reads its own way, and a placeholder the page's (Firefox hid a right-to-left one)", () => {
+    expect(TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME).toBe(
+      "[unicode-bidi:plaintext] placeholder-shown:[unicode-bidi:normal]",
+    );
+  });
+
+  test("a text field, a password, an address and a text area carry it", () => {
+    const { container } = render(
+      <>
+        <Input placeholder="Name" />
+        <Input placeholder="Secret" type={InputType.PASSWORD} />
+        <Input placeholder="Address" type={InputType.URL} />
+        <TextArea placeholder="Description" />
+      </>,
+    );
+
+    for (const field of Array.from(
+      container.querySelectorAll("input, textarea"),
+    )) {
+      expect(field.className).toContain("[unicode-bidi:plaintext]");
+      expect(field.className).toContain(
+        "placeholder-shown:[unicode-bidi:normal]",
+      );
+    }
+  });
+
+  test("a field with its own classes carries it too", () => {
+    const { container } = render(<Input className="w-24 border" />);
+
+    expect(container.querySelector("input")!.className).toBe(
+      `w-24 border ${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME}`,
+    );
+  });
+
+  test("a number, a date and a time are laid out by the browser and left alone", () => {
+    const { container } = render(
+      <>
+        <Input type={InputType.NUMBER} />
+        <Input type={InputType.DATE} />
+        <Input type={InputType.DATETIME_LOCAL} />
+        <Input type={InputType.TIME} />
+      </>,
+    );
+
+    for (const field of Array.from(container.querySelectorAll("input"))) {
+      expect(field.className).not.toContain("unicode-bidi");
+    }
+  });
+});
+
+describe("a value someone wrote, in a line of the page", () => {
+  test("reads the way most of its letters do, in an isolate", () => {
+    const { container, rerender } = render(
+      <IsolatedText text="Watches the checkout endpoint every minute." />,
+    );
+
+    const isolate: () => Element = (): Element => {
+      return container.firstElementChild!;
+    };
+
+    expect(isolate().tagName).toBe("BDI");
+    expect(isolate()).toHaveAttribute("dir", "ltr");
+    expect(isolate()).toHaveTextContent(
+      "Watches the checkout endpoint every minute.",
+    );
+
+    rerender(<IsolatedText text="API پرداخت از کار افتاده." />);
+    expect(isolate()).toHaveAttribute("dir", "rtl");
+
+    // No letters: the bdi reads it as browsers read one.
+    rerender(<IsolatedText text="8080" />);
+    expect(isolate().tagName).toBe("BDI");
+    expect(isolate()).not.toHaveAttribute("dir");
+  });
+
+  test("a table's cell draws its text in one", () => {
+    render(
+      <table>
+        <TableBody<{ _id: string; description: string; port: string }>
+          id="isolated-text-body"
+          data={[
+            {
+              _id: "44000000-0000-4000-8000-000000000001",
+              description: "Watches the checkout endpoint every minute.",
+              port: "8080",
+            },
+          ]}
+          columns={[
+            {
+              title: "Description",
+              type: FieldType.Text,
+              key: "description",
+            },
+            { title: "Port", type: FieldType.Text, key: "port" },
+          ]}
+          selectedItems={[]}
+          matchBulkSelectedItemByField={undefined}
+          isMobile={false}
+        />
+      </table>,
+    );
+
+    const description: HTMLElement = screen.getByText(
+      "Watches the checkout endpoint every minute.",
+    );
+
+    expect(description.tagName).toBe("BDI");
+    expect(description).toHaveAttribute("dir", "ltr");
+    expect(screen.getByText("8080").tagName).toBe("BDI");
+  });
+
+  test("a detail's value written as text draws it in one; an element is drawn as it is", () => {
+    render(
+      <Detail<{ description: string; owner: string }>
+        item={{
+          description: "پایش نقطه پرداخت.",
+          owner: "Payments team",
+        }}
+        fields={[
+          {
+            key: "description",
+            title: "Description",
+            fieldType: FieldType.Text,
+          },
+          {
+            key: "owner",
+            title: "Owner",
+            getElement: () => {
+              return <span data-testid="owner-element">Payments team</span>;
+            },
+          },
+        ]}
+        showRecordLine={false}
+      />,
+    );
+
+    const description: HTMLElement = screen.getByText("پایش نقطه پرداخت.");
+
+    expect(description.tagName).toBe("BDI");
+    expect(description).toHaveAttribute("dir", "rtl");
+    expect(screen.getByTestId("owner-element").closest("bdi")).toBeNull();
+  });
+
+  test("a long text in a table reads its own way too", () => {
+    render(<LongTextViewer text="Rolled back the deploy." />);
+
+    const value: HTMLElement = screen.getByText("Rolled back the deploy.");
+
+    expect(value.tagName).toBe("BDI");
+    expect(value).toHaveAttribute("dir", "ltr");
   });
 });
