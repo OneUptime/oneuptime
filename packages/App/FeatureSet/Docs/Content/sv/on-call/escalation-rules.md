@@ -134,6 +134,13 @@ Det anger allvarlighetsgraden och vad som har hänt (en incident, ett larm eller
 
 Allvarlighetsgraden, numret och länken kortas aldrig. En titel behåller minst 20 tecken: ryms inte ens det, till exempel med en mycket lång adress eller ett mycket långt produktnamn, tar sms:et en del till och säger allt.
 
+När en policy larmar igen för att en bekräftad incident eller ett bekräftat larm fortfarande inte är löst, säger sms:et det efter numret och projektet, och de orden kortas heller aldrig:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ett enda tecken utanför sms:ets enkla alfabet gör att hela meddelandet går ut i delar om 70 tecken. Därför skrivs typografiska citattecken och tankstreck som `"`, `'` och `-`, `…` som `...`, och bokstäver som `ç` och `ł` förlorar sina accenter; emojier utelämnas. En titel i en annan skrift, som japanska eller ryska, skickas som den är skriven och tar två delar eller fler.
 
 De andra sms som OneUptime skickar till dig, till exempel om en ändring i en incident du äger eller början på ditt jourpass, börjar också med `OneUptime:` och slutar med `Turn off in User Settings > Notification Settings.`, en mening som utelämnas när det är det som gör att sms:et ryms i en del.

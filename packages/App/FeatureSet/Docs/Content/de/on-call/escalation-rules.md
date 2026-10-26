@@ -134,6 +134,13 @@ Sie nennt den Schweregrad und was passiert ist (ein Vorfall, eine Warnung oder e
 
 Schweregrad, Nummer und Link werden nie gekürzt. Ein Titel behält mindestens 20 Zeichen: Passt selbst das nicht, etwa bei einer sehr langen Adresse oder einem sehr langen Produktnamen, belegt die SMS einen zweiten Teil und sagt alles.
 
+Alarmiert eine Richtlinie erneut, weil ein bestätigter Vorfall oder eine bestätigte Warnung noch nicht behoben ist, sagt die SMS das nach der Nummer und dem Projekt, und auch diese Worte werden nie gekürzt:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ein einziges Zeichen außerhalb des einfachen SMS-Alphabets lässt die ganze SMS in Teilen zu 70 Zeichen hinausgehen. Deshalb werden typografische Anführungszeichen und Gedankenstriche als `"`, `'` und `-` geschrieben, `…` als `...`, und Buchstaben wie `ç` und `ł` verlieren ihre Akzente; Emojis werden weggelassen. Ein Titel in einer anderen Schrift, etwa Japanisch oder Russisch, wird so gesendet, wie er geschrieben ist, und belegt zwei Teile oder mehr.
 
 Die anderen SMS, die OneUptime Ihnen sendet, etwa zu einer Änderung an einem Vorfall, der Ihnen gehört, oder zum Beginn Ihrer Bereitschaftsschicht, beginnen ebenfalls mit `OneUptime:` und enden mit `Turn off in User Settings > Notification Settings.`, einem Satz, der weggelassen wird, wenn die SMS erst dadurch in einen Teil passt.

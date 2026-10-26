@@ -134,6 +134,13 @@ Indica la severidad y qué ha pasado (un incidente, una alerta o un episodio de 
 
 La severidad, el número y el enlace nunca se cortan. Un título conserva al menos 20 caracteres: si ni eso cabe, por ejemplo con una dirección o un nombre de producto muy largos, el SMS ocupa una segunda parte y lo dice todo.
 
+Cuando una política vuelve a avisar porque un incidente o una alerta reconocidos siguen sin resolverse, el SMS lo dice después del número y el proyecto, y esas palabras tampoco se cortan nunca:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un solo carácter fuera del alfabeto sencillo de los SMS hace que todo el mensaje salga en partes de 70 caracteres. Por eso las comillas tipográficas y las rayas se escriben como `"`, `'` y `-`, `…` como `...`, y letras como `ç` y `ł` pierden sus acentos; los emojis se omiten. Un título en otra escritura, como japonés o ruso, se envía tal como está escrito y ocupa dos partes o más.
 
 Los demás SMS que te envía OneUptime, por ejemplo sobre un cambio en un incidente del que eres propietario o el inicio de tu turno de guardia, también empiezan con `OneUptime:` y terminan con `Turn off in User Settings > Notification Settings.`, una frase que se omite cuando así el mensaje cabe en una parte.

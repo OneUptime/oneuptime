@@ -134,6 +134,13 @@ Den oppgir alvorlighetsgraden og hva som har skjedd (en hendelse, et varsel elle
 
 Alvorlighetsgraden, nummeret og lenken kortes aldri ned. En tittel beholder minst 20 tegn: får ikke engang det plass, for eksempel med en svært lang adresse eller et svært langt produktnavn, tar SMS-en en del til og sier alt.
 
+Når en retningslinje varsler igjen fordi en bekreftet hendelse eller et bekreftet varsel fortsatt ikke er løst, sier SMS-en det etter nummeret og prosjektet, og heller ikke de ordene kortes noen gang ned:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ett tegn utenfor det enkle SMS-alfabetet gjør at hele meldingen går ut i deler på 70 tegn. Derfor skrives typografiske anførselstegn og tankestreker som `"`, `'` og `-`, `…` som `...`, og bokstaver som `ç` og `ł` mister aksentene sine; emojier utelates. En tittel i en annen skrift, som japansk eller russisk, sendes slik den er skrevet, og tar to deler eller flere.
 
 De andre SMS-ene OneUptime sender deg, for eksempel om en endring i en hendelse du eier eller starten på vakten din, begynner også med `OneUptime:` og slutter med `Turn off in User Settings > Notification Settings.`, en setning som utelates når det er det som får SMS-en til å passe i én del.

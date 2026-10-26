@@ -87,8 +87,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   Slack and
  *   Teams DMs
  *
- * The text message is left as it is: it never calls the record new, and it
- * has one 160-character part to fit in. A first page reads exactly as before.
+ *   SMS        "... INC-42 in Acme is still not resolved: <title>. Ack or
+ *              escalate: <link>", in its one 160-character part.
+ *
+ * WhatsApp's words are a template Meta approved, and stay as they are. A
+ * first page reads exactly as before.
  */
 
 const NOTIFICATION: ObjectID = new ObjectID(
@@ -878,9 +881,16 @@ describe("a delivery hands the page again to every channel's message", () => {
       "ACTION REQUIRED: Incident INC-42 still not resolved - Checkout is down",
     );
 
-    // The text message is the page's own, as ever.
+    // The text message says it too, after the number and the project.
     expect(spies.sms).toHaveBeenCalledTimes(1);
-    expect(spies.sms.mock.calls[0]!.length).toBe(3);
+    expect(spies.sms.mock.calls[0]![3]).toEqual(NOTICE);
+
+    const sms: { message: string } = (await spies.sms.mock.results[0]!
+      .value) as { message: string };
+
+    expect(sms.message).toContain(" INC-42 ");
+    expect(sms.message).toContain(" is still not resolved: Checkout is down.");
+    expect(sms.message).toContain("Ack or escalate: ");
   });
 
   test("a first page: nobody is told it pages again", async () => {
@@ -894,11 +904,17 @@ describe("a delivery hands the page again to every channel's message", () => {
     expect(spies.call.mock.calls[0]![3]).toBeUndefined();
     expect(spies.email.mock.calls[0]![3]).toBeUndefined();
     expect(spies.telegram.mock.calls[0]![2]).toBeUndefined();
+    expect(spies.sms.mock.calls[0]![3]).toBeUndefined();
 
     const callRequest: CallRequest = (await spies.call.mock.results[0]!
       .value) as CallRequest;
 
     expect(sayMessages(callRequest)[1]).toBe("A new incident has been created");
+
+    const sms: { message: string } = (await spies.sms.mock.results[0]!
+      .value) as { message: string };
+
+    expect(sms.message).not.toContain("still not resolved");
   });
 
   test("a run that cannot be read still pages, worded as a first page", async () => {

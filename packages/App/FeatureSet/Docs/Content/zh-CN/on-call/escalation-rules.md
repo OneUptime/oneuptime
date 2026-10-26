@@ -134,6 +134,13 @@ Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 
 严重级别、编号和链接永远不会被截断。标题至少保留 20 个字符：如果连这些也放不下，例如地址或产品名称很长，短信就会占用第二段，把内容全部写出。
 
+当策略因已确认的事件或告警仍未解决而再次通知时，短信会在编号和项目之后写明这一点，这几个字也永远不会被截断：
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 只要有一个字符不在短信的基本字符集中，整条消息就会按每段 70 个字符发送。因此，弯引号和破折号会写成 `"` 、 `'` 和 `-` ， `…` 写成 `...` ，像 `ç` 和 `ł` 这样的字母会去掉重音符号；表情符号会被省略。用其他文字（例如日文或俄文）写的标题会按原样发送，占用两段或更多。
 
 OneUptime 发给你的其他短信，例如你作为所有者的事件发生变化或你的值班班次开始时的短信，也以 `OneUptime:` 开头，以 `Turn off in User Settings > Notification Settings.` 结尾；如果去掉这句话才能放进一段，这句话就会被省略。
