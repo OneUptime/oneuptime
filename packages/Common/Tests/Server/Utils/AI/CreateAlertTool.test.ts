@@ -121,21 +121,21 @@ function mockCreate(data?: {
   alertNumber?: number;
   alertNumberWithPrefix?: string | undefined;
 }): jest.SpyInstance {
-  return jest
-    .spyOn(AlertService, "create")
-    .mockImplementation((async (args: { data: Alert }): Promise<Alert> => {
-      const created: Alert = args.data;
-      created._id = ALERT_ID;
-      created.alertNumber = data?.alertNumber ?? 12;
+  return jest.spyOn(AlertService, "create").mockImplementation((async (args: {
+    data: Alert;
+  }): Promise<Alert> => {
+    const created: Alert = args.data;
+    created._id = ALERT_ID;
+    created.alertNumber = data?.alertNumber ?? 12;
 
-      if (data?.alertNumberWithPrefix !== undefined) {
-        created.alertNumberWithPrefix = data.alertNumberWithPrefix;
-      } else if (!data) {
-        created.alertNumberWithPrefix = "ALT-12";
-      }
+    if (data?.alertNumberWithPrefix !== undefined) {
+      created.alertNumberWithPrefix = data.alertNumberWithPrefix;
+    } else if (!data) {
+      created.alertNumberWithPrefix = "ALT-12";
+    }
 
-      return created;
-    }) as never);
+    return created;
+  }) as never);
 }
 
 function createdAlert(spy: jest.SpyInstance): Alert {
@@ -763,9 +763,9 @@ describe("create_alert, prepared for approval", () => {
 
     expect(create).not.toHaveBeenCalled();
     // The severities were read as the person, as running it reads them.
-    expect(
-      (severities.mock.calls[0]![0] as { props: unknown }).props,
-    ).toBe(ctx.props);
+    expect((severities.mock.calls[0]![0] as { props: unknown }).props).toBe(
+      ctx.props,
+    );
   });
 
   test("what was prepared runs as approved: run later from another page, it links the same host with the same severity", async () => {

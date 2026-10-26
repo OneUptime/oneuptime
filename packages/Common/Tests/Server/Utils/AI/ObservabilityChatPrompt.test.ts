@@ -1252,9 +1252,7 @@ describe("raising an alert, and what an alert rule is (issue #5301)", () => {
 
       expect(at).toBeGreaterThan(prompt.indexOf("## How to investigate"));
       expect(at).toBeLessThan(prompt.indexOf("## Reading tool results"));
-      expect(prompt.split("## Incidents, alerts and monitors")).toHaveLength(
-        2,
-      );
+      expect(prompt.split("## Incidents, alerts and monitors")).toHaveLength(2);
     }
   });
 

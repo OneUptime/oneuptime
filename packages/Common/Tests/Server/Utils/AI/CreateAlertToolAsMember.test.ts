@@ -142,15 +142,13 @@ function stubCreateAfterTheTableCheck(): SpyInstance<
 > {
   return jest
     .spyOn(AlertService, "create")
-    .mockImplementation(
-      async (createBy: { data: Alert }): Promise<Alert> => {
-        const created: Alert = createBy.data;
-        created._id = ALERT_ID;
-        created.alertNumber = 3;
-        created.alertNumberWithPrefix = "ALT-3";
-        return created;
-      },
-    );
+    .mockImplementation(async (createBy: { data: Alert }): Promise<Alert> => {
+      const created: Alert = createBy.data;
+      created._id = ALERT_ID;
+      created.alertNumber = 3;
+      created.alertNumberWithPrefix = "ALT-3";
+      return created;
+    });
 }
 
 async function raise(
@@ -184,7 +182,15 @@ describe("who may raise an alert from Ask AI is who may create one on the Create
 
       const outcome: ToolCallOutcome = await raise(props);
 
-      expect(outcome.success).toBe(true);
+      // The whole outcome, so a refusal says why when it fails.
+      expect({
+        success: outcome.success,
+        textForLlm: outcome.textForLlm.split("\n")[0],
+      }).toEqual({
+        success: true,
+        textForLlm:
+          'Successfully created alert ALT-3 ("High memory usage on test01", severity High).',
+      });
       expect(outcome.textForLlm).toContain(
         'Successfully created alert ALT-3 ("High memory usage on test01", severity High).',
       );
@@ -336,7 +342,8 @@ describe("the severity is read as the member, in the project", () => {
     );
 
     expect(outcome.success).toBe(true);
-    const createdWith: { data: Alert } = create.mock.calls[0]![0] as unknown as {
+    const createdWith: { data: Alert } = create.mock
+      .calls[0]![0] as unknown as {
       data: Alert;
     };
     expect(createdWith.data.alertSeverityId?.toString()).toBe(HIGH_ID);
@@ -355,7 +362,8 @@ describe("the severity is read as the member, in the project", () => {
       severityName: "low",
     });
 
-    const createdWith: { data: Alert } = create.mock.calls[0]![0] as unknown as {
+    const createdWith: { data: Alert } = create.mock
+      .calls[0]![0] as unknown as {
       data: Alert;
     };
     expect(createdWith.data.alertSeverityId?.toString()).toBe(LOW_ID);

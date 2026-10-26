@@ -131,15 +131,15 @@ function stubTheProject(): void {
     .spyOn(AlertSeverityService, "findBy")
     .mockResolvedValue([high, low] as never);
 
-  jest
-    .spyOn(AlertService, "create")
-    .mockImplementation((async (args: { data: Alert }): Promise<Alert> => {
-      const created: Alert = args.data;
-      created._id = ALERT_ID;
-      created.alertNumber = 12;
-      created.alertNumberWithPrefix = "ALT-12";
-      return created;
-    }) as never);
+  jest.spyOn(AlertService, "create").mockImplementation((async (args: {
+    data: Alert;
+  }): Promise<Alert> => {
+    const created: Alert = args.data;
+    created._id = ALERT_ID;
+    created.alertNumber = 12;
+    created.alertNumberWithPrefix = "ALT-12";
+    return created;
+  }) as never);
 }
 
 // The pending action as the chat runner saves it from the tool's prepare.
@@ -152,7 +152,8 @@ async function pendingAction(): Promise<AIChatToolAction> {
   return {
     id: "call-raise",
     toolName: CreateAlertTool.name,
-    title: prepared.title || CreateAlertTool.buildActionTitle!(prepared.arguments),
+    title:
+      prepared.title || CreateAlertTool.buildActionTitle!(prepared.arguments),
     ...(prepared.description ? { description: prepared.description } : {}),
     arguments: prepared.arguments,
     isMutation: true,
@@ -224,8 +225,9 @@ describe("the approval card for an alert Ask AI raises on host test01's page", (
       'Linked to host "test01".',
     );
 
-    const card: HTMLElement =
-      screen.getByTestId("tool-approval-description").parentElement!;
+    const card: HTMLElement = screen.getByTestId(
+      "tool-approval-description",
+    ).parentElement!;
     expect(card).toHaveTextContent("severityName: High");
     expect(card).toHaveTextContent("title: High memory usage on test01");
     expect(card).not.toHaveTextContent(HOST_ID);
@@ -268,9 +270,7 @@ describe("the approval card for an alert Ask AI raises on host test01's page", (
 
     render(
       <ToolApprovalCard
-        toolActions={[
-          { ...action, status: AIChatToolActionStatus.Executed },
-        ]}
+        toolActions={[{ ...action, status: AIChatToolActionStatus.Executed }]}
         interactive={false}
         isSubmitting={false}
         onRespond={() => {}}
@@ -298,26 +298,32 @@ describe("the step in the chat's activity", () => {
     expect(container.textContent).not.toContain("Running");
   });
 
-  test.each(LANGUAGES.filter((language: string) => {
-    return language !== "en";
-  }))("reads in %s as that language's Dashboard words it", async (language: string) => {
-    const translated: string | undefined = LOCALES[language]!["Creating alert"];
+  test.each(
+    LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )(
+    "reads in %s as that language's Dashboard words it",
+    async (language: string) => {
+      const translated: string | undefined =
+        LOCALES[language]!["Creating alert"];
 
-    // Every Dashboard language words it: none still reads the English.
-    expect(translated).toBeDefined();
-    expect(translated).not.toBe("Creating alert");
+      // Every Dashboard language words it: none still reads the English.
+      expect(translated).toBeDefined();
+      expect(translated).not.toBe("Creating alert");
 
-    await act(async () => {
-      await i18next.changeLanguage(language);
-    });
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
 
-    const { container } = render(
-      <ChatActivityFeed events={createAlertStep()} hideChrome={true} />,
-    );
+      const { container } = render(
+        <ChatActivityFeed events={createAlertStep()} hideChrome={true} />,
+      );
 
-    expect(screen.getByText(translated!)).toBeVisible();
-    expect(container.textContent).not.toContain("create_alert");
-  });
+      expect(screen.getByText(translated!)).toBeVisible();
+      expect(container.textContent).not.toContain("create_alert");
+    },
+  );
 });
 
 describe("the card under the answer, once the alert is raised", () => {
@@ -356,9 +362,11 @@ describe("an evidence list's line for a run that raised an alert", () => {
     });
   });
 
-  test.each(LANGUAGES.filter((language: string) => {
-    return language !== "en";
-  }))("every Dashboard language words it (%s)", (language: string) => {
+  test.each(
+    LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )("every Dashboard language words it (%s)", (language: string) => {
     const translated: string | undefined =
       LOCALES[language]!["Created an alert"];
 
