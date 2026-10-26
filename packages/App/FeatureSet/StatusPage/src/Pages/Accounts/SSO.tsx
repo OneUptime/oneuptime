@@ -1,4 +1,4 @@
-import LogoPlate from "../../Components/Logo/LogoPlate";
+import PageLogo from "../../Components/Logo/PageLogo";
 import {
   STATUS_PAGE_API_URL,
   STATUS_PAGE_OIDC_API_URL,
@@ -8,10 +8,13 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import UserUtil from "../../Utils/User";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelList from "Common/UI/Components/ModelList/ModelList";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
@@ -22,7 +25,19 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkThemeLogoFileId?: ObjectID | undefined;
+  /*
+   * The page requires SSO (Require SSO for Login): its private users can't
+   * sign in with an email and password, so the page offers no way back to
+   * the password form - the sign-in page would only send them here again.
+   */
+  forceSSO?: boolean | undefined;
 }
+
+// The way back to the email and password form, under the providers.
+export const PASSWORD_SIGN_IN_OPTION_TEST_ID: string = "password-login";
+export const SSO_SIGN_IN_OPTIONS_TEST_ID: string = "sign-in-options";
 
 const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -38,8 +53,17 @@ const LoginPage: FunctionComponent<ComponentProps> = (
    * That notice is the ONLY message then: neither list shows an empty state of
    * its own (hideEmptyState), and both stay mounted but hidden, so they keep
    * their loaded state and add no blank space above the notice. An empty
-   * list next to one with providers shows nothing either, rather than "No
-   * items found." under a provider that is right there.
+   * list next to one with providers is hidden too, rather than "No items
+   * found." - or the blank space of an empty list - under a provider that is
+   * right there.
+   *
+   * Both lists draw no frame of their own (isUnframed): their providers
+   * read as one evenly spaced list, line up with Log in with password
+   * under them, and sit as far from the card's edge as the sign-in page's
+   * fields do (-my-2 takes back the first and last row's own margin). Each
+   * list used to keep its padding, the space under it and a scroll box, so
+   * a page with SAML and OpenID Connect providers showed two lists far
+   * apart, and a long description made a box the keyboard stopped on.
    */
   const [ssoProviderCount, setSsoProviderCount] = useState<number | null>(null);
   const [oidcProviderCount, setOidcProviderCount] = useState<number | null>(
@@ -51,12 +75,6 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     StatusPageUtil.isPrivateStatusPage() &&
     StatusPageUtil.requiresMasterPassword() &&
     !StatusPageUtil.isMasterPasswordValidated();
-  const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString() && statusPageId
-      ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageId}`)
-          .toString()
-      : null;
 
   if (!statusPageObjectId) {
     return <></>;
@@ -100,16 +118,36 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   const hasNoProviders: boolean =
     ssoProviderCount === 0 && oidcProviderCount === 0;
 
+  /*
+   * The page's own sign-in, on its domain or in the Dashboard's preview,
+   * still taking the visitor back to the page they were sent to sign in
+   * from once they have.
+   */
+  const loginRoute: Route = StatusPageUtil.getSignInRoute({
+    path: StatusPageUtil.isPreviewPage()
+      ? `/status-page/${statusPageId}/login`
+      : "/login",
+    redirectUrl: safeRedirectUrlForStorage,
+  });
+
+  /*
+   * Under the providers, the way back to the email and password form, drawn
+   * as the sign-in page draws its way here (Log in with SSO): "or", then an
+   * outlined button as wide as the providers. Only where a private user may
+   * sign in with a password - not on a page that requires SSO - and not
+   * when the page has no provider to list, where the notice below already
+   * says what to do instead, with its own link back.
+   */
+  const offersPasswordSignIn: boolean = !props.forceSSO && !hasNoProviders;
+
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {logoUrl ? (
-          <LogoPlate className="mx-auto w-fit">
-            <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
-          </LogoPlate>
-        ) : (
-          <></>
-        )}
+        <PageLogo
+          logoFileId={props.logoFileId}
+          darkThemeLogoFileId={props.darkThemeLogoFileId}
+          altText={props.statusPageName}
+        />
         <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
           {t("accounts.sso.title")}
         </h2>
@@ -123,82 +161,105 @@ const LoginPage: FunctionComponent<ComponentProps> = (
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-6">
           <div
-            className="space-y-6"
+            className="-my-2"
             hidden={hasNoProviders}
             data-testid="status-page-sso-provider-lists"
           >
-            <ModelList<StatusPageSSO>
-              id="sso-list"
-              overrideFetchApiUrl={URL.fromString(
-                STATUS_PAGE_API_URL.toString(),
-              ).addRoute(
-                "/sso/" + StatusPageUtil.getStatusPageId()?.toString(),
-              )}
-              modelType={StatusPageSSO}
-              titleField="name"
-              descriptionField="description"
-              select={{
-                name: true,
-                description: true,
-                _id: true,
-              }}
-              noItemsMessage={""}
-              hideEmptyState={true}
-              onListLoaded={(list: Array<StatusPageSSO>) => {
-                setSsoProviderCount(list.length);
-              }}
-              onSelectChange={(list: Array<StatusPageSSO>) => {
-                if (list && list.length > 0) {
-                  setIsLoading(true);
-                  Navigation.navigate(
-                    URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
-                      new Route(
-                        `/${StatusPageUtil.getStatusPageId()?.toString()}/${
-                          list[0]?._id
-                        }`,
+            <div hidden={ssoProviderCount === 0}>
+              <ModelList<StatusPageSSO>
+                id="sso-list"
+                isUnframed={true}
+                overrideFetchApiUrl={URL.fromString(
+                  STATUS_PAGE_API_URL.toString(),
+                ).addRoute(
+                  "/sso/" + StatusPageUtil.getStatusPageId()?.toString(),
+                )}
+                modelType={StatusPageSSO}
+                titleField="name"
+                descriptionField="description"
+                select={{
+                  name: true,
+                  description: true,
+                  _id: true,
+                }}
+                noItemsMessage={""}
+                hideEmptyState={true}
+                onListLoaded={(list: Array<StatusPageSSO>) => {
+                  setSsoProviderCount(list.length);
+                }}
+                onSelectChange={(list: Array<StatusPageSSO>) => {
+                  if (list && list.length > 0) {
+                    setIsLoading(true);
+                    Navigation.navigate(
+                      URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
+                        new Route(
+                          `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                            list[0]?._id
+                          }`,
+                        ),
                       ),
-                    ),
-                  );
-                }
-              }}
-            />
+                    );
+                  }
+                }}
+              />
+            </div>
 
-            <ModelList<StatusPageOIDC>
-              id="oidc-list"
-              overrideFetchApiUrl={URL.fromString(
-                STATUS_PAGE_API_URL.toString(),
-              ).addRoute(
-                "/oidc/" + StatusPageUtil.getStatusPageId()?.toString(),
-              )}
-              modelType={StatusPageOIDC}
-              titleField="name"
-              descriptionField="description"
-              select={{
-                name: true,
-                description: true,
-                _id: true,
-              }}
-              noItemsMessage={t("accounts.sso.noProviders")}
-              hideEmptyState={true}
-              onListLoaded={(list: Array<StatusPageOIDC>) => {
-                setOidcProviderCount(list.length);
-              }}
-              onSelectChange={(list: Array<StatusPageOIDC>) => {
-                if (list && list.length > 0) {
-                  setIsLoading(true);
-                  Navigation.navigate(
-                    URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
-                      new Route(
-                        `/${StatusPageUtil.getStatusPageId()?.toString()}/${
-                          list[0]?._id
-                        }`,
+            <div hidden={oidcProviderCount === 0}>
+              <ModelList<StatusPageOIDC>
+                id="oidc-list"
+                isUnframed={true}
+                overrideFetchApiUrl={URL.fromString(
+                  STATUS_PAGE_API_URL.toString(),
+                ).addRoute(
+                  "/oidc/" + StatusPageUtil.getStatusPageId()?.toString(),
+                )}
+                modelType={StatusPageOIDC}
+                titleField="name"
+                descriptionField="description"
+                select={{
+                  name: true,
+                  description: true,
+                  _id: true,
+                }}
+                noItemsMessage={t("accounts.sso.noProviders")}
+                hideEmptyState={true}
+                onListLoaded={(list: Array<StatusPageOIDC>) => {
+                  setOidcProviderCount(list.length);
+                }}
+                onSelectChange={(list: Array<StatusPageOIDC>) => {
+                  if (list && list.length > 0) {
+                    setIsLoading(true);
+                    Navigation.navigate(
+                      URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
+                        new Route(
+                          `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                            list[0]?._id
+                          }`,
+                        ),
                       ),
-                    ),
-                  );
-                }
-              }}
-            />
+                    );
+                  }
+                }}
+              />
+            </div>
           </div>
+
+          {offersPasswordSignIn && (
+            <div data-testid={SSO_SIGN_IN_OPTIONS_TEST_ID}>
+              <LabelledDivider
+                label={t("accounts.login.or")}
+                className="mb-5"
+                dataTestId="sign-in-options-divider"
+              />
+              <SignInOptionLink
+                to={loginRoute}
+                id={PASSWORD_SIGN_IN_OPTION_TEST_ID}
+                dataTestId={PASSWORD_SIGN_IN_OPTION_TEST_ID}
+                icon={IconProp.Lock}
+                title={t("accounts.sso.logInWithPassword")}
+              />
+            </div>
+          )}
 
           {hasNoProviders && (
             <div
@@ -213,13 +274,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
               </p>
               <p className="mt-4">
                 <Link
-                  to={
-                    new Route(
-                      StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${statusPageId}/login`
-                        : "/login",
-                    )
-                  }
+                  to={loginRoute}
                   className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                 >
                   {t("accounts.sso.backToLogin", {

@@ -342,7 +342,12 @@ describe("RelatedFileAccess.getColumnsReadingFiles: which files a select reads",
       names(
         RelatedFileAccess.getColumnsReadingFiles(new StatusPage(), select),
       ).sort(),
-    ).toEqual(["coverImageFile", "faviconFile", "logoFile"]);
+    ).toEqual([
+      "coverImageFile",
+      "darkThemeLogoFile",
+      "faviconFile",
+      "logoFile",
+    ]);
   });
 });
 

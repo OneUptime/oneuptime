@@ -1,4 +1,5 @@
 import AlignItem from "../../Types/AlignItem";
+import { DetailImageBackdrop } from "./DetailImageBackdrop";
 import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import FieldType from "../Types/FieldType";
 import { Size } from "./FieldLabel";
@@ -32,6 +33,12 @@ export interface FieldBase<T> {
       ) => ReactElement)
     | undefined;
   sideLink?: DetailSideLink | undefined;
+  /*
+   * An image file drawn on the page it is shown on (DetailImageBackdrop):
+   * a logo made for a light page on a light page's background, one made for
+   * a dark page on a dark one, in both of the dashboard's themes.
+   */
+  imageBackdrop?: DetailImageBackdrop | undefined;
   placeholder?: string;
   opts?:
     | {

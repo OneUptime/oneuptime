@@ -66,7 +66,19 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   sortBy?: keyof TBaseModel | undefined;
   sortOrder?: SortOrder | undefined;
   onListLoaded?: ((list: Array<TBaseModel>) => void) | undefined;
+  /*
+   * The rows sit in the page as they are, without the list's own frame (its
+   * padding, the space under it and a scroll box of its own): for a list
+   * whose rows are the page's own choices - a sign-in page's providers -
+   * which line up with what is around them, grow with the page, and read
+   * as one list with a list beside them.
+   */
+  isUnframed?: boolean | undefined;
 }
+
+// The frame a list draws around its rows, unless it is unframed.
+export const MODEL_LIST_FRAME_CLASS_NAME: string =
+  "max-h-96 mb-5 overflow-y-auto p-2";
 
 const ModelList: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -312,7 +324,10 @@ const ModelList: <TBaseModel extends BaseModel>(
           </div>
         )}
       </div>
-      <div className="max-h-96 mb-5 overflow-y-auto p-2">
+      <div
+        className={props.isUnframed ? undefined : MODEL_LIST_FRAME_CLASS_NAME}
+        data-testid={`${props.id}-rows`}
+      >
         {error ? (
           <TableEmptyState
             {...getLoadErrorStateProps({

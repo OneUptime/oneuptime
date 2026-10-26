@@ -383,7 +383,12 @@ jobs:
           # left for group 3 on 2026-10-21, when this group took 21.9 minutes
           # and its card header specs would have taken it past 22. Global
           # Runners (about 2 minutes, Chromium only) moved here from group 3
-          # later that day, when this group took 18.6: about 20.5.
+          # later that day, when this group took 18.6: about 20.5. Status
+          # Page Theme grew by 30 tests on 2026-10-26 (a logo for the dark
+          # theme, the Dashboard's preview switching light and dark, the
+          # banner's words: about 1.2 minutes more locally), when this group's
+          # run step took 20.6 minutes on master's run of 03:08 that day, so
+          # Global Runners moved on to group 10: about 20.5.
           - group: 6
             browsers: chromium
             suites: >-
@@ -395,7 +400,6 @@ jobs:
               test-detail-cards-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
-              test-global-runners-ui
           # The Profiler (about 2 minutes with its bundle: a laptop and a
           # phone) and LLM Connect (about 2 minutes with its bundle: AI /
           # LLM's Connect and Usage at desktop and phone width), both
@@ -442,6 +446,10 @@ jobs:
           # joined it beside Profiles on 2026-10-25, when this group took 14.0
           # minutes on master's run of 2026-10-24 15:00, the lightest of the
           # ten (group 2, where it was first placed, took 21.2): about 16.5.
+          # This group's run step took 23.3 minutes on master's run of 03:08
+          # on 2026-10-26, and Public Dashboard Theme grew by 5 tests that day
+          # (the page at a phone's width: about 20 seconds locally), so
+          # Dashboard Templates moved on to group 10: about 21.
           - group: 7
             browsers: chromium
             suites: >-
@@ -450,7 +458,6 @@ jobs:
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
-              test-dashboard-templates-ui
               test-external-mcp-servers-ui
               test-logs-ai-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
@@ -581,6 +588,11 @@ jobs:
           # lists and Unsubscribe on a status page's subscribers, at 1280 and
           # 390 pixels, dark and German; its Enterprise Licenses specs skip
           # here, where ee/ is removed) joined them on 2026-10-23: about 21.
+          # Global Runners (about 2 minutes, Chromium only) from group 6 and
+          # Dashboard Templates (about 2.5 minutes with its bundle, Chromium
+          # only) from group 7 joined them on 2026-10-26, when this group's
+          # run step took 14.6 minutes on master's run of 03:08 that day, the
+          # lightest of the eleven: about 19.
           - group: 10
             browsers: chromium
             event_overview_shard: 2/2
@@ -589,6 +601,8 @@ jobs:
               test-navigation-search-ui
               test-owner-filters-ui
               test-bulk-actions-ui
+              test-global-runners-ui
+              test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the

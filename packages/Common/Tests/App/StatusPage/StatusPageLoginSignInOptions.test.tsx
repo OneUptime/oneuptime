@@ -213,6 +213,21 @@ describe("Status page sign-in: single sign-on as a button under 'or'", () => {
     );
   });
 
+  test("a visitor sent to sign in from a page keeps going there through SSO", async () => {
+    const incident: string = "/incidents/44444444-4444-4444-8444-444444444444";
+
+    getJestSpyOn(StatusPageUtil, "getSafeRedirectUrl").mockReturnValue(
+      incident,
+    );
+
+    await renderPage(true);
+
+    expect(screen.getByTestId("sso-login")).toHaveAttribute(
+      "href",
+      `/sso?redirectUrl=${encodeURIComponent(incident)}`,
+    );
+  });
+
   test("without a provider turned on: neither the divider nor the button", async () => {
     await renderPage(false);
 

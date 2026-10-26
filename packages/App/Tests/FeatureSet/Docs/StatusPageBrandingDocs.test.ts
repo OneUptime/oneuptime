@@ -404,12 +404,14 @@ describe("the Theme section", () => {
 
   it("says the logo sits on a light backdrop on every dark page, under the choices, as the status page draws it", () => {
     /*
-     * A Dark page and one that follows the device both put the page's one
+     * A Dark page and one that follows the device both put the page's
      * logo on a light backdrop while dark (StatusPage's LogoPlate), so the
-     * sentence is a paragraph of its own under the table, not one row's.
+     * sentence is a paragraph of its own under the table, not one row's -
+     * with the logo made for the dark theme, shown there instead when the
+     * page has one, and the emails, which always show the logo.
      */
     const backdrop: string =
-      "On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads.";
+      "On the dark page the logo sits on a light backdrop, so a logo made for a white page still reads. A page with a **Dark Theme Logo** shows that one on the dark page instead, as it is, with no backdrop, in its header and on its sign-in pages. The emails the page sends always show the logo.";
     const lines: Array<string> = section.split("\n");
     const lastRow: number = lines.findIndex((line: string): boolean => {
       return line.startsWith("| **Match each visitor's device** |");
@@ -424,12 +426,46 @@ describe("the Theme section", () => {
       }),
     ).toBe("| **Dark** | The dark page, whatever their device is set to. |");
 
-    // Nothing asks an owner for a second logo, or tells them their one shows as it is.
+    /*
+     * No choice asks an owner for a second logo, or tells them their one
+     * shows as it is: the logo for the dark theme is optional, an upload
+     * beside the logo.
+     */
     expect(section).not.toContain("shown as it is");
     expect(section).not.toContain("made for a dark background");
     expect(section).toContain(
       "A sun or moon button in the page's footer lets a visitor switch, and their browser remembers the choice.",
     );
+  });
+
+  /*
+   * At the page's OneUptime address (StatusPageUtil.isPreviewPage) a Light
+   * or Dark page offers the footer's switch too, for the visit only
+   * (StatusPageThemeUtil.canVisitorSwitch, switchColorScheme); on its custom
+   * domains it offers none.
+   */
+  it("says a Light or Dark page has the switch at its OneUptime address, for the visit only, and none on its domains", () => {
+    const lines: Array<string> = section.split("\n");
+    const backdrop: number = lines.findIndex((line: string): boolean => {
+      return line.startsWith("On the dark page the logo sits");
+    });
+    const preview: string = lines[backdrop + 2] || "";
+
+    expect(lines[backdrop + 1]).toBe("");
+    expect(preview).toContain(
+      "At the page's address on OneUptime, `/status-page/:id`, a **Light** or **Dark** page has the sun or moon button in its footer too",
+    );
+    expect(preview).toContain(
+      "A pick there lasts until the page is reloaded and is not remembered, so the page always opens in its own theme",
+    );
+    expect(preview).toContain(
+      "On the page's custom domains, a **Light** or **Dark** page has no button.",
+    );
+
+    // The choices the paragraph names are the Theme card's own.
+    for (const theme of [StatusPageTheme.Light, StatusPageTheme.Dark]) {
+      expect(preview).toContain(`**${choiceNamed(theme).title}**`);
+    }
   });
 
   it("gives the API and Terraform field and every value it takes, exactly as they are spelled", () => {
