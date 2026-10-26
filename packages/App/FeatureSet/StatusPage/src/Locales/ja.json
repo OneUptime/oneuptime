@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}} 日前",
     "today": "今日",
-    "notAvailable": "利用不可"
+    "notAvailable": "利用不可",
+    "underMaintenance": "メンテナンス中"
   },
   "uptimeHistory": {
     "graphLabel": "過去 {{total}} 日間の稼働履歴",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "この日に報告されたインシデントはありません。",
     "declared": "報告日時",
     "oneIncidentOnThisDay": "この日に 1 件のインシデントが報告されました",
-    "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました"
+    "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました",
+    "scheduledMaintenance": "予定されたメンテナンス",
+    "dayLabelWithMaintenance": "{{label}}、{{maintenance}}",
+    "oneMaintenanceEvent": "予定されたメンテナンス 1 件",
+    "maintenanceEvents": "予定されたメンテナンス {{total}} 件",
+    "moreMaintenance": "他 {{total}} 件"
   },
   "liveStatus": {
     "updated": "{{time}}に更新",

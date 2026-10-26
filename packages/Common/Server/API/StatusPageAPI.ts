@@ -6593,6 +6593,21 @@ export default class StatusPageAPI extends BaseAPI<
         });
     }
 
+    /*
+     * The scheduled maintenance of the uptime history, for its tooltips and
+     * day dialogs, beside the incidents above (Common/Utils/Uptime/
+     * UptimeMaintenanceUtil): see getTimelineScheduledMaintenanceEvents.
+     */
+    const timelineScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+      await this.getTimelineScheduledMaintenanceEvents({
+        statusPage: statusPage,
+        statusPageId: statusPageId,
+        monitorsOnStatusPage: monitorsOnStatusPage,
+        scheduledMaintenanceStates: scheduledMaintenanceStates,
+        startDate: startDate,
+        endDate: endDate,
+      });
+
     const overallStatus: MonitorStatus | null =
       StatusPageService.getOverallMonitorStatus({
         statusPageResources,
@@ -6696,9 +6711,112 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),
+      timelineScheduledMaintenanceEvents: BaseModel.toJSONArray(
+        timelineScheduledMaintenanceEvents,
+        ScheduledMaintenance,
+      ),
     };
 
     return response;
+  }
+
+  /*
+   * The scheduled maintenance a status page's uptime history shows: each
+   * event the page shows (StatusPageVisibilityQuery - the one rule every
+   * read of a page's maintenance goes through) that holds one of the page's
+   * monitors, has started - in progress or over
+   * (ScheduledMaintenanceStartUtil.getStartedStateIds) - and whose planned
+   * window touches the history's: it starts by the window's end and ends
+   * after its start. An event still to come is no part of any day's history;
+   * the page lists it under Scheduled Maintenance.
+   *
+   * None when the page does not show scheduled maintenance, as it shows no
+   * event anywhere else then. Each event names only the page's own monitors:
+   * which other monitors an event holds is the project's business, and the
+   * page draws an event on the resources of the monitors it names. Newest
+   * first, so a window holding more than the limit keeps the recent days.
+   */
+  @CaptureSpan()
+  public async getTimelineScheduledMaintenanceEvents(data: {
+    statusPage: StatusPage;
+    statusPageId: ObjectID;
+    monitorsOnStatusPage: Array<ObjectID>;
+    scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Array<ScheduledMaintenance>> {
+    if (
+      !data.statusPage.showScheduledMaintenanceEventsOnStatusPage ||
+      data.monitorsOnStatusPage.length === 0
+    ) {
+      return [];
+    }
+
+    const startedStateIds: Array<ObjectID> =
+      ScheduledMaintenanceStartUtil.getStartedStateIds({
+        states: data.scheduledMaintenanceStates,
+      });
+
+    if (startedStateIds.length === 0) {
+      return [];
+    }
+
+    const events: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findBy({
+        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+          statusPages: data.statusPageId as any,
+          monitors: data.monitorsOnStatusPage as any,
+          currentScheduledMaintenanceStateId: QueryHelper.any(startedStateIds),
+          startsAt: QueryHelper.lessThanEqualTo(data.endDate),
+          endsAt: QueryHelper.greaterThanEqualTo(data.startDate),
+          projectId: data.statusPage.projectId!,
+        }),
+        select: {
+          _id: true,
+          title: true,
+          startsAt: true,
+          endsAt: true,
+          currentScheduledMaintenanceState: {
+            _id: true,
+            name: true,
+            color: true,
+            order: true,
+            isScheduledState: true,
+            isOngoingState: true,
+            isEndedState: true,
+            isResolvedState: true,
+          },
+          monitors: {
+            _id: true,
+          },
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const pageMonitorIds: Set<string> = new Set<string>(
+      data.monitorsOnStatusPage.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const event of events) {
+      event.monitors = (event.monitors || []).filter(
+        (monitor: Monitor): boolean => {
+          return pageMonitorIds.has(
+            (monitor._id || monitor.id?.toString() || "").toString(),
+          );
+        },
+      );
+    }
+
+    return events;
   }
 
   private async getStatusPageAnnouncementAttachment(

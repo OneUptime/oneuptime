@@ -1,6 +1,11 @@
 import OneUptimeDate from "../../../Types/Date";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
+import UptimeMaintenanceUtil from "../../../Utils/Uptime/UptimeMaintenanceUtil";
+import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
+import { getStatusTextProps } from "../../Utils/StatusColorStyle";
+import MaintenanceIcon from "./MaintenanceIcon";
 import UptimeDaySummary, { StatusDuration } from "./UptimeDaySummary";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
@@ -23,6 +28,13 @@ export interface ComponentProps {
   statusDurations: Array<StatusDuration>;
   incidents: Array<UptimeBarTooltipIncident>;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * The day's scheduled maintenance, earliest first, listed after the
+   * incidents with its window and state. Optional: a caller with none
+   * draws the tooltip it always drew.
+   */
+  maintenanceEvents?: Array<UptimeBarTooltipMaintenance> | undefined;
+  onMaintenanceClick?: ((maintenanceId: string) => void) | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
   /*
@@ -42,6 +54,9 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   });
 
   const hasIncidents: boolean = props.incidents.length > 0;
+  const maintenanceEvents: Array<UptimeBarTooltipMaintenance> =
+    props.maintenanceEvents || [];
+  const hasMaintenance: boolean = maintenanceEvents.length > 0;
   const labels: UptimeHistoryLabels =
     props.labels || DefaultUptimeHistoryLabels;
 
@@ -97,7 +112,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         uptimePercent={props.uptimePercent}
         hasEvents={props.hasEvents}
         statusDurations={props.statusDurations}
-        hasFollowingContent={hasIncidents}
+        hasFollowingContent={hasIncidents || hasMaintenance}
         labels={props.labels}
       />
 
@@ -307,7 +322,228 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
+
+      {/* ── Scheduled maintenance ── */}
+      {hasMaintenance && (
+        <div
+          data-testid="uptime-tooltip-maintenance"
+          style={
+            hasIncidents
+              ? {
+                  marginTop: "4px",
+                  paddingTop: "10px",
+                  borderTop: "1px solid var(--ou-border-subtle, #f0f0f0)",
+                }
+              : undefined
+          }
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              marginBottom: "8px",
+            }}
+          >
+            <MaintenanceIcon size={12} />
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--ou-text-muted, #6b7280)",
+                fontWeight: 500,
+                flex: 1,
+              }}
+            >
+              {labels.scheduledMaintenance}
+            </span>
+            <span
+              {...getStatusTextProps(MAINTENANCE_MARK_COLOR.toString(), {
+                fontSize: "10px",
+                fontWeight: 600,
+                backgroundColor: `color-mix(in srgb, ${MAINTENANCE_MARK_COLOR.toString()} 14%, var(--ou-surface-primary, #ffffff))`,
+                padding: "1px 7px",
+                borderRadius: "9999px",
+                lineHeight: "1.6",
+              })}
+            >
+              {maintenanceEvents.length}
+            </span>
+          </div>
+
+          {maintenanceEvents
+            .slice(0, 3)
+            .map((event: UptimeBarTooltipMaintenance) => {
+              const isClickable: boolean = Boolean(props.onMaintenanceClick);
+
+              /*
+               * Spans laid out as blocks: the item is a button when it opens
+               * the event's page, and a button holds phrasing content only.
+               */
+              const content: ReactElement = (
+                <>
+                  {/* Title row */}
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: "12px",
+                        color: "var(--ou-text-primary, #111827)",
+                        fontWeight: 600,
+                        lineHeight: "1.3",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {event.title}
+                    </span>
+                    {isClickable && <ChevronIcon />}
+                  </span>
+                  {/* Meta row: state + window */}
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px 6px",
+                      flexWrap: "wrap",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {event.currentState && (
+                      <span
+                        data-testid="uptime-tooltip-maintenance-state"
+                        {...getStatusTextProps(
+                          event.currentState.color.toString(),
+                          {
+                            fontSize: "9px",
+                            fontWeight: 600,
+                            backgroundColor: `color-mix(in srgb, ${event.currentState.color.toString()} 12%, var(--ou-surface-primary, #ffffff))`,
+                            padding: "1px 5px",
+                            borderRadius: "3px",
+                            lineHeight: "1.6",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.03em",
+                          },
+                        )}
+                      >
+                        {event.currentState.name}
+                      </span>
+                    )}
+                    <span
+                      data-testid="uptime-tooltip-maintenance-window"
+                      style={{
+                        fontSize: "10px",
+                        color: "var(--ou-text-muted, #6b7280)",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {UptimeMaintenanceUtil.formatWindow({
+                        startsAt: event.startsAt,
+                        endsAt: event.endsAt,
+                      })}
+                    </span>
+                  </span>
+                </>
+              );
+
+              const itemStyle: React.CSSProperties = {
+                display: "block",
+                width: "100%",
+                textAlign: "start",
+                font: "inherit",
+                border: "none",
+                borderLeft: `3px solid ${MAINTENANCE_MARK_COLOR.toString()}`,
+                padding: "6px 10px",
+                marginBottom: "6px",
+                cursor: isClickable ? "pointer" : "default",
+                transition: "background-color 0.12s ease",
+                backgroundColor: "var(--ou-surface-secondary, #fafafa)",
+                borderRadius: "0 6px 6px 0",
+              };
+
+              if (!isClickable) {
+                return (
+                  <div
+                    key={event.id}
+                    data-testid="uptime-tooltip-maintenance-item"
+                    style={itemStyle}
+                  >
+                    {content}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={event.id}
+                  type="button"
+                  data-testid="uptime-tooltip-maintenance-item"
+                  style={itemStyle}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    props.onMaintenanceClick!(event.id);
+                  }}
+                  onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--ou-surface-tertiary, #f3f4f6)";
+                  }}
+                  onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.currentTarget.style.backgroundColor =
+                      "var(--ou-surface-secondary, #fafafa)";
+                  }}
+                >
+                  {content}
+                </button>
+              );
+            })}
+
+          {maintenanceEvents.length > 3 && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: "var(--ou-text-subtle, #9ca3af)",
+                textAlign: "center",
+                padding: "4px 0 0",
+                fontWeight: 500,
+              }}
+            >
+              {DayUptimeGraphUtil.fillLabel(labels.moreMaintenance, {
+                total: String(maintenanceEvents.length - 3),
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  );
+};
+
+const ChevronIcon: FunctionComponent = (): ReactElement => {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0, opacity: 0.35 }}
+    >
+      <path
+        d="M6 3l5 5-5 5"
+        stroke="var(--ou-text-muted, #6b7280)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 };
 

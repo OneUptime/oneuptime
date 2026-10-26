@@ -16,8 +16,12 @@ import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTime
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
 import UptimeHistoryLabels from "Common/Types/Monitor/UptimeHistoryLabels";
 import { UptimeBarDaySummary } from "Common/UI/Components/Graphs/DayUptimeGraph";
+import MaintenanceIcon from "Common/UI/Components/Graphs/MaintenanceIcon";
+import UptimeMaintenanceUtil from "Common/Utils/Uptime/UptimeMaintenanceUtil";
+import { MAINTENANCE_MARK_COLOR } from "Common/Utils/StatusPage/HistoryChartBarColors";
 import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNestingLayout";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -64,6 +68,14 @@ export interface ComponentProps {
   uptimeHistoryDays?: number | undefined;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * The scheduled maintenance that holds this resource's monitors, as the
+   * page shows it (UptimeMaintenanceUtil): listed on the days of its window
+   * in the bars' tooltips and dialogs, marking those bars, and while one is
+   * in progress, "Under maintenance" beside the resource's name.
+   */
+  maintenanceEvents?: Array<UptimeBarTooltipMaintenance> | undefined;
+  onMaintenanceClick?: ((maintenanceId: string) => void) | undefined;
   /*
    * "90 days ago ... Today" under the bars. Every bar in a block is drawn over
    * the same window, so the overview turns this off and draws the axis once for
@@ -113,7 +125,21 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     oneIncidentOnThisDay: t("uptimeHistory.oneIncidentOnThisDay"),
     incidentsOnThisDay: t("uptimeHistory.incidentsOnThisDay"),
     close: t("common.close"),
+    scheduledMaintenance: t("uptimeHistory.scheduledMaintenance"),
+    dayLabelWithMaintenance: t("uptimeHistory.dayLabelWithMaintenance"),
+    oneMaintenanceEvent: t("uptimeHistory.oneMaintenanceEvent"),
+    maintenanceEvents: t("uptimeHistory.maintenanceEvents"),
+    moreMaintenance: t("uptimeHistory.moreMaintenance"),
   };
+
+  /*
+   * Planned work going on right now on this resource. Its status may say
+   * Degraded or Offline - whatever the event's Change Monitor Status to put
+   * its monitors in - so the name says why.
+   */
+  const isUnderMaintenance: boolean =
+    UptimeMaintenanceUtil.getEventsInProgress(props.maintenanceEvents || [])
+      .length > 0;
 
   const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
     // if the current status is operational then show uptime Percent.
@@ -224,7 +250,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           className="flex flex-col sm:flex-row sm:justify-between sm:items-start"
           style={{ marginBottom: "3px" }}
         >
-          <div className="flex items-center mb-2 sm:mb-0">
+          <div className="flex flex-wrap items-center gap-y-1 mb-2 sm:mb-0">
             {/*
              * Deliberately not larger than a group title: a resource is a leaf
              * of the group hierarchy and must not out-weigh the group heading
@@ -248,6 +274,18 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               </Tooltip>
+            )}
+            {isUnderMaintenance && (
+              <span
+                data-testid="resource-under-maintenance"
+                className="ml-2 inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
+                {...getStatusTextProps(MAINTENANCE_MARK_COLOR.toString(), {
+                  backgroundColor: `color-mix(in srgb, ${MAINTENANCE_MARK_COLOR.toString()} 12%, var(--ou-surface-primary, #ffffff))`,
+                })}
+              >
+                <MaintenanceIcon size={12} />
+                {t("monitorOverview.underMaintenance")}
+              </span>
             )}
           </div>
           {/* Status: Stack below name on mobile, inline on larger screens */}
@@ -282,6 +320,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             height={props.uptimeGraphHeight}
             incidents={props.incidents}
             onIncidentClick={props.onIncidentClick}
+            maintenanceEvents={props.maintenanceEvents}
+            onMaintenanceClick={props.onMaintenanceClick}
             labels={uptimeHistoryLabels}
             onBarClick={(
               date: Date,
@@ -316,6 +356,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           uptimePercent={selectedDaySummary?.uptimePercent}
           hasEvents={selectedDaySummary?.hasEvents}
           statusDurations={selectedDaySummary?.statusDurations}
+          maintenanceEvents={selectedDaySummary?.maintenanceEvents}
+          onMaintenanceClick={props.onMaintenanceClick}
           labels={uptimeHistoryLabels}
           timezone={props.uptimeTimezone}
           onIncidentClick={props.onIncidentClick}

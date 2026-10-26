@@ -17,3 +17,27 @@
     transparent 5px
   );
 }
+
+/* ---------- A day with scheduled maintenance ----------
+   A blue band across the top of the bar (MAINTENANCE_MARK_COLOR in
+   Utils/StatusPage/HistoryChartBarColors), over whatever colour the day is
+   drawn in: the bar keeps saying how the day went, and the band says planned
+   work happened on it, so a day of maintenance reads apart from an outage
+   before anyone hovers it. A pseudo-element, so it sits beside the no-data
+   hatch (a background image) and the dark theme's edge (a box shadow)
+   rather than replacing either. The bar is position: relative. */
+.uptime-bar-maintenance::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+/* A shade lighter on a dark card, where the light theme's blue sinks. */
+html.dark .uptime-bar-maintenance::before {
+  background-color: #60a5fa;
+}

@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}} दिन पहले",
     "today": "आज",
-    "notAvailable": "उपलब्ध नहीं"
+    "notAvailable": "उपलब्ध नहीं",
+    "underMaintenance": "रखरखाव में"
   },
   "uptimeHistory": {
     "graphLabel": "पिछले {{total}} दिनों का अपटाइम इतिहास",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "इस दिन कोई घटना दर्ज नहीं की गई।",
     "declared": "घोषित",
     "oneIncidentOnThisDay": "इस दिन 1 घटना दर्ज की गई",
-    "incidentsOnThisDay": "इस दिन {{total}} घटनाएँ दर्ज की गईं"
+    "incidentsOnThisDay": "इस दिन {{total}} घटनाएँ दर्ज की गईं",
+    "scheduledMaintenance": "निर्धारित रखरखाव",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 निर्धारित रखरखाव",
+    "maintenanceEvents": "{{total}} निर्धारित रखरखाव",
+    "moreMaintenance": "+{{total}} और"
   },
   "liveStatus": {
     "updated": "{{time}} अपडेट किया गया",

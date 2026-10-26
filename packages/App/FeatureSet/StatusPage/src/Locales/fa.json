@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}} روز پیش",
     "today": "امروز",
-    "notAvailable": "در دسترس نیست"
+    "notAvailable": "در دسترس نیست",
+    "underMaintenance": "در حال تعمیر و نگهداری"
   },
   "uptimeHistory": {
     "graphLabel": "تاریخچه زمان کارکرد برای {{total}} روز گذشته",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "در این روز هیچ حادثه‌ای گزارش نشد.",
     "declared": "اعلام شده",
     "oneIncidentOnThisDay": "۱ حادثه در این روز گزارش شده است",
-    "incidentsOnThisDay": "{{total}} حادثه در این روز گزارش شده است"
+    "incidentsOnThisDay": "{{total}} حادثه در این روز گزارش شده است",
+    "scheduledMaintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
+    "dayLabelWithMaintenance": "{{label}}، {{maintenance}}",
+    "oneMaintenanceEvent": "۱ تعمیر و نگهداری زمان‌بندی‌شده",
+    "maintenanceEvents": "{{total}} تعمیر و نگهداری زمان‌بندی‌شده",
+    "moreMaintenance": "+{{total}} مورد دیگر"
   },
   "liveStatus": {
     "updated": "به‌روزرسانی شد {{time}}",
