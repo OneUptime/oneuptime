@@ -77,7 +77,11 @@ export const METRIC_ROW_SPARKLINE_CLASS_NAME: string =
 /*
  * The newest value (or the hovered point's, with its time): stacked, the
  * rest of the line after the sparkline, where it may grow without moving
- * it; side by side, its own width before the sparkline, against it.
+ * it; side by side, its own width before the sparkline, against it. Set
+ * against the sparkline on a right-to-left page too: aligned to the line's
+ * start and end (text-start, text-end), not to its left and right, which
+ * put a Persian value at the far side of its line, away from its
+ * sparkline.
  */
 export const METRIC_ROW_VALUE_TEXT_CLASS_NAME: string =
-  "min-w-0 flex-1 text-left [@container(min-width:36rem)]:flex-none [@container(min-width:36rem)]:text-right";
+  "min-w-0 flex-1 text-start [@container(min-width:36rem)]:flex-none [@container(min-width:36rem)]:text-end";

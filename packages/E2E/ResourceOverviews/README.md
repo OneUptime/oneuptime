@@ -21,9 +21,12 @@ npm run test-resource-overviews-ui
 - The labels are a phone's card only: from 640px the page's header lists them.
 - A long value wraps inside its row, a name after its own dots and slashes;
   words are set in words, reported values in monospace.
-- The description is the hero's line, under the name, two lines at most.
-- The hero's controls wrap under the title to the row's end from 768px (to its
-  other end right to left), and sit beside the title at 1280.
+- The description is the hero's line, under the name: two lines, and "Show
+  more" under them exactly when there is more, which opens the rest (by click
+  or keyboard) and "Show less" closes.
+- The hero's row is every resource hero's (ResourceHeroLayout): the controls
+  wrap under the title to the row's end from 768px (to its other end right to
+  left), sit beside the title at 1280, and give way to a long name there.
 - Dark, German, and nothing read that the fixture does not model.
 
 ## Dataset
@@ -38,12 +41,12 @@ are empty, Security Events is not in use, and the database has no AI agent.
 
 Query parameters on any page:
 
-| Parameter  | Values                                                                                                                                                     |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resource` | `busy` (default: a description, three labels, every fact reported), `new` (a name and nothing else), `long` (a long description, long values, five labels) |
-| `lang`     | `de` or `fa` reads the German or Persian locale file                                                                                                       |
-| `theme`    | `dark` adds `html.dark` (server.js)                                                                                                                        |
-| `dir`      | `rtl` lays the page out right to left                                                                                                                      |
+| Parameter  | Values                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resource` | `busy` (default: a description, three labels, every fact reported), `new` (a name and nothing else), `long` (a long service name, a long description, long values, five labels) |
+| `lang`     | `de` or `fa` reads the German or Persian locale file                                                                                                                            |
+| `theme`    | `dark` adds `html.dark` (server.js)                                                                                                                                             |
+| `dir`      | `rtl` lays the page out right to left                                                                                                                                           |
 
 ## What the fixture records
 

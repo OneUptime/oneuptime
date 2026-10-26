@@ -15,6 +15,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
 import ResourceHeroDescription from "./ResourceHeroDescription";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+} from "./ResourceHeroLayout";
 import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
 
 export interface ResourceOverviewChip {
@@ -157,25 +162,6 @@ const tileColorClasses: Record<
   sky: { bg: "bg-sky-50", ring: "ring-sky-200", text: "text-sky-600" },
   rose: { bg: "bg-rose-50", ring: "ring-rose-200", text: "text-rose-600" },
 };
-
-/*
- * The hero's title block (icon, name, identifier, "Last seen") asks for
- * this much of the row before the controls may sit beside it: 24rem, the
- * icon plus 20rem of text. Any narrower and the controls wrap under it.
- */
-export const RESOURCE_OVERVIEW_TITLE_BASIS_CLASS: string = "basis-96";
-
-/*
- * The controls beside the title, or under it when they do not fit. Under
- * it from md up - beside the side menu, at 768 to about 1100px - they keep
- * to the right edge, their own wrapped row too, as every other resource
- * hero's controls do (ResourceHeroLayout) and as a card's header keeps its
- * buttons; on a phone they start at the left, under the name, as there.
- * They used to wrap to the left at every width, so a service's Overview
- * put its time range picker on the left and a host's on the right.
- */
-export const RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME: string =
-  "max-w-full md:ms-auto md:[&>div]:justify-end";
 
 /*
  * A Details value: a long one wraps inside its row - a name after its own
@@ -380,21 +366,24 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
         </div>
         <div className="relative px-6 py-5">
           {/*
-           * The controls (time range, refresh) sit beside the title only
-           * while the title keeps its RESOURCE_OVERVIEW_TITLE_BASIS_CLASS
-           * width; otherwise they wrap under it. A fixed breakpoint cannot
-           * say when that is — the side menu and the controls vary — and
-           * with md (768 px, side menu shown) the title was 0 px wide, 109
-           * px at 900 and 181 px at 1024: the name hidden and "Last seen"
-           * one word per line.
+           * Laid out as every resource hero is (ResourceHeroLayout): the
+           * name keeps its room and the controls (time range, refresh) give
+           * way - beside the title while the rest of the row holds them,
+           * under it, at the row's end, when it does not. Its own basis
+           * (24rem) kept the controls beside a long name at a laptop's
+           * width and cut the name, its identifier and its description
+           * short there, where a host's or a cluster's hero showed them
+           * whole (#5298's UI review). Before that a fixed md breakpoint
+           * put the title at 0px wide at 768 (side menu shown), 109px at
+           * 900 and 181px at 1024.
            */}
           <div
             data-testid="resource-overview-header-row"
-            className="flex flex-wrap items-start justify-between gap-4"
+            className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
           >
             <div
               data-testid="resource-overview-title-block"
-              className={`flex min-w-0 grow items-start gap-4 ${RESOURCE_OVERVIEW_TITLE_BASIS_CLASS}`}
+              className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
             >
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
                 <Icon icon={props.icon} className="h-6 w-6 text-indigo-600" />
@@ -429,7 +418,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             {props.controls ? (
               <div
                 data-testid="resource-overview-controls"
-                className={RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
               >
                 {props.controls}
               </div>

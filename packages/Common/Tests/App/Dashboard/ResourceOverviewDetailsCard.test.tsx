@@ -207,11 +207,15 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 });
 
 import ResourceOverview, {
-  RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME,
   RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME,
   ResourceOverviewDetailRow,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
-import { RESOURCE_HERO_DESCRIPTION_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
 import ServiceView from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { EDIT_IN_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/EditInSettingsLink";
@@ -593,33 +597,47 @@ describe("a long value wraps inside its row, where it reads", () => {
   });
 });
 
-describe("the hero's controls", () => {
-  test("wrap under the title from md to the row's end, as every hero's do", () => {
+describe("the hero's row: every resource hero's (ResourceHeroLayout)", () => {
+  test("the row, the title block and the controls take ResourceHeroLayout's three class names", () => {
     renderOverview([{ label: "Engine", value: "postgresql" }], {
       controls: <div data-testid="controls">controls</div>,
     });
 
+    const row: HTMLElement = screen.getByTestId("resource-overview-header-row");
+    const title: HTMLElement = screen.getByTestId(
+      "resource-overview-title-block",
+    );
     const controls: HTMLElement = screen.getByTestId(
       "resource-overview-controls",
     );
-    expect(classesOf(controls)).toEqual(
-      RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME.split(" "),
+
+    expect(classesOf(row)).toEqual(RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(" "));
+    expect(classesOf(title)).toEqual(
+      RESOURCE_HERO_IDENTITY_CLASS_NAME.split(" "),
     );
     expect(classesOf(controls)).toEqual(
-      expect.arrayContaining([
-        "max-w-full",
-        // The inline start's margin: the end of a right-to-left row too.
-        "md:ms-auto",
-        "md:[&>div]:justify-end",
-      ]),
+      RESOURCE_HERO_CONTROLS_CLASS_NAME.split(" "),
     );
+    expect(Array.from(row.children)).toEqual([title, controls]);
+    expect(controls).toContainElement(screen.getByTestId("controls"));
+  });
+
+  test("the name keeps its room: no title basis of its own, no min-w-0 that lets the controls squeeze it", () => {
+    renderOverview([{ label: "Engine", value: "postgresql" }], {
+      controls: <div data-testid="controls">controls</div>,
+    });
+
+    const title: HTMLElement = screen.getByTestId(
+      "resource-overview-title-block",
+    );
+    expect(classesOf(title)).not.toContain("basis-96");
+    expect(classesOf(title)).not.toContain("min-w-0");
+    // The controls keep to the row's end from md, on either side of a page.
+    const controls: HTMLElement = screen.getByTestId(
+      "resource-overview-controls",
+    );
+    expect(classesOf(controls)).toContain("md:ms-auto");
     expect(classesOf(controls)).not.toContain("md:ml-auto");
-    // On a phone they start under the name, as every hero's do.
-    expect(
-      classesOf(controls).filter((className: string): boolean => {
-        return !className.startsWith("md:") && className !== "max-w-full";
-      }),
-    ).toEqual([]);
   });
 });
 

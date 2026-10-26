@@ -6,7 +6,10 @@ import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
   RESOURCE_HERO_DESCRIPTION_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME,
   RESOURCE_HERO_DESCRIPTION_TEST_ID,
+  RESOURCE_HERO_DESCRIPTION_TOGGLE_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_TOGGLE_TEST_ID,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_TEST_ID,
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
@@ -45,22 +48,31 @@ import {
  *      page that is renamed or moved does not slip out of the guard.
  *
  * Services, RUM applications, databases, queues, serverless functions and
- * cloud resources draw their hero through ResourceOverview, which wraps its
- * own row (a title basis, the controls under it when they do not fit;
- * Common's DatabaseOverviewHeader suite): it has no <h1> beside an
- * AutoRefreshControl in one file, so rule 2 does not read it.
+ * cloud resources draw their hero through ResourceOverview: it has no <h1>
+ * beside an AutoRefreshControl in one file (its page hands it the
+ * controls), so rule 2 does not read it, and rule 6 holds it to the same
+ * three class names.
  *
  * #5298's UI review added:
  *
  *   5. Every hero draws the resource's description one way: under its
  *      name, with ResourceHeroDescription - two lines that wrap between
- *      words, 20rem from md. A Docker Swarm, a vCenter, a Proxmox cluster
- *      and an IoT fleet cut it to one line that never wrapped: half a
- *      sentence on a phone, and at 1280 the line claimed the identity's
- *      whole width and pushed Refresh under the name. ResourceOverview
- *      draws it the same way, in its title.
- *   6. ResourceOverview's controls keep to the row's end when they wrap
- *      from md, as the heroes' do: they wrapped to the left.
+ *      words, 20rem from md, and "Show more" for the rest. A Docker Swarm,
+ *      a vCenter, a Proxmox cluster and an IoT fleet cut it to one line that
+ *      never wrapped: half a sentence on a phone, and at 1280 the line
+ *      claimed the identity's whole width and pushed Refresh under the
+ *      name. ResourceOverview draws it the same way, in its title.
+ *   6. ResourceOverview lays its hero's row out with the same three class
+ *      names: its own row wrapped its controls to the left, and its 24rem
+ *      title basis kept them beside a long name at a laptop's width and
+ *      cut the name short there, where every other hero shows it whole.
+ *   7. A hero with a health pill puts it after its connection pill, as the
+ *      Kubernetes, Docker Swarm, vCenter and Proxmox heroes do: a Ceph
+ *      cluster's and a storage array's put it first.
+ *   8. A hero page's Details card does not repeat the hero's connection
+ *      pill: a Docker or Podman host's, a Ceph cluster's and a storage
+ *      array's had a "Collector Status" row reading the stored lowercase
+ *      word ("connected").
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -571,10 +583,9 @@ function descriptionsDrawnOtherwise(element: JsxTag): Array<string> {
 }
 
 describe("rule 5: every hero draws its description one way", () => {
-  test("the description's class: two lines that wrap, 20rem from md, aligned as the page", () => {
+  test("the description's class: words that wrap, 20rem from md, aligned as the page", () => {
     expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" ")).toEqual([
       "mt-1",
-      "line-clamp-2",
       "text-left",
       "text-sm",
       "text-gray-500",
@@ -584,6 +595,28 @@ describe("rule 5: every hero draws its description one way", () => {
     ]);
     expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME).not.toContain("truncate");
     expect(RESOURCE_HERO_DESCRIPTION_TEST_ID).toBe("resource-hero-description");
+  });
+
+  test("two lines until the reader asks for the rest, with Show more under them", () => {
+    // Collapsed: two lines, never one cut line.
+    expect(RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME).toBe("line-clamp-2");
+    expect(RESOURCE_HERO_DESCRIPTION_TOGGLE_TEST_ID).toBe(
+      "resource-hero-description-toggle",
+    );
+    // Its words start where the description's do, on either side of a page.
+    const toggle: Array<string> =
+      RESOURCE_HERO_DESCRIPTION_TOGGLE_CLASS_NAME.split(" ");
+    expect(toggle).toEqual(
+      expect.arrayContaining([
+        "-ms-1.5",
+        "px-1.5",
+        "text-xs",
+        "font-semibold",
+        "text-indigo-700",
+        "focus-visible:ring-2",
+      ]),
+    );
+    expect(RESOURCE_HERO_DESCRIPTION_TOGGLE_CLASS_NAME).not.toContain("-ml-");
   });
 
   test.each(
@@ -611,7 +644,7 @@ describe("rule 5: every hero draws its description one way", () => {
     },
   );
 
-  test("the component draws the shared class, its test id, its own script's direction and a hover title", () => {
+  test("the component draws the shared classes, its test ids, its own script's direction and a Show more that opens the rest", () => {
     const component: string = fs
       .readFileSync(
         path.join(
@@ -625,8 +658,25 @@ describe("rule 5: every hero draws its description one way", () => {
       .replace(/\s+/g, " ");
 
     expect(component).toContain(
-      '<p data-testid={RESOURCE_HERO_DESCRIPTION_TEST_ID} dir="auto" title={text} className={RESOURCE_HERO_DESCRIPTION_CLASS_NAME} >',
+      'data-testid={RESOURCE_HERO_DESCRIPTION_TEST_ID} dir="auto" className={textClassName}',
     );
+    // Two lines while collapsed, all of it once opened.
+    expect(component).toContain(
+      "const textClassName: string = isExpanded ? RESOURCE_HERO_DESCRIPTION_CLASS_NAME : `${RESOURCE_HERO_DESCRIPTION_CLASS_NAME} ${RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME}`;",
+    );
+    // A real button, saying what it opens and whether it is open.
+    expect(component).toContain(
+      'type="button" data-testid={RESOURCE_HERO_DESCRIPTION_TOGGLE_TEST_ID}',
+    );
+    expect(component).toContain("aria-expanded={isExpanded}");
+    expect(component).toContain("aria-controls={textId}");
+    expect(component).toContain('translator.translateText("Show less")');
+    expect(component).toContain('translator.translateText("Show more")');
+    /*
+     * The rest is never in a hover title only: a phone, a tablet and a
+     * keyboard never show one.
+     */
+    expect(component).not.toContain("title={");
   });
 
   test("ResourceOverview draws it in its title, never as the Details card's line", () => {
@@ -658,27 +708,157 @@ describe("rule 5: every hero draws its description one way", () => {
  * Rule 6: ResourceOverview's wrapped controls keep to the row's end
  * ---------------------------------------------------------------------------
  */
-describe("rule 6: ResourceOverview's controls keep to the row's end", () => {
-  const component: string = fs
-    .readFileSync(
-      path.join(
-        DASHBOARD_SRC,
-        "Components",
-        "TelemetryResource",
-        "ResourceOverview.tsx",
-      ),
-      "utf8",
-    )
-    .replace(/\s+/g, " ");
+describe("rule 6: ResourceOverview's hero row is every hero's", () => {
+  const file: string = path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "TelemetryResource",
+    "ResourceOverview.tsx",
+  );
+  const source: ts.SourceFile = parse(file);
+  const component: string = fs.readFileSync(file, "utf8").replace(/\s+/g, " ");
 
-  test("from md, by the inline start's margin, their own row too", () => {
-    expect(component).toContain(
-      'export const RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME: string = "max-w-full md:ms-auto md:[&>div]:justify-end";',
+  test("it imports the three class names from ResourceHeroLayout", () => {
+    const imported: Array<string> = importsOf(source)
+      .filter((entry: { from: string; names: Array<string> }): boolean => {
+        return entry.from === "./ResourceHeroLayout";
+      })
+      .flatMap((entry: { from: string; names: Array<string> }) => {
+        return entry.names;
+      });
+    for (const name of CLASS_CONSTANTS) {
+      expect(imported).toContain(name);
+    }
+  });
+
+  test("one top row: the title block with its <h1>, then the controls, each with its class name", () => {
+    const rows: Array<JsxTag> = jsxTags(source).filter(
+      (tag: JsxTag): boolean => {
+        return (
+          attributeIdentifier(tag, "className") ===
+          "RESOURCE_HERO_TOP_ROW_CLASS_NAME"
+        );
+      },
     );
-    expect(component).toContain(
-      '<div data-testid="resource-overview-controls" className={RESOURCE_OVERVIEW_CONTROLS_CLASS_NAME} >',
+    expect(rows).toHaveLength(1);
+    const row: JsxTag = rows[0]!;
+
+    const identity: JsxTag | undefined = childElements(row)[0];
+    expect(identity).toBeDefined();
+    expect(attributeIdentifier(identity!, "className")).toBe(
+      "RESOURCE_HERO_IDENTITY_CLASS_NAME",
     );
+    expect(containsTag(identity!, "h1")).toBe(true);
+
+    // The controls are the page's, drawn only when it hands some in.
+    expect(component).toContain(
+      '<div data-testid="resource-overview-controls" className={RESOURCE_HERO_CONTROLS_CLASS_NAME} >',
+    );
+  });
+
+  test("none of its own row is left: no title basis, no left margin", () => {
+    const classes: Array<string> = classNameLiterals(source)
+      .join(" ")
+      .split(" ");
+    expect(classes).not.toContain("basis-96");
+    expect(component).not.toContain("RESOURCE_OVERVIEW_TITLE_BASIS_CLASS");
     expect(component).not.toContain("ml-auto");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 7: the connection pill, then the health pill
+ * ---------------------------------------------------------------------------
+ */
+// Each hero with a health pill: how its source writes the two pills.
+const HEALTH_HEROES: Array<[string, string, string]> = [
+  ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "renderHealthPill("],
+  [
+    "Pages/StorageArray/View/Index.tsx",
+    "{statusLabel}",
+    "<StorageArrayHealthPill",
+  ],
+  ["Pages/DockerSwarm/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/Kubernetes/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+];
+
+// What a health pill is written with, in any hero.
+const HEALTH_MARKERS: Array<string> = ["healthLabel", "HealthPill"];
+
+describe("rule 7: a hero's connection pill comes before its health pill", () => {
+  test.each(HEALTH_HEROES)(
+    "%s: whether OneUptime hears from it, then what it says",
+    (file: string, connection: string, health: string) => {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      const identity: string = identityOf(hero!).getText();
+
+      const connectionAt: number = identity.indexOf(connection);
+      const healthAt: number = identity.indexOf(health);
+      expect(connectionAt).toBeGreaterThan(-1);
+      expect(healthAt).toBeGreaterThan(-1);
+      expect(connectionAt).toBeLessThan(healthAt);
+    },
+  );
+
+  test("every hero that draws a health pill is one of them", () => {
+    const listed: Array<string> = HEALTH_HEROES.map(
+      (entry: [string, string, string]): string => {
+        return entry[0];
+      },
+    );
+    const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
+      const identity: string = identityOf(hero).getText();
+      return HEALTH_MARKERS.some((marker: string): boolean => {
+        return identity.includes(marker);
+      });
+    }).map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+
+    expect(withHealth.sort()).toEqual([...listed].sort());
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 8: no Details card repeats the hero's connection pill, raw
+ * ---------------------------------------------------------------------------
+ */
+// The pages whose Details card had the row (#5298's UI review).
+const COLLECTOR_STATUS_PAGES: Array<string> = [
+  "Pages/Ceph/View/Index.tsx",
+  "Pages/Docker/View/Overview.tsx",
+  "Pages/Podman/View/Overview.tsx",
+  "Pages/StorageArray/View/Index.tsx",
+];
+
+describe("rule 8: a hero page's Details card does not repeat its connection pill", () => {
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s has no Collector Status row (the stored lowercase word the pill says in words)",
+    (_name: string, hero: Hero) => {
+      expect(hero.source.getFullText()).not.toContain(
+        'title: "Collector Status"',
+      );
+    },
+  );
+
+  test("the pages that had one are still read", () => {
+    const found: Array<string> = HEROES.map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+    for (const page of COLLECTOR_STATUS_PAGES) {
+      expect(found).toContain(page);
+    }
   });
 });
 
@@ -690,7 +870,7 @@ describe("the guard reads what it means to", () => {
     }
   });
 
-  test("ResourceOverview's hero is not one of them: its row is its own", () => {
+  test("ResourceOverview is not one of the pages rule 2 reads (its page hands it the controls); rule 6 holds it", () => {
     expect(
       HEROES.map((hero: Hero): string => {
         return relative(hero.file);

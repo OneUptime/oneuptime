@@ -44,6 +44,12 @@ const DESCRIPTION: string =
   "Takes the basket to an order: prices it, reserves stock and charges the card.";
 const LONG_DESCRIPTION: string =
   "Reserves stock for every basket across the three EU warehouses, releases it when an order is cancelled, and reconciles the counts each night against the warehouse management system's own export.";
+// Its last word, which Show more brings into view.
+const LONG_DESCRIPTION_END: RegExp = /export\.$/;
+// A service named as a Kubernetes rollout names it (?resource=long).
+const LONG_SERVICE_NAME: string =
+  "inventory-reservation-service-eu-west-2-canary-blue";
+const DESCRIPTION_TOGGLE: string = "resource-hero-description-toggle";
 
 const LABELS: Array<string> = ["payments", "production", "team-checkout"];
 
@@ -509,7 +515,7 @@ test.describe("a long value wraps inside its row, where it reads", () => {
  * ---------------------------------------------------------------------------
  */
 test.describe("the hero: the description under the name, the controls at the row's end", () => {
-  test("the description is the hero's line at every width, two lines at most, the rest on hover", async ({
+  test("the description is the hero's line at every width: two lines, and Show more exactly when there is more", async ({
     page,
   }: {
     page: Page;
@@ -522,7 +528,9 @@ test.describe("the hero: the description under the name, the controls at the row
         "resource-hero-description",
       );
       await expect(description).toBeVisible();
-      await expect(description).toHaveAttribute("title", LONG_DESCRIPTION);
+      await expect(description).toHaveText(LONG_DESCRIPTION);
+      // Never in a hover title only: a phone and a keyboard never show one.
+      await expect(description).not.toHaveAttribute("title");
       await expect(
         page.getByTestId("resource-overview-title-block"),
       ).toContainText("Reserves stock for every basket");
@@ -531,12 +539,125 @@ test.describe("the hero: the description under the name, the controls at the row
       expect(box.height).toBeLessThanOrEqual(
         2 * (await lineHeightOf(description)) + 1,
       );
+      // Show more under it when its words run past two lines, and only then.
+      const hidesWords: boolean = await description.evaluate(
+        (element: Element): boolean => {
+          return element.scrollHeight > element.clientHeight + 1;
+        },
+      );
+      await expect(page.getByTestId(DESCRIPTION_TOGGLE)).toHaveCount(
+        hidesWords ? 1 : 0,
+      );
       // Not the Details card's line any more.
       await expect(
         page.getByTestId("resource-overview-details-body"),
       ).not.toContainText("Reserves stock");
       await expectNoSidewaysScroll(page);
     }
+  });
+
+  test("on a phone, Show more opens the whole description and Show less closes it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openOverview(page, SERVICE_PAGE, "resource=long");
+
+    const description: Locator = page.getByTestId("resource-hero-description");
+    const toggle: Locator = page.getByTestId(DESCRIPTION_TOGGLE);
+    const lineHeight: number = await lineHeightOf(description);
+
+    await expect(toggle).toHaveText("Show more");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toHaveAttribute(
+      "aria-controls",
+      (await description.getAttribute("id")) || "",
+    );
+    // Under the words, its own words starting where theirs do.
+    const closed: Box = await boxOf(description);
+    const toggleBox: Box = await boxOf(toggle);
+    expect(toggleBox.y).toBeGreaterThanOrEqual(closed.y + closed.height - 0.5);
+    expect(Math.abs(toggleBox.x + 6 - closed.x)).toBeLessThanOrEqual(1);
+    await screenshot(page, "resource-overview-service-description-phone");
+
+    await toggle.click();
+    await expect(toggle).toHaveText("Show less");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect((await boxOf(description)).height).toBeGreaterThan(
+      2 * lineHeight + 1,
+    );
+    const lines: Array<string> = await linesOf(description);
+    expect(lines[lines.length - 1]).toMatch(LONG_DESCRIPTION_END);
+    expect(
+      await description.evaluate((element: Element): boolean => {
+        return element.scrollHeight <= element.clientHeight + 1;
+      }),
+    ).toBe(true);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "resource-overview-service-description-phone-open");
+
+    // The keyboard closes it as a click does.
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(toggle).toHaveText("Show more");
+    expect((await boxOf(description)).height).toBeLessThanOrEqual(
+      2 * lineHeight + 1,
+    );
+  });
+
+  test("a short description has no Show more, at any width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [TABLET, LAPTOP]) {
+      await page.setViewportSize(size);
+      await openOverview(page, SERVICE_PAGE);
+
+      await expect(page.getByTestId("resource-hero-description")).toHaveText(
+        DESCRIPTION,
+      );
+      await expect(page.getByTestId(DESCRIPTION_TOGGLE)).toHaveCount(0);
+    }
+  });
+
+  test("a long name at a laptop's width keeps its room: whole, with the controls under it at the row's end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, SERVICE_PAGE, "resource=long");
+
+    const name: Locator = page
+      .getByTestId("resource-overview-title-block")
+      .getByRole("heading", { level: 1 });
+    await expect(name).toHaveText(LONG_SERVICE_NAME);
+    // Not cut short beside the controls, as its own row did.
+    expect(
+      await name.evaluate((element: Element): boolean => {
+        return element.scrollWidth > element.clientWidth + 0.5;
+      }),
+    ).toBe(false);
+
+    const row: Box = await boxOf(
+      page.getByTestId("resource-overview-header-row"),
+    );
+    const title: Box = await boxOf(
+      page.getByTestId("resource-overview-title-block"),
+    );
+    const select: Box = await boxOf(
+      page
+        .getByTestId("resource-overview-controls")
+        .getByRole("combobox", { name: "Auto-refresh" }),
+    );
+    expect(select.y).toBeGreaterThanOrEqual(title.y + title.height);
+    expect(row.x + row.width - (select.x + select.width)).toBeLessThanOrEqual(
+      1,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "resource-overview-service-long-name-laptop");
   });
 
   test("beside the side menu, the controls wrap under the title to the row's end; on a phone they start at its start", async ({

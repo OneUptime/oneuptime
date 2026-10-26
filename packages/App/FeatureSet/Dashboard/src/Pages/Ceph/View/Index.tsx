@@ -951,13 +951,11 @@ const CephClusterOverview: FunctionComponent<
                     <h1 className="text-xl font-semibold text-gray-900 truncate">
                       {displayName}
                     </h1>
-                    <span className="inline-flex items-center gap-1">
-                      {renderHealthPill(health)}
-                      <InfoTooltip
-                        label="Cluster health"
-                        text={CEPH_METRIC_DESCRIPTIONS.health}
-                      />
-                    </span>
+                    {/*
+                     * Connected first, then the cluster's health, as every
+                     * resource hero orders them: whether OneUptime hears
+                     * from the cluster, then what it says.
+                     */}
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                     >
@@ -965,6 +963,13 @@ const CephClusterOverview: FunctionComponent<
                         className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`}
                       />
                       {statusLabel}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      {renderHealthPill(health)}
+                      <InfoTooltip
+                        label="Cluster health"
+                        text={CEPH_METRIC_DESCRIPTIONS.health}
+                      />
                     </span>
                   </div>
                   {cluster.fsid && (
@@ -1718,16 +1723,11 @@ const CephClusterOverview: FunctionComponent<
                 return Boolean(item.fsid);
               },
             },
-            {
-              field: {
-                otelCollectorStatus: true,
-              },
-              title: "Collector Status",
-              fieldType: FieldType.Text,
-              showIf: (item: CephCluster): boolean => {
-                return Boolean(item.otelCollectorStatus);
-              },
-            },
+            /*
+             * No "Collector Status" row: the hero's pill says whether the
+             * collector is connected, in words; the row repeated it as the
+             * stored lowercase value ("connected").
+             */
             {
               field: {
                 lastSeenAt: true,

@@ -214,16 +214,27 @@ describe("a metrics list row lays itself out by its own width", () => {
     expect(classesOf(sparkline)).toContain(`${SIDE_BY_SIDE}:order-none`);
     expect(classesOf(sparkline)).toContain("flex-shrink-0");
 
-    // Stacked: the rest of the line, left; side by side: its own width, right.
+    /*
+     * Stacked: the rest of the line, from its start; side by side: its own
+     * width, against the sparkline at its end. Start and end, so a
+     * right-to-left page keeps the value beside its sparkline too.
+     */
     expect(classesOf(valueText)).toEqual(
       expect.arrayContaining([
         "min-w-0",
         "flex-1",
-        "text-left",
+        "text-start",
         `${SIDE_BY_SIDE}:flex-none`,
-        `${SIDE_BY_SIDE}:text-right`,
+        `${SIDE_BY_SIDE}:text-end`,
       ]),
     );
+    for (const physical of ["text-left", "text-right"]) {
+      expect(
+        classesOf(valueText).filter((className: string): boolean => {
+          return className.endsWith(physical);
+        }),
+      ).toEqual([]);
+    }
     // No width of its own that a long value or a hovered time would outgrow.
     expect(
       classesOf(valueText).filter((className: string): boolean => {

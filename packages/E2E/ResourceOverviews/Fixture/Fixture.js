@@ -11,7 +11,8 @@
  *
  *   ?resource=  busy (default: a description, labels, many reported
  *               facts) | new (a name and nothing else reported) | long (a
- *               long description and long values that must wrap)
+ *               long service name, a description longer than two lines of
+ *               a phone's hero, and long values that must wrap)
  *   ?lang=      de or fa reads the German or Persian locale file
  *   ?theme=     dark adds html.dark (handled by server.js)
  *   ?dir=       rtl lays the page out right to left
@@ -161,7 +162,11 @@ const SERVICES = {
     techStack: [],
   },
   long: {
-    name: "inventory-reservation-service",
+    /*
+     * As a Kubernetes rollout names a service: too long to share a laptop's
+     * hero row with the controls.
+     */
+    name: "inventory-reservation-service-eu-west-2-canary-blue",
     telemetrySdkLanguage: "java",
     runtimeName: "OpenJDK Runtime Environment",
     runtimeVersion: "21.0.2+13-LTS-58",

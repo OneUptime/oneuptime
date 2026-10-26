@@ -738,8 +738,8 @@ const TASK_IMAGE: RegExp =
 // A line that ends after one of a name's own separators.
 const ENDS_AT_A_NAME_BREAK: RegExp = /[./]$/;
 
-// The long description's last words, in the hover title.
-const LONG_DESCRIPTION_END: RegExp = /nightly batch jobs\.$/;
+// The long description's last word, which Show more brings into view.
+const LONG_DESCRIPTION_END: RegExp = /jobs\.$/;
 
 // The text of each line an element's words are laid out on, in order.
 async function linesOf(locator: Locator): Promise<Array<string>> {
@@ -788,6 +788,50 @@ async function lineHeightOf(locator: Locator): Promise<number> {
   return await locator.evaluate((element: Element): number => {
     return parseFloat(getComputedStyle(element).lineHeight);
   });
+}
+
+/*
+ * A description longer than its two lines ends in "Show more", under its
+ * words and starting where they do; it opens all of it, the last words in
+ * view, and "Show less" closes it again (#5298's UI review: the rest was in a
+ * hover title, which a phone, a tablet and a keyboard never show).
+ */
+async function expectShowMoreOpensAll(
+  page: Page,
+  description: Locator,
+): Promise<void> {
+  const toggle: Locator = page.getByTestId("resource-hero-description-toggle");
+  const lineHeight: number = await lineHeightOf(description);
+
+  await expect(toggle).toHaveText("Show more");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  const closed: Box = await boxOf(description);
+  expect(closed.height).toBeLessThanOrEqual(2 * lineHeight + 1);
+  const toggleBox: Box = await boxOf(toggle);
+  expect(toggleBox.y).toBeGreaterThanOrEqual(closed.y + closed.height - 0.5);
+  // Its padding pulled back by as much: its words start where the text does.
+  expect(Math.abs(toggleBox.x + 6 - closed.x)).toBeLessThanOrEqual(1);
+
+  // The keyboard opens it as a click does.
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveText("Show less");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const opened: Box = await boxOf(description);
+  expect(opened.height).toBeGreaterThan(2 * lineHeight + 1);
+  const lines: Array<string> = await linesOf(description);
+  expect(lines[lines.length - 1]).toMatch(LONG_DESCRIPTION_END);
+  expect(
+    await description.evaluate((element: Element): boolean => {
+      return element.scrollHeight <= element.clientHeight + 1;
+    }),
+  ).toBe(true);
+
+  await toggle.click();
+  await expect(toggle).toHaveText("Show more");
+  expect((await boxOf(description)).height).toBeLessThanOrEqual(
+    2 * lineHeight + 1,
+  );
 }
 
 test.describe("the Metrics tab: names break after their dots, sparklines line up", () => {
@@ -1017,16 +1061,22 @@ test.describe("the Overview hero's description", () => {
     // Beside the name, on its line - not pushed under it by the description.
     expect(controlsBox.x).toBeGreaterThan(nameBox.x + nameBox.width);
     expect(controlsBox.y).toBeLessThan(nameBox.y + nameBox.height);
-    // Two lines at most, the rest on hover.
+    // Two lines, and Show more for the rest.
     expect(descriptionBox.height).toBeLessThanOrEqual(
       2 * (await lineHeightOf(description)) + 1,
     );
     expect(descriptionBox.x + descriptionBox.width).toBeLessThanOrEqual(
       controlsBox.x,
     );
-    await expect(description).toHaveAttribute("title", LONG_DESCRIPTION_END);
-
+    // Never in a hover title only, which a tablet or a keyboard never shows.
+    await expect(description).not.toHaveAttribute("title");
     await screenshot(page, "docker-swarm-overview-long-description-laptop");
+
+    // Show more opens all of it, where the refresh control stays put.
+    await expectShowMoreOpensAll(page, description);
+    const openedControls: Box = await boxOf(controls);
+    expect(openedControls.x).toBe(controlsBox.x);
+    expect(openedControls.y).toBe(controlsBox.y);
   });
 
   test("beside the side menu, the controls under it at the row's end; on a phone, two lines under the name", async ({
@@ -1067,6 +1117,30 @@ test.describe("the Overview hero's description", () => {
     expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "docker-swarm-overview-long-description-phone");
+
+    // A phone has no hover: Show more is how the rest is read.
+    await expectShowMoreOpensAll(page, description);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-long-description-phone-open");
+  });
+
+  test("a short one has no Show more, at a phone's width or a laptop's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [PHONE, LAPTOP]) {
+      await page.setViewportSize(size);
+      await openOverview(page);
+
+      const { topRow, description } = await heroParts(page);
+      await expect(description).toHaveText(
+        "The production swarm in Frankfurt.",
+      );
+      await expect(
+        topRow.getByTestId("resource-hero-description-toggle"),
+      ).toHaveCount(0);
+    }
   });
 
   test("right to left, beside the side menu: the controls at the row's other end, an English description in its own order, aligned as the page", async ({

@@ -52,13 +52,14 @@ Any route not listed above renders a "Not modelled" stub
 
 Query parameters on any page:
 
-| Parameter | Values                                                                                                         |
-| --------- | -------------------------------------------------------------------------------------------------------------- |
-| `events`  | `issue` (default), `normal-only` (no warning anywhere), `none`                                                 |
-| `busy`    | `1`: 1,500 more Normal events in the last minutes, more than one read takes - the warnings must still all show |
-| `fail`    | `events`: the first read of Events fails, the next works                                                       |
-| `lang`    | `de` reads the German locale file                                                                              |
-| `theme`   | `dark` adds `html.dark` (server.js)                                                                            |
+| Parameter  | Values                                                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `events`   | `issue` (default), `normal-only` (no warning anywhere), `none`                                                                                                                 |
+| `busy`     | `1`: 1,500 more Normal events in the last minutes, more than one read takes - the warnings must still all show                                                                 |
+| `fail`     | `events`: the first read of Events fails, the next works                                                                                                                       |
+| `alerting` | `on`: a Logs monitor alerts on the cluster's warning events (the Warning Events recommendation's own); `disabled`: that monitor, turned off. By default nothing alerts on them |
+| `lang`     | `de` reads the German locale file                                                                                                                                              |
+| `theme`    | `dark` adds `html.dark` (server.js)                                                                                                                                            |
 
 ## What the fixture records
 

@@ -1753,16 +1753,11 @@ const PodmanHostOverview: FunctionComponent<
                 return Boolean(item.hostIdentifier);
               },
             },
-            {
-              field: {
-                otelCollectorStatus: true,
-              },
-              title: "Collector Status",
-              fieldType: FieldType.Text,
-              showIf: (item: PodmanHost): boolean => {
-                return Boolean(item.otelCollectorStatus);
-              },
-            },
+            /*
+             * No "Collector Status" row: the hero's pill says whether the
+             * collector is connected, in words; the row repeated it as the
+             * stored lowercase value ("connected").
+             */
             {
               field: {
                 lastSeenAt: true,

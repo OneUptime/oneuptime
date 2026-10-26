@@ -116,6 +116,7 @@ import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
   RESOURCE_HERO_DESCRIPTION_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME,
   RESOURCE_HERO_DESCRIPTION_TEST_ID,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_TEST_ID,
@@ -279,9 +280,11 @@ describe("the Docker Swarm Overview's hero", () => {
       RESOURCE_HERO_DESCRIPTION_TEST_ID,
     );
     expect(description).toHaveTextContent("The production swarm in Frankfurt.");
-    expect(classesOf(description)).toEqual(
-      RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" "),
-    );
+    // Two lines until Show more opens the rest.
+    expect(classesOf(description)).toEqual([
+      ...RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" "),
+      RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME,
+    ]);
     expect(classesOf(description)).not.toContain("truncate");
     expect(
       within(controls).getByRole("combobox", { name: "Auto-refresh" }),
